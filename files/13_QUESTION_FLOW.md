@@ -200,7 +200,15 @@ That last one is a bright line with a verbatim citation. **FDA CDS guidance was 
 
 > *"Software function that analyzes sound waves captured when users cough or recite certain sentences to diagnose bronchitis or sinus infection. **This software is a device function.** It does not meet Criterion 1 because it is intended to analyze a signal or pattern."*
 
-**Any prosody, vocal-biomarker or acoustic-affect feature feeding a clinical output makes the product a device outright, and Criterion 1 failures cannot be rescued by documentation. Transcription only.** This independently confirms the decision to cut the `affect` and `acoustic` observer lanes.
+**Any prosody, vocal-biomarker or acoustic-affect feature feeding a clinical output makes that function a device outright, and Criterion 1 failures cannot be rescued by documentation.**
+
+⚠️ **This is a classification finding, not an argument for deleting the lanes — an earlier draft read it as one and that reading is withdrawn.** Three things about it are worth stating precisely, because they are routinely conflated:
+
+1. **It is about the *function*, not the deployment.** Self-hosting the model inside Türkiye is decisive for KVKK Art. 9 and the DPIA and changes nothing here. A signal-analysis function is a device function whether it runs on Kintsugi's servers or ours.
+2. **It bites on *"feeding a clinical output"*, not on *existing*.** Example 14's software *diagnoses* bronchitis. An observer lane whose output is quarantined — never entering `SessionState`, never opening a gate, never reaching triage, never rendered to a clinician — is not analysing a signal *to* produce a clinical determination. That quarantine is exactly what `03 §4.7` already specifies, and it is what invariants 10–11 exist to prove.
+3. **The instrument is `device_functions`, which the design already has.** This is precisely the boundary that flag was built to draw, and the mechanism for drawing it is **MDCG 2019-11 Rev. 1 §7 module bounding**: the acoustic and affect lanes sit in a bounded module that is *off* in Stage A and enters scope only in Stage B, alongside the clinical investigation that would be needed to validate them anyway.
+
+So the FDA text is not a reason to cut the lanes. It is the reason the lanes **must not be wired to any output before Stage B** — and, separately, the reason **`13`'s "must not" list keeps *"analyse the audio signal"* as a bright line for the *LLM*,** which is a different actor from a bounded, quarantined observer model. Note also that FDA is persuasive-only here: the binding regime is MDR/TİTCK, where the same conclusion arrives via Rule 11 rather than via the CDS criteria.
 
 Two further hard stops from the same document: *"Software functions that support or provide recommendations to **patients or caregivers – not HCPs – meet the definition of a device.**"* And **threshold-triggered alerts fail Criteria 3 and 4** — so suicide escalation must be a **staffed workflow with a live human path, not an automated alarm the software raises**, with crisis triage carved *out* of any CDS claim in labelling.
 
