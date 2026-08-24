@@ -2393,13 +2393,29 @@ Write `docs/backlog/issues.yaml` **verbatim** with the content below (schema tes
 ```python
 from livekit.agents import AgentSession, Agent, inference
 from livekit.plugins import silero, soniox            # confirm plugin names with `pip index versions livekit-plugins-soniox`
+# VERIFIED 25 Aug 2026 against livekit-agents 1.7.0 (released 2026-08-20).
+# The imports and plugin packages are real. BUT the kwargs below are DEPRECATED in 1.7.0 and
+# slated for removal in v2.0 — write P1 against the NEW API or you buy an immediate migration:
+#   turn_detection / preemptive_generation / allow_interruptions /
+#   min_endpointing_delay / max_endpointing_delay / min_interruption_duration /
+#   min_interruption_words / false_interruption_timeout  ->  turn_handling=TurnHandlingOptions(...)
+#   keyterms_options                                     ->  stt_context_options=STTContextOptions(...)
+#
+# ALSO: inference.TurnDetector() resolves to the CLOUD "v1" model only when hosted; a self-hosted
+# deployment silently gets "v1-mini", a different and smaller model, and the local model emits NO
+# backchannel probability. Pin "v1-mini" EXPLICITLY for every profile so cascade_fast and
+# residency_tr behave identically — and note that the cloud v1 streams patient audio to LiveKit
+# Inference, which is a PHI egress hop requiring an allow-list entry and a transfer-register row.
 session = AgentSession(
-    vad=silero.VAD.load(min_silence_duration=0.25),
-    turn_detection=inference.TurnDetector(),          # v1 audio-based EOU, Turkish supported (text-based plugin is deprecated)
-    stt=soniox.STT(model="stt-rt-v5", language_hints=["tr"], context=medical_terms, enable_endpoint_detection=True),
+    vad=silero.VAD.load(min_silence_duration=0.15),   # 0.25 makes the p50 budget arithmetically impossible; let the audio turn detector carry the FP load
+    stt=soniox.STT(model="stt-rt-v5", language_hints=["tr"], enable_endpoint_detection=True),
     llm=llm_gateway.talker_model(),                   # small, cached prompt, speech-text only
-    tts=soniox.TTS(language="tr"),                    # or elevenlabs / inworld; clip player bypasses TTS for scripted steps
-    preemptive_generation=True,
+    tts=soniox.TTS(model="tts-rt-v2", language="tr"), # or elevenlabs / inworld; clip player bypasses TTS for scripted steps
+    turn_handling=TurnHandlingOptions(
+        turn_detection=inference.TurnDetector(model="v1-mini"),
+        preemptive_generation=True,                   # speculate the LLM ONLY — buffer TTS until EOU is confirmed, or a late cancel plays a fragment generated from a partial, possibly misheard transcript
+    ),
+    stt_context_options=STTContextOptions(keyterms=medical_terms),
 )
 ```
 **`s2s_cloud` (flagged):** the same `AgentSession` with `llm=openai.realtime.RealtimeModel(model="gpt-realtime-2")` (EU base URL / EU residency project) or `google.realtime.RealtimeModel(model="gemini-3.1-flash-live-preview")` on a Vertex EU region; keep `turn_detection=inference.TurnDetector()` with a separate STT so endpointing stays vendor-independent; register the **same six tools**; run the output-transcript monitor for PolicyGuard.
