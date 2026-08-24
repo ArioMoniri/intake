@@ -114,7 +114,7 @@ CAT-MH is better founded than PROMIS for this use (published pricing, named in M
 
 | rule | justification |
 |---|---|
-| **Open with a genuine uninterrupted turn; budget ~2 minutes** | Langewitz, *BMJ* 2002: mean spontaneous talking time **92 s**, median **59 s**, **78 % finish within 2 minutes**, only 7 of 335 exceeded 5 minutes |
+| **Open with a genuine uninterrupted turn; budget ~90 s, one turn** | Langewitz, *BMJ* 2002: mean spontaneous talking time **92 s**, median **59 s**, **78 % finish within 2 minutes**, only 7 of 335 exceeded 5 minutes. ⚠️ **But justify it correctly — it does NOT elicit more symptoms.** Bent et al., *Ann Intern Med* 2006, randomised, N = 214: a 53-item checklist elicited **238 adverse events (77 % of patients)**; an open-ended question elicited **11 (14 %)**; p < 0.001. The open turn buys **agenda completeness** (Marvel 1999: late-arising concerns 34.9 % unsolicited vs 14.9 % solicited, at a cost of ~6 seconds) and it **retires structured steps**. Claim that, not symptom yield, or it will not survive a clinician's first challenge |
 | **Optimise for *asking*, not for silence** | Dyche & Swiderski, *JGIM* 2005: agenda completed 84.6 % vs interrupted 82.4 % (**p = .83, n.s.**) — but **never solicited 59.2 %** (p = .014). *"Interruption does not curtail ability to identify patient concerns, but failure to ask for the patient's agenda associates with a 24 % reduction in physician understanding."* A voice agent that reliably solicits already beats the human baseline (36–75 % solicitation) |
 | **Say "Is there *something* else?" — never "*anything* else"** | Heritage et al., *JGIM* 2007, randomised wording: "something" eliminated **78 % of unmet concerns (OR 0.154, p = .001)**; "anything" was indistinguishable from control (p = .122). Neither lengthened the visit. **The cheapest verified win available** |
 | **Backchannel freely** | 70.4 % of consultant interruptions are backchannels; **82.9 % of interruptions overall are cooperative** (Plug 2022; Mulder-Vos 2023). They also mask processing latency |
@@ -226,3 +226,181 @@ Each of these is a genuine void in the literature, not a search failure, and eac
 - No **RCT or prospective real-patient study** showing adaptive selection beats a fixed protocol on triage accuracy.
 
 Instrument from day one: breakoff by item position · item nonresponse by option count · response-order effects under forward/reverse counterbalancing · **red-flag elicitation coverage**.
+
+---
+
+# PART II · THE ENGINE DESIGN
+
+> **A reframing that changes which criterion actually discriminates.** "Pre-synthesisable" is not about *predicting* the next question — it is about whether the **set of possible utterances is closed at compile time**. If it is (a few hundred `ask_tr` strings in a compiled pack), you pre-synthesise *all* of them and the scripted-turn hit ratio is 1.0 by construction, however exotic the selection rule. **Four of the five candidates have closed utterance sets. Only LLM-chooses-next does not** — which is where the latency argument lands with full force, and nowhere else.
+>
+> What a **bounded frontier** buys is different and still essential: **device-side prefetch.** A bounded top-K frontier lets the runtime push the next K clip ids down the data channel while the patient is still answering, so the clip is resident before it is needed. Unbounded candidate sets break prefetch, not synthesis.
+
+## 9. The chosen design: a guarded, priority-ordered agenda over a static DAG with a K-bounded frontier
+
+A decision *tree* is the wrong top-level shape — it forces a single active path, while real intake has several independent obligations pending at once (a red-flag probe armed, a must-ask unfilled, a follow-up queued). Modelling that as a tree means duplicating subtrees, which is where skip-logic bugs live. **A DAG of gated steps plus a priority agenda is a superset**; a tree is what you get at K = 1 with re-entry forbidden.
+
+### 9.1 Nine priority classes, one total order
+
+`SAFETY_SCRIPT (0)` — not a question, a RED action script · `GATEKEEPER (1)` — universal facts other *rules* depend on · `OPEN_NARRATIVE (2)` — exactly one step · `REENTRY (3)` — clarification and contradiction reconcile · `RF_PROBE_ARMED (4)` — a red-flag probe whose arming evidence now exists · `MUST_ASK (5)` · `INSTRUMENT_ITEM (6)` — verbatim block, never interleaved · `DETAIL (7)` · `WRAP_UP (8)`.
+
+Sort key is `(priority_class, order, id)` — a **total** order with no floats.
+
+### 9.2 The frontier
+
+```python
+def frontier(S: SessionState, k: int = 8) -> tuple[Step, ...]:
+    cands = [s for s in S.protocol.steps
+             if S.state_of(s) in (NOT_ASKED, UNCLEAR)
+             and S.eval(s.gate) is TRUE          # UNKNOWN does NOT open a gate
+             and S.eval(s.retire_if) is not TRUE
+             and not S.budget.suppresses(s)]
+    cands.sort(key=lambda s: (int(s.priority), s.order, s.id))
+    return tuple(cands[:k])
+```
+
+Three properties fall out, each a CI test:
+
+- **Purity.** `frontier` reads only `S`, and `S = fold(init(protocol_hash, reference_time), events)`. **No wall clock** — `now` is `S.reference_time`, stamped at `SessionStarted` — so replay is exact.
+- **Boundedness ⇒ prefetch.** `protocol_next` returns `{step, prefetch: [clip_id for frontier[1:k]]}`.
+- **Interleaving is emergent, not policy.** A red-flag probe surfaces at class 4 the instant its gate goes TRUE. Nobody writes an interleaving rule.
+
+### 9.3 Seven answer states
+
+`NOT_ASKED` · `ASKED_PENDING` (ask-ahead bookkeeping) · `ASKED_PRESENT` · `ASKED_ABSENT` — **the only state that may enter `ros_pertinent`** · `UNCLEAR` · `DECLINED` · **`CONTESTED`** (new — two irreconcilable answers; *both* appear in the note).
+
+### 9.4 The budget governor — and which way it yields
+
+Let `R = |{must_ask steps still unasked whose gate is TRUE or UNKNOWN}|`. When `turns_remaining ≤ R`, classes 6–8 are filtered out and the UI shows *"birkaç kısa soru kaldı"*. **Class ≤ 1 is never suppressible.**
+
+> **If the budget would still be exhausted, the budget yields — not the safety set.** Emit `BudgetExceeded`, offer continue or pause. An 18-turn cap that can silently drop a must-ask is precisely the mechanism by which this product would generate a note asserting an unelicited negative.
+
+### 9.5 `GuardExpr` — deliberately weaker than FHIRPath
+
+Total, decidable, side-effect-free. Types are `bool, int, decimal(scale), string, code(valueset), date, duration, enum, set` — **no floats anywhere**, `Decimal` with declared scale and exact comparison, because floats are how two machines disagree about the same session. A closed function whitelist (`age_years`, `sex_at_birth`, `overlay`, `section_done`, `any`, `count`, `days_since`, `turns_used`, `turns_remaining`, `mode`). **No user functions, no recursion, no iteration, no fixpoint.**
+
+**Kleene three-valued logic is the type-level fix for the `negatives[]` problem.** A predicate over a `NOT_ASKED` slot returns `UNKNOWN`, never `false`; `TRUE && UNKNOWN = UNKNOWN`, `FALSE && UNKNOWN = FALSE`; **a gate opens only on TRUE.**
+
+Contrast SDC, which concedes its own expression evaluation may need *"iterative updating of expressions until values reach a stable state - or until an unstable looping condition is detected"*, and that a questionnaire can be built where an answer depends indirectly on itself. **We make that unrepresentable rather than detectable.**
+
+**Five CI-blocking compiler checks:** typing and scope · **stratified acyclicity** (a gate on step *S* may reference only slots owned by steps of strictly lower `(priority, order)`) · **`must_ask` reachability** by finite-domain enumeration — this extends `every_RED_rule_is_reachable_from_every_branch` from rules to *steps* · **termination** (every turn strictly decreases `|NOT_ASKED| + |queued re-entries|`, and re-entries are attempt-capped) · **clip and delivery coverage** — every voice step has a clip for every configured voice, and **every `text_only` step has none**, which makes "nothing sensitive can be accidentally spoken" a build-time guarantee.
+
+### 9.6 Where information gain is allowed — the whole answer in one line
+
+**It may choose the *authored* order. It may not choose the *asked* order.**
+
+- **Tier 0 — runtime selection: forbidden.** Not for latency (the item set is closed) but because the selection policy would become a performance characteristic needing V&V, and because its characteristic failure mode is **confidently skipping** a question the model is sure it knows the answer to — which produces a note reading as *elicited* when it was *inferred*.
+- **Tier 1 — a frozen integer yield table: permitted, narrowly.** Within `DETAIL` only, and only among steps in the same section, a compiled `yield_table: dict[StepId, int]` may replace `order` as the sort key. Integers, a build artefact, **covered by `protocol_hash` and the cosign signature** — so selection stays a pure function of `(protocol_hash, events)` and replays exactly. It never touches classes 0–6.
+- **Tier 2 — offline, in Loop 2: encouraged.** Compute conditional entropy reduction over de-identified completed intakes at the existing k ≥ 10 / ≥ 2 clinics / 2-week thresholds, and emit **proposals** — regenerate the yield table, reorder within a class, add a gate, retire a zero-yield DETAIL step. Add `yield_table` to `proposal_scope`'s allowed list and **`must_ask` to its forbidden list**.
+
+## 10. Why `$next-question` fails as the flow contract — the structural reason
+
+Seven reasons in the research above; this is the one that settles it.
+
+> **On `sdc-questionnaire-adapt`, `Questionnaire.url` and `Questionnaire.version` are both `..0` — prohibited.** The only durable identity is one `derivedFrom` canonical.
+
+**There is no slot on the wire for the pack version, the rule-set version, or the flow-logic version.** `protocol_hash` pinning is the single artefact that makes the "pure, replayable" claim true and that unlocks MDCG 2020-1 §4.4's module-level clinical-performance re-validation — *"validation of the CLINICAL PERFORMANCE is also permissible on module level when the functionality of the modules is independent."* `$next-question` cannot carry it, so adopting it **forfeits the modular validation allowance**.
+
+(The IG's own examples violate this: both contained Questionnaires carry `"version": "0.0.1"` despite `version` being max-0, and the contained `id` *changes* mid-conversation.)
+
+Three more that matter operationally: the spec is **silent on determinism** and does not even declare `affectsState`; the server **"may silently retract" previously-sent unanswered questions** — in a form a field disappears, in a *voice* product it means retracting a question the patient has already heard and is answering, with no defined client behaviour; and it puts sequencing behind a network hop carrying the full growing history each turn, when the RED preemption must fire **agent-side at ≤ 300 ms** and cannot wait for a remote sequencer.
+
+**And it buys zero interoperability.** A global GitHub search for `"$next-question"` returns **four repositories, all Da Vinci DTR**.
+
+### 10.1 `enableWhen` cannot reorder anything — five confirmations
+
+This is why answer-dependent *ordering* must live in the application layer regardless:
+
+1. R4 §2.37.5 and R5 §2.5.6, verbatim and identical: *"The order of questions within groups… **must be retained for display and capture**."* Unconditional MUST, no `enableWhen` carve-out.
+2. The element is defined purely as enablement — *"enabled (displayed/allow answers to be captured)"*.
+3. Is-modifier semantics are deletion, not relocation; survivors keep relative order.
+4. R5's `disabledDisplay` has exactly two codes, and `protected` — *"should still be visible"* — **exists specifically so a disabled item stays in position**.
+5. SDC v4.0.0: *"All questions get displayed in order."*
+
+Core FHIR concedes it outright: *"Specific controls on dynamic display of groups, questions, etc. based on the answers to other questions is outside the scope of the base resource."*
+
+### 10.2 What the one real CAT engine had to do
+
+Northwestern's PROMIS Assessment Center exposes `POST …/Questionnaire/{id}/next-q` — **no `$` sigil, instance-level** where SDC is strictly type-level, so a conformant SDC client cannot talk to it. And it carries θ and SE in **six extensions minted inside HL7's own namespace that do not exist** (`questionnaire-scores`, `/theta`, `/standarderror`, `-expirationTime`, `-finishedTime`, `-optionScore`, `-displayOrder` all 404). Sample data `lastUpdated: 2019-10-01`.
+
+**The one organisation running CAT at scale had to squat HL7's namespace to carry the state the operation cannot express — and then froze it.**
+
+### 10.3 What to adopt instead
+
+Keep FHIR R4 `Questionnaire`/`QuestionnaireResponse` as the export. **Add a post-hoc adaptive export** — after the session, render the *realised path* as a `sdc-questionnaireresponse-adapt` with the contained Questionnaire being the steps actually asked and `derivedFrom` our canonical, `questionnaire-derivationType = compliesWith`. That is honest ("this patient was asked this subset") and is what a hospital integrator will want. New endpoint `GET /protocols/{id}/questionnaire?profile=adapt`.
+
+**Compiler gate:** emit `enableWhen` where projectable, `enableWhenExpression` (FHIRPath) otherwise, and **fail the build if a gate is expressible in neither** — that keeps `GuardExpr` inside a projectable subset. CI asserts the export is never fed back into the engine: it is documentation, not an executable form.
+
+**Offer `$populate` as a *server*, P2** — a genuine procurement asset, cheap once the compiler emits Questionnaires, and populated answers arrive as **unconfirmed** slots that generate `confirm` steps, which is exactly our confirm-don't-reask semantics.
+
+## 11. Follow-up, contradiction, and the ask-ahead race
+
+### 11.1 Clarification → a class-3 re-entry, bounded at 2 attempts
+
+The re-entry uses the origin slot's **`follow_up_tr`**, already mandatory on every required slot — so it is **pre-synthesised, and a follow-up is a clip hit, not a TTS miss**. After 2 attempts the slot becomes `UNCLEAR` and enters `data_gaps[]` and `suggested_focus_questions[]`. There is no third attempt: an unbounded clarification loop is both a turn-budget bomb and a CSAT failure (*"beni anlamadı"* is an existing reason chip).
+
+### 11.2 Contradiction — and it can never lower triage
+
+A contradiction is an update to an already-elicited slot whose new value is not `subsumes`-compatible with the old, where `subsumes` is a declared per-type relation. *"üç gün" → "72 saat"* is a refinement; *"ateşim yok" → "dün 38.5 vardı"* is a reversal.
+
+The engine **does not overwrite**. It emits `ContradictionDetected`, sets `CONTESTED`, and **re-evaluates triage under a worst-case union — if either value would fire a rule, the rule fires.** Monotonic: a contradiction can never lower a level, and that must be a type-level guarantee rather than a convention. A class-3 reconcile step follows. **On non-resolution the slot stays `CONTESTED`, both values appear in the note labelled as conflicting, the section is excluded from `patient_confirmed_sections`, and the worst case stands.**
+
+**Recency never silently wins.** That is the difference between a note a clinician can trust and one they cannot.
+
+### 11.3 ⚠️ The ask-ahead race that is currently a fabricated-data path
+
+Step *n* = *"Ateşiniz var mı?"*; step *n+1*, already asked ahead, = *"Kaç gündür ateşiniz var?"*; then *n* extracts to `fever = absent`. **The answer to *n+1* is now meaningless — and if stored, it is fabricated clinical data.** This case is not in the current spec.
+
+**Rule:** emit `StepInvalidated{step_id, invalidated_by}`, **discard** the answer rather than storing it, record nothing for that slot.
+
+**Prevention is computed, not authored.** `ask_ahead_eligible` is derived by the compiler from the gate dependency graph it already builds for the acyclicity check: **false** iff the step's gate references a slot owned by the immediately preceding step, or it is an instrument item, or `priority ≤ 1`. When `frontier[1]` is ineligible the Talker plays a **cached one-word bridge** (*"Anladım."*) — one ~330 ms scripted turn, a clip hit, correctness preserved. Track `ask_ahead_stalls_per_session`.
+
+### 11.4 Replay
+
+The trick is simple: **the nondeterministic component is recorded as an input, never re-executed.** Events carry `SessionStarted{protocol_hash, pack_signature, reference_time, …}`, `FrontierComputed{basis_event_seq, optimistic_assumption?, k, step_ids}`, `StepAsked{clip_id | dynamic_text_hash, presentation_order_variant, delivery}`, `ExtractionLanded{model_id, prompt_version, …}`, `ContradictionDetected`, `StepInvalidated`, `TriageEvaluated{rule_ids, level, inputs_hash}`.
+
+Contract: `fold(engine_init(protocol_hash, reference_time), events) == final_state`, exactly. Replay needs **no LLM and no clock**.
+
+The payoff is a regression surface: **a nightly job replays de-identified production sessions against a candidate pack and diffs the question sequence.** That diff is the review artefact for every protocol PR — and it is precisely the *"objective evidence that the MDSW specifications conform to user needs… and that the requirements implemented can be consistently fulfilled"* that MDCG 2020-1 §4.3 asks for.
+
+## 12. Corrections to widely-repeated figures
+
+Three claims in circulation are wrong as usually stated, and two of them would land in a clinical evaluation file.
+
+| claim | actually |
+|---|---|
+| **"NICE CG151 requires antibiotics within 1 hour"** | **CG151 contains no one-hour threshold anywhere.** Rec 1.4.1.1 says *"offer empiric antibiotic therapy **immediately**"*; its only clock is 1.5.1.1, risk assessment *"within 24 hours"*. The one-hour figure is **NG255 rec 1.7.2**, and **the clock starts at meeting high-risk criteria, not at the door**. IDSA's *"within 2 h"* is ungraded narrative text. `rf.neutropenic_fever.source` must cite CG151 1.4.1.1 — **a fabricated one-hour threshold in a clinical evaluation file is a finding waiting to happen** |
+| **Beckman's "18 seconds"** | not verifiable from the abstract. Use **Marvel 1999's 23.1 s**, or Coyle 2022's pooled 18.2 s — and note the coincidence trap: those are different figures that happen to look alike |
+| **Miller's "7±2" as a spoken-options limit** | Miller explicitly *separated* absolute judgment from immediate memory and called seven *"only a pernicious, Pythagorean coincidence."* The applicable figure is **Cowan 2010: "3 or 4 longer verbal chunks, such as idioms or short sentences"** — which is what response options are. The "3–5 IVR menu options" rule has **no traceable primary source**; mark it folklore |
+
+Also: **Krosnick & Alwin 1987 tested *visual* show-card presentation and found *primacy*.** Auditory recency is their theoretical *prediction*, not their finding — cite Schwarz et al. 1991/1992 for the mode contrast.
+
+## 13. The safeguarding exception — where the honest design is to under-ask
+
+Fincher et al. 2015 (RCT, N = 368) found **face-to-face produced *more* IPV disclosure than computer** — prior-year any IPV aOR 2.02, **sexual IPV aOR 4.31**. The plausible mechanism is that IPV disclosure is **help-seeking directed at a person who can respond**, not a confession to be extracted. A voice agent that cannot respond may **suppress** exactly the disclosure we most need.
+
+**Therefore, for safeguarding the product should not attempt to elicit a disclosure at all.** Present a discreet, text-only *route to help*; keep the `CLINICIAN_ONLY` disposition invisible to the patient and to any proxy; provide the discreet exit; and **measure nothing.**
+
+`delivery: voice | text_first | text_only` becomes a DSL field per section and per slot. `screening` (PHQ/GAD/C-SSRS) is **`text_only`**; substance use, sexual and reproductive history, and pregnancy/LMP are **`text_first`**; safeguarding is **`text_only` with no extraction attempted**.
+
+**And reading it aloud is not a mitigation** — adding audio to a silent computer bought nothing (ACASI-vs-CASI moderator γ = −0.01 and −0.03, both ns). **`text_only` must mean text only: no clip, no `speech_tr`, ever** — enforced by the compiler check in §9.5.
+
+**The highest-value trigger, and the least implemented:** a **third party detected present** switches every sensitive section to text. Presence of others is the largest single moderator in two meta-analyses (Ω 1.61 alone vs 1.18 with others, ΔR² = .50; predicted d 0.12 vs 0.65; OR 3.0 in households with children). The current companion flow treats a third party as a **feature**; for sensitive sections it is a **confound**.
+
+## 14. What this changes in `03`
+
+1. `next_step()` → **`frontier(k=8)`**, with the nine classes and the total sort key.
+2. `AnswerState` gains **`CONTESTED`** (seven states).
+3. Add the **`GuardExpr` specification** — grammar, types, Kleene semantics, closed whitelist, and the explicit prohibitions (no floats, no wall clock, no hash-map iteration order, no fixpoint).
+4. Add the **five compiler checks** as CI-blocking.
+5. Add the **budget governor**, including *the budget yields before the safety set does*.
+6. Add the **event-log types** and the replay contract.
+7. **Ask-ahead becomes conditional on `ask_ahead_eligible`**, compiler-derived — a concrete amendment to §4.1's blanket ask-ahead.
+8. Add **`StepInvalidated`** semantics (§11.3).
+9. `protocol_next` gains **`prefetch`**, **`delivery`**, **`presentation_order_variant`**. The six-tool surface is unchanged.
+10. **New invariant 12** (replay equality) and **13** (no `text_only` clip).
+11. FHIR export fidelity gate; post-hoc adaptive export; `$populate` **as a server**, P2; `$next-question` **not** as an internal contract.
+12. Compiler emits the **`yield_table`** and the two fixed presentation-order variants.
+13. In `04`: promote **pregnancy/LMP** and **immunosuppression** to class-1 gatekeepers with a compiler assertion that each precedes every step whose gate references it; fix `rf.neutropenic_fever.source`; branch sepsis across NG253/NG254/NG255 by age and pregnancy; add the compound-turn form (≤ 4 items, "hayır" default) for the unarmed life-threat block.
+14. New KPIs: **`turns_to_RED` p50/p90 split by `device_functions`** · `steps_retired_by_open_narrative` · `contradictions_per_session` · `ask_ahead_stalls_per_session` · `frontier_recompute p99 ≤ 5 ms` · `text_mode_entry_rate` · **per-section disclosure delta between voice and text delivery**, which is the in-product A/B that would actually validate the 5–16 pp claim rather than assuming it.
+
+**New ADR-021 — "Deterministic frontier engine; no runtime information-gain; `$next-question` rejected as the flow contract."**
