@@ -185,3 +185,85 @@ Each scenario: persona (age, sex, literacy, dialect, anxiety), department, hidde
 - **Change control:** CODEOWNERS clinician review; red-flag semantics only via ADR + sign-off; learning-loop proposals can add `YELLOW_REVIEW` candidates, never change levels (`09 §4`).
 - **Clinical monitoring:** per-step clarification/follow-up/skip/abandon rates, must-ask coverage, RED/YELLOW rates per branch, false-RED reviews and clinician-reported misses, PolicyGuard blocks by phrase class, instrument completion rates, note acceptance by section — drift alerts when a pack's metrics move beyond control limits after a version change.
 - **Content privacy:** packs and goldens contain synthetic data only; simulator transcripts are synthetic; PHI-pattern scans run on fixtures in CI.
+---
+
+## 8. `base.life_threat` — the universal rule set (added 25 Aug 2026)
+
+**The problem this fixes.** In v1.4, cauda equina, testicular torsion, limb ischaemia, acute angle-closure, neutropenic fever and GCA all lived in *cluster or specialty* packs. Because the resolution chain is `base → cluster → specialty → visit_type → overlay → hospital`, each rule was evaluated **only if the patient booked into a branch whose pack carried it** — and patients do not present according to their booking. The MHRS booking-to-visit lag is days to weeks, and intake runs at T-24h, by which time the reason for the conversation is frequently not the reason for the booking.
+
+Concretely, all of these were unprotected: a Fizik Tedavi patient who can no longer feel his bladder filling had **no cauda equina rule**; an Aile Hekimliği patient with four hours of unilateral scrotal pain had **no torsion rule**; a Dermatoloji patient on chemotherapy day 8 at 38.1 °C had **no neutropenic-fever rule**, because it lived inside `overlay.oncology_patient` attached to *gastroenterology*. Evidence that the boundary was already unmaintained: `specialty.rheumatology` cites `rf.cauda_equina` **as "(base)"** while §3's base table never contained it.
+
+**The fix is structural, not a longer table.** `base.life_threat` is a **sibling rule set evaluated on every session regardless of branch**, joined to the pack's red flags by a lattice `max`. It sits *outside* the inheritance chain, and the deny-list makes it unreachable from any pack operation — so composition is monotone by construction. It fires for `cluster.excluded` (Acil) and for a session whose protocol resolution *failed*. Full mechanics in `12 §1`.
+
+### 8.1 Authoring rules — binding
+
+1. **Every trigger must be answerable by a layperson** about themselves or a person in front of them. Forbidden as triggers: respiratory-rate counts, chest-indrawing grading, skin turgor, capillary refill, *"appears ill to a healthcare professional"*, cremasteric reflex, rigidity on palpation, and any blood pressure the patient has not measured themselves. Where a guideline feature is rejected on this ground, the rule records it in an `excluded_criteria` block **with the reason** — that list is part of the clinical evaluation, not an omission.
+2. **Where the parent-reportable / clinician-only split is ours rather than the guideline's, say so.** NICE does not publish that split for NG143 Table 2. The `inference_disclosure` field records it, and it must appear in the ISO 14971 file.
+3. **Every rule carries `source:`** — `{guideline_id, guideline_title, version_or_date, url, retrieved_on, quote}` — and the `quote` must appear **verbatim** in a committed snapshot under `packages/protocols/sources/`. A rule that cannot be sourced carries `status: draft_needs_source` with a non-empty `source_gap` and **is not compiled into a served pack**. It never carries an invented citation.
+4. **Every rule carries `tense:`** (`now | today | within_7d | within_30d | ever`) with a genuinely different `action_tr` per tense. *"Hemen 112'yi arayın"* for an event three weeks ago is a false alarm clinicians learn to ignore.
+5. **Levels are the EK-4 five**, and `disposition` is separate so `device_functions=off` suppresses interpretation without touching acuity.
+6. **Action scripts carry the do-nots.** Rabies: *"yarayı dikişle kapatmaya çalışmayın"*. Ingestion: *"kusturmaya çalışmayın … nötralize etmeye çalışmayın"*. Suspected airway obstruction: *"çocuğu kucağınızda, kendi rahat ettiği pozisyonda tutun"* — and **that rule must not run the normal attention-grabbing interrupt at all**, because children with upper-airway obstruction deteriorate if upset.
+
+### 8.2 CI gates — all blocking
+
+**Reachability** · `every_RED_rule_is_reachable_from_every_branch` · `must_cover_ids_all_present` · `no_rule_references_an_undeclared_slot` · `taxonomy_coverage`
+
+**Provenance** · `every_red_rule_has_a_source_block` · `no_draft_rule_is_served` · `quote_supports_the_trigger_or_declares_a_caveat` · `usptf_citations_are_dated` (always *"as at 20 June 2023"*, never *"current USPSTF guidance"*) · **`no_source_uses_a_retired_or_superseded_guideline`**, against this list:
+
+| retired / superseded | use instead | note |
+|---|---|---|
+| NICE **NG51** | NG253 / NG254 / NG255 (19 Nov 2025) | NICE's own word is **"replaced"**, not "withdrawn" — match it in a regulated document |
+| NICE **CG102** | NG240 | withdrawn |
+| **SSC 2021** | SSC 2026 (23 Mar 2026) | qSOFA position inverted in form, not reversed |
+| **ACC/AHA 2017 HTN** | ACC/AHA 2025 (14 Aug 2025) | **four published corrections** — cite the corrected version |
+| **IDSA 2010 FN** | NICE CG151 | ARCHIVED banner on idsociety.org |
+| NICE **NG59** for CES | GIRFT March 2026 | NG59 **explicitly excludes** cauda equina from scope |
+| GIRFT **"February 2023"** | March 2026 revision | nine revisions stale — GIRFT keeps the title date and *appends* updates |
+| **"Kuduz Saha Rehberi"** | Kuduz Profilaksi Rehberi, HSGM Yayın No 1134, 2019 | retired title |
+| **"KKKA Saha Rehberi"** | KKKA Vaka Yönetim Rehberi, HSGM Yayın No 1310, 2025 | retired title |
+
+**Crisis strings** · **`no_crisis_string_contains_182`** · `crisis_numbers_are_not_model_populated` · `safeguarding_numbers_are_correct` (183 violence/abuse/neglect, 191 substance, 112 suicide crisis)
+
+**Answerability** · `no_trigger_requires_a_forbidden_measurement` · `every_excluded_criterion_states_a_reason`
+
+**Safeguarding channel** · `clinician_only_never_leaks` · `safeguarding_never_spoken` · `discreet_exit_present_on_every_screen`
+
+**Proxy and instruments** · `proxy_session_never_emits_a_numeric_instrument_score` · `instrument_scores_trace_to_a_verbatim_option` · `administration_mode_recorded`
+
+**Three-state answers** · `answer_state_is_three_valued` · `did_not_understand_is_not_a_no`
+
+**What the patient was told** · `red_advice_and_dismissal_are_recorded` — if a KIRMIZI rule fires and the patient dismisses the interrupt, the note records it: *"14:02'de acile başvurması önerildi; hasta görüşmeye devam etmeyi seçti."* A clinician seeing them on Thursday needs to know they were advised to attend Acil on Tuesday and did not.
+
+**Crisis-path integrity** · `crisis_items_have_no_offline_draft_path` (evaluated server-side **on the answer**, excluded from the encrypted offline-resume cache) · `abandonment_handler_is_defined` · `consent_independent_path_runs_when_wellbeing_consent_is_declined`
+
+**Levels and routing** · `cluster_packs_never_lower_a_base_level` · `levels_are_five_valued` · `ek4_chest_pain_split_is_three_way` · `sepsis_guideline_routes_on_age_and_pregnancy`
+
+**Accessibility** · `red_path_works_with_no_audio` (the RED design is defined in terms of cutting playback within 150 ms, which is **meaningless in typed mode**) · `device_off_mode_behaviour_is_asserted` · `turkish_negation_adversarial_set` (*"ağrım yok değil hani"*, *"bayılmadım ama bayılacak gibi oldum"*, *"kanama yoktu, sadece siyahtı"*)
+
+**Goldens** · `every_rule_has_a_true_positive_and_a_near_miss_negative` — the negatives matter as much as the positives, or the suite cannot detect over-triggering.
+
+### 8.3 Safety metrics — replacing the false-RED ≤ 2 % target
+
+The 2 % ceiling is deleted. It is arithmetically incompatible (~30 RED rules at ~0.1 % each is already ~3 %) and it is the **wrong optimisation**: a hard false-RED ceiling creates continuous pressure to weaken rules, which is exactly the failure the monotonicity guardrails exist to prevent.
+
+- **Primary — misses, not false positives.** Zero clinician-confirmed missed time-critical conditions, measured by **chart-linked follow-up of a sample of YEŞİL sessions** — not clinician self-report, which under-detects.
+- **Secondary** — `EMERGENCY_NOW` ≤ 0.5 % (tight) · `SAME_DAY_ACIL` several % acceptable · `EXPEDITE` monitored, no ceiling.
+- **Per-rule review, no global gate.** Three rules are **exempt from any ceiling, with reasons on the record**: `rf.sah_ottawa` (specificity ~23 % *by design*; the rule does not reduce imaging — pooled OR 1.15, 95 % CI 0.62–2.13) · `rf.meningitis_pattern` (deliberately fires on early non-specific features, because the classic ones are late — median 13–22 h) · `rf.ectopic_possible` (NG126: *"atypical presentation … is common"* and *"even if a symptom is less common, it may still be significant"*).
+
+⚠️ **New and blocking for P1 exit:** per-rule **extraction sensitivity and specificity against a Turkish clinical reference standard**. A deterministic rules engine over probabilistic inputs is not deterministic — the design audits the LLM's *output* while treating its *input to the safety layer* as ground truth.
+
+### 8.4 The guideline-currency job
+
+**Diff each guideline's update-information chapter, not its header date.** NICE no longer publishes a visible static list; the modern signal is the page phrase *"This guideline will be reviewed if there is new evidence that is likely to change the recommendations"* — present on NG143, CG84, NG240 and NG126, meaning **none is on a scheduled review cycle and each can sit unrevised indefinitely**.
+
+A header-date check misses clinically material changes. Two proofs: **CG89** has a March 2026 text change that does not move its "last updated"; and **CG84's** October 2022 minor change moved the IV fluid bolus for shock from **20 ml/kg to 10 ml/kg**, so a 2009-dated citation could carry the old figure.
+
+Traps the job must handle: GIRFT keeps the original title date and appends updates · Turkish HSGM rehber **titles change on republication**, so a title-based check silently passes on a superseded document · `nice.org.uk` 403s automated fetches but `curl` with a browser user-agent works · ahajournals, jacc, cks.nice.org.uk, ESMO, diabetesjournals and samhsa all 403 — **anything sourced only from a secondary reproduction must be human-confirmed against the PDF before it enters a clinical product.**
+
+**Watch list:** NG253/NG254/NG255 (all three have updates **in progress** — procalcitonin, PEWS, MEWS) · BSR GCA 2020 (labelled *"In revision"* and past its own 3-year interval) · ESVS ALI 2020 (under revision) · WHO opioid overdose 2014 (replacement expected late 2026 / early 2027) · ACC/AHA 2025 HTN (four corrections).
+
+### 8.5 Open questions for counsel, and what blocks the first patient
+
+**[counsel]** Device-off mode: is *contingent-but-non-device* signposting permissible — saying, immediately after a symptom question, *"Bu belirtiyi bildirdiniz. Bu tür belirtilerde beklemeyin — 112'yi arayın"*? **This is a different question from Rule 11 triage and must be asked separately.** Until it is answered, the safe option applies: **do not ask the red-flag questions at all in device-off mode**, because asking and answering with silence is iatrogenic false reassurance. · Lawful basis for notifying a contact person on a crisis disclosure · Lawful basis for a third-party warning under `rf.harm_to_others` · The adolescent private-section confidentiality default (must be the safe one, not the clinic's written policy) · The GETAT scope gate and the Adli Tıp exclusion.
+
+**Blocking before the first patient:** C-SSRS — until the escalation policy, abandonment handler, consent-independent crisis path *and* the Clario/RFMH electronic-licence question are all resolved · WHO-5 — until WHO commercial permission exists · HAQ-DI — until the Turkish translation rights are cleared · and **every `draft_needs_source` rule either sourced or kept out of the served pack.**
