@@ -1,0 +1,91 @@
+# 08 · Admin console, observability, CI/CD and the self-hosting matrix (v1.4, 21 Aug 2026)
+
+> One console (`apps/admin-web`) for three audiences: **operators** (is it up, is it fast, what does it cost), **clinical leads** (is it safe, is it good, what should change) and **compliance** (who saw what, where did data go). Everything it shows comes from the same telemetry the runtime already emits; nothing in it is a screenshot of a vendor dashboard. Every model and service on the PHI path is **self-hostable**, and the console shows, per component, whether it is *currently* self-hosted and healthy.
+
+## 0. Relationship to `10`
+`10_SECURITY_AND_TECHNICAL_MONITORING.md` defines the monitoring contract every service implements (`/healthz` `/readyz` `/metrics` `/version`, OTel with redaction, SLOs, probes) and the security controls per feature; this file defines how the console **renders and controls** them. If a signal is not in the catalogue (§4) it does not exist; if a control is not in `10 §9` it is not done.
+
+## 1. Principles
+1. **Observe the conversation, not just the servers.** Per-turn voice metrics (EOU delay, TTFT, TTFB, round-trip, interruptions), per-Work latency, insertion-window wait and RED preemption are first-class, alongside CPU and queues.
+2. **No PHI in the console by default.** Aggregates and ids only; a *break-glass* view (reason + 4-eyes + audit) opens a single de-identified transcript for incident review.
+3. **Control is audited and gated.** Safety-relevant switches (voice profile, S2S enable, learning-loop apply, protocol promotion, kill switch) require a second approver and write to the hash-chained audit log.
+4. **Self-host by default; vendors are accelerators.** The PHI path must have an in-country option for every hop; the console fails a release if any enabled component on that path lacks a self-hosted fallback.
+5. **CI/CD is visible where decisions are made.** Pipeline, eval gates, deploy health and canary state sit next to the KPIs they protect.
+
+## 2. Roles (Keycloak SSO + MFA, self-hosted; RBAC + ABAC by tenant)
+`platform_admin` · `tenant_admin` (hospital IT) · `clinical_lead` (protocol review, safety queues) · `sre_oncall` · `compliance_officer` · `researcher` (de-identified aggregates only) · `support` (ticket-scoped, no clinical content). IP allow-list for console; session ≤ 8 h; every action audited.
+
+## 3. Modules and what each one shows / controls
+| module | shows | controls |
+|---|---|---|
+| **Overview** | SLO tiles (availability, voice round-trip p50/p95 per profile, active sessions, RED events today, CSAT 7-day, cost today), incident banner, canary status | — |
+| **Voice runtime** | per profile × tenant: EOU delay, Talker TTFT, TTS TTFB, round-trip, barge-in latency, interruption rate, silence ratio, clip-cache hit %, insertion-window wait, Work latency, RED preemption latency, ASR confidence/WER proxy, vendor reachability | switch default profile per tenant; canary weights; backchannels A/B; **kill switch → typed mode**; S2S enable (requires eval-gate green + 4-eyes) |
+| **Models & self-hosting registry** | every model/service: name, version, host (TR DC / EU region / vendor), license, `self_hostable`, `self_hosted_now`, health probe (60-s synthetic call), p95 latency, GPU util/queue depth, last eval score, fallback chain | enable/disable; set fallback order; pin version; run benchmark |
+| **Protocols** | coverage matrix (branch × maturity), versions and diffs, review queue, learning-loop proposals with evidence bundles, canary state, golden-test results, clip-cache coverage per voice | approve/reject proposals (clinician role), promote maturity, start/stop canary, regenerate clips |
+| **Clinical quality & safety** | triage events by level/rule/branch, false-RED review queue, clinician-reported missed flags, PolicyGuard blocks by phrase class and profile, note acceptance by specialty/clinician, must-ask coverage, hallucination audit sample (Langfuse annotation queue), crisis-path completion, observer-lane signal rates (consented share) | open annotation queue; file ADR request for rule change |
+| **Experience & satisfaction** | CSAT (1–5 + reason chips) per branch/profile/clinic, NPS monthly, clinician pulse, completion/abandonment funnel by step, **wait times**: time-to-first-question, answer latency distribution, time-to-note-ready, clinician time-to-open, check-in→seen (connector), MHRS appointment-loyalty style metrics when the hospital shares them (MoH SDS-01) | configure survey cadence; export (aggregate) |
+| **Operations** | service health (api, voice-runtime, workers, LiveKit SFU/TURN, Postgres, Redis, MinIO, EHRbase, HAPI, vLLM, TTS), queues and backlog, error budget burn, incidents and timeline | acknowledge/silence alerts; drain worker; scale hint |
+| **CI/CD & releases** | pipeline runs (GitHub Actions on self-hosted runners in the TR DC), eval gates (Langfuse experiments, triage goldens, latency harness, runtime invariants), deploy health (Argo CD apps: dev/staging/tr-residency), canary/rollback, coverage and flaky-test trends, ADR index | promote build; rollback; freeze deploys |
+| **Flags & config** | Unleash (OpenFeature SDKs): per-tenant voice profile, lane consents defaults, learning-loop apply, experimental packs | edit with change reason; safety flags need 4-eyes |
+| **Compliance** | consent stats by layer/version, vendor transfer register + notification dates, audit-log search, DSAR/export/delete queue and SLA, retention jobs, DPIA status, residency attestation per tenant | run export/delete; record notification; break-glass |
+| **Cost** | per-session cost by component/vendor/profile, GPU hours, token/char usage, budget alerts | set budgets |
+| **Tenants** | hospitals/clinics, connectors, enabled packs, branding, contacts | onboard tenant; rotate keys |
+| **Security** (`10 §7`) | SIEM summary (Wazuh/Falco/CrowdSec), failed logins & OTP anomalies, new-device logins, egress denials, WAF blocks, injection suspicions, integrity checks (audit chain, image/pack signatures), vulnerabilities by severity/age vs SLA, secrets & certificate rotation countdowns, backup freshness & last restore drill, access-review status, pen-test findings, incident timeline | acknowledge; trigger key rotation; revoke sessions/tokens; open break-glass (4-eyes); export evidence |
+| **Reliability** (`10 §6`) | SLO attainment & error budgets per service, burn-rate alerts, golden signals per service, dependency health graph, synthetic probe matrix, chaos/load test results, deploy-freeze state, client crash-free rate & RUM | freeze/unfreeze deploys; run probe; start chaos experiment (staging) |
+
+## 4. Metrics catalogue (the tracked-parameter map; ids are the OTel/Prometheus names)
+**A. Availability & SLOs** — `slo.api_availability` (99.9 %) · `slo.voice_session_success` (session starts that reach first question, 99.5 %) · `slo.note_ready_within_60s` (99 %) · `slo.doctor_link_open_p95` (< 2 s).
+**B. Voice runtime (per turn, labels: profile, tenant, branch, vendor)** — `voice.eou_delay_ms`, `voice.transcription_delay_ms` (LiveKit EOUMetrics) · `voice.talker_ttft_ms`, `voice.talker_tokens`, `voice.prompt_cached_tokens` (LLMMetrics) · `voice.tts_ttfb_ms`, `voice.tts_chars` (TTSMetrics) · `voice.stt_audio_s`, `voice.stt_duration_ms` (STTMetrics) · `voice.round_trip_ms` (VAD end → first audio on device; p50/p95 targets in `02 §8`) · `voice.barge_in_stop_ms` (≤ 150) · `voice.interruption_rate` (< 15 %) · `voice.silence_ratio` · `voice.clip_cache_hit_ratio` (≥ 0.6 fast mode) · `voice.backchannel_count` · `voice.asr_confidence_mean`, `voice.asr_wer_proxy` (disagreement between primary and shadow STT on sampled turns) · `voice.profile_switches`, `voice.typed_fallbacks`.
+**C. Two-layer runtime** — `work.queue_depth`, `work.latency_ms` by type (extract_slots p50 < 3 s), `work.failed_total`, `work.restart_failures` · `delivery.insertion_wait_ms` (p50 ≤ 2 s), `delivery.retries`, `delivery.duplicates` (must be 0) · `preempt.red_latency_ms` (≤ 300, p99 alert) · `talker.tool_calls_total` by tool (exactly six names; any other name is an alert).
+**D. Clinical quality** — `note.acceptance_rate` (accept+edit / all; ≥ 70 % → 85 %) · `note.edit_ratio_by_section` · `note.time_to_ready_s` · `note.clinician_time_to_open_s` · `protocol.must_ask_coverage` (≥ 95 %) · `protocol.clarification_rate`, `protocol.follow_up_rate`, `protocol.skip_rate` by step · `records.extraction_accuracy` (audited sample) · `hallucination.audit_rate` (< 0.5 %).
+**E. Safety** — `triage.events_total` by level/rule · `triage.false_red_rate` (≤ 2 %) · `triage.missed_flag_reports` · `policyguard.blocks_total` by class/profile · `policyguard.retractions_total` (s2s) · `crisis.path_completion` (100 %) · `s2s.eval_gate_status`.
+**F. Experience & satisfaction** — `csat.score` (1–5; target ≥ 4.3) and `csat.reason` distribution (too long / didn't understand me / felt rushed / helpful / felt heard) · `nps.monthly` · `clinician.pulse` (quarterly 1–5) · `session.completion_rate` (≥ 80 %) · `session.duration_s` (fast median ≤ 4 min) · `session.abandon_step` · `session.repeat_requests`.
+**G. Wait times** — `wait.time_to_first_question_s` (≤ 3 s) · `wait.answer_latency_s` (patient think-time; context for design) · `wait.note_ready_after_wrapup_s` (≤ 60 s) · `wait.doctor_link_first_open_h` · `wait.checkin_to_seen_min` (connector tenants) · `wait.records_processing_s` by document type.
+**H. Adoption & business** — activation (fast intake within 7 days; 45 %) · weekly intakes per clinic · notes delivered · branch coverage used · companion-profile share · consent opt-in by layer · revocations honoured < 1 min.
+**I. Operations** — standard RED/USE (rate, errors, duration; utilisation, saturation, errors) per service · LiveKit `worker_load`, `active_jobs` (Prometheus :8081) · GPU util/mem · queue depth (Celery, Redis streams) · DB replication lag · storage growth · certificate expiry.
+**J. Cost** — `cost.per_session` by component · tokens/chars/audio-seconds by vendor · GPU hours · forecast vs budget.
+**K. Compliance** — consent coverage by version · vendor notifications due/overdue · DSAR SLA · audit-log integrity check (hash chain verified daily) · residency attestation per tenant · retention job success.
+**L. Learning loops** — proposals opened/approved/rejected · canary outcomes · rollback count · evidence-bundle completeness · k-anonymity rejections · GEPA experiment deltas on held-out sets.
+**M. Security (`10 §7`)** — `sec.auth_failures_total` by reason/ASN · `sec.otp_requests_total`, `sec.otp_abuse_blocks` · `sec.attestation_failures` · `sec.new_device_logins` · `sec.token_reuse_detected` · `sec.waf_blocks_total` · `sec.egress_denied_total` (alert > 0) · `sec.injection_suspected_total` · `sec.policyguard_spike` · `sec.audit_chain_ok` (daily) · `sec.image_signature_failures`, `sec.pack_signature_failures` · `sec.vulns_open{severity}` and `sec.vuln_age_days` vs SLA · `sec.secret_rotation_due_days`, `sec.cert_expiry_days` · `sec.backup_age_min`, `sec.restore_drill_age_days` · `sec.break_glass_total` · `sec.admin_actions_total` · `sec.mttd_min`, `sec.mttr_min` · `sec.pentest_findings_open`.
+**N. Reliability & client (`10 §6`)** — `slo.error_budget_remaining{slo}` · `slo.burn_rate{window}` · golden signals per service (`svc.latency_ms`, `svc.rps`, `svc.error_ratio`, `svc.saturation`) · `probe.status{component}`, `probe.latency_ms` · `deploy.frequency`, `deploy.change_failure_rate`, `deploy.rollbacks_total` · `chaos.last_result`, `load.max_concurrent_sessions` · `client.crash_free_sessions` (≥ 99.5 %), `client.cold_start_p95_ms`, `client.anr_rate`, `client.offline_sync_success` · `net.rtt_ms`, `net.jitter_ms`, `net.packet_loss_ratio` per turn · `web.core_web_vitals`.
+
+## 5. Alerting (burn-rate on SLOs; page on p99, not averages)
+Page: any `sec.egress_denied_total` > 0 · audit-chain or signature failure · SLO burn rate 14.4×/1 h · backup age > 30 min · OpenBao sealed · certificate < 7 days · RED preemption p99 > 300 ms (5 min) · round-trip p95 > target ×1.5 (10 min) · voice session success < 99 % (5 min) · any component on the PHI path without a healthy self-hosted fallback · audit-chain verification failure · `delivery.duplicates` > 0 · `talker.tool_calls_total{tool!~six}` > 0. Ticket: CSAT 7-day < 4.0 · acceptance −5 pts week-over-week · clip-cache hit < 50 % · vendor notification overdue. Runbooks in `docs/runbooks/` linked from every alert.
+
+## 6. Self-hosting matrix (PHI path must be green; vendors optional)
+| component | self-hosted option (license) | status probe | cloud accelerator (optional) |
+|---|---|---|---|
+| Media/SFU | LiveKit server + TURN (Apache-2.0) | `/` health + synthetic room join | LiveKit Cloud EU |
+| Voice runtime | `livekit-agents` worker (Apache-2.0) | Prometheus :8081, synthetic turn | — |
+| Turn detection | LiveKit Turn Detector v1 (local CPU) | model load check | — |
+| STT | Qwen3-ASR-1.7B on vLLM (Apache-2.0); faster-whisper (MIT) | `/v1/models` + 1-s audio probe | Soniox v5, ElevenLabs Scribe v2, Inworld |
+| TTS | Chatterbox Multilingual v3 (MIT); Piper (MIT) | synthesize "merhaba" probe | Soniox TTS v2, ElevenLabs, Inworld |
+| Talker/extraction LLM | Qwen3-30B-A3B (Apache-2.0) / MedGemma 27B (HAI-DEF) on vLLM | `/v1/models` + schema-constrained probe | Claude/OpenAI/Gemini with Art. 9 contracts |
+| S2S | **none open with Turkish output** (registry shows red → profile stays opt-in) | — | GPT-Realtime-2 EU, Gemini 3.1 Flash Live Vertex EU |
+| Affect / SER | open SER model (e.g., emotion2vec-class) after Turkish evaluation; Kintsugi DAM weights (research flag) | probe | Inworld voice profiling |
+| OCR/docs | Tesseract + docling/marker (Apache/MIT) | probe | — |
+| Clinical core | EHRbase (Apache-2.0), HAPI FHIR (Apache-2.0), MinIO (AGPL — or SeaweedFS/Garage) | `/health`, `/fhir/metadata` | — |
+| Data | Postgres 16 + pgvector, Redis, ClickHouse (Langfuse) | standard | — |
+| LLM observability & evals | Langfuse (MIT core; Postgres+ClickHouse+Redis+S3) | `/api/public/health` | Langfuse Cloud EU |
+| Metrics/logs/traces | OpenTelemetry Collector → Prometheus/Mimir + Loki + Tempo + Grafana, or SigNoz (self-hosted) | standard | Grafana Cloud EU |
+| Feature flags | Unleash (Apache-2.0) via OpenFeature | `/health` | Unleash hosted |
+| Identity | Keycloak (Apache-2.0) | `/health/ready` | — |
+| CI | GitHub Actions with **self-hosted runners** in the TR DC (or Gitea Actions/Woodpecker if GitHub is ruled out) | runner heartbeat | GitHub-hosted runners (no PHI in CI ever) |
+| CD | Argo CD (Apache-2.0) on k3s/k8s, GitOps | app health | — |
+| Analytics | PostHog/Umami self-hosted | probe | — |
+| Admin console | Next.js + shadcn + Recharts; Grafana panels embedded | `/healthz` | — |
+Rule: a release is blocked if a component enabled on the PHI path has `self_hostable=false` or no healthy fallback; the console renders this as the first tile.
+
+## 7. Data flow and storage
+OTel SDKs in api / voice-runtime / workers → OTel Collector → Prometheus (metrics), Loki (logs, PII-redacted processor), Tempo (traces); LLM spans also → Langfuse (OTel endpoint) with scores from evals and annotation queues. `services/metrics` materialises the catalogue in Postgres (hourly rollups; ClickHouse when volume requires) and serves `/admin/metrics/*`. `services/probes` runs synthetic checks every 60 s and writes the registry table the console reads. Satisfaction events (`csat.v1`, `nps.v1`, `clinician_pulse.v1`) are first-class events on Redis streams with a schema in `packages/clinical-schemas/events`.
+
+## 8. Admin API (subset) — `services/api/admin/*`
+`GET /admin/overview` · `GET /admin/voice/metrics?profile=&tenant=&from=&to=` · `GET/PUT /admin/voice/profile/{tenant}` · `POST /admin/voice/kill-switch` · `GET /admin/models` · `POST /admin/models/{id}/benchmark` · `GET /admin/protocols/coverage` · `GET /admin/protocols/proposals` · `POST /admin/protocols/proposals/{id}/approve` (4-eyes) · `GET /admin/safety/events` · `GET /admin/experience` · `GET /admin/ops/health` · `GET /admin/cicd/pipelines` · `GET /admin/cicd/deployments` · `POST /admin/cicd/rollback` · `GET/PUT /admin/flags` · `GET /admin/compliance/*` · `GET /admin/cost` · `GET/POST /admin/tenants`. All admin writes emit `audit.v1` with actor, reason, approver.
+
+## 9. CI/CD design the console reflects
+- **CI (every PR):** `make check` · `make safety` (triage goldens, PolicyGuard, runtime invariants RT-01…08) · protocol golden snapshots + `protocols coverage` · Langfuse experiment on the recorded simulator set with pass thresholds · SBOM + license scan · container scan · **no vendor network**.
+- **CD:** GitOps via Argo CD; environments `dev` → `staging` (synthetic data) → `tr-residency` (canary 5/25/100 by tenant); automatic rollback on guardrail KPIs; protocol changes deploy as data (new version + hash), model changes deploy as registry entries with benchmark evidence.
+- **Release gates shown in the console:** tests, safety, evals, latency harness, coverage, license, self-host matrix, DPIA delta (if consent text or vendor changed), **legal artefact status (06 §5) and the tenant gate INT-250 — a tenant without signed DPA/residency attestation/required registrations cannot be enabled**.
+
+## 10. Build notes for Claude Code
+`apps/admin-web` (Next.js App Router, shadcn/ui, Recharts; Grafana iframes for deep dives) · `services/api/admin` routers with role guards · `services/metrics` (rollups + catalogue registry as code: `packages/clinical-schemas/metrics_catalog.yaml` is the single source for ids, units, targets, owners; a test fails if a metric is emitted but not catalogued) · `services/probes` (synthetic checks, registry table) · `infra/observability/` (compose + Helm for OTel/Prometheus/Loki/Tempo/Grafana or SigNoz, Langfuse, Unleash, Keycloak, Argo CD). P0 ships the skeleton with health, flags and CI status on mock data; P1 wires real telemetry and satisfaction; P2 adds learning-loop and protocol modules.
