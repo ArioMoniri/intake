@@ -1,6 +1,22 @@
 # 04 · Clinical Protocols (content spec for `packages/protocols/`) — v1.4
 
-> Clinical owner: a licensed physician must review every YAML change (CODEOWNERS). All patient-facing text ≤ B1 Turkish. Instruments: use published Turkish-validated versions (PHQ-9, GAD-7, HAQ-DI, etc.) and verify licences (PHQ/GAD are free; C-SSRS requires Columbia permission/training materials; HAQ-DI free for non-commercial — confirm for commercial use).
+> Clinical owner: a licensed physician must review every YAML change (CODEOWNERS). All patient-facing text ≤ B1 Turkish.
+>
+> **Instrument licensing — corrected 25 Aug 2026. Two instruments are BLOCKED and must not appear in code until written permission exists.**
+>
+> | instrument | Turkish validation | commercial licence | verdict |
+> |---|---|---|---|
+> | **PHQ-9** | **weak** — the Turkish evidence is a *reliability study only* (n=96, Eskişehir; no sensitivity/specificity vs structured interview, no validated Turkish cut-off, journal not PubMed-indexed) | Pfizer expressly exempts it: *"no permission is required to reproduce, translate, display or distribute them."* No fee. Attribution footer verbatim. Official Turkish PDF hosted by the rights holder, so there are no separate translator rights. *Caveat: no sentence names commercial use — "not excluded" is verified, "expressly permitted" is not.* | **GO** — record the Turkish evidence gap in the ISO 14971 risk file |
+> | **PHQ-2** | **none found** | same blanket permission (first two PHQ-9 items) | **GO** on licence — but **do not describe it as "Turkish-validated"** |
+> | **GAD-7** | Konkan 2013, α = .85, **Turkish cut-off 8** (not the original 10). Known-groups case-control, which inflates sens/spec vs an unselected intake population | same as PHQ-9 | **GO** |
+> | **GAD-2** | **none found** | same | **GO** on licence; evidence gap |
+> | **C-SSRS** | **adolescents 12–18 only** (Kılınçaslan 2019). **No adult Turkish validation exists** — using it in adults is off-validation | **BLOCKED.** © RFMH. Columbia's free route covers *healthcare providers* embedding it in their own EHR. **Clario holds an exclusive RFMH licence for "any electronic format"** and sublicenses commercial deployments at **$40,000 start-up + $7,500/yr + $5,000 per certified version + $4 per administration**, tablet/web only, translations only via RFMH's vendor. We are a for-profit vendor shipping a patient-self-completed electronic Turkish C-SSRS — neither population. **Training is *not* the issue; the electronic sublicence is** (the previous note in this file had this wrong) | **BLOCKED → NEEDS-PERMISSION.** Written scope confirmation from RFMH / Kelly Posner before any code ships |
+> | **HAQ-DI** | Küçükdeveci 2004, RA outpatients, Ankara, α = .97 | Stanford: *"we consider the HAQ to be in the public domain… There is no charge for permission."* **But** the permission covers the **English version only, by its own terms**; Fries' own warning is that independent translators may charge for their versions; the copyright exists specifically to keep the instrument **unmodified**, which a responsive mobile re-layout may breach; and Fries died in 2021, so the current contact is unverified | **NEEDS-PERMISSION** — the urgent problem is the **Turkish translation**, not the commercial question |
+> | **WHO-5** | **strongest in the set** — Eser 2019, multicentre, **n = 1,752 primary care**, α = .81/.86 | **BLOCKED.** Copyright transferred to WHO in 2024; published **CC BY-NC-SA 3.0 IGO — NonCommercial**, so a for-profit product is outside the licence, and **ShareAlike imposes copyleft on any adaptation** (reformatting for mobile counts). WHO logo may not be used. The widely repeated claim that the 2024 change made WHO-5 "free" reflects the pre-2024 position — it made it free **non-commercially** | **BLOCKED.** Obtain WHO commercial permission via who.int/copyright, or drop the instrument |
+>
+> **Translation rights (FSEK, Law 5846):** a translation is an *işlenme eser* with its own rights holder; use requires permission from **both** the original author and the translator, actionable including criminally under art. 71. PHQ/GAD are clear because the rights holder publishes the Turkish text itself. WHO-5's Turkish text inherits NC + SA. C-SSRS translations must come from RFMH's vendor. **HAQ-DI's Turkish text is the highest-risk item** — an independent academic adaptation published by ACR/Wiley, while Stanford's permission covers English only.
+>
+> **Instrument fidelity:** validated instruments are `allow_paraphrase: false`, and the inverse operation is equally forbidden — **an LLM may not infer a score from narrative.** Response options are presented verbatim and require an explicit selection (voice, chip or typed); the model may transcribe and match to an exact option, never score free speech. A PHQ-9 whose options are inferred by a language model is not the PHQ-9, and the Turkish validation no longer applies to it. Record `administration_mode` on every result — the Turkish validations are of written/interview administration, and synthetic-voice delivery is a mode change with known effects on scores and social-desirability bias.
 
 ## 1. `base.intake` (inherited by everything)
 | Section | Must-ask (fast) | Detailed adds | Slots (examples) |
@@ -59,14 +75,81 @@ P1 (L1→L2): `specialty.internal_medicine`, `specialty.gastroenterology` (+ `ov
 | rf.suicidal_ideation_passive | PHQ-9 item 9 > 0, C-SSRS negative for plan | YELLOW | resources + doctor informed (with consent*) | flag |
 *Safety exception policy for sharing in crisis to be defined with legal/clinical leads (see `06_COMPLIANCE_TR.md`).
 
-**Colour semantics (Türkiye Acil triage alignment):** Kırmızı = immediate/life-threatening; Sarı = urgent, same-day physician review; Yeşil = routine. Research mapping: RED≈ESI 1–2/MTS red-orange; YELLOW≈ESI 3/MTS yellow; GREEN≈ESI 4–5/MTS green-blue.
+### Colour semantics — corrected 25 Aug 2026 against the binding regulation
+
+> **The previous text in this section was wrong in the under-triaging direction, and it cited repealed law.** It described a three-level system mapped as *RED≈ESI 1–2/MTS red-orange; YELLOW≈ESI 3/MTS yellow; GREEN≈ESI 4–5/MTS green-blue*. Both the level count and the mapping are incorrect.
+
+**The binding instrument** is the *Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ*, **RG 13/9/2022 sayı 31952** (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689), **EK-4**. It repealed the 2009 Tebliğ (RG 16/10/2009 s. 27378) by MADDE 16, and the triage table moved from Ek-7 to **EK-4**. This is law, not guidance — for triage in Türkiye it outranks NICE/ESI/MTS as a citation.
+
+**Türkiye has three colours and three physical zones, but *five* acuity levels:**
+
+| level | meaning (EK-4) | regulatory time target |
+|---|---|---|
+| **KIRMIZI Kategori 1** | life-threatening, requires simultaneous assessment and treatment; *"hiç bekletilmeden kırmızı alana"* → resuscitation room | none stated (immediate) |
+| **KIRMIZI Kategori 2** | high probability of threat to life | **10 dakika — the only numeric target in the entire annex** |
+| **SARI Kategori 1** | possibility of threat to life, risk of limb loss, significant morbidity | none stated |
+| **SARI Kategori 2** | moderate/prolonged symptoms with potential severity; abnormal vitals or pain ≥ 80 % of max | none stated |
+| **YEŞİL** | ambulatory, stable, waiting creates no threat | none stated |
+
+**MTS and ESI are explicitly permitted — but a documented crosswalk into EK-4 is a legal obligation, not a nicety.** MADDE 8(2): *"Triyaj işlemi Ek-4'te belirtilen tablo kullanılarak yapılabileceği gibi uluslararası kabul görmüş başka triyaj yöntemi ile de yapılabilir… uygulanan sistemin skorlarının, Ek-4'te belirtilen renk kodlamasına **en yakın olacak şekilde** belirtilerek SBYS kaydı sağlanır."*
+
+**⚠ A naïve three-to-three colour map systematically under-triages.** MTS uses *five* colours and the words *red*, *yellow* and *green* exist in both systems meaning materially different things:
+
+| Türkiye (EK-4) | nearest MTS | nearest ESI |
+|---|---|---|
+| KIRMIZI K1 | Red (immediate) | ESI 1 |
+| KIRMIZI K2 (10 dk) | **Orange** (very urgent) | ESI 2 |
+| SARI K1 | Yellow (urgent) | ESI 2–3 |
+| SARI K2 | **Green** (standard) | ESI 3 |
+| YEŞİL | **Blue** / Green (non-urgent) | ESI 4–5 |
+
+*This crosswalk is our analytical mapping from the verified Turkish text against published MTS/ESI definitions. **No MoH-published Turkish↔MTS/ESI crosswalk exists**, so ours must be documented, clinician-approved and version-pinned.*
+
+**MTS Orange must become Turkish KIRMIZI, not SARI.** Mapping it to "yellow" routes a ten-minute patient into a zone with no time target and no resuscitation room — a patient-safety defect, not a cosmetic one. Likewise **MTS Green belongs in SARI Kategori 2, not YEŞİL**.
+
+**EK-4 splits chest pain across three levels**, which independently confirms that a single `chest_pain` triage token is the wrong shape:
+- *"kardiyak ağrıya benzer göğüs ağrısı"* → **KIRMIZI K2** (10 dk)
+- *"kardiyak öykü ile uyumlu olmayan göğüs ağrısı"* → **SARI K1**
+- *"göğüs ağrısı ve solunum sıkıntısı olmayan basit göğüs yaralanmaları"* → **SARI K2**
+
+Two further EK-4 facts that bind product behaviour: **112 ambulance arrivals are not triaged at all** (MADDE 8(5)); and **no companion is admitted to the kırmızı or sarı alan as a rule** (MADDE 9(1)), waived only with physician approval — which constrains the companion/proxy flow inside the hospital.
+
+**Anyone reading pre-2022 material should know:** the old Ek-7 split green into *Yeşil Alan 1* and *Yeşil Alan 2* with a *"1–4 saat arası"* descriptor — six levels. **EK-4 collapses green to one category and deletes both the Yeşil Alan 1/2 codes and the 1–4 hour language.** Any logic built on them is running on repealed law.
+
+**Legal exposure:** the Tebliğ binds public, private and university hospitals (MADDE 2), with disciplinary provisions and, for private facilities, sanctions under 3359 s. Kanun ek madde 11. Presenting a triage output as conforming to "Turkish Acil triage colours" while actually encoding a UK/US five-level scale misrepresents conformity with binding Turkish law.
 
 ### Device-mode note (binding; see `06 §0.3` and `03 §15b`)
 Everything in §3 is always **computed** (rules engine, shadow-logged). What the **patient** experiences depends on `device_functions`: investigation/CE tenants get the spoken RED preemption and action scripts; commercial tenants (pre-CE) get the fixed static safety line from `docs/legal/strings.yaml` and the clinician sees the triggering answers labelled *patient-reported*. Action-script wording, levels and monotonicity are unchanged in both modes — only patient-facing delivery is gated.
 
 ## 4. Screening flows (conversational but instrument-faithful)
 - **PHQ-2/GAD-2 (fast):** deliver the exact two-week timeframe and item wording (Turkish validated); accept natural answers and map to 0–3 with confirmation ("Bunu 'birkaç gün' olarak not ediyorum, doğru mu?"). Score ≥ 3 → schedule PHQ-9/GAD-7 (detailed) or continue if patient agrees.
-- **PHQ-9/GAD-7:** full items; item 9 > 0 → immediate **C-SSRS screener** (ideation → method → intent → plan → behaviour) with the safety script; RED/YELLOW per §3; offer to pause; never end on the item without the safety script and resources.
+- **PHQ-9/GAD-7:** full items; item 9 > 0 → immediate **C-SSRS screener** (ideation → method → intent → plan → behaviour) with the safety script; RED/YELLOW per §3; offer to switch to text or to a person; never end on the item without the safety script and resources. **C-SSRS is licence-BLOCKED (see header) and must not ship until RFMH confirms scope in writing.**
+
+### ⚠ 4.1 Turkish crisis resources — hard-coded, and one wrong answer is in wide circulation
+
+| number | what it actually is | use for |
+|---|---|---|
+| **112** | single national emergency number since 1 Feb 2018; psychiatric emergencies including suicide risk are in remit | **suicide crisis, all medical emergencies** |
+| **183** | ALO 183, Aile ve Sosyal Hizmetler Bakanlığı — free, 24/7, reachable by SMS and video call | **violence, child abuse, neglect** |
+| **191** | ALO 191, MoH | **substance misuse** |
+| ~~182~~ | **ALO 182 is the MHRS *hospital appointment* line** | **NEVER. Putting 182 in a crisis script routes a suicidal patient to a booking queue.** |
+
+**Türkiye has no 988 equivalent.** There is no dedicated national suicide short code; psychosocial support is organised per province through provincial health directorates and Sağlıklı Hayat Merkezleri. The historic *"182 Umut Işığı"* line (Bakırköy) closed in **2008**, yet the claim that "ALO Yaşam Hattı 182" is a 24/7 suicide line still circulates on non-official sites — **it was returned twice by general web search during this review.**
+
+Therefore: crisis numbers live in `docs/legal/strings.yaml` under PolicyGuard with clinician sign-off; a CI test asserts **no crisis string contains "182"**; and **no model, search tool or learning-loop proposal may ever populate a crisis number.** Add the patient's province-specific psychosocial line only when the tenant supplies it.
+
+### ⚠ 4.2 Preconditions for shipping the suicide pathway at all
+
+The safety-exception footnote in §3 defers the escalation policy. **Running C-SSRS in production before that policy exists is not defensible.** Four defects must close first, and none is optional:
+
+1. **There is no responder.** A RED fires at 23:40; the patient is alone; the appointment is Thursday; the clinic is closed. "notify" currently has no recipient, no hours, no SLA and no failure path. Make clinician notification **unconditional and time-bound** — a named clinic inbox with a stated response SLA — not "notify if a connector is present."
+2. **Abandonment is unhandled.** There is no mechanism for a patient who force-quits after answering *yes* to method or intent. This is the highest-risk state the product can enter. Worse, `02 §8` caches sessions locally and encrypted for offline resume — **so the disclosure may never reach the server at all.** Required: server-side evaluation **on the answer**, no offline-draft path for these items, and a named human follow-up within a stated window with a documented what-if-nobody-answers path.
+3. **Consent-gating creates a hole exactly where it matters.** Wellbeing is consent layer (3) and the crisis-lexicon lane is a sub-toggle of the same layer, so a patient who declines has **no** safety path after a 15-minute intimate conversation — and the people most likely to decline are the people most needing to be caught. Required: a **consent-independent crisis response** — not a screener, not a score, but a deterministic phrase-triggered signposting response that runs regardless of wellbeing consent. Defensible as duty of care and not a device function.
+4. **The script omits the two interventions with the best evidence.** "112 + contact person" lacks **means restriction** and a **safety plan**. Stanley–Brown safety planning with follow-up contact was associated with ~45 % fewer suicidal behaviours over 6 months vs usual care (JAMA Psychiatry 2018; OR 0.56, 95 % CI 0.33–0.95). Notifying a contact person is also a disclosure of special-category data whose lawful basis is precisely what the footnote defers.
+
+Add a **pre-brief before the sensitive items**, not a script after them: what will be asked, what happens if they say yes, who sees it, and the crisis numbers shown *now* and persistently reachable from a fixed control.
+
+Note also that **USPSTF gives suicide-risk screening in adults a grade I — insufficient evidence** (as at 20 Jun 2023), so universal cascade screening into C-SSRS is not an evidence-supported default. And the PHQ-2 → PHQ-9 → item-9 → C-SSRS cascade puts the suicide gate **behind two thresholds**: passive ideation in someone scoring PHQ-2 = 2 is never asked about.
 - **Affect and parallel psychiatric signals (observer lanes, `03 §4.7`):** affect (voice profiling), linguistic markers and — under a research flag — acoustic biomarkers are computed **in parallel, continuously, never on the speech path**; they may bring PHQ-2/GAD-2 forward and appear to clinicians only as an *affect summary* + *wellbeing signals* with confidence and an "AI-generated, not a diagnosis" label; excluded from the patient summary. Crisis lexicon hits route deterministically to the C-SSRS path.
 - **Wellbeing check-ins (standalone):** WHO-5 (tr) weekly optional; trend only; share toggle per doctor.
 
