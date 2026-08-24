@@ -57,14 +57,14 @@ Page: any `sec.egress_denied_total` > 0 · audit-chain or signature failure · S
 |---|---|---|---|
 | Media/SFU | LiveKit server + TURN (Apache-2.0) | `/` health + synthetic room join | LiveKit Cloud EU |
 | Voice runtime | `livekit-agents` worker (Apache-2.0) | Prometheus :8081, synthetic turn | — |
-| Turn detection | LiveKit Turn Detector v1 (local CPU) | model load check | — |
+| Turn detection | ⚠ **`turn-detector-v1-mini` only** — LiveKit Turn Detector **v1 is cloud-only**: `detector.py:59` resolves to `v1-mini` unless hosted, and `v1` requires `cloud_opts`. Backchannel probabilities are **cloud-only**, so backchannels are impossible in `residency_tr`. Using v1 streams **patient audio to LiveKit Inference** — an undeclared PHI egress hop absent from the allow-list, the DPIA and the transfer register. **Pin `v1-mini` for all profiles so `cascade_fast` and `residency_tr` behave identically, and benchmark it on Turkish clinic audio.** | model load check | LiveKit Inference (cloud v1) — requires an allow-list entry and a transfer-register row |
 | STT | Qwen3-ASR-1.7B on vLLM (Apache-2.0); faster-whisper (MIT) | `/v1/models` + 1-s audio probe | Soniox v5, ElevenLabs Scribe v2, Inworld |
-| TTS | Chatterbox Multilingual v3 (MIT); Piper (MIT) | synthesize "merhaba" probe | Soniox `tts-rt-v2`, ElevenLabs, Inworld |
+| TTS | Chatterbox Multilingual V3 (MIT) — ⚠ **PyPI ships only `chatterbox-tts` 0.1.7; pin it. No published streaming-latency figure for the open weights — the ~200 ms belongs to Resemble's paid hosted service, so the `residency_tr` TTS budget is an OPEN MEASUREMENT.** Piper Turkish is exactly one voice, `tr_TR-dfki-medium`, single-speaker medium quality | synthesize "merhaba" probe | Soniox `tts-rt-v2`, ElevenLabs, Inworld |
 | Talker/extraction LLM | Qwen3-30B-A3B (Apache-2.0) / MedGemma 27B (HAI-DEF) on vLLM | `/v1/models` + schema-constrained probe | Claude/OpenAI/Gemini with Art. 9 contracts |
 | S2S | **none open with Turkish output** (registry shows red → profile stays opt-in) | — | GPT-Realtime-2 EU, Gemini 3.1 Flash Live Vertex EU |
 | Affect / SER | open SER model (e.g., emotion2vec-class) after Turkish evaluation; Kintsugi DAM weights (research flag) | probe | Inworld voice profiling |
 | OCR/docs | Tesseract + docling/marker (Apache/MIT) | probe | — |
-| Clinical core | EHRbase (Apache-2.0), HAPI FHIR (Apache-2.0), MinIO (AGPL — or SeaweedFS/Garage) | `/health`, `/fhir/metadata` | — |
+| Clinical core | HAPI FHIR (Apache-2.0). **EHRbase deferred to P3** — no P0/P1 feature issues an AQL query. MinIO ⚠ **newest Docker Hub tag is `RELEASE.2025-09-07` (~12 months stale), and the named fallback Garage does NOT implement S3 Object Lock — which silently voids the WORM guarantee the 10-year audit log depends on.** Decide explicitly: accept MinIO with a documented CVE-watch and a paid-support escape hatch, or move audit WORM to a purpose-built target (Postgres append-only + external notarisation, or an S3-compatible service with **contractual** Object Lock) and use MinIO/SeaweedFS only for clips and documents, where immutability is not a legal requirement | `/health`, `/fhir/metadata` | — |
 | Data | Postgres 16 + pgvector, Redis, ClickHouse (Langfuse) | standard | — |
 | LLM observability & evals | Langfuse (MIT core; Postgres+ClickHouse+Redis+S3) | `/api/public/health` | Langfuse Cloud EU |
 | Metrics/logs/traces | OpenTelemetry Collector → Prometheus/Mimir + Loki + Tempo + Grafana, or SigNoz (self-hosted) | standard | Grafana Cloud EU |

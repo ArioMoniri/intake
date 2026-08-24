@@ -162,7 +162,15 @@ Network reality (measured later, assumed now): Istanbul→Frankfurt RTT ≈ 40�
 | Talker text | 0 ms scripted / 150–250 ms dynamic | clip cache / small cached-prompt model |
 | PolicyGuard | ≤ 20 ms | per-sentence regex + tiny classifier |
 | TTS first byte | 0 ms scripted / 75–150 ms dynamic | clip / Flash-class streaming TTS |
-| **total** | **≈ 250–400 ms scripted · 450–700 ms dynamic** | measured per turn via LiveKit metrics (EOU delay, LLM TTFT, TTS TTFB) + client `first_audio_at` |
+| ⚠ **transport — ABSENT FROM THE ORIGINAL TABLE** | **~120 ms** | mic capture + Opus + packetize 25 · LTE access 20 · Istanbul→Frankfurt 22 · SFU→agent 8 · agent→SFU 3 · SFU→device 42 |
+| ⚠ **client jitter buffer + audio output — ALSO ABSENT** | **~95 ms** | ~70 ms NetEq target on 4G + ~25 ms device output |
+| **total (corrected)** | **≈ 505 ms scripted · 855–975 ms dynamic** | measured per turn via LiveKit metrics + client `first_audio_at` |
+
+> ⚠ **Corrected 25 Aug 2026.** The original table budgeted **zero** for every network term, while §4.4 itself states Istanbul→Frankfurt is 40–60 ms RTT and there are 3–4 such hops. It also budgeted 150–250 ms for end-of-turn detection while §4.2 *mandates* `min_silence_duration ≥ 250 ms` — its own floor makes the budget impossible.
+>
+> **The structural floor for a scripted turn is 280 ms (VAD + EOU) + 140 ms (transport) = 420 ms *before any decision-making happens*.** Sub-420 ms is arithmetically impossible with a Frankfurt SFU.
+>
+> **Two changes recover most of the gap:** drop `min_silence_duration` 250 → 150 ms and let the audio turn detector carry the false-positive load (**−100 ms**); and **run the SFU in Türkiye even for `cascade_fast`** (**−70 ms**) — LiveKit server is Apache-2.0, and only STT/LLM/TTS need to leave the country, which are agent↔vendor hops, not media hops. Together: dynamic ≈ 800 ms, scripted ≈ 330 ms. This is the *opposite* of §4.4's "use EU regions, LiveKit Cloud EU" note — and it is free KVKK benefit, because media never leaves Türkiye.
 
 Definition of "round-trip" for all KPIs: last patient speech sample (VAD end) → first agent audio sample played on the device.
 
