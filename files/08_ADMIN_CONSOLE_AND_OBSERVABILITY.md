@@ -59,7 +59,7 @@ Page: any `sec.egress_denied_total` > 0 · audit-chain or signature failure · S
 | Voice runtime | `livekit-agents` worker (Apache-2.0) | Prometheus :8081, synthetic turn | — |
 | Turn detection | LiveKit Turn Detector v1 (local CPU) | model load check | — |
 | STT | Qwen3-ASR-1.7B on vLLM (Apache-2.0); faster-whisper (MIT) | `/v1/models` + 1-s audio probe | Soniox v5, ElevenLabs Scribe v2, Inworld |
-| TTS | Chatterbox Multilingual v3 (MIT); Piper (MIT) | synthesize "merhaba" probe | Soniox TTS v2, ElevenLabs, Inworld |
+| TTS | Chatterbox Multilingual v3 (MIT); Piper (MIT) | synthesize "merhaba" probe | Soniox `tts-rt-v2`, ElevenLabs, Inworld |
 | Talker/extraction LLM | Qwen3-30B-A3B (Apache-2.0) / MedGemma 27B (HAI-DEF) on vLLM | `/v1/models` + schema-constrained probe | Claude/OpenAI/Gemini with Art. 9 contracts |
 | S2S | **none open with Turkish output** (registry shows red → profile stays opt-in) | — | GPT-Realtime-2 EU, Gemini 3.1 Flash Live Vertex EU |
 | Affect / SER | open SER model (e.g., emotion2vec-class) after Turkish evaluation; Kintsugi DAM weights (research flag) | probe | Inworld voice profiling |

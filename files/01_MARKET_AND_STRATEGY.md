@@ -13,7 +13,7 @@ In the US, Epic is widening a moat built on proprietary data, native integration
 | **Chart with Art** | 74 orgs live; many also Abridge/Nabla/Ambience/DAX customers. CIOs telling startups "no multi-year contracts". | Don't sell a scribe to Epic shops. Sell *pre-visit + triage + patient-side* where EHR vendors are weak. |
 | **Agent Factory** | ~120 out-of-the-box agents + build-your-own; "good enough" for billing/data-extraction agents | Admin-agent startups get squeezed; clinical-conversation products with proprietary *patient-side* data do not. |
 | **Epic Rangers** | Forward-deployed Epic staff embedded in customer IT | Expect Turkish hospital groups to want the same: ship an *implementation playbook* + on-site week. |
-| **Cosmos Curiosity** | Risk prediction (LOS, stroke) GA; author's caveat: predictions fail without a protocol for acting on them | **Every triage/prediction in INTAKE ships with an action protocol** (what the patient does, what the clinic does). |
+| **Cosmos Curiosity** | Risk prediction (LOS, stroke) — **launching March 2027, not GA** (corrected 25 Aug 2026); author's caveat: predictions fail without a protocol for acting on them | **Every triage/prediction in INTAKE ships with an action protocol** (what the patient does, what the clinic does). |
 | **MyChart Central + Emmie**, Voice AI scheduling (2027), Intelligent Exam Room | Single patient identity across Epic orgs; >1/3 of Emmie chats happen after hours | After-hours is when patients prepare. Mobile-first, async-first. |
 
 ### 2.2 Abridge (Aug 2026)
@@ -26,7 +26,7 @@ Appointment-type-specific digital forms (Patient Engage by Luma) flow discretely
 Flask/Gunicorn backend; MedGemma 27B asks intake questions and writes the pre-visit report; a second LLM role-plays the patient; TTS; health record stored as FHIR resources and merged into the report. **Copy:** the *patient simulator* pattern for TDD, FHIR-backed record context, two-pane "transcript + live structured note" UI. MedGemma 1.5 (technical report 2026) is open-weights → self-hostable in Türkiye.
 
 ### 2.5 Inworld STT-1 / Realtime API
-<100 ms streaming; **voice profiling** per chunk: emotion (happy/angry/sad/frustrated/calm/surprised/fearful/tender), vocal style (shouting/whispering/laughing/crying/…), accent, age band, pitch — each with confidence and a threshold (`voiceProfileThreshold`, `topN`). Native realtime streaming is EN/ES/FR/DE/IT/PT, but the same API fronts Soniox `stt-rt` (Turkish, added May 2026) and Whisper-large-v3, and profiling is available across models. ZDR supported. Realtime TTS-2 accepts inline steering tags (`[Speak softly]`, `[sigh]`). **Use:** profiling signals as *soft* affect features; steering tags for a calm, empathic Turkish voice.
+<100 ms streaming; **voice profiling** per chunk: emotion (happy/angry/sad/frustrated/calm/surprised/fearful/tender), vocal style (shouting/whispering/laughing/crying/…), accent, age band, pitch — each with confidence and a threshold (`voiceProfileConfig.{enableVoiceProfile, topN}` — note there is no `voiceProfileThreshold` field; threshold filtering is client-side). Inworld's own `inworld-stt-1` now covers **30 languages**, and **voice profiling covers 18 languages including Turkish**; the same API can also route to Soniox `stt-rt-v4/v5`, Groq `whisper-large-v3`, AssemblyAI and Deepgram Flux. *(Corrected 25 Aug 2026 — the earlier "EN/ES/FR/DE/IT/PT only" note is stale, which means Turkish affect does not in fact require routing through another vendor.)* ZDR supported. Realtime TTS-2 accepts inline steering tags (`[Speak softly]`, `[sigh]`). **Use:** profiling signals as *soft* affect features; steering tags for a calm, empathic Turkish voice.
 
 ### 2.6 Kintsugi → open source
 Kintsugi shut commercial operations and released **DAM** (Depression–Anxiety Model, Apache-2.0): Whisper-small.en backbone, multi-task ordinal heads mapping to PHQ-9 / GAD-7 bands, ≥30 s speech, single speaker, American-English training data, plus a threshold-tuning toolkit with an *indeterminate* band. **Use:** research baseline only; run a **Turkish validation/fine-tune study** (Acıbadem-led, ethics-approved) before any product use; keep the indeterminate band; never show raw scores to patients.
@@ -58,7 +58,7 @@ Human turn gaps are ≈200–500 ms; above ≈800 ms a voice UI reads as "thinki
 **INTAKE choice:** (B) + (D) as default (`cascade_fast`), (C) + (D) as an opt-in, eval-gated profile where Art. 9 contracts exist (`s2s_cloud`), and (B) + (D) fully in-country (`residency_tr`). Same six-tool Talker contract across all three.
 
 ## 3. Türkiye: integration reality
-- **e-Nabız** is the national PHR; citizens can authorise third parties and physicians (SMS-code consent). Facilities push data via **USS** (XML packages, İl Sağlık Müdürlüğü pairing, ÇKYS codes) — an *institution* channel, not a consumer API. Vendor guides (2026) describe OAuth2/FHIR R4 access for third-party apps *subject to Ministry approval*; treat as **P3 with an official application**, never as an MVP dependency.
+- **e-Nabız** is the national PHR; citizens can authorise third parties and physicians (SMS-code consent). *(The figures "28k+ facilities integrated, 240k+ physicians querying" that circulated in earlier drafts could not be confirmed against any Ministry or e-Nabız primary source and have been removed — do not use them in investor or tender material.)* Facilities push data via **USS** (XML packages, İl Sağlık Müdürlüğü pairing, ÇKYS codes) — an *institution* channel, not a consumer API. Vendor guides (2026) describe OAuth2/FHIR R4 access for third-party apps *subject to Ministry approval*; treat as **P3 with an official application**, never as an MVP dependency.
 - **HBYS/SBYS** vendors (Akgün, Sisoft, Probel, Tiga, Fonet, Sosmart, Softmed, …) are regulated by the *Sağlık Bilgi Yönetim Sistemleri Hakkında Yönetmelik* (2022) and SBSGM standards; SBSGM has published **HBYS.API / YBBYS.API v1.0** docs → a standard surface worth targeting for push-to-chart.
 - **MHRS** has no public API; capture appointments by manual entry, SMS/screenshot OCR, calendar, and (later) e-Nabız.
 - **Private groups** (Acıbadem, Memorial, Medipol, Medicana, Liv, Anadolu) run their own HIS/apps → B2B2C connector deals; Acıbadem is the natural pilot (founder affiliation).
@@ -106,10 +106,10 @@ We treat regulation as a moat, not a tax, and the plan is firm (`06 §0`): Stage
 - ai.google.dev/gemini-api/docs/live-api (70 languages; gemini-3.1-flash-live-preview); docs.cloud.google.com (Live API native audio, data residency)
 - livekit.com/blog/solving-end-of-turn-detection (Turn Detector v1, Jun 2026); docs.livekit.io/agents/logic/turns/turn-detector
 - soniox.com/blog/soniox-v5-real-time (Jun 2026); soniox.com/platform/turkish; docs.pipecat.ai (Soniox STT service, stt-rt-v5)
-- github.com/resemble-ai/chatterbox; resemble.ai (Chatterbox Multilingual v3, Jul 2026, MIT, Turkish)
+- github.com/resemble-ai/chatterbox; resemble.ai (Chatterbox Multilingual V3, 10 Jun 2026, MIT, Turkish)
 - expo.dev/changelog/sdk-57 (30 Jun 2026) and sdk-56 (Hermes V1 memory regression note)
 - research.google (MedGemma 1.5 4B + MedASR, Jan 2026); huggingface.co/google/medgemma-27b-text-it
-- mhrs.gov.tr; MoH statement on 79 MHRS branches (Feb 2025, via iscihaber.net); MoH Sağlık Tesisleri Değerlendirme Standartları SDS-01 (poliklinik etkinliği, 2025)
+- mhrs.gov.tr; MoH statement on 79 MHRS branches (Memişoğlu via Anadolu Ajansı, 26 Nov 2025); MoH Sağlık Tesisleri Değerlendirme Standartları SDS-01 (poliklinik etkinliği, 2025)
 - docs.livekit.io/agents/build/metrics (EOU/LLM/TTS/STT/VAD/Realtime/Interruption metrics; Prometheus :8081); signoz.io/docs/livekit-observability
 - langfuse.com/docs; github.com/langfuse/langfuse (MIT core; ClickHouse, Jan 2026)
 - arxiv.org/abs/2507.19457 (GEPA, ICLR 2026 oral); dspy.ai/api/optimizers/GEPA; arxiv.org/abs/2606.31036 (evidence-gated cross-patient updates, MANANA)
