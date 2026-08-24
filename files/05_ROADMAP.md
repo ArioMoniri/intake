@@ -194,7 +194,7 @@ Also added: **KVKK Özel Nitelikli Kişisel Veriler Rehberi (26.02.2025)** — t
 ## 6. Research tracks
 
 1. **Turkish medical ASR benchmark** — unchanged; decides STT per profile.
-2. **Turkish DAM validation** — ⚠ moves behind track 1. The acoustic lane is cut from P0/P1 and nothing depends on it until P3.
+2. **Turkish DAM validation** — ⚠ **promoted, not deferred.** The acoustic lane is retained, and `03 §4.7` already conditions it on *"Turkish calibration required before any use"* — so this study is the **gate** on the lane becoming clinician-visible, not an optional side track. Start it as soon as the ethics route opens: its lead time, not the engineering, determines when the lane can ship. Kintsugi DAM is Apache-2.0 open weights on a whisper-small.en backbone, US-English trained at ~71 % sensitivity/specificity (arXiv 2605.09908, verified), so the calibration gap is the whole distance between "we host a model" and "a clinician may act on it."
 3. **Pre-visit note usefulness (RCT-lite)** — ⚠ now gates the `considerations[]` block. An AI-generated pattern list rendered above the clinician's own reasoning is a differential diagnosis functionally, and it will anchor. Do not ship it until a prospective study shows it improves rather than degrades diagnostic accuracy.
 4. **Protocol library** — clinician-authored packs; open-source the DSL and base protocols (Apache-2.0).
 5. **Conversational feel study** — ⚠ drops `s2s_cloud` (cut to P3); becomes `cascade_fast` vs `residency_tr` vs typed.
