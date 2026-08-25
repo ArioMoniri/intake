@@ -257,6 +257,7 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 ## 7. Gotchas
 
 - **File is `01_MARKET_AND_STRATEGY.md`**, not `01_VISION_AND_MARKET.md`. Cost an agent a wasted read.
+- **Never `git add -A` while an applier agent is mid-edit.** On 25 Aug two state-file commits (`0ebadab`, `f22ce38`) swept the admin-console agent's in-progress work on `08` and `10` into themselves. **Nothing was lost**, but ~240 insertions of security work sit under commit messages about TTS models and GPU sizing, so `git log` no longer describes the tree. **Stage explicit paths** — `git add files/00_STATE.md` — whenever an agent owns other files.
 - **Do not run more than ~3 agents concurrently.** A 5-agent batch on 25 Aug hit the session limit and **all seven running agents died at once**, losing ~40 minutes of research with no partial output recoverable.
 - Agents that yield a one-line non-report need an explicit "deliver the full report" follow-up; this has happened twice.
 - A `re.sub` intended to drop a dependency once deleted the whole of INT-187. **Always `git diff` after a scripted edit** and check the issue count.
@@ -270,6 +271,7 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 |---|---|
 | 25 Aug 2026 | State file created after a session-limit wipe killed 7 agents mid-flight |
 | 25 Aug 2026 | Observer-lane cut withdrawn (D1); DAM track promoted (D6); Example 14 reframed (D7) |
+| 25 Aug 2026 | Admin-console audit applied to `08` and `10` — governing framing, three criticals, roles rewritten, `admin_audit.v1` schema, DangerousAction tiers, **invariants 31–49**. ⚠️ Committed under the wrong messages (see §7). |
 | 25 Aug 2026 | **D14 — Kintsugi DAM dropped from the system design.** The lane survives; the model does not. We cannot be legal manufacturer of an orphaned Class IIb model with no design history file. **D15 — GPU sizing constraint lifted** (power and lead time still bind). |
 | 25 Aug 2026 | **VoxCPM2 is the strongest Turkish TTS** (only evaluated Turkish, Apache-2.0, vLLM-Omni). Both candidate TTS models ship Turkish-hostile normalisers. emotion2vec+ licence has a speech-conduct revocation clause. **Herkes İçin GPU programme live 7 days.** Two of my own facts corrected: TR DC capacity is ~250MW, and KSVY does NOT mandate localisation. |
 | 25 Aug 2026 | **Qwen3.5-Omni has NO open weights** — confirmed by 10 searches; the confusion is an official Space named `Qwen3.5-Omni-Offline-Demo` that is a DashScope API client. Freya TTS verified (Apache-2.0, real Turkish evidence, dangerous normaliser). Nemotron 3.5 ASR gives the first published Turkish WER. **GPU need is 1 card for pilot, ~4 for 50 concurrent.** |
