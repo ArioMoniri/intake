@@ -41,17 +41,42 @@ The product owner has imposed a hard constraint: **"all models should be self ho
 
 **Status key:** ✅ confirmed · ⚠️ pinned but unverified · 🔬 under active research · ❌ known broken
 
-### Voice profiles
+### Voice profiles — ⚠️ **superseded by the all-self-hosted constraint (§0b)**
 
-| Profile | Component | Current pin | Verdict | Note |
-|---|---|---|---|---|
-| `cascade_fast` | STT | Soniox `stt-rt-v5` | ✅ **KEEP** | Only candidate clearing all four hard criteria at once: Turkish named explicitly, biasing API, true streaming (~250 ms to final segment), **and free realtime diarization**. Diarization is the tiebreaker. **No published Turkish WER** — nobody publishes one. |
-| `cascade_fast` | TTS | Soniox `tts-rt-v2` | ⚠️ **REPLACE or gate** | **Shipped 11 Aug 2026 — 14 days old.** No published TTFB, no Turkish evaluation of any kind, no per-language quality tiering, and `03 §4.5` allocates it 75–150 ms **on faith**. Challenger: ElevenLabs Flash v2.5 (~75 ms). **Counterweight: dynamic `speech_tr` carries PHI, so a second TTS vendor is a second PHI processor** — a real cost against D3/B4. Decide on a Turkish dose-pronunciation gate, not on brand. |
-| `s2s_cloud` | S2S | **GPT-Realtime-2.1** | ✅ **KEEP** | The only realtime model with **async / non-blocking function calling**, which the six-tool Talker structurally requires (`submit_utterance` must return a `work_id` without blocking). EU residency via `eu.api.openai.com`. ⚠️ Async exists **only on the GA interface**, not beta. |
-| — | S2S alternative | ~~Gemini 3.1 Flash Live~~ | ❌ **NOT co-equal** | *"Function calling is sequential only."* `NON_BLOCKING` exists only on the **older** 2.5 Flash Live — adopting Gemini would mean adopting the older model to get the property the architecture depends on. |
-| `residency_tr` | ASR | Qwen3-ASR-1.7B | ✅ **KEEP**, 3 corrections | Apache-2.0, Turkish, vLLM streaming, context biasing — all confirmed. **(a) Pin the exact repo**: `Qwen/Qwen3-ASR-1.7B` (vLLM) and `-hf` (transformers) are **different artefacts** created five months apart. **(b) Streaming is vLLM-only** → vLLM is a hard dependency, not an optimisation. **(c) Biasing is a soft `prompt` string with no published evaluation** (open upstream issue #157 asks for real hotwords) — needs its own eval. |
-| `residency_tr` | TTS | Chatterbox | ⚠️ **KEEP — nothing else qualifies** | Pin **`ResembleAI/chatterbox` at a revision hash**: `ResembleAI/chatterbox-multilingual` **404s**, and "Multilingual V3" is a model-card name, not a repo. Turkish is **not** among the six languages given dedicated Single Language Packs. **No open-weights TTFB published**, so the `§4.5` 600–900 ms budget has nothing behind it. |
-| `typed` | — | n/a | ✅ | Always available; never a dead end |
+Under "all models on my own server", `cascade_fast` and `s2s_cloud` **cease to exist**. The cloud pins below are retained only as the historical record of what was displaced and why — do not build against them.
+
+| Profile | Component | Displaced pin | Why it is gone |
+|---|---|---|---|
+| ~~`cascade_fast`~~ | STT | Soniox `stt-rt-v5` | Cloud. Loses the structured `ContextObject` biasing **and** the free bundled diarization — the latter was load-bearing for the acoustic lane's two-estimator gate. |
+| ~~`cascade_fast`~~ | TTS | Soniox `tts-rt-v2` | Cloud, 14 days old, no Turkish evidence of any kind. |
+| ~~`s2s_cloud`~~ | S2S | GPT-Realtime-2.1 | Cloud. **Costs nothing** — the async-tool-calling dependency was profile-local, not architectural (see §2). |
+| ~~`s2s_cloud`~~ | S2S alt | Gemini 3.1 Flash Live | Was already disqualified: function calling is **sequential only**. |
+
+### ✅ The self-hosted stack — build against this
+
+Every row is open weights, commercially usable, and ungated unless flagged. **Verify each via the raw LICENSE blob before it enters the build** — badges lied in three separate cases this session.
+
+| Layer | Pin | Licence | Size / VRAM | Serving | Confidence |
+|---|---|---|---|---|---|
+| **ASR (primary)** | **`nvidia/nemotron-3.5-asr-streaming-0.6b`** | **OpenMDW-1.1**, commercial-ready | 0.6B / ~1.2 GB | NeMo / Riva, ONNX | Turkish is a **"transcription-ready" locale**; **FLEURS-tr WER 11.17–12.34** — the only published Turkish WER anywhere in this project. **240 streams/H100 @80 ms.** ⚠️ FLEURS is **read speech** (Q9's whole point). |
+| ASR (alt / incumbent) | `Qwen/Qwen3-ASR-1.7B` | **Apache-2.0** | 1.7B / 4.7 GB | **vLLM only** for streaming | Turkish listed, **no published Turkish WER**. Biasing is a soft `prompt` with no evaluation. |
+| ASR shadow / fallback | `turkmedstt/whisper-large-v3-turkish-medical` | **Apache-2.0** | 1.5B / ~3 GB | faster-whisper | The only Turkish *medical* ASR artefact. **3 speakers, 120 clips — do not quote to a clinician.** |
+| **Medical-term biasing** | **TurboBias on Nemotron-RNNT** | open (NeMo) | — | NeMo | ⚠️ **A build, not a buy.** Architecturally applicable to RNN-T; **no published Turkish biasing eval. UNVERIFIED.** |
+| **TTS (primary)** | **`openbmb/VoxCPM2`** | **Apache-2.0**, ungated | 2B / ~8 GB | **vLLM-Omni (official)** | **Only model with *evaluated* Turkish** — WER 0.817, SIM 87.1 (best of 5). TTFT **0.14 s** (RTX 4090). ⚠️ **Built-in normaliser routes Turkish to the English branch — disable it.** |
+| TTS (low-footprint / CPU) | `freyavoice/Freya-TTS` (**small**, not `large`) | **Apache-2.0** | 183M / **1.5 GB** | bespoke | Turkish-first, own paper: WER 8.0, MOS 3.68 (24 native raters), TTFT 0.52 s. **One telephony-band voice, no cloning; 0.52 s is a hard floor.** ⚠️ Normaliser makes a **silent 10× dose error**. |
+| TTS (third option) | `ResembleAI/chatterbox` @ revision hash | **MIT** | 0.5B / 5–7 GB | **bespoke only — not in vLLM-Omni** | Turkish real (CER 3.01%) but **no streaming API, no production server**. Turbo/Nano are English-only. |
+| **Talker LLM** | `Qwen/Qwen3.5-9B` | **Apache-2.0** | 9B / 19.3 GB bf16, ~10 GB fp8 | vLLM / SGLang | `submit_utterance` returning a `work_id` is trivially non-blocking on a text LLM. |
+| Talker (larger) | `Qwen/Qwen3.6-35B-A3B` or `Qwen3-30B-A3B` | **Apache-2.0** | 35B/3B active | vLLM | **Cheapest KV cache of the candidates — 4 KV heads, 96 KiB/token.** |
+| **VAD** | **`silero-vad`** | **MIT** | ~2 MB, CPU | — | ⚠️ **Not `ten-vad`** — its LICENSE carries an Agora **non-compete rider**. |
+| **Turn detection** | `livekit/turn-detector` | ⚠️ **proprietary** LiveKit Model License | ~135M, CPU via ONNX | LiveKit Agents **only** | Turkish is among its 14 languages (verified). **A proprietary dependency inside a "fully open" stack — the owner should know.** |
+| **Diarization** | ⚠️ **first ask if channel-separated audio is obtainable** | — | — | — | If yes: **0% attribution error, zero models.** If no: VAD + known-TTS-timeline, echo via **AEC (WebRTC AEC3)**. Hold **`nvidia/diar_streaming_sortformer_4spk-v2`** (**CC-BY-4.0**, ungated, 117M, **pin by SHA**) as a **third-speaker verifier**, not primary attribution. ⚠️ **v1 is CC-BY-NC and v2.1 is NVOML — the trap versions.** |
+| Speaker embedding | `speechbrain/spkrec-ecapa-voxceleb` | **Apache-2.0** | 20M / ~0.1 GB | SpeechBrain | EER 0.80% VoxCeleb1. Turkish EER **UNVERIFIED**. |
+| **SER / affect** | ⚠️ **build a head on an Apache-2.0 SSL encoder** | — | — | — | **`emotion2vec+` is disqualified** (FunASR licence, §2). Encoders: **WavLM-large / HuBERT-large / whisper-large-v3** — the EmoBox Turkish top three. Alternative: `ASLP-lab/Emotion2Vec-S` (**Apache-2.0**). **160 s of labelled Turkish buys back a large fraction of the 20–28-point transfer loss.** |
+| **Acoustic biomarker** | Kintsugi DAM — **unreachable outside the investigation** | Apache-2.0 (orphaned) | 184M | separate process, **deferred to session end** | See §2: vendor defunct, English-only encoders, quaternary anxiety head. **No committed date for clinician visibility.** |
+| Extraction LLM | ⚠️ **`google/medgemma-27b-text-it` is GATED + `license: other`** | ❌ | — | — | **Fails the constraint. Needs replacing** — likely the Talker LLM at a larger size. |
+| `typed` | n/a | — | — | — | Always available; never a dead end. |
+
+**GPU:** pilot ≈ 23–40 GiB → **one 96 GB RTX PRO 6000 Blackwell** (~1.2 kW, drops into any rack). 50 concurrent → **4× same card in one node** (~4 kW, still inside the 5–10 kW legacy hospital envelope). Datacenter licensing is clean — the GeForce §2.8 prohibition reaches only "GeForce or Titan SOFTWARE".
 
 ### Ruled out — record permanently, these keep recirculating
 
