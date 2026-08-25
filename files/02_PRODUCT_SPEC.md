@@ -266,17 +266,36 @@ Every feature in §3–§5 carries `legal:` codes in the backlog (`11`), resolve
 - **Language:** Turkish first (tr-TR), English second; all clinical copy reviewed by a clinician; plain language ≤ B1 level for patients.
 
 ### 8.1 Latency (corrected)
-**Measurement point, stated once and applying to every row: last patient speech sample → first agent audio sample, on device, client clock.** **Network profile: Istanbul, 4G.** A latency NFR without both of these is unfalsifiable and does not belong in a tender.
+**Measurement point, stated once and applying to every row: last patient speech sample → first agent audio sample, on device, client clock.** A latency NFR without a measurement point and a **named network profile** is unfalsifiable and does not belong in a tender.
 
-| Profile / turn class | p50 | p95 | Note |
+**The flat `p50 ≤ 1000 / p95 ≤ 2000` row is replaced by per-profile targets.** Basis: **674,774 Ookla mobile tests / 338,416 devices, Türkiye, 2026 Q2**, plus **24 h of continuous RIPE Atlas ping from 11 Turkish anchors** (`03 §4.5.1`). Configuration assumed: **SFU + agent in İstanbul, three EU vendor hops**; VAD-end → first agent audio on device.
+
+**Dynamic turn, `cascade_fast`:**
+
+| network profile | share of TR mobile | p50 | p95 | p99 |
+|---|---|---|---|---|
+| home broadband + 5 GHz wifi | — | ≤ 850 ms | ≤ 1700 ms | ≤ 2400 ms |
+| TR mobile, 5G-class | 10.3 % | ≤ 950 ms | ≤ 1900 ms | ≤ 2700 ms |
+| TR mobile, mid LTE | 68.7 % | ≤ 1000 ms | **≤ 2100 ms** | ≤ 3000 ms |
+| TR mobile, weak LTE | 6.5 % | ≤ 1150 ms | **≤ 2400 ms** | ≤ 3600 ms |
+| hospital guest wifi | — | **publish no NFR — force cellular** (`03 §4.4b`) | | |
+
+**Scripted turn (~70 % of fast-mode turns), p50 / p95 / p99:** home or wifi **≤ 400 / 620 / 850 ms** · 5G-class **≤ 430 / 620 / 850 ms** · mid LTE **≤ 450 / 680 / 950 ms** · weak LTE **≤ 520 / 820 / 1200 ms**. Against a structural floor that is **376 ms p50 / 481 ms p95** with a Frankfurt SFU and **338 / 434 ms** in-country (`03 §4.5.2`) — **not** the single "~420 ms" figure previously published here and in `00 §2`. **Publishing one floor for a distribution this wide is itself the mistake.** This is why pre-synthesised clips are a design requirement (§2).
+
+> ⚠ **`p95 ≤ 2000 ms` for dynamic turns is not achievable on Turkish mobile as currently architected, and it will fail from day one.** Mid-LTE p95 arithmetic: transport 114 + jitter 190 + EOU 320 + STT flush & hop 297 + LLM TTFT & hop 647 + PolicyGuard 40 + TTS first-byte & hop 447 = **2055 ms**. Weak LTE ≈ 2240 ms. **An NFR that fails on every deployment gets muted within a fortnight — and the alert that actually matters, a RED preemption that missed its window, gets muted alongside it.**
+>
+> **Two fixes; take both.** (a) Publish **per-profile** targets derived from the client's own measured RTT class, as the tables above do — **a per-profile NFR is not weaker, it is testable**. (b) **Take the transport lever**: `residency_tr` removes **117 ms p50 / 141 ms p95** of vendor-hop RTT and brings mid-LTE p95 to **≈ 1914 ms — under 2000 without touching a single model** (`03 §4.4`). That is an argument for `residency_tr_models` (`05 §2.1`) which has nothing to do with compliance.
+
+| Other profiles | p50 | p95 | Note |
 |---|---|---|---|
-| `cascade_fast` **scripted** | **≤ 550 ms** | **≤ 900 ms** | Against a **~420 ms structural floor** (250 ms VAD+EOU + ~140 ms transport, `00 §2`). There is ~130 ms of headroom at p50; this is a tight but honest target, and it is why pre-synthesised clips are a design requirement (§2). |
-| `cascade_fast` **dynamic** | **≤ 1000 ms** | **≤ 2000 ms** | Supersedes the old "700 ms dynamic / 1.2 s p95". |
-| `residency_tr` | **≤ 1300 ms** | **OPEN — to be measured** | Deliberately unset. The Chatterbox streaming latency figure in circulation belongs to **Resemble's paid hosted service**; the **open weights publish no latency figure at all** (`00 §1`). We will publish a p95 when we have measured one. |
+| `residency_tr` | **≤ 1300 ms** | **OPEN — to be measured** | Deliberately unset. The Chatterbox streaming latency figure in circulation belongs to **Resemble's paid hosted service**; the **open weights publish no latency figure at all** (`00 §1`). We will publish a p95 when we have measured one. Note the transport half of this profile is a **win**, not a cost (`03 §4.4`). |
 | `s2s_cloud` | **no published number** | **no published number** | The profile is deferred (`00 §1`). **Publishing a target for an unbuilt profile is how a fake NFR enters a tender** and then becomes contractual. |
+| **detailed mode** | — | — | **Detailed mode runs in the waiting room, so no detailed-mode dynamic-turn NFR may assume wifi** (`03 §4.4b`). Measure the pilot site before P2; hospital guest wifi is **UNVERIFIED**. |
 
 - Barge-in stop ≤ 150 ms. RED preemption ≤ 300 ms from rule evaluation. The "Anlattıklarınız" rail updates ≤ 3 s after an answer (background Work), never gating the next question — and commits only in the windows of §5.2a.
 - **Alert threshold ≠ target.** Alert on a **sustained p95 breach over a 5-minute window**, never per-turn. Paging on individual slow turns produces alert fatigue and teaches the on-call to ignore the one that matters.
+- **Degradation is a policy, not a vibe.** The nine triggers and their responses (`DEGRADED` → `POOR` → `UNRELIABLE_AUDIO` → `RELAYED_TCP` → `RECONNECTING` → `WIFI_BAD` → `LOW_ASR_CONFIDENCE` → `BUFFERBLOAT` → `ABORT_VOICE`) are specified once in **`03 §4.5b`**, evaluated on a 5 s window with 15 s to recover and at most one state change per 30 s. **Product-visible consequence: the patient is told at only three of the nine states — T3, T6 and T9 — in one cached sentence, with no technical vocabulary and never a number.** A `T9` session is marked `modality_degraded` so the clinician sees it.
+- **Loaded latency is the dominant risk, not idle latency.** Measured Turkish mobile RTT goes from 22 ms idle to **646 ms p50 / 1747 ms p95 under downlink load** and **835 / 2232 under uplink load** (`03 §4.5.2`). Binding product rule: **the app never uploads a document while a voice turn is in flight** — serialise it, or defer it to after the session.
 
 ### 8.2 Completion, safety, accuracy and equity
 - **Completion / abandonment as NFRs, not just metrics:** a **forced-checkpoint ceiling** (no more than 90 s of unsaved session state, §2); a **resume window of ≥ 7 days**; and **guaranteed partial-note emission on any termination** (§3).

@@ -147,12 +147,63 @@ Mechanics that make it feel live:
 ### 4.4 Voice profiles (same contract, swappable by config)
 | profile | STT / input | Talker model | TTS | turn-taking | expected round-trip p50 (end of speech → first agent audio) | data path | status |
 |---|---|---|---|---|---|---|---|
-| **`cascade_fast`** (default P1) | Soniox `stt-rt-v5` (tr, medical `context` terms, endpointing) | small fast text model, speech-text only, cached prompt (Claude Haiku-class / Gemini Flash-class / GPT-mini-class; choose by measured TTFT ≤ 250 ms) | Soniox `tts-rt-v2` full-duplex (tr) or ElevenLabs Flash / Inworld TTS; + clip cache | Silero + LiveKit TurnDetector v1 | **450–700 ms dynamic; 250–400 ms scripted** | EU endpoints; KVKK Art. 9 standard contracts + ZDR | build in P1 |
+| **`cascade_fast`** (default P1) | Soniox `stt-rt-v5` (tr, medical `context` terms, endpointing) | small fast text model, speech-text only, cached prompt (Claude Haiku-class / Gemini Flash-class / GPT-mini-class; choose by measured TTFT ≤ 250 ms) | Soniox `tts-rt-v2` full-duplex (tr) or ElevenLabs Flash / Inworld TTS; + clip cache | Silero + LiveKit TurnDetector v1 | **per network profile — `02 §8.1`; ≈ 1000 ms dynamic / ≈ 450 ms scripted on mid-LTE** | EU endpoints; KVKK Art. 9 standard contracts + ZDR | build in P1 |
 | **`s2s_cloud`** (opt-in) | native audio | **GPT-Realtime-2.1** (async/non-blocking tool calls, preambles, EU residency via `eu.api.openai.com`) — ⚠ **`GPT-Realtime-2` is not a current model id; `gpt-realtime` and `gpt-4o-realtime` shut down 20 Jan 2027.** **Gemini 3.1 Flash Live is NOT a co-equal option: its function calling is sequential-only** (`NON_BLOCKING` exists only on the older 2.5 Flash Live), which the six-tool Talker in §4.2 structurally cannot use. (70 languages, affective dialog, Vertex residency controls) via LiveKit realtime plugins; same six tools | native | model VAD (or LiveKit) | **300–600 ms** | audio leaves TR → Art. 9 transfer; EU region mandatory | P1 experiment → P2 opt-in after eval gate |
 | **`residency_tr`** | **Qwen3-ASR-1.7B** (tr, streaming via vLLM, context biasing with the medical vocab) — fallback faster-whisper large-v3-turbo; optional **Qwen3-Omni** audio-in→text for prosody-aware understanding (tr speech *input* supported; speech *output* is not) | Qwen3-30B-A3B (vLLM) or MedGemma 27B for extraction | **Chatterbox Multilingual v3** (tr, MIT, streaming ≈200 ms) — fallback Piper tr_TR | Silero + LiveKit TurnDetector v1 (CPU) | **600–900 ms** | all PHI + audio + models in Türkiye | infra in P2, default for public hospitals in P3 |
 | `typed` | keyboard | — (Backend only) | — | — | n/a | — | always on |
 
-Network reality (measured later, assumed now): Istanbul→Frankfurt RTT ≈ 40–60 ms; Istanbul→US-East ≈ 150 ms. Any profile using US endpoints adds ≥ 300 ms round-trip — use EU regions (OpenAI EU data residency, Vertex `europe-west*`, LiveKit Cloud EU) or self-host LiveKit in a Turkish DC for `residency_tr`.
+**Network reality — now measured, not assumed.** Basis for every figure in §4.4–§4.5: **674,774 Ookla mobile tests across 338,416 devices, Türkiye, 2026 Q2**, plus **24 h of continuous RIPE Atlas ping from 11 Turkish anchors**. İstanbul↔Frankfurt is **38.8 ms RTT p50 / 47.2 p95 / 53.2 p99** — the old "40–60 ms" estimate was right and slightly conservative. İstanbul→US-East ≈ 150 ms stands; any profile using US endpoints adds ≥ 300 ms round-trip.
+
+**Residency is a latency WIN, not a cost. The old instruction here — "use EU regions … LiveKit Cloud EU" — is deleted.** For a Turkish patient that instruction **costs 39 ms p50 / 47 ms p95 of round-trip media time and buys nothing**, because the SFU carries **media, not models**.
+
+| what moves in-country | saved p50 | saved p95 |
+|---|---|---|
+| SFU + TURN only (`cascade_fast`, vendors stay EU) | **39 ms** | **47 ms** |
+| SFU + TURN + models (`residency_tr`) | **156 ms** | **188 ms** |
+
+> **`residency_tr` is not purely a compliance mode — it is the single largest transport lever in the design**, worth more than dropping `min_silence_duration` from 250 to 150 ms. §4.5 spotted this first and priced it at **−70 ms**; the measured value is **−39 / −47** — the right direction, ~1.8× overstated, and §4.5's own itemisation only summed to −44, so it was internally inconsistent too. **Three places treated residency as pure cost and are reframed:** this section, `05 §2.1` (residency as a P3 obligation) and `06 §1` (a constraint the architecture absorbs — cross-reference only; `06` is not edited here).
+
+**And there is now somewhere to put it.** AWS opened a Local Zone in İstanbul — **`eu-central-1-ist-1a`, GA May 2026**, parent `eu-central-1`, carrying C7i/M7i/R7i, EBS, VPC, ECS, EKS, ALB, Direct Connect and S3 One Zone-IA. That is exactly the shape of the SFU + TURN + API + Postgres tier, so **media residency for `cascade_fast` is buildable now, not in P3** (`05 §2.1`).
+
+Two honest caveats, both of which must travel with the claim:
+- **Physical residency ≠ legal residency.** The Local Zone's control plane sits in Frankfurt and the operator is **AWS EMEA SARL**, so whether it satisfies **KVKK Art. 9** is a question for counsel (`06 §1`). The narrow **testable** claim is that **the patient's audio bytes never leave Türkiye on the media path** — which strengthens the transfer register and invariant 12, and costs negative latency.
+- **LiveKit Cloud has no Turkish region**, so self-hosting the Apache-2.0 server is the path — **which makes us the operator of TURN as well** (§4.4b).
+
+### 4.4a Codec and transport — Opus, FEC, and why WebRTC is not interchangeable with WebSocket
+
+- **WebSocket audio becomes unusable at ~2 % loss where WebRTC is still transparent — a ~10× margin.** TCP head-of-line blocking costs one RTT on fast retransmit, or **`RTO_min` = 200 ms** otherwise, doubling per further loss; against 20 ms frames that is ~10 packets of wall-clock stall. A TCP audio path also *creates* the loaded-latency problem on itself (§4.5.2), because TCP fills the bottleneck queue by design.
+- **Opus in-band FEC (LBRR)** activates at ~1 % signalled loss and protects **isolated** losses only — it carries one previous frame and does nothing for the burst losses that actually occur at handover (§4.4b).
+- **DRED** (Opus 1.5) carries up to **1 second** of redundancy at 12–32 kb/s and holds quality **even at 90 % loss** — the one mechanism that survives a handover gap. It needs a larger jitter buffer to exploit, and it is **not in stock libwebrtc** (xiph `webrtc-opus-ng` fork). **Track it; do not depend on it.**
+- **DTX: enable agent→patient, disable patient→agent.** DTX gaps look like loss to the server-side VAD and smear end-of-turn detection, and continuous 24 kb/s uplink is nothing against a measured **p10 Turkish mobile uplink of 10.6 Mbps**.
+- **On scripted clip turns, spend the headroom.** First-byte time is already zero, so use **RED (RFC 2198) with 2 redundant encodings on clip playback** — ~72 kb/s against 24, irrelevant on any Turkish bearer, and it makes a clip carrying a dosage number robust to **two consecutive losses**.
+- **Turkish mobile loss rate is UNVERIFIED.** No public dataset carries it and Opensignal is paywalled (403). 3GPP targets ≤ 1 % residual BLER, so steady state is normally < 0.5 %; **the losses that matter are handover bursts, which are guaranteed rather than probabilistic.** Instrument from session one and re-derive after 100 sessions.
+
+### 4.4b Access network — CGNAT, TURN, handover, hospital wifi
+
+**CGNAT is less dangerous than it sounds.** Turkish mobile is effectively **100 % CGNAT** (Turkcell on virtualised A10 Thunder), but our topology is **client↔SFU, not P2P**, and endpoint-independent-mapping CGNAT traverses that with a plain server-reflexive candidate. **CGNAT breaks P2P; it does not break client-server media.** TURN is needed only where **UDP is blocked outright** — hospital/enterprise firewalls and some captive portals.
+
+| path | added RTT | verdict |
+|---|---|---|
+| direct UDP to SFU | 0 | normal |
+| **TURN/UDP co-located in İstanbul** | ~1–2 ms | essentially free — **this is why TURN must live in the same PoP** |
+| TURN/UDP in Frankfurt, SFU in İstanbul | +39 / +47 ms | never |
+| **TURN/TCP or TURN/TLS-443** | ~+5 ms handshake, **and TCP head-of-line blocking returns to the media path** | **not a transparent fallback** |
+
+Requirement: run **coturn in the same İstanbul PoP as the SFU**; offer `turn:` UDP, `turn:` TCP/443 and `turns:` TLS/443; and **treat selection of a TCP/TLS relay as a degradation trigger (T4, §4.5b), not as a success.** Detect via `RTCIceCandidatePair.relayProtocol`.
+
+**Handover.** LTE intra-frequency X2 handover is **≥ 45 ms**; S1 handover ~50–100 ms (**UNVERIFIED**); **5G→4G EPS fallback is 800 ms – 3 s** (reached only if the patient takes a phone call mid-intake); wifi↔cellular ICE restart **1–3 s (UNVERIFIED)**. Two mitigations, both required:
+
+1. **Pin the interface for the whole session** — iOS `NWParameters.requiredInterfaceType = .cellular`, Android `requestNetwork(TRANSPORT_CELLULAR)`.
+2. **Treat an audio-session interruption as a turn boundary, not an answer** — pause, then re-ask the current step **verbatim** via `request_repeat_or_clarify` (§4.2). **Never let a handover gap be scored as silence, and never as a response.**
+
+**Hospital wifi — the counterintuitive one, and the most valuable single recommendation in this section: in a Turkish hospital, prefer cellular over wifi.** Turkish mobile p50 is **20 ms in İstanbul and 19 ms in Ankara** — better than most enterprise guest wifi anywhere. There is no reason to accept a captive portal. Implementation:
+
+- **Captive-portal detection requires an exact 204 with a zero-length body.** A portal that intercepts HTTP returns 200 while media never flows, so anything other than a bare 204 is a portal.
+- **Race both interfaces for 2 s** at session start via STUN binding, pick the winner, pin it.
+- **Switch to cellular** if wifi p50 > 2× cellular p50 or a portal is found, telling the patient **once**, from a cached clip.
+- If the patient has no cellular data, **`typed` is not a fallback there — it is the correct primary modality.**
+
+**Hospital wifi measurements are UNVERIFIED**; probe the pilot site before P2. Consequence for `02`: **detailed mode runs in the waiting room, so no detailed-mode dynamic-turn NFR may assume wifi** (`02 §8.1`).
 
 ### 4.5 Latency budgets (p50, `cascade_fast`)
 | stage | budget | how |
@@ -162,23 +213,103 @@ Network reality (measured later, assumed now): Istanbul→Frankfurt RTT ≈ 40�
 | Talker text | 0 ms scripted / 150–250 ms dynamic | clip cache / small cached-prompt model |
 | PolicyGuard | ≤ 20 ms | per-sentence regex + tiny classifier |
 | TTS first byte | 0 ms scripted / 75–150 ms dynamic | clip / Flash-class streaming TTS |
-| ⚠ **transport — ABSENT FROM THE ORIGINAL TABLE** | **~120 ms** | mic capture + Opus + packetize 25 · LTE access 20 · Istanbul→Frankfurt 22 · SFU→agent 8 · agent→SFU 3 · SFU→device 42 |
-| ⚠ **client jitter buffer + audio output — ALSO ABSENT** | **~95 ms** | ~70 ms NetEq target on 4G + ~25 ms device output |
-| **total (corrected)** | **≈ 505 ms scripted · 855–975 ms dynamic** | measured per turn via LiveKit metrics + client `first_audio_at` |
-
-> ⚠ **Corrected 25 Aug 2026.** The original table budgeted **zero** for every network term, while §4.4 itself states Istanbul→Frankfurt is 40–60 ms RTT and there are 3–4 such hops. It also budgeted 150–250 ms for end-of-turn detection while §4.2 *mandates* `min_silence_duration ≥ 250 ms` — its own floor makes the budget impossible.
->
-> **The structural floor for a scripted turn is 280 ms (VAD + EOU) + 140 ms (transport) = 420 ms *before any decision-making happens*.** Sub-420 ms is arithmetically impossible with a Frankfurt SFU.
->
-> **Two changes recover most of the gap:** drop `min_silence_duration` 250 → 150 ms and let the audio turn detector carry the false-positive load (**−100 ms**); and **run the SFU in Türkiye even for `cascade_fast`** (**−70 ms**) — LiveKit server is Apache-2.0, and only STT/LLM/TTS need to leave the country, which are agent↔vendor hops, not media hops. Together: dynamic ≈ 800 ms, scripted ≈ 330 ms. This is the *opposite* of §4.4's "use EU regions, LiveKit Cloud EU" note — and it is free KVKK benefit, because media never leaves Türkiye.
+| ⚠ **transport — ABSENT FROM THE ORIGINAL TABLE** | **57.5 ms in-country SFU · 96 ms Frankfurt SFU** | itemised term-by-term in §4.5.1 — **measured, not estimated** |
+| ⚠ **client jitter buffer + audio output — ALSO ABSENT** | **95 ms p50 · 190 ms p95 · 320 ms p99** | NetEq target + decode/output; §4.5a |
+| **total (corrected)** | **≈ 505 ms scripted · 855–975 ms dynamic** (p50, Frankfurt SFU) | measured per turn via LiveKit metrics + client `first_audio_at`; **per-profile targets in `02 §8.1`** |
 
 Definition of "round-trip" for all KPIs: last patient speech sample (VAD end) → first agent audio sample played on the device.
+
+#### 4.5.1 Transport, term by term (measured 2026 Q2)
+
+The `~120 ms` itemisation this table used to carry was the right order of magnitude but **wrong in composition, and wrong in the direction that matters**. Basis for the replacement: **674,774 Ookla mobile tests / 338,416 devices, Türkiye, 2026 Q2**, plus **24 h of continuous RIPE Atlas ping from 11 Turkish anchors**. Profile: İstanbul mobile, mid-LTE, SFU + agent in İstanbul, vendors in EU. All values ms.
+
+| # | term | p50 | p95 | p99 | basis |
+|---|---|---|---|---|---|
+| T1 | mic capture buffer | 20 | 45 | 80 | iOS ~20 ms; Android AAudio 10–20, legacy path 40–80. **UNVERIFIED for the real handset mix — measure it** |
+| T2 | Opus framing + lookahead | 16.5 | 26.5 | 26.5 | 20 ms frame (mean wait 10) + 6.5 ms lookahead, RFC 6716 |
+| T3 | uplink RAN + backhaul + IX | 12 | 23 | 46 | 0.6 × measured İstanbul RTT + 3 ms IX. The split is a **modelling assumption** (the LTE SR/grant cycle makes UL ~1.5× DL) |
+| T4 | SFU ↔ agent worker | 1 | 3 | 5 | same AZ |
+| T5 | downlink RAN | 8 | 16 | 30 | 0.4 × measured RTT |
+| **T1–T5 in-country** | | **57.5** | **113.5** | **187.5** | |
+| T6 | *(only if the SFU is abroad)* İstanbul↔Frankfurt, both ways | +38.8 | +47.2 | +53.2 | **RIPE Atlas, measured** |
+| **T1–T6 Frankfurt SFU** | | **96** | **161** | **241** | |
+| J1 | NetEq target (`base=120`) | 80 | 165 | 290 | quantile 0.97, `kStartDelayMs = 80`; §4.5a |
+| J2 | decode + device output | 15 | 25 | 30 | **UNVERIFIED** |
+
+**Two specific errors to name, and one row that was right.**
+- **"LTE access 20 ms one-way" was a round-trip figure used as a one-way figure.** Measured İstanbul mobile RTT p50 is 20 ms, so one-way is ~10–12 ms. The old `20 + 20 = 40 ms` should have been **~20 ms — overstated by ~18 ms**.
+- **"İstanbul→Frankfurt 22 ms one-way" was correct and slightly conservative** — measured 38.8 ms RTT. That row was right; say so.
+- `SFU→agent 8 · agent→SFU 3` was asymmetric for no reason. Co-located, it is **~1–3 ms each way** (T4).
+
+#### 4.5.2 Loaded latency — the row that was missing entirely, and it is larger than every other term combined
+
+| Türkiye mobile, 2026 Q2 | p50 | p95 |
+|---|---|---|
+| idle RTT | 22 | 49 |
+| **RTT under downlink load** | **646** | **1747** |
+| **RTT under uplink load** | **835** | **2232** |
+
+Measured during a saturating Speedtest, so this is a **bound, not a typical** — but it is the bound that matters: **the moment anything shares the bearer** (an OS update, a photo backup, the patient's other apps, **or our own document upload**) **the voice loop goes from 20 ms to 600–1700 ms.**
+
+Two consequences, both binding:
+1. **Never let the app upload a document while a voice turn is in flight.** Serialise it, or defer it to after the session.
+2. **Trigger `T8` (§4.5b) off the client's own RTT trend**, not an absolute threshold — bufferbloat shows up as excess over the rolling session minimum long before it shows up as a bad absolute number.
+
+> ⚠ **Corrected 25 Aug 2026; re-corrected against measurement.** The original table budgeted **zero** for every network term, while §4.4 itself states İstanbul→Frankfurt is 40–60 ms RTT and there are 3–4 such hops. It also budgeted 150–250 ms for end-of-turn detection while §4.2 *mandates* `min_silence_duration ≥ 250 ms` — its own floor makes the budget impossible.
+>
+> **And the "~420 ms structural floor" was wrong in both directions.** With a Frankfurt SFU and `min_silence = 250` the floor is **376 ms at p50 — but 481 ms at p95**, and that is *before* the jitter buffer. In-country: **338 ms p50 / 434 ms p95**. **Publishing a single floor for a distribution this wide is the mistake — publish p50 and p95 separately**, here, in `02 §8.1` and in `00 §2`.
+>
+> **The transport lever is bigger than the VAD lever.** Running SFU + TURN in Türkiye is worth **−39 ms p50 / −47 ms p95** on media alone, and **−156 / −188** once the models move too (§4.4) — more than dropping `min_silence_duration` 250 → 150 ms (**−100 ms**, and §4.5b makes that drop adaptive rather than unconditional). The earlier **−70 ms** estimate had the right sign and was ~1.8× overstated; its own itemisation summed to only −44. This remains the *opposite* of §4.4's old "use EU regions, LiveKit Cloud EU" note — and it is free KVKK benefit, because media never leaves Türkiye.
+
+### 4.5a Jitter buffer — NetEq, and why the tuning must be asymmetric
+
+Verified directly from `modules/audio_coding/neteq/delay_manager.cc`: initial target **`kStartDelayMs = 80 ms`**; the target tracks the **`quantile = 0.97`** point of an inter-arrival histogram with `forget_factor = 0.9993` (~20 s of memory at 50 packets/s); `kDelayBuckets = 100 × kBucketSizeMs = 20`, so it tracks to **2000 ms**; the operator knob is `setBaseMinimumDelayMs`, range 0–10000.
+
+So **NetEq targets the 97th percentile of inter-arrival delay, not average jitter.** §4.5's old "~70 ms NetEq target on 4G" is defensible at p50 and wrong at p95. Budget **95 ms p50 / 190 ms p95 / 320 ms p99**, including device output.
+
+**The tuning is asymmetric, and that is the point:**
+
+| direction | setting | why |
+|---|---|---|
+| **downlink (agent → patient)** — where the dosage number lives | `setBaseMinimumDelayMs = 120` on cellular, `60` on wifi | costs ~40 ms, cuts concealment ~4× (1.5 % → 0.4 %). **Take it.** |
+| **uplink (patient → STT)** — where no human is listening | keep **40–60 ms** | losses here cost transcription accuracy, not perceived latency, and `asr_quality` (§4.7.5) already turns a low-confidence token into a follow-up. **Do not spend perceived latency on the direction nobody hears.** |
+
+The concealment-versus-delay curve behind the 4× figure is **UNVERIFIED against real NetEq telemetry** — it is the shape this design assumes, and it is the first thing to re-derive from production `RTCStatsReport` data.
+
+### 4.5b Degradation policy — trigger → response
+
+Signals come from `RTCStatsReport` plus LiveKit `ConnectionQuality`. Evaluate on a **5 s sliding window**, require **15 s** clean to recover, and **never change state more than once per 30 s** (anti-flap).
+
+Derivations, stated once so every implementation computes the same number:
+- `rtt_ms` = `RTCIceCandidatePair.currentRoundTripTime × 1000`
+- `loss_pct` = Δ`packetsLost` / Δ`packetsReceived`
+- `jb_ms` = Δ`jitterBufferDelay` / Δ`jitterBufferEmittedCount` × 1000
+- `conceal_pct` = Δ(`concealedSamples` − `silentConcealedSamples`) / Δ`totalSamplesReceived`
+- `relay` = `remoteCandidateType == "relay"`, with `relayProtocol`
+- `stt_conf` from Soniox per-token confidence
+- `rtt_excess` = `rtt_ms` − rolling session minimum (the bufferbloat detector, §4.5.2)
+
+| # | trigger | state | response |
+|---|---|---|---|
+| T1 | `rtt_ms` p95 > 250 **or** `loss_pct` > 3 % **or** `conceal_pct` > 2 % | `DEGRADED` | Talker forced to `scripted` (no `paraphrase_ok`); preemptive generation off; `baseMinimumDelayMs` 120 → 200; signal Opus FEC at 10 % loss |
+| T2 | `rtt_ms` p95 > 400 **or** `loss_pct` > 8 % **or** `conceal_pct` > 5 % | `POOR` | **dynamic TTS off — cached clips only**; long questions split across two clips; observer lanes stop consuming frames (permitted by inv. 11) |
+| T3 | `conceal_pct` > 10 % for 10 s **or** two consecutive `request_repeat_or_clarify` on the same step | `UNRELIABLE_AUDIO` | cached bridge *"Bağlantınız zayıf görünüyor — yazarak devam edelim mi?"*, **offer typed**, keep the session and every slot |
+| T4 | `relayProtocol ∈ {tcp, tls}` | `RELAYED_TCP` | **enter T2 immediately** — a TCP relay reintroduces head-of-line blocking (§4.4a/§4.4b); no dynamic TTS on it at any RTT |
+| T5 | ICE `disconnected` > 3 s | `RECONNECTING` | pause the turn clock; re-ask the current step **verbatim**; **never** score the gap as an answer or as silence |
+| T6 | captive portal (the 204 probe returns anything but a bare 204) **or** wifi p50 > 2× cellular p50 | `WIFI_BAD` | pin media to **cellular**; inform the patient once |
+| T7 | mean `stt_conf` < 0.6, **or any numeric/dosage token with conf < 0.85** | `LOW_ASR_CONFIDENCE` | never accept silently — `confirm` step **with the value rendered on screen** (inv. 30); second failure → typed entry for that slot only |
+| T8 | `rtt_excess` > 300 ms sustained 10 s | `BUFFERBLOAT` | outbound Opus to 16 kb/s, DTX on; **suspend any app-initiated upload**; warn once |
+| T9 | three T2 events in one session, **or** > 25 % of turns degraded | `ABORT_VOICE` | complete in typed mode; mark the session `modality_degraded` so the clinician sees it and the `asr_quality` provenance qualifier attaches |
+
+**The patient is told only at T3, T6 and T9** — one cached sentence, no technical vocabulary, never a number.
+
+**`min_silence_duration` becomes adaptive, not simply lowered.** §4.5.2 keeps the 250 → 150 ms drop on the table; make it **150 ms when measured uplink jitter p95 < 30 ms, and 250 ms otherwise.** You get the −100 ms on the ~80 % of sessions that can afford it, and you do not cut patients off in the waiting room.
 
 ### 4.6 Runtime invariants (each has a test in `services/voice-runtime/tests/`)
 1. **Non-blocking:** with the Backend Agent stalled for 10 s (fake clock), the Talker still answers within budget.
 2. **Fixed tool surface:** exactly the six tools in §4.2 are registered.
 3. **Single preemption:** no Work result other than a rules-engine RED may carry `preempt` (type-level validator + test).
-4. **RED latency:** end-to-end RED preemption ≤ 300 ms simulated; playback cancel ≤ 150 ms.
+4. **RED latency:** end-to-end RED preemption ≤ 300 ms; playback cancel ≤ 150 ms. ⚠ **Not achievable at p95 as originally written, if the RED script travels the audio path.** Downlink p95 is 16 ms RAN + 165 ms jitter buffer + 25 ms device output = **206 ms before the clip's first sample is even scheduled** (§4.5.1), and cancelling the in-flight playback has to happen *first*. **Fix: the RED script is pre-positioned on the device** — bundled with the app build rather than streamed — and triggered by a **data-channel** message (SCTP-over-DTLS, reliable and ordered): one downlink one-way (~10–25 ms) plus local playback. ≤ 300 ms then holds at **p99**. **The test changes too: it must assert the RED path touches no media transport**, not merely that the deadline was met.
 5. **FIFO + single in-flight + serialised writes:** property test with concurrent submissions; no lost or reordered slot updates.
 6. **Idempotent delivery:** insertion-window retries never duplicate context; `work_id` dedupe.
 7. **Verbatim scripted questions:** Talker output for `kind=scripted` equals `text_tr` (PolicyGuard still runs).
@@ -187,7 +318,7 @@ Definition of "round-trip" for all KPIs: last patient speech sample (VAD end) �
 10. **Observability, not control:** Work activity labels are from a fixed tr/en table; no session ids, prompts, or reasoning reach the client.
 11. **Lanes never touch the critical path:** observer lanes run with their own budget; under backpressure they drop frames, never delay speech; they cannot write slots or triage (type-level), only `ObserverState` (test: lanes stalled 30 s → turn latency unchanged).
 
-Invariants 12–29 were added 25 Aug 2026 with the observer-lane hardening. Each is a **blocking** test; the catalogue with owners and signals is `10 §9`.
+Invariants 12–29 were added 25 Aug 2026 with the observer-lane hardening; **invariant 30 was added the same day with the network-engineering report**. Each is a **blocking** test; the catalogue with owners and signals is `10 §9`.
 
 12. **`audio_single_egress_guard`** — **exactly one** outbound audio socket per session, asserted both at the egress proxy and in-process. Two is a hard failure, not a warning. This is the invariant that makes the accidental second stream (§4.7.2) structurally unable to come back.
 13. **`lane_shared_stream_guard`** — no lane opens an audio transport. Lanes have **no network capability at type level**; they receive frames from the runtime and return signals.
@@ -207,6 +338,10 @@ Invariants 12–29 were added 25 Aug 2026 with the observer-lane hardening. Each
 27. **`audio_no_write_guard`** — the existing static scan + fake-filesystem test, **renamed to the one thing it proves**: there is no write path from the audio buffer to storage. It was previously called `audio_retention_guard` and cited as proving four different things (`10 §3`).
 28. **`process_hardening_guard`** — worker runs non-root, `no-new-privileges`, `CAP_SYS_PTRACE` dropped, `kernel.yama.ptrace_scope=1`. Without the last one `/proc/pid/mem` reads the buffer regardless of every control above.
 29. **`lane_intended_purpose_manifest`** — every lane ships a reviewed `intended_purpose` string in its manifest; CI fails without one. The strings are the ones that go into the technical file, so they are reviewed as regulatory text, not as comments.
+
+30. **`numeric_dual_channel_guard`** — **no numeric slot value is spoken without a matching `inline` render on the same `work_id`.** Every dose, count, duration and score the agent speaks must also appear on the **"Anlattıklarınız"** rail in the same turn; every one the *patient* speaks comes back through a `confirm` step with the value on screen.
+
+    This invariant exists because the jitter-buffer question (§4.5a) was standing in for a risk that tuning cannot fix. **At 0.4 % concealment you still drop a syllable every few minutes, and eventually it lands on *"on beş"* vs *"elli"*. No buffer setting makes a spoken dose safe.** It is already half-built: §4.3 pushes `inline` to the data channel immediately, and the data channel is reliable and ordered, so it cannot drop the way audio can. Catalogue entry belongs in `10 §9` (cross-reference only — `10` is not edited here).
 
 ### 4.7 Observer lanes — psychiatric signals and voice profiling computed in parallel (restored, bounded, hardened)
 The clinical Work queue is FIFO with one item in flight (correctness of slot writes). Psychiatric and affect analysis must **not** wait in that queue — it runs continuously in **parallel observer lanes** that read the same audio/transcript stream, write only to `ObserverState`, and merge into the Backend Agent at section boundaries as a normal `wellbeing_signal` Work item (so slot/note writes stay serialised). Each lane is a separate consent purpose and can be disabled per tenant or patient without affecting intake.
