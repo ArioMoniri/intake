@@ -20,6 +20,23 @@ Five things about this project are counterintuitive and get re-derived wrongly e
 
 ---
 
+## 0b. ⚠️ PENDING CONSTRAINT CHANGE — all models self-hosted (25 Aug 2026)
+
+The product owner has imposed a hard constraint: **"all models should be self hostable… I want to have all models on my own server."**
+
+**This invalidates three of the five pins in §1.** Soniox `stt-rt-v5`, Soniox `tts-rt-v2`, GPT-Realtime-2.1, ElevenLabs Flash v2.5 and Inworld profiling are all cloud-only. Under this constraint **`cascade_fast` and `s2s_cloud` collapse into `residency_tr`** — there is effectively one profile plus `typed`.
+
+**What it buys, and it is a lot:** no Art. 9 cross-border transfer *at all*; no vendor DPA chain or sub-processor register; `consent_vendor_parity` (inv. 25) becomes trivially satisfiable; the two-stream defect becomes **structurally impossible** rather than test-enforced; and the consent sentence becomes *"bu analiz Türkiye'deki sunucularımızda yapılır."* It also **saves 156 ms p50 / 188 ms p95** of vendor-hop RTT (measured, §2).
+
+**What it costs, and this is the honest part:**
+- **Capabilities that disappear outright.** Soniox's structured `ContextObject` medical-term biasing and its **free bundled realtime diarization** — the latter is load-bearing for the `acoustic` lane's two-estimator gate, so losing it reopens a defect we had closed. GPT-Realtime's **async function calling**, which the six-tool Talker structurally requires.
+- **Turkish TTS quality.** Chatterbox is the only self-hostable Turkish option and Turkish is *not* among its six dedicated language packs.
+- **The GPU collision.** This is the real tension: **self-hosting everything is the right privacy answer and it runs straight into the finding in §2 that GPU supply in Türkiye is thin.** No hyperscaler GPU in-country; ~120–160 MW national commercial DC capacity.
+
+**Open, decisive:** does **Qwen3.5-Omni** have downloadable open weights? A previous pass concluded API-only and ruled it out on that basis — but it is the best Turkish S2S in existence, and if weights exist it resolves Turkish S2S *and* self-hosting at once. **Under verification by `SelfHostStack`. Treat the §1 "ruled out" row for it as provisional until that lands.**
+
+---
+
 ## 1. Model pins — current state
 
 **Status key:** ✅ confirmed · ⚠️ pinned but unverified · 🔬 under active research · ❌ known broken
@@ -196,6 +213,7 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 |---|---|
 | 25 Aug 2026 | State file created after a session-limit wipe killed 7 agents mid-flight |
 | 25 Aug 2026 | Observer-lane cut withdrawn (D1); DAM track promoted (D6); Example 14 reframed (D7) |
+| 25 Aug 2026 | ⚠️ **Self-hosting constraint imposed** — invalidates 3 of 5 pins; Qwen3.5-Omni open-weights status under re-verification; Freya TTS to evaluate; Turkish biomarker alternatives being searched; admin-console audit running |
 | 25 Aug 2026 | **DAM diagnosed by direct checkpoint verification.** Two encoders, one of them an English *text-semantics* approximator; model card contradicted by the vendor's own paper; ternary band flips for 28.8% of subjects on a prompt change alone. Option B is the only route; the gate is data, not compute. |
 | 25 Aug 2026 | **Main speech path answered.** Keep Soniox STT, GPT-Realtime-2.1, Qwen3-ASR, Chatterbox; replace-or-gate Soniox TTS. Qwen3.5-Omni is the best Turkish S2S and is unusable on KVKK residency. Qwen3-TTS has no Turkish. Gemini 3.1 Flash Live disqualified on sequential-only tool calls. |
 | 25 Aug 2026 | Product/market review applied to 01/02; MoH named as competitor; B2C freemium replaced by B2B2C on marketing-law grounds |
