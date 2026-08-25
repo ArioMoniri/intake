@@ -39,7 +39,7 @@ Three things about this project are counterintuitive and get re-derived wrongly 
 
 | Lane | Model | Status | Blocking issue |
 |---|---|---|---|
-| `acoustic` | Kintsugi DAM (Apache-2.0) | ❌ **encoder mismatch** | Backbone is **`whisper-small.en` — English-only**. Model card restricts to *"a single voice speaking English."* Recalibration cannot fix an encoder that never saw Turkish phonology. See §5 Q3. |
+| `acoustic` | Kintsugi DAM (Apache-2.0) | ❌ **encoder mismatch** + now bounded as investigational-device module M3 | Backbone is **`whisper-small.en` — English-only**. Model card restricts to *"a single voice speaking English."* Recalibration cannot fix an encoder that never saw Turkish phonology. See §5 Q3. |
 | `affect` | open SER (emotion2vec+) | ⚠️ | No Turkish eval. Candidate: consolidate onto an encoder already in the stack. |
 | `linguistic` | rule-based Turkish lexicon | ✅ | Text-only, local, no transfer |
 | `asr_quality` | STT confidence | ✅ | Highest value/risk ratio of all five lanes |
@@ -120,12 +120,12 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 ## 6. Work queue
 
 ### Landed and applied
+- ✅ **Observer-lane hardening applied** to `03`, `04`, `06`, `10` — one-stream collapse (`03 §4.7.2`), diarization gate (`§4.7.3`), four-module boundary (`§4.7.1`, `06 §0.6`), investigational-device route (`§4.7.4`, `06 §0.7`), AI Act (`06 §10`), crash-artefact hardening (`10 §3`), replay determinism (`03 §4.8`), per-lane consent (`06 §2.1–2.4`), **18 new invariants 12–29** catalogued in `10 §9.1`
 - ✅ Roadmap rebuilt as v2.0 gate-driven; lane cut withdrawn; DAM track promoted; STT/storage framings corrected
 - ✅ `13 §6` FDA Example 14 reframed as module bounding
 - ✅ Rule 11 → Class IIb; triage colour semantics; instrument licensing; guideline currency
 
 ### Reviewed, **not yet applied**
-- ⏳ **Observer-lane hardening** → `03`, `04`, `06`, `10`. One-stream collapse, diarization gate, four-module boundary, investigational-device route, AI Act, crash-artefact hardening, replay determinism, per-lane consent, **18 new invariants (12–29)**
 - ⏳ **Product/market review** → `01`, `02`. MoH as the real competitor, moat re-argument, marketing-law contradiction, personas + Fears column, RED delivery registers, consent temporal unbundling, visit lifecycle, NFR rewrite
 
 ### Still owed
@@ -151,4 +151,5 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 |---|---|
 | 25 Aug 2026 | State file created after a session-limit wipe killed 7 agents mid-flight |
 | 25 Aug 2026 | Observer-lane cut withdrawn (D1); DAM track promoted (D6); Example 14 reframed (D7) |
+| 25 Aug 2026 | Lane hardening applied to 03/04/06/10; 18 invariants added; `affect_summary` deleted from every note schema; `Observation`/`dataAbsentReason` deleted; Class IIa contradiction in `06 §1` corrected |
 | 25 Aug 2026 | Kintsugi identified as audio-classification on an **English-only** encoder — the sharpest open risk in the stack |

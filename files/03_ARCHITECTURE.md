@@ -27,7 +27,7 @@
        │           │                │ │ records retrieval · wellbeing · note deltas    │ │
        │           │                │ └────────────────────────────────────────────────┘ │
        │           │                │ ┌─ Observer lanes (parallel, read-only on slots) ─┐ │
-       │           │                │ │ affect · acoustic (DAM, research) · linguistic │ │
+       │           │                │ │ affect · acoustic (M3, study) · linguistic     │ │
        │           │                │ │ asr_quality · engagement  → ObserverState      │ │
        │           │                │ └────────────────────────────────────────────────┘ │
        │           │                └──────────────┬─────────────────────────────────────┘
@@ -113,7 +113,7 @@ The Talker has **exactly six tools**; a test introspects the registered tool lis
 | tool | purpose | returns |
 |---|---|---|
 | `protocol_next(session_id)` | deterministic next step from the IntakeEngine | `{step_id, kind: scripted\|paraphrase_ok\|confirm\|choice\|follow_up, text_tr, clip_id?, choices[]}` |
-| `submit_utterance(session_id, step_id, transcript, affect_summary?)` | hand the answer to Layer B (= `spawn_thinking`) — **never waits** | `{work_id}` |
+| `submit_utterance(session_id, step_id, transcript, interaction_state?)` | hand the answer to Layer B (= `spawn_thinking`) — **never waits**. ⚠ The optional argument was `affect_summary?` until 25 Aug 2026; it is now the **closed `InteractionState`** of §4.7.1, because an affect summary crossing this boundary is exactly what makes M1 a device module | `{work_id}` |
 | `cancel_work(work_id, reason)` | cancel a submitted Work (patient retracts, changes answer, or RED stops intake). Makes the declared `cancelled` state reachable. Progress is already pushed to the client via `work_update` on the data channel, so no status-poll tool is needed. | `{work_id, state}` |
 | `request_repeat_or_clarify(session_id, reason)` | re-ask / slow mode / typed switch | `{text_tr, clip_id?}` |
 | `patient_memory(op, key, value?)` | `recall\|remember\|forget` for name, form of address (siz/sen), pace, language — nothing clinical | bounded record |
@@ -187,16 +187,147 @@ Definition of "round-trip" for all KPIs: last patient speech sample (VAD end) �
 10. **Observability, not control:** Work activity labels are from a fixed tr/en table; no session ids, prompts, or reasoning reach the client.
 11. **Lanes never touch the critical path:** observer lanes run with their own budget; under backpressure they drop frames, never delay speech; they cannot write slots or triage (type-level), only `ObserverState` (test: lanes stalled 30 s → turn latency unchanged).
 
-### 4.7 Observer lanes — psychiatric signals and voice profiling computed in parallel (restored and made explicit)
+Invariants 12–29 were added 25 Aug 2026 with the observer-lane hardening. Each is a **blocking** test; the catalogue with owners and signals is `10 §9`.
+
+12. **`audio_single_egress_guard`** — **exactly one** outbound audio socket per session, asserted both at the egress proxy and in-process. Two is a hard failure, not a warning. This is the invariant that makes the accidental second stream (§4.7.2) structurally unable to come back.
+13. **`lane_shared_stream_guard`** — no lane opens an audio transport. Lanes have **no network capability at type level**; they receive frames from the runtime and return signals.
+14. **`diarization_gate_guard`** — no `acoustic` window is scored unless the full gate in §4.7.3 passes. Synthetic multi-speaker fixtures must produce **zero** scored windows.
+15. **`no_persistent_speaker_embedding`** — no speaker embedding is written to disk, cached across sessions, or compared across sessions. Persisting one turns a diarization gate into biometric identification and changes both the KVKK and the AI Act Annex III(1) analysis.
+16. **`audio_no_core_guard`** — the **real-crash** test: fork a child, set `RLIMIT_CORE=(0,0)`, `os.abort()`, assert `WCOREDUMP` false and no core file at the configured `kernel.core_pattern` path (`10 §3`). A fake filesystem cannot fake this.
+17. **`audio_no_swap_guard`** — `/proc/self/smaps` reports `Locked:` == the ring-buffer region size, and `SwapTotal: 0` on the node.
+18. **`audio_zeroization_guard`** — the buffer reads all-zero after **every** trigger in `10 §3`: window consumed, gate rejection, lane disabled, **consent withdrawn**, session end, `atexit`, SIGTERM/SIGINT.
+19. **`audio_no_telemetry_guard`** — raise inside the audio module with the crash reporter live; assert no bytes-like value > 1 KB appears in the event payload and that `include_local_variables=False` is set globally. **This is a live defect today, independent of the acoustic lane.**
+20. **`lane_signal_replay_determinism`** — `replay(event_log)` reproduces engine state, note deltas and step order **byte-for-byte**, including under fuzzed, truncated and reordered logs (§4.8).
+21. **`must_ask_invariance`** — the must-ask set is **identical** with lanes enabled and disabled. Order may change; membership may not. This is what makes invariant 11 true rather than true-on-a-technicality.
+22. **`interaction_state_closed_domain`** — nothing but the closed `InteractionState` enum crosses the M1 boundary (§4.7.1). **This test is evidence in the technical file** for MDCG 2019-11's requirement that non-medical modules do not compromise the medical ones.
+23. **`acoustic_study_assertion`** — M3 is unreachable unless `{study_id, protocol_version, ICF_version, approval_date}` all assert; **fails closed on protocol amendment** (TCKAY m.11 makes an amendment a fresh submission). Same gate shape as `device_functions` (§15b).
+24. **`consent_withdrawal_guard`** — property test over random withdrawal points: zeroization happens, no signal is emitted after withdrawal, replay is deterministic while excluding tombstoned signals, and the note diff is clean.
+25. **`consent_vendor_parity`** — the vendors named in `docs/legal/strings.yaml` for the `voice` purpose **equal** the egress allow-list hosts tagged `receives:audio`. CI fails on divergence. This turns the two-stream defect into a class of defect that cannot recur silently.
+26. **`third_party_disclosure_response`** — on `third_party_present` before a sensitive section, typed/keypad entry is offered and the provenance qualifier attaches to the instrument score (`04 §4`).
+27. **`audio_no_write_guard`** — the existing static scan + fake-filesystem test, **renamed to the one thing it proves**: there is no write path from the audio buffer to storage. It was previously called `audio_retention_guard` and cited as proving four different things (`10 §3`).
+28. **`process_hardening_guard`** — worker runs non-root, `no-new-privileges`, `CAP_SYS_PTRACE` dropped, `kernel.yama.ptrace_scope=1`. Without the last one `/proc/pid/mem` reads the buffer regardless of every control above.
+29. **`lane_intended_purpose_manifest`** — every lane ships a reviewed `intended_purpose` string in its manifest; CI fails without one. The strings are the ones that go into the technical file, so they are reviewed as regulatory text, not as comments.
+
+### 4.7 Observer lanes — psychiatric signals and voice profiling computed in parallel (restored, bounded, hardened)
 The clinical Work queue is FIFO with one item in flight (correctness of slot writes). Psychiatric and affect analysis must **not** wait in that queue — it runs continuously in **parallel observer lanes** that read the same audio/transcript stream, write only to `ObserverState`, and merge into the Backend Agent at section boundaries as a normal `wellbeing_signal` Work item (so slot/note writes stay serialised). Each lane is a separate consent purpose and can be disabled per tenant or patient without affecting intake.
-| lane | input | model / method | output (per section, aggregated) | profile availability |
+
+> **The lanes are RETAINED.** An earlier draft proposed cutting `affect` and `acoustic` on cost and PHI-egress grounds; that proposal is **withdrawn** (`00 §3` D1) and must not be re-derived. Cutting `affect` would have saved **$2.40 across the entire 300-session pilot**, against fixed infra of €1,550–1,900/month; latency was never an objection, because the lanes are off the critical path and invariant 11 tests it. What follows does the thing the cut was standing in for: **one audio stream instead of two, a two-estimator single-speaker gate, an explicit module boundary, and an investigational-device route for `acoustic`.**
+
+#### 4.7.1 The module boundary (MDCG 2019-11 §3.4)
+MDCG 2019-11 §3.4 (unchanged in Rev. 1, 17 June 2025): *"It is the obligation of the manufacturer to identify the boundaries and the interfaces of the different modules"* — together with the companion obligation that **the manufacturer must prove the non-medical modules do not compromise the medical ones**. So the lanes are grouped into four modules, and **each ships its own intended-purpose statement in the technical file** (invariant 29), not one statement for the product.
+
+| module | contains | qualification | intended purpose (the string that goes in the technical file) |
+|---|---|---|---|
+| **M0 `intake_core`** | transcription, slot capture, note assembly, transport | non-device | to collect, structure and transmit patient-reported information before a visit |
+| **M1 `interaction_signals`** | `affect` · `engagement` · `asr_quality` | non-device | *"to adapt the pace, register and input modality of a data-collection conversation"* |
+| **M2 `clinical_signals`** | `linguistic` (incl. crisis-lexicon signposting) + instrument scheduling | mixed — see below | to route deterministic safety signposting, and to schedule validated instruments |
+| **M3 `acoustic`** | DAM-class voice biomarker | **investigational device module** (§4.7.4) | to compute a voice-derived depression/anxiety score **within a registered clinical investigation only** |
+
+**M1's boundary is a type, not a policy.** Its only egress is a closed record:
+
+```python
+InteractionState = {          # the ONLY thing that leaves M1
+  "pace":              "slow" | "normal",
+  "modality":          "voice" | "typed" | "keypad",
+  "break_offer":       bool,
+  "confirm_by_card":   bool,
+  "repeat_request":    bool,
+  "third_party_present": bool,
+}
+```
+No emotion label, no confidence score, no numeric affect value and no free text crosses it. **The emotion inference exists inside M1 and dies there** — asserted by invariant 22, which is itself the evidence we file against MDCG's non-interference requirement.
+
+**M2 splits, and the split is the point.** The **crisis-lexicon signposting response** is defensible as non-device on exactly the reasoning that carries `device_functions=off`: static, non-algorithmic notice, no urgency grading, no condition-specific inference, identical text every time. It **must run regardless of wellbeing consent** — a consent-gated crisis path is a hole precisely where it matters (`04 §4.2`). But **bringing PHQ-2/GAD-2 forward is device-adjacent** — it changes *what is asked* on the basis of an inferred state — so it sits under `device_functions` (§15b), not under the lane.
+
+> **Write this down because it is counterintuitive and keeps being re-derived backwards: "clinician-only" is not the safe half of the design, it is the half that creates the device function.** MDCG's own examples turn on informing a professional — a heartbeat-analysis app that analyses and **informs a physician** is Class IIb. *Not rendered at all* is the safe direction. This section previously had it the other way round.
+
+**On FDA, for the technical file (see also `06 §0.3` and `13 §6`): Device Example 14 is not binding here, and the reason matters.** §520(o)(1)(E) FD&C Act is a **statutory device *exclusion* unique to the United States**. The Tıbbi Cihaz Yönetmeliği (RG 31499 mükerrer, 02.06.2021) and MDR 2017/745 contain **no CDS exclusion at all** — there is no Criterion 1 to fail because there is no carve-out to qualify for. **This is worse for us, not better.** The only question is MDCG 2019-11's decision path, where a signal-analysis architecture is neither disqualifying nor protective and **intended purpose is the whole test**. Example 14 is cited in the technical file as **known adverse authority that we have addressed**, not omitted.
+
+#### 4.7.2 One audio stream, not two
+The v1.4 design accidentally specified **two** outbound audio streams — Soniox for STT and Inworld for affect profiling. It never needed to. The vendor's voice profiling is a **flag on the same transcription request** (`transcribeConfig.voiceProfileConfig.enableVoiceProfile: true`), it runs alongside transcription on the single audio input, it covers **18 languages including Turkish**, and the vendor routes transcription to **Soniox `stt-rt-v5`** as its backend anyway. The choice was never Soniox-or-Inworld. It was **one stream or two**, and the design picked two by accident.
+
+Both options sit behind the existing `SpeechGateway` abstraction, so this stays a config change rather than a redesign:
+
+| | **Option A — one vendor socket, profiling on the same request** | **Option B — Soniox direct + local SER (architectural default)** |
+|---|---|---|
+| audio egress | 1 stream, 1 vendor | 1 stream, 1 vendor |
+| marginal cost | $0.15/hr on demand, $0.10/hr at scale | **$0** — the worker runs at concurrency 1–2 with GPU under 1 % utilisation, so the compute is already paid for |
+| vendors in the consent text | 1 (plus Soniox as named sub-processor) | 1 |
+| gate | **Inworld must confirm *in writing* an EU or TR processing region and zero data retention, and Soniox must appear as a named sub-processor in the DPA** (`00 §4` B4). If either fails, Option A is dead on KVKK Art. 9 grounds. **This is a contract question on the critical path, not an engineering one.** | none |
+| honest downside | vendor dependency for a non-critical signal; the written confirmation does not exist yet | emotion2vec+ has **no published Turkish evaluation** (`00 §5` Q5) |
+
+**Recommendation: B.** Not on the engineering delta, which is small either way, but on the sentence it produces in the consent flow — *"bu analiz Türkiye'deki sunucularımızda yapılır; ek ses aktarımı olmaz"* — which is worth more than the delta. Note also that in `residency_tr` the second stream **was never possible anyway**: the residency profile's constraint turns out to be the right constraint everywhere, which is usually the sign that it was the real constraint and not a profile quirk. Latency is irrelevant to the choice because the lane is off the critical path.
+
+Recorded consequences: **stream-minutes 8.4 → 4.4 (−48 %)**, **PHI-egressing audio streams 2 → 1**, session total **$0.12–0.25**, below the $0.13–0.28 baseline **while keeping both lanes and adding diarization**. Enforced by invariants 12, 13 and 25.
+
+#### 4.7.3 Diarization and the single-speaker gate — free, and never switched on
+Soniox v5 ships **realtime speaker diarization bundled into the $0.12/hr rate**. The gap that `00 §1` recorded as unfixable was a boolean nobody set.
+
+**Enrolment.** The `identity_check` section is scripted and its answer is by construction the declared respondent, so the first **≥ 8 s** of confirmed-respondent speech becomes `speaker_ref`.
+
+**Admission.** A frame is admitted iff Soniox labels it `speaker_ref` **and** a local ECAPA/Resemblyzer embedding on 1-s hops has cosine ≥ 0.75 to enrolment.
+
+**Window validity** (all four, no exceptions): **≥ 30.0 s contiguous** (DAM requires ≥ 30 s after VAD with a single voice — *contiguous*, not accumulated) · **zero** frames labelled another speaker · ≤ 5 % unlabelled · session speaker count == 1.
+
+**On the threshold, deliberately: do not hard-code a vendor confidence number.** Vendor confidence scales are uncalibrated, and a number invented in a review becomes a number nobody ever revisits. The rule is instead that **two independent estimators must agree**; disagreement discards the window. τ is calibrated on human-labelled recordings collected **inside the clinical investigation** (§4.7.4), targeting ≤ 1 % window-level contamination. Until that calibration exists, run conservatively and track `acoustic.window_yield` — **a low yield is a correct outcome, not a bug.** Invariant 14 asserts that synthetic multi-speaker fixtures produce zero scored windows.
+
+**The part that matters more than the acoustic lane.** A third party in the room is the largest single moderator of disclosure in the evidence base (Gnambs & Kaspar 2014: Ω 1.61 alone vs 1.18 with others, ΔR² = .50; Richman 1999: d 0.12 vs 0.65; Villarroel 2006: OR 3.0). **Diarization detects it without asking.** `third_party_present` therefore crosses the M1 boundary as one of the six `InteractionState` fields, and `04 §4` defines the response: offer typed/keypad entry for sensitive items, and attach a strictly factual provenance qualifier to every instrument score. Never a hard block — companion/proxy is a legitimate feature, and in a proxy session the second voice may be the subject.
+
+**The constraint that keeps this out of biometric territory:** speaker embeddings are **ephemeral, in-memory, per-session, never persisted, never compared across sessions** (invariant 15). Persisting one converts a diarization gate into biometric identification, which changes both the KVKK analysis and the AI Act Annex III(1) analysis (`06 §10`).
+
+#### 4.7.4 `acoustic` is an investigational device module
+**MDCG 2019-11 Annex IV, verbatim:** *"Diagnostic MDSW intended for scoring depression based on inputted data on a patient's symptoms (e.g. mood, anxiety) should be classified as class IIb under Rule 11(a) (IMDRF Risk Category III.ii)."* A voice-derived depression/anxiety score mapped onto PHQ-9/GAD-7 is that *a fortiori*, and **no labelling, disclaimer or research flag changes qualification.**
+
+**Stated plainly: making `acoustic` clinician-visible in a commercial tenant before CE/TİTCK conformity assessment is not lawful.**
+
+The lawful home is the investigational-device route. MDR Art. 62 ff. / TCY m.61 ff. bind devices **placed on the market or put into service**; a device used exclusively within a registered clinical investigation is investigational, not marketed. Registration is under **TCKAY (RG 31890, 08.07.2022)** — full obligations in `06 §0.3`; the architectural consequences are:
+
+- Output goes to a **sealed research store**, and to the investigator per protocol. **Never** to a treating clinician at session time, **never** into the pre-visit note, **never** into an `Observation`.
+- Outside the investigation the module is **genuinely unreachable, not merely unrendered**. Suppressing an output is not the same as not having the function, and running it anyway would additionally process special-category data with no purpose that benefits the patient. **There is no shadow mode for `acoustic`** — unlike triage, which does shadow-log under `device_functions=off`.
+- Reachability is gated exactly like `device_functions`: `{study_id, protocol_version, ICF_version, approval_date}` must all assert, and the gate **fails closed on protocol amendment** (invariant 23; TCKAY m.11 makes an amendment a fresh submission).
+
+#### 4.7.5 The lanes
+| lane / module | input | model / method | output (per section, aggregated) | profile availability |
 |---|---|---|---|---|
-| `affect` | audio chunks | Inworld STT voice profiling (emotion, vocal style, pitch; confidence ≥ 0.6, accent ignored) in `cascade_fast`; open SER model (emotion2vec-class, evaluated on Turkish first) in `residency_tr`; S2S models' internal affect is **not** exported | `affect_summary` sentence + confidence | cascade (vendor), residency (open) |
-| `acoustic` (research flag, default off) | ≥ 30-s rolling single-speaker window kept **in memory only** | Kintsugi DAM-class acoustic biomarker model (open weights released May 2026; US-English training, ~71 % sens/spec; Turkish calibration required before any use) | ternary negative / indeterminate / positive with the indeterminate band preserved | research tenants only |
-| `linguistic` | final transcripts + STT word timestamps | deterministic Turkish lexicons (negative affect, hopelessness, anhedonia, somatic worry), speech-rate and pause statistics from timestamps, pronoun/negation ratios; a small classifier later | `linguistic_markers{}`; **crisis lexicon hits bypass the lane** and go straight to the deterministic triage detector → C-SSRS path / RED per rule | all profiles |
-| `asr_quality` | interim/final transcripts | confidence, disagreement with a shadow STT on sampled turns, medical-term misses | `asr_quality{}` → triggers confirm-by-card UX and vocabulary proposals | all |
-| `engagement` | timing events | answer latency, interruptions, repeat requests, silence ratio | `engagement{}` → satisfaction proxies and pacing hints | all |
-Effects: (1) the engine may **bring PHQ-2/GAD-2 forward** when `affect`+`linguistic` show sustained distress across ≥ 2 sections (never skip, never diagnose); (2) the clinician note gets `affect_summary` + `wellbeing_signals` with provenance and an "AI-generated, not a diagnosis" label, only if the patient's share scope includes wellbeing; (3) the patient never sees emotion labels — only instrument-based plain-language reflections. Compute isolation: lanes run as asyncio tasks with per-lane CPU/GPU budgets (or a separate worker pool), sampling rates adapt to load, and `lane.dropped_frames` is a tracked metric. No lane persists raw audio; aggregates are purged on consent withdrawal.
+| `affect` (M1) | audio frames **already in the session** — no new stream, no network capability (inv. 13) | Option B default: **open SER (emotion2vec-class) on the agent worker**, which already holds decoded PCM in-process for VAD; Option A: vendor voice profiling as a flag on the same transcription request, gated on B4. S2S models' internal affect is **not** exported | **closed `InteractionState` only** (§4.7.1) — no label, no score, no text | all profiles (same path in all three; `residency_tr` was always local) |
+| `diarization` (gate, M1) | the same single audio stream | Soniox v5 realtime diarization **bundled in the $0.12/hr rate** + local ECAPA/Resemblyzer on 1-s hops; embeddings in-memory, per-session, never persisted (inv. 15) | `speaker_ref` frame labels (internal) → `third_party_present` into `InteractionState`; single-speaker validity for M3 | all profiles |
+| `acoustic` (**M3 — investigational device module**) | ≥ 30.0 s **contiguous** confirmed-single-speaker window kept **in memory only**, zeroized on consumption (`10 §3`) | Kintsugi DAM-class acoustic biomarker model (open weights May 2026; ~71 % sens/spec). **Encoder is `whisper-small.en` — English-only; the model card restricts it to "a single voice speaking English"** (`00 §1`). Turkish validation is a study, not a calibration step | ternary negative / indeterminate / positive, indeterminate band preserved → **sealed research store only** | **registered clinical investigation only**; unreachable elsewhere (inv. 23) |
+| `linguistic` (M2) | final transcripts + STT word timestamps | deterministic Turkish lexicons (negative affect, hopelessness, anhedonia, somatic worry), speech-rate and pause statistics from timestamps, pronoun/negation ratios; a small classifier later | `linguistic_markers{}`; **crisis lexicon hits bypass the lane** and go straight to the deterministic triage detector → C-SSRS path / RED per rule, **regardless of wellbeing consent** | all profiles |
+| `asr_quality` (M1) | interim/final transcripts | confidence, disagreement with a shadow STT on sampled turns, medical-term misses | `asr_quality{}` → `confirm_by_card` in `InteractionState`; vocabulary proposals | all |
+| `engagement` (M1) | timing events | answer latency, interruptions, repeat requests, silence ratio | `engagement{}` → `pace` / `break_offer` in `InteractionState`; satisfaction proxies | all |
+
+#### 4.7.6 Effects, and what reaches the clinician
+1. The engine may **bring PHQ-2/GAD-2 forward** when `linguistic` shows sustained distress across ≥ 2 sections (never skip, never diagnose). Because this changes *what is asked* from an inferred state, it is **device-adjacent and runs under `device_functions`**, not under the lane consent.
+2. **The clinician note carries no `affect_summary` sentence.** That prose sentence is what converted a non-device module into MDSW (`00 §3` D5). It is replaced by an objective, non-interpretive block filed under **"Konuşma özellikleri"** — deliberately *not* under "Screening":
+   - speech rate (syllables/s), pause ratio, mean and SD of F0, mean response latency;
+   - each with a **population reference range** and a **recording-condition caveat**;
+   - plus `third_party_present` as a factual provenance qualifier on every instrument score (`04 §4`).
+   These are data: reproducible, measurable, asserting no clinical construct — and strictly more useful to a clinician than the sentence was.
+3. The patient never sees emotion labels — only instrument-based plain-language reflections.
+
+Compute isolation: lanes run as asyncio tasks with per-lane CPU/GPU budgets (or a separate worker pool), sampling rates adapt to load, and `lane.dropped_frames` is a tracked metric that is also a **recorded field** on every lane signal (§4.8). No lane persists raw audio; buffers are zeroized per `10 §3`; aggregates are purged on consent withdrawal (`06 §2.3`).
+
+### 4.8 Lane signals, determinism and replay
+The rule the whole design hangs on: **a lane signal is an *input* to the engine, never a *computation* of the engine.**
+
+Recorded shape, appended to the hash-chained session event log:
+
+```
+LaneSignal{ lane, session_id, seq, t_monotonic_ms, t_wall, window_id,
+            payload, confidence,
+            model_id@revision + sha256,
+            sampling_rate_hz, dropped_frames_in_window,
+            gate_state, consent_version }
+```
+
+Four properties make replay exact:
+
+1. **Replay reads signals; it never re-executes a lane and never touches audio** — which no longer exists. The engine's reaction is a pure function of `(recorded signals, protocol hash, engine version)`.
+2. **Consumption is by `seq` at defined decision points, never by wall time.** A replay running 400× faster produces byte-identical decisions. A signal that arrives after its decision point applies at the next one, deterministically, and the deferral is itself recorded.
+3. **Non-determinism is recorded, not eliminated.** Dropped frames and adaptive sampling are physically real, so they become fields, and the gate reads `confidence ≥ τ AND dropped_frames_in_window ≤ D`. Replaying a degraded session then reproduces the *degraded* decision exactly — which is the property you actually want, because the sessions you need to replay are the ones that went wrong.
+4. **Model revision is in the log**, so a model change is attributable without re-running anything. That is an IEC 62304 change-control requirement, obtained here for free.
+
+Withdrawn signals are **tombstoned, not deleted** — deleting breaks the hash chain — and are non-consumable on replay (`06 §2.2`). Invariant 20 asserts byte-identical replay including under fuzzed, truncated and reordered logs.
 
 Review checklist for any voice PR (adapted from qwen-audio-agent §11): Can the Talker still converse while Work is queued? Does every clinical request enter the same per-session Backend context? Did any Talker API learn about Work internals? Are Work events used only for generic UI progress? Is anything spoken from a Backend result before it is `completed`? Can interruption postpone speech without cancelling submitted Work? Do tests cover FIFO, single in-flight, insertion-window retry, RED preemption?
 
@@ -256,15 +387,15 @@ overlays:
 
 ## 9. Wellbeing engine (psychiatric screening, consent-gated)
 - Universal PHQ-2 + GAD-2 in fast mode (validated Turkish items, **scripted** delivery — instruments are never paraphrased); positive → PHQ-9/GAD-7 in detailed mode or immediately if the patient agrees. PHQ-9 item 9 > 0 or crisis lexicon → **C-SSRS screener** path (scripted) + safety script; RED/YELLOW per rule.
-- **Affect and parallel psychiatric signals:** computed in the observer lanes of §4.7 (affect, acoustic, linguistic, engagement), never on the speech critical path and never able to write slots or triage; crisis lexicon hits are routed deterministically to the C-SSRS path. Affect appears only as an `affect_summary` sentence in the clinician note; never shown to the patient as labels.
-- **DAM (Kintsugi, Apache-2.0):** research flag; ≥ 30 s single-speaker speech buffered in memory only; ternary output after Turkish calibration; stored as `Observation` with `dataAbsentReason` until validated.
+- **Affect and parallel psychiatric signals:** computed in the observer lanes of §4.7, never on the speech critical path and never able to write slots or triage; crisis lexicon hits are routed deterministically to the C-SSRS path **regardless of wellbeing consent**. Affect leaves M1 only as the closed `InteractionState` (§4.7.1); the clinician note carries the objective **"Konuşma özellikleri"** block instead of an `affect_summary` sentence (§4.7.6); the patient never sees labels.
+- **DAM (Kintsugi, Apache-2.0) — investigational device module (§4.7.4):** ≥ 30.0 s **contiguous** confirmed-single-speaker window buffered in memory only, admitted by the two-estimator gate of §4.7.3; ternary output to a **sealed research store** and to the investigator per protocol. It is **not** written to the clinical record. *(Deleted 25 Aug 2026: "stored as `Observation` with `dataAbsentReason` until validated." Writing an unvalidated voice-derived depression score into the clinical record is putting the function into service — the `dataAbsentReason` wrapper changes nothing about that. See `06 §0.3`.)* Turkish validation is a study (n ≈ 800, `00 §2`), not a calibration step, and the 300-session P2 pilot cannot deliver it.
 
 ## 10. Document ingestion
 Upload (PDF/JPG/PNG/HEIC/JSON/FHIR/HL7 v2) → MinIO → Celery: OCR (Tesseract `tur` + layout via `docling`/`marker`) → chunk → LLM structured extraction to `ExtractedRecordItem[]` (labs with LOINC + unit normalisation, meds with ATC, diagnoses with ICD-10, imaging/procedures/allergies) → dedupe/merge → `Observation`/`Condition`/… (`verificationStatus=unconfirmed`, `Provenance` with page/bbox) → patient confirms in app → openEHR composition `imported_records`. JSON/FHIR inputs bypass OCR. pgvector embeddings for retrieval during intake. During a live session this runs as `parse_document` Work and its result arrives as `speech_tr` at an insertion window ("Yüklediğiniz tahlilde hemoglobin 10,2 görünüyor — doğru mu?"). Residency note: MedGemma 1.5 4B was evaluated specifically on lab-report PDF/image → structured JSON and is a candidate extractor there (validate on Turkish reports first).
 
 ## 11. Reports
 - **Patient summary** ("Anlattıklarınız"): section cards, B1 Turkish, no diagnoses, questions to ask your doctor, what to bring.
-- **Clinician pre-visit note**: `CC · HPI (OLDCARTS) · Pertinent ROS · PMH (confirmed/unconfirmed) · Meds (reconciled vs records) · Allergies · FH/SH · Screening (PHQ/GAD/C-SSRS, affect summary if consented) · Triage (level, rule ids, rationale) · Data gaps · Suggested focus questions · Sources/Provenance`. SOAP-compatible (S = patient-reported; O = imported objective data; A/P left for the clinician; an optional "considerations" block lists *patterns*, not diagnoses). Built incrementally from `draft_note_delta` Work so the Doctor Link is ready seconds after wrap-up.
+- **Clinician pre-visit note**: `CC · HPI (OLDCARTS) · Pertinent ROS · PMH (confirmed/unconfirmed) · Meds (reconciled vs records) · Allergies · FH/SH · Screening (PHQ/GAD/C-SSRS, with the third-party provenance qualifier where it applies) · Konuşma özellikleri (objective speech measures with reference ranges — §4.7.6, never under Screening) · Triage (level, rule ids, rationale) · Data gaps · Suggested focus questions · Sources/Provenance`. SOAP-compatible (S = patient-reported; O = imported objective data; A/P left for the clinician; an optional "considerations" block lists *patterns*, not diagnoses). Built incrementally from `draft_note_delta` Work so the Doctor Link is ready seconds after wrap-up.
 - Renderers: PDF (WeasyPrint, tr fonts), HTML (Doctor Link), FHIR `Composition` + Bundle, openEHR composition JSON, plain text for paste into HBYS.
 
 ## 12. Connectors & Doctor Link
@@ -281,7 +412,7 @@ Implementations: `MockHospitalConnector` (demo/console), `FhirR4Connector` (SMAR
 ## 13. Security, privacy, residency (canonical spec: `10`)
 - **Baseline every service inherits:** OIDC via Keycloak for staff, OTP + device attestation + DPoP-bound refresh tokens for patients; OpenBao for secrets, dynamic DB credentials and Transit-wrapped per-tenant data keys; field-level envelope encryption and tokenized identifiers (no clear TC Kimlik/phone in app tables); mesh mTLS + default-deny NetworkPolicies; Traefik/Envoy ingress with Coraza WAF + CrowdSec; **egress proxy allow-list** (only contracted vendors reachable from the PHI path, every call logged as transfer evidence); de-identification (Presidio + Turkish recognizers) before any cloud model call; signed images and protocol packs admitted by Kyverno/Sigstore policy; hash-chained, WORM-copied audit log; encrypted PITR backups (RPO 15 min / RTO 4 h) with quarterly restore drills; Wazuh + Falco + CrowdSec detection feeding the console's Security module.
 - **AI-specific:** speech, documents and records are data, never instructions (delimited, schema-constrained); the six-tool Talker and deterministic triage bound agency; PolicyGuard on output; model weights pinned by revision + sha256 in the internal registry; per-session budgets and vendor circuit breakers (`10 §5`).
-- Deployment profiles: `dev` (local docker, mock adapters), `cloud-eu` (staging, synthetic data only), `tr-residency` (production default for public hospitals: Turkish DC; all PHI stores, LLM (vLLM), STT (Qwen3-ASR/faster-whisper), TTS (Chatterbox/Piper), LiveKit SFU inside Türkiye). The `cascade_fast` and `s2s_cloud` voice profiles are permitted in production only under KVKK Art. 9 safeguards (standard contracts notified within 5 business days, ZDR, EU regions) and an explicit `voice` consent layer that names the vendor.
+- Deployment profiles: `dev` (local docker, mock adapters), `cloud-eu` (staging, synthetic data only), `tr-residency` (production default for public hospitals: Turkish DC; all PHI stores, LLM (vLLM), STT (Qwen3-ASR/faster-whisper), TTS (Chatterbox/Piper), LiveKit SFU inside Türkiye). The `cascade_fast` and `s2s_cloud` voice profiles are permitted in production only under KVKK Art. 9 safeguards (standard contracts notified within 5 business days, ZDR, EU regions) and an explicit `voice` consent layer that names the vendor. **Exactly one outbound audio stream per session, in every profile** (§4.7.2; invariant 12), and the vendors named in the `voice` consent text must equal the egress allow-list hosts tagged `receives:audio` (invariant 25) — the consent text and the firewall cannot drift apart without failing CI.
 - Field-level encryption for identifiers (TC Kimlik hashed + encrypted), KMS-managed keys, per-tenant isolation for hospital consoles, append-only hash-chained audit log, PII redaction in logs, short-lived consent tokens, SecureStore + biometrics, cert pinning.
 - Threat model & DPIA in `docs/security/`. Pen-test before P2.
 
@@ -314,7 +445,7 @@ ADR-001 Expo + LiveKit for realtime voice · ADR-002 openEHR canonical / FHIR ex
 - Langfuse: MIT core, self-hosted on Postgres + ClickHouse + Redis + S3, OTel-native ingestion, annotation queues, experiments with CI gating (GitHub Action), threshold alerts (Jul 2026); part of ClickHouse since Jan 2026.
 - GEPA (arXiv 2507.19457, submitted Jul 2025, rev. Feb 2026; **ICLR 2026 oral**) + DSPy: reflective prompt evolution with Pareto selection; strong on clinical extraction/NER tasks; documented instability when optimising several interacting agents at once → optimise one module at a time, hold out validation.
 - **Removed 25 Aug 2026:** the former citation of arXiv 2606.31036 as "evidence-gated cross-patient updates (MANANA)". That identifier resolves to *"Teaching LLMs to Recommend and Defer in Underrepresented Epilepsy Care"* (30 Jun 2026) — a Ugandan paediatric epilepsy prescribing framework with uncertainty-based deferral. It does **not** support the Loop 2 gating design. **Loop 2's evidence gating is our own design and currently has no external citation; it must not be presented to a regulator or clinical partner as literature-backed.**
-- Kintsugi: "Voice Biomarkers for Depression and Anxiety" (arXiv 2605.09908, May 2026) — ~65k utterances / 23k US subjects, ~71 % sensitivity/specificity, best model released on Hugging Face; acoustic + lexical fusion helps. Systematic reviews report AUC 0.71–0.93 with heterogeneity → research flag only until Turkish validation.
+- Kintsugi: "Voice Biomarkers for Depression and Anxiety" (arXiv 2605.09908, May 2026) — ~65k utterances / 23k US subjects, ~71 % sensitivity/specificity, best model released on Hugging Face; acoustic + lexical fusion helps. Systematic reviews report AUC 0.71–0.93 with heterogeneity. ⚠ **"Research flag" was the wrong container** — the function is a depression/anxiety score, which MDCG 2019-11 Annex IV names verbatim as Class IIb, so the lawful container is an **investigational device module** inside a registered clinical investigation (§4.7.4, `06 §0.7`). Two further constraints follow from the model card and not from the reviews: the model is an **audio-classification head on `openai/whisper-small.en`**, an **English-only** encoder restricted to *"a single voice speaking English"* — recalibration cannot fix an encoder that never saw Turkish phonology (`00 §5` Q3) — and it consumes no STT minutes, because it never produces text.
 - Turkish affect data exists for research: the Turkish audio-visual bipolar disorder corpus (Çiftçi et al., ACII Asia 2018).
 
 ## 18. Protocol coverage and the learning loops (summary; full spec in `09`)
