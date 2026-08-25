@@ -9,7 +9,7 @@ In the US, Epic is widening a moat built on proprietary data, native integration
 | Announcement | What it is | Implication for INTAKE |
 |---|---|---|
 | **Ergo / Ergo Visit** | "Healthcare intelligence" interface (Nov 2026) unifying Art (clinician AI), Emmie (patient AI in MyChart), Penny (RCM) and Cosmos. Live at Ochsner, Central Oregon, Salem Clinic. Art preps a visit summary, then assembles documentation and orders while listening. | Epic's pre-visit is **clinician-pulled** from the chart. Ours is **patient-pushed** and works without a chart. |
-| **Smarter Check-In / pre-visit assistant with dynamic topic curation** | Slated for **2027** | Validates the category; gives a 12–18 month window outside Epic territory. |
+| **Smarter Check-In / pre-visit assistant with dynamic topic curation** | Slated for **2027** | Validates the category. But this is a **US clock** — Epic's Turkish installed base is negligible, so it does not time *our* window. See **§3b** for the clocks that do. |
 | **Chart with Art** | 74 orgs live; many also Abridge/Nabla/Ambience/DAX customers. CIOs telling startups "no multi-year contracts". | Don't sell a scribe to Epic shops. Sell *pre-visit + triage + patient-side* where EHR vendors are weak. |
 | **Agent Factory** | ~120 out-of-the-box agents + build-your-own; "good enough" for billing/data-extraction agents | Admin-agent startups get squeezed; clinical-conversation products with proprietary *patient-side* data do not. |
 | **Epic Rangers** | Forward-deployed Epic staff embedded in customer IT | Expect Turkish hospital groups to want the same: ship an *implementation playbook* + on-site week. |
@@ -64,6 +64,29 @@ Human turn gaps are ≈200–500 ms; above ≈800 ms a voice UI reads as "thinki
 - **Private groups** (Acıbadem, Memorial, Medipol, Medicana, Liv, Anadolu) run their own HIS/apps → B2B2C connector deals; Acıbadem is the natural pilot (founder affiliation).
 - **Regulatory tailwinds 2026:** AI Law draft expected to pass by end-2026; Ministry of Health **AI Approval Unit** planned for 2026; KVKK Board now audits cloud/AI/SaaS transfers. See `06_COMPLIANCE_TR.md`.
 
+## 3b. The competitor that is not Epic
+
+Everything in §2.1 times our strategy off **Epic Smarter Check-In (2027)**, and §2.1 calls that a "12–18 month window". That is a **US clock**. Epic's Turkish installed base is negligible; a Verona release date does not open or close a window in Ankara. The clocks that actually run against us are these.
+
+| Clock | Who | Horizon | What it means |
+|---|---|---|---|
+| **e-Nabız ships a pre-visit assistant** | Ministry of Health | **Unknowable** — no roadmap is published, and none will be | Free, universal, owns MHRS *and* the record. The only competitor that can occupy our stated positioning outright. |
+| **Visit-e commercialises** | İÜ İstanbul Tıp Fakültesi / TÜBİTAK | In pilot since **Jan 2026** (§2.8) | Academic credibility, MHRS relationship, explicitly no triage. Reference customer or rival, decided by whoever moves first. |
+| **HBYS incumbents add an intake module** | Akgün, Sisoft, Probel, Tiga | **12–24 months after a tender asks for one** | Procurement-driven, not technology-driven. The trigger is a şartname line, not a model release. |
+| **A private group builds in-house** | Acıbadem, Memorial, Medipol | **12–18 months** | **Our pilot partner is our likeliest fast-follower.** Price and structure the pilot deal knowing this. |
+| **Our own regulatory gate** | ATADEK → TİTCK → CE Class IIb | **7–12 months, sequential** (`05 §0 F3`) | The true rate limiter — and it is **internal**. We are more likely to be late than to be beaten. |
+
+**The Ministry of Health is currently absent from this document as a competitor.** It appears in §3 only as an integration target. That is the single largest omission in the strategy: e-Nabız occupies our exact stated positioning — patient-owned, longitudinal, cross-hospital — with better data, universal distribution and zero price. No amount of product quality beats free-and-already-installed on those three axes.
+
+So the test every strategic claim in this file must pass is: **what remains true if e-Nabız ships a pre-visit assistant next quarter?** The honest answer is narrower than "our moat", but it is real:
+
+- **e-Nabız holds records, not conversation.** It has never asked a patient a question. The asset it lacks is the one we are building: structured, elicited, patient-reported narrative — and the protocol library and clinician acceptance loop that make it usable.
+- **It cannot direct a patient's urgency without becoming a regulated device.** Any state PHR that tells a citizen "go to Acil now" is MDSW under the same Rule 11 logic that puts us at Class IIb (`00 §2`). The Ministry has structural reasons to avoid that liability on a population-scale free service; the likeliest MoH product is therefore a *strictly less capable* one — records and forms, not routing.
+- **It has no clinician acceptance loop.** e-Nabız pushes to citizens, not into the outpatient workflow of a private group's own HIS. Per-note accept/edit/reject is not a thing the Ministry collects.
+- **A state PHR is, for a meaningful share of citizens, precisely the party they are least willing to tell** about a mental-health, sexual-health or substance-use concern. This is not a slur on e-Nabız; it is a structural property of state-held records everywhere, and it is why an independent, patient-controlled, deletable channel has durable value even in a world where the free universal one exists.
+
+None of that is a reason to compete with the Ministry. It is a reason to be *composable with* it — see §4b(b).
+
 ## 4. Positioning
 **Category:** Patient-owned pre-visit intelligence (not "AI scribe", not "symptom checker").
 **Promise to patients:** "Muayeneye hazır gidin" — arrive with your story already told, in your words and your doctor's language.
@@ -74,17 +97,46 @@ Human turn gaps are ≈200–500 ms; above ≈800 ms a voice UI reads as "thinki
 We treat regulation as a moat, not a tax, and the plan is firm (`06 §0`): Stage A ships commercially as non-device documentation software while the Acıbadem pilot runs the device functions as a registered clinical investigation (ATADEK + TİTCK) — generating exactly the clinical-evaluation evidence competitors lack; Stage B converts that into CE Class IIa (Rule 11) with ISO 13485/62304/14971/62366-1/81001-5-1 and ÜTS registration. In parallel: KTS (SBYS) registration + USVS conformance + ISO 27001 + Genelge 2019/12 residency attestations make us procurable by public hospitals — a checklist most startups cannot pass. Every artefact is a tracked issue (INT-210…227), so "compliance-ready" is demonstrable in the console, not a slide.
 
 ### Moat plan (the Turkish version of Epic's four buckets)
-1. **Proprietary data:** the only longitudinal, structured, patient-consented record of *what the patient said before each visit*, across hospitals — and a **self-improving protocol library covering every MHRS branch** (cluster packs → deep packs, clinician-gated learning loops, `09`). Visit-e covers a handful of clinics with fixed scripts; Epic's Agent Factory and Abridge's eval loops show where the bar is: measured, clinician-in-the-loop improvement.
+1. **Three assets, not one — and they are not equally defensible. Say which is which.**
+   - **(a) The record — a weak moat, and we should stop calling it a strong one.** The longitudinal, structured, patient-consented record of *what the patient said before each visit* is genuinely valuable, but it is **portable by design**: we promise full FHIR Bundle + PDF export as a KVKK m.11 data right (`02 §7`), and its content is patient-reported, so a competitor can re-elicit it in one session. It compounds through **switching costs** — the patient's own history is already there and confirmed — not through lock-in. A moat you are contractually obliged to let people walk across is a convenience, not a barrier.
+   - **(b) The evidence — this is the actual moat.** A registered clinical investigation (ATADEK + TİTCK, `06 §0`); an **EK-4-conformant triage crosswalk that no ministry has published**, including the MTS Orange → KIRMIZI correction a naïve 3↔3 map gets wrong (`00 §2`); a **replayable deterministic engine** that produces exactly the objective evidence MDCG 2020-1 §4.3 requires; per-rule extraction sensitivity measured against a Turkish reference standard; and CE Class IIb. That is **7–12 months of sequential calendar time that money cannot compress** (`05 §0 F3`) — the same gate that rate-limits us rate-limits everyone, and it is the reason a free competitor ships a strictly less capable product (§3b). It is also the asset that survives the record being exported.
+   - **(c) The clinician acceptance graph.** Per-note accept / edit / reject telemetry, keyed to protocol version, across hospitals and specialties — which questions produce notes clinicians actually use, in which branch, at which hospital. It is not portable, not exportable, and not something a patient can carry away. It compounds with every note read. This, plus the **self-improving protocol library covering every MHRS branch** (cluster packs → deep packs, clinician-gated learning loops, `09`), is what Visit-e's fixed clinic scripts do not accumulate, and it is where Epic's Agent Factory and Abridge's eval loops set the bar: measured, clinician-in-the-loop improvement.
 2. **Native integration:** connector SDK for FHIR/HBYS.API/e-Nabız + universal "Doctor Link" fallback; openEHR templates make every intake computable.
 3. **Distribution:** B2C app + B2B2C white-label for hospital groups + university clinics (Visit-e-style pilots).
 4. **Trust:** TR data residency with **every PHI-path component self-hostable**, zero raw-audio retention, clinician-reviewed Turkish protocols, published evaluation reports (Abridge-style), and an **admin console** hospital CIOs can audit (SLOs, safety queues, satisfaction, wait times, CI/CD, vendor transfers, security posture — `08`, `10`). Turkish hospital quality standards (MoH SDS-01) already demand branch-level MHRS and wait analyses; the console speaks that language. Hospital procurement in Türkiye asks for KVKK compliance, VERBİS registration, pen-test reports and increasingly ISO 27001 (the SBYS regulation expects it of hospital-system vendors); the security baseline in `10` is designed so that evidence is exported from the console rather than assembled per tender.
 
 ### Business model
-- B2C freemium (fast mode free; detailed mode, document vault, family/companion profiles paid).
+- **Acquisition is B2B2C-led, not B2C-led** — a consequence of Turkish health-marketing law, not a go-to-market preference. See §5, "The business model contradicts Turkish marketing law".
+- B2C freemium on the *product* side (fast mode free; detailed mode, document vault, family/companion profiles paid) — free-to-paid conversion happens inside a relationship that began at a hospital touchpoint, not through consumer advertising.
 - B2B2C per-clinic/month + per-connected-visit fee; hospital console; SLA.
 - Research licensing (de-identified, consented) only after ethics + KVKK anonymisation review.
 
+## 4b. What happens when the window closes
+
+§3b says the window is not Epic's to close. These are the three ways it actually closes, and the response to each is **pre-committed here** so that it is decided in calm conditions rather than in the week it happens.
+
+**(a) A hospital group offers the same thing free.** Most likely Acıbadem, Memorial or Medipol, 12–18 months, quite possibly our own pilot partner.
+- What they will actually be shipping is **`device_functions=off`** (`06 §0.3`): an in-house intake tool cannot lawfully direct a patient's urgency without its own registered clinical investigation and CE mark, and no hospital group will open that file to save a licence fee.
+- **Our answer is not price.** It is (i) we do what they may not — spoken RED routing under a registered investigation, then under CE IIb; and (ii) we work at the hospital next door, which an in-house tool structurally cannot. The patient's record travels; theirs does not.
+- Commercial consequence: never sign a pilot that gives the partner a perpetual, transferable licence to the protocol library or the triage crosswalk.
+
+**(b) e-Nabız ships pre-visit.** Unknowable horizon; assume it is always next quarter.
+- **Stop competing on the record. Become the entry channel to it.** The conversation, the protocol library, the clinician note and the triage evidence are ours; the record can be theirs. A pre-visit note that lands in e-Nabız is a better product than one that does not.
+- Preserving that option costs almost nothing and must be paid for now: keep the **e-Nabız connector application live at P3** (`02 §3`) even while it is not a dependency, and **never market against the Ministry** — not in a deck, not in a tender, not in a founder's LinkedIn post. There is no version of this business where being publicly positioned against the Ministry of Health is worth what it costs.
+
+**(c) Epic ships and a Turkish group buys Epic.** This is an **integration opportunity, not a threat.** Epic's pre-visit is chart-pulled (§2.1) and therefore works only for patients already in that chart. Ours is patient-pushed and works for the **first visit at a hospital that has never seen the patient** — which is exactly where a pre-visit note is worth most, and exactly where a chart-pulled product has nothing to pull.
+
+**What we do not do, in any of the three cases:**
+- **We do not compete on being free.** Against a ministry or a hospital group's own IT budget, that is a race to zero we lose by construction.
+- **We do not compete on breadth of record.** e-Nabız wins that on day one and will keep winning it.
+- **We do not build anything whose only defence is that a competitor has not built it yet.** Every roadmap item must survive the §3b test, or it is a feature, not a position.
+
 ## 5. Risks & honest constraints
+- **The business model contradicts Turkish marketing law.** The *Sağlık Hizmetlerinde Tanıtım Yönetmeliği* and the *Tıbbi Cihaz Satış, Reklam ve Tanıtım Yönetmeliği* together restrict health-service advertising to the Turkish public by parties **without a health-service licence** — which is us — and separately prohibit promoting **uncertified device functionality**. `05 §5` already names this as the likeliest source of an early enforcement letter. §4 as previously written sold a **B2C freemium funnel**, and **a funnel you cannot advertise is not a funnel**: the acquisition mechanism and the compliance file were in direct conflict (`00 §4 B7`). Adopting the consequence now rather than after counsel writes it down:
+  - **Acquisition is B2B2C-led.** Patients reach Vizite through the hospital's **own transactional channels** — the appointment SMS, the check-in poster, the clinic desk, the hospital app — which are permitted *service communications about a booked appointment*, not marketing. This is also why the hospital, not the consumer, is the contracting party.
+  - **Consumer paid acquisition is out of scope** — no performance marketing, no influencer placement, no app-store search ads with clinical claims — **until counsel clears specific copy**, per asset, in writing.
+  - **A marketing claims-control gate becomes a P1 deliverable**: the external-material analogue of PolicyGuard. Every public-facing string (store listing, landing page, poster, deck, tender response) passes a versioned, reviewable check for health-service advertising and for claims about `device_functions` that are not yet certified. Same discipline as clinical copy, different regulation.
+  - Residual risk that remains even after all of the above: reminders are transactional-only and İYS consent governs anything else (`02 §7b`); and a hospital partner's *own* marketing of the service is their licensed communication, not ours to write.
 - **SaMD:** realtime triage that routes patients may be a medical device under MDR-aligned TİTCK rules. Mitigation: deterministic, auditable rules; "route per hospital protocol" framing; clinician-in-the-loop; regulatory counsel in P1; CE/TİTCK path in roadmap.
 - **Turkish ASR in clinics:** noisy waiting rooms and dialects; mitigate with Soniox/ElevenLabs + custom vocabulary + on-device VAD + confirm-by-card UX.
 - **Voice affect/psych signals:** culturally and linguistically biased (open acoustic models such as Kintsugi's May-2026 release are US-English, ~71 % sens/spec); computed in parallel lanes, kept soft, consented, clinician-only, with indeterminate bands, research-flagged until Turkish validation.
