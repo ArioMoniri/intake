@@ -54,6 +54,8 @@ planned ──T-24h confirm──► confirmed ──QR/geofence──► checke
 - **On `cancelled`:** any shared note is **auto-revoked** and the clinician inbox entry is **withdrawn**. A patient who cancelled has withdrawn the context in which they consented to share.
 - **A visit carrying an unresolved RED cannot silently move.** `rescheduled` or `cancelled` on a RED visit **raises a clinic inbox entry regardless of connector presence** and **re-shows the crisis signposting** to the patient in the register the original RED used (§5.3).
 
+- **`checked_in` is a safety input, not only a UX state.** It is the field `§5.3` reads to decide whether a RED tells the patient to call an ambulance or to walk to the acil servis, so the accuracy of the check-in transition is a **safety** property and not a convenience one. A geofence that fires in the car park, or a QR scanned by a relative who arrived first, must yield **`UNKNOWN`** and not `ON_SITE` — and `UNKNOWN` costs exactly one question, which is the correct price.
+
 **This last rule is why the section exists.** As the product stands, **a RED-flagged patient whose appointment moves two weeks out is invisible to everyone** — to the clinic (whose queue no longer lists them), to the clinician (whose inbox entry was for a visit that is not happening), and to us (who have no state to act on). The alert fired, the patient rescheduled, and the system forgot. That is a safety gap wearing a UX costume, and it is fixed by state, not by copy.
 
 ## 3. Feature set by release
@@ -148,9 +150,9 @@ The "Anlattıklarınız" rail is the mechanism by which the patient watches thei
 7. **`rail_correction_rate` per slot type is a catalogued metric** (`08 §4`). Every tap-to-correct is a labelled extraction error reported by the only person who knows the truth — a **free, continuous, in-production extraction-accuracy signal**, and the cheapest one we will ever have. It feeds the same corpus as `PatientCorrection` (§3).
 8. **One animated element at a time**, with fixed priority: **RED > work chip > rail commit**. Simultaneous motion in three places is how a calm screen becomes a busy one.
 
-### 5.3 RED delivery — one route, four registers
+### 5.3 RED delivery — one route, four registers, three locations
 
-A RED has **two independent properties**: **what the patient must do**, and **how they must be told**. Collapsing them into a single full-screen red alarm is the current spec's error. Alarm is the right register for most REDs and is a **mechanism of harm** for some.
+A RED has **three independent properties**: **what the patient must do**, **how they must be told**, and **where they are standing when they are told**. Collapsing the first two into a single full-screen red alarm was the previous spec's error; assuming the third was silently fixed at *"at home"* was the other, and it is the more dangerous of the two because it is invisible in the text. Alarm is the right register for most REDs and is a **mechanism of harm** for some.
 
 **The paediatric airway case is decisive.** A child with stridor, drooling, tripod positioning or a muffled ("hot potato") voice **deteriorates when distressed** — agitation increases dynamic airway collapse. This is precisely why standard paediatric emergency practice is to **keep the child calm, keep them with the parent, not examine the throat, and minimise intervention**. A full-screen red alarm with urgent speech, delivered to the parent standing next to that child, **produces the deterioration the alert exists to prevent**. The alert would be correct, timely, and harmful.
 
@@ -164,14 +166,39 @@ Two further classes fail the same way:
 
 | `register` | Presentation | Audio | When |
 |---|---|---|---|
-| **`ALERT`** | Red header, full screen takeover, prominent 112 | **Spoken with urgent prosody**, alert sound | **Default for adults where alarm aids action.** Adult chest pain, stroke FAST positives, anaphylaxis, severe bleeding |
+| **`ALERT`** | Red header, full screen takeover, **prominent primary action — 112 under `REMOTE`, the named Acil Servis under `ON_SITE` (Axis 3)** | **Spoken with urgent prosody**, alert sound | **Default for adults where alarm aids action.** Adult chest pain, stroke FAST positives, anaphylaxis, severe bleeding |
 | **`CALM`** | **No red, no alarm colour** — amber-neutral. **Action first, explanation after.** Explicit **"lütfen yapmayın"** list | **Spoken softly, no alert sound** | Any rule tagged **`distress_sensitive: true`**, and **any RED where the subject is a child and the user is a proxy** |
 | **`SILENT`** | **Screen only.** No headline, no colour change, no takeover — the guidance appears in the flow of the session | **No audio, ever** | Any RED arising inside a `text_only` block; **safeguarding**; C-SSRS positives; or **any session where third-party presence is detected** |
 | **`DEFERRED_CLINICIAN`** | **Patient screen unchanged.** Finding routes to the clinician only | None | Findings where patient-facing alarm has **no useful patient action**. This is also **exactly what `device_functions=off` requires** (`06 §0.3`) — so building this register serves the pre-CE commercial tenant and the clinical case with the same code |
 
+**Axis 3 — location** (added 25 Aug 2026). **The rest of this section was written on the assumption that the patient is at home. That assumption is wrong for every detailed-mode session**, which by definition runs in the waiting room (§2). Telling a patient who is already checked in at the hospital to call an ambulance is absurd to any clinician reading it — and worse than absurd, because it can send them **out** of the one building that could treat them in the next ten minutes.
+
+Location is derived from the visit lifecycle state in **§2b** plus the mode. It is never asked when it can be known, and never assumed when it cannot.
+
+| `location` | derived when | `EMERGENCY_NOW` action |
+|---|---|---|
+| **`REMOTE`** | fast mode, visit `planned` or `confirmed` — the patient is at home, hours or days before the visit | **Suggest 112**, plus **"En yakın Acil"** with the address rendered as selectable text. This is the existing spec and it remains correct *here*. |
+| **`ON_SITE`** | detailed mode, visit `checked_in` — the patient is physically in the building | **Direct them to the hospital's acil servis red area now, and notify staff in the same action.** **Do not suggest 112.** |
+| **`UNKNOWN`** | anything else — `attended` with no check-in event, geofence unavailable, kiosk session with no visit record, a fast-mode session started in the car park | **Ask exactly one question — *"Şu anda hastanede misiniz?"* — and branch on the answer.** Never guess: a guess is wrong in one of the two directions above, and both of those are harms. |
+
+**Location does not change the register.** An `ON_SITE` paediatric-airway RED is still `CALM`; an `ON_SITE` safeguarding RED is still `SILENT`. The two axes are orthogonal and the compiler treats them as such — register decides *how* the patient is told, location decides *what they are told to do*.
+
+**What the `ON_SITE` text must contain, and why each part is load-bearing:**
+
+- **Name the destination concretely.** Not *"acile gidin"* but the hospital's **acil servis**, and where the tenant has supplied one, the location string — *"Acil Servis, zemin kat"*. `acil_location_tr` is a **per-tenant configuration field**, sitting beside the kiosk's own per-tenant settings. Where it is empty the text falls back to *"Acil Servis"* alone; it **never** falls back to an invented floor, wing or direction, because a wrong direction inside a hospital costs the same minutes the alert is trying to save.
+- **Tell them to go now and not to wait for their appointment.** This is the whole point of the axis. The failure mode is a patient sitting politely in a waiting room with a STEMI because their slot is at 14:30 and they were raised not to make a fuss. *"Randevunuzu beklemeyin"* is the sentence that changes behaviour; without it the alert is a mood.
+- **Notify staff simultaneously, and automatically.** `ON_SITE` is the one case where the clinic inbox entry is the **primary** channel rather than the fallback, because there is a qualified human fifty metres away. **`"Hastanedeyim — personele bildir"` is therefore promoted from an optional button to an automatic action**: it fires with the alert, and the button remains on screen only so the patient can see that it already happened and can repeat it.
+- **Do not tell them to call 112 from inside a hospital.** The `112'yi ara` affordance is not rendered under `ON_SITE` at all. Not de-emphasised, not below the fold — absent. (The fixed static safety line of `06 §10` is unaffected; it is a legal notice, not an action.)
+
+**The `EMERGENCY_NOW` persuasion line is location-specific.** Under `REMOTE` it is *"patients arriving by 112 are not triaged on arrival"* (Tebliğ MADDE 8(5)) — the argument against driving oneself. Under `ON_SITE` that line is irrelevant and the equivalent is the door: **triage happens at the entrance and a kırmızı-category patient is not made to wait** (EK-4; KIRMIZI Kategori 1 *"hiç bekletilmeden kırmızı alana"*, KIRMIZI Kategori 2 a 10-minute target). Both are statements about the service rather than about the patient's condition, so both are safe in every register.
+
+⚠ **One `ON_SITE` interaction to flag rather than paper over.** Tebliğ MADDE 9(1) admits **no companion to the kırmızı or sarı alan as a rule**, waived only with physician approval (`04 §3`). A carer following an `ON_SITE` instruction may therefore be separated from the patient at the door. The action text must not promise otherwise, and the proxy and paediatric flows need a clinician decision on what, if anything, to say about it in advance — **open for `ClinicalAuthor`**.
+
 **Binding authoring rule.** **`register` is a required field on every rule in `red_flags.yaml`, clinician-approved, with no permitted default. The protocol compiler rejects any RED rule that does not declare one.** A default would be chosen once, by an engineer, for all future rules — which is how the paediatric airway case gets an alarm.
 
-**Worked `CALM` text — paediatric airway, addressed to the carer.** Action before explanation, no diagnosis, explicit prohibitions:
+**The same rule now binds `location`.** **`location` is a required field on the RED action block, and the compiler rejects a RED rule whose action does not resolve for all three of `REMOTE`, `ON_SITE` and `UNKNOWN`.** A rule author must think about both axes or the rule does not compile. The authoring-side statement of this rule, its CI gates and the `SAME_DAY_ACIL` collapse under `ON_SITE` live in **`04 §8.1`**; this section is the product-side definition of what the patient sees.
+
+**Worked `CALM` text — paediatric airway, `REMOTE`, addressed to the carer.** Action before explanation, no diagnosis, explicit prohibitions. *(This is the `REMOTE` branch; the `ON_SITE` branch of the same rule keeps the register and the whole prohibition list, replaces the 112 line with the named acil servis, and adds a "koşmayın" prohibition.)*
 
 > **Şimdi yapın**
 > Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.
@@ -185,18 +212,45 @@ Two further classes fail the same way:
 > **Neden**
 > Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**. Şu anda çocuğunuz için en yararlı şey, sizin sakin kalmanız.
 
+**Worked `ALERT` text — adult chest pain with cardiac features, `ON_SITE`.** Same style, same action-first order, and the `REMOTE` version of this same rule is the existing *"112'yi arayın"* script. The bracketed string is the tenant's `acil_location_tr` and is omitted entirely when unset:
+
+> **Şimdi yapın**
+> **Acil Servis'e gidin — [zemin kat].** Randevunuzu beklemeyin.
+> Görevlilere haber verildi. Girişte **"göğüs ağrım var"** deyin.
+>
+> **Lütfen yapmayın**
+> • Poliklinik sırasında beklemeyin.
+> • Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.
+> • Bir şey yiyip içmeyin.
+>
+> **Neden**
+> Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez.
+
+Note what is **not** in it: no 112, no ambulance, no *"en yakın acil"* map, no diagnosis. It names one destination, one timing instruction and one thing to say at the door.
+
 **What happens after a RED — unconditional, in every register:**
 - **Persistent state on the visit card**, not a transient modal. A RED that can be dismissed and forgotten was never an alert. It stays visible until resolved, and it is the state that `§2b` refuses to let a reschedule move silently.
 - **A clinic inbox entry with a stated SLA, regardless of connector presence.** "Clinic notified if connector present" makes patient safety contingent on an integration contract. Where there is no connector, the entry lands in the tenant's console queue and the SLA still runs (`§8`, safety response-time NFRs).
-- **A +30 minute follow-back**, with escalation if unanswered. One outbound message, in the same register as the original.
+- **A +30 minute follow-back**, with escalation if unanswered. One outbound message, in the same register as the original. **Under `ON_SITE` the follow-back is addressed to the clinic queue as well as the patient** — *"did this patient reach the acil servis?"* is a question the building can answer in a way that a push notification cannot, and an unanswered `ON_SITE` follow-back means a patient is somewhere in the hospital undelivered.
 - **Server-side handling of abandonment.** The commonest response to a RED is closing the app. Everything above must fire from the server on the session record, not from a client that is no longer running.
 - **"Devam etmek istiyorum" switches the session to a shortened, non-eliciting close-out.** Continuing a full HPI after telling someone to call 112 signals that **the system does not believe its own alert**. The close-out confirms what is already captured, emits the note, and ends.
 
-**Actions offered** (unchanged from the previous spec, now register-aware): **112'yi ara**, **"En yakın Acil"**, **"Hastanedeyim — personele bildir"** (if checked in), and **"Devam etmek istiyorum"** (logged, requires confirmation). `SILENT` renders these as in-flow options without a headline; `DEFERRED_CLINICIAN` renders none of them. A plain explanation always accompanies them, and **never a diagnosis**.
+**Actions offered — now register-aware *and* location-aware:**
 
-**112 presentation:** show **112 as large, selectable text** *as well as* a `tel:` action. Tapping `tel:` on the patient's only device **removes the app from the screen** mid-emergency; a carer or bystander dialling from a second phone needs to be able to read the number. Both affordances, always.
+| action | `REMOTE` | `ON_SITE` | `UNKNOWN` |
+|---|---|---|---|
+| **112'yi ara** (large selectable text **and** `tel:`) | offered, primary | **not rendered** | not rendered until the one question is answered |
+| **"En yakın Acil"** (address as text) | offered | replaced by the named in-house **Acil Servis** destination | — |
+| **"Hastanedeyim — personele bildir"** | offered, and answering it re-derives location as `ON_SITE` | **fires automatically**; the button remains only as confirmation and repeat | offered as one of the two branch answers |
+| **"Devam etmek istiyorum"** | offered, logged, requires confirmation | same | same |
 
-**For `EMERGENCY_NOW`, include the line that actually changes behaviour:** **patients arriving by 112 are not triaged on arrival** (Tebliğ MADDE 8(5)) — they go straight through. This is the single most persuasive argument against "I'll just drive there myself", and it is a statement about the service, not about the patient's condition, so it is safe in every register.
+`SILENT` renders whichever of these apply as in-flow options without a headline; `DEFERRED_CLINICIAN` renders none of them. A plain explanation always accompanies them, and **never a diagnosis**.
+
+**112 presentation (`REMOTE` and answered-`UNKNOWN` only):** show **112 as large, selectable text** *as well as* a `tel:` action. Tapping `tel:` on the patient's only device **removes the app from the screen** mid-emergency; a carer or bystander dialling from a second phone needs to be able to read the number. Both affordances, always.
+
+**For `EMERGENCY_NOW` under `REMOTE`, include the line that actually changes behaviour:** **patients arriving by 112 are not triaged on arrival** (Tebliğ MADDE 8(5)) — they go straight through. This is the single most persuasive argument against "I'll just drive there myself", and it is a statement about the service, not about the patient's condition, so it is safe in every register. **Under `ON_SITE` this line must not be used** — the patient is not travelling, and the equivalent service fact is the door-triage one stated under Axis 3 above.
+
+**Cross-reference note — files this axis touches that are not owned by this change.** `12` needs `location` in the DSL rule schema and in the `action` block, and needs a view on whether `gate:`/`when:` and `evidence:`/`source:` reconcile — both currently disagree with the drafted YAML · `13` needs the `UNKNOWN` one-question branch as a real turn with `ask_tr`/`follow_up_tr`, and it must not be charged against the fast-mode turn budget the way an intake question is · `08` needs `acil_location_tr` as a tenant configuration field with a change tier, because a wrong value here misdirects a kırmızı patient inside a building · `10` needs the three new location invariants alongside the existing RED ones · `03` needs the automatic staff notification under `ON_SITE` wired as an unconditional **server-side** effect, since this section already requires RED handling to fire from the server rather than from a client that may be gone.
 
 **Every register must be fully comprehensible with the sound off** — waiting rooms, silent phones, deaf and hard-of-hearing patients, and the very `SILENT` register that forbids audio entirely. Audio is always an enhancement, never a carrier of information that exists nowhere else (`§8`, accessibility NFRs).
 ### 5.4 Review & send
