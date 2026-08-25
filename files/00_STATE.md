@@ -24,16 +24,35 @@ Three things about this project are counterintuitive and get re-derived wrongly 
 
 ### Voice profiles
 
-| Profile | Component | Current pin | Status | Note |
+| Profile | Component | Current pin | Verdict | Note |
 |---|---|---|---|---|
-| `cascade_fast` | STT | Soniox `stt-rt-v5` | 🔬 | $0.12/hr. **Realtime diarization bundled free** — never switched on. Also the backend Inworld routes to. |
-| `cascade_fast` | TTS | Soniox `tts-rt-v2` | 🔬 | Turkish quality unverified |
-| `cascade_fast` | affect | Inworld voice profiling | ⚠️ | **Same-request flag**, not a second stream — see §3. 18 languages incl. Turkish. Gated on written EU/TR region + ZDR confirmation. |
-| `s2s_cloud` | S2S | GPT-Realtime-2.1 | 🔬 | Profile itself deferred; no published latency target (correctly) |
-| `residency_tr` | ASR | Qwen3-ASR on vLLM | 🔬 | Encoder already resident in GPU — candidate for lane consolidation |
-| `residency_tr` | TTS | Chatterbox (version-pinned) | 🔬 | Turkish support may be incidental rather than real. Streaming latency figure in the blueprint belongs to Resemble's **paid hosted** service; open weights publish none. |
-| `residency_tr` | affect | emotion2vec-class open SER | ⚠️ | No published Turkish evaluation |
+| `cascade_fast` | STT | Soniox `stt-rt-v5` | ✅ **KEEP** | Only candidate clearing all four hard criteria at once: Turkish named explicitly, biasing API, true streaming (~250 ms to final segment), **and free realtime diarization**. Diarization is the tiebreaker. **No published Turkish WER** — nobody publishes one. |
+| `cascade_fast` | TTS | Soniox `tts-rt-v2` | ⚠️ **REPLACE or gate** | **Shipped 11 Aug 2026 — 14 days old.** No published TTFB, no Turkish evaluation of any kind, no per-language quality tiering, and `03 §4.5` allocates it 75–150 ms **on faith**. Challenger: ElevenLabs Flash v2.5 (~75 ms). **Counterweight: dynamic `speech_tr` carries PHI, so a second TTS vendor is a second PHI processor** — a real cost against D3/B4. Decide on a Turkish dose-pronunciation gate, not on brand. |
+| `s2s_cloud` | S2S | **GPT-Realtime-2.1** | ✅ **KEEP** | The only realtime model with **async / non-blocking function calling**, which the six-tool Talker structurally requires (`submit_utterance` must return a `work_id` without blocking). EU residency via `eu.api.openai.com`. ⚠️ Async exists **only on the GA interface**, not beta. |
+| — | S2S alternative | ~~Gemini 3.1 Flash Live~~ | ❌ **NOT co-equal** | *"Function calling is sequential only."* `NON_BLOCKING` exists only on the **older** 2.5 Flash Live — adopting Gemini would mean adopting the older model to get the property the architecture depends on. |
+| `residency_tr` | ASR | Qwen3-ASR-1.7B | ✅ **KEEP**, 3 corrections | Apache-2.0, Turkish, vLLM streaming, context biasing — all confirmed. **(a) Pin the exact repo**: `Qwen/Qwen3-ASR-1.7B` (vLLM) and `-hf` (transformers) are **different artefacts** created five months apart. **(b) Streaming is vLLM-only** → vLLM is a hard dependency, not an optimisation. **(c) Biasing is a soft `prompt` string with no published evaluation** (open upstream issue #157 asks for real hotwords) — needs its own eval. |
+| `residency_tr` | TTS | Chatterbox | ⚠️ **KEEP — nothing else qualifies** | Pin **`ResembleAI/chatterbox` at a revision hash**: `ResembleAI/chatterbox-multilingual` **404s**, and "Multilingual V3" is a model-card name, not a repo. Turkish is **not** among the six languages given dedicated Single Language Packs. **No open-weights TTFB published**, so the `§4.5` 600–900 ms budget has nothing behind it. |
 | `typed` | — | n/a | ✅ | Always available; never a dead end |
+
+### Ruled out — record permanently, these keep recirculating
+
+| Candidate | Why it is out |
+|---|---|
+| **Qwen3.5-Omni-Flash** | **Genuinely the best Turkish S2S that exists** — Turkish in *and* out, 235 ms first packet, function calling. **Served only from Alibaba Cloud regions: no EU, no TR.** Routing patient audio there is a KVKK Art. 9 transfer to a jurisdiction with no adequacy decision. **The best Turkish S2S model on the market is not available to this product** — not a close call, and not a negotiation you win. |
+| **Qwen3-Omni-30B-A3B** (open) | 19 input languages incl. Turkish, but **10 output languages and Turkish is not one**. Cannot be the Talker. Usable only as audio-in → text. 78.85–144.81 GB VRAM bf16. |
+| **Qwen3-TTS-12Hz** | **10 languages, no Turkish.** The obvious Apache-2.0 rescue for `residency_tr` TTS is Turkish-incapable. Most important negative finding of the survey. |
+| **"qwen3.8 voice"** | **Does not exist.** No such model, checkpoint, API id or repo. Almost certainly means Qwen3.5-Omni (30 Mar 2026). |
+| `qwen-audio-agent` | A **Node.js runtime, not a model.** Already the architectural template for `03 §4.2–4.3`; adds no model option. |
+| Qwen-Audio / Qwen2-Audio | Superseded twice; `en`/`zh` only. |
+| **NVIDIA Parakeet / Canary** | **Turkish not among the 25 European languages.** Recirculates constantly as "open and SOTA"; simply inapplicable here. |
+| **Mistral Voxtral** | 13 STT languages, **Turkish absent**. |
+| **Deepgram Flux Multilingual** | Their conversational model with integrated turn detection — exactly what you'd want — went multilingual to 10 languages on 29 Apr 2026 and **Turkish is not among them**. Turkish is in Nova-3, the wrong product line. |
+| **XTTS-v2** | CPML non-commercial, and **Coqui is dissolved — no entity remains that can grant a commercial licence.** Permanently, not temporarily, unusable. |
+| **F5-TTS**, `facebook/mms-tts-tur` | Both `cc-by-nc-4.0`. MMS-tur is recommended in several "open Turkish TTS" guides that don't check the licence. |
+| `hcsolakoglu/Orkhon-TTS` | ⚠️ **Licence risk** — tagged Apache-2.0 while being an `f5-tts` model whose upstream weights are CC-BY-NC-4.0. Needs a derivation review before adoption. |
+| Kokoro / Orpheus / IndexTTS-2 / CosyVoice2 / OpenAudio S1-mini | **No Turkish** in any of them. |
+| Moshi / Hibiki | English only, and no tool calling. |
+| "Whisper large-v4" | **Does not exist.** Latest open checkpoints are large-v3 (Nov 2023) and large-v3-turbo (Oct 2024). |
 
 ### Observer lanes
 
@@ -44,7 +63,8 @@ Three things about this project are counterintuitive and get re-derived wrongly 
 | `linguistic` | rule-based Turkish lexicon | ✅ | Text-only, local, no transfer |
 | `asr_quality` | STT confidence | ✅ | Highest value/risk ratio of all five lanes |
 | `engagement` | local heuristics | ✅ | Local in all profiles |
-| *(new)* diarization | Soniox v5 bundled + local ECAPA | ✅ available | Two-estimator gate; **$0 marginal cost** |
+| *(new)* diarization | Soniox v5 bundled + local ECAPA | ✅ applied | Two-estimator gate; **$0 marginal cost** |
+| *(new)* ASR shadow / `residency_tr` fallback | `turkmedstt/whisper-large-v3-turkish-medical` | ⚠️ thin evidence | The **only** Turkish medical ASR artefact that exists. WER 8.54% real-voice medical, 7.95% general — but **3 speakers, 120 clips**, synthetic-TTS training data, a 2026 capstone, 113 lifetime downloads. **Do not quote to a clinician.** Use as `asr_quality` shadow and as the `residency_tr` fallback, where it strictly dominates the currently-specified faster-whisper large-v3-turbo. |
 
 ---
 
@@ -107,10 +127,12 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| Q1 | Best Turkish streaming ASR — keep Qwen3-ASR and Soniox, or replace? Medical-term biasing is a **hard requirement**. | `TurkishASR` | 🔬 restart needed |
-| Q2 | Are Qwen3-Omni / Qwen-Audio better than GPT-Realtime-2.1? Separately for Turkish and for the self-hosted case. **Tool-calling reliability in the audio path is disqualifying if absent.** | `RealtimeS2S` | 🔬 restart needed |
+| ~~Q1~~ | Best Turkish ASR | `SpeechStack` | ✅ **ANSWERED** — keep both pins; see §1 |
+| ~~Q2~~ | Qwen vs GPT-Realtime | `SpeechStack` | ✅ **ANSWERED** — keep GPT-Realtime-2.1 on async tool calling; Qwen ruled out on residency and Turkish output |
 | Q3 | Turkish-capable encoder for the biomarker head. Is DAM's signal language-dependent? Decisive test: bilingual speakers, content-matched passages, same session. | `EncoderTransfer` | 🔬 restart needed |
-| Q4 | Best self-hostable Turkish TTS — is the Chatterbox pin still right? Does the clip cache justify a **two-model split** (quality for cached clips, speed for dynamic)? | `TurkishTTS` | 🔬 restart needed |
+| ~~Q4~~ | Best Turkish TTS + clip-cache split | `SpeechStack` | ✅ **ANSWERED** — keep Chatterbox (nothing else qualifies); **two tiers, same vendor and same voice id**, because two vendors break voice identity mid-session |
+| **Q9** | **Build a 3–5 h Turkish spontaneous clinical-speech eval set** — code-switched English medical terms, dosages, units. FLEURS-tr and Common Voice tr are **both read speech** and both overstate performance on the real workload. **No vendor publishes Turkish per-language numbers, so this must be built.** ~2 weeks; unblocks the ASR, TTS and `§4.5` budget questions at once. | **unassigned — highest-value open task** | ⏳ |
+| **Q10** | **Turkish text normalisation must move into the protocol compiler** — expand every digit, unit and drug name to Turkish orthography so **no TTS in any profile ever sees a numeral**. No open TTS documents Turkish normalisation; only Azure/Google give declarative control. Add a **compile-time round-trip gate**: synthesise → transcribe back → diff → fail the build on mismatch. Turns "a mispronounced dose is a hazard" into a CI invariant at zero runtime cost. | unassigned | ⏳ |
 | Q5 | Is SER cross-lingually valid at all for Turkish? What Turkish emotional-speech corpora exist, and are they acted or spontaneous? | `SERBiomarker` | 🔬 restart needed |
 | Q6 | Can we get the interleaved text+audio single-decode property? **Suspected answer: no, and it may not matter** — most turns are pre-rendered clips, and the text must be a faithful clinical record, which an S2S text head does not guarantee. | `RealtimeArch` | 🔬 restart needed |
 | Q7 | Real Turkish mobile RTT p50/p95/p99, and does data residency *help* latency? | `NetworkEng` | 🔬 restart needed — had strong RIPE Atlas data when killed |
@@ -152,6 +174,7 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 |---|---|
 | 25 Aug 2026 | State file created after a session-limit wipe killed 7 agents mid-flight |
 | 25 Aug 2026 | Observer-lane cut withdrawn (D1); DAM track promoted (D6); Example 14 reframed (D7) |
+| 25 Aug 2026 | **Main speech path answered.** Keep Soniox STT, GPT-Realtime-2.1, Qwen3-ASR, Chatterbox; replace-or-gate Soniox TTS. Qwen3.5-Omni is the best Turkish S2S and is unusable on KVKK residency. Qwen3-TTS has no Turkish. Gemini 3.1 Flash Live disqualified on sequential-only tool calls. |
 | 25 Aug 2026 | Product/market review applied to 01/02; MoH named as competitor; B2C freemium replaced by B2B2C on marketing-law grounds |
 | 25 Aug 2026 | Lane hardening applied to 03/04/06/10; 18 invariants added; `affect_summary` deleted from every note schema; `Observation`/`dataAbsentReason` deleted; Class IIa contradiction in `06 §1` corrected |
 | 25 Aug 2026 | Kintsugi identified as audio-classification on an **English-only** encoder — the sharpest open risk in the stack |
