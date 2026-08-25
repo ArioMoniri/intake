@@ -65,12 +65,18 @@ Both are **BLOCKED** until written permission exists. **HAQ-DI** is NEEDS-PERMIS
 |---|---|---|---|
 | **P0 Foundation** | Monorepo, CI, the four safety guards, protocol DSL + compiler, deterministic triage, voice-runtime core on mocks, typed-mode intake end-to-end, **`base.life_threat` universal rule set**, admin skeleton | `make check` + `make safety` + `make security` green from a clean clone · every branch resolves to a reviewed pack · runtime invariants 1–12 pass on fake clocks · **a deliberately broken RED rule fails the suite and is reverted, on record** · issue machinery live | **12–20 weeks** |
 | **P1 Fast mode, device-off** | Turkish voice intake E2E (`cascade_fast`), **`residency_tr_media` — SFU + TURN + API + Postgres in İstanbul (§2.1)**, records ingestion, patient summary, clinician note via Doctor Link, CSAT/NPS, real telemetry | 20 internal users × 3 specialties · **client-side measured** round-trip meets §4 targets · note acceptance ≥ 70 % · DPIA v1 signed · Art. 9 standard contracts signed **and notified within 5 iş günü** for every cloud vendor in use | **+10–16 weeks** |
-| **P2 Hospital pilot** | Detailed mode, check-in, clinic console, FHIR connector, companions, top-10 deep packs | Pilot at one hospital group · ≥ 300 real pre-visits · clinician read rate ≥ 80 % · CSAT ≥ 4.2 · zero PHI incidents · external pen-test passed, findings closed | **+4–6 months** |
+| **P2 Hospital pilot** | Detailed mode, check-in, clinic console, **bilateral integration with the pilot group's own technology arm** (⚠ *corrected — see the note under this table; the FHIR connector is an outbound export, not the integration*), companions, top-10 deep packs | Pilot at one hospital group · ≥ 300 real pre-visits · clinician read rate ≥ 80 % · CSAT ≥ 4.2 · zero PHI incidents · external pen-test passed, findings closed | **+4–6 months** |
 | **P2b Clinical investigation** *(parallel track — starts in P0)* | The only lawful route to `device_functions=on` | ATADEK approval **then** TİTCK permission, recorded against a named study id **and protocol version** · insurance in force · first participant enrolled | **≈ 9 months from protocol drafting** |
 | **P3 The record that travels** | e-Nabız application, HBYS.API connector, consented visit recording, longitudinal timeline, **openEHR added as an export**, `residency_tr_models` when a public tenant signs **and a signed GPU capacity contract exists** (`residency_tr_media` ships in P1, §2.1) | 2nd hospital group · e-Nabız sandbox or a formal decision · published evaluation report | **+6–9 months** |
 | **P4 CE + scale** | Class **IIb** conformity assessment, ÜTS registration, B2B2C white-label | Notified-body certificate · `device_functions=on` commercially | Gated on P2b evidence |
 
 > **P3 is currently unplanned.** It holds 2 issues while its own description covers e-Nabız, HBYS.API, diarised visit recording and the longitudinal timeline. Either scope it or stop calling it a phase.
+
+> 🔵 **P2 aimed its connector effort at the wrong counterparty. This is a strategy correction, not a footnote.** **ACIBADEM TEKNOLOJİ A.Ş. is #2 on SBSGM's Aktif HBYS Listesi** — the pilot partner *is its own HBYS vendor*. The active list carries exactly **57 firms (31 Jul 2026)** and **the passive list is empty**, so that is the complete registered universe; **Grup Florence Nightingale, Hisar and Gaziantep Özel self-register the same way.**
+>
+> Therefore: **for private hospital groups — which is the entire go-to-market (`01 §3`) — the integration counterparty is the group's own technology arm, not a third-party HBYS vendor.** Akgün, Sisoft, Probel and Monad matter for **public** hospitals, and that is a later and different motion with a different sales cycle: a şartname and a tender rather than a commercial agreement with the group that already runs the estate. P2's connector work is a **bilateral, per-tenant integration with Acıbadem Teknoloji** — endpoints registered out-of-band at onboarding and bound to the signed DPA (`03 §12`, `10 §9.1` inv. 46) — most likely HL7 v2 feeds or the arm's own API.
+>
+> ⚠️ **UNVERIFIED: what interfaces Acıbadem Teknoloji actually exposes.** Only its registration status is confirmed. Do not size the P2 connector, or promise a payload shape, before that conversation happens — and note that it is a conversation with the pilot partner we already have, which is the cheap part of this correction.
 
 ---
 
@@ -197,7 +203,7 @@ VERBİS registration · DPIA v1 · Art. 9 standard contracts with 5-iş-günü B
 **TİTCK application** · external pen-test · ISO 27001 gap assessment · KTS (SBYS) registration.
 
 ### P3
-e-Nabız application to SBSGM · HBYS vendor partnership (Akgün / Sisoft / Probel / Tiga) · ISO 13485 QMS · MoH AI Approval Unit engagement.
+e-Nabız application to SBSGM · **public-hospital** HBYS vendor partnership (Akgün / Sisoft / Probel / **Monad**) — ⚠ **Tiga removed: it is not on the Aktif HBYS Listesi at all**, it is an interoperability contractor, so three of the four former targets were right and the fourth was a category error; private groups are reached through their own technology arm instead (§1) · ISO 13485 QMS · MoH AI Approval Unit engagement.
 
 ### P4
 Class **IIb** conformity assessment · clinical evaluation report per MDCG 2020-1 · ÜTS registration under TCKKD-KLVZ-03.
