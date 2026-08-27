@@ -55,7 +55,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     ]
     plan = _plan(tmp_path, existing)
     actions = {a["id"]: a for a in plan["actions"]}
-    assert len(actions) == 175
+    # tracks test_schema.py's pinned count (175 blueprint + 3 security-review)
+    assert len(actions) == 178
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

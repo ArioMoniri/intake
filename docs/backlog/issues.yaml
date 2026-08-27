@@ -1248,7 +1248,7 @@
   title: "Expo app shell: SDK 57 dev build, navigation map per 02, i18n tr-first, theme, a11y base"
   depends_on: [INT-001]
   labels: [area:mobile]
-  status: doing
+  status: done
   acceptance:
     - "navigation exactly per 02 §4 incl. me/learned; tr+en resource files; dynamic type"
   tests: [apps/mobile/e2e/nav.spec.ts]
@@ -1603,6 +1603,45 @@
   acceptance:
     - "compose profile; OTel span export; CI job runs recorded simulator experiment and gates on scores"
   tests: [tests/observability/test_langfuse_gate.py]
+  sec_row: "observability-pipeline"
+# INT-176..178: HIGH findings from the 2026-08-27 platform security review
+# (tracker issue #195). Filed as first-class issues because each is
+# exploitable as merged; the review's mediums stay listed on #195 and get
+# folded into the issues that own their files.
+- id: INT-176
+  epic: E01-platform
+  phase: P0
+  title: "Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure)"
+  depends_on: [INT-017]
+  labels: [area:security, risk:security]
+  status: todo
+  acceptance:
+    - "Redis key includes subject+tenant; test proves user B cannot replay or pre-claim user A's Idempotency-Key; in-flight marker gets a short TTL distinct from the 24h response TTL; stored bodies size-capped"
+  tests: [tests/platform/test_idempotency.py]
+  legal: "KVKK-12"
+  sec_row: "api-surface"
+- id: INT-177
+  epic: E01-platform
+  phase: P0
+  title: "Rate limiter: replace per-process monotonic clock with Redis TIME in the Lua script"
+  depends_on: [INT-017]
+  labels: [area:security, risk:security]
+  status: todo
+  acceptance:
+    - "bucket refill computed from Redis server time inside the script; test simulates two clients with skewed clocks and proves no bypass and no permanent starvation"
+  tests: [tests/platform/test_rate_limit.py]
+  sec_row: "api-surface"
+- id: INT-178
+  epic: E01-platform
+  phase: P0
+  title: "Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel"
+  depends_on: [INT-013]
+  labels: [area:security, risk:security]
+  status: todo
+  acceptance:
+    - "collector transform/redact wired into traces AND metrics pipelines; app-side span processor scrubs attributes/events (record_exception payloads included); leak test exports a span carrying a TCKN/phone and asserts the exported bytes are clean"
+  tests: [tests/security/test_trace_redaction.py]
+  legal: "KVKK-12"
   sec_row: "observability-pipeline"
 - id: INT-180
   epic: E12-admin
