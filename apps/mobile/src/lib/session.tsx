@@ -7,20 +7,39 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import type { ConsentState, TestAccount } from "./dev/accounts";
+import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
+
+export type { RecordFixture, TestAccount } from "./dev/accounts";
 
 export interface Session {
   account: TestAccount | null;
   signIn: (account: TestAccount) => void;
   signOut: () => void;
+  /** Per-visit pre-visit note state (in-memory only — INT-179). */
+  notes: Record<string, NoteState>;
+  updateNote: (visitId: string, action: NoteAction) => void;
 }
 
 const SessionContext = createContext<Session | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<TestAccount | null>(null);
-  const signIn = useCallback((next: TestAccount) => setAccount(next), []);
-  const signOut = useCallback(() => setAccount(null), []);
-  const value = useMemo(() => ({ account, signIn, signOut }), [account, signIn, signOut]);
+  const [notes, setNotes] = useState<Record<string, NoteState>>({});
+  const signIn = useCallback((next: TestAccount) => {
+    setAccount(next);
+    setNotes({});
+  }, []);
+  const signOut = useCallback(() => {
+    setAccount(null);
+    setNotes({});
+  }, []);
+  const updateNote = useCallback((visitId: string, action: NoteAction) => {
+    setNotes((prev) => ({ ...prev, [visitId]: noteReducer(prev[visitId] ?? emptyNoteState(), action) }));
+  }, []);
+  const value = useMemo(
+    () => ({ account, signIn, signOut, notes, updateNote }),
+    [account, signIn, signOut, notes, updateNote],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

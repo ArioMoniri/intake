@@ -30,6 +30,13 @@ export interface VisitFixture {
   noteStatus: NoteStatus | null;
 }
 
+export interface RecordFixture {
+  id: string;
+  title: string;
+  /** ISO date — synthetic. */
+  date: string;
+}
+
 export interface TestAccount {
   id: string;
   /** Display name — obviously synthetic, badge shown in Profil. */
@@ -38,6 +45,9 @@ export interface TestAccount {
   locale: "tr" | "en";
   consents: ConsentState;
   visits: VisitFixture[];
+  /** Registered medications as the patient reported them — no doses invented. */
+  medications: string[];
+  records: RecordFixture[];
 }
 
 export const testAccounts: readonly TestAccount[] = [
@@ -63,6 +73,11 @@ export const testAccounts: readonly TestAccount[] = [
         noteStatus: "filed",
       },
     ],
+    medications: ["Metoprolol (düzenli kullanım)"],
+    records: [
+      { id: "r-ayse-1", title: "Kan tahlili sonucu", date: "2026-08-20" },
+      { id: "r-ayse-2", title: "EKG raporu", date: "2026-05-12" },
+    ],
   },
   {
     id: "mehmet",
@@ -80,6 +95,8 @@ export const testAccounts: readonly TestAccount[] = [
         noteStatus: null,
       },
     ],
+    medications: [],
+    records: [],
   },
 ] as const;
 

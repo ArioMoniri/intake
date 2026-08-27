@@ -1643,6 +1643,20 @@
   tests: [tests/security/test_trace_redaction.py]
   legal: "KVKK-12"
   sec_row: "observability-pipeline"
+# INT-179: owner directive 2026-08-27 ("UI UX and flow designs") — the flow
+# shells INT-136/137 will later re-point at real services; scoped to fixture
+# data so it is closable before INT-084/096 exist.
+- id: INT-179
+  epic: E08-mobile
+  phase: P0
+  title: "Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs)"
+  depends_on: [INT-130]
+  labels: [area:mobile]
+  status: doing
+  acceptance:
+    - "one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"
+  tests: [apps/mobile/e2e/flows.spec.ts]
+  sec_row: "intake-typed"
 - id: INT-180
   epic: E12-admin
   phase: P0
