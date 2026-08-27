@@ -95,8 +95,8 @@ teal outline (the "someone saw it" moment); filed = soft green.
 ## Language
 
 `tr` is the source catalog (`lib/i18n/tr.ts`), `en` mirrors it key-for-key
-(parity is a test). Register: siz throughout; `-in` imperatives on short
-in-flow buttons ("Devam et"), `-iniz` in instructional prose — the e-Nabız
+(parity is a test). Register: siz throughout; `-in`/`-yin` imperatives on
+short in-flow buttons ("Devam edin"), `-iniz` in instructional prose — the e-Nabız
 register, per 00 §2. Patient-facing legal/clinical sentences carry a
 `[REVIEW]` marker in the catalog and ship to production only from the signed
 strings file (invariant 18).
@@ -120,3 +120,32 @@ synthetic.
   and storage design lands; the shell must not quietly cache patient data.
 - **Wellbeing content** — WHO-5-family items are licence-BLOCKED (HB-L2);
   the tab frames the space with zero screening items.
+
+## Flow shells (INT-179, 2026-08-27)
+
+Second Mobbin pass grounding the two first flows:
+
+- **Garmin Connect "Review Plan"** — sectioned rows, per-row edit affordance,
+  calm confirmation copy, single bottom CTA → the review-and-send screen.
+- **Liven summary** — headed prose sections → the note's section rhythm.
+- **CVS Health symptom chips** — pill-chip multi-select grid with progress
+  ("1 of 4") and a single Next → the complaint step.
+- **Alan** — one question per screen, large title, tappable option cards
+  with support text → the duration step and the overall pacing.
+
+Decisions the shells lock in:
+
+- **One question per screen**, progress as dots + numerals; answers persist
+  in session state so leaving mid-flow resumes at the first unanswered
+  question.
+- **Share scope per section** on review, default shared, always labelled
+  ("Paylaşılıyor/Paylaşılmıyor" — never colour alone); scope-off excludes the
+  section from what is sent and **never blocks sending** (02 §5.1).
+- **Status ladder** as a vertical timeline on the visit page (Taslak →
+  Gönderildi → Hekim görüntüledi → Dosyaya eklendi).
+- Question set and note sections are **fixtures** — INT-096 (compiled
+  protocols) and INT-084 (note pipeline) replace them without touching the
+  screens' shape.
+- Register fix applied across the catalog: short in-flow buttons use the
+  siz imperative (-in/-yin: "Devam edin", "Vizit ekleyin"), not the sen form
+  the shell first shipped with.

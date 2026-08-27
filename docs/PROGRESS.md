@@ -142,3 +142,13 @@
 - Blocked on: owner — Freya-TTS pinned-install approval; physician review of #185; whisper-tr/Freya LICENSE blobs.
 - Next: INT-016 audit chain, then INT-018/019; INT-176..178 queued P0.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T05:40:00+03:00 · INT-179 · doing→in PR
+- Goal: fixture-backed flow shells (owner directive): typed-intake chips + review-and-send + status ladder + richer demo accounts; Expo QR handed to owner.
+- Plan: spec first (e2e/flows.spec.ts — genuine red: modules absent), then pure lib (questions/note reducer) + three screens under visits/[visitId]/.
+- Tests added: flows.spec 13 (routes, fixture shape, note builder, scope rules, send-never-blocked, source facts); register sweep fixed sen-form imperatives in the catalog.
+- Result: 62 mobile tests green; typecheck + expo lint clean. Backlog consciously 178→179 (INT-179 filed with reason).
+- Invariants: 5, 17 (dropped RN placeholder prop rather than allow-listing the token), 18.
+- Blocked on: nothing.
+- Next: INT-176/177 security fixes, then INT-016.
+- LOOP_STATUS: CONTINUE
