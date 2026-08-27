@@ -67,13 +67,13 @@ export const radius = { card: 20, control: 999, hero: 28, chip: 999 } as const;
 export const motion = { fadeMs: 120 } as const;
 
 /**
- * Display face: Fraunces (OFL 1.1 — commercially usable; loaded as an app
- * asset via @expo-google-fonts/fraunces in the root layout) for hero/title
+ * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app
+ * asset via @expo-google-fonts/newsreader in the root layout) for hero/title
  * lines — the Oura-register soft serif. Body stays system sans. Platform
  * serif names remain as the pre-load fallback chain.
  */
 export const fonts = {
-  display: "Fraunces_600SemiBold",
+  display: "Newsreader_600SemiBold",
   displayFallback: { ios: "Georgia", android: "serif", default: "serif" },
 } as const;
 

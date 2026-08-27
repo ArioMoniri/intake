@@ -8,11 +8,11 @@
  * that consume no session state keep their old-language strings (found by
  * the INT-193 smoke run).
  *
- * Display face: Fraunces (OFL) — the Oura-register soft serif for hero and
+ * Display face: Newsreader (OFL) — the Oura-register soft serif for hero and
  * title lines only; body stays system sans. The splash stays up until the
  * face is loaded so headings never flash a fallback.
  */
-import { Fraunces_400Regular, Fraunces_600SemiBold, useFonts } from "@expo-google-fonts/fraunces";
+import { Newsreader_400Regular, Newsreader_500Medium_Italic, Newsreader_600SemiBold, useFonts } from "@expo-google-fonts/newsreader";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
@@ -29,7 +29,7 @@ function LocalizedStack() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Fraunces_400Regular, Fraunces_600SemiBold });
+  const [fontsLoaded] = useFonts({ Newsreader_400Regular, Newsreader_500Medium_Italic, Newsreader_600SemiBold });
   if (!fontsLoaded) {
     return null;
   }
