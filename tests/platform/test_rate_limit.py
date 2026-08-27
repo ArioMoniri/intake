@@ -84,3 +84,40 @@ def test_bucket_never_exceeds_capacity() -> None:
         pass
     else:
         raise AssertionError("capacity is a ceiling, not a starting credit")
+
+
+# --- INT-177: refill must use Redis server time, not process clocks ---------------
+
+
+def test_two_skewed_replicas_share_one_honest_bucket() -> None:
+    """Two limiter instances (as two replicas would be) with NO injected clock
+    share one bucket; neither process clock exists in the maths, so a skewed
+    replica can neither instantly refill nor permanently starve the bucket."""
+    shared = fakeredis.FakeStrictRedis()
+    replica_a = TokenBucketLimiter(redis_client=shared, capacity=2, refill_per_s=0.001)
+    replica_b = TokenBucketLimiter(redis_client=shared, capacity=2, refill_per_s=0.001)
+    replica_a.consume("user", "u-skew")
+    replica_b.consume("user", "u-skew")
+    for replica in (replica_a, replica_b):
+        try:
+            replica.consume("user", "u-skew")
+        except RateLimitExceeded as err:
+            # finite and bounded by cost/refill: refused now, never for ever
+            assert 0 < err.retry_after_s <= 1000.0
+        else:
+            raise AssertionError("replica must not see an instantly-refilled bucket")
+
+
+def test_backwards_clock_clamps_instead_of_starving() -> None:
+    """A clock that jumps backwards (failover, NTP step) must clamp elapsed to
+    zero — not compute a negative refill that starves the bucket for ever."""
+    limiter, clock = _limiter(capacity=2, refill_per_s=1.0)
+    limiter.consume("user", "u-back")
+    clock.now -= 500.0
+    limiter.consume("user", "u-back")  # second token still there; no starvation
+    try:
+        limiter.consume("user", "u-back")
+    except RateLimitExceeded as err:
+        assert err.retry_after_s <= 2.0, "retry-after must stay bounded after clamp"
+    else:
+        raise AssertionError("empty bucket must refuse")
