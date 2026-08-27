@@ -131,3 +131,14 @@
 - Blocked on: nothing for the shell; orb surface waits on INT-132.
 - Next: demo model serving on the team GPU box (vLLM Qwen3.5-9B fp8 capped + faster-whisper), then INT-016 audit chain.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T04:30:00+03:00 · demo-models + security-review · done
+- Goal: working demo model stack on the team GPU box (owner directive) + fold the two agent reviews into the tracker.
+- Result: Qwen3.5-9B @c202236 serving on loopback :8801 (transformers bf16, ~26% of the slice, guarded, Turkish smoke green); whisper-tr-medical @0e74ec8 ct2/fp16 GPU transcription word-perfect — with the INVERTED task-token finding (task="translate" ⇒ Turkish; the default silently yields an English translation) recorded in the runbook; Freya-TTS deferred (needs commit-pinned git install — owner approval) with its licence upgraded to "README asserts Apache-2.0" pending blob verification.
+- Platform facts learned: pod driver is CUDA 12.8, nvidia-smi blocked; torch must be 2.11.0+cu128; every current vLLM wheel is CUDA-13-built and cannot run here — vLLM stays the plan for target hardware (INT-095/097), transformers is the demo backend.
+- Reviews: clinical pre-review posted to PR #185 (headline: KIRMIZI_K2 acuity on the crisis rule is an unsurfaced clinical decision; TR-EK4 snapshot missing; LT-01-N tense confound; intake/red_flags NOT covered — physician still required). Security review filed as issue #195; the three HIGHs are now INT-176 (idempotency principal scoping), INT-177 (rate-limiter Redis TIME), INT-178 (trace/metric redaction) — backlog count consciously 175→178.
+- INT-130 merged (PR #194) — status flipped to done.
+- Invariants: 17, 19 (licence findings recorded, not waved through), 8 (floors untouched).
+- Blocked on: owner — Freya-TTS pinned-install approval; physician review of #185; whisper-tr/Freya LICENSE blobs.
+- Next: INT-016 audit chain, then INT-018/019; INT-176..178 queued P0.
+- LOOP_STATUS: CONTINUE

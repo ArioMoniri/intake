@@ -213,7 +213,9 @@ def test_backlog_parses_and_is_complete() -> None:
     issues = yaml.safe_load((REPO / "docs" / "backlog" / "issues.yaml").read_text(encoding="utf-8"))
     ids = [i["id"] for i in issues]
     assert len(ids) == len(set(ids)), "duplicate issue ids"
-    assert len(ids) == 175, f"expected the 175-issue backlog of 07 §3.11, got {len(ids)}"
+    # 175 blueprint issues (07 §3.11) + INT-176..178 from the 2026-08-27
+    # security review (tracker issue #195); grows only with a stated reason.
+    assert len(ids) == 178, f"expected 175 blueprint + 3 review issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
