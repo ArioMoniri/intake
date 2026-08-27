@@ -1,0 +1,1 @@
+For $ARGUMENTS: restate acceptance verbatim, write the test plan and the failing tests — including the near-miss negative control for any safety rule — and create docs/evidence/$ARGUMENTS.md with the red run. Do not implement yet.

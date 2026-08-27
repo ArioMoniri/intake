@@ -1,0 +1,1 @@
+Scaffold a specialty protocol pack YAML with sections/slots/red_flags/overlays/voice hints + golden test skeleton for $ARGUMENTS. Every red_flag stub carries `register:`, `location:` and `source:` fields with no defaults filled in.

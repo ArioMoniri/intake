@@ -1,0 +1,1 @@
+Review the diff under services/voice-runtime/** against files/03 §4.6: can the Talker still converse while Work is queued? did any Talker API learn about Work internals? is anything spoken before a Work is completed? can interruption postpone speech without cancelling Work? does the RED path touch any media transport? Output a pass/fail table.

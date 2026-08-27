@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": ["Bash(make *)", "Bash(pnpm *)", "Bash(npx expo *)", "Bash(uv *)", "Bash(pytest *)", "Bash(git status*)", "Bash(git add *)", "Bash(git commit *)", "Bash(git checkout *)", "Bash(git switch *)", "Bash(git push*)", "Bash(git branch*)", "Bash(git diff*)", "Bash(gh issue *)", "Bash(gh pr *)", "Bash(gh label *)", "Bash(gh project *)", "Bash(docker compose *)", "Read", "Edit", "Write", "Grep", "Glob"],
+    "deny": ["Bash(rm -rf *)", "Bash(git push --force*)", "Bash(git reset --hard*)", "Bash(git add -A*)", "Bash(git add .*)", "Read(./.env)", "Edit(./.env)", "Write(./.env)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "scripts/hooks/guard-bash.sh"}]},
+      {"matcher": "Edit|Write", "hooks": [{"type": "command", "command": "scripts/hooks/guard-protected-files.sh"}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "Edit|Write", "hooks": [{"type": "command", "command": "scripts/hooks/format-changed.sh"}]}
+    ],
+    "Stop": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "scripts/hooks/assert-progress-entry.sh"}]}
+    ]
+  }
+}

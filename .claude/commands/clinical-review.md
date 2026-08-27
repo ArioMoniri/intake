@@ -1,0 +1,1 @@
+Review the diff under packages/protocols/** against files/04: instrument fidelity, monotonic red flags, `register` and `location` present on every RED rule, `source:` block present, B1 Turkish, goldens with near-miss negatives. Output a review table. Never fill in a missing threshold.

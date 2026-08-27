@@ -4,7 +4,7 @@
 >
 > **Update discipline.** Update this file *in the same commit* as the change it describes. If a decision is reversed, do not delete the old row — mark it withdrawn and say why. The withdrawn rows are the most valuable part of this file, because they stop the same wrong idea being re-proposed.
 >
-> Last updated: **25 Aug 2026**. Repo: `ArioMoniri/intake`, branch `main`, private, **never pushed** (13 local commits).
+> Last updated: **27 Aug 2026**. Repo: `ArioMoniri/intake`, branch `main`, private, **pushed to GitHub** (origin/main live; `gh` authenticated with push rights — HB-I3 closed).
 
 ---
 
@@ -405,3 +405,5 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 | 25 Aug 2026 | Lane hardening applied to 03/04/06/10; 18 invariants added; `affect_summary` deleted from every note schema; `Observation`/`dataAbsentReason` deleted; Class IIa contradiction in `06 §1` corrected |
 | 25 Aug 2026 | Kintsugi identified as audio-classification on an **English-only** encoder — the sharpest open risk in the stack |
 | 25 Aug 2026 | **Network engineering measured and applied.** Q7 answered. Residency reframed as the **largest transport lever**, not a compliance cost; `residency_tr` split into a P1 media half and a contract-gated model half (D11); loaded latency (646–2232 ms) identified as the dominant term; the single "~420 ms floor" replaced by separate p50/p95; the flat `p95 ≤ 2000 ms` dynamic NFR shown to **fail from day one** and replaced by per-profile targets; RED moved off the media path (D12); invariant 30 added (D13); **"Turkish networks are bad" withdrawn as false** |
+| 27 Aug 2026 | **P0 bootstrap (INT-001).** Monorepo scaffolded per 07 §2/§3; governing docs written byte-for-byte from 07 §3 and pinned by a verbatim CI test; `docs/backlog/issues.yaml` authored from 07 §3.11 (175 issues) **with D8 applied in place**: INT-001's compose drops ehrbase, INT-022's probe list follows, INT-032 re-phased P0→P3 as the openEHR *export* tier, INT-037's DSAR export bundles FHIR+PDF until P3. Repo pushed; HB-I3 closed; HB-I1/I2 still open (dev tier ran in ~18→14 GiB; obs/security tiers and model pulls remain infeasible locally). |
+| 27 Aug 2026 | **Owner directive: heavy/model dev workloads run on the team AWS box (SSM, us-east-1), not the laptop.** Recorded as `docs/runbooks/model-server-aws.md`. Dev/synthetic use only — it changes nothing about the PHI path, which stays self-hosted in-country (D11, HB-I5), and it is not on-hardware evidence for `gpu`-labelled issues. |

@@ -1,0 +1,11 @@
+INTAKE — proprietary software.
+
+Copyright (c) 2026 Ario Moniri. All rights reserved.
+
+No permission is granted to use, copy, modify, or distribute this software or
+any part of it, except as separately agreed in writing.
+
+Exception: the contents of packages/protocols/ are licensed under the Apache
+License, Version 2.0 — see packages/protocols/LICENSE (07 §4: Apache-2.0 for
+the protocol DSL and packs; proprietary for apps and services unless the owner
+directs otherwise — flagged for the owner in docs/backlog/blockers.md).

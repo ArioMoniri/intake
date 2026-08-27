@@ -1,0 +1,247 @@
+"""INT-001 smoke suite.
+
+Acceptance (docs/backlog/issues.yaml INT-001), one test group per line:
+  1. pnpm>=9 + uv workspaces per 07 §2 layout; `make setup` from a clean clone on macOS
+  2. `make check` = ruff + mypy --strict + pytest + eslint + tsc + vitest across all packages
+  3. docker-compose.dev.yml: postgres16+pgvector, redis, hapi, minio; `make dev` healthy
+     with real containers (no stub services) — ehrbase corrected out per 00 §3 D8
+  4. pre-commit: gitleaks, semgrep, ruff, eslint; Conventional Commits enforced by commitlint
+
+The governing documents of 07 §3 are asserted byte-for-byte against the fenced
+blocks in files/07_CLAUDE_CODE_MASTER_PROMPT.md, so "verbatim" stays true after
+this PR, not only in it. Refining one of them requires changing 07 in the same
+commit — which is exactly the blueprint-sync rule in docs/DoD.md.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+from pathlib import Path
+
+import yaml
+
+REPO = Path(__file__).resolve().parents[2]
+MASTER_PROMPT = REPO / "files" / "07_CLAUDE_CODE_MASTER_PROMPT.md"
+
+
+def _extract_block(heading: str) -> str:
+    """Return the first fenced code block that follows `heading` in files/07."""
+    text = MASTER_PROMPT.read_text(encoding="utf-8")
+    at = text.index(heading)
+    fence_open = text.index("```", at)
+    body_start = text.index("\n", fence_open) + 1
+    fence_close = text.index("\n```", body_start)
+    return text[body_start : fence_close + 1]
+
+
+# --- acceptance 1: workspaces -------------------------------------------------
+
+
+def test_pnpm_workspace_declared() -> None:
+    ws = yaml.safe_load((REPO / "pnpm-workspace.yaml").read_text(encoding="utf-8"))
+    assert "packages/*" in ws["packages"]
+    assert "apps/*" in ws["packages"]
+
+
+def test_root_package_json_engines() -> None:
+    import json
+
+    pkg = json.loads((REPO / "package.json").read_text(encoding="utf-8"))
+    assert pkg["private"] is True
+    assert pkg["engines"]["node"].startswith(">=20.19.4")
+    assert pkg["engines"]["pnpm"].startswith(">=9")
+    dev = pkg.get("devDependencies", {})
+    assert "@commitlint/cli" in dev and "@commitlint/config-conventional" in dev
+
+
+def test_uv_workspace_declared() -> None:
+    import tomllib
+
+    root = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
+    members = root["tool"]["uv"]["workspace"]["members"]
+    assert "packages/intake_platform" in members
+    assert root["project"]["requires-python"] == ">=3.12"
+    # mypy strict is config, not a CLI flag someone can forget
+    assert root["tool"]["mypy"]["strict"] is True
+
+
+def test_intake_platform_imports() -> None:
+    import intake_platform
+
+    assert re.fullmatch(r"\d+\.\d+\.\d+", intake_platform.__version__)
+
+
+# --- acceptance 2: make check fan-out -----------------------------------------
+
+
+def _make_database() -> str:
+    out = subprocess.run(["make", "-npq"], cwd=REPO, capture_output=True, text=True, check=False)
+    return out.stdout
+
+
+def test_makefile_targets_exist() -> None:
+    db = _make_database()
+    for target in ("setup", "check", "check-py", "check-ts", "dev", "dev-down", "clean"):
+        assert re.search(rf"^{target}:", db, re.M), f"missing make target: {target}"
+
+
+def test_check_is_a_fanout_alias() -> None:
+    makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+    m = re.search(r"^check:(.*)$", makefile, re.M)
+    assert m, "no `check` target"
+    assert "check-py" in m.group(1) and "check-ts" in m.group(1)
+
+
+def test_check_py_runs_all_four_python_gates() -> None:
+    makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+    body = makefile.split("check-py:")[1].split("\n\n")[0]
+    for tool in ("ruff", "mypy", "pytest"):
+        assert tool in body, f"check-py does not run {tool}"
+    assert "--strict" in body or "strict" in body
+
+
+def test_check_ts_runs_all_three_ts_gates() -> None:
+    makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+    body = makefile.split("check-ts:")[1].split("\n\n")[0]
+    for tool in ("lint", "typecheck", "test"):
+        assert tool in body, f"check-ts does not run {tool}"
+
+
+# --- acceptance 3: compose ------------------------------------------------------
+
+
+def test_compose_dev_services() -> None:
+    compose = yaml.safe_load(
+        (REPO / "infra" / "docker-compose.dev.yml").read_text(encoding="utf-8")
+    )
+    services = compose["services"]
+    for name in ("postgres", "redis", "hapi", "minio"):
+        assert name in services, f"missing service {name}"
+        assert "healthcheck" in services[name], f"{name} has no healthcheck"
+        assert ":" in services[name]["image"], f"{name} image is not tag-pinned"
+    assert services["postgres"]["image"].startswith("pgvector/pgvector:pg16")
+    # 00 §3 D8: openEHR/EHRbase is a P3 export — it must NOT be in the dev tier.
+    assert "ehrbase" not in services, "EHRbase in P0 compose contradicts 00 §3 D8"
+
+
+# --- acceptance 4: pre-commit + commitlint --------------------------------------
+
+
+def test_precommit_hooks() -> None:
+    cfg = yaml.safe_load((REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hook_ids = {h["id"] for repo in cfg["repos"] for h in repo["hooks"]}
+    for required in ("gitleaks", "semgrep", "ruff", "eslint", "commitlint"):
+        assert any(required in h for h in hook_ids), f"missing pre-commit hook: {required}"
+
+
+def test_commitlint_config_is_conventional() -> None:
+    cfg = (REPO / "commitlint.config.cjs").read_text(encoding="utf-8")
+    assert "@commitlint/config-conventional" in cfg
+
+
+# --- governing documents: present, executable, and verbatim against files/07 ----
+
+VERBATIM = {
+    "CLAUDE.md": "### 3.1 `CLAUDE.md`",
+    "docs/GOALS.md": "### 3.2 `docs/GOALS.md`",
+    "docs/DoD.md": "### 3.3 `docs/DoD.md`",
+    "docs/TDD.md": "### 3.4 `docs/TDD.md`",
+    "LOOP.md": "### 3.5 `LOOP.md`",
+    "PROMPT.md": "### 3.6 `PROMPT.md`",
+    "loop.sh": "### 3.7 `loop.sh`",
+    ".claude/settings.json": "### 3.8 `.claude/settings.json`",
+}
+
+
+def test_governing_docs_verbatim() -> None:
+    for rel, heading in VERBATIM.items():
+        expected = _extract_block(heading)
+        actual = (REPO / rel).read_text(encoding="utf-8")
+        assert actual == expected, f"{rel} is not verbatim against files/07 {heading}"
+
+
+def test_loop_sh_and_hooks_executable() -> None:
+    assert os.access(REPO / "loop.sh", os.X_OK), "loop.sh not executable"
+    hooks = REPO / "scripts" / "hooks"
+    for script in (
+        "guard-bash.sh",
+        "guard-protected-files.sh",
+        "format-changed.sh",
+        "assert-progress-entry.sh",
+    ):
+        assert os.access(hooks / script, os.X_OK), f"{script} missing or not executable"
+
+
+def test_slash_commands_and_agents_present() -> None:
+    commands = {
+        "next-issue",
+        "issue-start",
+        "pr-open",
+        "legal-review",
+        "backlog-status",
+        "ship",
+        "clinical-review",
+        "security-review",
+        "new-pack",
+        "threat-model",
+        "slo",
+        "runtime-review",
+        "state-sync",
+    }
+    have = {p.stem for p in (REPO / ".claude" / "commands").glob("*.md")}
+    assert commands <= have, f"missing commands: {commands - have}"
+    agents = {
+        "clinical-reviewer",
+        "security-reviewer",
+        "sre-reviewer",
+        "runtime-reviewer",
+        "test-writer",
+        "legal-reviewer",
+        "licence-auditor",
+        "qa-gatekeeper",
+    }
+    have_agents = {p.stem for p in (REPO / ".claude" / "agents").glob("*.md")}
+    assert agents <= have_agents, f"missing agents: {agents - have_agents}"
+
+
+# --- backlog file (deep schema validation is INT-004) ---------------------------
+
+
+def test_backlog_parses_and_is_complete() -> None:
+    issues = yaml.safe_load((REPO / "docs" / "backlog" / "issues.yaml").read_text(encoding="utf-8"))
+    ids = [i["id"] for i in issues]
+    assert len(ids) == len(set(ids)), "duplicate issue ids"
+    assert len(ids) == 175, f"expected the 175-issue backlog of 07 §3.11, got {len(ids)}"
+    assert ids[0] == "INT-001" and "INT-253" in ids
+
+
+# --- guards ----------------------------------------------------------------------
+
+
+def test_no_vendor_calls_script() -> None:
+    script = REPO / "scripts" / "ci" / "assert_no_vendor_calls.sh"
+    assert os.access(script, os.X_OK)
+    out = subprocess.run([str(script)], cwd=REPO, capture_output=True, text=True)
+    assert out.returncode == 0, f"vendor-call scan failed:\n{out.stdout}{out.stderr}"
+
+
+def test_env_example_has_no_secrets() -> None:
+    # env.example, not .env.example: the agent harness denies writes to .env*
+    # paths (the guard that protects the real .env). Documented in the file.
+    env = (REPO / "env.example").read_text(encoding="utf-8")
+    for line in env.splitlines():
+        if "=" not in line or line.lstrip().startswith("#"):
+            continue
+        _, value = line.split("=", 1)
+        assert not re.search(
+            r"(sk-|ghp_|AKIA|BEGIN [A-Z]+ PRIVATE KEY)", value
+        ), "possible real secret in .env.example"
+
+
+def test_licences_present() -> None:
+    root = (REPO / "LICENSE").read_text(encoding="utf-8")
+    assert "proprietary" in root.lower() or "all rights reserved" in root.lower()
+    protocols = (REPO / "packages" / "protocols" / "LICENSE").read_text(encoding="utf-8")
+    assert "Apache License" in protocols and "Version 2.0" in protocols

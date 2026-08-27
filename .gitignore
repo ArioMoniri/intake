@@ -1,2 +1,17 @@
 .DS_Store
 .claude-flow/
+.env
+.env.*
+!env.example
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+coverage/
+*.tsbuildinfo
+.next/
+.expo/
+uv.lock.orig
