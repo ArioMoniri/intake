@@ -11,6 +11,14 @@ dependencies = [
     "redis>=5.0",
 ]
 
+[project.optional-dependencies]
+# The NER de-identification tier (INT-015). Required wherever egress
+# de-identification runs; pattern-only consumers stay lean without it.
+ner = [
+    "torch>=2.4",
+    "transformers>=4.44",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

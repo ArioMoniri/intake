@@ -1,0 +1,13 @@
+# Gitleaks config — extends the default ruleset; entries here are narrowly
+# scoped false positives, never secret classes. (Invariant 14: gates are not
+# weakened — an allowlist row must name a public, non-secret pattern.)
+[extend]
+useDefault = true
+
+[allowlist]
+description = "public artefact identifiers that pattern-match secret heuristics"
+regexes = [
+  # actions/cache keys naming the pinned deid model artefact + sha fragment —
+  # the sha is public (it is IN the Makefile pin); nothing here grants access.
+  '''deid-tr-ner-v1-[0-9a-f]{8}''',
+]

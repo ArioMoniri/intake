@@ -1,0 +1,155 @@
+{"text": "Beni 0505 186 48 37 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0505 186 48 37"}]}
+{"text": "Maaş hesabı: TR85 1870 6695 8688 2745 6305 22", "entities": [{"type": "IBAN", "start": 13, "end": 45, "value": "TR85 1870 6695 8688 2745 6305 22"}]}
+{"text": "Ödemeyi TR84 2527 5432 9022 3265 2267 11 numaralı hesaba yapabilirsiniz.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR84 2527 5432 9022 3265 2267 11"}]}
+{"text": "Ödemeyi TR48 3437 2475 6423 7407 2524 53 numaralı hesaba yapabilirsiniz.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR48 3437 2475 6423 7407 2524 53"}]}
+{"text": "Vergi no: 2786819006", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "2786819006"}]}
+{"text": "Kimlik numaram 48415236676, yardımcı olur musunuz?", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "48415236676"}]}
+{"text": "Kart numaram 4720 8191 8785 0064 son kullanma 12/28.", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4720 8191 8785 0064"}]}
+{"text": "Fatura için VKN 0124278363 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "0124278363"}]}
+{"text": "Aracın plakası 67 RAN 0100.", "entities": [{"type": "PLAKA", "start": 15, "end": 26, "value": "67 RAN 0100"}]}
+{"text": "İletişim için 0541 418 94 54.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0541 418 94 54"}]}
+{"text": "Ödeme kartı: 4578 2432 7402 9172", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4578 2432 7402 9172"}]}
+{"text": "Aracın plakası 51 IBY 007.", "entities": [{"type": "PLAKA", "start": 15, "end": 25, "value": "51 IBY 007"}]}
+{"text": "E-posta adresim burak60@gmail.com.", "entities": [{"type": "EMAIL", "start": 16, "end": 33, "value": "burak60@gmail.com"}]}
+{"text": "Cep: 0541 481 37 33", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0541 481 37 33"}]}
+{"text": "Hastanın T.C. kimlik no: 63912214828.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "63912214828"}]}
+{"text": "4957 9321 0605 7838 numaralı kartla ödedim.", "entities": [{"type": "CREDIT_CARD", "start": 0, "end": 19, "value": "4957 9321 0605 7838"}]}
+{"text": "Vergi no: 9365878344", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "9365878344"}]}
+{"text": "E-posta adresim can66@ornek.com.tr.", "entities": [{"type": "EMAIL", "start": 16, "end": 34, "value": "can66@ornek.com.tr"}]}
+{"text": "Beni 0541 777 85 79 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0541 777 85 79"}]}
+{"text": "Hastanın T.C. kimlik no: 89681646738.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "89681646738"}]}
+{"text": "E-posta adresim ayse94@gmail.com.", "entities": [{"type": "EMAIL", "start": 16, "end": 32, "value": "ayse94@gmail.com"}]}
+{"text": "İletişim için 0532 804 99 97.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0532 804 99 97"}]}
+{"text": "2026 yılında 1234567 adet satış gerçekleşti.", "entities": []}
+{"text": "E-posta adresim burak4@ornek.com.tr.", "entities": [{"type": "EMAIL", "start": 16, "end": 35, "value": "burak4@ornek.com.tr"}]}
+{"text": "IBAN'ım TR72 2797 6023 9417 6875 1144 04.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR72 2797 6023 9417 6875 1144 04"}]}
+{"text": "Ürün kodu 9988776650, stokta 12 adet var.", "entities": []}
+{"text": "Ödeme kartı: 4222 2890 7609 2033", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4222 2890 7609 2033"}]}
+{"text": "Vergi no: 7900095894", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "7900095894"}]}
+{"text": "Otoparkta 32 AUU 425 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 20, "value": "32 AUU 425"}]}
+{"text": "IBAN'ım TR18 7261 8587 2716 8999 9989 53.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR18 7261 8587 2716 8999 9989 53"}]}
+{"text": "Saat 14:30'da 45 kişilik rezervasyon yapıldı.", "entities": []}
+{"text": "Aracın plakası 19 ZCP 82.", "entities": [{"type": "PLAKA", "start": 15, "end": 24, "value": "19 ZCP 82"}]}
+{"text": "İletişim için 0541 646 59 53.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0541 646 59 53"}]}
+{"text": "Otoparkta 37 TSG 342 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 20, "value": "37 TSG 342"}]}
+{"text": "Vergi no: 3949583520", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "3949583520"}]}
+{"text": "Beni 0555 530 83 95 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0555 530 83 95"}]}
+{"text": "Hastanın T.C. kimlik no: 32316912456.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "32316912456"}]}
+{"text": "Beni 0532 549 46 38 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0532 549 46 38"}]}
+{"text": "Kart numaram 4885 8395 8739 5479 son kullanma 12/28.", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4885 8395 8739 5479"}]}
+{"text": "Ödeme kartı: 4688 5536 0546 6704", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4688 5536 0546 6704"}]}
+{"text": "Otoparkta 55 AA 564 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 19, "value": "55 AA 564"}]}
+{"text": "Başvuruda TCKN 82969394178 olarak girildi.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "82969394178"}]}
+{"text": "Bize ayse79@gmail.com adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 21, "value": "ayse79@gmail.com"}]}
+{"text": "Fatura için VKN 6412742215 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "6412742215"}]}
+{"text": "Kart numaram 4520 1535 4435 3113 son kullanma 12/28.", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4520 1535 4435 3113"}]}
+{"text": "Otoparkta 16 AY 14 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 18, "value": "16 AY 14"}]}
+{"text": "E-posta adresim zeynep22@gmail.com.", "entities": [{"type": "EMAIL", "start": 16, "end": 34, "value": "zeynep22@gmail.com"}]}
+{"text": "Sipariş numaranız 12000345671 olarak oluşturuldu.", "entities": []}
+{"text": "Aracın plakası 33 A 6480.", "entities": [{"type": "PLAKA", "start": 15, "end": 24, "value": "33 A 6480"}]}
+{"text": "Ödemeyi TR16 4480 0247 7171 4456 9008 86 numaralı hesaba yapabilirsiniz.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR16 4480 0247 7171 4456 9008 86"}]}
+{"text": "IBAN'ım TR75 8341 7398 2385 2406 7247 85.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR75 8341 7398 2385 2406 7247 85"}]}
+{"text": "Başvuruda TCKN 78341135552 olarak girildi.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "78341135552"}]}
+{"text": "İletişim için 0532 307 34 77.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0532 307 34 77"}]}
+{"text": "Plakam 53 MYP 4473, ceza gelmiş.", "entities": [{"type": "PLAKA", "start": 7, "end": 18, "value": "53 MYP 4473"}]}
+{"text": "İletişim için 0541 312 65 23.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0541 312 65 23"}]}
+{"text": "Kimlik numaram 26532417550, yardımcı olur musunuz?", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "26532417550"}]}
+{"text": "Saat 14:30'da 45 kişilik rezervasyon yapıldı.", "entities": []}
+{"text": "4882 0146 0694 9119 numaralı kartla ödedim.", "entities": [{"type": "CREDIT_CARD", "start": 0, "end": 19, "value": "4882 0146 0694 9119"}]}
+{"text": "4035 6446 7560 9339 numaralı kartla ödedim.", "entities": [{"type": "CREDIT_CARD", "start": 0, "end": 19, "value": "4035 6446 7560 9339"}]}
+{"text": "Otoparkta 50 B 6334 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 19, "value": "50 B 6334"}]}
+{"text": "Hastanın T.C. kimlik no: 23498240192.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "23498240192"}]}
+{"text": "Cep: 0532 911 50 93", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0532 911 50 93"}]}
+{"text": "Aracın plakası 10 J 21.", "entities": [{"type": "PLAKA", "start": 15, "end": 22, "value": "10 J 21"}]}
+{"text": "Kimlik numaram 92690812254, yardımcı olur musunuz?", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "92690812254"}]}
+{"text": "Maaş hesabı: TR29 6198 4534 9904 7106 2704 52", "entities": [{"type": "IBAN", "start": 13, "end": 45, "value": "TR29 6198 4534 9904 7106 2704 52"}]}
+{"text": "Mail: elif90@sirket.com", "entities": [{"type": "EMAIL", "start": 6, "end": 23, "value": "elif90@sirket.com"}]}
+{"text": "Otoparkta 66 AKG 4377 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 21, "value": "66 AKG 4377"}]}
+{"text": "Mail: ahmet16@gmail.com", "entities": [{"type": "EMAIL", "start": 6, "end": 23, "value": "ahmet16@gmail.com"}]}
+{"text": "Ödeme kartı: 4898 3490 8935 4029", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4898 3490 8935 4029"}]}
+{"text": "İletişim için 0530 224 83 89.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0530 224 83 89"}]}
+{"text": "Cep: 0532 281 47 99", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0532 281 47 99"}]}
+{"text": "Kart numaram 4196 2688 9444 5765 son kullanma 12/28.", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4196 2688 9444 5765"}]}
+{"text": "Aracın plakası 69 IFB 6823.", "entities": [{"type": "PLAKA", "start": 15, "end": 26, "value": "69 IFB 6823"}]}
+{"text": "IBAN'ım TR50 4443 3367 4633 0347 8926 14.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR50 4443 3367 4633 0347 8926 14"}]}
+{"text": "Fatura için VKN 5669448312 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "5669448312"}]}
+{"text": "Başvuruda TCKN 99362214736 olarak girildi.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "99362214736"}]}
+{"text": "Maaş hesabı: TR68 9906 8800 3184 1787 3952 77", "entities": [{"type": "IBAN", "start": 13, "end": 45, "value": "TR68 9906 8800 3184 1787 3952 77"}]}
+{"text": "IBAN'ım TR71 7711 2876 9389 2979 6063 45.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR71 7711 2876 9389 2979 6063 45"}]}
+{"text": "Vergi no: 8135008278", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "8135008278"}]}
+{"text": "Mail: can83@sirket.com", "entities": [{"type": "EMAIL", "start": 6, "end": 22, "value": "can83@sirket.com"}]}
+{"text": "2026 yılında 1234567 adet satış gerçekleşti.", "entities": []}
+{"text": "Kart numaram 4148 0156 5968 7597 son kullanma 12/28.", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4148 0156 5968 7597"}]}
+{"text": "IBAN'ım TR21 5244 4262 1021 5732 0648 28.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR21 5244 4262 1021 5732 0648 28"}]}
+{"text": "Mail: burak56@gmail.com", "entities": [{"type": "EMAIL", "start": 6, "end": 23, "value": "burak56@gmail.com"}]}
+{"text": "Maaş hesabı: TR26 6184 0602 8592 0940 4681 27", "entities": [{"type": "IBAN", "start": 13, "end": 45, "value": "TR26 6184 0602 8592 0940 4681 27"}]}
+{"text": "Sipariş numaranız 12000345671 olarak oluşturuldu.", "entities": []}
+{"text": "Fatura için VKN 7599140335 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "7599140335"}]}
+{"text": "Ödeme kartı: 4463 0820 1537 4770", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4463 0820 1537 4770"}]}
+{"text": "Kimlik numaram 83611868146, yardımcı olur musunuz?", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "83611868146"}]}
+{"text": "Fatura için VKN 2780919465 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "2780919465"}]}
+{"text": "Fatura için VKN 0889166136 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "0889166136"}]}
+{"text": "Firmanın vergi numarası 9755851930.", "entities": [{"type": "VKN", "start": 24, "end": 34, "value": "9755851930"}]}
+{"text": "Mail: ahmet24@gmail.com", "entities": [{"type": "EMAIL", "start": 6, "end": 23, "value": "ahmet24@gmail.com"}]}
+{"text": "Fatura için VKN 6749485867 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "6749485867"}]}
+{"text": "Ürün kodu 9988776650, stokta 12 adet var.", "entities": []}
+{"text": "Fatura için VKN 4582291473 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "4582291473"}]}
+{"text": "Başvuruda TCKN 33600984722 olarak girildi.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "33600984722"}]}
+{"text": "Hastanın T.C. kimlik no: 88340628054.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "88340628054"}]}
+{"text": "Vergi no: 7676192443", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "7676192443"}]}
+{"text": "İletişim için 0530 898 99 10.", "entities": [{"type": "PHONE", "start": 14, "end": 28, "value": "0530 898 99 10"}]}
+{"text": "Kart numaram 4786 4273 9710 8447 son kullanma 12/28.", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4786 4273 9710 8447"}]}
+{"text": "4138 4062 3540 6440 numaralı kartla ödedim.", "entities": [{"type": "CREDIT_CARD", "start": 0, "end": 19, "value": "4138 4062 3540 6440"}]}
+{"text": "Otoparkta 56 I 072 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 18, "value": "56 I 072"}]}
+{"text": "Otoparkta 61 KC 236 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 19, "value": "61 KC 236"}]}
+{"text": "Ürün kodu 9988776650, stokta 12 adet var.", "entities": []}
+{"text": "Otoparkta 50 B 554 plakalı araba var.", "entities": [{"type": "PLAKA", "start": 10, "end": 18, "value": "50 B 554"}]}
+{"text": "Plakam 29 A 686, ceza gelmiş.", "entities": [{"type": "PLAKA", "start": 7, "end": 15, "value": "29 A 686"}]}
+{"text": "Toplam 4500 TL tutarında ödeme alındı.", "entities": []}
+{"text": "Bize elif76@sirket.com adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 22, "value": "elif76@sirket.com"}]}
+{"text": "Hastanın T.C. kimlik no: 45141408704.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "45141408704"}]}
+{"text": "Cep: 0546 940 50 76", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0546 940 50 76"}]}
+{"text": "Bize can8@ornek.com.tr adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 22, "value": "can8@ornek.com.tr"}]}
+{"text": "Toplam 4500 TL tutarında ödeme alındı.", "entities": []}
+{"text": "Beni 0505 847 81 71 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0505 847 81 71"}]}
+{"text": "IBAN'ım TR57 3609 1514 1314 1688 0358 83.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR57 3609 1514 1314 1688 0358 83"}]}
+{"text": "Kimlik numaram 58569257434, yardımcı olur musunuz?", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "58569257434"}]}
+{"text": "Vergi no: 2379108366", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "2379108366"}]}
+{"text": "Plakam 28 HU 60, ceza gelmiş.", "entities": [{"type": "PLAKA", "start": 7, "end": 15, "value": "28 HU 60"}]}
+{"text": "IBAN'ım TR69 3962 3563 4033 2465 2456 49.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR69 3962 3563 4033 2465 2456 49"}]}
+{"text": "Ödeme kartı: 4341 3932 8000 3467", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4341 3932 8000 3467"}]}
+{"text": "Fatura için VKN 6451467209 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "6451467209"}]}
+{"text": "Beni 0546 835 54 46 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0546 835 54 46"}]}
+{"text": "4049 5531 5573 8977 numaralı kartla ödedim.", "entities": [{"type": "CREDIT_CARD", "start": 0, "end": 19, "value": "4049 5531 5573 8977"}]}
+{"text": "Başvuruda TCKN 51136732402 olarak girildi.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "51136732402"}]}
+{"text": "E-posta adresim mehmet26@sirket.com.", "entities": [{"type": "EMAIL", "start": 16, "end": 35, "value": "mehmet26@sirket.com"}]}
+{"text": "Ödemeyi TR91 1621 3178 9711 1610 2296 37 numaralı hesaba yapabilirsiniz.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR91 1621 3178 9711 1610 2296 37"}]}
+{"text": "2026 yılında 1234567 adet satış gerçekleşti.", "entities": []}
+{"text": "Aracın plakası 30 VMN 0626.", "entities": [{"type": "PLAKA", "start": 15, "end": 26, "value": "30 VMN 0626"}]}
+{"text": "Beni 0546 623 77 12 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0546 623 77 12"}]}
+{"text": "Bize mehmet44@gmail.com adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 23, "value": "mehmet44@gmail.com"}]}
+{"text": "Ödeme kartı: 4796 1207 3045 0547", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4796 1207 3045 0547"}]}
+{"text": "Toplam 4500 TL tutarında ödeme alındı.", "entities": []}
+{"text": "Beni 0555 971 34 31 numaralı telefondan arayın.", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0555 971 34 31"}]}
+{"text": "Maaş hesabı: TR86 2463 1402 3932 7401 5318 04", "entities": [{"type": "IBAN", "start": 13, "end": 45, "value": "TR86 2463 1402 3932 7401 5318 04"}]}
+{"text": "Sipariş numaranız 12000345671 olarak oluşturuldu.", "entities": []}
+{"text": "Vergi no: 8013650491", "entities": [{"type": "VKN", "start": 10, "end": 20, "value": "8013650491"}]}
+{"text": "Bize elif89@ornek.com.tr adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 24, "value": "elif89@ornek.com.tr"}]}
+{"text": "Bize mehmet49@ornek.com.tr adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 26, "value": "mehmet49@ornek.com.tr"}]}
+{"text": "IBAN'ım TR26 9127 0656 5277 2920 6630 65.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR26 9127 0656 5277 2920 6630 65"}]}
+{"text": "Aracın plakası 58 UM 251.", "entities": [{"type": "PLAKA", "start": 15, "end": 24, "value": "58 UM 251"}]}
+{"text": "Mail: mehmet43@gmail.com", "entities": [{"type": "EMAIL", "start": 6, "end": 24, "value": "mehmet43@gmail.com"}]}
+{"text": "Bize ahmet43@ornek.com.tr adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 25, "value": "ahmet43@ornek.com.tr"}]}
+{"text": "Ödeme kartı: 4187 9189 2369 4681", "entities": [{"type": "CREDIT_CARD", "start": 13, "end": 32, "value": "4187 9189 2369 4681"}]}
+{"text": "Saat 14:30'da 45 kişilik rezervasyon yapıldı.", "entities": []}
+{"text": "Kimlik numaram 10445006000, yardımcı olur musunuz?", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "10445006000"}]}
+{"text": "Fatura için VKN 5726881770 kullanın.", "entities": [{"type": "VKN", "start": 16, "end": 26, "value": "5726881770"}]}
+{"text": "Hastanın T.C. kimlik no: 37790899552.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "37790899552"}]}
+{"text": "Cep: 0505 138 24 72", "entities": [{"type": "PHONE", "start": 5, "end": 19, "value": "0505 138 24 72"}]}
+{"text": "Firmanın vergi numarası 0258030682.", "entities": [{"type": "VKN", "start": 24, "end": 34, "value": "0258030682"}]}
+{"text": "Maaş hesabı: TR35 2454 2848 7087 7294 6667 95", "entities": [{"type": "IBAN", "start": 13, "end": 45, "value": "TR35 2454 2848 7087 7294 6667 95"}]}
+{"text": "Hastanın T.C. kimlik no: 13897777504.", "entities": [{"type": "TCKN", "start": 25, "end": 36, "value": "13897777504"}]}
+{"text": "4832 2745 4536 6475 numaralı kartla ödedim.", "entities": [{"type": "CREDIT_CARD", "start": 0, "end": 19, "value": "4832 2745 4536 6475"}]}
+{"text": "IBAN'ım TR67 1412 3207 4236 6297 9023 77.", "entities": [{"type": "IBAN", "start": 8, "end": 40, "value": "TR67 1412 3207 4236 6297 9023 77"}]}
+{"text": "Bize zeynep23@sirket.com adresinden ulaşın.", "entities": [{"type": "EMAIL", "start": 5, "end": 24, "value": "zeynep23@sirket.com"}]}
+{"text": "Başvuruda TCKN 10869891428 olarak girildi.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "10869891428"}]}

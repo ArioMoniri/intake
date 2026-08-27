@@ -76,3 +76,14 @@
 - Blocked on: nothing.
 - Next: INT-017 (OpenBao dev server + policies) or INT-018 (egress proxy) — both now the only remaining unblocked deps for the data chain.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T22:50:00+03:00 · INT-015 · done (pending release-asset upload for CI)
+- Goal: the de-identification boundary — TCKN/phone/IBAN/email recognizers, Turkish date shifting, names+addresses NER, leak-rate gates in CI, egress fail-closed contract.
+- Plan: red tests; offset-exact authored corpus + two vendored synthetic corpora (Apache-2.0 + CC-BY-4.0 held-out sample, attributed, pinned); pattern tier in intake_platform.deid; licence audit of off-the-shelf TR NER (all failed the raw-blob gate) → trained our own DistilBERTurk head on the H200 inside /data/intake under the resource guard; artefact with provenance.json + SHA256SUMS distributed as a pinned repo release; make deid-model + CI cache.
+- Tests added: tests/security/test_deid_leak_rate.py (9 — leak gate <0.1 %, over-masking guard, vendored spaced-format corpus, date-shift determinism/bounds/intervals, egress fails closed), tests/security/test_deid_ner.py (4 — provenance, egress opens with model, ≥0.97 held-out recall gate, tier interplay).
+- Result: 95 passed; make check green; mypy strict clean. Model: token recall ≥0.9994 all classes on synthetic held-out (internal measurement, D16; Turkish clinical eval set stays HB-C10).
+- Invariants touched and still passing: 6, 8, 14, 15.
+- Decisions / 00 rows: engine implements the acceptance's recognizer set without the Presidio dependency chain — stated inline in issues.yaml + evidence for reviewer; own-trained NER per the D14 philosophy (we hold the design history).
+- Blocked on: nothing (release upload finishing; PR merges after CI fetches the artefact).
+- Next: INT-017 OpenBao dev server + policies.
+- LOOP_STATUS: CONTINUE

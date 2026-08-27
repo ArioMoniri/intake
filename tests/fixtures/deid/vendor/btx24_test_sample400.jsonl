@@ -1,0 +1,400 @@
+{"text": "Kartın son dört hanesi 2395 şeklinde not edildi.", "label": [{"category": "account_number", "start": 23, "end": 27}]}
+{"text": "Bayi kayıt formunda vergi no 753347**** olarak güncellendi.", "label": [{"category": "vkn", "start": 29, "end": 39}]}
+{"text": "Adres değişti yeni yer Atatürk Sokak No: 62 Talas Mah. Mamak Ankara.", "label": [{"category": "private_address", "start": 23, "end": 67}]}
+{"text": "Poliklinik kaydında sınav kayıt tarihi 06/11/2000 bilgisi alındı.", "label": [{"category": "private_date", "start": 39, "end": 49}]}
+{"text": "Evde kontrol hizmet lokasyonu Örnek Mahallesi, Veri Sokak No: 14 Kat: 2 Yenişehir Mersin şeklinde kaydedildi.", "label": [{"category": "private_address", "start": 30, "end": 88}]}
+{"text": "E-bülten üyelik alanında e-posta adresi satırında gizemkoc@yandex.com yer alıyor.", "label": [{"category": "private_email", "start": 50, "end": 69}]}
+{"text": "Yeni alıcı vergi numarası 4567890123 olarak cariye eklendi.", "label": [{"category": "vkn", "start": 26, "end": 36}]}
+{"text": "Kullanıcı doğrulama ekranında tek kullanımlık şifre kısmında Demo-7998? yer alıyor.", "label": [{"category": "secret", "start": 61, "end": 71}]}
+{"text": "Hastane kaydinda TC kimlik no 33333333330 dogrulandi.", "label": [{"category": "tckn", "start": 30, "end": 41}]}
+{"text": "İletişim tercihi kaydında WhatsApp hattı 0549 606 80 20 ile eşleştirildi.", "label": [{"category": "private_phone", "start": 41, "end": 55}]}
+{"text": "Abonelik iadesinde para transferi icin IBAN TR33 6370 7659 **** **** ** kaydedildi.", "label": [{"category": "iban", "start": 44, "end": 71}]}
+{"text": "Bahçelievler Mahallesi, Arı Sokak No: 98 Daire: 21 Altındağ Ankara adresinde oturuyorum, kurye oraya gelebilir.", "label": [{"category": "private_address", "start": 0, "end": 66}]}
+{"text": "Sigorta formunda TC kimlik no hanesinde 54128950340 bulunuyor.", "label": [{"category": "tckn", "start": 40, "end": 51}]}
+{"text": "Form giriş ekranında kayıtlı telefon 0534 303 40 30 ile eşleştirildi.", "label": [{"category": "private_phone", "start": 37, "end": 51}]}
+{"text": "Geçici giriş sayfasında erişim tokenı alanına REC-2026-TEST-311 girildi.", "label": [{"category": "secret", "start": 46, "end": 63}]}
+{"text": "Hizmet kaydında Referans REF-2026-53518 üzerinden yapılan sorgu sonuçlandı.", "label": [{"category": "account_number", "start": 25, "end": 39}]}
+{"text": "Online satış iadesinde iade için IBAN alanına TR3333 3333 3333 3333 3333 3333 55 girildi.", "label": [{"category": "iban", "start": 46, "end": 80}]}
+{"text": "Musteri formunda adi soyadi hanesinde Demet Erdem bulunuyor.", "label": [{"category": "private_person", "start": 38, "end": 49}]}
+{"text": "CRM sisteminde Eğitim Mah., Özgürlük Cad. No: 64 Torbalı İzmir adresi ile kayıtlıdır.", "label": [{"category": "private_address", "start": 15, "end": 62}]}
+{"text": "Online satis iadesinde odeme IBANi TR66 5178 1750 **** **** ** ile eslesti.", "label": [{"category": "iban", "start": 35, "end": 62}]}
+{"text": "Sözleşme ek protokol belgesinde güncel vergi numarası 1000000001 olarak revize edilmiştir.", "label": [{"category": "vkn", "start": 54, "end": 64}]}
+{"text": "Dr. Cansu Kaya kontrol randevusunu alarak hasta sistemini güncelledi.", "label": [{"category": "private_person", "start": 0, "end": 14}]}
+{"text": "Fatura takip numarası FAT-2025-26486 sistemde görünüyor.", "label": [{"category": "account_number", "start": 22, "end": 36}]}
+{"text": "Eren mobil cüzdan hesabından banka hesabına yaptığı para transferinin askıda kaldığını bildirdi.", "label": [{"category": "private_person", "start": 0, "end": 4}]}
+{"text": "Destek kaydında MNO-2026-82355 müşteri numarasına sahip kullanıcının talebi inceleniyor.", "label": [{"category": "account_number", "start": 16, "end": 30}]}
+{"text": "Online basvuruda TC no 95744953914 olarak sisteme tanimlandi.", "label": [{"category": "tckn", "start": 23, "end": 34}]}
+{"text": "Vergi faturası Analiz Mahallesi, Kavak Sokak No: 103 No: 48 Bayraklı İzmir adresine kesilecektir.", "label": [{"category": "private_address", "start": 15, "end": 74}]}
+{"text": "Burs ödemesi TR99999999999999999999999999 IBAN hesabına gönderildi.", "label": [{"category": "iban", "start": 13, "end": 41}]}
+{"text": "Çağrı merkezi kaydında geçici erişim kodu ACCESS-DEMO-807026 olarak oluşturuldu.", "label": [{"category": "secret", "start": 42, "end": 60}]}
+{"text": "Hesap kurtarma formunda oturum anahtarı için test_key_220325 atandı.", "label": [{"category": "secret", "start": 45, "end": 60}]}
+{"text": "Form düzeltme notunda kimlik numarası 52262786094 olarak güncellendi.", "label": [{"category": "tckn", "start": 38, "end": 49}]}
+{"text": "Tedarikci profilinde VKN 53005 53287 tanimlandi.", "label": [{"category": "vkn", "start": 25, "end": 36}]}
+{"text": "E-devlet girisinde vatandaslik numarasi 08577-580-979 kaydedildi.", "label": [{"category": "tckn", "start": 40, "end": 53}]}
+{"text": "Okul kayıt defterinde öğrenci adı için Ceren Taş değeri kullanıldı.", "label": [{"category": "private_person", "start": 39, "end": 48}]}
+{"text": "Kullanıcı kaydında mail hesabı hanesinde dilara9547@outlook.com bulunuyor.", "label": [{"category": "private_email", "start": 41, "end": 63}]}
+{"text": "Ulaşılamayan müşterinin sistemdeki irtibat numarası +90 543 202 30 40 olarak güncellendi.", "label": [{"category": "private_phone", "start": 52, "end": 69}]}
+{"text": "Yarışma kayıt tarihi 16 Kasım 2025 günü saat beşte bitiyor.", "label": [{"category": "private_date", "start": 21, "end": 34}]}
+{"text": "Mutlu Sitesi, Yenişehir Mah. Ekin Sk. No: 19, C Blok Daire: 9 Odunpazarı Eskişehir adresinde oturuyorum, kurye oraya gelebilir.", "label": [{"category": "private_address", "start": 0, "end": 82}]}
+{"text": "Manuel ödeme dökümündeki iade hesabı TR11111111111111111111111111 kompakt biçiminde tanımlanmıştır.", "label": [{"category": "iban", "start": 37, "end": 65}]}
+{"text": "Ödeme talebinde VKN hanesinde 7654321098 yer alıyor.", "label": [{"category": "vkn", "start": 30, "end": 40}]}
+{"text": "Hesap özetinde Başvuru formunda IBAN TR9925799598 9205 4014605976 olarak dolduruldu.", "label": [{"category": "iban", "start": 37, "end": 65}]}
+{"text": "Destek kaydında Talep CASE-2025-70703 için ilgili birime yönlendirme yapıldı.", "label": [{"category": "account_number", "start": 22, "end": 37}]}
+{"text": "Okul kaydinda vatandaslik numarasi alanina 23367566684 yazildi.", "label": [{"category": "tckn", "start": 43, "end": 54}]}
+{"text": "Uyelik dogrulamada TC no alanina 60920-884-639 yazildi.", "label": [{"category": "tckn", "start": 33, "end": 46}]}
+{"text": "Su faturası Prof. Dr. Aziz Sancar Cad. No: 89 Maçka Mah. Çukurova Adana adresine gönderildi.", "label": [{"category": "private_address", "start": 12, "end": 71}]}
+{"text": "Üyelik başlangıç tarihi 8 Haziran 1958 olarak ayarlandı.", "label": [{"category": "private_date", "start": 24, "end": 38}]}
+{"text": "Üniversite kayıt tarihi 10/03/2005 olarak arşivlendi.", "label": [{"category": "private_date", "start": 24, "end": 34}]}
+{"text": "Sistem günlüğünde Üyelik kodu MBR-2025-42813 olan kaydın süresi uzatıldı.", "label": [{"category": "account_number", "start": 30, "end": 44}]}
+{"text": "Geliştirici notunda güvenlik kodu için token_demo_TES268 atandı.", "label": [{"category": "secret", "start": 39, "end": 56}]}
+{"text": "QA test raporunda demo erişim kodu RESET-TEST-765071 olarak oluşturuldu.", "label": [{"category": "secret", "start": 35, "end": 52}]}
+{"text": "Geri ödeme işleminde Müşterinin kartının son dört hanesi 9176 olarak doğrulandı.", "label": [{"category": "account_number", "start": 57, "end": 61}]}
+{"text": "İşlem tarihi 15.01.1989 olarak sisteme işlenmiştir.", "label": [{"category": "private_date", "start": 13, "end": 23}]}
+{"text": "Üniversite kayıt tarihi 4 Temmuz 1968 olarak arşivlendi.", "label": [{"category": "private_date", "start": 24, "end": 37}]}
+{"text": "Okul kaydında Gürgen Mahallesi, Bağımsızlık Sokak No: 60, Güneş Apartmanı Daire: 12 Gürsu Bursa adresini bildirdik.", "label": [{"category": "private_address", "start": 14, "end": 95}]}
+{"text": "Fatura kaydinda vergi no hanesine 8181896047 yazilmis.", "label": [{"category": "vkn", "start": 34, "end": 44}]}
+{"text": "Hesap profilinde e-posta adresi olarak berk5700@firma.com bırakıldı.", "label": [{"category": "private_email", "start": 39, "end": 57}]}
+{"text": "Şifre sıfırlama ekranında kurtarma kodu olarak ACCESS-DEMO-334208 kullanıldı.", "label": [{"category": "secret", "start": 47, "end": 65}]}
+{"text": "Abonelik sözleşmesinde adı soyadı olarak İbrahim Şen girildi.", "label": [{"category": "private_person", "start": 41, "end": 52}]}
+{"text": "Müşteri numarası CUST-445588 olan hesaba ait hesap özeti e-posta ile iletildi.", "label": [{"category": "account_number", "start": 17, "end": 28}]}
+{"text": "Ödeme adresi Üretim Mah. Sahte Sk. No:11 Gemlik Bursa olarak sistemde tanımlıdır.", "label": [{"category": "private_address", "start": 13, "end": 53}]}
+{"text": "Nefise sisteme yeni hesap oluşturdu.", "label": [{"category": "private_person", "start": 0, "end": 6}]}
+{"text": "Kimlik doğrulama ekranında kayıtlı kişi satırında Burcu Kara geçiyor.", "label": [{"category": "private_person", "start": 50, "end": 60}]}
+{"text": "Şirket bilgi formunda şirket vergi numarası 3333333336 bilgisi alındı.", "label": [{"category": "vkn", "start": 44, "end": 54}]}
+{"text": "Tedarikci profilinde mukellef numarasi 1654184088 bilgisi mevcut.", "label": [{"category": "vkn", "start": 39, "end": 49}]}
+{"text": "Ortopedi randevu tarihi 19 Mayıs 2026 gününe ertelenmiştir.", "label": [{"category": "private_date", "start": 24, "end": 37}]}
+{"text": "Cari hesap kaydında vergi no 5883300222 şeklinde not edildi.", "label": [{"category": "vkn", "start": 29, "end": 39}]}
+{"text": "Okul veli iletişim formunda WhatsApp hattı 5306733147 şeklinde doğrulandı.", "label": [{"category": "private_phone", "start": 43, "end": 53}]}
+{"text": "Mükellef bilgi sisteminde VKN 55226 40191 olarak belirtilmiş.", "label": [{"category": "vkn", "start": 30, "end": 41}]}
+{"text": "Test ortamı kaydında kurtarma kodu parametresi SESSION_DEMO_FAKE_594 olarak girildi.", "label": [{"category": "secret", "start": 47, "end": 68}]}
+{"text": "Hastane randevu notunda telefon numarası 0549 666 99 55 bilgisi girildi.", "label": [{"category": "private_phone", "start": 41, "end": 55}]}
+{"text": "Bayi kayıt formunda vergi no 0227583914 değeri girildi.", "label": [{"category": "vkn", "start": 29, "end": 39}]}
+{"text": "Sifre sifirlamada reset token AUTH-DEMO-2026-10618 olusturuldu.", "label": [{"category": "secret", "start": 30, "end": 50}]}
+{"text": "Is basvurusunda vatandaslik numarasi alanina 70452390839 yazildi.", "label": [{"category": "tckn", "start": 45, "end": 56}]}
+{"text": "Siparişimi Bursa Sokak No: 1 Bostancı Mah. Gebze Kocaeli adresine kargolayın.", "label": [{"category": "private_address", "start": 11, "end": 56}]}
+{"text": "Müşteri bilgi formunda başvuru sahibi için Burak Polat değeri kullanıldı.", "label": [{"category": "private_person", "start": 43, "end": 54}]}
+{"text": "Abonelik iptali sonrası TR77 8463 7933 5591 9395 5575 71 IBAN numarasına ödeme planlandı.", "label": [{"category": "iban", "start": 24, "end": 56}]}
+{"text": "Referans bilgi formunda GSM numarası hanesinde 5499027742 mevcut.", "label": [{"category": "private_phone", "start": 47, "end": 57}]}
+{"text": "Üyelik numarası MEM-55334 olan eski üyelik kaydı başarıyla yenilendi.", "label": [{"category": "account_number", "start": 16, "end": 25}]}
+{"text": "Geri ödeme işleminde Müşteri numarası CUS-082920 olan kayıt için iade süreci başlatıldı.", "label": [{"category": "account_number", "start": 38, "end": 48}]}
+{"text": "Online başvuruda kimlik numarası 16372205039 olarak işlenmiş.", "label": [{"category": "tckn", "start": 33, "end": 44}]}
+{"text": "Yeni kayıtta Üyelik bitiş tarihi 16.12.2014 olarak eklenmiş.", "label": [{"category": "private_date", "start": 33, "end": 43}]}
+{"text": "Üyelik başlangıç tarihi 15/10/1958 olarak ayarlandı.", "label": [{"category": "private_date", "start": 24, "end": 34}]}
+{"text": "Sistem yedek iletişim kaydında dönüş yapılacak numara 0533 606 50 10 bilgisi girildi.", "label": [{"category": "private_phone", "start": 54, "end": 68}]}
+{"text": "İşlem geçmişinde Fatura ödemesi TR72249870652296982059448232 IBAN numarasına yapılacak.", "label": [{"category": "iban", "start": 32, "end": 60}]}
+{"text": "Online başvuru formunda irtibat numarası 0541-495-71-94 olarak görünüyor.", "label": [{"category": "private_phone", "start": 41, "end": 55}]}
+{"text": "Şirket bilgi formunda VKN 9873855023 bilgisi doğrulandı.", "label": [{"category": "vkn", "start": 26, "end": 36}]}
+{"text": "Online başvuruda doğrulama ekranında kimlik bilgisi 566-5411-0064 sorgulandı.", "label": [{"category": "tckn", "start": 52, "end": 65}]}
+{"text": "Alan adı yenileme hatırlatması rıza.veli.test@outlook.com mailine ulaştı.", "label": [{"category": "private_email", "start": 31, "end": 57}]}
+{"text": "Hesap profilinde mail hesabı hanesinde seymapoyraz29@icloud.com bulunuyor.", "label": [{"category": "private_email", "start": 39, "end": 63}]}
+{"text": "Sigorta başlangıç tarihi 19/03/2009 yenilendi.", "label": [{"category": "private_date", "start": 25, "end": 35}]}
+{"text": "Sistemde Vatan Sokak No: 18 Kavaklı Mah. Karaisalı Adana adresi ile kayıtlı.", "label": [{"category": "private_address", "start": 9, "end": 56}]}
+{"text": "Sistem giriş paneli doğrulama kodu OTP-100952 doğrulamasını beklemektedir.", "label": [{"category": "secret", "start": 35, "end": 45}]}
+{"text": "Paket Dumlupınar Bulvarı No: 138 Eminönü Mah. Çukurova Adana adresine ulaştırılsın.", "label": [{"category": "private_address", "start": 6, "end": 60}]}
+{"text": "Musteri adresi Kayali Mah. Menekse Sokak No: 5 Daire: 2 Odunpazari Eskisehir sisteme islendi.", "label": [{"category": "private_address", "start": 15, "end": 76}]}
+{"text": "Ürün iade formunda mail hesabı bölümüne tarik_8174@yahoo.com eklenmiş.", "label": [{"category": "private_email", "start": 40, "end": 60}]}
+{"text": "Ödeme talebinde vergi no 92270***** ile kayıt oluşturuldu.", "label": [{"category": "vkn", "start": 25, "end": 35}]}
+{"text": "Tedarikçi sözleşmesinde şirket vergi numarası 56546-07086 bilgisi doğrulandı.", "label": [{"category": "vkn", "start": 46, "end": 57}]}
+{"text": "CRM sisteminde INV-2026-1951 numaralı fatura için iade belgesi düzenlendi.", "label": [{"category": "account_number", "start": 15, "end": 28}]}
+{"text": "API gateway kaydında sistem tokenı parametresi REC-31600 olarak girildi.", "label": [{"category": "secret", "start": 47, "end": 56}]}
+{"text": "Kargo teslimatı Dumlupınar Bulvarı No: 118 Mezitli Mah. Karaisalı Adana adresine yapılacak.", "label": [{"category": "private_address", "start": 16, "end": 71}]}
+{"text": "Banka hesap özetiniz aylik.ekstre@muhasebe-demo.invalid mailine gönderilmektedir.", "label": [{"category": "private_email", "start": 21, "end": 55}]}
+{"text": "Merkezi poliklinik hasta kabul ve kayıt sisteminde kayıtlı bulunan hasta kimlik alanı verisi 55555555550 olarak onaylandı.", "label": [{"category": "tckn", "start": 93, "end": 104}]}
+{"text": "Siparis onay alaninda mail hesabi satirinda kaan.tas71@proton.me yer aliyor.", "label": [{"category": "private_email", "start": 44, "end": 64}]}
+{"text": "Hesap özetinde Hesap ACC-TR-98026-181 üzerinde yapılan değişiklik kaydedildi.", "label": [{"category": "account_number", "start": 21, "end": 37}]}
+{"text": "Fatura ödemesinde iade için IBAN TR98 9048 9180 9807 9245 9642 97 olarak not edildi.", "label": [{"category": "iban", "start": 33, "end": 65}]}
+{"text": "Güncelleme onayı test.admin@proton.invalid ile alındı.", "label": [{"category": "private_email", "start": 17, "end": 42}]}
+{"text": "Sistem günlüğünde demo erişim kodu OTP-106859 olarak oluşturuldu.", "label": [{"category": "secret", "start": 35, "end": 45}]}
+{"text": "Nufus mudurlugunde T.C. kimlik numarasi 9434*****82 kaydedildi.", "label": [{"category": "tckn", "start": 40, "end": 51}]}
+{"text": "Abonelik kaydında e-posta bilgisi hanesinde ceren_yilmaz31@trial bulunuyor.", "label": [{"category": "private_email", "start": 44, "end": 64}]}
+{"text": "Okul kayıt defterinde isim bilgisi için Uğur Yılmaz değeri kullanıldı.", "label": [{"category": "private_person", "start": 40, "end": 51}]}
+{"text": "Online başvuru formunda WhatsApp hattı kısmında +90 553 831 84 46 yer alıyor.", "label": [{"category": "private_phone", "start": 48, "end": 65}]}
+{"text": "Müşterinin beyanına göre Kartın son dört hanesi 5806 şeklinde not edildi.", "label": [{"category": "account_number", "start": 48, "end": 52}]}
+{"text": "Ödeme formuna girilmiş olan vergi kimlik numarası 1000000001 kontrol edilmelidir", "label": [{"category": "vkn", "start": 50, "end": 60}]}
+{"text": "Doğrulama bağlantısı test.demo@ogrenci.uni-demo.invalid adresine gönderildi.", "label": [{"category": "private_email", "start": 21, "end": 55}]}
+{"text": "E-fatura ekranında e-fatura VKN alanı bölümünde 5690103654 mevcut.", "label": [{"category": "vkn", "start": 48, "end": 58}]}
+{"text": "Cari hesap kaydında tedarikçi vergi no 2716318797 şeklinde görünüyor.", "label": [{"category": "vkn", "start": 39, "end": 49}]}
+{"text": "Abonelik sözleşmesinde kullanıcı adı olarak Tolga Korkmaz sisteme tanımlandı.", "label": [{"category": "private_person", "start": 44, "end": 57}]}
+{"text": "Şirket bilgi formunda vergi numarası 792 6479 219 olarak güncellendi.", "label": [{"category": "vkn", "start": 37, "end": 49}]}
+{"text": "İade formunda tedarikçi vergi no 2670****** üzerinden sorgulandı.", "label": [{"category": "vkn", "start": 33, "end": 43}]}
+{"text": "Destek ödemesi TR24 3639 2156 4033 3287 2310 10 IBAN hesabına aktarıldı.", "label": [{"category": "iban", "start": 15, "end": 47}]}
+{"text": "Ogrenci belgesinde yetkili ismi Halil Dogan olarak kaydedildi.", "label": [{"category": "private_person", "start": 32, "end": 43}]}
+{"text": "Hizmet kaydında CUS-2024-30346 müşteri numarasına sahip kullanıcının talebi inceleniyor.", "label": [{"category": "account_number", "start": 16, "end": 30}]}
+{"text": "Burs ödemesi TR7490719256********** IBAN hesabına gönderildi.", "label": [{"category": "iban", "start": 13, "end": 35}]}
+{"text": "Fatura kaydinda vergi kimlik numarasi 309062**** kaydedildi.", "label": [{"category": "vkn", "start": 38, "end": 48}]}
+{"text": "Sadakat programı kaydında kayıtlı mail satırında ahmet.dogan@pm.me yer alıyor.", "label": [{"category": "private_email", "start": 49, "end": 66}]}
+{"text": "Tedarikçi profilinde e-fatura VKN alanı 55845***** şeklinde görünüyor.", "label": [{"category": "vkn", "start": 40, "end": 50}]}
+{"text": "Müşteri memnuniyeti zeynep.demo@destek-demo.invalid adresine anket yollandı.", "label": [{"category": "private_email", "start": 20, "end": 51}]}
+{"text": "Gümrük beyannamesinde vergi no hanesine 0064620740 yazılmış.", "label": [{"category": "vkn", "start": 40, "end": 50}]}
+{"text": "Test senaryosu belgesinde geçici erişim kodu api_demo_615240 olarak belirtildi.", "label": [{"category": "secret", "start": 45, "end": 60}]}
+{"text": "Ürün iade formunda mail hesabı kısmında osman-bulut57@hotmail.com yazıyor.", "label": [{"category": "private_email", "start": 40, "end": 65}]}
+{"text": "Test ortamı kaydında parola sıfırlama kodu bölümüne REC-56928 eklenmiş.", "label": [{"category": "secret", "start": 52, "end": 61}]}
+{"text": "Online alışveriş profilinde mail adresi alanına mehmet9010@gmail.com girildi.", "label": [{"category": "private_email", "start": 48, "end": 68}]}
+{"text": "Form giriş ekranında irtibat numarası alanında +90 546 000 77 11 bulunuyor.", "label": [{"category": "private_phone", "start": 47, "end": 64}]}
+{"text": "Acente kaydında randevu tarihi kısmında 28.08.2018 yer alıyor.", "label": [{"category": "private_date", "start": 40, "end": 50}]}
+{"text": "Fatura indirimi huseyin.demo@icloud.invalid üzerinden duyuruldu.", "label": [{"category": "private_email", "start": 16, "end": 43}]}
+{"text": "Çağrı merkezi notunda İşlem referans kodu REF-2024-03108 olarak oluşturuldu.", "label": [{"category": "account_number", "start": 42, "end": 56}]}
+{"text": "Abonelik iadesinde IBAN numarasi hanesinde TR62 7903 3338 8839 6475 3817 28 yaziyor.", "label": [{"category": "iban", "start": 43, "end": 75}]}
+{"text": "Cari hesap kaydinda VKN 5063180468 gorunuyor.", "label": [{"category": "vkn", "start": 24, "end": 34}]}
+{"text": "Fatura kaydinda vergi kimlik numarasi 0846162660 gorunuyor.", "label": [{"category": "vkn", "start": 38, "end": 48}]}
+{"text": "Abonelik güncellemesinde TALEP-TR-2026-32127 numaralı talep için ekibimiz çalışma başlattı.", "label": [{"category": "account_number", "start": 25, "end": 44}]}
+{"text": "Üyelik profilinde hasta adı için Hande Aktaş değeri kullanıldı.", "label": [{"category": "private_person", "start": 33, "end": 44}]}
+{"text": "Dergi aboneliği Tasarım Mah., Zafer Cad. No: 178 Muratpaşa Antalya adresine gönderilmektedir.", "label": [{"category": "private_address", "start": 16, "end": 66}]}
+{"text": "CRM iletişim notunda WhatsApp hattı için +90 541 918 45 71 değeri kullanıldı.", "label": [{"category": "private_phone", "start": 41, "end": 58}]}
+{"text": "Hizmet kaydında MEM-TR-2026-38398 üyelik koduna sahip kullanıcının paketi güncellendi.", "label": [{"category": "account_number", "start": 16, "end": 33}]}
+{"text": "İletişim tercihi kaydında dönüş yapılacak numara +90 537 550 20 40 ile eşleştirildi.", "label": [{"category": "private_phone", "start": 49, "end": 66}]}
+{"text": "Yedekleme sisteminde güvenlik kodu olarak VERIFY-638296 kullanıldı.", "label": [{"category": "secret", "start": 42, "end": 55}]}
+{"text": "Çağrı merkezi kaydında 0 (544) 101 20 30 olarak görünüyor.", "label": [{"category": "private_phone", "start": 23, "end": 40}]}
+{"text": "Yazılım form doğrulama kütüphanesinde zorunlu başvuru kimlik alanı 44444444440 verisi ile tamamlandı.", "label": [{"category": "tckn", "start": 67, "end": 78}]}
+{"text": "Çağrı merkezi kaydında erişim tokenı bölümüne access_demo_2025_TEST eklenmiş.", "label": [{"category": "secret", "start": 46, "end": 67}]}
+{"text": "Kullanıcı paneli acil durum recovery code alanında REC-1031-TEST yazmaktadır.", "label": [{"category": "secret", "start": 51, "end": 64}]}
+{"text": "TICKET-2024-36826 numaralı talep için ekibimiz çalışma başlattı.", "label": [{"category": "account_number", "start": 0, "end": 17}]}
+{"text": "Talep kodu TKT-TR-2026-08651 ile ilgili güncelleme yapıldı.", "label": [{"category": "account_number", "start": 11, "end": 28}]}
+{"text": "Hizmet kaydında MUS-2024-22450 müşteri kodu ile kayıtlı hesaba ulaşılamadı.", "label": [{"category": "account_number", "start": 16, "end": 30}]}
+{"text": "Online başvuru formunda mobil numara için 0536-574-54-79 değeri kullanıldı.", "label": [{"category": "private_phone", "start": 42, "end": 56}]}
+{"text": "Su faturası Halide Edip Adıvar Cad. No: 196 Alsancak Mah. İzmit Kocaeli adresine gönderildi.", "label": [{"category": "private_address", "start": 12, "end": 71}]}
+{"text": "Uyelik dogrulamada kimlik bilgisi 81111-819-390 olarak forma girildi.", "label": [{"category": "tckn", "start": 34, "end": 47}]}
+{"text": "Muhasebe kaydinda vergi kimlik numarasi 10089-39044 olarak kaydedildi.", "label": [{"category": "vkn", "start": 40, "end": 51}]}
+{"text": "Çağrı merkezi notunda Aktif hesap numarası HESAP-999367 şeklinde kayıtlıdır.", "label": [{"category": "account_number", "start": 43, "end": 55}]}
+{"text": "Odeme bildirim alaninda e-posta adresi alaninda mustafa_kara@yandex.com bulunuyor.", "label": [{"category": "private_email", "start": 48, "end": 71}]}
+{"text": "Onay bildirimi alanında kayıtlı telefon +90 552 333 22 22 şeklinde not edildi.", "label": [{"category": "private_phone", "start": 40, "end": 57}]}
+{"text": "Uyelik dogrulamada T.C. kimlik numarasi 35854-952-043 sorgulandi.", "label": [{"category": "tckn", "start": 40, "end": 53}]}
+{"text": "Üniversite kayıt tarihi 9 Ağustos 1954 olarak arşivlendi.", "label": [{"category": "private_date", "start": 24, "end": 38}]}
+{"text": "Abonelik güncellemesinde Referans numarası REF-2025-6963 olan hareket onaylandı.", "label": [{"category": "account_number", "start": 43, "end": 56}]}
+{"text": "Cari hesap kaydında vergi dairesi kaydı 795954**** şeklinde not edildi.", "label": [{"category": "vkn", "start": 40, "end": 50}]}
+{"text": "Mezuniyet tarihi 23/09/1961 olan profil.", "label": [{"category": "private_date", "start": 17, "end": 27}]}
+{"text": "API entegrasyon notunda reset token CODE-190496 olarak görünüyor.", "label": [{"category": "secret", "start": 36, "end": 47}]}
+{"text": "İkamet alanında Eğitim Mahallesi, İnci Sokak No: 37 Kat: 9 Daire: 5 Manavgat Antalya bilgisi yer almaktadır.", "label": [{"category": "private_address", "start": 16, "end": 84}]}
+{"text": "Reçete bilgilerinde adı soyadı olarak Hakan Özdemir sisteme tanımlandı.", "label": [{"category": "private_person", "start": 38, "end": 51}]}
+{"text": "Müşteri kaydında Maaş ödemesi TR31 7902 8823 3574 7457 6052 88 IBAN hesabına yatırılacak.", "label": [{"category": "iban", "start": 30, "end": 62}]}
+{"text": "CRM sisteminde Ödeme için IBAN bilgisi TR16 8968 4367 0000 **** ** alındı.", "label": [{"category": "iban", "start": 39, "end": 66}]}
+{"text": "Yatırım fonu belgesi Portföy Mah. Borsa Sokak No: 12 Beşiktaş İstanbul adresine kesildi", "label": [{"category": "private_address", "start": 21, "end": 70}]}
+{"text": "Hasta ziyaretinde Numune Mahallesi Demo Sokak No: 19 Kat: 4 Muratpaşa Antalya adresi kullanılacak.", "label": [{"category": "private_address", "start": 18, "end": 77}]}
+{"text": "Sözleşme belgesinde adı soyadı olarak G. Güler sisteme tanımlandı.", "label": [{"category": "private_person", "start": 38, "end": 46}]}
+{"text": "Başvuruda Kabataş Erkek Lisesi Kabataş Beşiktaş İstanbul adresi kullanıldı.", "label": [{"category": "private_address", "start": 10, "end": 56}]}
+{"text": "Fatura düzeltme notunda vergi no 091 9059 129 şeklinde görünüyor.", "label": [{"category": "vkn", "start": 33, "end": 45}]}
+{"text": "Form teslim tarihi 08 Mayıs 2026 gününe verilmiştir.", "label": [{"category": "private_date", "start": 19, "end": 32}]}
+{"text": "Fatura gönderim alanında kayıtlı mail kısmında irem.orhan@yahoo.com yazıyor.", "label": [{"category": "private_email", "start": 47, "end": 67}]}
+{"text": "Kayıt tarihi 14/08/1996 şeklinde güncellendi.", "label": [{"category": "private_date", "start": 13, "end": 23}]}
+{"text": "Hastane kaydında sisteminde TC no 6169 6889 150 ile kayıtlı.", "label": [{"category": "tckn", "start": 34, "end": 47}]}
+{"text": "Tedarikci profilinde vergi kimlik numarasi 7614085520 tanimlandi.", "label": [{"category": "vkn", "start": 43, "end": 53}]}
+{"text": "Nufus mudurlugunde TC kimlik no alanina 09896478559 yazildi.", "label": [{"category": "tckn", "start": 40, "end": 51}]}
+{"text": "Vize başvurusunda tescil tarihi kısmında 6 Ekim 1969 yer alıyor.", "label": [{"category": "private_date", "start": 41, "end": 52}]}
+{"text": "Nüfus müdürlüğünde sisteminde T.C. kimlik numarası 19307786298 ile kayıtlı.", "label": [{"category": "tckn", "start": 51, "end": 62}]}
+{"text": "Sistem günlüğünde test anahtarı DemoPass-2026! olarak oluşturuldu.", "label": [{"category": "secret", "start": 32, "end": 46}]}
+{"text": "Is basvurusunda TCKN 78661-092-708 gorunuyor.", "label": [{"category": "tckn", "start": 21, "end": 34}]}
+{"text": "Hesap özetinde Referans numarası RF-TR-2024-7627 olan hareket onaylandı.", "label": [{"category": "account_number", "start": 33, "end": 48}]}
+{"text": "Ödeme kaydında Aktif hesap numarası HSP-90819-217 şeklinde kayıtlıdır.", "label": [{"category": "account_number", "start": 36, "end": 49}]}
+{"text": "Musteri formunda kayitli kisi Yasemin Bulut bilgisi mevcut.", "label": [{"category": "private_person", "start": 30, "end": 43}]}
+{"text": "Bordro ödeme kaydında fatura için VKN 80271***** bilgisi doğrulandı.", "label": [{"category": "vkn", "start": 38, "end": 48}]}
+{"text": "Bagis formunda havale hesabi alanina TR17 6402 9407 **** **** ** girildi.", "label": [{"category": "iban", "start": 37, "end": 64}]}
+{"text": "İletişim tercihi kaydında irtibat numarası satırına 5479105375 eklenmiş.", "label": [{"category": "private_phone", "start": 52, "end": 62}]}
+{"text": "Fatura adresim Dumlupınar Bulvarı No: 191 Barbaros Mah. Şahinbey Gaziantep olarak kayıtlı.", "label": [{"category": "private_address", "start": 15, "end": 74}]}
+{"text": "Fatura adresi Barbaros Cad. No: 15 Rasimpaşa Mah. Melikgazi Kayseri olarak güncellenmiş.", "label": [{"category": "private_address", "start": 14, "end": 67}]}
+{"text": "Ogrenci belgesinde adi soyadi Can Kara olarak kaydedildi.", "label": [{"category": "private_person", "start": 30, "end": 38}]}
+{"text": "Uygulama hata kaydında reset token değeri RESET-TEST-774348 şeklinde kaydedildi.", "label": [{"category": "secret", "start": 42, "end": 59}]}
+{"text": "Cari hesap kaydinda vergi kimlik numarasi 86737 33511 gorunuyor.", "label": [{"category": "vkn", "start": 42, "end": 53}]}
+{"text": "Abonelik iadesinde havale hesabi TR32 3708 5194 **** **** ** kaydedildi.", "label": [{"category": "iban", "start": 33, "end": 60}]}
+{"text": "Poliklinik kaydında sözleşme tarihi 1 Ocak 1983 şeklinde not edildi.", "label": [{"category": "private_date", "start": 36, "end": 47}]}
+{"text": "Bildirim tercihlerinde mail adresi ilknur.demir@ornek.com ile eşleştirildi.", "label": [{"category": "private_email", "start": 35, "end": 57}]}
+{"text": "İkametgah adresim Dolmabahçe Sarayı Beşiktaş İstanbul olarak kayıtlı.", "label": [{"category": "private_address", "start": 18, "end": 53}]}
+{"text": "Hasta kaydında iletişim kurulacak kişi Ferhat Güler şeklinde not edildi.", "label": [{"category": "private_person", "start": 39, "end": 51}]}
+{"text": "Kullanici kaydinda mail adresi satirinda yusufkara@outlook.com yer aliyor.", "label": [{"category": "private_email", "start": 41, "end": 62}]}
+{"text": "Hasta kaydinda basvuru sahibi alaninda Ali Aktas yaziyor.", "label": [{"category": "private_person", "start": 39, "end": 48}]}
+{"text": "Siparis onay alaninda email adresi alanina osman.aktas@yahoo.com girildi.", "label": [{"category": "private_email", "start": 43, "end": 64}]}
+{"text": "Uygulama hata kaydında doğrulama kodu Temp470_88 olarak belirtildi.", "label": [{"category": "secret", "start": 38, "end": 48}]}
+{"text": "Okul formunda tescil tarihi 2026-05-01 olarak doğrulandı.", "label": [{"category": "private_date", "start": 28, "end": 38}]}
+{"text": "CRM müşteri notunda iletişim e-postası bölümüne ulas4904@demo.com eklenmiş.", "label": [{"category": "private_email", "start": 48, "end": 65}]}
+{"text": "Muhasebe kaydında İade talebinde IBAN numarası TR16 0000 3456 0000 1860 2581 56 olarak görünüyor.", "label": [{"category": "iban", "start": 47, "end": 79}]}
+{"text": "Müşteri bilgi sisteminde dönüş yapılacak numara olarak 5449836639 bırakıldı.", "label": [{"category": "private_phone", "start": 55, "end": 65}]}
+{"text": "RF-2025-7057 kodu ile takip edilen süreç tamamlandı.", "label": [{"category": "account_number", "start": 0, "end": 12}]}
+{"text": "CRM sisteminde Şifre Mah., Namık Kemal Cad. No: 2 Beylikdüzü İstanbul adresi ile kayıtlıdır.", "label": [{"category": "private_address", "start": 15, "end": 69}]}
+{"text": "Randevu onay formunda email adresi alanında jale9373@yahoo.com bulunuyor.", "label": [{"category": "private_email", "start": 44, "end": 62}]}
+{"text": "Bagis formunda IBAN numarasi hanesinde TR98 9455 9825 9600 9020 9544 97 yaziyor.", "label": [{"category": "iban", "start": 39, "end": 71}]}
+{"text": "Başvuru tarihi 2024-08-28 şeklinde tamamlandı.", "label": [{"category": "private_date", "start": 15, "end": 25}]}
+{"text": "Sevk kağıdında öğrenci adı alanında Neslihan Avcı yazıyor.", "label": [{"category": "private_person", "start": 36, "end": 49}]}
+{"text": "Bakım çalışması Hürriyet Sokak No: 114 Maçka Mah. Gaziemir İzmir adresinde sürüyor.", "label": [{"category": "private_address", "start": 16, "end": 64}]}
+{"text": "Siparis onay alaninda email adresi bolumune veli_8563@outlook.com eklenmis.", "label": [{"category": "private_email", "start": 44, "end": 65}]}
+{"text": "Hesap özetinde IBAN bilgim TR97 9134 9193 9814 9433 9914 97 buraya havale yapabilirsin.", "label": [{"category": "iban", "start": 27, "end": 59}]}
+{"text": "Müşteri destek kaydında GSM numarası satırına 0536-309-72-26 eklenmiş.", "label": [{"category": "private_phone", "start": 46, "end": 60}]}
+{"text": "Üniversite öğrenci işleri TC no 987******09 girildi.", "label": [{"category": "tckn", "start": 32, "end": 43}]}
+{"text": "Şirket bilgi formunda vergi numarası hanesine 9604046317 yazılmış.", "label": [{"category": "vkn", "start": 46, "end": 56}]}
+{"text": "Hizmet alımı sözleşme tarihi 14/05/2021 tarihinde imzalanmıştır.", "label": [{"category": "private_date", "start": 29, "end": 39}]}
+{"text": "İK onboarding kaydında işten çıkış tarihi 8 Haziran 2024 olarak forma işlendi.", "label": [{"category": "private_date", "start": 42, "end": 56}]}
+{"text": "Destek kaydında Fatura takip kodu FATURA-2026-2717 ile kayıtlı belgeye ulaşıldı.", "label": [{"category": "account_number", "start": 34, "end": 50}]}
+{"text": "Destek ödemesinde IBAN numarası TR88888888888888888888888844 numarası bildirildi.", "label": [{"category": "iban", "start": 32, "end": 60}]}
+{"text": "Üyelik kodu MBR-2024-65680 olan kaydın süresi uzatıldı.", "label": [{"category": "account_number", "start": 12, "end": 26}]}
+{"text": "Onay bildirimi alanında mobil numara olarak 5515671011 bırakıldı.", "label": [{"category": "private_phone", "start": 44, "end": 54}]}
+{"text": "Ben Çanakkale Cad. No: 22 Küçükayasofya Mah. Akçaabat Trabzon adresinde oturuyorum.", "label": [{"category": "private_address", "start": 4, "end": 61}]}
+{"text": "Müşteri numarası MSH-2026-66669 olan kullanıcının erişim izni iptal edildi.", "label": [{"category": "account_number", "start": 17, "end": 31}]}
+{"text": "Okul kaydinda vatandaslik numarasi 15032-094-318 gorunuyor.", "label": [{"category": "tckn", "start": 35, "end": 48}]}
+{"text": "Hesap profilinde mail hesabı ceren2287@ornek.com bilgisi mevcut.", "label": [{"category": "private_email", "start": 29, "end": 48}]}
+{"text": "Bordro ödeme kaydında vergi dairesi kaydı 6543210987 üzerinden sorgulandı.", "label": [{"category": "vkn", "start": 42, "end": 52}]}
+{"text": "Randevu tarihi 19/11/2024 tarihinde geçerlilik kazandı.", "label": [{"category": "private_date", "start": 15, "end": 25}]}
+{"text": "Test ortamı kaydında OTP kodu satırında access_demo_2024_TEST mevcut.", "label": [{"category": "secret", "start": 40, "end": 61}]}
+{"text": "Tedarikçi sözleşmesinde vergi dairesi kaydı 547745**** olarak işlenmiş.", "label": [{"category": "vkn", "start": 44, "end": 54}]}
+{"text": "Randevu tarihi 9 Mart 1954 için onay alındı.", "label": [{"category": "private_date", "start": 15, "end": 26}]}
+{"text": "Oturum sonlandırma işleminde oturum anahtarı session_demo_FAKE_145 kontrol edildi.", "label": [{"category": "secret", "start": 45, "end": 66}]}
+{"text": "Doğum tarihi 25/03/1952 sisteme işlendi.", "label": [{"category": "private_date", "start": 13, "end": 23}]}
+{"text": "Ödeme talebinde şirket vergi numarası bölümünde 725484**** mevcut.", "label": [{"category": "vkn", "start": 48, "end": 58}]}
+{"text": "ekranında kimlik numarası 228 468 926 81 girildi.", "label": [{"category": "tckn", "start": 26, "end": 40}]}
+{"text": "Test ortamı kaydında erişim tokenı alanına sk_test_1171_5939 girildi.", "label": [{"category": "secret", "start": 43, "end": 60}]}
+{"text": "Geri bildirim formunda e-posta adresi bölümüne tarik.yildirim@hotmail.com eklenmiş.", "label": [{"category": "private_email", "start": 47, "end": 73}]}
+{"text": "Yeni adresim Mevlana Cad. No: 228 Narlıdere Mah. Finike Antalya.", "label": [{"category": "private_address", "start": 13, "end": 63}]}
+{"text": "Okan Aslan yeni işe alım evraklarını insan kaynaklarına teslim etti.", "label": [{"category": "private_person", "start": 0, "end": 10}]}
+{"text": "Kayıt tarihi 18/12/1964 şeklinde güncellendi.", "label": [{"category": "private_date", "start": 13, "end": 23}]}
+{"text": "Randevu onay formunda email adresi alanina elif9098@yahoo.com girildi.", "label": [{"category": "private_email", "start": 43, "end": 61}]}
+{"text": "Arıza takip belgesine 0549-987-65-43 irtibat numarası işlenmiştir.", "label": [{"category": "private_phone", "start": 22, "end": 36}]}
+{"text": "CRM kaydında müşteri adı hanesinde Ayşe Çetin bulunuyor.", "label": [{"category": "private_person", "start": 35, "end": 45}]}
+{"text": "Müşteri bilgi sisteminde kayıtta başvuru kimlik alanı 35931-639-424 görünüyor.", "label": [{"category": "tckn", "start": 54, "end": 67}]}
+{"text": "Tedarikçi vergi no 12345 67890 girilerek sistemde arama yapıldı.", "label": [{"category": "vkn", "start": 19, "end": 30}]}
+{"text": "Müşteri kaydında Paramı TR292230660935090282919061 IBAN hesabına gönder.", "label": [{"category": "iban", "start": 24, "end": 50}]}
+{"text": "Fatura gönderim alanında email adresi bölümüne neslihan365@ornek.com eklenmiş.", "label": [{"category": "private_email", "start": 47, "end": 68}]}
+{"text": "İç sistem notunda oturum anahtarı alanına ONAY-674542 girildi.", "label": [{"category": "secret", "start": 42, "end": 53}]}
+{"text": "Kurum kayıt belgesinde fatura için VKN 59689 30924 değeri girildi.", "label": [{"category": "vkn", "start": 39, "end": 50}]}
+{"text": "Müşteri bilgi formunda kayıtlı kişi alanına Utku Erdoğan yazılmış.", "label": [{"category": "private_person", "start": 44, "end": 56}]}
+{"text": "CRM kaydinda musteri adi Fatma Kucuk ile eslestirildi.", "label": [{"category": "private_person", "start": 25, "end": 36}]}
+{"text": "Müşteri bilgi formunda öğrenci adı Merve Can olarak doğrulandı.", "label": [{"category": "private_person", "start": 35, "end": 44}]}
+{"text": "Stopaj bildiriminde VKN 55150 62124 şeklinde not edildi.", "label": [{"category": "vkn", "start": 24, "end": 35}]}
+{"text": "Sigorta poliçesinde adı soyadı kısmında Volkan Yıldırım yer alıyor.", "label": [{"category": "private_person", "start": 40, "end": 55}]}
+{"text": "Hastanede kayıt tarihi 2012-04-11 olarak güncellendi.", "label": [{"category": "private_date", "start": 23, "end": 33}]}
+{"text": "Onay bildirimi alanında dönüş yapılacak numara 0 (552) 500 80 50 olarak kaydedildi.", "label": [{"category": "private_phone", "start": 47, "end": 64}]}
+{"text": "Mali müşavir notunda VKN 4316783069 bilgisi alındı.", "label": [{"category": "vkn", "start": 25, "end": 35}]}
+{"text": "Müşterinin doğum tarihi 11.09.1983 bilgisini düzeltmemiz gerekiyor.", "label": [{"category": "private_date", "start": 24, "end": 34}]}
+{"text": "Online fatura portalında vergi kimlik numarası 5432109876 ile kayıt oluşturuldu.", "label": [{"category": "vkn", "start": 47, "end": 57}]}
+{"text": "Fatura çıktısı belgesi Test Sitesi, C Blok No: 23 Kat: 3 Merkez Düzce adresine posta yoluyla ulaştırılacaktır.", "label": [{"category": "private_address", "start": 23, "end": 69}]}
+{"text": "Randevu onay adımında kimlik numarası 21001122334 girildi.", "label": [{"category": "tckn", "start": 38, "end": 49}]}
+{"text": "Kurulum randevusu Eğitim Mahallesi, Eğitim Sokak No: 4 Kat: 1 Daire: 11 Kadıköy İstanbul adresine planlanmıştır.", "label": [{"category": "private_address", "start": 18, "end": 88}]}
+{"text": "CRM notunda email adresi burcu_1852@yandex.com olarak kaydedildi.", "label": [{"category": "private_email", "start": 25, "end": 46}]}
+{"text": "Vergi dairesi kaydında VKN 02330 98864 bilgisi alındı.", "label": [{"category": "vkn", "start": 27, "end": 38}]}
+{"text": "Kullanıcı kaydında iletişim adresi hanesinde emre_5998@ornek.com bulunuyor.", "label": [{"category": "private_email", "start": 45, "end": 64}]}
+{"text": "Destek kaydında Teknik ekip TICKET-2026-57333 numaralı talep üzerinde çalışıyor.", "label": [{"category": "account_number", "start": 28, "end": 45}]}
+{"text": "Sözleşme belgesinde 0558 600 30 40 telefon numarası basılı haldedir.", "label": [{"category": "private_phone", "start": 20, "end": 34}]}
+{"text": "başvuru kimlik alanı 20725285322 olarak güncellendi.", "label": [{"category": "tckn", "start": 21, "end": 32}]}
+{"text": "Iade isleminde muhasebe IBAN alani TR64 7844 5742 **** **** ** dogrulandi.", "label": [{"category": "iban", "start": 35, "end": 62}]}
+{"text": "Müşteri kartı döküm şablonunda kart hamilinin TC no verisi boşluklu 999 999 999 99 şeklinde yazıyor.", "label": [{"category": "tckn", "start": 68, "end": 82}]}
+{"text": "Online satis iadesinde havale hesabi TR081813303801497679595493 bildirildi.", "label": [{"category": "iban", "start": 37, "end": 63}]}
+{"text": "Hesap özetinde Talep kodu TALEP-2026-81942 ile ilgili güncelleme yapıldı.", "label": [{"category": "account_number", "start": 26, "end": 42}]}
+{"text": "Demo kurulumunda OTP kodu alaninda OTP-658561 bulunuyor.", "label": [{"category": "secret", "start": 35, "end": 45}]}
+{"text": "Üyelik numarası MEM-88449 olan abonenin gold paketi aktifleştirildi.", "label": [{"category": "account_number", "start": 16, "end": 25}]}
+{"text": "Universite sisteminde TCKN 1459*****54 gorunuyor.", "label": [{"category": "tckn", "start": 27, "end": 38}]}
+{"text": "Test ortamı kaydında OTP kodu değeri PASSWD-DEMO-49630 şeklinde kaydedildi.", "label": [{"category": "secret", "start": 37, "end": 54}]}
+{"text": "Hesap numarası ACC-17492-170 olan kaydın durumu aktif görünüyor.", "label": [{"category": "account_number", "start": 15, "end": 28}]}
+{"text": "Muhasebe kaydinda havale hesabi TR7777 7777 7777 7777 7777 7777 11 gorunuyor.", "label": [{"category": "iban", "start": 32, "end": 66}]}
+{"text": "Mali müşavir notunda e-fatura VKN alanı 29936-30904 bilgisi girildi.", "label": [{"category": "vkn", "start": 40, "end": 51}]}
+{"text": "E-devlet girişinde kaydında T.C. kimlik numarası 26734840542 bilgisi alındı.", "label": [{"category": "tckn", "start": 49, "end": 60}]}
+{"text": "Form giriş ekranında arama yapılacak numara 0552 500 70 20 numarası kullanılacak.", "label": [{"category": "private_phone", "start": 44, "end": 58}]}
+{"text": "Abonelik kaydında mail hesabı satırında ceren_koc38@msn.com yer alıyor.", "label": [{"category": "private_email", "start": 40, "end": 59}]}
+{"text": "CRM iletişim notunda mobil numara bölümünde 0544-726-78-70 yazıyor.", "label": [{"category": "private_phone", "start": 44, "end": 58}]}
+{"text": "Muayene kaydında TCKN 45239610298 olarak görünüyor.", "label": [{"category": "tckn", "start": 22, "end": 33}]}
+{"text": "Gümrük beyannamesinde VKN 5778489505 ile sisteme kaydedildi.", "label": [{"category": "vkn", "start": 26, "end": 36}]}
+{"text": "Eğitim kurumuna Yazıcı Mah., Fatih Cad. No: 55 Kartal İstanbul adresi bildirilmiştir.", "label": [{"category": "private_address", "start": 16, "end": 62}]}
+{"text": "Hasta kaydında kayıtlı kişi Oğuz Şahin şeklinde not edildi.", "label": [{"category": "private_person", "start": 28, "end": 38}]}
+{"text": "Muayene kaydında TC no alanına 8317 4692 155 yazıldı.", "label": [{"category": "tckn", "start": 31, "end": 44}]}
+{"text": "CRM kaydında isim bilgisi kısmında Fırat Çevik yer alıyor.", "label": [{"category": "private_person", "start": 35, "end": 46}]}
+{"text": "Maas odemesinde IBAN numarasi TR87 1417 9452 1205 9757 6734 97 dogrulandi.", "label": [{"category": "iban", "start": 30, "end": 62}]}
+{"text": "Su faturası Örnek Sitesi, Analiz Mahallesi, İnci Sokak No: 79 Blok: B Daire: 14 Çukurova Adana adresine gönderilecektir.", "label": [{"category": "private_address", "start": 12, "end": 94}]}
+{"text": "Servis randevusunda irtibat numarası alanına +90 559 000 66 22 yazılmış.", "label": [{"category": "private_phone", "start": 45, "end": 62}]}
+{"text": "Başvuru formunda Kontenjan başvuru tarihi 2019-04-21 olarak girilmiş.", "label": [{"category": "private_date", "start": 42, "end": 52}]}
+{"text": "Banka transferinde IBAN alanina TR41 4522 9519 1101 1418 7064 10 girildi.", "label": [{"category": "iban", "start": 32, "end": 64}]}
+{"text": "Kamu basvurusunda kimlik numarasi 11111111112 olarak sisteme tanimlandi.", "label": [{"category": "tckn", "start": 34, "end": 45}]}
+{"text": "Hesap kurtarma formunda reset token CODE-596404 destek kaydına yazılmış.", "label": [{"category": "secret", "start": 36, "end": 47}]}
+{"text": "Teslimat notunda iletişim kurulacak kişi bölümüne Mustafa Güneş eklenmiş.", "label": [{"category": "private_person", "start": 50, "end": 63}]}
+{"text": "İş başvurusu arşivinde kimlik bilgisi 123******01 maskeli.", "label": [{"category": "tckn", "start": 38, "end": 49}]}
+{"text": "Form teslim tarihi 12.11.2029 idi.", "label": [{"category": "private_date", "start": 19, "end": 29}]}
+{"text": "Destek kaydında Müşteri CUS-2025-32860 için yeni bir talep oluşturuldu.", "label": [{"category": "account_number", "start": 24, "end": 38}]}
+{"text": "Siparis onay alaninda mail adresi huseyin.kucuk62@icloud.com seklinde gorunuyor.", "label": [{"category": "private_email", "start": 34, "end": 60}]}
+{"text": "Kamu başvurusunda kimlik numarası 08043813638 sorgulandı.", "label": [{"category": "tckn", "start": 34, "end": 45}]}
+{"text": "Nüfus kaydında başvuru tarihi 21.05.1974 olarak dolduruldu.", "label": [{"category": "private_date", "start": 30, "end": 40}]}
+{"text": "Tedarikci profilinde e-fatura VKN alani 04794 59530 ile eslesti.", "label": [{"category": "vkn", "start": 40, "end": 51}]}
+{"text": "Uyelik dogrulamada T.C. kimlik numarasi hanesinde 55555555550 bulunuyor.", "label": [{"category": "tckn", "start": 50, "end": 61}]}
+{"text": "İade formunda vergi no 6429093775 olarak kaydedildi.", "label": [{"category": "vkn", "start": 23, "end": 33}]}
+{"text": "Kargo iletişim alanında GSM numarası olarak 05392666524 bırakıldı.", "label": [{"category": "private_phone", "start": 44, "end": 55}]}
+{"text": "API entegrasyon notunda recovery code bilgisi RESET-DEMO-3755 olarak tanımlandı.", "label": [{"category": "secret", "start": 46, "end": 61}]}
+{"text": "Uyelik dogrulamada kimlik numarasi 3958*****99 sorgulandi.", "label": [{"category": "tckn", "start": 35, "end": 46}]}
+{"text": "Sistemde Adnan Menderes Cad. No: 264 Etlik Mah. Karatay Konya adresi ile kayıtlı.", "label": [{"category": "private_address", "start": 9, "end": 61}]}
+{"text": "Hata ayiklama kaydinda oturum anahtari degeri access_demo_2026_TEST kaydedildi.", "label": [{"category": "secret", "start": 46, "end": 67}]}
+{"text": "Tedarikçi sözleşmesinde VKN hanesinde 50540-32348 yer alıyor.", "label": [{"category": "vkn", "start": 38, "end": 49}]}
+{"text": "Nüfus müdürlüğünde TC kimlik no 98765432109 bilgisi alındı.", "label": [{"category": "tckn", "start": 32, "end": 43}]}
+{"text": "Online alışveriş profilinde e-posta adresi olarak halil.kara@yandex.com bırakıldı.", "label": [{"category": "private_email", "start": 50, "end": 71}]}
+{"text": "Uyelik formunda mail hesabi alaninda duygu_karaca@proton.me bulunuyor.", "label": [{"category": "private_email", "start": 37, "end": 59}]}
+{"text": "Ödeme kaydında SIP-TR-2024-9259 sipariş kodu ile kayıtlı ürünler hazırlanıyor.", "label": [{"category": "account_number", "start": 15, "end": 31}]}
+{"text": "Odeme bildirim alaninda e-posta adresi hanesinde gizempola@hotmail.com bulunuyor.", "label": [{"category": "private_email", "start": 49, "end": 70}]}
+{"text": "Bildirim tercihlerinde iletişim e-postası alanına gizemkara2023@yahoo.com girildi.", "label": [{"category": "private_email", "start": 50, "end": 73}]}
+{"text": "Acil durum iletişim alanında kayıtlı telefon alanında +90 552 654 40 20 bulunuyor.", "label": [{"category": "private_phone", "start": 54, "end": 71}]}
+{"text": "Doğum tarihi 19/06/2000 forma eklendi.", "label": [{"category": "private_date", "start": 13, "end": 23}]}
+{"text": "Kamu basvurusunda vatandaslik numarasi 09134039036 sorgulandi.", "label": [{"category": "tckn", "start": 39, "end": 50}]}
+{"text": "CRM sisteminde arama yapılan güncel mobil numara 05566003040 olarak doğrulandı.", "label": [{"category": "private_phone", "start": 49, "end": 60}]}
+{"text": "Sistem yedek iletişim kaydında WhatsApp hattı 0537 324 64 99 numarası kullanılacak.", "label": [{"category": "private_phone", "start": 46, "end": 60}]}
+{"text": "Kurye teslimat adresini bulamadı: Eğitim Sitesi, Deneme Sokak No: 10 Daire: 2 Karşıyaka İzmir.", "label": [{"category": "private_address", "start": 34, "end": 93}]}
+{"text": "Mezuniyet tarihi 19.08.1954 olan profil.", "label": [{"category": "private_date", "start": 17, "end": 27}]}
+{"text": "Demo kurulumunda kurtarma kodu VERIFY-936641 olarak görünüyor.", "label": [{"category": "secret", "start": 31, "end": 44}]}
+{"text": "Yerleşim yeri Esentepe Mahallesi, Bağımsızlık Sokak No: 15 olarak beyan edilmiştir.", "label": [{"category": "private_address", "start": 14, "end": 58}]}
+{"text": "Yerleşim yeri bilgisi Veri Mahallesi, Akasya Sokak No: 85 Kod Apartmanı Daire: 3 Polatlı Ankara olarak kayıtlara geçmiştir.", "label": [{"category": "private_address", "start": 22, "end": 95}]}
+{"text": "Hesap kurtarmada erisim tokeni sk-demo-3056-FAKE kaydedildi.", "label": [{"category": "secret", "start": 31, "end": 48}]}
+{"text": "Abonelik ürünlerimi Başkent Mahallesi, Lale Sokak No: 46 adresine gönderebilirsiniz.", "label": [{"category": "private_address", "start": 20, "end": 56}]}
+{"text": "Kargo gönderi alanında yetkili ismi Veli Güneş şeklinde not edildi.", "label": [{"category": "private_person", "start": 36, "end": 46}]}
+{"text": "CRM müşteri notunda iletişim adresi alanında ece-orhan@yahoo.com bulunuyor.", "label": [{"category": "private_email", "start": 45, "end": 64}]}
+{"text": "Yeni aktivasyon maili yavuz_canan@okul-demo.invalid adresine yollandı.", "label": [{"category": "private_email", "start": 22, "end": 51}]}
+{"text": "Pasaport başvurusunda başvuru tarihi bölümünde 01.03.2024 mevcut.", "label": [{"category": "private_date", "start": 47, "end": 57}]}
+{"text": "Güvenlik kontrolünde oturum anahtarı SESSION_DEMO_FAKE_958 şeklinde sistemde kayıtlı.", "label": [{"category": "secret", "start": 37, "end": 58}]}
+{"text": "Başvuru tarihi 2025-12-20 şeklinde işlendi.", "label": [{"category": "private_date", "start": 15, "end": 25}]}
+{"text": "Musteri formunda kullanici adi Sibel Karaca olarak dogrulandi.", "label": [{"category": "private_person", "start": 31, "end": 43}]}
+{"text": "Fatura adresi Muhsin Yazıcıoğlu Cad. No: 275 Eminönü Mah. Seferihisar İzmir olarak güncellenmiş.", "label": [{"category": "private_address", "start": 14, "end": 75}]}
+{"text": "Sipariş onay alanında e-posta bilgisi alanında deniz_kara@sample bulunuyor.", "label": [{"category": "private_email", "start": 47, "end": 64}]}
+{"text": "Randevu tarihi 22/08/1958 için onay alındı.", "label": [{"category": "private_date", "start": 15, "end": 25}]}
+{"text": "Şifre sıfırlama ekranında oturum anahtarı AUTH-DEMO-2024-96036 olarak oluşturuldu.", "label": [{"category": "secret", "start": 42, "end": 62}]}
+{"text": "Sistem günlüğünde Müşteri numarası MUS-2026-95975 olan hesabın durumu aktif.", "label": [{"category": "account_number", "start": 35, "end": 49}]}
+{"text": "Form teslim tarihi 23.01.1959 idi.", "label": [{"category": "private_date", "start": 19, "end": 29}]}
+{"text": "Sistem günlüğünde erişim tokenı token_demo_XYZ586 şeklinde sistemde kayıtlı.", "label": [{"category": "secret", "start": 32, "end": 49}]}
+{"text": "Vehbi Bey hasar tespit raporuna itiraz etmek için form doldurdu.", "label": [{"category": "private_person", "start": 0, "end": 9}]}
+{"text": "Sigorta poliçesinde başvuru sahibi olarak İrem Erdem girildi.", "label": [{"category": "private_person", "start": 42, "end": 52}]}
+{"text": "İşlem geçmişinde Fatura ödemesi TR9597263126 1985 8163304324 IBAN hesabına gerçekleşti.", "label": [{"category": "iban", "start": 32, "end": 60}]}
+{"text": "QA test raporunda guvenlik kodu alanina OTP-412469 girildi.", "label": [{"category": "secret", "start": 40, "end": 50}]}
+{"text": "E-imza başvuru kılavuzunda belirtilen zorunlu kimlik bilgisi alanı 34567890123 verisini taşımaktadır.", "label": [{"category": "tckn", "start": 67, "end": 78}]}
+{"text": "Fatura adresi Numune Mahallesi Simge Cad. No: 52 Daire: 6 Nilüfer Bursa kaydedildi.", "label": [{"category": "private_address", "start": 14, "end": 71}]}
+{"text": "Hesap kurtarmada dogrulama kodu Temp-5378 girildi.", "label": [{"category": "secret", "start": 32, "end": 41}]}
+{"text": "Finansal destek talebinde ödeme yapılacak IBAN TR00 5544 3322 11005544 3322 11 olarak ana finans sunucusu veritabanında revize edilmiştir.", "label": [{"category": "iban", "start": 47, "end": 78}]}
+{"text": "CRM kaydında öğrenci adı satırında Y. Sezer geçiyor.", "label": [{"category": "private_person", "start": 35, "end": 43}]}
+{"text": "Kimlikte Mehmet Akif Ersoy Cad. No: 245 Bostancı Mah. Akdeniz Mersin adresi yazıyor.", "label": [{"category": "private_address", "start": 9, "end": 68}]}
+{"text": "Demo ortamı kurulumunda kurtarma kodu satırında SMS-9483 mevcut.", "label": [{"category": "secret", "start": 48, "end": 56}]}
+{"text": "Destek yanıtı berk.demo@muhasebe-demo.invalid adresine iletildi.", "label": [{"category": "private_email", "start": 14, "end": 45}]}
+{"text": "Cari hesap kaydinda e-fatura VKN alani bolumunde 6894028352 mevcut.", "label": [{"category": "vkn", "start": 49, "end": 59}]}
+{"text": "Online satış iadesinde IBAN numarası TR99 7954 7634 **** **** ** olarak kaydedildi.", "label": [{"category": "iban", "start": 37, "end": 64}]}
+{"text": "OTP doğrulama sayfasında API anahtarı Yedek-2279! olarak belirtildi.", "label": [{"category": "secret", "start": 38, "end": 49}]}
+{"text": "Online başvuru formunda arama yapılacak numara hanesinde 0549 808 40 10 mevcut.", "label": [{"category": "private_phone", "start": 57, "end": 71}]}
+{"text": "Sigorta policesinde ogrenci adi Demet Bulut ile eslestirildi.", "label": [{"category": "private_person", "start": 32, "end": 43}]}
+{"text": "Ödeme kaydında Üyelik numarası UYE-2026-76468 için otomatik ödeme talimatı alındı.", "label": [{"category": "account_number", "start": 31, "end": 45}]}
+{"text": "Kullanıcı doğrulama ekranında güvenlik kodu test_key_228496 şeklinde not edildi.", "label": [{"category": "secret", "start": 44, "end": 59}]}
+{"text": "Müşteri talebinde MUST-354901 müşteri numarasına sahip hesaba ulaşılamadı.", "label": [{"category": "account_number", "start": 18, "end": 29}]}
+{"text": "Askerlik tecil belgesi melis.şahin.demo@outlook.com hesabından talep edilebilir.", "label": [{"category": "private_email", "start": 23, "end": 51}]}
+{"text": "Otel rezervasyon teyidi merve.gok.demo@gmail.com adresinden onaylandı.", "label": [{"category": "private_email", "start": 24, "end": 48}]}
+{"text": "Cari hesap kaydında kurumlar vergisi mükellef numarası 4321098765 bilgisi doğrulandı.", "label": [{"category": "vkn", "start": 55, "end": 65}]}
+{"text": "Müşteri numarası CUST-662233 olan şüpheli profil detaylıca incelendi.", "label": [{"category": "account_number", "start": 17, "end": 28}]}
+{"text": "Okul kaydinda kayitli kisi Oguz Ozturk olarak kaydedildi.", "label": [{"category": "private_person", "start": 27, "end": 38}]}
+{"text": "Ödeme kaydında KAYIT-2025-8735 referansı ile kayıtlı işlemin durumu bekliyor.", "label": [{"category": "account_number", "start": 15, "end": 30}]}
+{"text": "E-fatura VKN alanı 0000000000 olan fatura başarıyla gönderilmiştir.", "label": [{"category": "vkn", "start": 19, "end": 29}]}
+{"text": "Hastane kaydinda T.C. kimlik numarasi 04444-762-205 olarak forma girildi.", "label": [{"category": "tckn", "start": 38, "end": 51}]}
+{"text": "Okul kaydında kaydında kimlik bilgisi 890******69 kullanıldı.", "label": [{"category": "tckn", "start": 38, "end": 49}]}
+{"text": "Aile hekimi kaydında müşteri adı Serkan Avcı olarak kaydedildi.", "label": [{"category": "private_person", "start": 33, "end": 44}]}
+{"text": "Fatura adresiniz Rastgele Mahallesi, Söğüt Sokak No: 80, Numune Apartmanı Kat: 4 Daire: 4 Alanya Antalya şeklinde kayıtlıdır.", "label": [{"category": "private_address", "start": 17, "end": 104}]}
+{"text": "Geri ödeme işleminde Fatura takip numarası FAT-2026-42844 sistemde görünüyor.", "label": [{"category": "account_number", "start": 43, "end": 57}]}
+{"text": "İade kargosu Gökhan Aydın teslim alınmadan şubeye geri dönmüş.", "label": [{"category": "private_person", "start": 13, "end": 25}]}
+{"text": "Destek ödemesinde IBAN numarası TR92 3535 6969 4041 2865 1970 70 olarak not edildi.", "label": [{"category": "iban", "start": 32, "end": 64}]}
+{"text": "Fatura kaydinda VKN 1200928691 gorunuyor.", "label": [{"category": "vkn", "start": 20, "end": 30}]}
+{"text": "Banka transfer kaydında IBAN alanına TR859382269640697658693670 girildi.", "label": [{"category": "iban", "start": 37, "end": 63}]}
+{"text": "Müşteri talebinde Fatura takip kodu FAT-2024-14398 ile kayıtlı belgeye ulaşıldı.", "label": [{"category": "account_number", "start": 36, "end": 50}]}
+{"text": "Teknik ekip tarafından onaylanan GSM numarası +90 549 222 33 44 olmuştur.", "label": [{"category": "private_phone", "start": 46, "end": 63}]}
+{"text": "Uyelik dogrulamada TCKN hanesinde 00000000001 bulunuyor.", "label": [{"category": "tckn", "start": 34, "end": 45}]}
+{"text": "Sigorta başlangıç tarihi 6 Kasım 1990 yenilendi.", "label": [{"category": "private_date", "start": 25, "end": 37}]}
+{"text": "Doğalgaz faturası Etlik Şehir Hastanesi Etlik Altındağ Ankara adresine kesildi.", "label": [{"category": "private_address", "start": 18, "end": 61}]}
+{"text": "Online satis iadesinde iade hesabi TR395714072162519723661815 ile eslesti.", "label": [{"category": "iban", "start": 35, "end": 61}]}
+{"text": "Is basvurusunda vatandaslik numarasi 01234567890 olarak sisteme tanimlandi.", "label": [{"category": "tckn", "start": 37, "end": 48}]}
+{"text": "E-fatura ekraninda tedarikci vergi no hanesine 8776657309 yazilmis.", "label": [{"category": "vkn", "start": 47, "end": 57}]}
+{"text": "Müşteri memnuniyeti test.gamze@firma-demo.invalid adresine anket gönderildi.", "label": [{"category": "private_email", "start": 20, "end": 49}]}
+{"text": "Is basvurusunda TC kimlik no 35484-210-349 olarak forma girildi.", "label": [{"category": "tckn", "start": 29, "end": 42}]}
+{"text": "Üyelik formunda email adresi hanesinde tarik.gunduz@msn.com bulunuyor.", "label": [{"category": "private_email", "start": 39, "end": 59}]}
+{"text": "Hastane kaydında aktivasyonunda kimlik bilgisi 85711207971 doğrulandı.", "label": [{"category": "tckn", "start": 47, "end": 58}]}
+{"text": "Sınav kayıt tarihi 22.09.2003 olarak sisteme girdi.", "label": [{"category": "private_date", "start": 19, "end": 29}]}
+{"text": "Hastane kaydında Kontrol tarihi 21 Aralık 2012 işlenmiş.", "label": [{"category": "private_date", "start": 32, "end": 46}]}
+{"text": "Hesap kurtarma formunda recovery code olarak test_key_939691 kullanıldı.", "label": [{"category": "secret", "start": 45, "end": 60}]}

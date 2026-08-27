@@ -134,7 +134,12 @@
   title: "De-identification service: Presidio + Turkish recognizers + leak-rate corpus"
   depends_on: [INT-011]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-015.md
+  # NOTE 27 Aug 2026: recognizer set + anonymizer semantics delivered exactly as
+  # listed; the Presidio dependency chain itself was not adopted (spaCy has no
+  # Turkish model and every clean path meant building the recognizers + NER
+  # ourselves anyway) — deviation stated in the evidence file for review.
   acceptance:
     - "recognizers: TCKN (checksum), TR phone, IBAN, names (TR NER), addresses, date shifting; sits in front of every cloud model call and Loop-2 exports"
     - "synthetic corpus with labels; measured leak rate < 0.1 percent gate in CI"
