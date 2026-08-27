@@ -101,6 +101,12 @@ def test_allowlist_only_shrinks() -> None:
     }
     pinned = {
         "files/",
+        # the verbatim blueprint skeleton whose TODO block is spec-required
+        # content (04 §8); the compiler serve-interlock is its gate, not grep
+        "packages/protocols/base/life_threat.yaml",
+        # docs/adr/ added with INT-004: ADR-019 *documents* the gate and names
+        # it — same class as CLAUDE.md/DoD/TDD, which describe what they forbid.
+        "docs/adr/",
         "docs/backlog/",
         "docs/evidence/",
         "docs/PROGRESS.md",
