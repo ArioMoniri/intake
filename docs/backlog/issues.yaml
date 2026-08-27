@@ -108,7 +108,8 @@
   title: "Tokenization service + identity vault (TCKN/phone never in clear)"
   depends_on: [INT-012, INT-017]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-013.md
   acceptance:
     - "HMAC-SHA-256 keyed pseudonym for joins; encrypted value in identity_vault readable only by the tokenization role; logs get pseudonym[:8]"
     - "roundtrip + key-rotation tests; grep-test proves no app table stores raw TCKN/phone"

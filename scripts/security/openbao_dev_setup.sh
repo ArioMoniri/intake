@@ -36,4 +36,11 @@ path "database/creds/${policy}" { capabilities = ["read"] }
 POLICY
 done
 
-echo "openbao dev setup complete (kv v2, database engine w/ 24h roles, 3 policies)"
+# Transit for the identity vault (INT-013); envelope-encryption engine work is INT-014
+$BAO secrets enable transit 2>/dev/null || true
+$BAO write -f transit/keys/tokenization >/dev/null
+
+# vault DDL + roles on the dev Postgres
+docker exec -i intake-dev-postgres-1 psql -U "${POSTGRES_USER:-intake}" -d "${POSTGRES_DB:-intake}" < scripts/security/identity_vault.sql >/dev/null
+
+echo "openbao dev setup complete (kv v2, database 24h roles, 3 policies, transit, identity vault)"
