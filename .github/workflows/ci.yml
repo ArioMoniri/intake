@@ -66,3 +66,10 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: scripts/ci/evidence_check.sh "$PR_TITLE" "$PR_BODY"
+      - name: sec_row linkage (PRs only; INT-020, files/10 §8)
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        # stdlib-only script, so the bare runner's python3 suffices (gates job has no uv)
+        run: python3 scripts/ci/check_sec_row_linkage.py "$PR_TITLE" "$PR_BODY"

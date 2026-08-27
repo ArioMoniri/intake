@@ -207,7 +207,9 @@
   title: "Threat model + incident runbook + PR linkage"
   depends_on: [INT-003]
   labels: [area:security, risk:legal]
-  status: todo
+  # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
+  # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
+  status: doing
   acceptance:
     - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
