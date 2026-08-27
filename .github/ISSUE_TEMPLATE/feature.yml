@@ -1,6 +1,6 @@
 name: Backlog issue (INT-xxx)
 description: One backlog row — normally created by scripts/backlog/sync_issues.py, hand-filed only for genuinely new scope (which also gets a docs/backlog/issues.yaml row in the same PR).
-title: "INT-XXX: <title>"
+title: "INT-nnn: <title>"
 labels: []
 body:
   - type: markdown

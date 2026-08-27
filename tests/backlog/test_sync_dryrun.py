@@ -51,7 +51,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
             "number": 1,
             "title": "INT-001: Monorepo bootstrap: workspaces, Makefile, pre-commit, compose.dev",
         },
-        {"number": 3, "title": "INT-002: CI base + zero-placeholder and evidence gates"},
+        {"number": 3, "title": "INT-002: CI base + evidence gates"},
     ]
     plan = _plan(tmp_path, existing)
     actions = {a["id"]: a for a in plan["actions"]}

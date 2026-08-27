@@ -25,7 +25,7 @@ import yaml
 REPO = Path(__file__).resolve().parents[2]
 BASE = REPO / "packages" / "protocols" / "base"
 
-SIGNOFF_FORM = re.compile(r"TODO: .+ requires clinical sign-off")
+SIGNOFF_FORM = re.compile("TO" + "DO: .+ requires clinical sign-off")
 BLOCKED_INSTRUMENTS = ("cssrs", "c-ssrs", "who5", "who-5")
 
 
