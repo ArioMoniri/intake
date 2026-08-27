@@ -1614,7 +1614,7 @@
   title: "Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure)"
   depends_on: [INT-017]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "Redis key includes subject+tenant; test proves user B cannot replay or pre-claim user A's Idempotency-Key; in-flight marker gets a short TTL distinct from the 24h response TTL; stored bodies size-capped"
   tests: [tests/platform/test_idempotency.py]
