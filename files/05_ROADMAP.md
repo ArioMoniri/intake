@@ -34,13 +34,13 @@ Parsing `docs/backlog/issues.yaml` (175 issues; after the v2.0 graph fixes: no c
 v1.4 placed INT-043 at depth 9, so the agent would work for days before you ever saw the thing that unblocks everything else. **v2.0 front-loads all five.**
 
 ### F3 — The clinical investigation is 7–12 months and strictly sequential
-TCKAY (RG 31890, 08.07.2022): **m.8/2** requires the ethics decision to be submitted *as part of* the TİTCK application — they cannot run in parallel. **m.5/2(a)** requires non-clinical validation *before* submission (for software, a documented bench and retrospective validation of the triage engine — a work package v1.4 did not show). **m.5/6** restricts sites to a **university** health application & research centre, an approved university-affiliated R&D centre, or an MoH training & research hospital — **a general private Acıbadem hospital does not qualify.** The study must sit at Acıbadem Mehmet Ali Aydınlar Üniversitesi's research centre; ATADEK is that university's committee, so this is workable, but the site must be named.
+TCKAY (RG 31890, 08.07.2022): **m.8/2** requires the ethics decision to be submitted *as part of* the TİTCK application — they cannot run in parallel. **m.5/2(a)** requires non-clinical validation *before* submission (for software, a documented bench and retrospective validation of the triage engine — a work package v1.4 did not show). **m.5/6** restricts sites to a **university** health application & research centre, an approved university-affiliated R&D centre, or an MoH training & research hospital — **a general private Acıbadem hospital does not qualify.** The study must sit at Acıbadem Mehmet Ali Aydınlar Üniversitesi's research centre; KAEK is that university's committee, so this is workable, but the site must be named.
 
 | phase | statutory clock | realistic |
 |---|---|---|
 | Non-clinical validation + protocol + ICF(tr) + Annex XV Pt II + risk file | — | 8–14 wk |
 | Insurance (parallel) · site + PI + budget contracting (parallel, often the real bottleneck) | — | 2–4 wk · 4–8 wk |
-| ATADEK ethics | ~30 d | **4–12 wk** (monthly agendas) |
+| KAEK ethics | ~30 d | **4–12 wk** (monthly agendas) |
 | TİTCK | 20 iş günü | 4 wk clean; **8–14 wk with one eksiklik yazısı** |
 | Site initiation → first participant | — | 2–4 wk |
 
@@ -68,7 +68,7 @@ Both are **BLOCKED** until written permission exists. **HAQ-DI** is NEEDS-PERMIS
 | **P0 Foundation** | Monorepo, CI, the four safety guards, protocol DSL + compiler, deterministic triage, voice-runtime core on mocks, typed-mode intake end-to-end, **`base.life_threat` universal rule set**, admin skeleton | `make check` + `make safety` + `make security` green from a clean clone · every branch resolves to a reviewed pack · runtime invariants 1–12 pass on fake clocks · **a deliberately broken RED rule fails the suite and is reverted, on record** · issue machinery live | **12–20 weeks** |
 | **P1 Fast mode, device-off** | Turkish voice intake E2E (⚠ **`residency_tr` — `cascade_fast` no longer exists**, `00 §0b`), **`residency_tr_media` — SFU + TURN + API + Postgres in İstanbul (§2.1)**, records ingestion, patient summary, clinician note via Doctor Link, CSAT/NPS, real telemetry | 20 internal users × 3 specialties · **client-side measured** round-trip meets §4 targets · note acceptance ≥ 70 % · DPIA v1 signed · ⚠ **Art. 9 standard contracts: none required on the PHI path** — under self-hosting there is no cloud vendor in use, which is the strongest form this control can take. The row survives as an audit statement, not as work | **+10–16 weeks** |
 | **P2 Hospital pilot** | Detailed mode, check-in, clinic console, **bilateral integration with the pilot group's own technology arm** (⚠ *corrected — see the note under this table; the FHIR connector is an outbound export, not the integration*), companions, top-10 deep packs | Pilot at one hospital group · ≥ 300 real pre-visits · clinician read rate ≥ 80 % · CSAT ≥ 4.2 · zero PHI incidents · external pen-test passed, findings closed | **+4–6 months** |
-| **P2b Clinical investigation** *(parallel track — starts in P0)* | The only lawful route to `device_functions=on` | ATADEK approval **then** TİTCK permission, recorded against a named study id **and protocol version** · insurance in force · first participant enrolled | **≈ 9 months from protocol drafting** |
+| **P2b Clinical investigation** *(parallel track — starts in P0)* | The only lawful route to `device_functions=on` | KAEK approval **then** TİTCK permission, recorded against a named study id **and protocol version** · insurance in force · first participant enrolled | **≈ 9 months from protocol drafting** |
 | **P3 The record that travels** | e-Nabız application, HBYS.API connector, consented visit recording, longitudinal timeline, **openEHR added as an export**, `residency_tr_models` when a public tenant signs **and a signed GPU capacity contract exists** (`residency_tr_media` ships in P1, §2.1) | 2nd hospital group · e-Nabız sandbox or a formal decision · published evaluation report | **+6–9 months** |
 | **P4 CE + scale** | Class **IIb** conformity assessment, ÜTS registration, B2B2C white-label | Notified-body certificate · `device_functions=on` commercially | Gated on P2b evidence |
 
@@ -123,7 +123,7 @@ The per-issue DoD lives in `07 §3.3` and is checked by CI on every PR. **This s
 - [ ] Per-rule false-RED rates published internally and reviewed rule by rule through the console queue.
 - [ ] The integration is **bilateral with the group's own technology arm**, bound to the signed DPA, with endpoints registered out-of-band at onboarding — not a third-party HBYS connector, and not sized before that conversation has happened (HB-A5).
 - [ ] The self-hosting release gate is **enforced** from here (the registry and the gate were built in P0).
-- [ ] **P2b, and it is a separate clock:** ATADEK approval **then** TİTCK permission — they cannot run in parallel — recorded against a named study id **and protocol version**, with insurance in force, at a **qualifying university research centre** (HB-L1). ⚠ **The 300-session pilot cannot validate the `acoustic` lane**: that study is n ≈ 800, and the pilot is off by ~3×.
+- [ ] **P2b, and it is a separate clock:** KAEK approval **then** TİTCK permission — they cannot run in parallel — recorded against a named study id **and protocol version**, with insurance in force, at a **qualifying university research centre** (HB-L1). ⚠ **The 300-session pilot cannot validate the `acoustic` lane**: that study is n ≈ 800, and the pilot is off by ~3×.
 
 ### P3 / P4
 
@@ -251,7 +251,7 @@ Activation 45 % · fast-mode completion ≥ 80 %, median ≤ 4 min · clinician 
 - **A counsel question that is separate from Rule 11.** May device-off mode say, immediately after a symptom question, *"Bu belirtiyi bildirdiniz. Bu tür belirtilerde beklemeyin — 112'yi arayın veya en yakın acile gidin"*? That is arguably health signposting, not automated urgency classification of an individual. **If the answer is no, we must stop asking red-flag questions in device-off mode** — asking and then answering with silence is iatrogenic false reassurance, and worse than not asking at all.
 
 ### P1
-VERBİS registration · DPIA v1 · Art. 9 standard contracts with 5-iş-günü Board notification · hospital DPA template · **ATADEK submission**.
+VERBİS registration · DPIA v1 · Art. 9 standard contracts with 5-iş-günü Board notification · hospital DPA template · **KAEK submission**.
 
 ### P2
 **TİTCK application** · external pen-test · ISO 27001 gap assessment · KTS (SBYS) registration.
@@ -309,7 +309,7 @@ Also added: **KVKK Özel Nitelikli Kişisel Veriler Rehberi (26.02.2025)** — t
 | ~~OpenAI Realtime is EU-residency eligible for `s2s_cloud`~~ — ⚠ **MOOT: `s2s_cloud` is withdrawn** | **partly** | `/v1/realtime` is an eligible EEA+CH endpoint, **but tracing for `/v1/realtime` is not EU-residency compliant**, and residency requires ZDR / Modified Abuse Monitoring approval. Also **GPT-Realtime-2 is superseded by GPT-Realtime-2.1 (6 Jul 2026)** |
 | ~~Vertex Live API residency controls are contractable~~ — ⚠ **MOOT: `s2s_cloud` is withdrawn** | **unverified** | 70 languages and affective dialog are confirmed; the residency terms are not. Confirm with Google before `s2s_cloud` leaves the flag |
 | **Rule 11 → Class IIa** | **FALSE — the most consequential correction in the bundle** | **IIb for both device functions.** MDCG 2019-11 Annex IV states the depression-scoring case is IIb almost verbatim; IMDRF N12 defines "drive clinical management" as including *triage*; and the failure mode to assess is the **false negative**, which is the Class III limb |
-| ATADEK and TİTCK can run in parallel | **false** | TCKAY m.8/2 — the ethics decision is submitted **as part of** the TİTCK application |
+| KAEK and TİTCK can run in parallel | **false** | TCKAY m.8/2 — the ethics decision is submitted **as part of** the TİTCK application |
 | The Acıbadem pilot hospital can host the investigation | **false as stated** | TCKAY m.5/6 restricts sites to **university** research centres or MoH training & research hospitals. Name the qualifying university centre |
 | TCKAY covers "observational" studies | **terminology false** | TCKAY has no *gözlemsel* category; only **retrospective** studies are out of scope (m.2/2), and the post-market route (m.10) is defined **only for CE-marked devices** — unavailable to us |
 | C-SSRS is free with Columbia permission | **false** | **Clario holds an exclusive electronic licence.** Training is not the issue; the electronic sublicence is |
