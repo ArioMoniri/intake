@@ -1,4 +1,4 @@
-"""Idempotency-key middleware for POSTs (INT-012).
+"""Idempotency-key middleware for POSTs (INT-012, hardened by INT-176).
 
 Semantics:
 
@@ -12,12 +12,29 @@ Semantics:
   enforce that at the route layer).
 - Non-POST methods are untouched. Server errors (5xx) release the key so a
   failed first attempt stays retryable.
+
+INT-176 hardening (security review #195):
+
+- **Keys are scoped by principal**: the caller supplies ``principal_fn``
+  mapping the ASGI scope to ``(tenant, subject)`` from *verified* auth state.
+  Without it, any client that guessed or reused a key could replay another
+  user's stored response (PHI disclosure) or pre-claim a victim's key. The
+  parameter is required on purpose — there is no safe default.
+- **The in-flight marker has a short TTL** distinct from the 24 h response
+  TTL: a crash between claim and store poisons the key for at most
+  ``_INFLIGHT_TTL_S``, not a day.
+- **Stored bodies are size-capped** (they sit in Redis for 24 h): an
+  oversize response is recorded as a non-replayable marker and a duplicate
+  gets an honest 409, while the handler still never runs twice.
+- Bodies are stored base64 so non-UTF-8 responses round-trip.
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import redis
@@ -26,7 +43,11 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 _TTL_S = 24 * 3600
+_INFLIGHT_TTL_S = 60
+_MAX_STORED_BODY = 256 * 1024
 _IN_FLIGHT = b"__in_flight__"
+
+PrincipalFn = Callable[[Scope], tuple[str, str]]
 
 
 @dataclass
@@ -37,10 +58,24 @@ class _Captured:
 
 
 class IdempotencyMiddleware:
-    def __init__(self, app: ASGIApp, redis_client: redis.Redis, key_prefix: str = "idem") -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        redis_client: redis.Redis,
+        principal_fn: PrincipalFn,
+        key_prefix: str = "idem",
+    ) -> None:
         self.app = app
         self._redis = redis_client
+        self._principal = principal_fn
         self._prefix = key_prefix
+
+    def _redis_key(self, scope: Scope, idem_key: str) -> str:
+        tenant, subject = self._principal(scope)
+        digest = hashlib.sha256(
+            "\x1f".join([tenant, subject, scope["method"], scope["path"], idem_key]).encode()
+        ).hexdigest()
+        return f"{self._prefix}:{digest}"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or scope["method"] != "POST":
@@ -54,9 +89,9 @@ class IdempotencyMiddleware:
 
         body = await request.body()
         body_hash = hashlib.sha256(body).hexdigest()
-        redis_key = f"{self._prefix}:{scope['method']}:{scope['path']}:{idem_key}"
+        redis_key = self._redis_key(scope, idem_key)
 
-        claimed = self._redis.set(redis_key, _IN_FLIGHT, nx=True, ex=_TTL_S)
+        claimed = self._redis.set(redis_key, _IN_FLIGHT, nx=True, ex=_INFLIGHT_TTL_S)
         if not claimed:
             await self._replay(redis_key, body_hash, scope, receive, send)
             return
@@ -83,12 +118,16 @@ class IdempotencyMiddleware:
             raise
 
         if 200 <= captured.status < 500:
-            record = {
+            response_body = b"".join(captured.chunks)
+            record: dict[str, object] = {
                 "status": captured.status,
                 "media_type": captured.media_type,
-                "body": b"".join(captured.chunks).decode("utf-8"),
                 "body_hash": body_hash,
             }
+            if len(response_body) > _MAX_STORED_BODY:
+                record["oversize"] = True
+            else:
+                record["body_b64"] = base64.b64encode(response_body).decode("ascii")
             self._redis.set(redis_key, json.dumps(record), ex=_TTL_S)
         else:
             self._redis.delete(redis_key)
@@ -109,9 +148,20 @@ class IdempotencyMiddleware:
                     {"detail": "Idempotency-Key reused with a different request body"},
                     status_code=422,
                 )
+            elif record.get("oversize"):
+                response = JSONResponse(
+                    {
+                        "detail": (
+                            "the stored response is too large to replay; the original "
+                            "request succeeded exactly once — fetch the resource instead "
+                            "of retrying"
+                        )
+                    },
+                    status_code=409,
+                )
             else:
                 response = Response(
-                    content=str(record["body"]).encode("utf-8"),
+                    content=base64.b64decode(str(record["body_b64"])),
                     status_code=int(record["status"]),
                     media_type=str(record["media_type"]),
                     headers={"Idempotency-Replayed": "true"},
