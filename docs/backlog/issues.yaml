@@ -1248,7 +1248,7 @@
   title: "Expo app shell: SDK 57 dev build, navigation map per 02, i18n tr-first, theme, a11y base"
   depends_on: [INT-001]
   labels: [area:mobile]
-  status: todo
+  status: doing
   acceptance:
     - "navigation exactly per 02 §4 incl. me/learned; tr+en resource files; dynamic type"
   tests: [apps/mobile/e2e/nav.spec.ts]
