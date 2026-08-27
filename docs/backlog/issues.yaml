@@ -1637,7 +1637,7 @@
   title: "Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel"
   depends_on: [INT-013]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "collector transform/redact wired into traces AND metrics pipelines; app-side span processor scrubs attributes/events (record_exception payloads included); leak test exports a span carrying a TCKN/phone and asserts the exported bytes are clean"
   tests: [tests/security/test_trace_redaction.py]

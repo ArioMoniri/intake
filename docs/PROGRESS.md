@@ -152,3 +152,12 @@
 - Blocked on: nothing.
 - Next: INT-176/177 security fixes, then INT-016.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T06:50:00+03:00 · INT-176 + INT-177 + INT-178 · done
+- Goal: close the three HIGHs from the platform security review (#195) as first-class TDD iterations.
+- Result: INT-176 (PR #203) — idempotency keys sha256-scoped by (tenant, subject, method, path, key) via a required principal_fn; 60s in-flight TTL vs 24h record TTL; base64 + 256KiB-capped stored bodies with an honest 409 for oversize replays. INT-177 (PR #202) — rate-limiter refill moved to redis.call('TIME') inside the Lua script; negative elapsed clamps (skew immunity + no starvation proven without injected clocks). INT-178 (this PR) — RedactingSpanExporter wraps every attached exporter (name/attributes/events/status all pass redact_text; record_exception covered) and the collector's transform/redact now runs in traces AND metrics pipelines with span/spanevent/datapoint statements.
+- Tests: +7 rate-limit/idempotency-scoping (202/203) and +4 trace-redaction; suite at 130 py green; mypy --strict clean throughout.
+- Invariants: 6, 14; coverage floor held; no gate touched.
+- Blocked on: nothing; the review's mediums remain listed on #195 for the issues that own their files.
+- Next: INT-016 audit chain (deps satisfied), then INT-018 egress proxy.
+- LOOP_STATUS: CONTINUE

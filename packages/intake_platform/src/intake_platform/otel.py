@@ -23,18 +23,22 @@ import hashlib
 import json
 import logging
 import os
+from collections.abc import Sequence
 from contextvars import ContextVar
 from typing import Any
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace import Event, ReadableSpan, TracerProvider
+from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+from opentelemetry.trace.status import Status
 
 from intake_platform.redaction import redact_text
 
 __all__ = [
     "ALLOWED_LOG_ATTRIBUTES",
     "JsonLogFormatter",
+    "RedactingSpanExporter",
     "bind_log_context",
     "clear_log_context",
     "setup_otel",
@@ -100,11 +104,78 @@ class JsonLogFormatter(logging.Formatter):
         return json.dumps(out, ensure_ascii=False)
 
 
+def _scrub_attributes(attributes: Any) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in dict(attributes or {}).items():
+        if isinstance(value, str):
+            out[key] = redact_text(value)
+        elif isinstance(value, (list, tuple)):
+            out[key] = [redact_text(v) if isinstance(v, str) else v for v in value]
+        else:
+            out[key] = value
+    return out
+
+
+class RedactingSpanExporter(SpanExporter):
+    """Wrap any span exporter so spans reach the wire redacted (INT-178).
+
+    Traces were the unredacted side channel (review #195): span attributes
+    and — worst — ``record_exception`` events carry raw input inside
+    ``exception.message``/``exception.stacktrace``. Every string surface of
+    every span (name, attributes, event attributes, status description)
+    passes :func:`redact_text` before the wrapped exporter sees it. The same
+    caveat as the log layer applies: patterns catch identifiers, not free-
+    text names — the closed collector allow-list and the deid gateway
+    (INT-015) own those.
+    """
+
+    def __init__(self, wrapped: SpanExporter) -> None:
+        self._wrapped = wrapped
+
+    def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
+        return self._wrapped.export([self._scrub(span) for span in spans])
+
+    def _scrub(self, span: ReadableSpan) -> ReadableSpan:
+        events = [
+            Event(
+                name=redact_text(event.name),
+                attributes=_scrub_attributes(event.attributes),
+                timestamp=event.timestamp,
+            )
+            for event in span.events
+        ]
+        status = span.status
+        if status.description:
+            status = Status(status.status_code, redact_text(status.description))
+        return ReadableSpan(
+            name=redact_text(span.name),
+            context=span.context,
+            parent=span.parent,
+            resource=span.resource,
+            attributes=_scrub_attributes(span.attributes),
+            events=events,
+            links=span.links,
+            kind=span.kind,
+            status=status,
+            start_time=span.start_time,
+            end_time=span.end_time,
+            instrumentation_scope=span.instrumentation_scope,
+        )
+
+    def shutdown(self) -> None:
+        self._wrapped.shutdown()
+
+    def force_flush(self, timeout_millis: int = 30000) -> bool:
+        return self._wrapped.force_flush(timeout_millis)
+
+
 def setup_otel(service_name: str) -> TracerProvider:
     """Create (and globally install) the tracer provider for a service.
 
     An OTLP exporter is attached only when ``OTEL_EXPORTER_OTLP_ENDPOINT`` is
-    set *and* the exporter package is installed — never by default.
+    set *and* the exporter package is installed — never by default. Whatever
+    exporter is attached is wrapped in :class:`RedactingSpanExporter`: there
+    is no code path that exports an unredacted span (INT-178).
     """
     provider = TracerProvider(resource=Resource.create({"service.name": service_name}))
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -115,7 +186,9 @@ def setup_otel(service_name: str) -> TracerProvider:
             )
             from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-            provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))
+            provider.add_span_processor(
+                BatchSpanProcessor(RedactingSpanExporter(OTLPSpanExporter(endpoint=endpoint)))
+            )
         except ImportError:
             logging.getLogger(__name__).warning(
                 "OTEL_EXPORTER_OTLP_ENDPOINT set but no OTLP exporter installed; spans stay local"

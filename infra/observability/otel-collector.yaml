@@ -26,6 +26,28 @@ processors:
           # names allow-list: only these attribute keys survive the pipeline —
           # a name (or anything else) has no allow-listed key to travel in.
           - 'keep_keys(attributes, ["service.name", "level", "logger", "session_id_hash", "tenant_id", "protocol_hash", "prompt_version", "event", "duration_ms", "trace_id", "span_id"])'
+    # INT-178 (review #195): traces and metrics get the SAME identifier
+    # patterns — span events are where record_exception payloads travel, so
+    # spanevent attributes are scrubbed too. The app side already exports
+    # through RedactingSpanExporter; this layer catches anything that
+    # bypasses the shared setup.
+    trace_statements:
+      - context: span
+        statements:
+          - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
+          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
+      - context: spanevent
+        statements:
+          - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
+          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
+    metric_statements:
+      - context: datapoint
+        statements:
+          - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
+          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
 
 exporters:
   debug:
@@ -39,9 +61,9 @@ service:
       exporters: [debug]
     traces:
       receivers: [otlp]
-      processors: []
+      processors: [transform/redact]
       exporters: [debug]
     metrics:
       receivers: [otlp]
-      processors: []
+      processors: [transform/redact]
       exporters: [debug]
