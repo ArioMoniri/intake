@@ -1,0 +1,37 @@
+# Epic charters — one line each (07 §3.11). Issues reference these ids.
+- id: E00-governance
+  charter: "Repo, CI gates, ADRs and the backlog machinery that makes issue -> PR -> merge real"
+- id: E01-platform
+  charter: "Shared platform: health/OTel/security middleware, secrets, tokenization, encryption, audit, probes, SLOs"
+- id: E02-data
+  charter: "Postgres/RLS, clinical schemas, FHIR exchange, MinIO, event bus, retention, DSAR, consent"
+- id: E03-protocols
+  charter: "Protocol DSL, compiler, taxonomy, base + cluster + deep packs, overlays, goldens, clip cache"
+- id: E04-engines
+  charter: "Deterministic triage, IntakeEngine FSM, extraction, note composer, patient summary"
+- id: E05-voice
+  charter: "LiveKit runtime: six-tool Talker, Work queue, RED preemption, profiles residency_tr + typed"
+- id: E06-lanes
+  charter: "Observer lanes (affect/acoustic/linguistic/asr_quality/engagement), wellbeing engine, device_functions gate"
+- id: E07-records
+  charter: "Document upload, sandboxed OCR, extraction to FHIR with provenance, record index"
+- id: E08-mobile
+  charter: "Expo app: onboarding, consent, visits, intake UIs, records, shares, accessibility, store compliance"
+- id: E09-clinician
+  charter: "Doctor Link, note views, clinic console, clinician feedback"
+- id: E10-connectors
+  charter: "Connector framework, FHIR push, HBYS adapter kit, check-in"
+- id: E11-learning
+  charter: "PatientOverlay, de-identified analytics, Inspector->Architect proposals, canary/rollback, DSPy/GEPA"
+- id: E12-admin
+  charter: "Admin console: RBAC, ops, models registry, protocols, quality, compliance, cost, security modules"
+- id: E13-infra
+  charter: "Compose/k8s, backups, edge/WAF, mesh, SIEM, runners, chaos/load"
+- id: E14-legal
+  charter: "Legal document set, VERBIS, DPIA, breach machinery, MDSW file, QMS, investigation package, registrations"
+- id: E15-research
+  charter: "Research data pipeline and study tooling"
+- id: E16-experience
+  charter: "CSAT/NPS/pulse events, wait-time metrics, survey cadence"
+- id: E17-release
+  charter: "Tenant onboarding, billing, release process, localization completeness"

@@ -1,0 +1,1 @@
+Check the diff against files/06: consent scopes on new routes, inventory annotations, legal strings from docs/legal/strings.yaml, device_functions boundary, and any accuracy claim in docs/regulatory or docs/legal. Output findings with file:line and the 06 §1 codes.

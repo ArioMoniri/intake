@@ -1,0 +1,72 @@
+# P0 dev tier (INT-001). EHRbase is NOT here: openEHR is a P3 export (00 §3 D8).
+# OpenBao (INT-017), the observability profile (INT-023) and the security stack
+# (infra/security) join with their own issues. Ports bind to loopback only.
+name: intake-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-intake}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-intake-dev-only}
+      POSTGRES_DB: ${POSTGRES_DB:-intake}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-intake} -d $${POSTGRES_DB:-intake}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  hapi:
+    # HAPI FHIR JPA starter. The image is distroless (no shell/curl), so the
+    # healthcheck is a single-file Java probe (JEP 330) mounted read-only.
+    image: hapiproject/hapi:v7.2.0
+    environment:
+      hapi.fhir.fhir_version: R4
+    ports:
+      # host 8091: 8080 is commonly taken on dev machines (and was, on the
+      # owner's). In-container stays 8080; the probe checks the container side.
+      - "127.0.0.1:8091:8080"
+    volumes:
+      - ./hapi/HealthProbe.java:/probe/HealthProbe.java:ro
+    healthcheck:
+      test: ["CMD", "java", "/probe/HealthProbe.java"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-intake-dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-intake-dev-only}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      # this MinIO image ships no curl; `mc ready local` is the vendor check
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:
+  miniodata:

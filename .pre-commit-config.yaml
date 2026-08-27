@@ -1,0 +1,42 @@
+# INT-001: gitleaks, semgrep, ruff, eslint + Conventional Commits via commitlint.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.86.0
+    hooks:
+      - id: semgrep
+        # p/ci, not `auto`: auto refuses to run with metrics off.
+        # setuptools: semgrep 1.86 imports pkg_resources, absent on py3.12 envs.
+        args: ["--config", "p/ci", "--error", "--metrics=off", "--skip-unknown-extensions"]
+        additional_dependencies: ["setuptools<81"]
+        # files/ is the historical record. The two manifests are excluded because
+        # p/ci's supply-chain rules (minimumReleaseAge, dependency-cooldown,
+        # trust-policy) require pnpm >= 10 / newer uv than the pinned toolchain;
+        # revisit when INT-019 builds the full `semgrep ci` security job.
+        exclude: ^(files/|pnpm-workspace\.yaml$|pyproject\.toml$)
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (workspace)
+        entry: pnpm -r lint
+        language: system
+        files: \.(ts|tsx|js|mjs|cjs)$
+        pass_filenames: false
+      - id: commitlint
+        name: commitlint (Conventional Commits)
+        entry: pnpm exec commitlint --edit
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
