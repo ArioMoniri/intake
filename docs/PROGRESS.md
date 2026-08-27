@@ -32,3 +32,14 @@
 - Blocked on: nothing new.
 - Next: INT-004 backlog machinery (issues.yaml → GitHub, loop runner).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T18:40:00+03:00 · INT-004 · done
+- Goal: backlog machinery — schema validation, deterministic LOOP selector, GitHub sync (issues/labels/milestones/board), templates, backlog-status, files/11 as a generated rendering.
+- Plan: failing tests first (7), then backlog_lib + next_issue + sync_issues (hermetic dry-run planner + live gh apply) + render_backlog + backlog_status + feature.yml + pull_request_template.md + Makefile targets.
+- Tests added: tests/backlog/test_schema.py (schema, cycle proof, selector incl. the awaiting-human-satisfies-deps rule and WAITING_HUMAN listing), tests/backlog/test_sync_dryrun.py (planner, labels/milestones/board columns, templates, files/11 drift check, status report).
+- Result: pytest 51 passed; make check green; live sync run against ArioMoniri/intake (175 issues; output in evidence).
+- Invariants touched and still passing: none at runtime; ADR-019's machinery is complete.
+- Decisions / 00 rows: files/11 becomes the generated rendering of issues.yaml (its header says so; drift is a test failure); allow-list pinned set grew by docs/adr/ with the reason stated.
+- Blocked on: PR merges remain owner-side (harness classifier); board creation may need `gh auth refresh -s project`.
+- Next: INT-043 — draft base.intake and put it in the owner's inbox (unblocks 78 of 175).
+- LOOP_STATUS: CONTINUE

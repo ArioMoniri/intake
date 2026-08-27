@@ -54,7 +54,8 @@
   title: "Backlog machinery: issues.yaml -> GitHub issues/labels/milestones/project; loop runner"
   depends_on: [INT-002]
   labels: [area:ci]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-004.md
   acceptance:
     - "docs/backlog/issues.yaml (this backlog) validated by schema test; scripts/backlog/sync_issues.py creates/updates GitHub issues via gh with labels ph:*, area:*, risk:*, approval:*, milestones P0..P3 and a Project board Backlog/Ready/In progress/In review/Blocked/Done"
     - ".github/ISSUE_TEMPLATE/feature.yml + pull_request_template.md with the DoD checklist and mandatory links (issue, 10 §9 row, 06 legal codes, evidence file)"
