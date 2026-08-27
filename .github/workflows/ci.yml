@@ -1,0 +1,49 @@
+# INT-002 — CI base. Actions pinned to full commit SHAs (supply-chain: a tag
+# can be silently repointed; SHAs resolved from git ls-remote, never guessed). make check split into parallel jobs (05 §3); gates run the
+# zero-placeholder, vendor-call and evidence checks. CI never calls a vendor and
+# carries no secrets: recorded fixtures only (CLAUDE.md §How we work).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check-py:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages
+      - run: make check-py
+
+  check-ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: make check-ts
+
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/ci/assert_no_vendor_calls.sh
+      - run: scripts/ci/no_placeholders.sh
+      - name: evidence_check (PRs only)
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: scripts/ci/evidence_check.sh "$PR_TITLE" "$PR_BODY"

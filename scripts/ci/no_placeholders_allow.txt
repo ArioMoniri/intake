@@ -1,0 +1,23 @@
+# no_placeholders allow-list — prefix matches against git ls-files paths.
+# CLAUDE.md invariant 17: this list may only SHRINK. The pinned set lives in
+# tests/ci/test_no_placeholders.py::test_allowlist_only_shrinks — growing it
+# means consciously editing that test and surviving review of the reason.
+#
+# files/ is the blueprint's historical record; the governing docs and agent
+# bodies *describe* the gate; evidence/PROGRESS quote red runs; tests/fixtures
+# is the acceptance's own allow-list; the gate and its test name the tokens.
+files/
+docs/backlog/
+docs/evidence/
+docs/PROGRESS.md
+CLAUDE.md
+LOOP.md
+PROMPT.md
+docs/DoD.md
+docs/TDD.md
+docs/GOALS.md
+.claude/
+tests/fixtures/
+scripts/ci/no_placeholders.sh
+scripts/ci/no_placeholders_allow.txt
+tests/ci/test_no_placeholders.py
