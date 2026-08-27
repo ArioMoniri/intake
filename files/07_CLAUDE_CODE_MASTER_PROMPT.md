@@ -16,8 +16,8 @@ Your job in this session: **Phase 0 — Foundation.** Bootstrap the monorepo, wr
 
 Read these **in this order**, before touching anything:
 
-1. **`docs/blueprint/00_STATE.md`** — every decision, pin, correction, withdrawn idea and gotcha, with the reason attached. Read it **completely**, not by grep. It is short enough and the withdrawn rows are the most valuable part, because they are what stop a wrong idea being re-proposed.
-2. **`docs/blueprint/HUMAN_BLOCKERS.md`** — what is waiting on a named human, and what each one holds up. Read it **before** you claim anything is blocked and **before** you would invent a value to get past something.
+1. **`files/00_STATE.md`** — every decision, pin, correction, withdrawn idea and gotcha, with the reason attached. Read it **completely**, not by grep. It is short enough and the withdrawn rows are the most valuable part, because they are what stop a wrong idea being re-proposed.
+2. **`files/HUMAN_BLOCKERS.md`** — what is waiting on a named human, and what each one holds up. Read it **before** you claim anything is blocked and **before** you would invent a value to get past something.
 3. **The blueprint file relevant to the task in hand** — `01` strategy · `02` product spec · `03` architecture · `04` clinical protocols · `05` roadmap · `06` TR compliance · `08` admin console · `09` coverage & learning · `10` security & monitoring · `11` backlog · `12` DSL/runtime · `13` question flow.
 
 **`00_STATE.md` is the authority. Where any other file disagrees with it, `00` wins and the other file is a defect to fix — not a discrepancy to route around, not an alternative reading, not "context that may be stale on both sides".** Fix it in the same PR that found it, and record the fix in `00 §8`. This applies to this file too: if `07` and `00` disagree, `00` is right and `07` is what you correct.
@@ -26,15 +26,16 @@ Read these **in this order**, before touching anything:
 
 ---
 
-## §B. The five counterintuitive facts
+## §B. The six counterintuitive facts
 
 These get re-derived wrongly every single time. They are reproduced from `00 §0` because a fresh session that only skims will otherwise reach the opposite conclusion on all five and be confident about it.
 
 1. **The observer lanes are RETAINED.** An earlier draft proposed cutting `affect` and `acoustic` on cost and PHI-egress grounds. **That was wrong and is withdrawn (D1).** Cutting `affect` would have saved **$2.40 across the entire 300-session pilot**, against fixed infrastructure of €1,550–1,900/month. Do not re-propose it.
 2. **"Clinician-only" is the *unsafe* direction, not the safe one.** For the `affect` lane, showing output to a clinician is what creates a medical-device function. **Not-rendered-at-all is the safe state.** `03 §4.7` originally had this backwards.
 3. **The binding regulator is MDR/TİTCK, not FDA.** FDA's CDS guidance has a statutory device *exclusion* (§520(o)(1)(E)) with **no EU/TR equivalent** — there is no Criterion 1 to fail, because there is no carve-out to qualify for. This is **worse** for us, not better. And the device is **Class IIb**, not IIa (MDCG 2019-11 Annex IV names the depression-scoring case almost verbatim under Rule 11(a)).
-4. **"Turkish networks are bad" is FALSE.** Same dataset, same quarter, same method: Türkiye mobile RTT p50 **22 ms** against Germany 24, UK 31, Italy 32, Spain 29 — **the joint-lowest median of the set, with a tighter tail (p95/p50 = 2.23) than Germany (2.42), Poland (2.43) or Spain (2.69).** Any argument leaning on bad Turkish networks is withdrawn. The real risk is **loaded** latency (646 ms p50 / 2232 ms p95 under saturation), not idle latency — which is why **no document upload may run while a voice turn is in flight**.
-5. **Data residency is a latency *win*, not a compliance tax.** SFU + TURN in-country is **−39 ms p50 / −47 ms p95**; with models too it is **−156 / −188**. It is the single largest transport lever in the design — worth more than dropping `min_silence_duration` 250 → 150 ms.
+4. **ATADEK is the WRONG ethics committee, and "afiliye" is a trap.** Acıbadem runs **two** bodies: **KAEK** (*Klinik Araştırmalar Etik Kurulu*) for studies **within** the klinik araştırmalar yönetmeliği scope — **ours** — and **ATADEK** for those **outside** it. ATADEK's own form routes device studies away in terms, and **ATADEK is not on TİTCK's approved-committee list at all**; KAEK is, as **`2025-KAEK-51`, Aktif**. TCKAY m.5/3 routes device investigations to exactly that list, so **an ATADEK opinion would not satisfy it**. Mail **kaek@acibadem.edu.tr**. **Separately: Acıbadem's own "afiliye hastane" is NOT the statutory *afiliasyon* of 3359 Ek m.9** — the university's own vocabulary supplies a plausible wrong answer, and arguing site eligibility from that word is void.
+5. **"Turkish networks are bad" is FALSE.** Same dataset, same quarter, same method: Türkiye mobile RTT p50 **22 ms** against Germany 24, UK 31, Italy 32, Spain 29 — **the joint-lowest median of the set, with a tighter tail (p95/p50 = 2.23) than Germany (2.42), Poland (2.43) or Spain (2.69).** Any argument leaning on bad Turkish networks is withdrawn. The real risk is **loaded** latency (646 ms p50 / 2232 ms p95 under saturation), not idle latency — which is why **no document upload may run while a voice turn is in flight**.
+6. **Data residency is a latency *win*, not a compliance tax.** SFU + TURN in-country is **−39 ms p50 / −47 ms p95**; with models too it is **−156 / −188**. It is the single largest transport lever in the design — worth more than dropping `min_silence_duration` 250 → 150 ms.
 
 ---
 
@@ -145,16 +146,16 @@ Three rules govern them:
 
 When the owner types **give it**, do exactly this, in order, and do not ask for confirmation:
 
-1. **Read** `docs/blueprint/00_STATE.md` completely, then `docs/blueprint/HUMAN_BLOCKERS.md`, then `docs/blueprint/05_ROADMAP.md §1–§3` for the current phase. If the repo is not yet bootstrapped, read this file's §0–§6 as well.
+1. **Read** `files/00_STATE.md` completely, then `files/HUMAN_BLOCKERS.md`, then `files/05_ROADMAP.md §1–§3` for the current phase. If the repo is not yet bootstrapped, read this file's §0–§6 as well.
 2. **Print a short plan — 10 lines, no more.** It must name: the current phase; the **next 3–5 unblocked issues** in backlog order with their ids and gates; anything on the critical path that is `awaiting-human` with the `HUMAN_BLOCKERS.md` id; and one line on what will exist at the end of the run that does not exist now.
 3. **Start.** Take the first issue and run one full LOOP iteration — acceptance restated verbatim, failing tests first with the red run recorded, minimal implementation, green run recorded, refactor, `make check` / `make safety` / `make security`, docs, evidence file, PR. Then the next.
-4. **Do not re-litigate settled decisions.** D1–D15 in `00 §3` are decided, including the withdrawn ones. The observer lanes stay. `cascade_fast` and `s2s_cloud` are gone. Kintsugi DAM is dropped. openEHR is a P3 export. `residency_tr` is split into media and models. If you think a decision is wrong, say so **in one paragraph with new evidence** and continue working — do not open it as a question and wait.
+4. **Do not re-litigate settled decisions.** D1–D17 in `00 §3` are decided, including the withdrawn ones. The observer lanes stay. `cascade_fast` and `s2s_cloud` are gone. Kintsugi DAM is dropped. openEHR is a P3 export. `residency_tr` is split into media and models. **D16: no accuracy claims. D17: the `clinical_signoff` block stays empty and `served: false` until a named clinician signs — that is not a placeholder to fill in.** If you think a decision is wrong, say so **in one paragraph with new evidence** and continue working — do not open it as a question and wait.
 5. **Do not re-research anything `00` records as verified.** The ledger in `00 §2` is checked. Re-deriving a value from a fresh search is how a correction gets undone by a summariser.
 6. **Stop at a clean issue boundary**, print merged PRs, open human-gated PRs, test counts, coverage, and blockers — and say which `HUMAN_BLOCKERS.md` rows now block the most work.
 
 ---
 
-## 0. Ground truth you must internalise (summary of the blueprint in `docs/blueprint/`)
+## 0. Ground truth you must internalise (summary of the blueprint in `files/`)
 
 ⚠ **Corrected in place, 27 Aug 2026.** Where a bullet changed, the change is stated rather than silently applied.
 
@@ -196,7 +197,7 @@ When the owner types **give it**, do exactly this, in order, and do not ask for 
 intake/
   apps/mobile/                 (expo SDK 57 pinned >=57.0.9, TS strict, expo-router, tabs: today, visits, records, wellbeing, me)
   apps/clinician-web/          (next, app router, tailwind; placeholder /note/[token])
-  apps/admin-web/              (next, app router, shadcn; modules per docs/blueprint/08 §3; P0 = overview/ops/flags/cicd on mock data)
+  apps/admin-web/              (next, app router, shadcn; modules per files/08 §3; P0 = overview/ops/flags/cicd on mock data)
   services/api/                (fastapi app, alembic, tests; admin/* routers with Keycloak-backed RBAC, mock IdP in dev)
   services/voice-runtime/      (livekit-agents worker: talker/ six tools + clip player + insertion-window scheduler; clinical_agent/ Work queue + IntakeEngine + extraction + delivery; observers/ affect|acoustic|linguistic|asr_quality|engagement lanes + diarization gate; profiles/ residency_tr|typed; mock adapters; latency harness)
   services/workers/            (celery app; tasks: ingest_document, generate_report, push_connector, build_clips, rollup_metrics)
@@ -219,10 +220,10 @@ intake/
 ```markdown
 # CLAUDE.md — INTAKE engineering constitution
 Read this fully before any action. It overrides habits. When in doubt: safety invariant > test > ADR > speed.
-Read order every session: docs/blueprint/00_STATE.md (the authority — where any other file disagrees with it, 00 wins and the other file is a defect to fix), then docs/blueprint/HUMAN_BLOCKERS.md, then the blueprint file for the task. For the model stack, docs/blueprint/03 §4.9.1 is canonical: a model not in that table is not pinned.
+Read order every session: files/00_STATE.md (the authority — where any other file disagrees with it, 00 wins and the other file is a defect to fix), then files/HUMAN_BLOCKERS.md, then the blueprint file for the task. For the model stack, files/03 §4.9.1 is canonical: a model not in that table is not pinned.
 
 ## Mission
-Patient-owned, Turkish-first pre-visit intelligence: fast & detailed voice intake, deterministic triage, consented wellbeing screening, document ingestion, clinician-ready notes, connectors to hospital systems. See docs/blueprint/ for the full spec.
+Patient-owned, Turkish-first pre-visit intelligence: fast & detailed voice intake, deterministic triage, consented wellbeing screening, document ingestion, clinician-ready notes, connectors to hospital systems. See files/ for the full spec.
 
 ## Non-negotiable invariants (tests enforce these; never weaken them)
 1. Triage RED/YELLOW can only be produced by `packages/protocols/triage` rules. LLM output may contain `candidate_flags` → max `YELLOW_REVIEW`.
@@ -238,9 +239,9 @@ Patient-owned, Turkish-first pre-visit intelligence: fast & detailed voice intak
 11. Observer lanes (affect/acoustic/linguistic/asr_quality/engagement) are read-only: they write `ObserverState` only, never slots or triage, and never sit on the speech critical path (fake-clock test: lanes stalled 30 s → turn latency unchanged). `acoustic` is unreachable unless {study_id, protocol_version, ICF_version, approval_date} all assert, and fails closed on protocol amendment.
 12. Learning is proposal-only: `services/learning` may open PRs with evidence bundles; it can never modify red-flag levels, instruments, consent texts, the Talker tool list, PolicyGuard, or profile routing (CI `proposal_scope` test). `PatientOverlay` facts require patient or clinician confirmation (type-level).
 13. Operability: every model/service on the PHI path declares `self_hostable` and a probe in the registry; every emitted metric exists in `metrics_catalog.yaml`; every branch in `taxonomy/branches.yaml` resolves to an L1+ pack or its cluster pack (`protocols coverage` in CI). An L0 pack resolved for a live session raises.
-14. Security baseline (docs/blueprint/10): secrets only from OpenBao (dev server locally); identifiers tokenized; field-level envelope encryption for transcripts/notes/learned facts; speech/documents/records are data never instructions (delimited, schema-constrained); model weights pinned by `model_id@revision + sha256`; signed images and protocol packs; hash-chained audit. CI gates (gitleaks, Semgrep/Bandit, Trivy/OSV, Checkov, license, SBOM, cosign, schemathesis, PHI-pattern scan) are never skipped.
+14. Security baseline (files/10): secrets only from OpenBao (dev server locally); identifiers tokenized; field-level envelope encryption for transcripts/notes/learned facts; speech/documents/records are data never instructions (delimited, schema-constrained); model weights pinned by `model_id@revision + sha256`; signed images and protocol packs; hash-chained audit. CI gates (gitleaks, Semgrep/Bandit, Trivy/OSV, Checkov, license, SBOM, cosign, schemathesis, PHI-pattern scan) are never skipped.
 15. Monitoring contract: every service exposes `/healthz`, `/readyz`, `/metrics`, `/version` via `packages/intake_platform/health`, emits OTel through the shared setup, declares its SLOs in `docs/slo/<service>.yaml`, and has a synthetic probe; a new service without these fails `make check`.
-16. Every feature PR links its row in docs/blueprint/10 §9 (threats, controls, signals, tests); the security-reviewer subagent blocks merges without it.
+16. Every feature PR links its row in files/10 §9 (threats, controls, signals, tests); the security-reviewer subagent blocks merges without it.
 17. Zero placeholders / zero postponement: no TODO, FIXME, XXX, NotImplementedError, skipped/xfail tests, empty `pass` bodies, commented-out code, lorem/demo data outside tests/fixtures; the `no_placeholders` gate enforces the list and its allow-list may only shrink. Mocks live in tests only; a missing external dependency means `blocked:*` + blockers.md + the HUMAN_BLOCKERS.md id, never a fake. Scope is delivered exactly as the issue's acceptance says or the issue stays open.
     Sole exception, and it is a required form rather than a placeholder: a clinical value no human has supplied is the literal string `TODO: <what> requires clinical sign-off` inside a rule whose `status` is `draft_needs_source`, which the compiler refuses to emit into a served pack. Never a plausible number.
 18. Legal invariants: consent and legal texts render only from `docs/legal/` with hash binding; the fixed strings in docs/legal/strings.yaml are verbatim; `device_functions` stays off for any tenant without a recorded CE certificate or clinical-investigation approval id (gate test INT-117); reminders are transactional-only unless an İYS consent record exists; every new data field carries the inventory annotation {category,purpose,basis,retention,recipients} or the schema test fails.
@@ -253,7 +254,7 @@ Patient-owned, Turkish-first pre-visit intelligence: fast & detailed voice intak
 - Issue → branch → PR → merge. One issue per iteration from docs/backlog/issues.yaml, in file order within the phase, dependencies first. Never two issues in one PR; never a PR without an issue.
 - TDD always: write the failing tests, record the red run in docs/evidence/<id>.md, implement minimally, record the green run, refactor. No feature without tests in the same PR.
 - Update docs/PROGRESS.md every iteration using the template in LOOP.md; update the issue on GitHub (labels/state) via gh.
-- Architecture changes need an ADR in docs/adr/ (template there). Decisions already taken: ADR-001…021 (see docs/adr/). Decisions recorded in docs/blueprint/00_STATE.md §3 (D1–D15) are settled — including the withdrawn ones. Do not re-litigate; if you disagree, say so in one paragraph with new evidence and keep working.
+- Architecture changes need an ADR in docs/adr/ (template there). Decisions already taken: ADR-001…021 (see docs/adr/). Decisions recorded in files/00_STATE.md §3 (D1–D15) are settled — including the withdrawn ones. Do not re-litigate; if you disagree, say so in one paragraph with new evidence and keep working.
 - Never invent a value to unblock yourself. Mark `awaiting-human`, write the ask with the named human and the one sentence they must answer, cross-reference the HUMAN_BLOCKERS.md row, and continue. An open blocker is not permission to build around it: build the mechanism, wire the gate, make it fail closed, leave the content empty.
 - At most 3 concurrent subagents. Never `git add -A` while another agent is editing — stage explicit paths. Always `git diff` after a scripted edit and check the affected count.
 - Prefer boring, typed, testable code. Small modules. No clever metaprogramming.
@@ -280,7 +281,7 @@ Python: ruff + mypy --strict + pytest + pydantic v2; async by default in api; SQ
 - Anything touching consent texts, red-flag rule semantics, data retention, vendor contracts, key-management design, the accuracy-claim policy, or disabling any CI security gate.
 - Any decision to persist new categories of personal data.
 - Any spend > 20 USD on live evals.
-- Anything already listed in docs/blueprint/HUMAN_BLOCKERS.md — do not ask again, mark `awaiting-human` and continue.
+- Anything already listed in files/HUMAN_BLOCKERS.md — do not ask again, mark `awaiting-human` and continue.
 
 ## Output discipline
 Short status messages. At the end of each iteration write the PROGRESS entry and print `LOOP_STATUS: CONTINUE|DONE|BLOCKED|WAITING_HUMAN`.
@@ -350,8 +351,8 @@ Two lists. The first you can check yourself and must. The second you cannot — 
 - [ ] **Licences verified for any new dependency or model** — from the raw LICENSE blob, not a badge — with the allow-list check green and `licence_verified_at` recorded for anything on the PHI path.
 - [ ] **No accuracy claim added** to `docs/regulatory/`, `docs/legal/`, patient or clinician copy. Measurements go to `docs/evidence/` with a date and a named corpus, phrased as measurements.
 - [ ] `tr` and `en` strings added; `tr` is the source of truth; Turkish clinical copy marked for clinician review if patient-facing; no `text-transform`, no mid-word truncation, no `word-break: break-all`.
-- [ ] Security: no PHI in logs; inputs validated; consent scope checked on new data access paths; secrets from OpenBao only; identifiers tokenized; the feature's row in `docs/blueprint/10 §9` exists or is updated.
-- [ ] Legal: the issue's `legal:` codes re-read in `docs/blueprint/06 §1`; new personal-data fields annotated `{category,purpose,basis,retention,recipients}`; consent scopes declared on new routes; legal strings only from `docs/legal/strings.yaml`; device-boundary check when the feature touches triage or instruments.
+- [ ] Security: no PHI in logs; inputs validated; consent scope checked on new data access paths; secrets from OpenBao only; identifiers tokenized; the feature's row in `files/10 §9` exists or is updated.
+- [ ] Legal: the issue's `legal:` codes re-read in `files/06 §1`; new personal-data fields annotated `{category,purpose,basis,retention,recipients}`; consent scopes declared on new routes; legal strings only from `docs/legal/strings.yaml`; device-boundary check when the feature touches triage or instruments.
 - [ ] Observability: new flows emit catalogued metrics + traces; errors carry ids not payloads; dashboard panel + alert rule added when a new SLO or critical path is introduced.
 - [ ] Docs: PROGRESS.md entry; `issues.yaml` status + GitHub issue updated; every blueprint file the change touches updated **in the same PR**; ADR if architecture changed; CHANGELOG line.
 - [ ] **`00_STATE.md` updated in the same commit as the decision it records.** A decision that lands without a `00` row is a decision that will be re-litigated in two weeks by someone who cannot find it. Reversals mark the old row withdrawn with the reason; they never delete it.
@@ -403,7 +404,7 @@ That is why the ordering below is not the conventional one.
 3. **Golden**: protocol resolution → expected Questionnaire/slot-schema snapshots; **triage cases ≥ 200 with ≥ 60 RED, each RED paired with its near-miss negative**; note renderers → text-diffed snapshots.
 4. **Property**: the claims in Rule 4, under hypothesis.
 5. **Simulation**: LLM patient simulator (recorded in CI, live nightly) → rubric: must-ask coverage, safety, tone, one question per turn.
-6. **Runtime simulation** (fake clocks, mock adapters): the voice-runtime invariants of `docs/blueprint/03 §4.6` — non-blocking Talker, six-tool surface, RED-only preemption ≤ 300 ms **asserted to touch no media transport**, FIFO + single in-flight + serialised writes, idempotent insertion-window delivery, verbatim scripted text, and **profile parity across `residency_tr` and `typed`** (there are two profiles, not four).
+6. **Runtime simulation** (fake clocks, mock adapters): the voice-runtime invariants of `files/03 §4.6` — non-blocking Talker, six-tool surface, RED-only preemption ≤ 300 ms **asserted to touch no media transport**, FIFO + single in-flight + serialised writes, idempotent insertion-window delivery, verbatim scripted text, and **profile parity across `residency_tr` and `typed`** (there are two profiles, not four).
 7. **Integration**: docker compose up (api + db + redis + hapi + minio) → session lifecycle with mock adapters.
 8. **E2E** (P1+): Maestro flows on iOS simulator for onboarding → typed intake → review → share.
 9. **Console & learning**: contract tests for `/admin/*` with role matrices; `metrics_catalog` completeness; probe registry; `proposal_scope`, `k_anonymity`, `canary_rollback`, `overlay_monotonicity`, `learned_fact_provenance`, `taxonomy_coverage` (`09 §6`).
@@ -430,7 +431,7 @@ gitleaks · Semgrep (+ Bandit) · ESLint security · Trivy fs/image/IaC + OSV-Sc
 ### 3.5 `LOOP.md`
 ```markdown
 # LOOP — autonomous iteration protocol (one issue → one PR per run)
-Inputs read every iteration: CLAUDE.md, docs/blueprint/00_STATE.md, docs/blueprint/HUMAN_BLOCKERS.md, docs/backlog/issues.yaml, docs/backlog/blockers.md, docs/PROGRESS.md (last 5 entries), docs/adr/ (titles), open PRs (`gh pr list`).
+Inputs read every iteration: CLAUDE.md, files/00_STATE.md, files/HUMAN_BLOCKERS.md, docs/backlog/issues.yaml, docs/backlog/blockers.md, docs/PROGRESS.md (last 5 entries), docs/adr/ (titles), open PRs (`gh pr list`).
 1. Select: first issue in file order (phase P0→P3) with `status: todo`, all `depends_on` satisfied, and no `blocked:*` label. `awaiting-human` **satisfies** a dependency for an issue that depends only on the non-gated part of it — this is deliberate, and without it 58 % of the backlog silently never becomes Ready. If none todo and no open PRs → `LOOP_STATUS: DONE`; if only blocked/awaiting-human remain → `LOOP_STATUS: WAITING_HUMAN` with the exact list and the HUMAN_BLOCKERS.md ids.
 2. Mark `status: doing`; `gh issue edit` → In progress; branch `int-<n>-<slug>`.
 3. Restate the acceptance criteria verbatim in the PROGRESS entry; write the test plan; create docs/evidence/INT-xxx.md.
@@ -458,7 +459,7 @@ Guardrails: never edit CLAUDE.md, LOOP.md, DoD.md, TDD.md, coverage thresholds, 
 
 ### 3.6 `PROMPT.md` (the per-iteration prompt used by loop.sh)
 ```markdown
-You are running one iteration of LOOP.md in the INTAKE repo. Read CLAUDE.md, LOOP.md, docs/blueprint/00_STATE.md, docs/blueprint/HUMAN_BLOCKERS.md, docs/backlog/issues.yaml, docs/backlog/blockers.md and the last 5 entries of docs/PROGRESS.md. Execute exactly one issue following LOOP.md steps 1–8 with strict TDD, evidence file, and the issue→PR→merge policy. Respect every invariant in CLAUDE.md. 00_STATE.md is the authority; 03 §4.9.1 is canonical for models. Never invent a clinical value or any value to unblock yourself — mark `awaiting-human` with the named human and continue. Do not ask questions. Finish by appending the PROGRESS entry and printing LOOP_STATUS.
+You are running one iteration of LOOP.md in the INTAKE repo. Read CLAUDE.md, LOOP.md, files/00_STATE.md, files/HUMAN_BLOCKERS.md, docs/backlog/issues.yaml, docs/backlog/blockers.md and the last 5 entries of docs/PROGRESS.md. Execute exactly one issue following LOOP.md steps 1–8 with strict TDD, evidence file, and the issue→PR→merge policy. Respect every invariant in CLAUDE.md. 00_STATE.md is the authority; 03 §4.9.1 is canonical for models. Never invent a clinical value or any value to unblock yourself — mark `awaiting-human` with the named human and continue. Do not ask questions. Finish by appending the PROGRESS entry and printing LOOP_STATUS.
 ```
 
 ### 3.7 `loop.sh`
@@ -471,7 +472,7 @@ for i in $(seq 1 "$MAX"); do
   echo "=== INTAKE LOOP $i/$MAX $(date -Iseconds) ==="
   claude -p "$(cat PROMPT.md)" --dangerously-skip-permissions --max-turns 80 --output-format text || true
   if grep -q "LOOP_STATUS: DONE" <(awk "/^### /{n++} n<=1" <(tac docs/PROGRESS.md) ); then echo "Backlog complete."; exit 0; fi
-  if grep -q "LOOP_STATUS: WAITING_HUMAN" <(awk "/^### /{n++} n<=1" <(tac docs/PROGRESS.md) ); then echo "Only human-gated work remains — see docs/backlog/blockers.md, docs/blueprint/HUMAN_BLOCKERS.md and the open PRs."; exit 3; fi
+  if grep -q "LOOP_STATUS: WAITING_HUMAN" <(awk "/^### /{n++} n<=1" <(tac docs/PROGRESS.md) ); then echo "Only human-gated work remains — see docs/backlog/blockers.md, files/HUMAN_BLOCKERS.md and the open PRs."; exit 3; fi
   if grep -q "LOOP_STATUS: BLOCKED" <(awk "/^### /{n++} n<=1" <(tac docs/PROGRESS.md) ); then echo "Blocked — human input needed."; exit 2; fi
 done
 ```
@@ -504,16 +505,16 @@ Safer alternative (no permission bypass): `claude -p "$(cat PROMPT.md)" --allowe
 - `next-issue.md`: "Run one LOOP.md iteration now (issue → PR)."
 - `issue-start.md`: "For $ARGUMENTS: restate acceptance verbatim, write the test plan and the failing tests — including the near-miss negative control for any safety rule — and create docs/evidence/$ARGUMENTS.md with the red run. Do not implement yet."
 - `pr-open.md`: "Fill the PR template for the current branch: issue link, DoD, 10 §9 row, legal codes, evidence path; gh pr create."
-- `legal-review.md`: "Check the diff against docs/blueprint/06: consent scopes on new routes, inventory annotations, legal strings from docs/legal/strings.yaml, device_functions boundary, and any accuracy claim in docs/regulatory or docs/legal. Output findings with file:line and the 06 §1 codes."
+- `legal-review.md`: "Check the diff against files/06: consent scopes on new routes, inventory annotations, legal strings from docs/legal/strings.yaml, device_functions boundary, and any accuracy claim in docs/regulatory or docs/legal. Output findings with file:line and the 06 §1 codes."
 - `backlog-status.md`: "Print phase progress, open PRs awaiting humans with their HUMAN_BLOCKERS ids, blockers, and the next 5 issues."
 - `ship.md`: "Run make check && make safety && make security; update CHANGELOG; commit; open PR with the DoD checklist."
-- `clinical-review.md`: "Review the diff under packages/protocols/** against docs/blueprint/04: instrument fidelity, monotonic red flags, `register` and `location` present on every RED rule, `source:` block present, B1 Turkish, goldens with near-miss negatives. Output a review table. Never fill in a missing threshold."
+- `clinical-review.md`: "Review the diff under packages/protocols/** against files/04: instrument fidelity, monotonic red flags, `register` and `location` present on every RED rule, `source:` block present, B1 Turkish, goldens with near-miss negatives. Output a review table. Never fill in a missing threshold."
 - `security-review.md`: "Scan the diff for PHI in logs, missing consent checks, audio persistence, secrets, and any new egress path. Output findings with file:line."
 - `new-pack.md`: "Scaffold a specialty protocol pack YAML with sections/slots/red_flags/overlays/voice hints + golden test skeleton for $ARGUMENTS. Every red_flag stub carries `register:`, `location:` and `source:` fields with no defaults filled in."
-- `threat-model.md`: "Update docs/security/threat-model.md (STRIDE + LINDDUN) for $ARGUMENTS: new assets, entry points, threats, controls, and the docs/blueprint/10 §9 row; list the tests that prove each control."
+- `threat-model.md`: "Update docs/security/threat-model.md (STRIDE + LINDDUN) for $ARGUMENTS: new assets, entry points, threats, controls, and the files/10 §9 row; list the tests that prove each control."
 - `slo.md`: "Define or update docs/slo/$ARGUMENTS.yaml (SLIs, targets, burn-rate alert rules, dashboard panel, runbook link) and register the synthetic probe."
-- `runtime-review.md`: "Review the diff under services/voice-runtime/** against docs/blueprint/03 §4.6: can the Talker still converse while Work is queued? did any Talker API learn about Work internals? is anything spoken before a Work is completed? can interruption postpone speech without cancelling Work? does the RED path touch any media transport? Output a pass/fail table."
-- `state-sync.md`: "Diff the working tree against docs/blueprint/00_STATE.md. List every place a file contradicts 00 — those are defects, not discrepancies — and every decision made in this session that has no 00 row yet."
+- `runtime-review.md`: "Review the diff under services/voice-runtime/** against files/03 §4.6: can the Talker still converse while Work is queued? did any Talker API learn about Work internals? is anything spoken before a Work is completed? can interruption postpone speech without cancelling Work? does the RED path touch any media transport? Output a pass/fail table."
+- `state-sync.md`: "Diff the working tree against files/00_STATE.md. List every place a file contradicts 00 — those are defects, not discrepancies — and every decision made in this session that has no 00 row yet."
 
 ### 3.10 `.claude/agents/` (subagents, YAML frontmatter + body)
 - `clinical-reviewer`: description "Use after any change in packages/protocols or patient-facing copy"; tools Read, Grep, Glob; body = the checklist from `04` + PolicyGuard rules + the three RED axes + "never fill in a missing clinical value".
@@ -526,7 +527,7 @@ Safer alternative (no permission bypass): `claude -p "$(cat PROMPT.md)" --allowe
 - `qa-gatekeeper`: description "Use before every merge"; tools Read, Grep, Glob, Bash(scripts/ci/no_placeholders.sh), Bash(scripts/ci/evidence_check.sh); body = the DoD list A, plus an explicit report of every list-B item outstanding.
 
 ### 3.11 `docs/backlog/` — the complete issue backlog (every feature, P0→P3; source of the GitHub issues)
-Write `docs/backlog/issues.yaml` **verbatim** with the content below (schema test in INT-004 validates it), plus `docs/backlog/blockers.md` (empty template) and `docs/backlog/epics.yaml` (id → one-line charter from the epic names). `scripts/backlog/sync_issues.py` pushes it to GitHub (issues, labels `ph:* area:* risk:* approval:* blocked:* live-smoke gpu`, milestones P0–P3, project board). The human-readable rendering is `docs/blueprint/11_ISSUE_BACKLOG.md` — regenerate whenever issues.yaml changes (a test diffs them).
+Write `docs/backlog/issues.yaml` **verbatim** with the content below (schema test in INT-004 validates it), plus `docs/backlog/blockers.md` (empty template) and `docs/backlog/epics.yaml` (id → one-line charter from the epic names). `scripts/backlog/sync_issues.py` pushes it to GitHub (issues, labels `ph:* area:* risk:* approval:* blocked:* live-smoke gpu`, milestones P0–P3, project board). The human-readable rendering is `files/11_ISSUE_BACKLOG.md` — regenerate whenever issues.yaml changes (a test diffs them).
 
 ⚠ **Reconciled 27 Aug 2026.** Seven issues carried acceptance criteria that referenced deleted pins or a superseded classification. **They are corrected in place, with the correction stated inline, and none is deleted** — a deleted issue reappears three weeks later with the same wrong acceptance. The corrected ids are **INT-095, INT-097, INT-098, INT-111, INT-115, INT-124, INT-216**. When an issue is `blocked:*`, the blockers.md line carries the matching `HUMAN_BLOCKERS.md` id.
 
@@ -571,7 +572,7 @@ Write `docs/backlog/issues.yaml` **verbatim** with the content below (schema tes
   status: todo
   acceptance:
     - "docs/adr/ has ADR-000 template and 001..020 Accepted, one paragraph each (list in 07 §3.12)"
-    - "docs/blueprint/ contains files 01..11 verbatim; docs/index.md links everything"
+    - "files/ contains files 01..11 verbatim; docs/index.md links everything"
   tests: [tests/docs/test_adr_index.py]
 - id: INT-004
   epic: E00-governance
@@ -2683,7 +2684,7 @@ Write `docs/backlog/issues.yaml` **verbatim** with the content below (schema tes
 
 ## 4. Phase 0 execution order (do this now)
 1. `git init` (or verify clone), create the layout, write all §3 files verbatim, create `scripts/hooks/*` and make them executable, write `.github/workflows/ci.yml` (four parallel check jobs + `security.yml`), `Makefile`, `.env.example`, `.gitignore`, `LICENSE` (Apache-2.0 for `packages/protocols`; proprietary for apps/services unless told otherwise — ask once via a blocked note if unsure, then continue).
-2. Copy `docs/blueprint/` from `/Users/ario/Downloads/previsit/files/` — this path MUST exist and contain **`00_STATE.md`, `HUMAN_BLOCKERS.md`, `01`…`13` and `README.md`**, plus `protocols/base.life_threat.yaml`. If it is absent, **STOP and report**; do not fall back to a stub, and do not proceed to INT-003, whose acceptance depends on the real files being present.
+2. Copy `files/` from `/Users/ario/Downloads/previsit/files/` — this path MUST exist and contain **`00_STATE.md`, `HUMAN_BLOCKERS.md`, `01`…`13` and `README.md`**, plus `protocols/base.life_threat.yaml`. If it is absent, **STOP and report**; do not fall back to a stub, and do not proceed to INT-003, whose acceptance depends on the real files being present.
 3. Execute **INT-001 → INT-004** in this session, each as its own branch + PR + merge with full TDD and evidence files (INT-004 ends with the whole backlog live on GitHub and the board populated). **Then INT-043 — draft `base.intake` and put it in the owner's inbox on day 2**, because it unblocks 78 of 175 issues and every day it waits is a day the loop is working on things nothing depends on. Then INT-044…052 (cluster packs, all `approval:human-clinical`, all left open), then continue into **INT-010 → INT-025** for as long as the session allows. Stop at a clean issue boundary and print: merged PRs, open human-gated PRs, test counts, coverage, blockers.
 4. Write `docs/PROGRESS.md` entries per LOOP.md for each issue. Set `LOOP_STATUS: CONTINUE`.
 5. Tell the owner how to run `./loop.sh 40` to walk the rest of P0 in order, and list exactly which `approval:human-*`, `live-smoke` and `gpu` items will wait for him — with the matching `HUMAN_BLOCKERS.md` ids (clinician pack sign-offs INT-043…055 → HB-C1…C7; legal texts INT-210/211/212 → HB-L6…L8; GPU for INT-097 → HB-I4/HB-I5; disk and Docker RAM → HB-I1/HB-I2 before `make setup` will even complete). CI stays vendor-free; the clip cache uses the mock voice until the real TTS issue's on-hardware evidence.
@@ -2703,7 +2704,7 @@ Write `docs/backlog/issues.yaml` **verbatim** with the content below (schema tes
 - `make security` is green; a planted secret, a critical CVE in a pinned test dependency, a PHI pattern in a fixture, **and a planted accuracy claim in `docs/regulatory/`** each fail it (prove, then revert); images and the protocol bundle are signed on a tag build.
 - Every service answers `/healthz` `/readyz` `/metrics` `/version`; `make slo-report` prints SLO definitions and current (mock) attainment; a call from the api to an unlisted host is refused and logged; the audit-chain verifier detects **both** a flipped row and a flip-and-repair.
 - Issue machinery works end-to-end: `gh issue list` shows the backlog with labels/milestones; the first PRs are merged with `Closes #n`; `no_placeholders.sh` fails on a planted TODO and a planted `pytest.mark.skip` (proved, reverted); `evidence_check` fails a PR without a red-run section (proved, reverted); `make backlog-status` prints phases, blockers and awaiting-human PRs with their HUMAN_BLOCKERS ids.
-- All docs from §3 exist verbatim; ADRs 000–023 written; `issues.yaml` statuses current; `docs/blueprint/11` regenerated and matching; PROGRESS.md has entries; **`00_STATE.md` has a row for every decision made in this session.**
+- All docs from §3 exist verbatim; ADRs 000–023 written; `issues.yaml` statuses current; `files/11` regenerated and matching; PROGRESS.md has entries; **`00_STATE.md` has a row for every decision made in this session.**
 
 ## 6. Reference snippets — **all cloud snippets deleted 27 Aug 2026**
 > ⚠ **v1.4 carried working code for Soniox STT/TTS, Inworld voice profiling, GPT-Realtime and Gemini Live. Every one of those is now unreachable by construction: they are cloud services, and the constraint is that all models run on our own server.** They are not reproduced here even as commented-out reference, because a commented-out snippet is the fastest route back to a deleted decision. The historical record of what was displaced and why is `00 §1`.
