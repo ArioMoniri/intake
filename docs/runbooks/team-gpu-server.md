@@ -162,3 +162,34 @@ floor fired at 1/8th scale and killed our own server — `guard.sh` now uses
 `getconf _NPROCESSORS_ONLN`. The LLM endpoint runs under
 `bin/serve_llm_supervised.sh`: it never runs while the guard is red, and
 restarts itself when the box recovers.
+
+## TTS — FreyaTTS-small demo lane (28 Aug 2026)
+
+- Serving: `work/tts_server.py` on loopback `127.0.0.1:8803` (supervisor
+  `bin/serve_tts_supervised.sh`, tmux window `tts`: guard-gated, safe_run,
+  **VRAM ≥8 GiB pre-check before every start**, 60 s restart loop). Dev Mac
+  reaches it over the SSH forward (`-O forward -L 0.0.0.0:8803:…`), like
+  8801 (LLM) and 8802 (ASR).
+- Pins: inference code `freyavoiceai/FreyaTTS @ 146d36c1cb6660646be57d31339db4eed9315de3`
+  — the repo has NO python packaging, so the pin is a clone checked out at
+  that sha + a `.pth` into the venv (equivalent guarantee); weights
+  `freyavoice/Freya-TTS @ d124e07…`; frozen AudioVAE `openbmb/VoxCPM2 @
+  32279eff…` (full repo, 4.7 GB; `refs/main` written into the cache so
+  offline resolution works while staying pinned).
+- **Number-safety (invariant 22)**: the package's `normalize()` includes
+  `expand_digits()` — the exact silent dose hazard. The public API has no
+  switch; the server calls the private `_synth(text, do_norm=False)`, 500s
+  on any detected text mutation, and REJECTS any input containing a digit
+  (400 `digits_forbidden`; proven with "Günde 5 mg ilaç alınız.").
+- Licences: FreyaTTS code Apache-2.0 (raw LICENSE blob verified at the pin);
+  Freya weights: HF repo has no LICENSE blob (card+README say Apache-2.0) —
+  open finding; **VoxCPM2 weights have NO licence blob at the pinned
+  revision** (the `voxcpm` wheel's code blob is Apache-2.0) — open finding
+  for the licence-auditor before any non-dev use.
+- Resources after bring-up: VRAM 8.7 GiB free (LLM+ASR+TTS resident on the
+  70 GiB slice); /data delta ≈ 5.1 GB.
+- **Shared-box finding**: the `intake` tmux session inherits ANOTHER
+  tenant's `HF_HOME` and an `HF_TOKEN` from the session environment; our
+  servers now force their own `HF_HOME`, set `HF_HUB_OFFLINE=1` and drop the
+  inherited token (never used). The box owner should be told about the
+  session-level credential leak.

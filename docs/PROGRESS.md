@@ -180,3 +180,10 @@
 - Blocked on: owner — Freya-TTS pinned install approval (the "robotic" voice heard was macOS say, not our TTS); physician #185.
 - Next: merge this + int-21-slo + #205; then INT-018.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T02:20:00+03:00 · merge wave: INT-016/018/021 cores + INT-194 · done (parallel-agent iteration)
+- Fleet (≤3 concurrent per CLAUDE.md): INT-018 egress policy library (PR #214), INT-020 threat model + Sec-Row gate (PR #217, in CI — the new gate's first catch was the coordinator's own wrong Sec-Row line), INT-021 SLO stack (PR #212), INT-016 audit chain core (PR #205), INT-194 flows/voice/packs (PR #210), all merged with local full-green gates during a GitHub Actions event outage; every late-arriving CI run subsequently confirmed GREEN.
+- TTS lane live on the team box: FreyaTTS-small @146d36c1 (code Apache-2.0 blob-verified), normaliser disabled + digit rejection (invariant 22), VRAM pre-check, supervised; smoke wav delivered. Findings: Freya weights + VoxCPM2 weights lack licence blobs (licence-auditor queue); shared tmux session leaks another tenant's HF_TOKEN (owner to be informed).
+- Design pass 3 running as a dedicated agent (BlurView glass, Kicker/Hairline/Guidance patterns, Fraunces display face) live in the simulator.
+- Next: merge #217; INT-019 security CI + INT-022 probe registry agents in flight; then INT-023 observability deploy.
+- LOOP_STATUS: CONTINUE
