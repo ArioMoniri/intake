@@ -14,11 +14,11 @@ import { useSession, visibleTabs } from "@/lib/session";
 
 export default function TabsLayout() {
   const theme = useTheme();
-  const { account } = useSession();
+  const { account, consents } = useSession();
   if (account === null) {
     return <Redirect href="/(auth)/welcome" />;
   }
-  const tabs = visibleTabs(account.consents);
+  const tabs = visibleTabs(consents);
   return (
     // The rail is the system's Liquid Glass on iOS 26+; we only tint the
     // active item with the single accent (02 §5.2 — never default blue).

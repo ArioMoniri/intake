@@ -18,6 +18,15 @@ export interface Session {
   account: TestAccount | null;
   signIn: (account: TestAccount) => void;
   signOut: () => void;
+  /**
+   * Live consent state, seeded from the account fixture on sign-in.
+   * Session-local DEMO mechanics on synthetic accounts: the real product
+   * mutates consents only through the versioned consent ledger (invariant 4,
+   * INT-060s); this exists so the consent gate is demonstrable — flipping
+   * wellbeing off removes the tab in front of you.
+   */
+  consents: ConsentState | null;
+  setConsent: (key: keyof ConsentState, on: boolean) => void;
   /** Fixture visits + locally created ones, additions last. */
   visits: VisitFixture[];
   addVisit: (input: NewVisitInput) => VisitFixture;
@@ -33,6 +42,7 @@ const SessionContext = createContext<Session | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<TestAccount | null>(null);
+  const [consents, setConsents] = useState<ConsentState | null>(null);
   const [extraVisits, setExtraVisits] = useState<VisitFixture[]>([]);
   const [notes, setNotes] = useState<Record<string, NoteState>>({});
   const [locale, setLocaleState] = useState<Locale>("tr");
@@ -40,6 +50,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback((next: TestAccount) => {
     setAccount(next);
+    setConsents({ ...next.consents });
     setExtraVisits([]);
     setNotes({});
     setLocale(next.locale);
@@ -48,8 +59,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     setAccount(null);
+    setConsents(null);
     setExtraVisits([]);
     setNotes({});
+  }, []);
+
+  const setConsent = useCallback((key: keyof ConsentState, on: boolean) => {
+    setConsents((prev) => (prev === null ? prev : { ...prev, [key]: on }));
   }, []);
 
   const addVisit = useCallback(
@@ -84,6 +100,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       account,
       signIn,
       signOut,
+      consents,
+      setConsent,
       visits,
       addVisit,
       notes,
@@ -91,7 +109,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       locale,
       switchLocale,
     }),
-    [account, signIn, signOut, visits, addVisit, notes, updateNote, locale, switchLocale],
+    [
+      account,
+      signIn,
+      signOut,
+      consents,
+      setConsent,
+      visits,
+      addVisit,
+      notes,
+      updateNote,
+      locale,
+      switchLocale,
+    ],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

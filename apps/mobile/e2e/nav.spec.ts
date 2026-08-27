@@ -70,7 +70,7 @@ describe("tab rail (02 §4)", () => {
   });
 
   it("wellbeing is consent-gated through visibleTabs — the single rule", () => {
-    expect(layout).toContain("visibleTabs(account.consents)");
+    expect(layout).toContain("visibleTabs(consents)");
     expect(layout).toMatch(/tabs\.includes\("wellbeing"\)/);
   });
 });

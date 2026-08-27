@@ -1,7 +1,9 @@
 /**
- * Profilim (02 §4): identity, consents at a glance, language, and the
- * "what it learned about me" ledger entry point. Consent TOGGLING is a
- * consent-ledger operation (INT-060s) — here they are read-only chips.
+ * Profilim (02 §4): identity, consents, language, and the "what it learned
+ * about me" ledger entry point. Consent chips toggle SESSION-LOCAL state on
+ * the synthetic accounts so the consent gate is demonstrable (flip wellbeing
+ * and watch the tab appear/disappear); the real product mutates consents
+ * only through the versioned consent ledger (invariant 4, INT-060s).
  */
 import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -11,17 +13,21 @@ import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
-function ConsentRow({ label, on }: { label: string; on: boolean }) {
+function ConsentRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
   const theme = useTheme();
   return (
     <View style={styles.consentRow}>
       <AppText role="body">{label}</AppText>
-      <View
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityLabel={label}
+        accessibilityState={{ checked: on }}
+        onPress={onToggle}
         style={[
           styles.consentPill,
           {
             backgroundColor: on ? theme.successSoft : theme.background,
-            borderColor: on ? theme.successSoft : theme.border,
+            borderColor: on ? theme.success : theme.border,
           },
         ]}
       >
@@ -31,7 +37,7 @@ function ConsentRow({ label, on }: { label: string; on: boolean }) {
         >
           {on ? t("consent.on") : t("consent.off")}
         </AppText>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -74,8 +80,8 @@ function LanguageRow() {
 }
 
 export default function Me() {
-  const { account, signOut } = useSession();
-  if (account === null) {
+  const { account, consents, setConsent, signOut } = useSession();
+  if (account === null || consents === null) {
     // The tabs layout has already redirected to welcome by the time this
     // renders without a session; render nothing during that frame.
     return null;
@@ -94,10 +100,26 @@ export default function Me() {
           <AppText role="label" color="inkSoft">
             {t("me.consents")}
           </AppText>
-          <ConsentRow label={t("consent.core")} on={account.consents.core} />
-          <ConsentRow label={t("consent.voice")} on={account.consents.voice} />
-          <ConsentRow label={t("consent.wellbeing")} on={account.consents.wellbeing} />
-          <ConsentRow label={t("consent.documents")} on={account.consents.documents} />
+          <ConsentRow
+            label={t("consent.core")}
+            on={consents.core}
+            onToggle={() => setConsent("core", !consents.core)}
+          />
+          <ConsentRow
+            label={t("consent.voice")}
+            on={consents.voice}
+            onToggle={() => setConsent("voice", !consents.voice)}
+          />
+          <ConsentRow
+            label={t("consent.wellbeing")}
+            on={consents.wellbeing}
+            onToggle={() => setConsent("wellbeing", !consents.wellbeing)}
+          />
+          <ConsentRow
+            label={t("consent.documents")}
+            on={consents.documents}
+            onToggle={() => setConsent("documents", !consents.documents)}
+          />
         </Card>
         <Card>
           <LanguageRow />
