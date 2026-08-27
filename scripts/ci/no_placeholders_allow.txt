@@ -7,6 +7,12 @@
 # bodies *describe* the gate; evidence/PROGRESS quote red runs; tests/fixtures
 # is the acceptance's own allow-list; the gate and its test name the tokens.
 files/
+# life_threat.yaml is the verbatim blueprint skeleton whose TODO block is
+# spec-REQUIRED content (04 §8: it names everything absent, which is rule 3
+# working as intended). The compiler's serve interlock — not grep — is that
+# file's gate; the sign-off-form rule still binds every other protocols file.
+packages/protocols/base/life_threat.yaml
+docs/adr/
 docs/backlog/
 docs/evidence/
 docs/PROGRESS.md
