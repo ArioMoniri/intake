@@ -98,3 +98,14 @@
 - Blocked on: nothing.
 - Next: INT-013 tokenization (deps now satisfied) or INT-018 egress proxy — file order says INT-013.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T00:40:00+03:00 · INT-013 · done
+- Goal: identifiers never in clear — keyed pseudonyms for joins, Transit-encrypted identity vault behind a dedicated pg role, pseudonym[:8] in logs, rotation semantics, and the raw-column grep gate.
+- Plan: red tests; Tokenizer (HMAC-SHA-256, key ids, normalisation, log_ref) + IdentityVault (Transit encrypt/decrypt via the secrets client, psycopg store/fetch); identity_vault.sql with REVOKEs; setup script gains transit + vault DDL; grep gate over all committed SQL.
+- Tests added: tests/security/test_tokenization_roundtrip.py — 8 unit (keyed determinism, normalisation, irreversibility, log_ref, rotation old-key linkage, unknown-key refusal, grep gate, DDL shape) + 1 integration (roundtrip at rest + app-role InsufficientPrivilege).
+- Result: 108 unit green; integration lane 3/3; make check green.
+- Invariants touched and still passing: 13, 6, 14, 15.
+- Decisions / 00 rows: none — implements 10 §2; per-tenant DEK/rewrap engine deliberately left to INT-014 (stated in evidence).
+- Blocked on: nothing.
+- Next: INT-014 envelope encryption (Transit) + rotation + crypto-shredding.
+- LOOP_STATUS: CONTINUE
