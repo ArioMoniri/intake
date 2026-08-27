@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**180 issues.** By phase: P0 95 · P1 45 · P2 36 · P3 4. By status: doing 1 · done 16 · todo 162 · withdrawn 1.
+**180 issues.** By phase: P0 95 · P1 45 · P2 36 · P3 4. By status: doing 2 · done 16 · todo 161 · withdrawn 1.
 
 ## P0
 
@@ -23,7 +23,7 @@
 | INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | done |
 | INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | todo |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
-| INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | todo |
+| INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | doing |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | todo |
 | INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | todo |
 | INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | todo |
