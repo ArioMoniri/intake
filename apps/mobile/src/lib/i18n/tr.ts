@@ -60,11 +60,27 @@ export const tr = {
   "records.title": "Kayıtlarım",
   "records.empty": "Henüz kayıt yok. Tahlil ve raporlarınızı vizitten önce ekleyebilirsiniz.",
   "records.synthetic": "Örnek veri — sentetik",
+  "records.guide.kicker": "Belgeleriniz",
+  "records.guide.title": "Raporlarınız tek yerde",
+  "records.guide.body":
+    "Tahlil sonuçlarınızı ve raporlarınızı vizitten önce buraya ekleyebileceksiniz. Belgeler sizin dosyanızda kalır; hekiminizle paylaşım her zaman sizin onayınızla olur.",
 
   "wellbeing.title": "İyilik hâli",
   "wellbeing.intro":
     "Kendinizi nasıl hissettiğinizi takip edin; paylaşım her zaman sizin kontrolünüzde.",
   "wellbeing.empty": "Henüz bir kayıt yok.",
+  "wellbeing.guide.how.kicker": "Nasıl işleyecek",
+  "wellbeing.guide.how.title": "Bu alan sizin için hazırlanıyor",
+  "wellbeing.guide.how.body":
+    "Hazır olduğunda kendinizi nasıl hissettiğinizi buradan kısa adımlarla kaydedebileceksiniz. Kayıtlar yalnızca sizin profilinizde tutulur.",
+  "wellbeing.guide.privacy.kicker": "Gizlilik",
+  "wellbeing.guide.privacy.title": "Yazdıklarınız size ait",
+  "wellbeing.guide.privacy.body":
+    "Bu alandaki kayıtlar izniniz olmadan kimseyle paylaşılmaz. İzinlerinizi Profilim sayfasından istediğiniz an değiştirebilirsiniz.",
+  "wellbeing.guide.share.kicker": "Paylaşım",
+  "wellbeing.guide.share.title": "Neyin paylaşılacağına siz karar verirsiniz",
+  "wellbeing.guide.share.body":
+    "Hekiminize bir not gitmeden önce içeriğini her zaman görürsünüz. Bir bölümü paylaşmamayı seçmek gönderimi engellemez.",
 
   "me.title": "Profilim",
   "me.consents": "İzinleriniz",
@@ -73,6 +89,10 @@ export const tr = {
   "lang.en": "English",
   "me.learned": "Hakkımda öğrendikleri",
   "me.learnedEmpty": "Vizite sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
+  "learned.guide.kicker": "Şeffaflık",
+  "learned.guide.title": "Hiçbir şey sessizce öğrenilmez",
+  "learned.guide.body":
+    "Vizite sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
