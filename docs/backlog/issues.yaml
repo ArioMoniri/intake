@@ -1626,7 +1626,7 @@
   title: "Rate limiter: replace per-process monotonic clock with Redis TIME in the Lua script"
   depends_on: [INT-017]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "bucket refill computed from Redis server time inside the script; test simulates two clients with skewed clocks and proves no bypass and no permanent starvation"
   tests: [tests/platform/test_rate_limit.py]
