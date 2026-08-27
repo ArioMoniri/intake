@@ -54,9 +54,12 @@ describe("note builder + reducer (pure)", () => {
     { questionId: "extra", values: ["Merdiven çıkarken artıyor."] },
   ];
 
-  it("builds the four sections, medications from the profile fixture", () => {
+  it("builds the standardized brief: chief complaint → HPI → medications", () => {
     const sections = buildNote(answered, ayse);
-    expect(sections.map((s) => s.id)).toEqual(["complaint", "duration", "extra", "medications"]);
+    expect(sections.map((s) => s.id)).toEqual(["chief_complaint", "hpi", "medications"]);
+    const hpi = sections.find((s) => s.id === "hpi")!;
+    expect(hpi.lines[0]).toMatch(/^Süre: /);
+    expect(hpi.lines[1]).toMatch(/^Hasta notu: Merdiven/);
     const meds = sections.find((s) => s.id === "medications")!;
     expect(meds.lines.join(" ")).toContain("Metoprolol");
   });
@@ -73,18 +76,18 @@ describe("note builder + reducer (pure)", () => {
     for (const a of answered) {
       state = noteReducer(state, { type: "answer", ...a });
     }
-    state = noteReducer(state, { type: "scope", sectionId: "extra", shared: false });
+    state = noteReducer(state, { type: "scope", sectionId: "hpi", shared: false });
     state = noteReducer(state, { type: "send" });
     expect(state.status).toBe("sent");
     const sent = sentSections(state, ayse);
-    expect(sent.map((s) => s.id)).not.toContain("extra");
-    expect(sent.map((s) => s.id)).toContain("complaint");
+    expect(sent.map((s) => s.id)).not.toContain("hpi");
+    expect(sent.map((s) => s.id)).toContain("chief_complaint");
   });
 
   it("scope-off never blocks send (02 §5.1: sending is the patient's call)", () => {
     let state = emptyNoteState();
     state = noteReducer(state, { type: "answer", questionId: "complaint", values: ["pain"] });
-    for (const id of ["complaint", "duration", "extra", "medications"]) {
+    for (const id of ["chief_complaint", "hpi", "medications"]) {
       state = noteReducer(state, { type: "scope", sectionId: id, shared: false });
     }
     state = noteReducer(state, { type: "send" });

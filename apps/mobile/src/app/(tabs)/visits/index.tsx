@@ -12,8 +12,8 @@ const TODAY_FIXTURE = "2026-08-27";
 
 export default function Visits() {
   const router = useRouter();
-  const { account } = useSession();
-  const visits = account?.visits ?? [];
+  const { visits } = useSession();
+  
   const upcoming = visits.filter((v) => v.date >= TODAY_FIXTURE);
   const past = visits.filter((v) => v.date < TODAY_FIXTURE);
   return (

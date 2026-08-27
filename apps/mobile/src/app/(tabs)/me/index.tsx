@@ -36,6 +36,43 @@ function ConsentRow({ label, on }: { label: string; on: boolean }) {
   );
 }
 
+function LanguageRow() {
+  const theme = useTheme();
+  const { locale, switchLocale } = useSession();
+  return (
+    <View style={styles.consentRow}>
+      <AppText role="body">{t("me.language")}</AppText>
+      <View style={styles.langGroup}>
+        {(["tr", "en"] as const).map((code) => {
+          const active = locale === code;
+          return (
+            <Pressable
+              key={code}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              onPress={() => switchLocale(code)}
+              style={[
+                styles.consentPill,
+                {
+                  backgroundColor: active ? theme.primarySoft : theme.background,
+                  borderColor: active ? theme.primary : theme.border,
+                },
+              ]}
+            >
+              <AppText
+                role="caption"
+                style={{ color: active ? theme.primary : theme.inkSoft, fontWeight: "600" }}
+              >
+                {code === "tr" ? t("lang.tr") : t("lang.en")}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function Me() {
   const { account, signOut } = useSession();
   if (account === null) {
@@ -62,6 +99,9 @@ export default function Me() {
           <ConsentRow label={t("consent.wellbeing")} on={account.consents.wellbeing} />
           <ConsentRow label={t("consent.documents")} on={account.consents.documents} />
         </Card>
+        <Card>
+          <LanguageRow />
+        </Card>
         <Link href="/(tabs)/me/learned" asChild>
           <Pressable accessibilityRole="button">
             <Card>
@@ -84,4 +124,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
   },
+  langGroup: { flexDirection: "row", gap: spacing.xs },
 });

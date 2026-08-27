@@ -8,17 +8,21 @@
 import { Redirect } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
+import { useTheme } from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { useSession, visibleTabs } from "@/lib/session";
 
 export default function TabsLayout() {
+  const theme = useTheme();
   const { account } = useSession();
   if (account === null) {
     return <Redirect href="/(auth)/welcome" />;
   }
   const tabs = visibleTabs(account.consents);
   return (
-    <NativeTabs>
+    // The rail is the system's Liquid Glass on iOS 26+; we only tint the
+    // active item with the single accent (02 §5.2 — never default blue).
+    <NativeTabs tintColor={theme.primary}>
       <NativeTabs.Trigger name="today">
         <NativeTabs.Trigger.Icon sf="sun.max" drawable="ic_today" />
         <NativeTabs.Trigger.Label>{t("tabs.today")}</NativeTabs.Trigger.Label>

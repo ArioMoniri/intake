@@ -161,3 +161,13 @@
 - Blocked on: nothing; the review's mediums remain listed on #195 for the issues that own their files.
 - Next: INT-016 audit chain (deps satisfied), then INT-018 egress proxy.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T07:50:00+03:00 · INT-193 · done (+ INT-016 core in PR)
+- Goal: owner directives — Oura/Liquid-Glass premium pass, functional demo (add-visit, language switching), standardized clinician brief, full iOS-simulator smoke of every screen and button; roadmap continued in parallel.
+- Result: serif heroes + deep Oura dark + GlassCard/teal rail live; add-visit writes session state end-to-end; tr/en switch remounts the tree (verified: whole UI incl. tab labels); brief restructured CC→HPI→Meds with [REVIEW] provenance line and stable section codes for INT-084. Smoke run walked both personas through all five tabs, intake, review, scopes, send, ladder, records, consents — and caught two real device bugs unit tests could not see (missing per-tab Stack under native tabs swallowed cross-tab pushes; module-level t() needed a locale-keyed root). 67 vitest + typecheck + lint + make check green.
+- Parallel roadmap: INT-016 audit-chain core built by subagent (23 tests, audit.py 100% branch coverage, suite 153 passed) — PR #205; INT-016 stays doing pending the integration slice.
+- Phone QR: LAN failed for the owner; tunnel (exp.direct) QR delivered instead + Expo Go update guidance.
+- Invariants: 1 (no triage faked in UI), 5, 17, 18; backlog consciously 179→180 (INT-193 filed with reason).
+- Blocked on: physician (#185); owner: Freya pin approval, licence blobs.
+- Next: merge #205 and this PR; then INT-018 egress proxy.
+- LOOP_STATUS: CONTINUE

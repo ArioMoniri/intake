@@ -1657,6 +1657,20 @@
     - "one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"
   tests: [apps/mobile/e2e/flows.spec.ts]
   sec_row: "intake-typed"
+# INT-193: owner directive 2026-08-27 evening — premium visual pass (Oura
+# register + Liquid Glass), functional demo (working add-visit, language
+# switching, standardized clinician brief) and the first on-device smoke run.
+- id: INT-193
+  epic: E08-mobile
+  phase: P0
+  title: "Premium visual pass: Liquid Glass + Oura register, working add-visit, language switching, standardized clinician brief; first simulator smoke"
+  depends_on: [INT-179]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "serif display heroes, deep dark palette, glass surfaces with fallback, teal-tinted native rail; add-visit writes session state end-to-end; tr/en switch re-renders the whole tree; clinician brief in CC->HPI->meds order with provenance line; every screen and button walked in the iOS simulator with the two found navigation/locale bugs fixed"
+  tests: [apps/mobile/e2e/flows.spec.ts, apps/mobile/e2e/nav.spec.ts]
+  sec_row: "mobile"
 - id: INT-180
   epic: E12-admin
   phase: P0
