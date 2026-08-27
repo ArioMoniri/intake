@@ -7,7 +7,7 @@
  */
 import type { TestAccount } from "../dev/accounts";
 import { t, type MessageKey } from "../i18n";
-import { optionLabelKey } from "./questions";
+import { allQuestions, optionLabelKey } from "./questions";
 
 export interface Answer {
   questionId: string;
@@ -79,10 +79,18 @@ export function buildNote(answers: Answer[], account: TestAccount): NoteSection[
     sections.push({ id: "chief_complaint", titleKey: "review.section.cc", lines: answerLines(complaint) });
   }
 
+  // Every answered dimension beyond the chief complaint becomes a labelled
+  // HPI line, in the pack's question order (duration and the department
+  // dimensions carry hpiLabelKey); the free note closes the section.
   const hpiLines: string[] = [];
-  const duration = byId.get("duration");
-  if (hasContent(duration)) {
-    hpiLines.push(`${t("review.hpi.duration")}: ${answerLines(duration).join(", ")}`);
+  for (const question of allQuestions) {
+    if (question.hpiLabelKey === undefined) {
+      continue;
+    }
+    const answer = byId.get(question.id);
+    if (hasContent(answer)) {
+      hpiLines.push(`${t(question.hpiLabelKey)}: ${answerLines(answer).join(", ")}`);
+    }
   }
   const extra = byId.get("extra");
   if (hasContent(extra)) {
