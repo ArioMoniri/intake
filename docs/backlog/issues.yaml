@@ -233,7 +233,7 @@
   title: "services/probes: synthetic checks + self-hosting registry + release gate"
   depends_on: [INT-010, INT-021]
   labels: [area:observability]
-  status: todo
+  status: doing
   acceptance:
     - "registry table {component,self_hostable,self_hosted_now,host,license,probe,budget_ms,fallback,phi_path}; 60s runner with real dev checks (DB, Redis, MinIO, HAPI, OpenBao seal, LiveKit room join, cert expiry, backup freshness; EHRbase joins in P3 per 00 D8)"
     - "release-gate script blocks when an enabled phi_path component lacks a healthy self-hosted fallback"
