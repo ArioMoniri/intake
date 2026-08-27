@@ -1,0 +1,69 @@
+# docs/slo/api.yaml — SLOs for services/api (INT-021; files/10 §6, files/08 §4 A).
+#
+# Conventions (schema: intake_platform.slo.SLOFile):
+# - Every SLI is the ERROR RATIO (bad over total) written over a [5m] rate;
+#   infra/observability/prometheus-rules.yaml re-ranges the same expression
+#   per burn-rate window and is held generated-consistent by
+#   tests/observability/test_slo_generator.py.
+# - Burn-rate policy is pinned by files/10 §6: page at 14.4x/1h and 6x/6h,
+#   ticket at 1x/3d (Google SRE workbook multiwindow multi-burn-rate).
+# - Availability objective 99.9 comes from files/10 §6 / files/08 §4 A
+#   (slo.api_availability). The latency SLO — 99 % of requests inside 500 ms
+#   over 28 d — is the platform team's engineering bound for the JSON API
+#   behind mobile/clinician screens; the spec pins no api-latency figure, and
+#   this one may tighten, never silently loosen.
+service: api
+owner: platform
+slos:
+  - name: availability
+    sli: >-
+      sum(rate(http_requests_total{service="api",status=~"5.."}[5m]))
+      /
+      sum(rate(http_requests_total{service="api"}[5m]))
+    objective: 99.9
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket
+  - name: latency
+    sli: >-
+      1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[5m]))
+      /
+      sum(rate(http_request_duration_seconds_count{service="api"}[5m])))
+    objective: 99.0
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket

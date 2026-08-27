@@ -220,7 +220,7 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: doing
   acceptance:
     - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
