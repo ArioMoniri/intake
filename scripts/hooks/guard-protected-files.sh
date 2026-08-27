@@ -21,6 +21,7 @@ PROTECTED=(
   "services/voice-runtime/talker/tools.py"
   ".github/workflows/security.yml"
   "infra/security/egress-allowlist.yaml"
+  "scripts/ci/coverage_thresholds.yaml"
 )
 
 for p in "${PROTECTED[@]}"; do

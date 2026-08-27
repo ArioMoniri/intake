@@ -24,7 +24,8 @@
   title: "CI base + zero-placeholder and evidence gates"
   depends_on: [INT-001]
   labels: [area:ci]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-002.md
   acceptance:
     - "ci.yml runs make check on every PR with caching and no vendor network"
     - "scripts/ci/no_placeholders.sh fails on TODO|FIXME|XXX|NotImplementedError|pytest.mark.skip|xfail|it.skip|test.todo|`pass  #`|lorem|placeholder|dummy|demo-only outside tests/fixtures allow-list"
