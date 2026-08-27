@@ -154,7 +154,7 @@
   title: "Hash-chained audit log + WORM export + daily verifier"
   depends_on: [INT-014]
   labels: [area:security]
-  status: todo
+  status: doing
   acceptance:
     - "audit.v1 events chained (prev-hash), verifier job, MinIO object-lock bucket copy; patient-visible access-log view model"
     - "tamper test flips one row and the verifier detects it"
