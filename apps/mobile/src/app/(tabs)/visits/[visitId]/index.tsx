@@ -6,8 +6,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 
+import { Kicker } from "@/components/Kicker";
 import { StatusLadder } from "@/components/StatusLadder";
-import { AppText, Card, PrimaryButton, Screen } from "@/components/Themed";
+import { AppText, Card, Hairline, PrimaryButton, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { effectiveStatus } from "@/lib/intake/note";
@@ -35,10 +36,9 @@ export default function VisitDetail() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <VisitCard visit={visit} statusOverride={status} />
-        <Card>
-          <AppText role="label" color="inkSoft">
-            {t("visits.detail.noteStatus")}
-          </AppText>
+        <Card style={styles.ladderCard}>
+          <Kicker label={t("visits.detail.noteStatus")} />
+          <Hairline />
           {status === null ? (
             <AppText role="body" color="inkSoft">
               {t("visits.detail.notStarted")}
@@ -70,5 +70,6 @@ export default function VisitDetail() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  content: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  ladderCard: { gap: spacing.md },
 });

@@ -187,3 +187,10 @@
 - Design pass 3 running as a dedicated agent (BlurView glass, Kicker/Hairline/Guidance patterns, Fraunces display face) live in the simulator.
 - Next: merge #217; INT-019 security CI + INT-022 probe registry agents in flight; then INT-023 observability deploy.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T03:20:00+03:00 · INT-195 · done
+- Goal: dedicated design-agent pass to the Oura register ("more liquid glass; fonting and framing differ" — owner, with a side-by-side).
+- Result: real BlurView glass fallback + GlassBar floating CTAs (intake/review), Kicker/Hairline/GuidanceBlock anatomy across all seven screens, borderless tonal dark cards, Fraunces display leading 1.2 pinned, guidance-block empty states in product copy (tr+en). The pass FOUND and fixed a real AA regression (primary/primarySoft 4.41→4.63) and pinned the pair into the contrast suite. 72/72 green, no invariant weakened; verified by the agent in dark+light with its own screenshots.
+- Invariants: 5, 17, 18 (product copy only), 02 §5.2 motion budget kept (static gradients only).
+- Next: merge; INT-019 + INT-022 agents still building.
+- LOOP_STATUS: CONTINUE

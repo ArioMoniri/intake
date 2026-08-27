@@ -55,10 +55,26 @@ export const en: Record<MessageKey, string> = {
   "records.title": "My records",
   "records.empty": "No records yet. You can add lab results and reports before your visit.",
   "records.synthetic": "Sample data — synthetic",
+  "records.guide.kicker": "Your documents",
+  "records.guide.title": "Your reports in one place",
+  "records.guide.body":
+    "You will be able to add lab results and reports here before the visit. Documents stay in your file; sharing with your doctor always happens with your approval.",
 
   "wellbeing.title": "Wellbeing",
   "wellbeing.intro": "Track how you feel; sharing stays under your control.",
   "wellbeing.empty": "No entries yet.",
+  "wellbeing.guide.how.kicker": "How it will work",
+  "wellbeing.guide.how.title": "This space is being prepared for you",
+  "wellbeing.guide.how.body":
+    "Once it is ready, you will record how you feel here in short steps. Entries stay in your own profile.",
+  "wellbeing.guide.privacy.kicker": "Privacy",
+  "wellbeing.guide.privacy.title": "What you write stays yours",
+  "wellbeing.guide.privacy.body":
+    "Entries here are never shared without your consent. You can change your consents any time from the Profile page.",
+  "wellbeing.guide.share.kicker": "Sharing",
+  "wellbeing.guide.share.title": "You decide what gets shared",
+  "wellbeing.guide.share.body":
+    "You always see a note before it goes to your doctor. Choosing not to share a section never blocks sending.",
 
   "me.title": "Profile",
   "me.consents": "Your consents",
@@ -68,6 +84,10 @@ export const en: Record<MessageKey, string> = {
   "me.learned": "What it learned about me",
   "me.learnedEmpty":
     "Vizite never permanently learns anything about you without your confirmation.",
+  "learned.guide.kicker": "Transparency",
+  "learned.guide.title": "Nothing is learned silently",
+  "learned.guide.body":
+    "Vizite keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
