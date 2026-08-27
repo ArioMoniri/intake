@@ -3,7 +3,7 @@ name = "intake"
 version = "0.1.0"
 description = "INTAKE workspace root (virtual): Turkish-first, patient-owned pre-visit intelligence"
 requires-python = ">=3.12"
-dependencies = ["intake-platform"]
+dependencies = ["intake-platform[ner]"]
 
 [tool.uv]
 package = false
@@ -13,6 +13,14 @@ members = ["packages/intake_platform"]
 
 [tool.uv.sources]
 intake-platform = { workspace = true }
+# CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
+# macOS falls back to PyPI, which is CPU-only there anyway.
+torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [dependency-groups]
 dev = [

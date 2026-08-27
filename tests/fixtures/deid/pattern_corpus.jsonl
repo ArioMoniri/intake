@@ -1,0 +1,24 @@
+{"text": "Hasta kaydı: TCKN 72096654290, tel 05321114455.", "entities": [{"type": "TCKN", "start": 18, "end": 29, "value": "72096654290"}, {"type": "PHONE", "start": 35, "end": 46, "value": "05321114455"}]}
+{"text": "Başvuru sahibi 97072297148 numarası ile giriş yaptı.", "entities": [{"type": "TCKN", "start": 15, "end": 26, "value": "97072297148"}]}
+{"text": "İade TR330006100519786457841326 hesabına yapılacaktır.", "entities": [{"type": "IBAN", "start": 5, "end": 31, "value": "TR330006100519786457841326"}]}
+{"text": "Randevu onayı ayse.kaya@example.com adresine gönderildi.", "entities": [{"type": "EMAIL", "start": 14, "end": 35, "value": "ayse.kaya@example.com"}]}
+{"text": "Kontrol 12.09.2026 tarihinde, saat 14:30'da.", "entities": [{"type": "DATE", "start": 8, "end": 18, "value": "12.09.2026"}]}
+{"text": "Doğum tarihi 07/06/1958 olarak kayıtlı.", "entities": [{"type": "DATE", "start": 13, "end": 23, "value": "07/06/1958"}]}
+{"text": "Ameliyat 3 Mart 2026 günü planlandı.", "entities": [{"type": "DATE", "start": 9, "end": 20, "value": "3 Mart 2026"}]}
+{"text": "Taburcu: 15 Ağustos 2026, kontrol: 22 Ağustos 2026.", "entities": [{"type": "DATE", "start": 9, "end": 24, "value": "15 Ağustos 2026"}, {"type": "DATE", "start": 35, "end": 50, "value": "22 Ağustos 2026"}]}
+{"text": "12822512340 kimlik numaralı hasta 5051234567 numarasını bıraktı.", "entities": [{"type": "TCKN", "start": 0, "end": 11, "value": "12822512340"}, {"type": "PHONE", "start": 34, "end": 44, "value": "5051234567"}]}
+{"text": "Acil durumda 05559876543 ya da veli@ornek.org üzerinden ulaşın.", "entities": [{"type": "PHONE", "start": 13, "end": 24, "value": "05559876543"}, {"type": "EMAIL", "start": 31, "end": 45, "value": "veli@ornek.org"}]}
+{"text": "Ödeme TR980010009999901234567890 IBAN'ına, açıklamaya 47045052816 yazınız.", "entities": [{"type": "IBAN", "start": 6, "end": 32, "value": "TR980010009999901234567890"}, {"type": "TCKN", "start": 54, "end": 65, "value": "47045052816"}]}
+{"text": "Sonuçlar 01.01.2027'de açıklanacak.", "entities": [{"type": "DATE", "start": 9, "end": 19, "value": "01.01.2027"}]}
+{"text": "65966542520 TCKN ve 05012223344 GSM ile kayıt tamam.", "entities": [{"type": "TCKN", "start": 0, "end": 11, "value": "65966542520"}, {"type": "PHONE", "start": 20, "end": 31, "value": "05012223344"}]}
+{"text": "Fatura dr.mehmet.oz@hastane.example.tr adresine kesildi.", "entities": [{"type": "EMAIL", "start": 7, "end": 38, "value": "dr.mehmet.oz@hastane.example.tr"}]}
+{"text": "97471742966 no'lu başvuru 30 Eylül 2026 tarihine ertelendi.", "entities": [{"type": "TCKN", "start": 0, "end": 11, "value": "97471742966"}, {"type": "DATE", "start": 26, "end": 39, "value": "30 Eylül 2026"}]}
+{"text": "34741166732 ve 83731976868 kimlik numaraları eşleşmedi.", "entities": [{"type": "TCKN", "start": 0, "end": 11, "value": "34741166732"}, {"type": "TCKN", "start": 15, "end": 26, "value": "83731976868"}]}
+{"text": "Hasta 12.06.2026 tarihinde 05423334455 numarasından arandı, TCKN 72096654290 doğrulandı.", "entities": [{"type": "DATE", "start": 6, "end": 16, "value": "12.06.2026"}, {"type": "PHONE", "start": 27, "end": 38, "value": "05423334455"}, {"type": "TCKN", "start": 65, "end": 76, "value": "72096654290"}]}
+{"text": "Sipariş numarası 12345678901 kargoya verildi.", "entities": []}
+{"text": "Protokol no 98765432100, dosya 2026/1453 arşivde.", "entities": []}
+{"text": "Oda numarası 512, kat 5, yatak 12.", "entities": []}
+{"text": "Ürün barkodu 8690123456789 stokta görünüyor.", "entities": []}
+{"text": "Toplam tutar 1.500 TL, KDV dahil 1.770 TL.", "entities": []}
+{"text": "Saat 15:45 itibariyle kuyrukta 42 kişi var.", "entities": []}
+{"text": "Referans aralığı 0.5 - 5.5 mIU/L olarak verildi.", "entities": []}

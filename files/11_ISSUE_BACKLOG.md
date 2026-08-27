@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**175 issues.** By phase: P0 90 · P1 45 · P2 36 · P3 4. By status: done 7 · todo 167 · withdrawn 1.
+**175 issues.** By phase: P0 90 · P1 45 · P2 36 · P3 4. By status: done 8 · todo 166 · withdrawn 1.
 
 ## P0
 
@@ -20,7 +20,7 @@
 | INT-012 | packages/intake_platform/security: headers, rate limiter, idempotency keys | E01-platform | INT-010 | area:security | done |
 | INT-013 | Tokenization service + identity vault (TCKN/phone never in clear) | E01-platform | INT-012, INT-017 | area:security, risk:security | todo |
 | INT-014 | Envelope encryption (OpenBao Transit) + rotation + crypto-shredding | E01-platform | INT-017 | area:security, risk:security | todo |
-| INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | todo |
+| INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | done |
 | INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | todo |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | todo |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | todo |

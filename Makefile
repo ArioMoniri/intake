@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts dev dev-down clean backlog-status backlog-sync backlog-render
+.PHONY: setup check check-py check-ts dev dev-down clean backlog-status backlog-sync backlog-render deid-model
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -32,6 +32,19 @@ dev:
 
 dev-down:
 	$(COMPOSE) down
+
+# INT-015: the pinned NER de-id artefact (names/addresses tier). Fetched from
+# the repo's own release — no vendor — and verified against the pinned sha
+# before extraction. Tests fail (not skip) without it.
+DEID_MODEL_TAG := deid-tr-ner-v1
+DEID_MODEL_SHA256 := d4faec572e37f81697fa25500230acc060fd8517443e226227a2b11630f5bcb9
+
+deid-model:
+	@test -f .cache/$(DEID_MODEL_TAG)/config.json && echo "deid model present" || ( \
+	  mkdir -p .cache && \
+	  gh release download $(DEID_MODEL_TAG) -R ArioMoniri/intake -p "$(DEID_MODEL_TAG).tar.gz" -O .cache/$(DEID_MODEL_TAG).tar.gz --clobber && \
+	  uv run python -c "import hashlib,sys; h=hashlib.sha256(open('.cache/$(DEID_MODEL_TAG).tar.gz','rb').read()).hexdigest(); sys.exit(0 if h=='$(DEID_MODEL_SHA256)' else sys.stderr.write('sha mismatch: '+h) or 1)" && \
+	  tar -xzf .cache/$(DEID_MODEL_TAG).tar.gz -C .cache && rm .cache/$(DEID_MODEL_TAG).tar.gz )
 
 backlog-status:
 	uv run python scripts/backlog/backlog_status.py

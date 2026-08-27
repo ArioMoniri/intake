@@ -21,6 +21,14 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --all-packages
+      - name: cache the pinned deid NER artefact (INT-015)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .cache/deid-tr-ner-v1
+          key: deid-tr-ner-v1-d4faec57
+      - run: make deid-model
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: make check-py
 
   check-ts:
