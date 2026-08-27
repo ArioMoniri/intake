@@ -1,0 +1,194 @@
+# INT-019 — the security gate set (CLAUDE.md invariant 14; files/10 §6).
+#
+# PLACEMENT: this is the complete, final content of
+# .github/workflows/security.yml. That path is hook-protected (07 §3.8 /
+# §F rule 2) and both the guard and the session classifier refused its
+# creation from this agent session — deliberately: protected gate files move
+# only with the human-sanctioned ALLOW_PROTECTED=1. The one remaining step is
+#     ALLOW_PROTECTED=1 git mv scripts/ci/security_workflow.yml \
+#         .github/workflows/security.yml
+# under human sanction (ADR-017 is the governing ADR; INT-019 the sanctioned
+# issue). tests/ci/test_security_gates.py pins this content wherever it
+# lives, and requires the installed copy to stay byte-identical while both
+# exist — delete this template in the same commit that installs it.
+#
+# Every action pinned to a full commit SHA resolved via
+# `git ls-remote https://github.com/<owner>/<repo> <tag>` (peeled for
+# annotated tags) — a tag can be silently repointed, a SHA cannot.
+# `make security` runs the same tool list locally, pin for pin.
+#
+# Network posture: semgrep fetches the p/ci ruleset and trivy/osv download
+# vulnerability databases — rule/DB pulls, never vendor AI calls; no secrets
+# beyond the ephemeral GITHUB_TOKEN, no PHI anywhere near this workflow.
+#
+# Deferred, documented in docs/evidence/INT-019.md (not silently dropped):
+#   - trivy image scan + cosign image signing: no container images are built
+#     yet; the sign job below is the extension point.
+#   - protocol-bundle signing: packs arrive with the protocols issues; they
+#     are signed in the sign job the same way as the SBOM (sign-blob).
+#   - schemathesis fuzz: services/api does not exist yet, so there is no
+#     OpenAPI schema to fuzz offline; wired with the api issue.
+#   - eslint-plugin-security: workspace eslint already runs in ci.yml
+#     check-ts; the plugin needs a lockfile change racing parallel branches.
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    # full history (fetch-depth 0): a secret buried three commits back still
+    # fails. Free for user-owned repos; an org move needs GITLEAKS_LICENSE.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  sast:
+    # semgrep p/ci (metrics off) + bandit — same pins as `make security`.
+    # setuptools<81: semgrep 1.86 imports pkg_resources (.pre-commit-config).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: semgrep (p/ci, metrics off)
+        run: >
+          uvx --python 3.12 --with 'setuptools<81' semgrep@1.86.0 scan
+          --config p/ci --error --metrics=off
+          --exclude files --exclude pnpm-workspace.yaml --exclude pyproject.toml
+      - name: bandit (first-party python)
+        run: uvx --python 3.12 bandit@1.9.4 -r packages/intake_platform/src scripts -ll -ii
+
+  vulnerabilities:
+    # trivy fs + osv-scanner over the lockfiles; both fail on critical/high
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: trivy fs (lockfiles, fail on CRITICAL,HIGH)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - name: osv-scanner (uv.lock + pnpm-lock.yaml)
+        uses: google/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67 # v2.5.1
+        with:
+          scan-args: |-
+            -r
+            --skip-git
+            ./
+
+  iac:
+    # trivy config + checkov over infra/ (compose today; terraform/k8s later)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: trivy config (IaC, fail on CRITICAL,HIGH)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: checkov (infra/)
+        run: uvx --python 3.12 checkov@3.3.15 --directory infra --quiet --compact
+
+  licenses:
+    # allow-list gate over the installed dependency trees (AGPL flagged);
+    # scripts/ci/check_licenses.py documents its coverage limits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: uv sync --all-packages
+      - run: pnpm install --frozen-lockfile
+      - name: licence allow-list (check_licenses.py)
+        run: uv run python scripts/ci/check_licenses.py
+
+  sbom:
+    # sbom (syft, spdx-json) attached to every run as an artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: syft SBOM (spdx-json artifact)
+        uses: anchore/sbom-action@aa80c8c5bd439a416a62804f2151ab38c671a638 # v0.24.1
+        with:
+          format: spdx-json
+          output-file: intake-sbom.spdx.json
+          artifact-name: intake-sbom.spdx.json
+          upload-artifact: true
+
+  phi-scan:
+    # PHI-pattern scan of fixtures and docs (scripts/ci/phi_scan.sh):
+    # checksum-valid TCKN, TR mobile, TR IBAN — reports locations only,
+    # never content (invariant 6)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/ci/phi_scan.sh
+
+  claims-scan:
+    # invariant 20: no accuracy claims in regulatory/legal/store copy
+    # (scripts/ci/claims_scan.sh)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/ci/claims_scan.sh
+
+  sign-and-attest:
+    # Tags only: cosign keyless signing + SLSA provenance. Today the only
+    # release artifact is the SBOM, so that is what gets signed — honestly.
+    # EXTENSION POINT: when container images exist, add `cosign sign` on the
+    # image digest here; when protocol-pack bundles exist, sign-blob each
+    # bundle exactly like the SBOM below and attest it the same way.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [gitleaks, sast, vulnerabilities, iac, licenses, sbom, phi-scan, claims-scan]
+    permissions:
+      contents: read
+      id-token: write # keyless: cosign exchanges the OIDC token for a cert
+      attestations: write # SLSA provenance via the GitHub attestations API
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: regenerate the SBOM at the tag (never trust a cross-job artifact)
+        uses: anchore/sbom-action@aa80c8c5bd439a416a62804f2151ab38c671a638 # v0.24.1
+        with:
+          format: spdx-json
+          output-file: intake-sbom.spdx.json
+          upload-artifact: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: cosign keyless sign-blob (SBOM)
+        run: >
+          cosign sign-blob --yes intake-sbom.spdx.json
+          --bundle intake-sbom.spdx.json.cosign.bundle
+      - name: SLSA provenance attestation (SBOM)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: intake-sbom.spdx.json
+      - name: upload signed SBOM + bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: intake-sbom-signed
+          path: |
+            intake-sbom.spdx.json
+            intake-sbom.spdx.json.cosign.bundle
+          if-no-files-found: error

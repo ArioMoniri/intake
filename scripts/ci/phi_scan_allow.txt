@@ -1,0 +1,16 @@
+# PHI-pattern scan allow-list (prefix match) — may only SHRINK (pinned by
+# tests/ci/test_security_gates.py::test_phi_allowlist_only_shrinks).
+#
+# Only the de-identification engine's own labeled test corpus may carry
+# PHI-shaped strings: it is fully synthetic and checksum-valid BY CONSTRUCTION
+# (tests/fixtures/deid/vendor/ATTRIBUTION.md documents provenance), because a
+# redactor tested against checksum-invalid numbers would pass while missing
+# real ones. Everything else under tests/fixtures/** and docs/** must be clean.
+tests/fixtures/deid/
+# the log-redaction input fixture (same corpus family, synthetic)
+tests/fixtures/logs/app_lines.txt
+# evidence quoting the synthetic redaction fixture verbatim (INT-013 red/green)
+docs/evidence/INT-013.md
+# the INT-019 evidence documents this very gate's planted-proof runs; planted
+# values are redacted there, but the tool-output excerpts name the patterns
+docs/evidence/INT-019.md
