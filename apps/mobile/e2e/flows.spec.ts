@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import { getTestAccount } from "../src/lib/dev/accounts";
 import { t } from "../src/lib/i18n";
-import { intakeQuestions } from "../src/lib/intake/questions";
+import { allQuestions, intakeQuestions, packForDepartment } from "../src/lib/intake/questions";
 import { buildNote, emptyNoteState, noteReducer, sentSections } from "../src/lib/intake/note";
 
 const APP = join(__dirname, "..", "src", "app");
@@ -45,6 +45,63 @@ describe("typed intake fixtures (one question per screen)", () => {
   });
 });
 
+describe("department packs (INT-194): the intake is branch-aware", () => {
+  it("cardiology/internal medicine gets character, trigger and associated dimensions", () => {
+    const ids = packForDepartment("Kardiyoloji").map((q) => q.id);
+    expect(ids).toEqual(["complaint", "duration", "pain_character", "trigger", "associated", "extra"]);
+    expect(packForDepartment("İç Hastalıkları").map((q) => q.id)).toEqual(ids);
+  });
+
+  it("neurology gets onset, severity (words, never a numeric scale) and associated", () => {
+    const ids = packForDepartment("Nöroloji").map((q) => q.id);
+    expect(ids).toContain("onset");
+    expect(ids).toContain("severity");
+    const severity = packForDepartment("Nöroloji").find((q) => q.id === "severity")!;
+    for (const option of severity.options!) {
+      expect(t(option.labelKey)).not.toMatch(/\d/);
+    }
+  });
+
+  it("ENT gets the side dimension; unknown departments fall back to the core pack", () => {
+    expect(packForDepartment("Kulak Burun Boğaz").map((q) => q.id)).toContain("side");
+    expect(packForDepartment("Ortopedi").map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
+    expect(packForDepartment(undefined).map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
+  });
+
+  it("every pack question and option resolves through the tr catalog", () => {
+    for (const q of allQuestions) {
+      expect(t(q.titleKey).length).toBeGreaterThan(0);
+      if (q.hpiLabelKey) {
+        expect(t(q.hpiLabelKey).length).toBeGreaterThan(0);
+      }
+      for (const o of q.options ?? []) {
+        expect(t(o.labelKey).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("pack answers become labelled HPI lines in the clinician brief", () => {
+    const ayse = getTestAccount("ayse")!;
+    const sections = buildNote(
+      [
+        { questionId: "complaint", values: ["pain"] },
+        { questionId: "duration", values: ["days"] },
+        { questionId: "pain_character", values: ["pressure"] },
+        { questionId: "trigger", values: ["exertion"] },
+        { questionId: "associated", values: ["sweating", "dyspnoea"] },
+      ],
+      ayse,
+    );
+    const hpi = sections.find((s) => s.id === "hpi")!;
+    expect(hpi.lines).toEqual([
+      "Süre: Birkaç gündür",
+      "Ağrının niteliği: Baskı, sıkışma gibi",
+      "Artıran durum: Hareket ya da eforla",
+      "Eşlik edenler: Terleme, Nefes darlığı",
+    ]);
+  });
+});
+
 describe("note builder + reducer (pure)", () => {
   const ayse = getTestAccount("ayse")!;
 
@@ -54,9 +111,12 @@ describe("note builder + reducer (pure)", () => {
     { questionId: "extra", values: ["Merdiven çıkarken artıyor."] },
   ];
 
-  it("builds the four sections, medications from the profile fixture", () => {
+  it("builds the standardized brief: chief complaint → HPI → medications", () => {
     const sections = buildNote(answered, ayse);
-    expect(sections.map((s) => s.id)).toEqual(["complaint", "duration", "extra", "medications"]);
+    expect(sections.map((s) => s.id)).toEqual(["chief_complaint", "hpi", "medications"]);
+    const hpi = sections.find((s) => s.id === "hpi")!;
+    expect(hpi.lines[0]).toMatch(/^Süre: /);
+    expect(hpi.lines[1]).toMatch(/^Hasta notu: Merdiven/);
     const meds = sections.find((s) => s.id === "medications")!;
     expect(meds.lines.join(" ")).toContain("Metoprolol");
   });
@@ -73,18 +133,18 @@ describe("note builder + reducer (pure)", () => {
     for (const a of answered) {
       state = noteReducer(state, { type: "answer", ...a });
     }
-    state = noteReducer(state, { type: "scope", sectionId: "extra", shared: false });
+    state = noteReducer(state, { type: "scope", sectionId: "hpi", shared: false });
     state = noteReducer(state, { type: "send" });
     expect(state.status).toBe("sent");
     const sent = sentSections(state, ayse);
-    expect(sent.map((s) => s.id)).not.toContain("extra");
-    expect(sent.map((s) => s.id)).toContain("complaint");
+    expect(sent.map((s) => s.id)).not.toContain("hpi");
+    expect(sent.map((s) => s.id)).toContain("chief_complaint");
   });
 
   it("scope-off never blocks send (02 §5.1: sending is the patient's call)", () => {
     let state = emptyNoteState();
     state = noteReducer(state, { type: "answer", questionId: "complaint", values: ["pain"] });
-    for (const id of ["complaint", "duration", "extra", "medications"]) {
+    for (const id of ["chief_complaint", "hpi", "medications"]) {
       state = noteReducer(state, { type: "scope", sectionId: id, shared: false });
     }
     state = noteReducer(state, { type: "send" });

@@ -24,6 +24,7 @@ const NAV_MAP = [
   "(auth)/welcome.tsx",
   "(tabs)/_layout.tsx",
   "(tabs)/today.tsx",
+  "(tabs)/visits/_layout.tsx",
   "(tabs)/visits/index.tsx",
   "(tabs)/visits/new.tsx",
   "(tabs)/visits/[visitId]/index.tsx",
@@ -69,7 +70,7 @@ describe("tab rail (02 §4)", () => {
   });
 
   it("wellbeing is consent-gated through visibleTabs — the single rule", () => {
-    expect(layout).toContain("visibleTabs(account.consents)");
+    expect(layout).toContain("visibleTabs(consents)");
     expect(layout).toMatch(/tabs\.includes\("wellbeing"\)/);
   });
 });

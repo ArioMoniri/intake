@@ -1,11 +1,15 @@
 /**
- * Themed primitives (INT-130): the only place components read the palette,
- * fontScale and type roles. Screens compose these; none of them hardcode a
- * colour or a font size, so the 02 §5.2 rules (single accent, dynamic type,
- * no ALL-CAPS transforms) hold by construction.
+ * Themed primitives (INT-130, premium pass INT-193): the only place
+ * components read the palette, fontScale and type roles. Screens compose
+ * these; none of them hardcode a colour or a font size, so the 02 §5.2
+ * rules (single accent, dynamic type, no ALL-CAPS transforms) hold by
+ * construction. Hero and title text carry the serif display face (the
+ * Oura/Tiimo signature); light-mode cards float on a soft wide shadow,
+ * dark mode separates tonally.
  */
 import { type ReactNode } from "react";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -19,14 +23,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
+  fonts,
   lineHeight,
   palette,
   radius,
   scaledSize,
+  shadow,
   spacing,
   type ThemeColors,
   type TypeRole,
 } from "@/lib/theme";
+
+const DISPLAY_FONT = Platform.select(fonts.display);
 
 export function useTheme(): ThemeColors {
   const scheme = useColorScheme();
@@ -47,6 +55,7 @@ interface AppTextProps {
 export function AppText({ role = "body", color = "ink", style, children }: AppTextProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
+  const display = role === "hero" || role === "title";
   return (
     <Text
       // Sizes come from scaledSize; RN's own multiplier is disabled so the
@@ -58,6 +67,7 @@ export function AppText({ role = "body", color = "ink", style, children }: AppTe
           fontSize: scaledSize(role, fontScale),
           lineHeight: lineHeight(role, fontScale),
         },
+        display ? { fontFamily: DISPLAY_FONT } : null,
         style,
       ]}
     >
@@ -75,11 +85,31 @@ export function Screen({ children, style }: { children: ReactNode; style?: Style
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  const theme = useTheme();
+interface CardProps {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  /** Soft semantic wash behind the content (Oura's tinted cards). */
+  wash?: "none" | "primary";
+}
+
+export function Card({ children, style, wash = "none" }: CardProps) {
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const theme = palette[scheme];
+  const depth = shadow[scheme];
   return (
     <View
-      style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, style]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface,
+          borderColor: theme.border,
+          shadowColor: depth.color,
+          shadowOpacity: depth.opacity,
+          shadowRadius: depth.radius,
+          shadowOffset: { width: 0, height: depth.offsetY },
+        },
+        style,
+      ]}
     >
       {children}
     </View>
@@ -126,8 +156,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: "center",
     // Touch target ≥48dp (02 §8.2) even at fontScale 1.0.
-    minHeight: 48,
+    minHeight: 52,
     justifyContent: "center",
   },
-  buttonLabel: { fontWeight: "600" },
+  buttonLabel: { fontWeight: "600", letterSpacing: 0.2 },
 });

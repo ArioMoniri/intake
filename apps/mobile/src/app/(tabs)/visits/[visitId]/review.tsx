@@ -43,38 +43,70 @@ export default function ReviewAndSend() {
         </AppText>
         {sections.map((section) => {
           const shared = note.scopes[section.id] !== false;
+          // which intake question the pencil reopens; medications come from
+          // the profile fixture and have no question to edit
+          const editTarget =
+            section.id === "chief_complaint" ? "complaint" : section.id === "hpi" ? "duration" : null;
           return (
             <Card key={section.id}>
               <View style={styles.sectionHeader}>
                 <AppText role="label" color="inkSoft">
                   {t(section.titleKey)}
                 </AppText>
-                <Pressable
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: shared }}
-                  disabled={sent}
-                  onPress={() =>
-                    visitId &&
-                    updateNote(visitId, { type: "scope", sectionId: section.id, shared: !shared })
-                  }
-                  style={[
-                    styles.scopeChip,
-                    {
-                      backgroundColor: shared ? theme.primarySoft : theme.background,
-                      borderColor: shared ? theme.primary : theme.border,
-                    },
-                  ]}
-                >
-                  <AppText role="caption" color={shared ? "primary" : "inkSoft"}>
-                    {shared ? t("review.shared") : t("review.notShared")}
-                  </AppText>
-                </Pressable>
+                <View style={styles.actionRow}>
+                  {!sent && editTarget ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t("review.edit")}: ${t(section.titleKey)}`}
+                      onPress={() =>
+                        visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
+                      }
+                      style={[styles.scopeChip, { borderColor: theme.border }]}
+                    >
+                      <AppText role="caption" color="inkSoft">
+                        {t("review.edit")}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: shared }}
+                    disabled={sent}
+                    onPress={() =>
+                      visitId &&
+                      updateNote(visitId, { type: "scope", sectionId: section.id, shared: !shared })
+                    }
+                    style={[
+                      styles.scopeChip,
+                      {
+                        backgroundColor: shared ? theme.primarySoft : theme.background,
+                        borderColor: shared ? theme.primary : theme.border,
+                      },
+                    ]}
+                  >
+                    <AppText role="caption" color={shared ? "primary" : "inkSoft"}>
+                      {shared ? t("review.shared") : t("review.notShared")}
+                    </AppText>
+                  </Pressable>
+                </View>
               </View>
               {section.lines.map((line) => (
                 <AppText key={line} role="body">
                   {line}
                 </AppText>
               ))}
+              {section.id === "hpi" && !sent ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() =>
+                    visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=extra`)
+                  }
+                >
+                  <AppText role="caption" color="primary">
+                    {t("review.edit")}: {t("review.hpi.patientNote")}
+                  </AppText>
+                </Pressable>
+              ) : null}
               {section.id === "medications" ? (
                 <AppText role="caption" color="inkFaint">
                   {t("review.medsNote")}
@@ -83,6 +115,9 @@ export default function ReviewAndSend() {
             </Card>
           );
         })}
+        <AppText role="caption" color="inkFaint">
+          {t("review.provenance")}
+        </AppText>
         {sent ? (
           <AppText role="body" color="inkSoft">
             {t("review.sentInfo")}
@@ -106,6 +141,7 @@ export default function ReviewAndSend() {
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  actionRow: { flexDirection: "row", gap: spacing.xs, alignItems: "center" },
   scopeChip: {
     borderRadius: radius.chip,
     borderWidth: 1,

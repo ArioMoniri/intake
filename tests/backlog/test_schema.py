@@ -35,9 +35,9 @@ def test_ids_unique_and_well_formed() -> None:
     issues = _issues()
     ids = [i["id"] for i in issues]
     assert len(ids) == len(set(ids))
-    # 175 blueprint + INT-176..178 (security review) + INT-179 (flow shells,
+    # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
     # owner directive 2026-08-27). Grow this count only with a stated reason.
-    assert len(ids) == 179
+    assert len(ids) == 181
     import re
 
     for i in ids:

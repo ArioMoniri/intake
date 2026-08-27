@@ -7,7 +7,7 @@
  */
 import type { TestAccount } from "../dev/accounts";
 import { t, type MessageKey } from "../i18n";
-import { optionLabelKey } from "./questions";
+import { allQuestions, optionLabelKey } from "./questions";
 
 export interface Answer {
   questionId: string;
@@ -56,25 +56,56 @@ function answerLines(answer: Answer): string[] {
   });
 }
 
-const sectionTitle: Record<string, MessageKey> = {
-  complaint: "review.section.complaint",
-  duration: "review.section.duration",
-  extra: "review.section.extra",
-  medications: "review.section.medications",
-};
+function hasContent(answer: Answer | undefined): answer is Answer {
+  return answer !== undefined && answer.values.some((v) => v.trim().length > 0);
+}
 
-/** Sections in fixed order; medications come from the profile fixture. */
+/**
+ * The clinician-bound brief in the standardized anamnesis order the
+ * clinician expects: chief complaint (Başvuru nedeni) → history of the
+ * present complaint (Şikâyet öyküsü: labelled duration + the patient's own
+ * words, clearly attributed) → medications as reported. Section ids are
+ * stable codes so the share-scope ledger and the future FHIR-composition
+ * mapper (INT-084) address the same things. Provenance is the note's frame,
+ * not a section — the review screen renders `review.provenance` under the
+ * sections (06 §7: the note is patient-reported and diagnosis-free).
+ */
 export function buildNote(answers: Answer[], account: TestAccount): NoteSection[] {
   const byId = new Map(answers.map((a) => [a.questionId, a]));
   const sections: NoteSection[] = [];
-  for (const id of ["complaint", "duration", "extra"] as const) {
-    const answer = byId.get(id);
-    if (answer && answer.values.some((v) => v.trim().length > 0)) {
-      sections.push({ id, titleKey: sectionTitle[id], lines: answerLines(answer) });
+
+  const complaint = byId.get("complaint");
+  if (hasContent(complaint)) {
+    sections.push({ id: "chief_complaint", titleKey: "review.section.cc", lines: answerLines(complaint) });
+  }
+
+  // Every answered dimension beyond the chief complaint becomes a labelled
+  // HPI line, in the pack's question order (duration and the department
+  // dimensions carry hpiLabelKey); the free note closes the section.
+  const hpiLines: string[] = [];
+  for (const question of allQuestions) {
+    if (question.hpiLabelKey === undefined) {
+      continue;
+    }
+    const answer = byId.get(question.id);
+    if (hasContent(answer)) {
+      hpiLines.push(`${t(question.hpiLabelKey)}: ${answerLines(answer).join(", ")}`);
     }
   }
+  const extra = byId.get("extra");
+  if (hasContent(extra)) {
+    hpiLines.push(`${t("review.hpi.patientNote")}: ${answerLines(extra).join(" ")}`);
+  }
+  if (hpiLines.length > 0) {
+    sections.push({ id: "hpi", titleKey: "review.section.hpi", lines: hpiLines });
+  }
+
   if (account.medications.length > 0) {
-    sections.push({ id: "medications", titleKey: sectionTitle.medications, lines: [...account.medications] });
+    sections.push({
+      id: "medications",
+      titleKey: "review.section.medications",
+      lines: [...account.medications],
+    });
   }
   return sections;
 }

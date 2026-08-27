@@ -10,8 +10,9 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { AppText, Card, PrimaryButton, Screen, useFontScale, useTheme } from "@/components/Themed";
+import { VoiceNote } from "@/components/VoiceNote";
 import { t } from "@/lib/i18n";
-import { intakeQuestions } from "@/lib/intake/questions";
+import { packForDepartment } from "@/lib/intake/questions";
 import { useSession } from "@/lib/session";
 import { radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -19,17 +20,34 @@ export default function TypedIntake() {
   const router = useRouter();
   const theme = useTheme();
   const fontScale = useFontScale();
-  const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const { notes, updateNote } = useSession();
+  const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
+  const { notes, updateNote, consents, visits } = useSession();
   const note = notes[visitId ?? ""];
+  const visit = visits.find((v) => v.id === visitId);
+  const intakeQuestions = packForDepartment(visit?.department);
 
+  // `q` = edit mode: jump straight to that question with its current answer
+  // preloaded (the review screen's pencil). Otherwise resume at the first
+  // unanswered question.
   const answeredIds = new Set(note?.answers.map((a) => a.questionId));
-  const firstUnanswered = intakeQuestions.findIndex((q) => !answeredIds.has(q.id));
-  const [step, setStep] = useState(
-    firstUnanswered === -1 ? intakeQuestions.length - 1 : firstUnanswered,
+  const requested = q ? intakeQuestions.findIndex((x) => x.id === q) : -1;
+  const firstUnanswered = intakeQuestions.findIndex((x) => !answeredIds.has(x.id));
+  const initialStep =
+    requested !== -1
+      ? requested
+      : firstUnanswered === -1
+        ? intakeQuestions.length - 1
+        : firstUnanswered;
+  const initialAnswer = note?.answers.find((a) => a.questionId === intakeQuestions[initialStep].id);
+  const initialKind = intakeQuestions[initialStep].kind;
+  const [step, setStep] = useState(initialStep);
+  const [selected, setSelected] = useState<string[]>(
+    initialKind === "text" ? [] : (initialAnswer?.values ?? []),
   );
-  const [selected, setSelected] = useState<string[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(
+    initialKind === "text" ? (initialAnswer?.values.join(" ") ?? "") : "",
+  );
+  const editing = requested !== -1;
 
   const question = intakeQuestions[step];
   const last = step === intakeQuestions.length - 1;
@@ -38,7 +56,8 @@ export default function TypedIntake() {
     if (visitId) {
       updateNote(visitId, { type: "answer", questionId: question.id, values });
     }
-    if (last) {
+    if (editing || last) {
+      // an edit returns straight to the review; a fresh run continues
       router.replace(`/(tabs)/visits/${visitId}/review`);
     } else {
       setSelected([]);
@@ -115,26 +134,35 @@ export default function TypedIntake() {
         ) : null}
 
         {question.kind === "text" ? (
-          <TextInput
-            accessibilityLabel={t(question.titleKey)}
-            value={text}
-            onChangeText={setText}
-            multiline
-            style={[
-              styles.textField,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                color: theme.ink,
-                fontSize: scaledSize("body", fontScale),
-              },
-            ]}
-          />
+          <>
+            <TextInput
+              accessibilityLabel={t(question.titleKey)}
+              value={text}
+              onChangeText={setText}
+              multiline
+              style={[
+                styles.textField,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.ink,
+                  fontSize: scaledSize("body", fontScale),
+                },
+              ]}
+            />
+            {__DEV__ && consents?.voice ? (
+              <VoiceNote
+                onTranscript={(spoken) =>
+                  setText((prev) => (prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken))
+                }
+              />
+            ) : null}
+          </>
         ) : null}
 
         {question.kind === "chips" ? (
           <PrimaryButton
-            label={t("intake.next")}
+            label={editing ? t("intake.finish") : t("intake.next")}
             disabled={selected.length === 0}
             onPress={() => commit(selected)}
           />
