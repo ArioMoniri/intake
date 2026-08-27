@@ -1,0 +1,44 @@
+name: Backlog issue (INT-xxx)
+description: One backlog row — normally created by scripts/backlog/sync_issues.py, hand-filed only for genuinely new scope (which also gets a docs/backlog/issues.yaml row in the same PR).
+title: "INT-nnn: <title>"
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue == one PR == one squash merge. The YAML backlog
+        (docs/backlog/issues.yaml) is the source of record — an issue filed
+        here without a YAML row will be closed by the next sync.
+  - type: input
+    id: phase
+    attributes:
+      label: Phase
+      description: P0 | P1 | P2 | P3 (milestone must match)
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: "Verbatim, testable lines. No clinical value may be invented — an unfilled value uses the literal clinical sign-off form of HUMAN_BLOCKERS.md rule 1."
+    validations:
+      required: true
+  - type: input
+    id: legal
+    attributes:
+      label: Legal codes (files/06 §1)
+      description: e.g. KVKK-12, HHY-15 — or “—”
+    validations:
+      required: true
+  - type: input
+    id: sec_row
+    attributes:
+      label: Security row (files/10 §9)
+      description: The row this feature updates or adds. A feature without its row is not done.
+    validations:
+      required: true
+  - type: textarea
+    id: depends
+    attributes:
+      label: Depends on
+      description: INT-xxx ids, comma-separated

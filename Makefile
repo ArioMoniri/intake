@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts dev dev-down clean
+.PHONY: setup check check-py check-ts dev dev-down clean backlog-status backlog-sync backlog-render
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -32,6 +32,15 @@ dev:
 
 dev-down:
 	$(COMPOSE) down
+
+backlog-status:
+	uv run python scripts/backlog/backlog_status.py
+
+backlog-sync:
+	uv run python scripts/backlog/sync_issues.py
+
+backlog-render:
+	uv run python scripts/backlog/render_backlog.py
 
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache
