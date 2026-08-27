@@ -1,0 +1,124 @@
+# infra/observability/prometheus-rules.yaml — recording + burn-rate alerting
+# rules for the SLOs in docs/slo/ (INT-021; files/10 §6, files/08 §5).
+#
+# GENERATED-CONSISTENT: this file equals
+# intake_platform.slo.prometheus_rule_groups(docs/slo/api.yaml) and
+# tests/observability/test_slo_generator.py fails on any drift. To change a
+# rule, change the SLO file and re-emit:
+#   uv run python scripts/observability/slo_report.py --emit-rules \
+#     infra/observability/prometheus-rules.yaml
+groups:
+- name: slo-api-recording
+  rules:
+  - record: slo:api_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="api",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="api"}[5m]))
+    labels:
+      service: api
+      slo: availability
+  - record: slo:api_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="api",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="api"}[30m]))
+    labels:
+      service: api
+      slo: availability
+  - record: slo:api_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="api",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="api"}[1h]))
+    labels:
+      service: api
+      slo: availability
+  - record: slo:api_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="api",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="api"}[6h]))
+    labels:
+      service: api
+      slo: availability
+  - record: slo:api_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="api",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="api"}[3d]))
+    labels:
+      service: api
+      slo: availability
+  - record: slo:api_latency:error_ratio_rate5m
+    expr: 1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[5m])) / sum(rate(http_request_duration_seconds_count{service="api"}[5m])))
+    labels:
+      service: api
+      slo: latency
+  - record: slo:api_latency:error_ratio_rate30m
+    expr: 1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[30m])) / sum(rate(http_request_duration_seconds_count{service="api"}[30m])))
+    labels:
+      service: api
+      slo: latency
+  - record: slo:api_latency:error_ratio_rate1h
+    expr: 1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[1h])) / sum(rate(http_request_duration_seconds_count{service="api"}[1h])))
+    labels:
+      service: api
+      slo: latency
+  - record: slo:api_latency:error_ratio_rate6h
+    expr: 1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[6h])) / sum(rate(http_request_duration_seconds_count{service="api"}[6h])))
+    labels:
+      service: api
+      slo: latency
+  - record: slo:api_latency:error_ratio_rate3d
+    expr: 1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[3d])) / sum(rate(http_request_duration_seconds_count{service="api"}[3d])))
+    labels:
+      service: api
+      slo: latency
+- name: slo-api-alerts
+  rules:
+  - alert: ApiAvailabilityFastBurn
+    expr: slo:api_availability:error_ratio_rate1h > (14.4 * 0.001) and slo:api_availability:error_ratio_rate5m > (14.4 * 0.001)
+    for: 2m
+    labels:
+      severity: page
+      service: api
+      slo: availability
+    annotations:
+      summary: 'api availability: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#api-availability-fast-burn
+  - alert: ApiAvailabilitySlowBurn
+    expr: slo:api_availability:error_ratio_rate6h > (6.0 * 0.001) and slo:api_availability:error_ratio_rate30m > (6.0 * 0.001)
+    for: 15m
+    labels:
+      severity: page
+      service: api
+      slo: availability
+    annotations:
+      summary: 'api availability: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#api-availability-slow-burn
+  - alert: ApiAvailabilityTicketBurn
+    expr: slo:api_availability:error_ratio_rate3d > (1.0 * 0.001) and slo:api_availability:error_ratio_rate6h > (1.0 * 0.001)
+    for: 1h
+    labels:
+      severity: ticket
+      service: api
+      slo: availability
+    annotations:
+      summary: 'api availability: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#api-availability-ticket-burn
+  - alert: ApiLatencyFastBurn
+    expr: slo:api_latency:error_ratio_rate1h > (14.4 * 0.01) and slo:api_latency:error_ratio_rate5m > (14.4 * 0.01)
+    for: 2m
+    labels:
+      severity: page
+      service: api
+      slo: latency
+    annotations:
+      summary: 'api latency: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#api-latency-fast-burn
+  - alert: ApiLatencySlowBurn
+    expr: slo:api_latency:error_ratio_rate6h > (6.0 * 0.01) and slo:api_latency:error_ratio_rate30m > (6.0 * 0.01)
+    for: 15m
+    labels:
+      severity: page
+      service: api
+      slo: latency
+    annotations:
+      summary: 'api latency: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#api-latency-slow-burn
+  - alert: ApiLatencyTicketBurn
+    expr: slo:api_latency:error_ratio_rate3d > (1.0 * 0.01) and slo:api_latency:error_ratio_rate6h > (1.0 * 0.01)
+    for: 1h
+    labels:
+      severity: ticket
+      service: api
+      slo: latency
+    annotations:
+      summary: 'api latency: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#api-latency-ticket-burn

@@ -7,7 +7,8 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import { AppText, Card, PrimaryButton, Screen } from "@/components/Themed";
+import { GlassCard } from "@/components/GlassCard";
+import { AppText, PrimaryButton, Screen } from "@/components/Themed";
 import { testAccounts } from "@/lib/dev/accounts";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -26,7 +27,7 @@ export default function Welcome() {
       </View>
       <AppText role="body">{t("welcome.body")}</AppText>
       {__DEV__ ? (
-        <Card style={styles.devCard}>
+        <GlassCard style={styles.devCard}>
           <AppText role="label" color="inkSoft">
             {t("welcome.devSignIn")}
           </AppText>
@@ -43,7 +44,7 @@ export default function Welcome() {
           <AppText role="caption" color="inkFaint">
             {t("welcome.devNote")}
           </AppText>
-        </Card>
+        </GlassCard>
       ) : null}
       <AppText role="caption" color="inkFaint" style={styles.disclaimer}>
         {t("app.disclaimer")}

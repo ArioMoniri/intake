@@ -1,7 +1,9 @@
 /**
- * Profilim (02 §4): identity, consents at a glance, language, and the
- * "what it learned about me" ledger entry point. Consent TOGGLING is a
- * consent-ledger operation (INT-060s) — here they are read-only chips.
+ * Profilim (02 §4): identity, consents, language, and the "what it learned
+ * about me" ledger entry point. Consent chips toggle SESSION-LOCAL state on
+ * the synthetic accounts so the consent gate is demonstrable (flip wellbeing
+ * and watch the tab appear/disappear); the real product mutates consents
+ * only through the versioned consent ledger (invariant 4, INT-060s).
  */
 import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -11,17 +13,21 @@ import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
-function ConsentRow({ label, on }: { label: string; on: boolean }) {
+function ConsentRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
   const theme = useTheme();
   return (
     <View style={styles.consentRow}>
       <AppText role="body">{label}</AppText>
-      <View
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityLabel={label}
+        accessibilityState={{ checked: on }}
+        onPress={onToggle}
         style={[
           styles.consentPill,
           {
             backgroundColor: on ? theme.successSoft : theme.background,
-            borderColor: on ? theme.successSoft : theme.border,
+            borderColor: on ? theme.success : theme.border,
           },
         ]}
       >
@@ -31,14 +37,51 @@ function ConsentRow({ label, on }: { label: string; on: boolean }) {
         >
           {on ? t("consent.on") : t("consent.off")}
         </AppText>
+      </Pressable>
+    </View>
+  );
+}
+
+function LanguageRow() {
+  const theme = useTheme();
+  const { locale, switchLocale } = useSession();
+  return (
+    <View style={styles.consentRow}>
+      <AppText role="body">{t("me.language")}</AppText>
+      <View style={styles.langGroup}>
+        {(["tr", "en"] as const).map((code) => {
+          const active = locale === code;
+          return (
+            <Pressable
+              key={code}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              onPress={() => switchLocale(code)}
+              style={[
+                styles.consentPill,
+                {
+                  backgroundColor: active ? theme.primarySoft : theme.background,
+                  borderColor: active ? theme.primary : theme.border,
+                },
+              ]}
+            >
+              <AppText
+                role="caption"
+                style={{ color: active ? theme.primary : theme.inkSoft, fontWeight: "600" }}
+              >
+                {code === "tr" ? t("lang.tr") : t("lang.en")}
+              </AppText>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
 }
 
 export default function Me() {
-  const { account, signOut } = useSession();
-  if (account === null) {
+  const { account, consents, setConsent, signOut } = useSession();
+  if (account === null || consents === null) {
     // The tabs layout has already redirected to welcome by the time this
     // renders without a session; render nothing during that frame.
     return null;
@@ -57,10 +100,29 @@ export default function Me() {
           <AppText role="label" color="inkSoft">
             {t("me.consents")}
           </AppText>
-          <ConsentRow label={t("consent.core")} on={account.consents.core} />
-          <ConsentRow label={t("consent.voice")} on={account.consents.voice} />
-          <ConsentRow label={t("consent.wellbeing")} on={account.consents.wellbeing} />
-          <ConsentRow label={t("consent.documents")} on={account.consents.documents} />
+          <ConsentRow
+            label={t("consent.core")}
+            on={consents.core}
+            onToggle={() => setConsent("core", !consents.core)}
+          />
+          <ConsentRow
+            label={t("consent.voice")}
+            on={consents.voice}
+            onToggle={() => setConsent("voice", !consents.voice)}
+          />
+          <ConsentRow
+            label={t("consent.wellbeing")}
+            on={consents.wellbeing}
+            onToggle={() => setConsent("wellbeing", !consents.wellbeing)}
+          />
+          <ConsentRow
+            label={t("consent.documents")}
+            on={consents.documents}
+            onToggle={() => setConsent("documents", !consents.documents)}
+          />
+        </Card>
+        <Card>
+          <LanguageRow />
         </Card>
         <Link href="/(tabs)/me/learned" asChild>
           <Pressable accessibilityRole="button">
@@ -84,4 +146,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
   },
+  langGroup: { flexDirection: "row", gap: spacing.xs },
 });

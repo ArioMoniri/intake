@@ -181,7 +181,7 @@
   title: "Egress proxy with vendor allow-list + transfer log"
   depends_on: [INT-001]
   labels: [area:security, risk:legal]
-  status: todo
+  status: doing
   acceptance:
     - "forward proxy in dev compose; only allow-listed vendor hosts reachable from PHI-path services; every egress logged {host,purpose,bytes,ts} feeding the vendor-transfer register; denial emits sec.egress_denied"
     - "test: call to unlisted host is refused and logged"
@@ -220,7 +220,7 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: doing
   acceptance:
     - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
@@ -1655,6 +1655,33 @@
   status: doing
   acceptance:
     - "one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"
+  tests: [apps/mobile/e2e/flows.spec.ts]
+  sec_row: "intake-typed"
+# INT-193: owner directive 2026-08-27 evening — premium visual pass (Oura
+# register + Liquid Glass), functional demo (working add-visit, language
+# switching, standardized clinician brief) and the first on-device smoke run.
+- id: INT-193
+  epic: E08-mobile
+  phase: P0
+  title: "Premium visual pass: Liquid Glass + Oura register, working add-visit, language switching, standardized clinician brief; first simulator smoke"
+  depends_on: [INT-179]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "serif display heroes, deep dark palette, glass surfaces with fallback, teal-tinted native rail; add-visit writes session state end-to-end; tr/en switch re-renders the whole tree; clinician brief in CC->HPI->meds order with provenance line; every screen and button walked in the iOS simulator with the two found navigation/locale bugs fixed"
+  tests: [apps/mobile/e2e/flows.spec.ts, apps/mobile/e2e/nav.spec.ts]
+  sec_row: "mobile"
+# INT-194: owner directives 2026-08-27 late — editable review, working voice
+# note lane against our own ASR, department-based intake packs.
+- id: INT-194
+  epic: E08-mobile
+  phase: P0
+  title: "Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs"
+  depends_on: [INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "review sections reopen their question prefilled and return on save; __DEV__ voice pill records, ships audio to the team-box whisper-tr endpoint, deletes the file, drops the transcript into the note; Kardiyoloji/İç Hastalıkları, Nöroloji and KBB get their own anamnesis dimensions (severity in words, never numerals) feeding labelled HPI lines; consent.voice gates the pill"
   tests: [apps/mobile/e2e/flows.spec.ts]
   sec_row: "intake-typed"
 - id: INT-180

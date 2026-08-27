@@ -17,7 +17,14 @@ export function formatVisitDate(iso: string, locale: string): string {
   }).format(date);
 }
 
-export function VisitCard({ visit }: { visit: VisitFixture }) {
+interface VisitCardProps {
+  visit: VisitFixture;
+  /** Live status (local note state) wins over the fixture's ladder step. */
+  statusOverride?: VisitFixture["noteStatus"];
+}
+
+export function VisitCard({ visit, statusOverride }: VisitCardProps) {
+  const status = statusOverride ?? visit.noteStatus;
   return (
     <Card>
       <AppText role="caption" color="inkSoft">
@@ -27,9 +34,9 @@ export function VisitCard({ visit }: { visit: VisitFixture }) {
       <AppText role="body" color="inkSoft">
         {visit.hospital}
       </AppText>
-      {visit.noteStatus === null ? null : (
+      {status === null ? null : (
         <View style={styles.chipRow}>
-          <StatusChip status={visit.noteStatus} />
+          <StatusChip status={status} />
         </View>
       )}
     </Card>

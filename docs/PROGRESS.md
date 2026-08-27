@@ -161,3 +161,22 @@
 - Blocked on: nothing; the review's mediums remain listed on #195 for the issues that own their files.
 - Next: INT-016 audit chain (deps satisfied), then INT-018 egress proxy.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T07:50:00+03:00 · INT-193 · done (+ INT-016 core in PR)
+- Goal: owner directives — Oura/Liquid-Glass premium pass, functional demo (add-visit, language switching), standardized clinician brief, full iOS-simulator smoke of every screen and button; roadmap continued in parallel.
+- Result: serif heroes + deep Oura dark + GlassCard/teal rail live; add-visit writes session state end-to-end; tr/en switch remounts the tree (verified: whole UI incl. tab labels); brief restructured CC→HPI→Meds with [REVIEW] provenance line and stable section codes for INT-084. Smoke run walked both personas through all five tabs, intake, review, scopes, send, ladder, records, consents — and caught two real device bugs unit tests could not see (missing per-tab Stack under native tabs swallowed cross-tab pushes; module-level t() needed a locale-keyed root). 67 vitest + typecheck + lint + make check green.
+- Parallel roadmap: INT-016 audit-chain core built by subagent (23 tests, audit.py 100% branch coverage, suite 153 passed) — PR #205; INT-016 stays doing pending the integration slice.
+- Phone QR: LAN failed for the owner; tunnel (exp.direct) QR delivered instead + Expo Go update guidance.
+- Invariants: 1 (no triage faked in UI), 5, 17, 18; backlog consciously 179→180 (INT-193 filed with reason).
+- Blocked on: physician (#185); owner: Freya pin approval, licence blobs.
+- Next: merge #205 and this PR; then INT-018 egress proxy.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T09:00:00+03:00 · INT-194 · done (+ INT-021 core in PR)
+- Goal: owner directives — "bilgiler düzenlenemiyor" (editable review), "ses kısmı çalışmıyor" (working voice), "not department-based / too short" (branch packs).
+- Result: review pencils reopen questions prefilled (single-select edits return straight to the review); __DEV__ voice pill → own whisper-tr ASR daemon on the GPU box over the Mac's SSH forward (curl-proven word-perfect Turkish; in-sim plumbing verified; recording deleted after upload — invariant 3 posture); department packs: cardio/internal 6 steps (character/trigger/associated), neuro (onset/severity-in-words/assoc), KBB (side/assoc), fallback core — all feeding labelled HPI lines in the clinician brief. Unicode pack-matching bug caught by tests (combining-mark regex vs tr-TR lowercasing).
+- Parallel roadmap: INT-021 SLO stack built by subagent (branch int-21-slo: schema+generator, prometheus rules round-trip-tested, dashboard as code, runbook, make slo-report; 162 py tests, coverage 88.17%) — PR next; INT-021 stays doing (live stack lands with INT-023).
+- Invariants: 3 (posture documented), 5, 17, 22 (severity words, no numerals); backlog consciously 180→181.
+- Blocked on: owner — Freya-TTS pinned install approval (the "robotic" voice heard was macOS say, not our TTS); physician #185.
+- Next: merge this + int-21-slo + #205; then INT-018.
+- LOOP_STATUS: CONTINUE

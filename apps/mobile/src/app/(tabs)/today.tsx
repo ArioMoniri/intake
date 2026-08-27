@@ -13,8 +13,8 @@ import { spacing } from "@/lib/theme";
 
 export default function Today() {
   const router = useRouter();
-  const { account } = useSession();
-  const visits = account?.visits ?? [];
+  const { visits } = useSession();
+  
   const next = visits.find((v) => v.noteStatus === "draft" || v.noteStatus === null) ?? null;
   return (
     <Screen>
