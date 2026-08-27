@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts dev dev-down clean backlog-status backlog-sync backlog-render deid-model
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -15,6 +15,11 @@ setup:
 	uv run pre-commit install --hook-type commit-msg
 
 check: check-py check-ts
+
+check-integration:
+	docker compose -f infra/docker-compose.dev.yml up -d --wait postgres openbao
+	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
+	OPENBAO_TOKEN=$${OPENBAO_TOKEN:-intake-dev-root} uv run pytest -m integration --no-header -q -p no:cacheprovider -o addopts=""
 
 check-py:
 	uv run ruff check .
