@@ -62,6 +62,13 @@ files = ["packages/intake_platform/src", "services/probes/src"]
 module = "opentelemetry.exporter.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# optional crash-reporter SDK (GlitchTip speaks the sentry protocol),
+# imported only when INTAKE_GLITCHTIP_DSN is set AND the error_reporting
+# flag is on (INT-023); guarded exactly like the OTLP exporter above
+module = "sentry_sdk.*"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages"]
 addopts = "-q -m 'not integration'"
