@@ -169,5 +169,17 @@ Added 25 Aug 2026 with the security audit (`08 §0b–0c`). Where one supersedes
 | 48 | `console_isolation_guard` | nonce-based CSP with **no `unsafe-*`**, `require-trusted-types-for 'script'`, no third-party `frame-src`; **no PHI-bearing datastore reachable from a browser origin that did not transit `services/api/admin`** | CI against the **built** app + ingress policy test | asserts the **emitted header**, not the config file |
 | 49 | `red_acknowledgement_sla_guard` | every RED produces a clinic inbox entry **≤ 60 s regardless of connector presence**; the ack clock starts; unacknowledged past SLA pages; **`02 §2b` visit-state transitions on a RED visit raise an entry** | simulator + runtime | `02 §8` safety response NFR; the one gap where a missing surface changes an outcome |
 
+### 9.2 Invariants 50–65 — RESERVED, NOT SPECIFIED. Do not cite them as if they exist.
+
+⚠️ **This section exists because `03 §4.9.6` and `03 §10` both cite "invariant 53" as though it were catalogued, and it is not.** Numbers 50–65 were **proposed** during the data-import hardening pass and **never written down**. The proposals did not survive; **the numbers did**, and a number without a specification is worse than no number, because it reads as a guarantee that CI is enforcing when nothing is.
+
+**The rule for this range:**
+
+1. **Only invariant 53 has a written behavioural specification** — the unit-resolution guard, stated in prose at `03 §4.9.6` and `03 §10`: *magnitude outranks the printed unit token; disagreement raises a flag rather than triggering a silent conversion; resolve the decimal separator per value, not per document; never substring-match `üre`; a two-number reference cell is a signal to stop, not to average.* **That prose is the specification until someone writes the row.** It is not yet a test, so **do not report it as enforced.**
+2. **50, 51, 52 and 54–65 have no specification at all.** They are **reserved and unallocated**. **Nothing may cite them**, and a citation to one of them is a build-review finding.
+3. **Nothing enters this range without arriving the way 12–49 did**: a named guard, a stated enforcement point (CI / runtime / simulator), and a source in the legal or clinical files. **The catalogue is the definition of correct; a gap in it is a gap in the definition.**
+
+**Owner: whoever takes INT-2xx for the import path.** Until then the honest statement of coverage is **"invariants 1–49 are catalogued and enforced; 50–65 are reserved and enforce nothing."**
+
 ## 10. Ownership, cadence and evidence
 Security owner = founder until a security lead exists; **device change control is owned by `qms_owner` (`08 §2.1`), a role `09 §4` requires and nobody held before 25 Aug 2026** — a release touching the device boundary does not pass without that signature; the `security-reviewer` subagent runs on every PR; a monthly security review reads the console's Security module (vulnerabilities, access reviews, drills, pen-test findings); evidence for ISO 27001 (target P3) accumulates automatically from the console (audit exports, drill records, access reviews, SBOMs, scan reports) so certification is a packaging exercise, not a project.

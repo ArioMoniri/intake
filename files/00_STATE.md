@@ -315,6 +315,10 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 
 ## 4. Open blockers on the product owner
 
+> ⚠️ **This section is now a POINTER, not the register.** **`HUMAN_BLOCKERS.md` is the authority** — it carries all four families (HB-C clinical · HB-L legal · HB-A access · HB-I infra) with owner, effort and what each one gates. B1–B7 below are the original seven and are **retained for their reasoning only**; where the two disagree, **`HUMAN_BLOCKERS.md` wins**. Do not add new blockers here.
+>
+> **And the rule that governs both files, restated because it is the one people break:** *an open blocker is not permission to build around it.* Most of them gate whether something may be **served**, not whether it may be **written**. *"We found a workaround"* is not a legitimate closure.
+
 | # | Needs | Why it blocks |
 |---|---|---|
 | B1 | **Free 80–100 GB disk** | 19 GiB free of 926 GiB. Hard blocker on any local build. |
