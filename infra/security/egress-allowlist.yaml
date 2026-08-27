@@ -1,0 +1,96 @@
+# INT-018 — vendor egress allow-list (files/10 §4; CLAUDE.md invariants 14 & 19).
+#
+# This file is DATA, not code: `intake_platform.egress` loads and validates it,
+# and the deployed proxy tier (INT-203) will consume the same file. Default
+# deny — a host absent from the active tier is unreachable. Globs match only
+# when an entry says `glob: true`, and only in the leading "*.label" form.
+#
+# Every change here is a security-relevant change: files/10 §4 makes the list
+# tier-2 configuration, files/10 §5 pages on egress-allow-list changes, and
+# the file is hook-protected (07 §3.8) so it changes only deliberately.
+version: 1
+tiers:
+  # Dev/build tooling: package and model registries. None of these ever sees
+  # personal data — phi_allowed stays false on every row, enforced by test.
+  dev:
+    - name: pytorch-wheel-index
+      host: download.pytorch.org
+      port: 443
+      protocol: https
+      purpose: CPU torch wheels for the deid NER tier (uv index, pyproject)
+      phi_allowed: false
+      basis: no-personal-data; public package registry pull
+    - name: pypi
+      host: pypi.org
+      port: 443
+      protocol: https
+      purpose: Python package index metadata (uv/pip resolution)
+      phi_allowed: false
+      basis: no-personal-data; public package registry pull
+    - name: pypi-files
+      host: files.pythonhosted.org
+      port: 443
+      protocol: https
+      purpose: Python package artefact downloads
+      phi_allowed: false
+      basis: no-personal-data; public package registry pull
+    - name: npm-registry
+      host: registry.npmjs.org
+      port: 443
+      protocol: https
+      purpose: Node package downloads (pnpm workspaces)
+      phi_allowed: false
+      basis: no-personal-data; public package registry pull
+    - name: github
+      host: github.com
+      port: 443
+      protocol: https
+      purpose: git fetch/push of this repository
+      phi_allowed: false
+      basis: no-personal-data; source code only (invariant 6 keeps PHI out of the repo)
+    - name: github-objects
+      host: objects.githubusercontent.com
+      port: 443
+      protocol: https
+      purpose: GitHub release/LFS artefact downloads
+      phi_allowed: false
+      basis: no-personal-data; build artefact pull
+    - name: github-api
+      host: api.github.com
+      port: 443
+      protocol: https
+      purpose: gh CLI (issues/PR sync per LOOP.md)
+      phi_allowed: false
+      basis: no-personal-data; issue metadata only
+    - name: huggingface-hub
+      host: huggingface.co
+      port: 443
+      protocol: https
+      purpose: model weight pulls, pinned by model_id@revision + sha256 (invariant 14)
+      phi_allowed: false
+      basis: no-personal-data; open-weights model pull (invariant 19)
+    - name: huggingface-lfs-cdn
+      host: cdn-lfs.huggingface.co
+      port: 443
+      protocol: https
+      purpose: model weight LFS payloads for huggingface-hub pulls
+      phi_allowed: false
+      basis: no-personal-data; open-weights model pull (invariant 19)
+    - name: huggingface-lfs-cdn-regional
+      host: "*.hf.co"
+      glob: true
+      port: 443
+      protocol: https
+      purpose: regional LFS CDN (cdn-lfs-*.hf.co) for huggingface-hub pulls
+      phi_allowed: false
+      basis: no-personal-data; open-weights model pull (invariant 19)
+
+  # The PHI path is self-hosted end to end (invariant 19 / 00_STATE D11, and
+  # 07 §F: "no external model or speech vendor on the list at all"): every
+  # model and service that touches clinical data runs inside our boundary, so
+  # there is NO vendor host a PHI-path service may reach and this list stays
+  # empty. Adding a row here requires a phi_exception_approval naming a
+  # recorded human decision AND INTAKE_ALLOW_PHI_EGRESS=explicit-yes at
+  # runtime — and never one of the anthropic/openai/google API hosts, which
+  # assert_dev_only_vendors() refuses outright.
+  phi_path: []
