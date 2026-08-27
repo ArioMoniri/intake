@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**175 issues.** By phase: P0 90 · P1 45 · P2 36 · P3 4. By status: done 4 · todo 170 · withdrawn 1.
+**175 issues.** By phase: P0 90 · P1 45 · P2 36 · P3 4. By status: awaiting-human 1 · done 4 · todo 169 · withdrawn 1.
 
 ## P0
 
@@ -42,7 +42,7 @@
 | INT-040 | Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields) | E03-protocols | INT-031 | area:protocols | todo |
 | INT-041 | Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic | E03-protocols | INT-040, INT-033 | area:protocols | todo |
 | INT-042 | Taxonomy: all MHRS branches + clusters + visit types + coverage CLI | E03-protocols | INT-040 | area:protocols | todo |
-| INT-043 | base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175 | E03-protocols | INT-041 | area:protocols, risk:clinical, approval:human-clinical | todo |
+| INT-043 | base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175 | E03-protocols | INT-041 | area:protocols, risk:clinical, approval:human-clinical | awaiting-human |
 | INT-044 | Cluster pack: medical | E03-protocols | INT-043 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-045 | Cluster pack: surgical | E03-protocols | INT-043 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-046 | Cluster pack: sensory | E03-protocols | INT-043 | area:protocols, risk:clinical, approval:human-clinical | todo |

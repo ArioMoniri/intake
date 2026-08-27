@@ -411,7 +411,11 @@
   title: "base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175"
   depends_on: [INT-041]
   labels: [area:protocols, risk:clinical, approval:human-clinical]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-043.md
+  # DRAFTED 27 Aug 2026 per the 07 §4/§E front-load order (drafted ahead of its
+  # INT-041 dependency by design — "the agent drafts; the owner reviews"); PR
+  # open, gates green, closes only on physician sign-off (HB-C1/C5/C6/C7).
   # SCHEDULING NOTE, 27 Aug 2026. This issue unblocks 78 of 175 issues and v1.4 placed it at depth 9,
   # so the agent would work for days before the owner ever saw the thing everything else waits on.
   # It is now drafted immediately after INT-001..004 and put in the owner's inbox on day 2. The agent
