@@ -120,3 +120,14 @@
 - Blocked on: nothing.
 - Next: INT-016 audit chain (deps INT-014 now satisfied) per file order.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T03:10:00+03:00 · INT-130 · in-review
+- Goal: the Expo app shell — SDK 57, nav exactly per 02 §4 (incl. me/learned), tr-first typed i18n, warm-paper theme with the RED discipline, dynamic type to 200 %, synthetic dev accounts.
+- Plan: create-expo-app scaffold pruned; pure-TS design system (theme/i18n/session rules) so the binding rules are unit-testable in node; native tabs with the consent-gated wellbeing trigger; nav.spec pins the route tree bidirectionally.
+- Tests added: apps/mobile e2e/nav.spec.ts (25) + theme/i18n/session/accounts unit (22); planted-mutation red run on the consent gate (2 fail) recorded in docs/evidence/INT-130.md.
+- Result: typecheck + expo lint + 47 vitest green; make check-ts GREEN; no_placeholders OK. Design decisions + Mobbin references in docs/design/mobile-ui.md.
+- Invariants touched and still passing: 5 (tr-first), 17 (zero placeholders), 18 (patient-facing strings [REVIEW]-marked, none signed).
+- Decisions / 00 rows: teal accent + warm paper (not state-blue, not clinical white); wellbeing hidden-not-disabled; session memory-only until consent design lands.
+- Blocked on: nothing for the shell; orb surface waits on INT-132.
+- Next: demo model serving on the team GPU box (vLLM Qwen3.5-9B fp8 capped + faster-whisper), then INT-016 audit chain.
+- LOOP_STATUS: CONTINUE

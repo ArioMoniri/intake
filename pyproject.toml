@@ -39,7 +39,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["files"]
+extend-exclude = ["files", ".claude/skills"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "S"]
