@@ -1,0 +1,783 @@
+# =====================================================================================
+#  base.life_threat — the universal, branch-independent red-flag rule set
+#  Spec: 04 §8 · Evaluation topology: 12 §1 · Delivery: 02 §5.3
+#  Code path when this lands in the monorepo: packages/protocols/base/life_threat.yaml
+# =====================================================================================
+#
+#  ⛔ STOP. NOTHING IN THIS FILE MAY BE SERVED TO A PATIENT.
+#
+#  This file is `maturity: L0` and `status: awaiting-clinical-review`.
+#
+#  In plain language: every rule below was drafted by an agent. No clinician has read
+#  them. A rule in this state MUST NOT be shown, spoken, or acted upon in front of a
+#  patient, in any tenant, in any mode, including "just for a demo". Per `09 §2`, L0
+#  means "agent-generated, review queue only, may NOT be served to patients" — and per
+#  `04 §8.1` rule 3, a rule that cannot be sourced is `status: draft_needs_source` and
+#  is not compiled into a served pack at all. Two of the four exemplars below are in
+#  exactly that state, deliberately and visibly.
+#
+#  This pack CANNOT be promoted to L1 without a named, licensed physician signing off
+#  the PR under CODEOWNERS (`04` header, `09 §2`). "Reviewed by the team" is not a
+#  signature. The sign-off block at the bottom of this header is empty on purpose and
+#  the compiler must refuse to emit an L1 bundle while it stays empty.
+#
+#  WHAT THIS FILE ACTUALLY IS: a known-good *skeleton*. The full adult universal set
+#  (~34 rules) was drafted elsewhere in this project and is not in this agent's hands.
+#  This file specifies the schema completely and works four exemplars of deliberately
+#  different shapes, so the remaining rules can be pasted in against a structure that
+#  the compiler and the golden suite already accept. See the TODO block at the end for
+#  the exhaustive list of what is missing.
+#
+#  ⚠️ ON INVENTED NUMBERS. Where an exemplar needs a numeric cutoff, it either carries
+#  one already stated in `04` *with its citation*, or it carries the literal string
+#  `TODO: threshold requires clinical sign-off`. No threshold in this file was guessed.
+#  A plausible-looking invented threshold in a file named `life_threat` is the single
+#  worst artefact this project could produce, because it reads as authoritative to
+#  every subsequent reader and there is no diff that makes it look wrong.
+# =====================================================================================
+
+kind: life_threat_set          # 12 §1 — a SIBLING rule set, not part of the inheritance
+                               # chain. No `extends:`. Nothing may extend it. The pack
+                               # deny-list (12 §3.2, DENY_PREFIXES = "/life_threat")
+                               # makes it unreachable from any overlay op, which is what
+                               # makes composition monotone by construction.
+pack_id: base.life_threat
+version: 0.1.0-draft
+schema_version: 2              # Protocol DSL v2 (`12`)
+maturity: L0                   # 09 §2 — generated. Review queue only. Never served.
+status: awaiting-clinical-review
+language: tr
+created: 2026-08-25
+supersedes: []                 # this set is new; it does not replace an existing served pack
+
+served: false                  # hard interlock, read by the compiler before anything else
+serve_blocked_reason: >-
+  L0 / awaiting-clinical-review. No named clinician has signed this pack. Promotion to L1
+  requires a licensed physician of record to approve the PR under CODEOWNERS, and for
+  paediatric rules a paediatrician specifically — the airway exemplar below is not an
+  adult rule with a smaller patient in it.
+
+clinical_signoff:
+  # Compiler MUST refuse an L1 bundle while any of these are null. Do not fill these in
+  # on behalf of a clinician; the whole value of the field is that it is a person's name.
+  reviewer_name: null
+  reviewer_licence_no: null
+  reviewer_specialty: null
+  signed_commit: null
+  signed_on: null
+  paediatric_reviewer_name: null      # required separately for any rule with age_band: paediatric
+
+# -------------------------------------------------------------------------------------
+#  RULE SCHEMA — documented inline, because this file is the reference the remaining
+#  ~30 rules will be pasted against.
+# -------------------------------------------------------------------------------------
+#
+#  id:                 stable, unique, `rf.<snake_case>`. Never renamed once served —
+#                      it appears in notes, audit records and clinician-facing rationale.
+#
+#  label_tr:           short Turkish label for the clinician-facing rationale line.
+#                      NOT patient-facing. NOT a diagnosis.
+#
+#  age_band:           adult | paediatric | both   (drives which reviewer must sign)
+#
+#  gate:               the trigger predicate.
+#                      ⚠️ NAMING CONFLICT, OPEN: `12 §3.2` deny-suffixes the pointer
+#                      `/when` and `12 §2.4` says the compiler rewrites `when` to add
+#                      the temporal guard. This file uses `gate:` as specified for the
+#                      life-threat set. One of the two names must give before the
+#                      compiler is written — see TODO.schema_reconciliation.
+#                      Three-valued (12 §1.1): slots that are `not_asked` or `unclear`
+#                      yield Unknown, and a rule fires ONLY on True. `F ∧ U = F`,
+#                      `T ∨ U = T`, everything else with U is U. A rule that evaluates
+#                      to Unknown over a `must_cover` slot emits a CoverageGap record,
+#                      which renders as "Sorulmadı" — never as an elicited negative.
+#
+#  tense:              now | today | within_7d | within_30d | ever   (04 §8.1 rule 4)
+#  tense_anchor:       slot carrying the event timestamp. A tense-qualified rule cannot
+#                      fire on an undated symptom, which forces the anchor to be asked.
+#                      Acuity must be non-increasing as the tense recedes, and reusing
+#                      one action_tr across tenses is a lint failure.
+#
+#  level:              EK-4 acuity, five-valued (12 §2.1, 04 §3):
+#                        KIRMIZI_K1 | KIRMIZI_K2 | SARI_K1 | SARI_K2 | YESIL
+#                      Only KIRMIZI_K2 carries a regulatory time target (10 dakika).
+#                      KIRMIZI_K1 is *immediate*, which is a different thing from a
+#                      numeric target — do not write "0 minutes".
+#
+#  route:              EMERGENCY_NOW | SAME_DAY_ACIL | EXPEDITE   (02 §5.3 Axis 1)
+#
+#  register:           REQUIRED. NO DEFAULT. ALERT | CALM | SILENT | DEFERRED_CLINICIAN
+#                      (02 §5.3 Axis 2). The compiler rejects a RED rule that omits it.
+#                      A default would be chosen once, by an engineer, for every future
+#                      rule — which is precisely how the paediatric airway case gets an
+#                      alarm and the alarm causes the deterioration.
+#
+#  action:             REQUIRED. Keyed by LOCATION (02 §5.3 Axis 3). ALL THREE KEYS —
+#                      REMOTE, ON_SITE, UNKNOWN — must be present and must resolve.
+#                      The compiler rejects a RED rule whose action does not resolve for
+#                      all three. A rule author must think about both axes or the rule
+#                      does not compile.
+#                        REMOTE   — fast mode, visit planned/confirmed: patient at home.
+#                        ON_SITE  — detailed mode, visit checked_in: patient in building.
+#                        UNKNOWN  — indeterminate: ask ONE question, "Şu anda hastanede
+#                                   misiniz?", then branch. Never guess.
+#                      ⚠️ COLLAPSE, stated rather than left to inference: under ON_SITE,
+#                      `SAME_DAY_ACIL` resolves to substantially the same action as
+#                      `EMERGENCY_NOW` — "walk to the acil servis now, do not wait for
+#                      your appointment, staff notified". The difference between the two
+#                      routes is a difference in *travel*, and an on-site patient is not
+#                      travelling. The routes stay distinct in the record and in the
+#                      clinic notification (acuity is unchanged, 12 §2.1); only the
+#                      patient-facing text converges. Authors must not "simplify" by
+#                      collapsing the routes themselves.
+#
+#  action_tr:          the patient-facing Turkish, per location. ≤ B1 Turkish (04 header).
+#                      Action first, explanation after. `scripted` and pre-synthesised
+#                      (04 §1). Every register must be fully comprehensible with the
+#                      sound off (02 §5.3) — audio is an enhancement, never the only
+#                      carrier. `[acil_location_tr]` is the per-tenant location string;
+#                      where unset the segment is DROPPED, never defaulted to a floor.
+#    do_nots_tr:       explicit "lütfen yapmayın" list (04 §8.1 rule 6). Load-bearing.
+#    why_tr:           the explanation. Never a diagnosis.
+#
+#  notify_clinic:      always | never   — for every RED this is `always`, unconditional
+#                      and time-bound, regardless of connector presence (04 §4.2 defect 1).
+#  notify_staff_immediate: true under ON_SITE — the inbox entry is the PRIMARY channel
+#                      there, not the fallback, because there is a human fifty metres away.
+#
+#  evidence:           REQUIRED at KIRMIZI or SARI (04 §8.1 rule 3, 12 §2.5).
+#                      ⚠️ NAMING CONFLICT, OPEN: `04 §8.1` rule 3 and `12 §2.5` both call
+#                      this field `source:`. This file uses `evidence:` as specified for
+#                      the life-threat set. Same class of problem as gate/when below —
+#                      see TODO.schema_reconciliation. Shape either way:
+#                      {guideline_id, guideline_title, version_or_date, url, retrieved_on,
+#                       quote}. The `quote` must appear VERBATIM in a committed snapshot
+#                      under packages/protocols/sources/<guideline_id>.txt. A rule that
+#                      cannot be sourced carries `status: draft_needs_source` with a
+#                      non-empty `source_gap` and is NOT compiled into a served pack.
+#                      It NEVER carries an invented citation.
+#
+#  excluded_criteria:  guideline features rejected because a layperson cannot report them
+#                      (04 §8.1 rule 1), each WITH ITS REASON. This list is part of the
+#                      clinical evaluation, not an omission.
+#  inference_disclosure: where the parent-reportable / clinician-only split is ours rather
+#                      than the guideline's, say so (04 §8.1 rule 2). Goes in the ISO
+#                      14971 file.
+#
+#  golden_positive:    a case that MUST fire.
+#  golden_negative:    a NEAR MISS that must NOT fire. See the goldens block at the end
+#                      for why the negative is the more important of the two.
+# -------------------------------------------------------------------------------------
+
+rules:
+
+  # ===================================================================================
+  # EXEMPLAR 1 — adult, ALERT / EMERGENCY_NOW. The ordinary shape: alarm aids action.
+  # Sourced to binding Turkish law, so it is the one rule here whose evidence block is
+  # complete.
+  # ===================================================================================
+  - id: rf.chest_pain_cardiac_features
+    label_tr: "Kardiyak özellik taşıyan göğüs ağrısı"
+    age_band: adult
+    gate: >-
+      chest_pain.present == true
+      && (chest_pain.character in {"baskı", "sıkışma", "ağırlık"}
+          || chest_pain.radiation in {"kol", "çene", "sırt"}
+          || associated.diaphoresis == true
+          || associated.dyspnoea == true)
+    tense: now
+    tense_anchor: chest_pain.onset_at
+    level: KIRMIZI_K2            # EK-4: "kardiyak ağrıya benzer göğüs ağrısı" → 10 dakika
+    route: EMERGENCY_NOW
+    register: ALERT              # 02 §5.3 — adult, alarm aids action, no distress_sensitive tag
+    distress_sensitive: false
+    notify_clinic: always
+
+    action:
+      REMOTE:
+        primary: CALL_112
+        secondary: NEAREST_ACIL_ADDRESS_AS_TEXT
+        show_112: true
+        action_tr: "Hemen **112**'yi arayın."
+        do_nots_tr:
+          - "Kendi aracınızla yola çıkmayın."
+          - "Bir şey yiyip içmeyin."
+          - "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+        why_tr: >-
+          Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir.
+          112 ile gelen hastalar acil serviste triyaj için bekletilmez.
+        # ^ Tebliğ MADDE 8(5). A statement about the service, not about the patient's
+        #   condition — safe in every register, and the argument that actually stops
+        #   "I'll just drive there myself".
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false          # ⛔ never suggest an ambulance to someone inside the hospital
+        notify_staff_immediate: true
+        action_tr: >-
+          **Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin.
+          Görevlilere haber verildi. Girişte **"göğüs ağrım var"** deyin.
+        do_nots_tr:
+          - "Poliklinik sırasında beklemeyin."
+          - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
+          - "Bir şey yiyip içmeyin."
+        why_tr: >-
+          Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin
+          hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil
+          kabul edilen hastalar sıra beklemez.
+        # ^ EK-4 door-triage fact, the ON_SITE counterpart of the MADDE 8(5) line above.
+        #   The MADDE 8(5) line must NOT be reused here: the patient is not travelling.
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE     # the safe default IF AND ONLY IF the question was asked
+                                 # and went unanswered. Never a silent assumption.
+
+    evidence:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-6.htm"
+      retrieved_on: 2026-08-25
+      quote: "kardiyak ağrıya benzer göğüs ağrısı"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        EK-4 splits chest pain three ways (04 §3), which is why this rule and
+        rf.chest_pain_no_cardiac_history are siblings rather than one `chest_pain` token.
+        CI gate `ek4_chest_pain_split_is_three_way` asserts the third arm exists too —
+        see TODO.remaining_adult_rules.
+
+    excluded_criteria:
+      - criterion: "blood pressure, heart rate, oxygen saturation"
+        reason: >-
+          04 §8.1 rule 1 — a layperson cannot report a blood pressure they have not
+          measured. Any vitals-based refinement of this rule is clinician-side only.
+      - criterion: "ECG features"
+        reason: "Not obtainable in a pre-visit intake. Not a layperson-answerable trigger."
+    inference_disclosure: >-
+      The character/radiation/diaphoresis disjunction is OUR operationalisation of EK-4's
+      phrase "kardiyak ağrıya benzer". EK-4 does not enumerate features. This split is
+      ours, not the regulator's, and must appear in the ISO 14971 file as such.
+
+    golden_positive:
+      id: LT-01-P
+      case: >-
+        58-year-old, pressure across the chest for 40 minutes, sweating, radiating to the
+        left arm. Fast mode, visit `confirmed`.
+      expect: {fires: true, level: KIRMIZI_K2, route: EMERGENCY_NOW, register: ALERT, location: REMOTE, show_112: true}
+    golden_negative:
+      id: LT-01-N
+      case: >-
+        NEAR MISS — 29-year-old, sharp left-sided chest pain for three days, worse on deep
+        breath and on pressing the spot, no sweating, no radiation, no breathlessness.
+      expect: {fires: false}
+      why_it_is_a_near_miss: >-
+        Same slot (chest_pain.present == true), same body region, same patient anxiety.
+        It differs only in the character/radiation/associated disjunction. If the gate is
+        ever loosened to `chest_pain.present` alone, THIS is the case that starts firing
+        KIRMIZI_K2 on musculoskeletal chest wall pain — and nobody notices, because the
+        positive test still passes.
+
+  # ===================================================================================
+  # EXEMPLAR 2 — the SAME_DAY_ACIL shape, and the ON_SITE collapse made concrete.
+  # Deliberately the EK-4 sibling of exemplar 1: same symptom, different arm, different
+  # acuity, different register. Register ≠ route.
+  # ===================================================================================
+  - id: rf.chest_pain_no_cardiac_history
+    label_tr: "Kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
+    age_band: adult
+    gate: >-
+      chest_pain.present == true
+      && !(chest_pain.character in {"baskı", "sıkışma", "ağırlık"})
+      && chest_pain.radiation == "yok"
+      && associated.diaphoresis == false
+      && associated.dyspnoea == false
+      && trauma.recent == false
+    tense: today
+    tense_anchor: chest_pain.onset_at
+    level: SARI_K1               # EK-4: "kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
+    route: SAME_DAY_ACIL
+    register: CALM               # a SARI is not an alarm. Route and register are orthogonal.
+    distress_sensitive: false
+    notify_clinic: always
+
+    action:
+      REMOTE:
+        primary: SAME_DAY_ACIL_TODAY
+        show_112: false
+        action_tr: "Bugün içinde bir acil servise başvurun."
+        do_nots_tr:
+          - "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — 112'yi arayın."
+        why_tr: >-
+          Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Randevunuzu
+          beklemek uygun değil.
+      ON_SITE:
+        # ⚠️ THE COLLAPSE. Under ON_SITE this is materially the same instruction as
+        # EMERGENCY_NOW/ON_SITE above: walk there now, do not wait for the appointment,
+        # staff notified. The routes remain distinct in the record and in the clinic
+        # notification — SARI_K1 is not KIRMIZI_K2 and the acuity must not be raised to
+        # make the text tidy — but the patient-facing text converges, because the
+        # difference between "now" and "today" is a difference in travel and this patient
+        # is not travelling.
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: >-
+          **Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin.
+          Görevlilere haber verildi.
+        do_nots_tr:
+          - "Poliklinik sırasında beklemeyin."
+        why_tr: >-
+          Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten
+          hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz.
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+
+    evidence:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-6.htm"
+      retrieved_on: 2026-08-25
+      quote: "kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+
+    excluded_criteria:
+      - criterion: "chest wall tenderness on palpation"
+        reason: >-
+          04 §8.1 rule 1 — palpation findings are a clinician manoeuvre. A self-report of
+          "it hurts when I press it" is NOT the same finding and must not be used to
+          exclude cardiac pain. This is the most tempting wrong shortcut in the file.
+    inference_disclosure: >-
+      EK-4 says "kardiyak öykü ile uyumlu olmayan"; the negated feature list is ours.
+      Negation as a trigger is riskier than assertion: see the Turkish negation
+      adversarial set (04 §8.2, `turkish_negation_adversarial_set`).
+
+    golden_positive:
+      id: LT-02-P
+      case: >-
+        34-year-old, chest pain since this morning, stabbing, localised, no radiation, no
+        sweating, no breathlessness, no trauma. Detailed mode, visit `checked_in`.
+      expect: {fires: true, level: SARI_K1, route: SAME_DAY_ACIL, register: CALM, location: ON_SITE, show_112: false, notify_staff_immediate: true}
+    golden_negative:
+      id: LT-02-N
+      case: >-
+        NEAR MISS — 34-year-old with the same stabbing localised pain, but who ALSO says
+        "biraz nefesim daralıyor". `associated.dyspnoea == true`.
+      expect: {fires: false, and_instead: rf.chest_pain_cardiac_features fires at KIRMIZI_K2}
+      why_it_is_a_near_miss: >-
+        This case must fall OUT of the SARI arm and INTO the KIRMIZI arm. A negative that
+        merely "does not fire" would be satisfied by a broken gate that fires nothing at
+        all — so this negative asserts where the case lands, not only where it does not.
+
+  # ===================================================================================
+  # EXEMPLAR 3 — paediatric airway. The case where ALARM IS THE HARM.
+  # This is the rule the `register` field exists for. It is KIRMIZI_K1 and CALM at the
+  # same time, and anyone who thinks that is a contradiction has not read 02 §5.3.
+  # ===================================================================================
+  - id: rf.paediatric_airway_obstruction
+    label_tr: "Çocukta üst solunum yolu tıkanıklığı düşündüren bulgular"
+    age_band: paediatric
+    subject_is_child: true
+    gate: >-
+      subject.age_years < 18
+      && (airway.stridor_reported == true
+          || airway.drooling_unable_to_swallow == true
+          || airway.tripod_position == true
+          || airway.muffled_voice == true)
+    tense: now
+    tense_anchor: airway.onset_at
+    level: KIRMIZI_K1            # "hiç bekletilmeden kırmızı alana" — immediate, NOT a
+                                 # numeric target. Do not write a time here.
+    route: EMERGENCY_NOW
+    register: CALM               # ⛔ NOT ALERT. NOT OVERRIDABLE. See distress_sensitive.
+    distress_sensitive: true
+    suppress_attention_interrupt: true   # 04 §8.1 rule 6 — this rule must not run the
+                                         # normal attention-grabbing interrupt AT ALL.
+    audio: {spoken: true, prosody: soft, alert_sound: false}
+    notify_clinic: always
+
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        # Turkish text lifted verbatim from the worked CALM example in `02 §5.3`, which
+        # is where this wording was agreed. Do not re-translate it; re-translation is how
+        # "kendi rahat ettiği pozisyonda" quietly becomes "yatırın".
+        action_tr: >-
+          Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.
+        do_nots_tr:
+          - "Ağzını veya boğazını açıp bakmayın."
+          - "Su, yiyecek ya da ilaç vermeyin."
+          - "Çocuğunuzu sırtüstü yatırmayın."
+          - "Yanından ayrılmayın; onu ağlatacak ya da telaşlandıracak bir şey yapmayın."
+        why_tr: >-
+          Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
+          Şu anda çocuğunuz için en yararlı şey, sizin sakin kalmanız.
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        carry_child: true
+        action_tr: >-
+          Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun ve **Acil Servis'e
+          götürün[ — {{tenant.acil_location_tr}}]**. Randevunuzu beklemeyin.
+          Görevlilere haber verildi.
+        do_nots_tr:
+          - "Ağzını veya boğazını açıp bakmayın."
+          - "Su, yiyecek ya da ilaç vermeyin."
+          - "Çocuğunuzu sırtüstü yatırmayın."
+          - "Onu ağlatacak ya da telaşlandıracak bir şey yapmayın; koşmayın."
+          - "Poliklinik sırasında beklemeyin."
+        why_tr: >-
+          Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
+          Zaten hastanedesiniz; en yararlı şey sakin kalmanız ve doğrudan acil servise
+          gitmeniz.
+        open_question: >-
+          Tebliğ MADDE 9(1) admits no companion to the kırmızı alan as a rule, waived only
+          with physician approval. Whether and how to pre-warn a parent about this is an
+          open clinician decision (02 §5.3, flagged for ClinicalAuthor). The text above
+          deliberately promises nothing about staying with the child, rather than
+          promising something that may be withdrawn at the door.
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+
+    status: draft_needs_source
+    source_gap: >-
+      NO CLINICAL SOURCE YET. The DELIVERY decision (CALM register, suppressed interrupt,
+      the do-not list) is sourced to this project's own design record — `02 §5.3` and
+      `04 §8.1` rule 6 — which is a design decision, NOT a clinical guideline, and must
+      not be dressed up as one in the evidence block. What is still missing is a citable
+      Turkish or international paediatric emergency source for the TRIGGER SET itself
+      (stridor / drooling / tripod / muffled voice as parent-reportable features of upper
+      airway obstruction) and for the age banding. Until that snapshot exists under
+      packages/protocols/sources/, this rule is NOT compiled into a served pack
+      (04 §8.1 rule 3). Note that NICE NG143 is *fever in under 5s* and does not cover
+      this — do not reach for it because it is the paediatric guideline already named
+      elsewhere in `04`.
+    evidence: null               # deliberately null. An invented citation here would be
+                                 # worse than no citation, because it would pass review.
+
+    excluded_criteria:
+      - criterion: "respiratory rate count"
+        reason: "04 §8.1 rule 1 — a distressed parent cannot reliably count a respiratory rate."
+      - criterion: "chest indrawing / recession grading"
+        reason: "Requires undressing and observing the child, and a grading scale. Not layperson-answerable."
+      - criterion: "oxygen saturation"
+        reason: "No pulse oximeter assumed. Any threshold here would be invented."
+      - criterion: "'appears ill to a healthcare professional'"
+        reason: "Explicitly forbidden as a trigger (04 §8.1 rule 1)."
+    inference_disclosure: >-
+      The parent-reportable / clinician-only split for airway features is OURS. No cited
+      guideline publishes that split for these features. Records in the ISO 14971 file.
+
+    golden_positive:
+      id: LT-03-P
+      case: >-
+        3-year-old, guardian proxy session. Parent describes noisy breathing on breathing
+        IN, child sitting forward, drooling, will not lie down.
+      expect: {fires: true, level: KIRMIZI_K1, route: EMERGENCY_NOW, register: CALM, alert_sound: false, attention_interrupt: suppressed}
+    golden_negative:
+      id: LT-03-N
+      case: >-
+        NEAR MISS — 3-year-old with a barking cough and a hoarse voice for two days,
+        settled, drinking normally, no noise at rest, not drooling, sitting normally.
+      expect: {fires: false}
+      why_it_is_a_near_miss: >-
+        A very common, usually self-limiting presentation that a loosened gate would sweep
+        in — "hoarse voice" is one careless synonym away from "muffled voice", and a
+        barking cough is noisy breathing to a frightened parent. If this rule starts
+        firing KIRMIZI_K1 on it, the product sends a large number of well children to
+        resuscitation rooms, and the clinicians who learn to ignore this alert are the
+        same clinicians who will ignore LT-03-P.
+
+  # ===================================================================================
+  # EXEMPLAR 4 — the SILENT shape. Screen only, no audio ever, no headline, no colour.
+  # Consent-INDEPENDENT: this path runs even when wellbeing consent is declined
+  # (04 §4.2 defect 3, CI gate `consent_independent_path_runs_when_wellbeing_consent_is_declined`).
+  # It is deterministic signposting, NOT a screener and NOT an instrument.
+  # ===================================================================================
+  - id: rf.crisis_disclosure_signposting
+    label_tr: "Kriz ifadesi — yönlendirme"
+    age_band: both
+    gate: >-
+      transcript.crisis_lexicon_hit == true
+      || safety.self_harm_statement == true
+    tense: now
+    tense_anchor: transcript.utterance_at
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: SILENT             # 02 §5.3 — an alarm here increases distress and
+                                 # precipitates disengagement, the highest-risk state the
+                                 # product can enter (04 §4.2). Also the correct register
+                                 # when a third party is audible.
+    distress_sensitive: true
+    audio: {spoken: false, prosody: null, alert_sound: false}   # NO AUDIO. EVER.
+    consent_independent: true    # runs regardless of wellbeing-lane consent
+    offline_draft_path: forbidden  # 04 §8.2 `crisis_items_have_no_offline_draft_path` —
+                                   # evaluated SERVER-SIDE on the answer, excluded from the
+                                   # encrypted offline-resume cache. Otherwise the
+                                   # disclosure may never reach the server at all.
+    notify_clinic: always
+    abandonment_handler: server_side_on_answer   # 04 §4.2 defect 2
+
+    action:
+      REMOTE:
+        primary: CRISIS_SIGNPOST
+        show_112: true
+        numbers: [112]           # ⛔ 112 ONLY. Crisis numbers are hard-coded in
+                                 # docs/legal/strings.yaml under PolicyGuard with clinician
+                                 # sign-off. NO MODEL, SEARCH TOOL OR LEARNING-LOOP
+                                 # PROPOSAL MAY EVER POPULATE A CRISIS NUMBER (04 §4.1).
+                                 # CI: `no_crisis_string_contains_182` — that gate tests
+                                 # STRINGS, not comments; the number appears in this
+                                 # comment only in order to forbid it. ALO 182 is the
+                                 # MHRS APPOINTMENT line and routes a suicidal patient to
+                                 # a booking queue. 183 = violence/abuse/neglect.
+                                 # 191 = substance. Türkiye has no 988 equivalent.
+        action_tr_ref: strings.crisis.remote_tr   # text lives in docs/legal/strings.yaml,
+                                                  # NOT here — PolicyGuard owns it
+        do_nots_tr: []
+        why_tr_ref: strings.crisis.why_tr
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr_ref: strings.crisis.onsite_tr
+        why_tr_ref: strings.crisis.why_tr
+        note: >-
+          ON_SITE is the strongest case in the whole file for staff notification as the
+          primary channel: the patient is in the building and a clinician can reach them.
+          Still SILENT — the delivery register does not change because the location did.
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+
+    status: draft_needs_source
+    source_gap: >-
+      TWO gaps, both blocking. (1) The crisis LEXICON itself — the deterministic Turkish
+      phrase list behind `transcript.crisis_lexicon_hit` — does not exist and must be
+      clinician-authored, not model-generated. (2) The escalation policy this rule hands
+      off to does not exist either: `04 §4.2` lists four defects (no responder, unhandled
+      abandonment, the consent hole, and a script missing means restriction and safety
+      planning) and states that running this pathway in production before that policy
+      exists is not defensible. What IS settled and citable is the number: 112 is the
+      single national emergency number since 1 Feb 2018 and psychiatric emergencies
+      including suicide risk are in its remit (04 §4.1).
+      ⛔ This rule must not be confused with C-SSRS, which is separately licence-BLOCKED
+      (Clario exclusive electronic licence; Turkish validation is adolescents 12–18 only).
+      This is signposting, not a screener, and must stay that way — a screener here would
+      need the licence.
+    evidence: null
+
+    excluded_criteria:
+      - criterion: "any numeric risk score"
+        reason: >-
+          An LLM may not infer a score from narrative (04 header, instrument fidelity),
+          and a proxy session never emits a numeric instrument score (04 §8.2).
+      - criterion: "notifying a named contact person"
+        reason: >-
+          Special-category disclosure whose lawful basis is exactly what `04 §4.2` and
+          `04 §8.5` defer to counsel. Not encoded until answered.
+    inference_disclosure: >-
+      Phrase-triggered signposting is our own construct, defensible as duty of care and
+      deliberately not a device function. It is not derived from any published instrument.
+
+    golden_positive:
+      id: LT-04-P
+      case: >-
+        Adult, wellbeing consent DECLINED, says mid-session "artık yaşamak istemiyorum".
+        Third party audible in the room.
+      expect: {fires: true, register: SILENT, spoken: false, headline: none, consent_independent: true, notify_clinic: always, offline_draft: refused}
+    golden_negative:
+      id: LT-04-N
+      case: >-
+        NEAR MISS — adult says "bu ağrıyla yaşamak istemiyorum artık, dayanamıyorum" while
+        describing chronic back pain, in a session about that pain.
+      expect: {fires: false}
+      why_it_is_a_near_miss: >-
+        Near-identical surface Turkish — "yaşamak istemiyorum" appears in both. This is the
+        case a naive substring lexicon fires on, and firing it means a distressed pain
+        patient is silently reported to a clinic inbox as a crisis disclosure, which is
+        both a wrong clinical record and a privacy harm. It is also the case a
+        model-generated lexicon gets wrong, which is one of the reasons the lexicon must
+        be clinician-authored.
+        ⚠️ This negative is NOT a licence to under-trigger. The correct resolution of the
+        ambiguity is a clinician-authored disambiguation, not a narrower substring — and
+        `04 §8.3` exempts the deliberately-low-specificity rules from any false-positive
+        ceiling for exactly this reason. Whoever fixes LT-04-N must not fix it by
+        weakening the gate.
+
+# =====================================================================================
+#  GOLDEN TESTS — the consolidated table
+#  CI gate: `every_rule_has_a_true_positive_and_a_near_miss_negative` (04 §8.2, blocking)
+# =====================================================================================
+#
+#  WHY THE NEAR-MISS NEGATIVE MATTERS MORE THAN THE POSITIVE — read this before adding
+#  a rule.
+#
+#  A true positive tells you the rule fires on the case it was written for. That is the
+#  case the author had in their head while writing the gate, so it passes almost by
+#  construction, and it keeps passing under every loosening of the gate. A positive test
+#  can only ever detect UNDER-triggering.
+#
+#  Over-triggering is the failure that actually kills this product, and it is invisible
+#  to positives. It is invisible in production too, because a false RED looks like a
+#  cautious system: the patient goes to the acil servis, is seen, is fine, and nobody
+#  files anything. It surfaces months later as clinicians who have learned to ignore the
+#  alert — at which point the rule that matters, LT-03-P, is ignored along with the rest.
+#  Alert fatigue is not a UX complaint; it is the mechanism by which a correct rule stops
+#  working.
+#
+#  So the negative must be a NEAR miss, not a far one. "A healthy 20-year-old with no
+#  symptoms does not trigger the chest pain rule" tests nothing — it fails only if the
+#  engine is entirely broken. The negative has to sit one attribute away from the
+#  positive, on the exact attribute the gate turns on, so that any loosening of that
+#  attribute breaks the build. Every negative below is written that way, and each one
+#  names the specific loosening it is defending against.
+#
+#  Note also `04 §8.3`: the primary safety metric is MISSES, not false positives, and the
+#  2 % false-RED ceiling is deleted because a hard ceiling creates continuous pressure to
+#  weaken rules. These negatives are not a false-positive budget. They are a defence
+#  against silent gate drift. The two things point in opposite directions and the
+#  difference is deliberate.
+#
+#  | rule                             | + true positive         | − near-miss negative                       | attribute under test        |
+#  |----------------------------------|-------------------------|--------------------------------------------|-----------------------------|
+#  | rf.chest_pain_cardiac_features   | LT-01-P pressure+sweat  | LT-01-N pleuritic, reproducible, 3 days     | character/radiation/assoc.  |
+#  | rf.chest_pain_no_cardiac_history | LT-02-P stabbing, local | LT-02-N same + dyspnoea → must land KIRMIZI | the negated feature list    |
+#  | rf.paediatric_airway_obstruction | LT-03-P stridor+drool   | LT-03-N barking cough, hoarse, settled      | stridor vs cough, at rest   |
+#  | rf.crisis_disclosure_signposting | LT-04-P explicit        | LT-04-N idiomatic pain despair              | lexicon precision           |
+#
+#  Additional golden obligations already binding on this pack (04 §8.2), not yet written:
+#    · `turkish_negation_adversarial_set` — "ağrım yok değil hani", "bayılmadım ama
+#      bayılacak gibi oldum", "kanama yoktu, sadece siyahtı". Exemplar 2's gate is built
+#      on negation and is the most exposed rule in this file.
+#    · `red_path_works_with_no_audio` — the RED design is defined in terms of cutting
+#      playback within 150 ms, which is meaningless in typed mode.
+#    · `answer_state_is_three_valued` / `did_not_understand_is_not_a_no`.
+#    · `red_advice_and_dismissal_are_recorded` — if the patient dismisses, the note must
+#      say so: "14:02'de acile başvurması önerildi; hasta görüşmeye devam etmeyi seçti."
+#    · NEW, from `02 §5.3` Axis 3: `every_red_action_resolves_for_all_three_locations`,
+#      `on_site_action_never_offers_112`, `unknown_location_asks_exactly_one_question`.
+#
+goldens_index:
+  - {rule: rf.chest_pain_cardiac_features,   positive: LT-01-P, near_miss_negative: LT-01-N}
+  - {rule: rf.chest_pain_no_cardiac_history, positive: LT-02-P, near_miss_negative: LT-02-N}
+  - {rule: rf.paediatric_airway_obstruction, positive: LT-03-P, near_miss_negative: LT-03-N}
+  - {rule: rf.crisis_disclosure_signposting, positive: LT-04-P, near_miss_negative: LT-04-N}
+
+# =====================================================================================
+#  TODO — what is missing. This list is the honest measure of how far from L1 this is.
+# =====================================================================================
+TODO:
+
+  remaining_adult_rules:
+    status: NOT IN THIS FILE
+    expected_count: ~30 of ~34
+    note: >-
+      The adult universal set was drafted earlier in this project and is held by the
+      product owner. This file has 4 exemplars; the rest must be pasted in against this
+      schema. Every one needs `register`, all three `action` locations, an `evidence`
+      block or an explicit `status: draft_needs_source`, and a near-miss negative.
+    known_named_gaps:
+      - "EK-4 third chest-pain arm: 'göğüs ağrısı ve solunum sıkıntısı olmayan basit göğüs
+         yaralanmaları' → SARI_K2. Without it, CI gate `ek4_chest_pain_split_is_three_way`
+         fails and the split is two-way, which under-triages nothing but misclassifies."
+      - "rf.stroke_fast, rf.dyspnoea_rest, rf.anaphylaxis, rf.severe_bleeding,
+         rf.thunderclap_headache, rf.sepsis_like (04 §3 excerpt table) — none carries a
+         source block today; `12 §2.5` records that a grep of the v1.4 bundle for
+         NICE/IDSA/USPSTF/Ottawa/BSR/ESVS identifiers returned ZERO hits."
+      - "The six rules that motivated this pack existing at all (04 §8): cauda equina,
+         testicular torsion, limb ischaemia, acute angle-closure, neutropenic fever, GCA.
+         All currently live in cluster/specialty packs and so only fire if the patient
+         happened to book that branch."
+      - "rf.sah_ottawa, rf.meningitis_pattern, rf.ectopic_possible — the three rules
+         exempt from any false-positive ceiling, with reasons on the record (04 §8.3)."
+      - "Every threshold in the above is `TODO: threshold requires clinical sign-off`
+         unless it can be quoted verbatim from a committed source snapshot."
+
+  paediatric_rules:
+    status: NOT IN THIS FILE
+    note: >-
+      One airway exemplar only, and it is `draft_needs_source`. Everything else paediatric
+      is absent: fever under 3 months, lethargy/poor feeding in an infant, breathing
+      difficulty with retractions (note: retraction GRADING is a forbidden trigger —
+      04 §8.1 rule 1 — so the parent-reportable form has to be authored), non-blanching
+      rash with fever, dehydration signs, ingestion/poisoning (with the "kusturmaya
+      çalışmayın … nötralize etmeye çalışmayın" do-nots), and the age-band boundaries
+      themselves. Requires a PAEDIATRICIAN's signature, separately recorded in
+      `clinical_signoff.paediatric_reviewer_name`.
+    warning: >-
+      CG84's October 2022 minor change moved the IV fluid bolus for shock from 20 ml/kg to
+      10 ml/kg WITHOUT moving its "last updated" date (04 §8.4). Any paediatric threshold
+      taken from a header-dated citation is suspect. Diff the update-information chapter.
+
+  pregnancy_rules:
+    status: NOT IN THIS FILE
+    note: >-
+      Absent entirely: pregnancy + heavy bleeding / severe pain, pre-eclampsia pattern
+      (headache, visual change, swelling ≥ 20 wk), reduced fetal movements, post-partum
+      fever / heavy bleeding, ectopic possibility. `04 §8.2` already declares the CI gate
+      `sepsis_guideline_routes_on_age_and_pregnancy`, which cannot pass while this section
+      is empty. NG126's own language — "atypical presentation … is common" — is why
+      rf.ectopic_possible is on the no-ceiling list.
+
+  base_intake_additions:
+    status: NOT DONE — and this pack cannot fire correctly without them
+    note: >-
+      Several rules above and most of the rules still to come reference slots that
+      `base.intake` (04 §1) does not currently collect. CI gate
+      `no_rule_references_an_undeclared_slot` will fail until these exist. Each needs
+      `ask_tr`, `follow_up_tr` and a `choices_tr[]` where applicable, and each costs turns
+      against the fast-mode budget of ≤ 18 (04 §1) — which is ALREADY over-subscribed at
+      16–21 turns in the clean case (02 §2). Adding five slots without shedding others is
+      not possible; that reconciliation is a clinician decision, not an engineering one.
+    slots:
+      - {slot: pregnancy_status, note: "possibility of pregnancy + LMP. Gates every pregnancy rule and several sepsis/imaging routes."}
+      - {slot: lmp_date,         note: "date of last menstrual period."}
+      - {slot: immunosuppression, note: "chemotherapy, biologic, steroid, transplant, known immunodeficiency. Gates neutropenic fever and the sepsis-like rule."}
+      - {slot: anticoagulant_use, note: "gates bleeding and head-injury rules. `overlay.anticoagulated` exists but overlays may only tighten, so the base slot must exist."}
+      - {slot: weight_kg,        note: "paediatric dosing and fluid rules. ⚠️ see the Freya TTS normaliser hazard in `00 §2` — a spoken weight or dose can be silently mis-verbalised by 10×."}
+      - {slot: time_last_known_well, note: "stroke. Without it rf.stroke_fast has no tense_anchor and, per 12 §2.4, cannot fire on an undated symptom."}
+
+  schema_reconciliation:
+    status: OPEN — decide before the compiler is written
+    items:
+      - "`evidence:` (this file) vs `source:` (04 §8.1 rule 3, 12 §2.5). Same field, two
+         names. The CI gate is literally called `every_red_rule_has_a_source_block`, so if
+         `evidence` wins the gate name has to move with it or it will silently pass by
+         finding nothing to check."
+      - "`gate:` (this file, per the authoring brief) vs `when:` (12 §2.4 and the
+         DENY_SUFFIXES list in 12 §3.2). One name must give. If `gate` wins, the deny-list
+         suffix must change too, or an overlay could reach the predicate."
+      - "Whether `action` keyed by location lives on the rule or on a shared action
+         library. Four exemplars already repeat the UNKNOWN branch verbatim; thirty-four
+         will repeat it thirty-four times, and a copy-paste divergence in the one-question
+         branch is a silent safety bug."
+      - "`show_112: false` under ON_SITE is currently a per-action flag. It would be safer
+         as a compiler-enforced invariant — `on_site_action_never_offers_112` — so that an
+         author cannot set it true at all."
+
+  before_any_of_this_reaches_a_patient:
+    - "A named licensed physician signs the PR. Paediatric rules need a paediatrician."
+    - "Every `draft_needs_source` rule is either sourced against a committed verbatim
+       snapshot or kept out of the served pack (04 §8.1 rule 3, 04 §8.5)."
+    - "The `04 §4.2` escalation policy exists — responder, abandonment handler,
+       consent-independent path, means restriction and safety planning — before
+       rf.crisis_disclosure_signposting runs anywhere near a real person."
+    - "Per-rule extraction sensitivity and specificity against a Turkish clinical
+       reference standard (04 §8.3, blocking for P1 exit). A deterministic rules engine
+       over probabilistic inputs is not deterministic."

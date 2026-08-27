@@ -43,3 +43,14 @@
 - Blocked on: PR merges remain owner-side (harness classifier); board creation may need `gh auth refresh -s project`.
 - Next: INT-043 — draft base.intake and put it in the owner's inbox (unblocks 78 of 175).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T19:45:00+03:00 · INT-043 · awaiting-human (drafted, PR open)
+- Goal: draft the base.intake pack (tr/en) + the 04 §3 pack-level red flags, front-loaded per 07 §E — the owner has review work from day one.
+- Plan: read 04/12/13 + the life_threat exemplar in full; draft intake.yaml (9 sections, six HB-C6 slots, priority classes, delivery modes, GO-only instruments), red_flags.yaml (YELLOW rules + golden near-miss pairs + RED migration map), copy life_threat.yaml to its code path; structural gate suite; CODEOWNERS.
+- Tests added: tests/protocols/test_base_pack_draft.py (11 structural gates incl. the C-SSRS-must-fail negative control and no_rule_references_an_undeclared_slot); serve-interlock proven able to fail on a planted served:true (recorded, reverted).
+- Result: 62 tests green; make check green; no placeholder violations (the sign-off TODOs are the permitted clinical form). PR open with approval:human-clinical, left open by design.
+- Invariants touched and still passing: none executable yet; D16/D17 upheld (no accuracy claims; clinical_signoff stays empty).
+- Decisions / 00 rows: none new — every open clinical decision is surfaced, not made (HB-C5/C6/C7).
+- Blocked on: physician of record — sign the drafts (HB-C1/C2/C7); clinician — turn budget (HB-C5) and the six additions (HB-C6). All in docs/backlog/blockers.md.
+- Next: INT-010 (intake_platform health contract) — the platform chain, per the 07 §4 order, while clinical review runs.
+- LOOP_STATUS: CONTINUE
