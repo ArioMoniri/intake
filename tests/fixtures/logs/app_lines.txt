@@ -1,0 +1,3 @@
+2026-08-27T10:00:01Z INFO intake.api patient checked in, tckn 10000000146, callback 05321234567
+2026-08-27T10:00:02Z INFO intake.workers refund to TR330006100519786457841326 queued
+2026-08-27T10:00:03Z INFO intake.api order 12345678901 (not a tckn) processed for msisdn 5321234567

@@ -1,0 +1,47 @@
+# OTel collector — dev profile (INT-011; files/10 §6, 07 §6 snippet).
+# The transform/redact processor is the pipeline-level PII layer; the same
+# patterns live app-side in intake_platform.redaction, and a CI test extracts
+# these statements and runs them against fixture logs so the committed config
+# is what gets tested. Everything binds loopback; no external exporter — the
+# Prometheus/Loki/Tempo/Grafana (or SigNoz) stack joins with INT-023.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:4317
+      http:
+        endpoint: 127.0.0.1:4318
+
+processors:
+  transform/redact:
+    log_statements:
+      - context: log
+        statements:
+          - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
+          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
+          - 'replace_all_patterns(body, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
+          - 'replace_all_patterns(body, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(body, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
+          # names allow-list: only these attribute keys survive the pipeline —
+          # a name (or anything else) has no allow-listed key to travel in.
+          - 'keep_keys(attributes, ["service.name", "level", "logger", "session_id_hash", "tenant_id", "protocol_hash", "prompt_version", "event", "duration_ms", "trace_id", "span_id"])'
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [transform/redact]
+      exporters: [debug]
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: []
+      exporters: [debug]
