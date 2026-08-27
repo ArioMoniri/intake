@@ -81,7 +81,8 @@
   title: "packages/intake_platform/otel: shared tracing/metrics/logs + PII redaction processor"
   depends_on: [INT-010]
   labels: [area:platform]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-011.md
   acceptance:
     - "propagates trace_id, hashed session_id, tenant_id, protocol_hash, prompt_version; JSON logs; no-PHI invariant"
     - "OTel collector config with redaction (TCKN checksum regex, 05x phone, IBAN, names allow-list) unit-tested on fixture logs"

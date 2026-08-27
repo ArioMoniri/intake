@@ -54,3 +54,14 @@
 - Blocked on: nothing.
 - Next: INT-011 OTel + PII redaction processor.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T21:20:00+03:00 · INT-011 · done
+- Goal: shared OTel setup + the two-layer PII redaction (app JSON formatter + collector config) with propagated ids.
+- Plan: failing tests first (collection error), then redaction.py (TCKN checksum, 05x phone, TR IBAN), otel.py (bind_log_context with boundary-hashed session id, JsonLogFormatter with attribute allow-list, local-only setup_otel), otel-collector.yaml whose statements the test extracts and runs on fixture logs.
+- Tests added: tests/platform/test_redaction.py (10 — checksum positive/negative, per-pattern masking, fixture-log sweeps app-side AND from the committed collector YAML, context propagation with raw-session-never-logs assertion, allow-list drop, local-only default).
+- Result: 72 passed on branch; make check green; mypy strict with a scoped override for the optional OTLP exporter import.
+- Invariants touched and still passing: 6 (first mechanical layers), 8, 15.
+- Decisions / 00 rows: none — implements 10 §6/07 §6 as specified; free-text name NER deliberately deferred to INT-015 (stated in evidence).
+- Blocked on: nothing.
+- Next: INT-012 security middleware (headers, rate limiter, idempotency keys).
+- LOOP_STATUS: CONTINUE
