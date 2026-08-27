@@ -1,0 +1,177 @@
+# INT-022 — the self-hosting registry (CLAUDE.md invariants 13, 15, 19).
+#
+# Schema per acceptance, exactly these nine keys per row:
+#   {component, self_hostable, self_hosted_now, host, license, probe,
+#    budget_ms, fallback, phi_path}
+# Validated by services/probes (intake_probes.registry): phi_path implies
+# self_hostable (invariant 19), probe ids must exist in code, fallback is
+# `none` | `component:<name>` (must resolve here) | `in-process:<module>`.
+#
+# "Enabled" for the release gate means self_hosted_now: true — a planned row
+# binds the moment it runs, never before. scripts/release/release_gate.py
+# blocks the release for every enabled phi_path row whose fallback is missing
+# or unhealthy; today that is the true state of the stack and the gate says so.
+#
+# Licences here are findings, never claims: UNVERIFIED stays UNVERIFIED until
+# a raw LICENSE blob has been read (files/03 §4.9.0 rule 3).
+#
+# EHRbase is intentionally absent: openEHR was cut from P0/P1 and kept as a
+# P3 export tier (files/00_STATE.md §3 D8) — it joins this registry with
+# INT-032, not before.
+
+components:
+  - component: postgres
+    self_hostable: true
+    self_hosted_now: true
+    host: "dev compose 127.0.0.1:5432 — pgvector/pgvector:pg16"
+    license: "PostgreSQL Licence (PostgreSQL and pgvector both)"
+    probe: postgres_select1
+    budget_ms: 500
+    fallback: "component:backups"
+    phi_path: true
+
+  - component: redis
+    self_hostable: true
+    self_hosted_now: true
+    host: "dev compose 127.0.0.1:6379 — redis:7.4-alpine"
+    license: "RSALv2 / SSPLv1 dual (source-available, not OSI; internal self-hosting permitted — re-verify before ever offering it as a service)"
+    probe: redis_ping
+    budget_ms: 200
+    fallback: "none"
+    # phi_path false TODAY: it holds rate-limit counters and idempotency keys
+    # over tokenized principals only (INT-176/INT-177). The moment session or
+    # clinical state lands in Redis this flips to true and the gate binds.
+    phi_path: false
+
+  - component: minio
+    self_hostable: true
+    self_hosted_now: true
+    host: "dev compose 127.0.0.1:9000 — minio/minio:RELEASE.2024-01-16T16-07-38Z"
+    license: "AGPL-3.0-only"
+    probe: minio_ready
+    budget_ms: 1000
+    fallback: "component:backups"
+    phi_path: true
+
+  - component: hapi
+    self_hostable: true
+    self_hosted_now: true
+    host: "dev compose 127.0.0.1:8091 — hapiproject/hapi:v7.2.0 (FHIR R4)"
+    license: "Apache-2.0"
+    probe: http_health
+    budget_ms: 3000
+    fallback: "component:backups"
+    phi_path: true
+
+  - component: openbao
+    self_hostable: true
+    self_hosted_now: true
+    host: "dev compose 127.0.0.1:8200 — openbao/openbao:2.0.2 (dev mode, auto-unsealed)"
+    license: "MPL-2.0"
+    probe: openbao_seal_status
+    budget_ms: 500
+    fallback: "component:backups"
+    phi_path: true
+
+  - component: api
+    self_hostable: true
+    self_hosted_now: false
+    host: "not running yet — services/api's first endpoints land with the E02 tier (INT-033..INT-037)"
+    license: "proprietary (repo LICENSE)"
+    probe: http_health
+    budget_ms: 800
+    fallback: "none"
+    phi_path: true
+
+  - component: probes
+    self_hostable: true
+    self_hosted_now: false
+    host: "this package (services/probes) — runner exists; the 60 s scheduler wiring (systemd/compose) lands with the deployment issues"
+    license: "proprietary (repo LICENSE)"
+    probe: http_health
+    budget_ms: 800
+    fallback: "none"
+    # probes read health endpoints only — no PHI reaches this service
+    phi_path: false
+
+  - component: voice-runtime
+    self_hostable: true
+    self_hosted_now: false
+    host: "planned — LiveKit Agents worker; the LiveKit server+TURN dev tier lands with INT-090"
+    license: "proprietary (repo LICENSE); LiveKit Agents Apache-2.0; livekit/turn-detector is proprietary (LiveKit Model License — knowingly adopted, files/03 §4.9.2(d))"
+    probe: livekit_room_join
+    budget_ms: 5000
+    # the profile-level degraded mode is `typed` (ADR-010) — a mode of this
+    # same service, not a separate component, so it cannot stand as `fallback`
+    fallback: "none"
+    phi_path: true
+
+  - component: edge-tls
+    self_hostable: true
+    self_hosted_now: false
+    host: "no TLS edge in the dev tier (compose binds loopback, plaintext); probe target comes from INTAKE_TLS_PROBE_TARGET once an edge terminator exists"
+    license: "not chosen yet — recorded when the edge terminator lands"
+    probe: cert_expiry_days
+    budget_ms: 2000
+    fallback: "none"
+    phi_path: true
+
+  - component: backups
+    self_hostable: true
+    self_hosted_now: false
+    host: "INTAKE_BACKUP_DIR (default .cache/backups) — no backup job wired yet; until one runs, every fallback pointing here fails the release gate, by design"
+    license: "n/a — our own artefacts"
+    probe: backup_freshness
+    budget_ms: 200
+    fallback: "none"
+    phi_path: true
+
+  # --- model rows: pins mirror files/03 §4.9.1; licences are the verified
+  # --- findings, carried verbatim (files/03 §4.9.0 rule 3) -------------------
+
+  - component: qwen3.5-9b
+    self_hostable: true
+    self_hosted_now: true
+    host: "Qwen/Qwen3.5-9B@c202236 — team GPU server, loopback 127.0.0.1:8801 (dev/synthetic only; PHI-path in-country serving is contract-gated, files/00_STATE.md §3 D11)"
+    license: "Apache-2.0 (LICENSE blob verified @c202236)"
+    probe: http_health
+    budget_ms: 2000
+    # no served fallback exists: files/03 §4.9.1 row 8 is a quality tier, not
+    # a fallback, and scripted clips + `typed` are modes, not components. The
+    # gate blocks on this row until a served fallback exists — by design.
+    fallback: "none"
+    phi_path: true
+
+  - component: whisper-tr-medical
+    self_hostable: true
+    self_hosted_now: true
+    host: "turkmedstt/whisper-large-v3-turkish-medical@0e74ec8 (CTranslate2 float16) — team GPU server, invoked per-run, no daemon yet (dev/synthetic only)"
+    license: "UNVERIFIED (card tag apache-2.0, no blob)"
+    probe: http_health
+    budget_ms: 4000
+    # it is itself the ASR fallback (files/03 §4.9.1 row 2); nothing stands
+    # behind it
+    fallback: "none"
+    phi_path: true
+
+  - component: freya-tts
+    self_hostable: true
+    self_hosted_now: false
+    host: "freyavoice/Freya-TTS@d124e07 — not deployed: commit-pinned git install awaits owner approval (docs/runbooks/team-gpu-server.md)"
+    license: "Apache-2.0 (code LICENSE blob verified @d124e07); VoxCPM2 VAE weights @32279eff have NO licence blob — open finding"
+    probe: http_health
+    budget_ms: 3000
+    fallback: "none"
+    phi_path: true
+
+  - component: deid-tr-ner-v1
+    self_hostable: true
+    self_hosted_now: true
+    host: "in-process (intake_platform.deid) — pinned artefact .cache/deid-tr-ner-v1, sha256-verified by `make deid-model` (INT-015)"
+    license: "own-trained: MIT base model + CC-BY-4.0 training data"
+    # artefact presence via the freshness probe with no age bound — a pinned
+    # model's mtime is its install time, not a health signal
+    probe: backup_freshness
+    budget_ms: 200
+    fallback: "in-process:intake_platform.redaction"
+    phi_path: true

@@ -233,7 +233,7 @@
   title: "services/probes: synthetic checks + self-hosting registry + release gate"
   depends_on: [INT-010, INT-021]
   labels: [area:observability]
-  status: todo
+  status: doing
   acceptance:
     - "registry table {component,self_hostable,self_hosted_now,host,license,probe,budget_ms,fallback,phi_path}; 60s runner with real dev checks (DB, Redis, MinIO, HAPI, OpenBao seal, LiveKit room join, cert expiry, backup freshness; EHRbase joins in P3 per 00 D8)"
     - "release-gate script blocks when an enabled phi_path component lacks a healthy self-hosted fallback"
@@ -1686,6 +1686,19 @@
     - "review sections reopen their question prefilled and return on save; __DEV__ voice pill records, ships audio to the team-box whisper-tr endpoint, deletes the file, drops the transcript into the note; Kardiyoloji/İç Hastalıkları, Nöroloji and KBB get their own anamnesis dimensions (severity in words, never numerals) feeding labelled HPI lines; consent.voice gates the pill"
   tests: [apps/mobile/e2e/flows.spec.ts]
   sec_row: "intake-typed"
+# INT-195: owner directive 2026-08-28 — dedicated design-agent pass to the
+# Oura register: real glass layering, kicker anatomy, guidance blocks.
+- id: INT-195
+  epic: E08-mobile
+  phase: P0
+  title: "Design pass 3: Oura-register glass layering, kicker/hairline anatomy, guidance-block empty states, Fraunces leading, AA fix"
+  depends_on: [INT-194]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "floating glass CTA bars on intake/review; kicker pills + hairline dividers across cards; wellbeing/records/learned empty states become product-copy guidance blocks (tr+en, no clinical content); display leading 1.2 vs body 1.4 pinned; the found AA regression (primary on primarySoft) fixed by hex and added to the pinned contrast suite; all tests green with no invariant weakened"
+  tests: [apps/mobile/e2e/nav.spec.ts, apps/mobile/src/lib/theme.test.ts]
+  sec_row: "mobile"
 - id: INT-180
   epic: E12-admin
   phase: P0
