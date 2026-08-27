@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model release-gate
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -62,3 +62,12 @@ backlog-render:
 
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache
+
+# INT-022: sweep the synthetic probes once, then run the release gate over the
+# self-hosting registry. Blocks (exit 1) while any enabled phi_path component
+# lacks a healthy self-hosted fallback — which today is the true state.
+PROBE_RESULTS_FILE ?= .cache/probe-results.json
+
+release-gate:
+	uv run python -m intake_probes.runner --once --out $(PROBE_RESULTS_FILE)
+	uv run python scripts/release/release_gate.py --registry observability/registry.yaml --results $(PROBE_RESULTS_FILE)
