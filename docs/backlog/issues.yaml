@@ -165,7 +165,8 @@
   title: "OpenBao dev server + per-service policies + dynamic DB creds"
   depends_on: [INT-001]
   labels: [area:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-017.md
   acceptance:
     - "compose service; api/workers/voice-runtime read secrets from OpenBao; .env holds only address/token in dev; dynamic Postgres creds TTL 24h"
     - "test proves a service boots with OpenBao and fails closed without it in prod mode"

@@ -87,3 +87,14 @@
 - Blocked on: nothing (release upload finishing; PR merges after CI fetches the artefact).
 - Next: INT-017 OpenBao dev server + policies.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T23:59:00+03:00 · INT-017 · done
+- Goal: OpenBao in the dev tier — fail-closed secrets boot, per-service policies, dynamic Postgres creds at 24h TTL; the docker tier gets its own CI lane.
+- Plan: red tests; SecretsProvider (prod refuses missing/dev-shaped/unreachable backends at boot; dev reads only the .env pointer); compose openbao service; setup script (database engine + 3 roles @24h + 3 least-privilege policies); integration marker + make check-integration + its CI job (05 §3).
+- Tests added: tests/security/test_openbao_wiring.py — 5 unit (fail-closed trio, dev defaults, env-template pin) + 2 integration (KV roundtrip, dynamic creds with lease==86400 proven by a real psycopg connect; policy presence).
+- Result: unit lane 100 passed; integration lane 2 passed locally against real containers. Two real defects caught by the failing tests (heredoc-swallowing exec, LIST verb).
+- Invariants touched and still passing: 13 (now mechanical), 14, 15.
+- Decisions / 00 rows: none — implements 10 §2 as specified.
+- Blocked on: nothing.
+- Next: INT-013 tokenization (deps now satisfied) or INT-018 egress proxy — file order says INT-013.
+- LOOP_STATUS: CONTINUE

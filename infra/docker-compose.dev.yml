@@ -67,6 +67,24 @@ services:
       timeout: 5s
       retries: 12
 
+  openbao:
+    # Dev-mode server (in-memory, auto-unsealed). .env carries only the
+    # address/token pointer; scripts/security/openbao_dev_setup.sh configures
+    # the database engine (24h roles) and per-service policies (INT-017).
+    image: openbao/openbao:2.0.2
+    command: server -dev -dev-root-token-id=${OPENBAO_TOKEN:-intake-dev-root} -dev-listen-address=0.0.0.0:8200
+    environment:
+      BAO_ADDR: http://127.0.0.1:8200
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "127.0.0.1:8200:8200"
+    healthcheck:
+      test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
 volumes:
   pgdata:
   miniodata:
