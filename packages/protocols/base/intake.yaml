@@ -1,0 +1,652 @@
+# =====================================================================================
+#  base.intake — the chain root every pack inherits (04 §1 · DSL v2: 12 · flow: 13)
+#  Code path: packages/protocols/base/intake.yaml
+# =====================================================================================
+#
+#  ⛔ STOP. NOTHING IN THIS FILE MAY BE SERVED TO A PATIENT.
+#
+#  maturity: L0 · status: awaiting-clinical-review · served: false
+#
+#  Every ask_tr / follow_up_tr / choices_tr below is an AGENT DRAFT prepared for
+#  clinician review (07 §E: "the agent drafts; the owner reviews"). Per 09 §2 an
+#  L0 pack may never be shown, spoken or acted on in front of a patient, in any
+#  tenant, in any mode. Promotion to L1 requires a named licensed physician's
+#  signature under CODEOWNERS; the clinical_signoff block below is empty on
+#  purpose and the compiler must refuse an L1 bundle while it stays empty.
+#
+#  ⚠️ TWO OPEN CLINICAL DECISIONS THIS DRAFT DOES NOT MAKE:
+#   1. HB-C5 — the fast-mode turn budget. 02 §2's content list runs 16–21 turns
+#      against a ≤ 18 budget BEFORE the six life-threat slots below. Cutting
+#      content, raising the budget, or compounding questions is a CLINICAL
+#      decision recorded with the clinician who makes it. This draft declares
+#      the full content and the budget as given, and does not resolve the
+#      collision. See turn_budget below.
+#   2. HB-C6 — the six base.intake additions (pregnancy_status, lmp_date,
+#      immunosuppression, anticoagulant_use, weight_kg, time_last_known_well).
+#      They are DRAFTED here so `no_rule_references_an_undeclared_slot` can
+#      pass; their wording, placement and applicability bands need clinician
+#      confirmation. Where a band or threshold is itself clinical, it carries
+#      the literal sign-off form of HUMAN_BLOCKERS.md rule 1, never a guess.
+# =====================================================================================
+
+kind: protocol_pack
+pack_id: base.intake
+version: 0.1.0-draft
+schema_version: 2
+extends: null # chain root — clusters extend this; base.life_threat is a SIBLING (12 §1)
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+created: 2026-08-27
+supersedes: []
+
+served: false
+serve_blocked_reason: >-
+  L0 / awaiting-clinical-review. No named clinician has signed this pack (INT-043
+  closes only on that signature). HB-C5 (turn budget) and HB-C6 (the six slot
+  additions) are open clinical decisions.
+
+clinical_signoff:
+  # Compiler MUST refuse an L1 bundle while any of these are null. Do not fill
+  # these in on behalf of a clinician (00 §3 D17 is the standing instruction).
+  reviewer_name: null
+  reviewer_licence_no: null
+  reviewer_specialty: null
+  signed_commit: null
+  signed_on: null
+
+turn_budget:
+  fast: 18 # 04 §1. HB-C5: over-subscribed — see the header. The budget governor
+  detailed: 45 # yields before the safety set does (13 §9.4), never the reverse.
+
+voice: # pack defaults (04 §1 voice fields); instruments override to allow_paraphrase: false
+  allow_paraphrase: true
+  backchannel_ok: true
+  ack_style: warm
+  pace: normal
+
+# Clinical constants that gate slots below. Values are clinical decisions.
+constants:
+  reproductive_age_min_years: "TODO: threshold requires clinical sign-off" # HB-C6/HB-C7
+  reproductive_age_max_years: "TODO: threshold requires clinical sign-off" # HB-C6/HB-C7
+
+instruments:
+  # Licence states per 04 header. A non-GO instrument must fail the build if a
+  # pack references it (instrument_licence_gate, HB-L2/HB-L3). Validated item
+  # text is NOT transcribed here: it must be ingested verbatim from the rights
+  # holder's official Turkish PDFs (INT-116), never retyped from memory —
+  # retyping is how instrument fidelity dies. The phqscreeners terms page now
+  # 404s; archiving the PDFs into the technical file is an owner task (00 §2).
+  - id: phq2
+    licence: GO
+    items_source: "official Turkish PHQ PDF (rights holder) — ingest verbatim in INT-116"
+    allow_paraphrase: false
+  - id: gad2
+    licence: GO
+    items_source: "official Turkish GAD PDF (rights holder) — ingest verbatim in INT-116"
+    allow_paraphrase: false
+  - id: phq9
+    licence: GO
+    items_source: "official Turkish PHQ-9 PDF (rights holder) — ingest verbatim in INT-116"
+    allow_paraphrase: false
+  - id: gad7
+    licence: GO
+    items_source: "official Turkish GAD-7 PDF (rights holder) — ingest verbatim in INT-116"
+    allow_paraphrase: false
+  # C-SSRS is deliberately ABSENT: licence BLOCKED (Clario exclusive electronic
+  # licence; Turkish validation adolescents only) — HB-L2. WHO-5 likewise
+  # BLOCKED (CC BY-NC-SA) — HB-L3. Referencing either must fail the build.
+
+sections:
+  # ---------------------------------------------------------------------------------
+  - id: identity_check
+    priority_class: GATEKEEPER # 13 §9.1 class 1
+    delivery: voice
+    slots:
+      - id: subject_role
+        must_ask: true
+        answer_type: code
+        valueset: [self, companion, guardian]
+        observation_kind: sign
+        ask_tr: "Bu görüşme sizin için mi, yoksa başka biri adına mı yapıyorsunuz?"
+        ask_en: "Is this conversation for yourself, or on behalf of someone else?"
+        choices_tr: ["Kendim için", "Başka biri adına"]
+        follow_up_tr: "Anlayamadım — görüşmeyi kendiniz için mi yapıyorsunuz?"
+        confirm_tr: "Görüşmeyi {answer} yaptığınızı not ediyorum, doğru mu?"
+        notes: >-
+          companion/guardian requires the proxy acknowledgement step before any
+          clinical question (RT-12); every subsequent record carries
+          reporter per field (12 §2.2) — a companion observes, the patient
+          experiences, and a non-self reporter can never assert a SYMPTOM.
+      - id: proxy_acknowledged
+        must_ask: false # asked only when subject_role != self
+        gate: "subject_role in {'companion','guardian'}"
+        answer_type: bool
+        observation_kind: sign
+        ask_tr: >-
+          Sorulara {subject_name} adına yanıt vereceksiniz. Yanıtlarınız
+          "yakını tarafından bildirildi" olarak kaydedilecek. Devam edelim mi?
+        ask_en: >-
+          You will be answering on behalf of {subject_name}. Answers will be
+          recorded as reported by a companion. Shall we continue?
+        choices_tr: ["Evet, devam edelim", "Hayır"]
+        follow_up_tr: "Devam etmek istiyor musunuz?"
+
+  # ---------------------------------------------------------------------------------
+  - id: gatekeepers
+    # 13 §14.13: pregnancy/LMP and immunosuppression are class-1 gatekeepers —
+    # universal facts that RULES depend on, asked before anything whose gate
+    # references them. Sensitive → text_first (13 §13).
+    priority_class: GATEKEEPER
+    delivery: text_first
+    slots:
+      - id: pregnancy_status # HB-C6 addition 1
+        must_ask: true
+        status: draft_needs_source
+        source_gap: >-
+          Applicability band (sex, age range) is a clinical decision — the
+          reproductive_age constants above are unfilled by design. Rationale
+          for universality: ruptured ectopic classically presents in a woman
+          who does not know she is pregnant, and NG255 scopes sepsis routing
+          to pregnancy of any age (13 §4, 05 §2.2). HB-C6.
+        gate: >-
+          sex_at_birth == 'female'
+          && age_years >= constants.reproductive_age_min_years
+          && age_years <= constants.reproductive_age_max_years
+        answer_type: code
+        valueset: [pregnant, possible, no, unsure]
+        observation_kind: symptom
+        ask_tr: "Hamile olma ihtimaliniz var mı?"
+        ask_en: "Is there any possibility you may be pregnant?"
+        choices_tr: ["Hamileyim", "Olabilir", "Hayır", "Emin değilim"]
+        follow_up_tr: "Hamilelik ihtimali için 'olabilir' ya da 'hayır' diyebilirsiniz — sizin için hangisi uygun?"
+      - id: lmp_date # HB-C6 addition 2
+        must_ask: true
+        gate: "pregnancy_status in {'pregnant','possible','unsure'}"
+        answer_type: date
+        observation_kind: symptom
+        ask_tr: "Son adet tarihinizin ilk gününü hatırlıyor musunuz? Yaklaşık bir tarih de olur."
+        ask_en: "Do you remember the first day of your last period? An approximate date is fine."
+        follow_up_tr: "Yaklaşık olarak kaç hafta önceydi?"
+      - id: immunosuppression # HB-C6 addition 3
+        must_ask: true
+        answer_type: set
+        valueset: [chemo_within_6w, biologic, steroid, transplant, asplenia, none]
+        observation_kind: symptom
+        # Category list is the blueprint's own (05 §2.2): "chemo ≤ 6 weeks,
+        # biologic, steroid, transplant, asplenia" — not invented here.
+        ask_tr: >-
+          Bağışıklık sisteminizi etkileyen bir durumunuz var mı? Örneğin: son
+          6 haftada kemoterapi, iğne ya da damardan verilen bağışıklık ilacı,
+          düzenli kortizon, organ nakli, ya da dalağınızın alınmış olması.
+        ask_en: >-
+          Do you have anything affecting your immune system? For example:
+          chemotherapy in the last 6 weeks, a biologic medicine, regular
+          steroids, an organ transplant, or your spleen removed.
+        choices_tr:
+          - "Son 6 haftada kemoterapi"
+          - "Bağışıklık ilacı (biyolojik)"
+          - "Düzenli kortizon"
+          - "Organ nakli"
+          - "Dalağım alındı"
+          - "Hiçbiri"
+        follow_up_tr: "Bunlardan biri sizin için geçerli mi, yoksa hiçbiri mi?"
+
+  # ---------------------------------------------------------------------------------
+  - id: reason_for_visit
+    priority_class: OPEN_NARRATIVE # exactly one open step (13 §9.1)
+    delivery: voice
+    slots:
+      - id: chief_complaint_text
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        open_turn: true # ~90 s uninterrupted budget (13 §4 — buys agenda completeness)
+        ask_tr: >-
+          Sizi hekime getiren nedir? Lütfen kendi cümlelerinizle anlatın —
+          sözünüzü kesmeyeceğim.
+        ask_en: >-
+          What brings you to the doctor? Please tell me in your own words —
+          I will not interrupt.
+        follow_up_tr: "Biraz daha anlatır mısınız — en çok neyi dert ediyorsunuz?"
+      - id: patient_goals
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Bu ziyaretten en çok ne bekliyorsunuz?"
+        ask_en: "What do you most hope to get from this visit?"
+        follow_up_tr: "Hekimin özellikle neye bakmasını istersiniz?"
+
+  # ---------------------------------------------------------------------------------
+  - id: hpi
+    priority_class: MUST_ASK
+    delivery: voice
+    notes: >-
+      OLDCARTS/SOCRATES is a coverage schema to satisfy, not a sequence to
+      follow (13 §4). Slots below are the coverage set; the frontier orders
+      them. Every required slot carries follow_up_tr (04 §1 — ask-ahead needs it).
+    slots:
+      - id: onset_at
+        must_ask: true
+        answer_type: date
+        observation_kind: symptom
+        ask_tr: "Bu şikâyet ne zaman başladı?"
+        ask_en: "When did this complaint start?"
+        follow_up_tr: "Yaklaşık olarak — bugün mü, bu hafta mı, daha önce mi?"
+        choices_tr: ["Bugün", "Bu hafta", "Bu ay", "Daha eski"]
+      - id: duration_pattern
+        must_ask: true
+        answer_type: code
+        valueset: [constant, comes_and_goes, worsening_episodes]
+        observation_kind: symptom
+        ask_tr: "Şikâyetiniz sürekli mi, yoksa gelip geçiyor mu?"
+        ask_en: "Is it constant, or does it come and go?"
+        choices_tr: ["Sürekli", "Gelip geçiyor", "Ataklar halinde ve kötüleşiyor"]
+        follow_up_tr: "Gün içinde hiç tamamen geçtiği oluyor mu?"
+      - id: location_text
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Tam olarak neresi? Elinizle gösterebileceğiniz bir yer mi?"
+        ask_en: "Where exactly is it? Is it somewhere you could point to?"
+        follow_up_tr: "Vücudunuzun hangi bölgesinde hissediyorsunuz?"
+      - id: character_text
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Nasıl bir his? Örneğin yanma, baskı, zonklama gibi."
+        ask_en: "What does it feel like? For example burning, pressure, throbbing."
+        follow_up_tr: "Kendi kelimelerinizle tarif eder misiniz?"
+      - id: severity_nrs
+        must_ask: true
+        answer_type: int
+        observation_kind: symptom
+        # Spoken numeric scale: anchor endpoints AND midpoint (13 §5.3 — the
+        # anchored midpoint recovers two-thirds of item nonresponse).
+        ask_tr: >-
+          Sıfır ile on arasında bir puan verseniz: sıfır "hiç yok", beş "orta",
+          on "hayal edebileceğiniz en şiddetli". Kaç verirsiniz?
+        ask_en: >-
+          On a scale of zero to ten — zero is none, five is moderate, ten is
+          the worst you can imagine — what score would you give it?
+        follow_up_tr: "Sıfır hiç, beş orta, on en şiddetli — yaklaşık kaç?"
+      - id: radiation
+        must_ask: false
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Bu his başka bir yere yayılıyor mu? Örneğin kola, çeneye, sırta?"
+        ask_en: "Does it spread anywhere else? For example to your arm, jaw or back?"
+        follow_up_tr: "Sadece o bölgede mi kalıyor, yoksa yayılıyor mu?"
+      - id: aggravating
+        must_ask: false
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Neyle artıyor? Hareket, yemek, nefes almak gibi bir şeyle?"
+        ask_en: "What makes it worse? Movement, food, breathing?"
+        follow_up_tr: "Artıran bir şey fark ettiniz mi?"
+      - id: relieving
+        must_ask: false
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Neyle azalıyor? Dinlenmek ya da bir ilaç iyi geliyor mu?"
+        ask_en: "What makes it better? Rest, or any medicine?"
+        follow_up_tr: "İyi gelen bir şey oldu mu?"
+      - id: trajectory
+        must_ask: true
+        answer_type: code
+        valueset: [better, same, worse]
+        observation_kind: symptom
+        ask_tr: "Başladığından beri daha iyi mi, aynı mı, daha kötü mü?"
+        ask_en: "Since it started, is it better, the same, or worse?"
+        choices_tr: ["Daha iyi", "Aynı", "Daha kötü"]
+        follow_up_tr: "Genel gidişi nasıl — düzeliyor mu, kötüleşiyor mu?"
+      - id: prior_similar_episodes
+        must_ask: true
+        answer_type: bool
+        observation_kind: symptom
+        ask_tr: "Daha önce buna benzer bir şikâyetiniz oldu mu?"
+        ask_en: "Have you had anything like this before?"
+        choices_tr: ["Evet", "Hayır"]
+        follow_up_tr: "Benzer bir durumu daha önce yaşadınız mı?"
+      - id: treatments_tried
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Bunun için şimdiye kadar bir şey denediniz mi? İlaç ya da başka bir şey?"
+        ask_en: "Have you tried anything for it so far? Medicine or anything else?"
+        follow_up_tr: "Aldığınız bir ilaç ya da uyguladığınız bir şey var mı?"
+      - id: time_last_known_well # HB-C6 addition 6 — the stroke tense_anchor
+        must_ask: false
+        status: draft_needs_source
+        source_gap: >-
+          Asked only when a sudden-deficit pattern arms (RF_PROBE_ARMED); the
+          arming gate references red-flag slots owned by base.life_threat's
+          rf.stroke family (HB-C2, not yet authored). Wording needs clinician
+          confirmation — the answer drives a time-critical pathway. HB-C6.
+        gate: "rf.sudden_deficit_pattern == true"
+        answer_type: datetime
+        observation_kind: symptom
+        ask_tr: "En son ne zaman tamamen iyiydiniz? Saatini biliyorsanız söyleyin; bilmiyorsanız yaklaşık da olur."
+        ask_en: "When were you last completely well? The exact time if you know it; approximate is fine."
+        follow_up_tr: "Bu belirtiler başlamadan önce en son ne zaman her şey normaldi?"
+
+  # ---------------------------------------------------------------------------------
+  - id: red_flags
+    priority_class: MUST_ASK
+    delivery: voice
+    notes: >-
+      The unarmed universal screen uses the compound-turn form: ≤ 4 items per
+      turn, "hayır" as the default reading of silence is FORBIDDEN — a
+      compound answer is decomposed and each item recorded three-valued
+      (12 §1.1; "did_not_understand_is_not_a_no"). Which items may share a
+      compound turn is a CLINICAL grouping decision (13 §14.13) — the grouping
+      below is an agent draft for review, HB-C5. Armed probes (RF_PROBE_ARMED)
+      fire from base.life_threat and pack rules the moment their gate goes TRUE.
+    slots:
+      - id: rf_screen_cardiorespiratory
+        must_ask: true
+        compound: true
+        status: draft_needs_source
+        source_gap: "Compound grouping and item membership need clinician sign-off (HB-C5/HB-C2)."
+        answer_type: set
+        valueset: [chest_pain_now, dyspnoea_rest, syncope, none]
+        observation_kind: symptom
+        ask_tr: >-
+          Şu anda şunlardan biri var mı: göğüs ağrısı ya da göğüste baskı;
+          dinlenirken nefes darlığı; bayılma?
+        ask_en: >-
+          Right now, do you have any of these: chest pain or pressure;
+          breathlessness at rest; fainting?
+        choices_tr: ["Göğüs ağrısı/baskı", "Dinlenirken nefes darlığı", "Bayılma", "Hiçbiri"]
+        follow_up_tr: "Bu üçünden biri şu anda var mı — göğüs ağrısı, nefes darlığı, bayılma?"
+      - id: rf_screen_neuro_bleeding
+        must_ask: true
+        compound: true
+        status: draft_needs_source
+        source_gap: "Compound grouping and item membership need clinician sign-off (HB-C5/HB-C2)."
+        answer_type: set
+        valueset: [sudden_weakness_speech, worst_headache, heavy_bleeding, none]
+        observation_kind: symptom
+        ask_tr: >-
+          Peki şunlardan biri: ani güçsüzlük ya da konuşma bozukluğu;
+          hayatınızın en şiddetli baş ağrısı; durdurulamayan kanama?
+        ask_en: >-
+          And any of these: sudden weakness or trouble speaking; the worst
+          headache of your life; bleeding that will not stop?
+        choices_tr: ["Ani güçsüzlük/konuşma bozukluğu", "En şiddetli baş ağrısı", "Durmayan kanama", "Hiçbiri"]
+        follow_up_tr: "Bu üçünden biri var mı — ani güçsüzlük, çok şiddetli baş ağrısı, durmayan kanama?"
+
+  # ---------------------------------------------------------------------------------
+  - id: meds_allergies
+    priority_class: MUST_ASK
+    delivery: voice
+    slots:
+      - id: meds_confirm_imported
+        must_ask: true
+        answer_type: string
+        observation_kind: record_derived
+        ask_tr: "Kayıtlarınızdaki ilaç listesini birlikte doğrulayalım. Şu anda düzenli kullandığınız ilaçlar bunlar mı?"
+        ask_en: "Let's confirm the medication list from your records. Are these the medicines you take regularly?"
+        follow_up_tr: "Bu listede eksik ya da fazla olan var mı?"
+        notes: "Imported facts pre-fill as UNCONFIRMED and require a confirm step (12 §7.4). Confirm-don't-reask."
+      - id: meds_new_or_stopped
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Son zamanlarda yeni başladığınız ya da bıraktığınız ilaç var mı?"
+        ask_en: "Any medicines you have recently started or stopped?"
+        follow_up_tr: "Yeni bir ilaç ya da bıraktığınız bir ilaç oldu mu?"
+      - id: otc_herbal
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Reçetesiz aldığınız ilaçlar ya da bitkisel ürünler kullanıyor musunuz?"
+        ask_en: "Do you use any over-the-counter medicines or herbal products?"
+        follow_up_tr: "Vitamin, ağrı kesici ya da bitkisel bir ürün var mı?"
+      - id: anticoagulant_use # HB-C6 addition 4
+        must_ask: true
+        status: draft_needs_source
+        source_gap: >-
+          The drug-class examples named to the patient are a clinical decision
+          (which anticoagulants/antiplatelets to enumerate, in which lay
+          words) — draft for clinician review. HB-C6. Never substring-matched
+          against free text; drug-name identity uses the invariant locale
+          (00 §2 Turkish casing).
+        answer_type: code
+        valueset: [yes, no, unsure]
+        observation_kind: symptom
+        ask_tr: "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
+        ask_en: "Do you take a blood thinner?"
+        choices_tr: ["Evet", "Hayır", "Emin değilim"]
+        follow_up_tr: "Doktorunuz kan sulandırıcı olarak tarif ettiği bir ilaç verdi mi?"
+      - id: allergies
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Bilinen bir alerjiniz var mı? Varsa neye karşı ve nasıl bir tepki oluyor?"
+        ask_en: "Do you have any known allergies? If so, to what, and what reaction do you get?"
+        follow_up_tr: "İlaç ya da gıda alerjiniz var mı?"
+
+  # ---------------------------------------------------------------------------------
+  - id: pmh_fh_sh
+    priority_class: DETAIL
+    delivery: voice
+    notes: "Delta mode: confirm-don't-reask against PatientOverlay and records; only changes since the last visit are asked."
+    slots:
+      - id: new_diagnoses_since_last
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Son görüşmenizden bu yana yeni bir tanı ya da hastane yatışı oldu mu?"
+        ask_en: "Since your last visit, any new diagnosis or hospital stay?"
+        follow_up_tr: "Yeni söylenen bir hastalık ya da yatış var mı?"
+      - id: weight_kg # HB-C6 addition 5
+        must_ask: true
+        status: draft_needs_source
+        source_gap: >-
+          Whether weight is asked of every adult in fast mode (turn budget,
+          HB-C5) and the acceptable staleness window are clinical decisions.
+          HB-C6. Numeric entry is structured (chips/keypad), never free text —
+          the display channel has a demonstrated 10× hazard (00 §2:
+          parseFloat("2,5") → 2); grouping suppressed; unit is a non-breaking
+          atom.
+        answer_type: decimal
+        unit: kg
+        delivery: text_first
+        observation_kind: symptom
+        ask_tr: "Kilonuzu yazar mısınız? Yaklaşık da olabilir."
+        ask_en: "Could you enter your weight? Approximate is fine."
+        follow_up_tr: "Yaklaşık kaç kilosunuz?"
+      - id: smoking
+        must_ask: false
+        detailed_only: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Sigara kullanıyor musunuz? Kullandıysanız ne kadar süre, günde ne kadar?"
+        ask_en: "Do you smoke? If you have, for how long and how much per day?"
+        follow_up_tr: "Şu anda ya da geçmişte sigara kullandınız mı?"
+      - id: alcohol
+        must_ask: false
+        detailed_only: true
+        delivery: text_first # sensitive (13 §13)
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Alkol kullanıyor musunuz? Ne sıklıkla?"
+        ask_en: "Do you drink alcohol? How often?"
+        follow_up_tr: "Haftada yaklaşık ne kadar?"
+      - id: occupation_living
+        must_ask: false
+        detailed_only: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Ne iş yapıyorsunuz ve evde kimlerle yaşıyorsunuz?"
+        ask_en: "What do you do for work, and who do you live with?"
+        follow_up_tr: "Gün içinde size yardım edebilecek biri var mı?"
+
+  # ---------------------------------------------------------------------------------
+  - id: associated_symptoms
+    priority_class: DETAIL
+    delivery: voice
+    detailed_only: true
+    notes: >-
+      The detailed-mode associated-symptoms sweep (04 §1 "detailed adds").
+      These slots are what base.red_flags' YELLOW rules reference; in fast
+      mode they are reached only when a probe arms (RF_PROBE_ARMED). ROS is
+      deliberately short (13 §4: yield 10.5 % overall, per-item PPV ~3 %).
+    slots:
+      - id: fever.max_temp_c
+        must_ask: false
+        answer_type: decimal
+        unit: "°C"
+        delivery: text_first # structured numeric — no free numeric text (00 §2)
+        observation_kind: symptom
+        ask_tr: "Ateşinizi ölçtüyseniz en yüksek kaç dereceydi?"
+        ask_en: "If you measured your temperature, what was the highest reading?"
+        follow_up_tr: "Ölçtüğünüz en yüksek değeri yazar mısınız?"
+      - id: fever.duration_days
+        must_ask: false
+        answer_type: int
+        observation_kind: symptom
+        ask_tr: "Kaç gündür ateşiniz var?"
+        ask_en: "For how many days have you had a fever?"
+        follow_up_tr: "Ateş yaklaşık kaç gündür sürüyor?"
+      - id: fever.last_measured_at
+        must_ask: false
+        answer_type: datetime
+        observation_kind: symptom
+        ask_tr: "En son ne zaman ölçtünüz?"
+        ask_en: "When did you last measure it?"
+        follow_up_tr: "Son ölçümünüz bugün müydü, daha önce mi?"
+      - id: weight_loss.unintentional
+        must_ask: false
+        answer_type: bool
+        observation_kind: symptom
+        ask_tr: "Son aylarda istemeden kilo verdiniz mi?"
+        ask_en: "Have you lost weight without trying in recent months?"
+        choices_tr: ["Evet", "Hayır"]
+        follow_up_tr: "Diyet yapmadığınız hâlde kilonuz azaldı mı?"
+      - id: weight_loss.over_5pct_6mo
+        must_ask: false
+        status: draft_needs_source
+        source_gap: >-
+          Mapping a patient's estimate to the 04 §3 ">5 %/6 mo" judgement is a
+          clinical operationalisation needing sign-off (HB-C7); asked only as
+          an explicit confirm, never inferred silently.
+        gate: "weight_loss.unintentional == true"
+        answer_type: bool
+        observation_kind: symptom
+        ask_tr: "Yaklaşık ne kadar verdiniz, kaç ayda? Örneğin 80 kilodan 75'e, altı ayda gibi."
+        ask_en: "Roughly how much, over how long? For example from 80 kg to 75 in six months."
+        follow_up_tr: "Kaç kilo, kaç ayda azaldı?"
+      - id: weight_loss.noticed_at
+        must_ask: false
+        gate: "weight_loss.unintentional == true"
+        answer_type: date
+        observation_kind: symptom
+        ask_tr: "Bunu ne zaman fark ettiniz?"
+        ask_en: "When did you notice it?"
+        follow_up_tr: "Yaklaşık ne zamandır?"
+      - id: neuro.new_weakness_or_numbness
+        must_ask: false
+        answer_type: bool
+        observation_kind: symptom
+        ask_tr: "Yeni başlayan güçsüzlük ya da uyuşma var mı?"
+        ask_en: "Any new weakness or numbness?"
+        choices_tr: ["Evet", "Hayır"]
+        follow_up_tr: "Kol, bacak ya da yüzde güçsüzlük ya da uyuşma oldu mu?"
+      - id: neuro.onset_over_days
+        must_ask: false
+        gate: "neuro.new_weakness_or_numbness == true"
+        answer_type: bool
+        observation_kind: symptom
+        ask_tr: "Bu, aniden mi başladı yoksa günler içinde yavaş yavaş mı ilerledi?"
+        ask_en: "Did it start suddenly, or build up gradually over days?"
+        choices_tr: ["Aniden", "Günler içinde yavaş yavaş"]
+        follow_up_tr: "Bir anda mı oldu, yoksa günden güne mi arttı?"
+        notes: "'Aniden' arms the rf.stroke_fast probe (base.life_threat, HB-C2) — tempo is the triage-critical clause."
+      - id: neuro.noticed_at
+        must_ask: false
+        gate: "neuro.new_weakness_or_numbness == true"
+        answer_type: datetime
+        observation_kind: symptom
+        ask_tr: "Ne zaman başladı?"
+        ask_en: "When did it start?"
+        follow_up_tr: "Bugün mü, bu hafta mı başladı?"
+
+  # ---------------------------------------------------------------------------------
+  - id: screening
+    priority_class: INSTRUMENT_ITEM
+    delivery: text_only # 13 §13 — no clip, no speech_tr, ever; compiler-enforced
+    consent_scope: wellbeing
+    notes: >-
+      PHQ-2/GAD-2 universal, consent-gated; positive screens route to
+      PHQ-9/GAD-7 in detailed mode (04 §4). Item text ingested verbatim in
+      INT-116 — see the instruments block. Instrument items are never
+      interleaved with other classes. Scores require a SelfReportAttestation;
+      a proxy session yields InstrumentNotScored, never a number (12 §2.2).
+      The crisis pathway (04 §4.2) is NOT drafted here: its four preconditions
+      (responder, abandonment handler, consent-independent path, means
+      restriction/safety planning) are HB-C8, and C-SSRS is HB-L2.
+    slots:
+      - id: phq2
+        instrument: phq2
+        must_ask: false # consent-gated
+        gate: "consent.wellbeing == true"
+      - id: gad2
+        instrument: gad2
+        must_ask: false
+        gate: "consent.wellbeing == true"
+
+  # ---------------------------------------------------------------------------------
+  - id: expectations_wrapup
+    priority_class: WRAP_UP
+    delivery: voice
+    slots:
+      - id: something_else
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        # "something", never "anything" — Heritage 2007: eliminates 78 % of
+        # unmet concerns; "anything" is indistinguishable from control (13 §4).
+        ask_tr: "Eklemek istediğiniz başka bir konu var mı?"
+        ask_en: "Is there something else you would like to add?"
+        follow_up_tr: "Bahsetmediğimiz bir şikâyetiniz ya da endişeniz var mı?"
+      - id: questions_for_doctor
+        must_ask: true
+        answer_type: string
+        observation_kind: symptom
+        ask_tr: "Hekime sormak istediğiniz sorular var mı? İsterseniz birlikte not edelim."
+        ask_en: "Do you have questions you want to ask the doctor? We can note them together."
+        follow_up_tr: "Doktora sormak istediğiniz bir şey var mı?"
+      - id: summary_confirm
+        must_ask: true
+        answer_type: bool
+        observation_kind: sign
+        ask_tr: "Anlattıklarınızı özetledim. Ekranda görüyorsunuz — doğru ve eksiksiz mi?"
+        ask_en: "I have summarised what you told me. You can see it on screen — is it correct and complete?"
+        choices_tr: ["Doğru", "Düzeltmek istiyorum"]
+        follow_up_tr: "Özetde düzeltmek istediğiniz bir yer var mı?"
+
+# Slots produced by engines/lanes rather than asked — declared so
+# no_rule_references_an_undeclared_slot can distinguish "derived" from
+# "forgotten". Each names its producer; none is patient-asked.
+derived_slots:
+  - id: proxy_reported
+    produced_by: "engine (subject_role != self)"
+  - id: rf.sudden_deficit_pattern
+    produced_by: "rules engine, from rf_screen_neuro_bleeding / neuro.onset_over_days"
+  - id: screening.phq9_item9
+    produced_by: "instrument phq9 (INT-116); trigger only — never presented as a suicide screen (00 §2)"
+  - id: screening.phq9_completed_at
+    produced_by: "instrument phq9 (INT-116)"
+  - id: crisis.plan_or_intent
+    produced_by: >-
+      the consent-independent deterministic crisis detector (04 §4.2 defect 3);
+      NOT the wellbeing lane and NOT gated on wellbeing consent. Pathway
+      preconditions are HB-C8.
+  - id: consent.wellbeing
+    produced_by: "consent service (INT-038)"
+  - id: sex_at_birth
+    produced_by: "profile (verified DOB/profile data, INT-133)"
+  - id: age_years
+    produced_by: "profile (verified DOB)"

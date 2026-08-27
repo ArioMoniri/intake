@@ -1,0 +1,242 @@
+# =====================================================================================
+#  base.red_flags — pack-level red-flag rules inherited through the chain (04 §3)
+#  Code path: packages/protocols/base/red_flags.yaml   (hook-protected: 07 §3.8)
+# =====================================================================================
+#
+#  ⛔ STOP. NOTHING IN THIS FILE MAY BE SERVED TO A PATIENT.
+#  maturity: L0 · status: awaiting-clinical-review · served: false
+#
+#  WHAT LIVES HERE vs base.life_threat (04 §8, 12 §1): the life-threatening
+#  universal set is the SIBLING pack `base/life_threat.yaml`, evaluated on every
+#  session regardless of branch and joined by lattice max. This file carries the
+#  pack-level rules from 04 §3 that are NOT life-threat REDs — the YELLOW-tier
+#  flags — plus the migration map below, so nothing from the 04 §3 excerpt is
+#  silently lost. Clusters and specialties add to this set monotonically
+#  (12 §3.2: add/tighten only; never remove or relax).
+#
+#  ⚠️ EK-4 mapping. 04 §3's table predates the EK-4 correction and records
+#  legacy YELLOW levels. Assigning each rule its five-valued EK-4 acuity
+#  (SARI_K1 vs SARI_K2) is a clinical decision no human has made yet, so every
+#  rule below carries the literal sign-off form, never a guessed level.
+# =====================================================================================
+
+kind: red_flag_set
+pack_id: base.red_flags
+version: 0.1.0-draft
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+created: 2026-08-27
+
+served: false
+serve_blocked_reason: >-
+  L0 / awaiting-clinical-review. Every rule is draft_needs_source (no committed
+  guideline snapshot yet) and the EK-4 acuity assignments are unfilled clinical
+  values. INT-043 closes only on a named licensed physician's signature.
+
+clinical_signoff:
+  reviewer_name: null
+  reviewer_licence_no: null
+  reviewer_specialty: null
+  signed_commit: null
+  signed_on: null
+
+# -------------------------------------------------------------------------------------
+#  MIGRATION MAP — the RED rows of the 04 §3 excerpt belong to base.life_threat
+#  (HB-C2's ~34-rule adult universal set). Recorded here so the excerpt cannot
+#  silently shrink; authoring them is HB-C2 and happens in life_threat.yaml,
+#  never here (duplicating a rule across both sets would double-fire it).
+# -------------------------------------------------------------------------------------
+migrated_to_life_threat:
+  - { id: rf.chest_pain_acute, note: "exemplar already worked as rf.chest_pain_cardiac_features" }
+  - { id: rf.stroke_fast, note: "tense_anchor time_last_known_well is drafted in base.intake (HB-C6)" }
+  - { id: rf.dyspnoea_rest, note: "" }
+  - { id: rf.anaphylaxis, note: "tense family required — real anaphylaxis is a past event at intake (12 §2.4)" }
+  - { id: rf.severe_bleeding, note: "" }
+  - { id: rf.suicidal_intent, note: "C-SSRS is licence-BLOCKED (HB-L2); the crisis path has four open preconditions (04 §4.2, HB-C8)" }
+  - { id: rf.sepsis_like, note: "routes on age_band and pregnancy_status (NG253/254/255 split)" }
+  - { id: rf.thunderclap_headache, note: "" }
+  - { id: rf.pregnancy_bleeding_pain, note: "gates on pregnancy_status/lmp_date drafted in base.intake (HB-C6)" }
+
+rules:
+  # ===================================================================================
+  - id: rf.fever_high_persistent
+    label_tr: "Yüksek ve süreğen ateş"
+    age_band: adult
+    status: draft_needs_source
+    source_gap: >-
+      04 §3 gives "≥ 39 °C > 3 d or ≥ 38 °C on chemo/biologic" but no guideline
+      citation, and no committed snapshot exists under
+      packages/protocols/sources/. The immunosuppressed arm belongs to
+      base.life_threat's sepsis family (HB-C2) — the overlay escalation to RED
+      is deliberately NOT drafted here.
+    gate: >-
+      fever.max_temp_c >= 39 && fever.duration_days > 3
+    tense: today
+    tense_anchor: fever.last_measured_at
+    level_legacy: YELLOW
+    ek4: "TODO: threshold requires clinical sign-off"
+    disposition_draft: SAME_DAY_CLINICIAN
+    notify_clinic: always
+    action_tr: >-
+      Ateşiniz üç günden uzun süredir yüksek. Bugün içinde bir hekime
+      görünmenizi öneririz. Randevunuz yarından sonraysa, bugün için
+      aile hekiminize ya da polikliniğe başvurun.
+    action_en: >-
+      Your fever has been high for more than three days. We recommend seeing a
+      clinician today — if your appointment is later, contact your family
+      physician or the outpatient clinic today.
+    golden_positive:
+      id: BR-01-P
+      case: "Adult, temperature measured 39.4 °C for four days, no immunosuppression."
+      expect: { fires: true }
+    golden_negative:
+      id: BR-01-N
+      case: >-
+        NEAR MISS — adult, one evening of 39.0 °C measured today only
+        (duration one day), otherwise well.
+      expect: { fires: false }
+      why_it_is_a_near_miss: >-
+        Same temperature threshold crossed; differs only on duration. If the
+        duration clause is dropped or loosened, every short viral fever
+        becomes a same-day escalation — alert fatigue by construction.
+
+  # ===================================================================================
+  - id: rf.weight_loss_unintentional
+    label_tr: "İstemsiz kilo kaybı"
+    age_band: adult
+    status: draft_needs_source
+    source_gap: >-
+      04 §3 gives "> 5 % / 6 mo" without citation; no committed snapshot.
+      Percentage-over-time is patient-estimable only roughly — the excluded
+      criteria note how it is asked without scales.
+    gate: >-
+      weight_loss.unintentional == true && weight_loss.over_5pct_6mo == true
+    tense: within_30d
+    tense_anchor: weight_loss.noticed_at
+    level_legacy: YELLOW
+    ek4: "TODO: threshold requires clinical sign-off"
+    disposition_draft: KEEP_APPOINTMENT
+    notify_clinic: never # 04 §3: "flag" — surfaced in the note, not a notification
+    action_tr: >-
+      Bunu not ettim. Randevunuzu beklemeniz uygundur; görüşmede hekiminize
+      kilo kaybınızdan mutlaka bahsedin.
+    action_en: >-
+      I have noted this. It is fine to wait for your appointment; do make sure
+      to mention the weight loss to your doctor.
+    excluded_criteria:
+      - criterion: "measured serial weights"
+        reason: >-
+          04 §8.1 rule 1 — most patients cannot produce serial measurements;
+          the trigger accepts the patient's own estimate ("kilolarım durduk
+          yere gidiyor", clothes no longer fitting) mapped to the
+          over_5pct_6mo judgement with an explicit confirm.
+    golden_positive:
+      id: BR-02-P
+      case: "Adult reports losing ~6 kg from 80 kg over four months without trying."
+      expect: { fires: true }
+    golden_negative:
+      id: BR-02-N
+      case: >-
+        NEAR MISS — adult lost 7 kg over five months on a deliberate diet
+        (intentional), pleased about it.
+      expect: { fires: false }
+      why_it_is_a_near_miss: >-
+        Same magnitude and window; differs only on intent. Dropping the
+        `unintentional` clause turns every successful diet into a flag.
+
+  # ===================================================================================
+  - id: rf.new_neuro_deficit_subacute
+    label_tr: "Günler içinde ilerleyen güçsüzlük/uyuşma"
+    age_band: adult
+    status: draft_needs_source
+    source_gap: >-
+      04 §3 row without citation; no committed snapshot. The boundary with the
+      SUDDEN deficit (rf.stroke_fast, life_threat, EMERGENCY_NOW) is exactly
+      the near-miss below — the two must be reviewed together (HB-C2).
+    gate: >-
+      neuro.new_weakness_or_numbness == true && neuro.onset_over_days == true
+    tense: within_7d
+    tense_anchor: neuro.noticed_at
+    level_legacy: YELLOW
+    ek4: "TODO: threshold requires clinical sign-off"
+    disposition_draft: SAME_DAY_CLINICIAN
+    notify_clinic: always
+    action_tr: >-
+      Günler içinde ilerleyen güçsüzlük ya da uyuşma önemli bir belirtidir.
+      Bugün içinde bir hekime görünmenizi öneririz.
+    action_en: >-
+      Weakness or numbness progressing over days is an important symptom.
+      We recommend seeing a clinician today.
+    golden_positive:
+      id: BR-03-P
+      case: "Adult, numbness in both feet creeping upward over five days."
+      expect: { fires: true }
+    golden_negative:
+      id: BR-03-N
+      case: >-
+        NEAR MISS — sudden one-sided arm weakness that started forty minutes
+        ago (belongs to rf.stroke_fast in base.life_threat, EMERGENCY_NOW —
+        not this rule).
+      expect: { fires: false, expected_elsewhere: rf.stroke_fast }
+      why_it_is_a_near_miss: >-
+        Same symptom family; differs only on tempo. If this rule absorbs the
+        sudden case, a stroke gets a same-day action instead of 112 — an
+        under-triage hiding inside a passing suite.
+
+  # ===================================================================================
+  - id: rf.suicidal_ideation_passive
+    label_tr: "Pasif intihar düşüncesi"
+    age_band: adult
+    status: draft_needs_source
+    source_gap: >-
+      04 §3 conditions this on "PHQ-9 item 9 > 0, C-SSRS negative for plan" —
+      C-SSRS is licence-BLOCKED (HB-L2) and the escalation policy behind the
+      asterisked consent exception is undefined (04 §4.2, HB-C8). Additionally
+      PHQ-9 item 9 must never be presented as a suicide screen (00 §2: 71.6 %
+      of suicides answered "not at all") — it is a trigger only. This rule is
+      structurally drafted and deliberately NOT wired to an instrument until
+      HB-C8 and HB-L2 resolve.
+    gate: >-
+      screening.phq9_item9 > 0 && crisis.plan_or_intent == false
+    tense: now
+    tense_anchor: screening.phq9_completed_at
+    level_legacy: YELLOW
+    ek4: "TODO: threshold requires clinical sign-off"
+    disposition_draft: KEEP_APPOINTMENT
+    notify_clinic: always
+    # The consent-exception policy is HB-C8/counsel; until defined, the note
+    # surfaces it to the clinician and no automated contact occurs.
+    delivery: text_only # 13 §13 — nothing here is ever spoken
+    action_tr: >-
+      Bunu paylaştığınız için teşekkür ederiz. Bu bilgiyi hekiminizin görmesi
+      önemli. Kendinizi kötü hissederseniz 112'yi arayabilirsiniz; yalnız
+      değilsiniz.
+    action_en: >-
+      Thank you for sharing this. It is important that your doctor sees it.
+      If you feel worse you can call 112; you are not alone.
+    golden_positive:
+      id: BR-04-P
+      case: "Adult, PHQ-9 item 9 answered 'several days', no plan or intent disclosed."
+      expect: { fires: true, delivery: text_only }
+    golden_negative:
+      id: BR-04-N
+      case: >-
+        NEAR MISS — adult discloses a plan ("I know how I would do it").
+        Belongs to rf.suicidal_intent in base.life_threat (EMERGENCY_NOW,
+        crisis path) — not this rule.
+      expect: { fires: false, expected_elsewhere: rf.suicidal_intent }
+      why_it_is_a_near_miss: >-
+        One clause apart (plan_or_intent). If this rule absorbs the intent
+        case, a crisis gets a keep-your-appointment message — the worst
+        possible mislabel in the product.
+
+# -------------------------------------------------------------------------------------
+#  CI gate expectations for this file (structural half testable pre-compiler —
+#  tests/protocols/test_base_pack_draft.py; the full golden machinery arrives
+#  with INT-040/041/059): no crisis string contains "182"; every rule has a
+#  golden positive AND a near-miss negative; every draft_needs_source rule has
+#  a non-empty source_gap; no gate references a slot base.intake does not
+#  declare; served stays false while clinical_signoff is empty.
+# -------------------------------------------------------------------------------------

@@ -1,0 +1,8 @@
+# Clinical content: every YAML change under packages/protocols requires the
+# clinical owner's review (04 header; the physician-of-record signature for
+# L1 promotion is recorded in each pack's clinical_signoff block, which is a
+# named person — CODEOWNERS routes the review, it does not substitute for it).
+packages/protocols/ @ArioMoniri
+
+# Legal texts render only from docs/legal with hash binding (invariant 18).
+docs/legal/ @ArioMoniri
