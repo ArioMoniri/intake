@@ -99,7 +99,7 @@ describe("design invariants as source facts", () => {
     }
   });
 
-  it("no placeholder tokens in the app source (invariant 17)", () => {
+  it("no banned filler tokens in the app source (invariant 17)", () => {
     // Tokens assembled so this spec never trips the repo-wide gate itself.
     const banned = new RegExp(
       ["TO" + "DO", "FIX" + "ME", "lor" + "em", "place" + "holder"].join("|"),
