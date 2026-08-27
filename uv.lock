@@ -12,6 +12,7 @@ resolution-markers = [
 members = [
     "intake",
     "intake-platform",
+    "intake-probes",
 ]
 
 [[package]]
@@ -635,6 +636,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "intake-platform", extra = ["ner"] },
+    { name = "intake-probes" },
 ]
 
 [package.dev-dependencies]
@@ -652,7 +654,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "intake-platform", extras = ["ner"], editable = "packages/intake_platform" }]
+requires-dist = [
+    { name = "intake-platform", extras = ["ner"], editable = "packages/intake_platform" },
+    { name = "intake-probes", editable = "services/probes" },
+]
 
 [package.metadata.requires-dev]
 dev = [
@@ -711,6 +716,38 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'ner'", specifier = ">=4.44" },
 ]
 provides-extras = ["ner"]
+
+[[package]]
+name = "intake-probes"
+version = "0.1.0"
+source = { editable = "services/probes" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "intake-platform" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "redis" },
+]
+
+[package.optional-dependencies]
+runner = [
+    { name = "psycopg", extra = ["binary"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cryptography", specifier = ">=43.0" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "psycopg", extras = ["binary"], marker = "extra == 'runner'", specifier = ">=3.2" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "redis", specifier = ">=5.0" },
+]
+provides-extras = ["runner"]
 
 [[package]]
 name = "jinja2"

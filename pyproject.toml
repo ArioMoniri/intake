@@ -3,16 +3,17 @@ name = "intake"
 version = "0.1.0"
 description = "INTAKE workspace root (virtual): Turkish-first, patient-owned pre-visit intelligence"
 requires-python = ">=3.12"
-dependencies = ["intake-platform[ner]"]
+dependencies = ["intake-platform[ner]", "intake-probes"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["packages/intake_platform"]
+members = ["packages/intake_platform", "services/probes"]
 
 [tool.uv.sources]
 intake-platform = { workspace = true }
+intake-probes = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -53,12 +54,19 @@ select = ["E", "F", "W", "I", "UP", "B", "S"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["packages/intake_platform/src"]
+files = ["packages/intake_platform/src", "services/probes/src"]
 
 [[tool.mypy.overrides]]
 # optional exporter, imported only when OTEL_EXPORTER_OTLP_ENDPOINT is set;
 # the package is deliberately not a dependency (local-only default posture)
 module = "opentelemetry.exporter.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# optional crash-reporter SDK (GlitchTip speaks the sentry protocol),
+# imported only when INTAKE_GLITCHTIP_DSN is set AND the error_reporting
+# flag is on (INT-023); guarded exactly like the OTLP exporter above
+module = "sentry_sdk.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

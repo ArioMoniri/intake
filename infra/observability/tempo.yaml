@@ -1,0 +1,25 @@
+# Tempo — obs profile (INT-023), single binary, local storage. Receives
+# OTLP only from the collector (after RedactingSpanExporter app-side AND the
+# collector transform/redact layer); the host port is the loopback-bound
+# query endpoint Grafana uses.
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317 # container-internal; not published to host
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/blocks
+    wal:
+      path: /var/tempo/wal
+
+compactor:
+  compaction:
+    block_retention: 168h # dev tier: one week
