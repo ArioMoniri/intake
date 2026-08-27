@@ -122,7 +122,8 @@
   title: "Envelope encryption (OpenBao Transit) + rotation + crypto-shredding"
   depends_on: [INT-017]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-014.md
   acceptance:
     - "AES-256-GCM per-field with per-tenant DEKs wrapped by OpenBao Transit; file-KEK provider for tests; rewrap rotation; destroy-key == hard delete"
     - "tamper detection test; rotation test; crypto-shred proves ciphertext unrecoverable"

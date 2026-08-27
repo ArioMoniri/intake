@@ -109,3 +109,14 @@
 - Blocked on: nothing.
 - Next: INT-014 envelope encryption (Transit) + rotation + crypto-shredding.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T01:30:00+03:00 · INT-014 · done
+- Goal: field-level envelope encryption — per-tenant DEKs wrapped by Transit, file-KEK for the unit lane, rewrap rotation, crypto-shred as the KVKK-7 hard delete.
+- Plan: red tests; EnvelopeCipher + EncryptedField (pack/unpack) + KekProvider protocol with FileKekProvider (unit) and TransitKekProvider (integration + mock-transport unit coverage of the HTTP contract).
+- Tests added: tests/security/test_envelope_encryption.py (7 unit + 1 integration) + test_envelope_transit_unit.py (4 — version parsing, rotation tracking, destroy two-step, missing-key→shred mapping).
+- Result: 119 unit green, make check GREEN; integration lane 4/4 incl. live Transit destroy.
+- Invariants touched and still passing: 14, 13, 6, 15; coverage floor held.
+- Decisions / 00 rows: none — implements 10 §2 as specified.
+- Blocked on: nothing.
+- Next: INT-016 audit chain (deps INT-014 now satisfied) per file order.
+- LOOP_STATUS: CONTINUE
