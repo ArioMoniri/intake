@@ -1,0 +1,8 @@
+[project]
+name = "good-service"
+version = "0.0.1"
+
+[tool.intake]
+kind = "service"
+health = "good_service.app:create_app"
+probe = "good_service.http"

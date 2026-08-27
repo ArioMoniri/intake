@@ -43,3 +43,14 @@
 - Blocked on: PR merges remain owner-side (harness classifier); board creation may need `gh auth refresh -s project`.
 - Next: INT-043 — draft base.intake and put it in the owner's inbox (unblocks 78 of 175).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T20:40:00+03:00 · INT-010 · done
+- Goal: the monitoring-contract entry points — mount_health (healthz/readyz/metrics/version) + the service-enumeration contract.
+- Plan: failing tests first (collection error — module and fastapi absent), then health.py (ReadinessCheck with per-check timeout, VersionInfo.from_env, Prometheus exposition, discover_services + verify_service_declarations) and the good/bad fixture services proving the contract can fail.
+- Tests added: tests/platform/test_health_contract.py (11 — liveness-vs-readiness split, error/timeout reporting, version fields, metrics exposition, enumeration incl. the failing fixture and the repo-wide binding test).
+- Result: 62 passed on branch; make check green; intake_platform coverage 100 % branch vs floor 85.
+- Invariants touched and still passing: 15 (now structurally enforced), 8.
+- Decisions / 00 rows: none — implements 10 §6 as specified.
+- Blocked on: nothing.
+- Next: INT-011 OTel + PII redaction processor.
+- LOOP_STATUS: CONTINUE

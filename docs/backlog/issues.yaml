@@ -68,7 +68,8 @@
   title: "packages/intake_platform/health: /healthz /readyz /metrics /version + contract test"
   depends_on: [INT-001]
   labels: [area:platform]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-010.md
   acceptance:
     - "mount_health(app, readiness=[...]) for FastAPI, workers, voice-runtime; /version returns git_sha, built_at, sbom_digest"
     - "health_contract test enumerates every service in the repo and fails on a missing endpoint or missing probe registration"
