@@ -36,12 +36,16 @@
 - id: INT-003
   epic: E00-governance
   phase: P0
-  title: "ADR-000..020 written; blueprint mirrored to docs/blueprint"
+  # CORRECTED 27 Aug 2026: the §3.12 list now runs 001..023 (021 self-hosting,
+  # 022 no-accuracy-claims, 023 RED three axes); "020" was the v1.4 count. The
+  # title's docs/blueprint mirror was already corrected to files/ (c54f112).
+  title: "ADR-000..023 written; blueprint at files/ indexed"
   depends_on: [INT-001]
   labels: [area:docs]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-003.md
   acceptance:
-    - "docs/adr/ has ADR-000 template and 001..020 Accepted, one paragraph each (list in 07 §3.12)"
+    - "docs/adr/ has ADR-000 template and 001..023 Accepted, one paragraph each (list in 07 §3.12)"
     - "files/ contains files 01..11 verbatim; docs/index.md links everything"
   tests: [tests/docs/test_adr_index.py]
 - id: INT-004
