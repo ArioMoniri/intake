@@ -44,6 +44,12 @@ scan() {
         continue
       fi
     fi
+    # The gate's own name contains a token; invoking it (ci.yml, Makefile) is
+    # never a violation. Strip the self-reference and re-test the line.
+    cleaned=$(printf '%s\n' "$line" | sed 's/no_placeholders//g')
+    if ! printf '%s\n' "$cleaned" | grep -qE "$PATTERN"; then
+      continue
+    fi
     printf '%s\n' "$line"
   done
 }

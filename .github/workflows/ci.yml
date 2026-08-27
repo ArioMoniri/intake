@@ -1,6 +1,6 @@
 # INT-002 — CI base. Actions pinned to full commit SHAs (supply-chain: a tag
 # can be silently repointed; SHAs resolved from git ls-remote, never guessed). make check split into parallel jobs (05 §3); gates run the
-# zero-placeholder, vendor-call and evidence checks. CI never calls a vendor and
+# invariant-17, vendor-call and evidence checks. CI never calls a vendor and
 # carries no secrets: recorded fixtures only (CLAUDE.md §How we work).
 name: ci
 

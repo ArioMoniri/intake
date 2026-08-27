@@ -78,6 +78,18 @@ def test_clinical_signoff_form_is_permitted_only_under_protocols(tmp_path: Path)
     )
 
 
+def test_gate_self_reference_is_not_a_violation(tmp_path: Path) -> None:
+    # ci.yml and the Makefile must be able to *invoke* the gate by name; the
+    # script name contains a token but is never itself a placeholder marker.
+    f = tmp_path / "workflow.yml"
+    f.write_text("- run: scripts/ci/no_place" + "holders.sh\n", encoding="utf-8")
+    assert run(str(f)).returncode == 0
+
+    g = tmp_path / "mixed.yml"
+    g.write_text("- run: scripts/ci/no_place" + "holders.sh  # TO" + "DO later\n", encoding="utf-8")
+    assert run(str(g)).returncode == 1, "a real token beside the self-reference must still fail"
+
+
 def test_allowlist_only_shrinks() -> None:
     """The allow-list may only shrink (CLAUDE.md invariant 17). Removing an entry
     is fine; adding one must consciously change this pinned set AND survive
