@@ -1,0 +1,14 @@
+# Coverage floors — CLAUDE.md invariant 8, enforced by tests/ci/test_coverage_floors.py.
+# Values only rise. A path that does not exist yet gates nothing until its issue
+# lands, but its floor is already binding on that issue.
+# packages/intake_platform is not named by invariant 8; it shares the api floor
+# (recorded in docs/evidence/INT-002.md) — raising it later is always permitted.
+python:
+  services/api: 85
+  packages/protocols: 95
+  packages/protocols/triage: 100 # branch coverage
+  packages/clinical-schemas: 90
+  services/voice-runtime: 90
+  packages/intake_platform: 85
+ts:
+  default: 85

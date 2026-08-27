@@ -235,9 +235,9 @@ def test_env_example_has_no_secrets() -> None:
         if "=" not in line or line.lstrip().startswith("#"):
             continue
         _, value = line.split("=", 1)
-        assert not re.search(
-            r"(sk-|ghp_|AKIA|BEGIN [A-Z]+ PRIVATE KEY)", value
-        ), "possible real secret in .env.example"
+        assert not re.search(r"(sk-|ghp_|AKIA|BEGIN [A-Z]+ PRIVATE KEY)", value), (
+            "possible real secret in .env.example"
+        )
 
 
 def test_licences_present() -> None:

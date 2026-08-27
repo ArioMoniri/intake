@@ -20,7 +20,9 @@ repos:
         exclude: ^(files/|pnpm-workspace\.yaml$|pyproject\.toml$)
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    # rev tracks the ruff pin in pyproject dev deps — a mismatch makes the hook
+    # and `make check-py` fight over formatting
+    rev: v0.16.4
     hooks:
       - id: ruff
         args: ["--fix"]
