@@ -83,6 +83,9 @@ export default function ReviewAndSend() {
             </Card>
           );
         })}
+        <AppText role="caption" color="inkFaint">
+          {t("review.provenance")}
+        </AppText>
         {sent ? (
           <AppText role="body" color="inkSoft">
             {t("review.sentInfo")}

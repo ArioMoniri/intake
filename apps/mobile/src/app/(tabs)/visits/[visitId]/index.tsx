@@ -17,8 +17,8 @@ import { spacing } from "@/lib/theme";
 export default function VisitDetail() {
   const router = useRouter();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const { account, notes } = useSession();
-  const visit = account?.visits.find((v) => v.id === visitId) ?? null;
+  const { visits, notes } = useSession();
+  const visit = visits.find((v) => v.id === visitId) ?? null;
   if (visit === null) {
     return (
       <Screen>
@@ -34,7 +34,7 @@ export default function VisitDetail() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <VisitCard visit={visit} />
+        <VisitCard visit={visit} statusOverride={status} />
         <Card>
           <AppText role="label" color="inkSoft">
             {t("visits.detail.noteStatus")}

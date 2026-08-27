@@ -1,26 +1,31 @@
 /**
- * Vizite design tokens (INT-130; docs/design/mobile-ui.md).
+ * Vizite design tokens (INT-130, premium pass INT-193;
+ * docs/design/mobile-ui.md).
  *
  * Calm dark-on-light (02 §5.2): warm paper ground, deep ink, ONE accent.
- * RED is reserved for the emergency route alone — nothing else in the app may
- * use it (02 §5.3). Motion budget: 120 ms fades, one animated element at a
- * time (02 §5.2a) — tokens carry the number so nobody re-invents it.
+ * The premium register (Oura/Tiimo/ChatGPT study): serif display for hero
+ * moments, deeper near-black dark mode with tonal card separation, soft
+ * large radii, Liquid Glass surfaces where the system provides them.
+ * RED is reserved for the emergency route alone — nothing else in the app
+ * may use it (02 §5.3). Motion budget: 120 ms fades, one animated element
+ * at a time (02 §5.2a) — tokens carry the number so nobody re-invents it.
  *
  * Turkish rules baked in (00 §2): no text-transform anywhere (İ/ı casing
  * corrupts strings), no mid-word truncation, sentence case only.
  *
- * Pure TS module — no react-native imports, so every token and the type scale
- * are unit-testable in node.
+ * Pure TS module — no react-native imports, so every token and the type
+ * scale are unit-testable in node. Platform resolution (fonts, shadows)
+ * happens in components/Themed.tsx.
  */
 
 export const palette = {
   light: {
-    background: "#FAF8F4", // warm paper (Pi-class calm, not clinical white)
+    background: "#FAF8F4", // warm paper (Pi/Tiimo-class calm, not clinical white)
     surface: "#FFFFFF",
     ink: "#1C1B18",
     inkSoft: "#5C594F",
     inkFaint: "#8A867A",
-    border: "#E7E3DA",
+    border: "#EAE6DD",
     primary: "#0F7B6C", // şifa teal — the single accent
     primarySoft: "#E3F0ED",
     onPrimary: "#FFFFFF",
@@ -32,12 +37,12 @@ export const palette = {
     emergencySoft: "#F9E5E3",
   },
   dark: {
-    background: "#171613",
-    surface: "#201F1B",
+    background: "#121110", // Oura-register near-black with warmth
+    surface: "#1D1B18",
     ink: "#F2F0EA",
     inkSoft: "#B7B3A7",
     inkFaint: "#8A867A",
-    border: "#33312B",
+    border: "#2E2B26",
     primary: "#4FA79A",
     primarySoft: "#22322F",
     onPrimary: "#10201D",
@@ -54,14 +59,48 @@ export type ColorScheme = keyof typeof palette;
 export type ThemeColors = (typeof palette)[ColorScheme];
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
-export const radius = { card: 16, control: 12, chip: 999 } as const;
+
+/** Softer, larger geometry (Tiimo/Oura register). */
+export const radius = { card: 20, control: 14, hero: 28, chip: 999 } as const;
 
 /** Motion budget (02 §5.2a): fades only, and only this long. */
 export const motion = { fadeMs: 120 } as const;
 
+/**
+ * Serif display for hero/title moments (the Oura/Tiimo signature), system
+ * sans for everything else. Resolved per platform in Themed.tsx; pure data
+ * here. Both faces ship with the OS — no font assets, no licence surface.
+ */
+export const fonts = {
+  display: { ios: "Georgia", android: "serif", default: "serif" },
+} as const;
+
+/**
+ * Depth: light mode floats cards on a soft, wide shadow; dark mode relies
+ * on tonal separation like Oura (shadows read as mud on near-black).
+ */
+export const shadow = {
+  light: { color: "#1C1B18", opacity: 0.07, radius: 18, offsetY: 8 },
+  dark: { color: "#000000", opacity: 0, radius: 0, offsetY: 0 },
+} as const;
+
+/**
+ * Fallback surface for glass when Liquid Glass is unavailable (Android,
+ * older iOS, web): a translucent wash + hairline border approximates the
+ * material without the system blur.
+ */
+export function glassFallback(scheme: ColorScheme): {
+  backgroundColor: string;
+  borderColor: string;
+} {
+  return scheme === "dark"
+    ? { backgroundColor: "rgba(29, 27, 24, 0.72)", borderColor: "rgba(242, 240, 234, 0.08)" }
+    : { backgroundColor: "rgba(255, 255, 255, 0.62)", borderColor: "rgba(28, 27, 24, 0.08)" };
+}
+
 /** Base sizes at fontScale 1.0. Body 17 matches the platform default. */
 export const typeScale = {
-  hero: 28,
+  hero: 30,
   title: 22,
   body: 17,
   label: 15,

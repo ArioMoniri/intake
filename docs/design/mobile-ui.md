@@ -149,3 +149,30 @@ Decisions the shells lock in:
 - Register fix applied across the catalog: short in-flow buttons use the
   siz imperative (-in/-yin: "Devam edin", "Vizit ekleyin"), not the sen form
   the shell first shipped with.
+
+## Premium pass (INT-193, 2026-08-27)
+
+Register: between Oura (tonal dark, serif display, floating chrome) and
+Tiimo (warm light, soft pills) — grounded in a second Mobbin pull (Oura home
+x4, Tiimo home x3).
+
+- **Serif display** for hero/title only (Georgia on iOS, Noto Serif via
+  `serif` on Android — OS faces, zero font assets, zero licence surface);
+  body stays system sans.
+- **Dark palette deepened** to near-black with warmth (`#121110` ground,
+  `#1D1B18` surface); dark mode separates tonally — shadows exist only in
+  light mode (soft, wide: 0.07 / 18 / y8).
+- **Geometry**: radius 20 cards / 14 controls / 28 hero; buttons min 52pt.
+- **Liquid Glass**: `GlassCard` renders the system material on iOS 26+
+  (expo-glass-effect) and a translucent wash + hairline elsewhere; the tab
+  rail is the system's own glass via native tabs, tinted with the single
+  accent. Glass is a garnish, never a ground — body text stays on solid
+  surfaces (02 §8.2 contrast).
+- **Standardized clinician brief** on review: Başvuru nedeni (CC) → Şikâyet
+  öyküsü (labelled Süre/Hasta notu lines) → İlaçlar — hasta beyanı, framed
+  by the provenance line; section ids are stable codes for the INT-084
+  mapper.
+- **Device-found rules**: every native tab that hosts nested routes gets an
+  explicit inner Stack layout (pushes are silently dropped otherwise); the
+  root navigator is keyed by locale so a language switch re-renders every
+  screen.
