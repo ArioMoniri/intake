@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**180 issues.** By phase: P0 95 · P1 45 · P2 36 · P3 4. By status: doing 2 · done 16 · todo 161 · withdrawn 1.
+**181 issues.** By phase: P0 96 · P1 45 · P2 36 · P3 4. By status: doing 5 · done 17 · todo 158 · withdrawn 1.
 
 ## P0
 
@@ -21,12 +21,12 @@
 | INT-013 | Tokenization service + identity vault (TCKN/phone never in clear) | E01-platform | INT-012, INT-017 | area:security, risk:security | done |
 | INT-014 | Envelope encryption (OpenBao Transit) + rotation + crypto-shredding | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | done |
-| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | todo |
+| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | doing |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
-| INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | todo |
+| INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | doing |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | todo |
 | INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | doing |
-| INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | todo |
+| INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | doing |
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | todo |
 | INT-023 | Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip | E01-platform | INT-011 | area:observability | todo |
 | INT-024 | k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s) | E01-platform | INT-022 | area:observability | todo |
@@ -97,6 +97,7 @@
 | INT-178 | Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel | E01-platform | INT-013 | area:security, risk:security | done |
 | INT-179 | Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs) | E08-mobile | INT-130 | area:mobile | doing |
 | INT-193 | Premium visual pass: Liquid Glass + Oura register, working add-visit, language switching, standardized clinician brief; first simulator smoke | E08-mobile | INT-179 | area:mobile | done |
+| INT-194 | Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs | E08-mobile | INT-193 | area:mobile | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | todo |
