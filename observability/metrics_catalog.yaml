@@ -1,0 +1,85 @@
+# observability/metrics_catalog.yaml — the closed registry of Prometheus
+# series the platform emits (INT-021; CLAUDE.md inv. 13; files/03 §19).
+#
+# A series served on /metrics but absent here fails CI
+# (tests/observability/test_slo_files.py::test_every_emitted_metric_family_is_catalogued),
+# and every docs/slo/<service>.yaml SLI may reference only names listed here.
+# Label names are schema-checked against the PHI-risk denylist in
+# intake_platform.slo (inv. 6): identifiers and enumerations only, never free
+# text. Only series real code emits belong here — the two http_* families come
+# from intake_platform.metrics.mount_http_metrics, the rest from the
+# prometheus_client default collectors behind intake_platform.health's
+# /metrics endpoint.
+metrics:
+  - name: http_requests_total
+    type: counter
+    labels: [service, method, route, status]
+    owner: platform
+    description: >-
+      HTTP requests handled, by service, method, route template and status
+      code. Emitted by intake_platform.metrics.mount_http_metrics; the route
+      label is the template, never the raw path.
+  - name: http_request_duration_seconds
+    type: histogram
+    labels: [service, method, route]
+    owner: platform
+    description: >-
+      HTTP request duration in seconds, by service, method and route template.
+      Emitted by intake_platform.metrics.mount_http_metrics; latency SLIs read
+      the bucket series.
+  - name: process_cpu_seconds_total
+    type: counter
+    labels: []
+    owner: platform
+    description: >-
+      Total user and system CPU time spent by the process, in seconds
+      (prometheus_client process collector).
+  - name: process_resident_memory_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    description: Resident memory size in bytes (prometheus_client process collector).
+  - name: process_virtual_memory_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    description: Virtual memory size in bytes (prometheus_client process collector).
+  - name: process_start_time_seconds
+    type: gauge
+    labels: []
+    owner: platform
+    description: >-
+      Start time of the process since the unix epoch, in seconds
+      (prometheus_client process collector).
+  - name: process_open_fds
+    type: gauge
+    labels: []
+    owner: platform
+    description: Number of open file descriptors (prometheus_client process collector).
+  - name: process_max_fds
+    type: gauge
+    labels: []
+    owner: platform
+    description: Maximum number of open file descriptors (prometheus_client process collector).
+  - name: python_gc_objects_collected_total
+    type: counter
+    labels: [generation]
+    owner: platform
+    description: Objects collected during garbage collection (prometheus_client gc collector).
+  - name: python_gc_objects_uncollectable_total
+    type: counter
+    labels: [generation]
+    owner: platform
+    description: >-
+      Uncollectable objects found during garbage collection (prometheus_client
+      gc collector).
+  - name: python_gc_collections_total
+    type: counter
+    labels: [generation]
+    owner: platform
+    description: Number of times each garbage-collector generation was collected.
+  - name: python_info
+    type: gauge
+    labels: [implementation, major, minor, patchlevel, version]
+    owner: platform
+    description: Python interpreter build information (prometheus_client platform collector).

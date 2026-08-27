@@ -171,3 +171,26 @@
 - Blocked on: physician (#185); owner: Freya pin approval, licence blobs.
 - Next: merge #205 and this PR; then INT-018 egress proxy.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T09:00:00+03:00 · INT-194 · done (+ INT-021 core in PR)
+- Goal: owner directives — "bilgiler düzenlenemiyor" (editable review), "ses kısmı çalışmıyor" (working voice), "not department-based / too short" (branch packs).
+- Result: review pencils reopen questions prefilled (single-select edits return straight to the review); __DEV__ voice pill → own whisper-tr ASR daemon on the GPU box over the Mac's SSH forward (curl-proven word-perfect Turkish; in-sim plumbing verified; recording deleted after upload — invariant 3 posture); department packs: cardio/internal 6 steps (character/trigger/associated), neuro (onset/severity-in-words/assoc), KBB (side/assoc), fallback core — all feeding labelled HPI lines in the clinician brief. Unicode pack-matching bug caught by tests (combining-mark regex vs tr-TR lowercasing).
+- Parallel roadmap: INT-021 SLO stack built by subagent (branch int-21-slo: schema+generator, prometheus rules round-trip-tested, dashboard as code, runbook, make slo-report; 162 py tests, coverage 88.17%) — PR next; INT-021 stays doing (live stack lands with INT-023).
+- Invariants: 3 (posture documented), 5, 17, 22 (severity words, no numerals); backlog consciously 180→181.
+- Blocked on: owner — Freya-TTS pinned install approval (the "robotic" voice heard was macOS say, not our TTS); physician #185.
+- Next: merge this + int-21-slo + #205; then INT-018.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T02:20:00+03:00 · merge wave: INT-016/018/021 cores + INT-194 · done (parallel-agent iteration)
+- Fleet (≤3 concurrent per CLAUDE.md): INT-018 egress policy library (PR #214), INT-020 threat model + Sec-Row gate (PR #217, in CI — the new gate's first catch was the coordinator's own wrong Sec-Row line), INT-021 SLO stack (PR #212), INT-016 audit chain core (PR #205), INT-194 flows/voice/packs (PR #210), all merged with local full-green gates during a GitHub Actions event outage; every late-arriving CI run subsequently confirmed GREEN.
+- TTS lane live on the team box: FreyaTTS-small @146d36c1 (code Apache-2.0 blob-verified), normaliser disabled + digit rejection (invariant 22), VRAM pre-check, supervised; smoke wav delivered. Findings: Freya weights + VoxCPM2 weights lack licence blobs (licence-auditor queue); shared tmux session leaks another tenant's HF_TOKEN (owner to be informed).
+- Design pass 3 running as a dedicated agent (BlurView glass, Kicker/Hairline/Guidance patterns, Fraunces display face) live in the simulator.
+- Next: merge #217; INT-019 security CI + INT-022 probe registry agents in flight; then INT-023 observability deploy.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T03:20:00+03:00 · INT-195 · done
+- Goal: dedicated design-agent pass to the Oura register ("more liquid glass; fonting and framing differ" — owner, with a side-by-side).
+- Result: real BlurView glass fallback + GlassBar floating CTAs (intake/review), Kicker/Hairline/GuidanceBlock anatomy across all seven screens, borderless tonal dark cards, Fraunces display leading 1.2 pinned, guidance-block empty states in product copy (tr+en). The pass FOUND and fixed a real AA regression (primary/primarySoft 4.41→4.63) and pinned the pair into the contrast suite. 72/72 green, no invariant weakened; verified by the agent in dark+light with its own screenshots.
+- Invariants: 5, 17, 18 (product copy only), 02 §5.2 motion budget kept (static gradients only).
+- Next: merge; INT-019 + INT-022 agents still building.
+- LOOP_STATUS: CONTINUE

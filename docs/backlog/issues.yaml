@@ -154,7 +154,7 @@
   title: "Hash-chained audit log + WORM export + daily verifier"
   depends_on: [INT-014]
   labels: [area:security]
-  status: todo
+  status: doing
   acceptance:
     - "audit.v1 events chained (prev-hash), verifier job, MinIO object-lock bucket copy; patient-visible access-log view model"
     - "tamper test flips one row and the verifier detects it"
@@ -207,7 +207,9 @@
   title: "Threat model + incident runbook + PR linkage"
   depends_on: [INT-003]
   labels: [area:security, risk:legal]
-  status: todo
+  # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
+  # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
+  status: doing
   acceptance:
     - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
@@ -220,7 +222,7 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: doing
   acceptance:
     - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
@@ -1670,6 +1672,32 @@
   acceptance:
     - "serif display heroes, deep dark palette, glass surfaces with fallback, teal-tinted native rail; add-visit writes session state end-to-end; tr/en switch re-renders the whole tree; clinician brief in CC->HPI->meds order with provenance line; every screen and button walked in the iOS simulator with the two found navigation/locale bugs fixed"
   tests: [apps/mobile/e2e/flows.spec.ts, apps/mobile/e2e/nav.spec.ts]
+  sec_row: "mobile"
+# INT-194: owner directives 2026-08-27 late — editable review, working voice
+# note lane against our own ASR, department-based intake packs.
+- id: INT-194
+  epic: E08-mobile
+  phase: P0
+  title: "Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs"
+  depends_on: [INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "review sections reopen their question prefilled and return on save; __DEV__ voice pill records, ships audio to the team-box whisper-tr endpoint, deletes the file, drops the transcript into the note; Kardiyoloji/İç Hastalıkları, Nöroloji and KBB get their own anamnesis dimensions (severity in words, never numerals) feeding labelled HPI lines; consent.voice gates the pill"
+  tests: [apps/mobile/e2e/flows.spec.ts]
+  sec_row: "intake-typed"
+# INT-195: owner directive 2026-08-28 — dedicated design-agent pass to the
+# Oura register: real glass layering, kicker anatomy, guidance blocks.
+- id: INT-195
+  epic: E08-mobile
+  phase: P0
+  title: "Design pass 3: Oura-register glass layering, kicker/hairline anatomy, guidance-block empty states, Fraunces leading, AA fix"
+  depends_on: [INT-194]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "floating glass CTA bars on intake/review; kicker pills + hairline dividers across cards; wellbeing/records/learned empty states become product-copy guidance blocks (tr+en, no clinical content); display leading 1.2 vs body 1.4 pinned; the found AA regression (primary on primarySoft) fixed by hex and added to the pinned contrast suite; all tests green with no invariant weakened"
+  tests: [apps/mobile/e2e/nav.spec.ts, apps/mobile/src/lib/theme.test.ts]
   sec_row: "mobile"
 - id: INT-180
   epic: E12-admin

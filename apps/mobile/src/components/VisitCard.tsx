@@ -1,11 +1,12 @@
 /** Visit summary card used on Bugün and Vizitlerim (02 §5.1). */
 import { StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { StatusChip } from "@/components/StatusChip";
-import { AppText, Card } from "@/components/Themed";
+import { AppText, Card, useTheme } from "@/components/Themed";
 import type { VisitFixture } from "@/lib/dev/accounts";
 import { getLocale } from "@/lib/i18n";
-import { spacing } from "@/lib/theme";
+import { radius, spacing, tracking } from "@/lib/theme";
 
 /** tr-formatted, no truncation (Turkish hospital names are long — 00 §2). */
 export function formatVisitDate(iso: string, locale: string): string {
@@ -21,16 +22,41 @@ interface VisitCardProps {
   visit: VisitFixture;
   /** Live status (local note state) wins over the fixture's ladder step. */
   statusOverride?: VisitFixture["noteStatus"];
+  /**
+   * Oura-register hero treatment for the ONE card the screen is about
+   * (design pass 3): solid surface with a very soft STATIC accent glow
+   * washing down from the top (primarySoft → transparent — the Oura scrim
+   * feel), hero radius, date in the accent colour. Text still sits on the
+   * solid surface underneath (02 §8.2); the glow is garnish. Everything
+   * else stays a quiet surface card — one focal point per screen (02 §5.2).
+   */
+  hero?: boolean;
 }
 
-export function VisitCard({ visit, statusOverride }: VisitCardProps) {
+export function VisitCard({ visit, statusOverride, hero = false }: VisitCardProps) {
+  const theme = useTheme();
   const status = statusOverride ?? visit.noteStatus;
   return (
-    <Card>
-      <AppText role="caption" color="inkSoft">
+    <Card style={hero ? styles.hero : undefined}>
+      {hero ? (
+        <LinearGradient
+          pointerEvents="none"
+          // Fade to the SAME hue at zero alpha — "transparent" is black@0 and
+          // drags the wash through grey on the light surface.
+          colors={[theme.primarySoft, `${theme.primarySoft}00`]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.85 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      <AppText
+        role="caption"
+        color={hero ? "primary" : "inkSoft"}
+        style={hero ? styles.heroDate : undefined}
+      >
         {formatVisitDate(visit.date, getLocale())}
       </AppText>
-      <AppText role="title">{visit.department}</AppText>
+      <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>
       <AppText role="body" color="inkSoft">
         {visit.hospital}
       </AppText>
@@ -45,4 +71,12 @@ export function VisitCard({ visit, statusOverride }: VisitCardProps) {
 
 const styles = StyleSheet.create({
   chipRow: { marginTop: spacing.xs },
+  hero: {
+    borderRadius: radius.hero,
+    padding: spacing.lg,
+    borderWidth: 0,
+    overflow: "hidden",
+    gap: spacing.sm,
+  },
+  heroDate: { fontWeight: "600", letterSpacing: tracking.kicker },
 });

@@ -1,6 +1,7 @@
 # INT-xxx: <title>
 
 Closes #<n>
+Sec-Row: <the issue's sec_row from docs/backlog/issues.yaml; write — if it carries none>
 
 ## DoD — list A (self-assessed; the full walk lives in the evidence file)
 

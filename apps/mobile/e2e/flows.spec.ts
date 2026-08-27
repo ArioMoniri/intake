@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import { getTestAccount } from "../src/lib/dev/accounts";
 import { t } from "../src/lib/i18n";
-import { intakeQuestions } from "../src/lib/intake/questions";
+import { allQuestions, intakeQuestions, packForDepartment } from "../src/lib/intake/questions";
 import { buildNote, emptyNoteState, noteReducer, sentSections } from "../src/lib/intake/note";
 
 const APP = join(__dirname, "..", "src", "app");
@@ -42,6 +42,63 @@ describe("typed intake fixtures (one question per screen)", () => {
   it("chips step allows multi-select, single step does not", () => {
     expect(intakeQuestions[0].options!.length).toBeGreaterThanOrEqual(6);
     expect(intakeQuestions[1].options!.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("department packs (INT-194): the intake is branch-aware", () => {
+  it("cardiology/internal medicine gets character, trigger and associated dimensions", () => {
+    const ids = packForDepartment("Kardiyoloji").map((q) => q.id);
+    expect(ids).toEqual(["complaint", "duration", "pain_character", "trigger", "associated", "extra"]);
+    expect(packForDepartment("İç Hastalıkları").map((q) => q.id)).toEqual(ids);
+  });
+
+  it("neurology gets onset, severity (words, never a numeric scale) and associated", () => {
+    const ids = packForDepartment("Nöroloji").map((q) => q.id);
+    expect(ids).toContain("onset");
+    expect(ids).toContain("severity");
+    const severity = packForDepartment("Nöroloji").find((q) => q.id === "severity")!;
+    for (const option of severity.options!) {
+      expect(t(option.labelKey)).not.toMatch(/\d/);
+    }
+  });
+
+  it("ENT gets the side dimension; unknown departments fall back to the core pack", () => {
+    expect(packForDepartment("Kulak Burun Boğaz").map((q) => q.id)).toContain("side");
+    expect(packForDepartment("Ortopedi").map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
+    expect(packForDepartment(undefined).map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
+  });
+
+  it("every pack question and option resolves through the tr catalog", () => {
+    for (const q of allQuestions) {
+      expect(t(q.titleKey).length).toBeGreaterThan(0);
+      if (q.hpiLabelKey) {
+        expect(t(q.hpiLabelKey).length).toBeGreaterThan(0);
+      }
+      for (const o of q.options ?? []) {
+        expect(t(o.labelKey).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("pack answers become labelled HPI lines in the clinician brief", () => {
+    const ayse = getTestAccount("ayse")!;
+    const sections = buildNote(
+      [
+        { questionId: "complaint", values: ["pain"] },
+        { questionId: "duration", values: ["days"] },
+        { questionId: "pain_character", values: ["pressure"] },
+        { questionId: "trigger", values: ["exertion"] },
+        { questionId: "associated", values: ["sweating", "dyspnoea"] },
+      ],
+      ayse,
+    );
+    const hpi = sections.find((s) => s.id === "hpi")!;
+    expect(hpi.lines).toEqual([
+      "Süre: Birkaç gündür",
+      "Ağrının niteliği: Baskı, sıkışma gibi",
+      "Artıran durum: Hareket ya da eforla",
+      "Eşlik edenler: Terleme, Nefes darlığı",
+    ]);
   });
 });
 

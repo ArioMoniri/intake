@@ -27,7 +27,7 @@ export const palette = {
     inkFaint: "#8A867A",
     border: "#EAE6DD",
     primary: "#0F7B6C", // şifa teal — the single accent
-    primarySoft: "#E3F0ED",
+    primarySoft: "#EAF5F2", // light enough that primary text on it clears AA (4.6:1)
     onPrimary: "#FFFFFF",
     amber: "#9A5B00", // YELLOW status pill only
     amberSoft: "#FBF1DF",
@@ -37,12 +37,12 @@ export const palette = {
     emergencySoft: "#F9E5E3",
   },
   dark: {
-    background: "#121110", // Oura-register near-black with warmth
-    surface: "#1D1B18",
+    background: "#0F0E0C", // Oura-register near-black with warmth
+    surface: "#211F1B", // a full step lighter than ground — cards must separate
     ink: "#F2F0EA",
     inkSoft: "#B7B3A7",
     inkFaint: "#8A867A",
-    border: "#2E2B26",
+    border: "#353128",
     primary: "#4FA79A",
     primarySoft: "#22322F",
     onPrimary: "#10201D",
@@ -58,21 +58,23 @@ export const palette = {
 export type ColorScheme = keyof typeof palette;
 export type ThemeColors = (typeof palette)[ColorScheme];
 
-export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
+export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 20 } as const;
 
-/** Softer, larger geometry (Tiimo/Oura register). */
-export const radius = { card: 20, control: 14, hero: 28, chip: 999 } as const;
+/** Softer, larger geometry (Oura register); CTAs are full pills. */
+export const radius = { card: 20, control: 999, hero: 28, chip: 999 } as const;
 
 /** Motion budget (02 §5.2a): fades only, and only this long. */
 export const motion = { fadeMs: 120 } as const;
 
 /**
- * Serif display for hero/title moments (the Oura/Tiimo signature), system
- * sans for everything else. Resolved per platform in Themed.tsx; pure data
- * here. Both faces ship with the OS — no font assets, no licence surface.
+ * Display face: Fraunces (OFL 1.1 — commercially usable; loaded as an app
+ * asset via @expo-google-fonts/fraunces in the root layout) for hero/title
+ * lines — the Oura-register soft serif. Body stays system sans. Platform
+ * serif names remain as the pre-load fallback chain.
  */
 export const fonts = {
-  display: { ios: "Georgia", android: "serif", default: "serif" },
+  display: "Fraunces_600SemiBold",
+  displayFallback: { ios: "Georgia", android: "serif", default: "serif" },
 } as const;
 
 /**
@@ -85,23 +87,32 @@ export const shadow = {
 } as const;
 
 /**
- * Fallback surface for glass when Liquid Glass is unavailable (Android,
- * older iOS, web): a translucent wash + hairline border approximates the
- * material without the system blur.
+ * Glass fallback (Android, iOS < 26, web): a soft tint wash laid OVER a real
+ * BlurView plus a hairline border — the closest honest approximation of the
+ * system material (design pass 3: the wash alone read as flat plastic; the
+ * blur underneath is what makes it glass). Alphas are low because the blur
+ * carries most of the separation.
  */
 export function glassFallback(scheme: ColorScheme): {
   backgroundColor: string;
   borderColor: string;
 } {
   return scheme === "dark"
-    ? { backgroundColor: "rgba(29, 27, 24, 0.72)", borderColor: "rgba(242, 240, 234, 0.08)" }
-    : { backgroundColor: "rgba(255, 255, 255, 0.62)", borderColor: "rgba(28, 27, 24, 0.08)" };
+    ? { backgroundColor: "rgba(33, 31, 27, 0.45)", borderColor: "rgba(242, 240, 234, 0.10)" }
+    : { backgroundColor: "rgba(255, 255, 255, 0.42)", borderColor: "rgba(28, 27, 24, 0.08)" };
 }
+
+/**
+ * Letter tracking (design pass 3, Oura register): kickers/eyebrows breathe
+ * with a wide caption; everything else stays untracked. Never pair this with
+ * a case transform (İ/ı rule) — the tracking IS the emphasis.
+ */
+export const tracking = { kicker: 0.5 } as const;
 
 /** Base sizes at fontScale 1.0. Body 17 matches the platform default. */
 export const typeScale = {
-  hero: 30,
-  title: 22,
+  hero: 34,
+  title: 24,
   body: 17,
   label: 15,
   caption: 13,
@@ -120,7 +131,13 @@ export function scaledSize(role: TypeRole, fontScale: number): number {
   return Math.round(typeScale[role] * clamped);
 }
 
-/** Line height keeps Turkish diacritics (ğ, ş, İ) unclipped. */
+/**
+ * Line height: display roles (hero/title) sit tight at 1.2 — the Oura serif
+ * register collapses at book leading (design pass 3) — while body roles keep
+ * 1.4 so Turkish diacritics (ğ, ş, İ) stay unclipped at reading sizes. 1.2
+ * still clears the diacritics at display sizes because the glyphs are large.
+ */
 export function lineHeight(role: TypeRole, fontScale: number): number {
-  return Math.round(scaledSize(role, fontScale) * 1.4);
+  const factor = role === "hero" || role === "title" ? 1.2 : 1.4;
+  return Math.round(scaledSize(role, fontScale) * factor);
 }

@@ -8,7 +8,8 @@
 import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { AppText, Card, PrimaryButton, Screen, useTheme } from "@/components/Themed";
+import { Kicker } from "@/components/Kicker";
+import { AppText, Card, Hairline, PrimaryButton, Screen, useTheme } from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -89,32 +90,35 @@ export default function Me() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero">{t("me.title")}</AppText>
+        <AppText role="hero" style={styles.heroLine}>
+          {t("me.title")}
+        </AppText>
         <Card>
           <AppText role="title">{account.name}</AppText>
           <AppText role="caption" color="inkFaint">
             {t("me.syntheticBadge")}
           </AppText>
         </Card>
-        <Card>
-          <AppText role="label" color="inkSoft">
-            {t("me.consents")}
-          </AppText>
+        <Card style={styles.consentCard}>
+          <Kicker label={t("me.consents")} />
           <ConsentRow
             label={t("consent.core")}
             on={consents.core}
             onToggle={() => setConsent("core", !consents.core)}
           />
+          <Hairline />
           <ConsentRow
             label={t("consent.voice")}
             on={consents.voice}
             onToggle={() => setConsent("voice", !consents.voice)}
           />
+          <Hairline />
           <ConsentRow
             label={t("consent.wellbeing")}
             on={consents.wellbeing}
             onToggle={() => setConsent("wellbeing", !consents.wellbeing)}
           />
+          <Hairline />
           <ConsentRow
             label={t("consent.documents")}
             on={consents.documents}
@@ -139,6 +143,8 @@ export default function Me() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
+  heroLine: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  consentCard: { gap: spacing.sm + 2 },
   consentRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   consentPill: {
     borderRadius: radius.chip,

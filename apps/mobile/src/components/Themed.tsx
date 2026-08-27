@@ -34,7 +34,9 @@ import {
   type TypeRole,
 } from "@/lib/theme";
 
-const DISPLAY_FONT = Platform.select(fonts.display);
+// Fraunces is guaranteed loaded before the tree renders (root layout gates
+// on useFonts); the platform serif remains only as a defensive fallback.
+const DISPLAY_FONT = fonts.display ?? Platform.select(fonts.displayFallback);
 
 export function useTheme(): ThemeColors {
   const scheme = useColorScheme();
@@ -102,7 +104,10 @@ export function Card({ children, style, wash = "none" }: CardProps) {
         styles.card,
         {
           backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface,
-          borderColor: theme.border,
+          // Dark cards are borderless — tonal surface against near-black
+          // ground carries the separation (Oura register, design pass 3);
+          // light keeps the hairline under its soft shadow.
+          borderColor: scheme === "dark" ? "transparent" : theme.border,
           shadowColor: depth.color,
           shadowOpacity: depth.opacity,
           shadowRadius: depth.radius,
@@ -116,13 +121,29 @@ export function Card({ children, style, wash = "none" }: CardProps) {
   );
 }
 
-interface PrimaryButtonProps {
+/**
+ * Hairline row divider INSIDE cards (Oura settings rhythm, design pass 3):
+ * quieter than the border token so it separates without boxing.
+ */
+export function Hairline({ style }: { style?: StyleProp<ViewStyle> }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[styles.hairline, { backgroundColor: theme.border }, style]}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+    />
+  );
+}
+
+interface ButtonProps {
   label: string;
   onPress: () => void;
   disabled?: boolean;
 }
 
-export function PrimaryButton({ label, onPress, disabled = false }: PrimaryButtonProps) {
+/** The ONE saturated CTA a screen gets (02 §5.2: single accent). Pill form. */
+export function PrimaryButton({ label, onPress, disabled = false }: ButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
@@ -142,13 +163,44 @@ export function PrimaryButton({ label, onPress, disabled = false }: PrimaryButto
   );
 }
 
+/** Oura-register quiet pill for secondary actions: surface + hairline. */
+export function SecondaryButton({ label, onPress, disabled = false }: ButtonProps) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.primaryButton,
+        {
+          backgroundColor: theme.surface,
+          borderWidth: 1,
+          borderColor: theme.border,
+          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <AppText role="label" color="ink" style={styles.buttonLabel}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: spacing.md },
+  screen: { flex: 1, padding: spacing.screen },
   card: {
     borderRadius: radius.card,
     borderWidth: 1,
     padding: spacing.md,
     gap: spacing.sm,
+  },
+  hairline: {
+    height: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    opacity: 0.9,
   },
   primaryButton: {
     borderRadius: radius.control,
