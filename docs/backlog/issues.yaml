@@ -95,7 +95,8 @@
   title: "packages/intake_platform/security: headers, rate limiter, idempotency keys"
   depends_on: [INT-010]
   labels: [area:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-012.md
   acceptance:
     - "security headers middleware (CSP, HSTS, nosniff, frame-deny); Redis token-bucket limiter per user/IP/tenant with tests; idempotency-key middleware for POSTs"
   tests: [tests/platform/test_rate_limit.py, tests/platform/test_idempotency.py]

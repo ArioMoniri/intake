@@ -8,6 +8,7 @@ dependencies = [
     "opentelemetry-api>=1.27",
     "opentelemetry-sdk>=1.27",
     "prometheus-client>=0.20",
+    "redis>=5.0",
 ]
 
 [build-system]

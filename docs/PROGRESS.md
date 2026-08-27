@@ -65,3 +65,14 @@
 - Blocked on: nothing.
 - Next: INT-012 security middleware (headers, rate limiter, idempotency keys).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-27T21:55:00+03:00 · INT-012 · done
+- Goal: the API security middleware baseline — headers, Redis token-bucket limiter (user/ip/tenant), idempotency keys for POSTs.
+- Plan: failing tests first (collection error), then the hook-protected security package: pure-ASGI headers middleware, atomic-Lua token bucket with injected clock, idempotency middleware with replay/409-in-flight/422-body-mismatch/retryable-failure semantics.
+- Tests added: tests/platform/test_rate_limit.py (4 — capacity, refill, isolation, ceiling), tests/platform/test_idempotency.py (6 — headers quartet, replay-without-reexecution, key isolation, body-mismatch 422, passthroughs).
+- Result: 82 passed on branch; make check green; mypy --strict clean; coverage 89.97 % vs floor 85.
+- Invariants touched and still passing: 14 (baseline layer), 6, 8, 15.
+- Decisions / 00 rows: none — implements 10 §2 as specified. Protected-path initial authorship recorded in evidence.
+- Blocked on: nothing.
+- Next: INT-017 (OpenBao dev server + policies) or INT-018 (egress proxy) — both now the only remaining unblocked deps for the data chain.
+- LOOP_STATUS: CONTINUE

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**175 issues.** By phase: P0 90 · P1 45 · P2 36 · P3 4. By status: done 6 · todo 168 · withdrawn 1.
+**175 issues.** By phase: P0 90 · P1 45 · P2 36 · P3 4. By status: done 7 · todo 167 · withdrawn 1.
 
 ## P0
 
@@ -17,7 +17,7 @@
 | INT-004 | Backlog machinery: issues.yaml -> GitHub issues/labels/milestones/project; loop runner | E00-governance | INT-002 | area:ci | done |
 | INT-010 | packages/intake_platform/health: /healthz /readyz /metrics /version + contract test | E01-platform | INT-001 | area:platform | done |
 | INT-011 | packages/intake_platform/otel: shared tracing/metrics/logs + PII redaction processor | E01-platform | INT-010 | area:platform | done |
-| INT-012 | packages/intake_platform/security: headers, rate limiter, idempotency keys | E01-platform | INT-010 | area:security | todo |
+| INT-012 | packages/intake_platform/security: headers, rate limiter, idempotency keys | E01-platform | INT-010 | area:security | done |
 | INT-013 | Tokenization service + identity vault (TCKN/phone never in clear) | E01-platform | INT-012, INT-017 | area:security, risk:security | todo |
 | INT-014 | Envelope encryption (OpenBao Transit) + rotation + crypto-shredding | E01-platform | INT-017 | area:security, risk:security | todo |
 | INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | todo |
