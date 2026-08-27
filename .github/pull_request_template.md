@@ -8,7 +8,7 @@ Closes #<n>
 - [ ] docs/evidence/INT-xxx.md quotes the acceptance verbatim and records the **red run**, the **green run**, and the `make check` / `make safety` / `make security` output
 - [ ] The red run is real — a test that could not have failed is a rejected PR
 - [ ] Gates green from a clean clone; coverage floors met or raised, never lowered
-- [ ] Zero placeholders (`no_placeholders` green); mocks in tests only
+- [ ] Invariant 17 clean (`no_placeholders` green); mocks in tests only
 - [ ] No new PHI egress path — every outbound call enumerated in the evidence file
 - [ ] New metrics catalogued; new services carry the monitoring contract
 - [ ] Licences verified from the raw LICENSE blob for any new dependency/model (`licence_verified_at` for PHI-path rows)
