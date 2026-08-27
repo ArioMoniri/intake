@@ -1671,6 +1671,19 @@
     - "serif display heroes, deep dark palette, glass surfaces with fallback, teal-tinted native rail; add-visit writes session state end-to-end; tr/en switch re-renders the whole tree; clinician brief in CC->HPI->meds order with provenance line; every screen and button walked in the iOS simulator with the two found navigation/locale bugs fixed"
   tests: [apps/mobile/e2e/flows.spec.ts, apps/mobile/e2e/nav.spec.ts]
   sec_row: "mobile"
+# INT-194: owner directives 2026-08-27 late — editable review, working voice
+# note lane against our own ASR, department-based intake packs.
+- id: INT-194
+  epic: E08-mobile
+  phase: P0
+  title: "Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs"
+  depends_on: [INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "review sections reopen their question prefilled and return on save; __DEV__ voice pill records, ships audio to the team-box whisper-tr endpoint, deletes the file, drops the transcript into the note; Kardiyoloji/İç Hastalıkları, Nöroloji and KBB get their own anamnesis dimensions (severity in words, never numerals) feeding labelled HPI lines; consent.voice gates the pill"
+  tests: [apps/mobile/e2e/flows.spec.ts]
+  sec_row: "intake-typed"
 - id: INT-180
   epic: E12-admin
   phase: P0
