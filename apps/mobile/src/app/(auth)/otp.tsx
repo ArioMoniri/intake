@@ -60,9 +60,14 @@ export default function OtpEntry() {
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [resendWait, setResendWait] = useState(60);
   const inputs = useRef<(TextInput | null)[]>([]);
+  // Success clears the module-held phone AND navigates to the tabs; any
+  // re-render in between (signInOtp, the finally setBusy) re-reads phone as
+  // null and would bounce this screen back to /(auth)/phone, clobbering the
+  // tabs navigation — the guard below must stand down once verify succeeded.
+  const signedIn = useRef(false);
 
   useEffect(() => {
-    if (phone === null) {
+    if (phone === null && !signedIn.current) {
       router.replace("/(auth)/phone");
     }
   }, [phone, router]);
@@ -95,6 +100,7 @@ export default function OtpEntry() {
     setProblem(null);
     try {
       const patientId = await verifyOtp(phone, code);
+      signedIn.current = true;
       setPendingPhone(null);
       signInOtp(patientId, maskPhone(phone));
       // Consent first-run (INT-132): a consent needs a subject, so it comes

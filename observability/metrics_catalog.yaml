@@ -138,6 +138,39 @@ metrics:
       promoted / rejected / already-processed / scan-unavailable; reason is
       the closed RejectReason code for rejections and "none" otherwise —
       enumerations only, never content (invariant 6).
+  - name: event_bus_consumer_lag
+    type: gauge
+    labels: [stream, group]
+    owner: platform
+    unit: "messages"
+    description: >-
+      Unprocessed messages for one consumer group on one Redis stream:
+      entries past last-delivered-id plus delivered-but-unacknowledged
+      entries, summed over the source stream and its group-local retry
+      stream. Set by intake_platform.event_bus.Consumer.record_lag
+      (INT-035); the alerting surface for a stalled or crash-looping
+      consumer.
+  - name: event_bus_retried_total
+    type: counter
+    labels: [stream, group]
+    owner: platform
+    unit: "count"
+    description: >-
+      Event deliveries requeued for retry after a handler failure, by source
+      stream and consumer group; the exponential-backoff bookkeeping travels
+      in the requeued message itself. Emitted by
+      intake_platform.event_bus.Consumer (INT-035).
+  - name: event_bus_dead_lettered_total
+    type: counter
+    labels: [stream, group, reason]
+    owner: platform
+    unit: "count"
+    description: >-
+      Events moved to the per-stream dead-letter stream after the retry cap
+      (handler_error) or on a payload failing its event schema
+      (schema_invalid). reason is the closed DeadLetterReason code — never
+      exception text, which could carry PHI (invariant 6). Emitted by
+      intake_platform.event_bus.Consumer (INT-035).
   # --- files/08 §4 A. Availability & SLOs — planned until the SLO attainment pipeline lands
   - name: slo_api_availability
     id: slo.api_availability
