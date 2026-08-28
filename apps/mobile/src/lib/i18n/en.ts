@@ -87,7 +87,44 @@ export const en: Record<MessageKey, string> = {
   "records.guide.kicker": "Your documents",
   "records.guide.title": "Your reports in one place",
   "records.guide.body":
-    "You will be able to add lab results and reports here before the visit. Documents stay in your file; sharing with your doctor always happens with your approval.",
+    "You can add lab results and reports here before the visit. Documents stay in your file; sharing with your doctor always happens with your approval.",
+  // INT-229 — real document upload (Kayıtlarım)
+  "records.devNote":
+    "Demo account: this list is sample data. Document upload opens on a real phone-verified account.",
+  "records.upload": "Upload a document",
+  "records.uploading": "Uploading…",
+  "records.state.scanning": "Scanning",
+  "records.state.ready": "Ready",
+  "records.state.rejected": "Rejected",
+  "records.doc.pdf": "PDF document",
+  "records.doc.image": "Image",
+  "records.scanningInfo": "The document is in the security scan. You can open it when it is ready.",
+  "records.err.type": "This file type is not supported. Choose a PDF, JPEG or PNG.",
+  "records.err.size": "The file is too large. You can upload up to 20 MB.",
+  "records.err.network": "Could not connect. Please try again later.",
+  "records.err.session": "Your session has ended. Please sign in again.",
+  "records.err.consent":
+    "Your documents permission looks off. You can turn it on from the Profile page.",
+  "records.err.scanUnavailable":
+    "Document scanning is not available right now. Please try again later.",
+  "records.err.rejected": "The document failed the security scan and will not open.",
+  "records.err.generic": "Something went wrong. Please try again later.",
+  "records.consent.kicker": "Permission needed",
+  "records.consent.title": "Your documents permission is off",
+  "records.consent.body":
+    "To see and upload your documents, you need to turn on the documents permission. You can change your permissions at any time.",
+  "records.consent.cta": "Go to permissions",
+  "records.needVisit.kicker": "Visit first",
+  "records.needVisit.title": "Documents attach to a visit",
+  "records.needVisit.body":
+    "To upload a document, add a visit first. You can add one from My visits or right here.",
+  "records.offline.kicker": "No connection",
+  "records.offline.title": "The server cannot be reached",
+  "records.offline.body":
+    "Your documents cannot be listed right now. Try again once you are connected; documents you uploaded are not lost.",
+  "records.retry": "Try again",
+  "records.visit.kicker": "Visit",
+  "records.visit.choose": "Choose the visit this document belongs to.",
 
   "wellbeing.title": "Wellbeing",
   "wellbeing.intro": "Track how you feel; sharing stays under your control.",

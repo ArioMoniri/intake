@@ -21,7 +21,7 @@ import { setLocale, type Locale } from "./i18n";
 import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
 import { buildLocalVisit, type NewVisitInput } from "./visits";
 
-export type { RecordFixture, TestAccount } from "./dev/accounts";
+export type { RecordFixture, TestAccount, VisitFixture } from "./dev/accounts";
 
 /**
  * The signed-in account the shell renders. Two kinds exist honestly side by
