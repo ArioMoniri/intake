@@ -59,7 +59,7 @@ ALLOWED = {
 DENIED_PREFIXES = ("AGPL", "SSPL")
 
 # Our own workspace packages are not third-party dependencies.
-FIRST_PARTY_PYTHON = {"intake", "intake-platform"}
+FIRST_PARTY_PYTHON = {"intake", "intake-platform", "intake-probes"}
 
 # Documented per-package exceptions — exact names, never prefixes, each with the
 # reason it is tolerated. Anything new with the same licence still fails, which

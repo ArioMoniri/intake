@@ -17,6 +17,7 @@
 name: intake-obs
 
 x-glitchtip-env: &glitchtip-env
+  # checkov:skip=CKV_SECRET_4:dev fixture; a deployed GlitchTip takes creds from OpenBao
   DATABASE_URL: postgres://glitchtip:glitchtip-dev-only@glitchtip-postgres:5432/glitchtip
   REDIS_URL: redis://glitchtip-redis:6379/0
   # dev fixture value; a deployed GlitchTip takes SECRET_KEY from OpenBao
@@ -224,6 +225,7 @@ services:
     profiles: ["obs"]
     environment:
       POSTGRES_USER: glitchtip
+      # checkov:skip=CKV_SECRET_6:dev fixture; scoped to the obs profile on a laptop
       POSTGRES_PASSWORD: glitchtip-dev-only
       POSTGRES_DB: glitchtip
     volumes:
