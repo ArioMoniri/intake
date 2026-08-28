@@ -354,3 +354,7 @@
 ## 2026-08-28 — INT-235 merged (PR #290)
 - The karşılıklı konuşma surface landed: two-sided live transcript with in-place ASR replacement and inline states, ask-ahead turn advance with reconcile-behind by work id (the "soru hazırlanıyor" wait eliminated), multi-question extract absorption with skip-of-answered, session clip pre-warm, persistent typed composer, realtime "Not oluşuyor" section sheet with quote provenance. Union with INT-236 proven: 456/456 mobile tests. Simulator visual pass deferred to the next design round.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-057 merged (PR #293)
+- Protocol Authoring Agent landed: generate-l0 scaffolds guideline-cited L0 draft packs for all 91 intake branches (excluded cluster refused), citation placeholders carry the blueprint's named guidance categories with all eight cluster-specific titles marked awaiting-human, pack_compilable refuses every stub, import-boundary AST scan proves zero patient-data access, regeneration idempotent. The department-question content chain now has its scaffold tier for every branch.
+- LOOP_STATUS: CONTINUE

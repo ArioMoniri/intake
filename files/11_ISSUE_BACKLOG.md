@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**195 issues.** By phase: P0 109 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 48 · todo 140 · withdrawn 1.
+**195 issues.** By phase: P0 109 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 49 · todo 139 · withdrawn 1.
 
 ## P0
 
@@ -56,7 +56,7 @@
 | INT-054 | Deep pack: gastroenterology + overlay.oncology_patient | E03-protocols | INT-044 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-055 | Deep pack: rheumatology | E03-protocols | INT-044 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-056 | Patient overlays set (8) + overlay_monotonicity property test | E03-protocols | INT-043 | area:protocols, risk:clinical | todo |
-| INT-057 | Protocol Authoring Agent: L0 drafts for every branch + no-serve guard | E03-protocols | INT-042 | area:protocols | todo |
+| INT-057 | Protocol Authoring Agent: L0 drafts for every branch + no-serve guard | E03-protocols | INT-042 | area:protocols | done |
 | INT-058 | Signed protocol bundles: cosign sign + runtime verification + per-session hash pin | E03-protocols | INT-041, INT-019 | area:protocols, risk:security | todo |
 | INT-059 | Triage golden suite >=200 + mutation tests | E03-protocols | INT-080 | area:protocols, risk:clinical | todo |
 | INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | todo |

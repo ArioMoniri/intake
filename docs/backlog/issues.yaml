@@ -601,7 +601,7 @@
   title: "Protocol Authoring Agent: L0 drafts for every branch + no-serve guard"
   depends_on: [INT-042]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "`protocols generate-l0 --branch <id>` scaffolds from cluster+template with citation placeholders resolved to named Turkish guidance sources; L0 resolution for a live session raises; regeneration idempotent"
     - "agent has zero access to patient data (import-boundary test)"
