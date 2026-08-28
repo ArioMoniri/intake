@@ -1747,6 +1747,33 @@
   - apps/mobile/src/lib/intake/questions.test.ts
   - apps/mobile/src/lib/intake/note.test.ts
   sec_row: mobile
+- id: INT-199
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice-first intake entry: speak freely -> whisper transcript -> schema-bound
+    extract -> per-question confirm flow with verbatim provenance'
+  depends_on:
+  - INT-194
+  labels:
+  - area:mobile
+  - area:voice
+  status: done
+  acceptance:
+  - fresh intake with voice consent offers a speak-first step gated on a live ASR
+    health probe (probe fail -> silent manual fallback); recording transcribed by
+    the existing invariant-3 path (file deleted in finally, including the
+    unreachable-base path) and sent to the dev /extract endpoint with the visit's
+    pack structure; client re-validates the wire (unknown ids and off-options
+    dropped, single-select exactly one) and never trusts it; suggestions render as
+    a one-question-per-turn confirm flow with the patient's verbatim words as
+    provenance; saved answers beat suggestions; every failure (503, timeout,
+    cancel, mic denial) lands in the exact manual flow; nothing presents LLM
+    output as triage or diagnosis (invariant 1); tr keys source of truth with en
+    mirror
+  tests:
+  - apps/mobile/src/lib/extract.test.ts
+  - apps/mobile/src/lib/intake/voiceFirst.test.ts
+  sec_row: mobile
 - id: INT-180
   epic: E12-admin
   phase: P0
