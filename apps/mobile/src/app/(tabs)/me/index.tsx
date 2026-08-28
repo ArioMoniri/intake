@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
@@ -110,6 +111,30 @@ export default function Me() {
               />
             ))}
           </ListGroup>
+        </View>
+        {/* Sağlık verileri (INT-208): device-local reads behind their own
+            consent. The hint states the scope honestly — read on this phone
+            only, nothing sent, nothing enters a note unless the patient adds
+            it. Content renders only while the consent is ON; the hint is the
+            group's quiet footer (Oura's under-group explanations). */}
+        <View style={styles.section}>
+          <Kicker label={t("me.health")} />
+          <ListGroup footer={t("consent.health.hint")}>
+            <ListRow
+              label={t("consent.health")}
+              trailing={
+                <StatePill
+                  label={consents.health ? t("consent.on") : t("consent.off")}
+                  active={consents.health}
+                  activeColor="success"
+                  accessibilityRole="switch"
+                  checked={consents.health}
+                  onPress={() => setConsent("health", !consents.health)}
+                />
+              }
+            />
+          </ListGroup>
+          {consents.health ? <HealthSection /> : null}
         </View>
         <ListGroup>
           <ListRow

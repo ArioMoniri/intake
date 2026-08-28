@@ -33,7 +33,8 @@ export default function ReviewAndSend() {
   const { account, notes, updateNote } = useSession();
   const note = notes[visitId ?? ""];
 
-  if (!account || !note || note.answers.length === 0) {
+  const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
+  if (!account || !note || (note.answers.length === 0 && !hasHealthBlock)) {
     return (
       <Screen>
         <AppText role="body" color="inkSoft">
@@ -43,7 +44,7 @@ export default function ReviewAndSend() {
     );
   }
 
-  const sections = buildNote(note.answers, account);
+  const sections = buildNote(note.answers, account, note.healthLines);
   const sent = note.status === "sent";
 
   return (
@@ -132,6 +133,11 @@ export default function ReviewAndSend() {
                 {section.id === "medications" ? (
                   <AppText role="caption" color="inkFaint">
                     {t("review.medsNote")}
+                  </AppText>
+                ) : null}
+                {section.id === "device_health" ? (
+                  <AppText role="caption" color="inkFaint">
+                    {t("review.healthProvenance")}
                   </AppText>
                 ) : null}
               </Card>

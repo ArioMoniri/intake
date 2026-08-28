@@ -7,63 +7,36 @@
  * (INT-090s/135) is LiveKit with mlocked ≤60 s buffers and never writes
  * audio to disk (invariant 3). This lane is __DEV__-gated, synthetic
  * content only, and the recording file is deleted right after upload.
+ *
+ * Host probing is shared with the extract bridge (INT-199) via dev/hosts.ts:
+ * Metro hostUri first (LAN mode names the dev Mac), then app.json
+ * extra.asrHosts; first /health that answers wins.
  */
-import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 
-/**
- * Candidate ASR hosts, most specific first. The Metro hostUri names the dev
- * Mac directly in LAN mode; in tunnel mode it is an exp.direct name with no
- * route back to the Mac, so the configured dev hosts (app.json
- * extra.asrHosts: localhost for the simulator, the Mac's LAN IP for a
- * same-network phone) are probed instead. First /health that answers wins.
- */
+import { configuredServiceCandidates } from "./dev/expoHosts";
+import { reachableBaseUrl, serviceCandidates } from "./dev/hosts";
+
+export const ASR_PORT = 8802;
+
+/** Candidate ASR bases, most specific first (kept for INT-194 callers). */
 export function asrCandidates(hostUri: string | undefined, extraHosts: string[]): string[] {
-  const hosts: string[] = [];
-  if (hostUri) {
-    const host = hostUri.split(":")[0];
-    if (!host.endsWith(".exp.direct")) {
-      hosts.push(host);
-    }
-  }
-  for (const host of extraHosts) {
-    if (!hosts.includes(host)) {
-      hosts.push(host);
-    }
-  }
-  return hosts.map((h) => `http://${h}:8802`);
-}
-
-function configuredCandidates(): string[] {
-  const extra = (Constants.expoConfig?.extra ?? {}) as { asrHosts?: string[] };
-  return asrCandidates(Constants.expoConfig?.hostUri, extra.asrHosts ?? []);
-}
-
-async function probe(base: string, timeoutMs: number): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${base}/health`, { signal: controller.signal });
-    return res.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
+  return serviceCandidates(hostUri, extraHosts, ASR_PORT);
 }
 
 export async function reachableAsrBaseUrl(): Promise<string | null> {
-  for (const base of configuredCandidates()) {
-    if (await probe(base, 1500)) {
-      return base;
-    }
-  }
-  return null;
+  return reachableBaseUrl(configuredServiceCandidates(ASR_PORT));
+}
+
+/** Invariant-3 posture even in the dev lane: no audio lingers on disk. */
+export async function discardRecording(uri: string): Promise<void> {
+  await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
 }
 
 export async function transcribeRecording(uri: string): Promise<string> {
   const base = await reachableAsrBaseUrl();
   if (base === null) {
+    await discardRecording(uri);
     throw new Error("asr_unreachable");
   }
   try {
@@ -75,7 +48,6 @@ export async function transcribeRecording(uri: string): Promise<string> {
     const parsed: { text?: string } = JSON.parse(result.body);
     return (parsed.text ?? "").trim();
   } finally {
-    // invariant-3 posture even in the dev lane: no audio lingers on disk
-    await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
+    await discardRecording(uri);
   }
 }

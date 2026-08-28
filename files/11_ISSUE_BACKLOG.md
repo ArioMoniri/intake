@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**183 issues.** By phase: P0 98 · P1 45 · P2 36 · P3 4. By status: doing 6 · done 23 · todo 153 · withdrawn 1.
+**186 issues.** By phase: P0 101 · P1 45 · P2 36 · P3 4. By status: doing 6 · done 26 · todo 153 · withdrawn 1.
 
 ## P0
 
@@ -100,6 +100,9 @@
 | INT-194 | Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs | E08-mobile | INT-193 | area:mobile | done |
 | INT-195 | Design pass 3: Oura-register glass layering, kicker/hairline anatomy, guidance-block empty states, Fraunces leading, AA fix | E08-mobile | INT-194 | area:mobile | done |
 | INT-196 | Design pass 4: js-tabs floating pill rail, Oura-measured register (radius, padding, Inter body), Tabs.Protected consent gate | E08-mobile | INT-195 | area:mobile | done |
+| INT-198 | Department intake packs: 10 branches at full OLDCARTS depth, canonical anamnesis order, severity in words | E08-mobile | INT-194 | area:mobile | done |
+| INT-199 | Voice-first intake entry: speak freely -> whisper transcript -> schema-bound extract -> per-question confirm flow with verbatim provenance | E08-mobile | INT-194 | area:mobile, area:voice | done |
+| INT-208 | Device health connectors: HealthKit/Health Connect behind capability detection and consent, device-local only | E08-mobile | INT-193 | area:mobile | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | todo |

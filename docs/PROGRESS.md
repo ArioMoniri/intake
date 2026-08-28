@@ -219,3 +219,23 @@
 - INT-019: #223 and #228 refs both drop CI events; work rebased onto current main (fresh shas, .PHONY union resolved, 46/46 tests/ci green post-rebase) and reopened as #233.
 - Fleet 3/3: dept packs (INT-198 scope), voice-first intake (INT-199 scope), API slice (INT-197 scope).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T06:40:00+03:00 · INT-198 · done
+- Goal: owner directive — "questions asked in previsit per department is not complete or correct … too short and not department based".
+- Result: 10 department packs at full OLDCARTS depth (Kardiyoloji/İç Hastalıkları 9, Nöroloji 9, KBB 8, Ortopedi 9, Dermatoloji 9, Göğüs 9, Kadın-Doğum 8, Üroloji 8, Göz 9, Gastro 9 steps), folded-ASCII regex resolution tested through Turkish diacritic spellings, allQuestions as canonical anamnesis order with every pack a pinned subsequence (HPI lines follow interview order), no numerals in any label (invariant 22 pinned), ~140 tr keys with key-for-key en mirror. note.ts unchanged — ordering authority lives in allQuestions. 102 mobile tests green; make check exit 0 after main merge.
+- Clinical-reviewer flags recorded in evidence (hemoptysis omission, ischemic radiation descriptors, neutral gyn/weight-loss options) — packs carry no red-flag logic by design (invariant 1).
+- Invariants: 1, 5, 17, 22; backlog consciously 183→184.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T07:20:00+03:00 · INT-199 · done
+- Goal: owner directive — "voice part and voice parsing is at the end and so minimal … mostly is text based" — voice becomes the FIRST-CLASS intake entry.
+- Result: fresh intake with voice consent opens with "Sesli anlatın": live ASR probe gate (fail → silent manual fallback) → free-speech recording → whisper transcript (invariant-3 file deletion, now also on the unreachable-base path — strictly tighter) → dev /extract with the visit's pack → client-re-validated candidates → one-question-per-turn confirm flow with the patient's verbatim words as provenance ("Söylediğiniz: …"); saved answers beat suggestions; every failure lands in the exact manual flow. 44 new tests; after INT-198 merge three stale cardio-pack expectations updated; 146 mobile tests + make check green.
+- Invariants: 1 (candidates are suggestions, never triage), 3, 5, 17; backlog consciously 184→185.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T08:00:00+03:00 · INT-208 · done
+- Goal: owner directive — "the app should be ready to use with if possible apple and google health connectors".
+- Result: typed HealthConnector layer with a test-pinned availability matrix (Expo Go → needs_dev_build calm guidance; dynamic-import failure → needs_dev_build; iOS HealthKit unavailable → platform_unsupported; refused auth → permission_denied); HealthKit + Health Connect adapters behind dynamic imports (Expo Go never crashes); app.json config-plugin wiring with Turkish NSHealthShareUsageDescription ready for the dev-client simulator build; consent-gated "Sağlık verileri" on Profilim (health scope, default off); steps/resting-HR/sleep formatted useGrouping:false with number+unit as one non-breaking atom; patient-confirmed attach into the note draft as a labelled device_health section (scope-off honored, sent notes immutable). NO server call/analytics/persistence for health data — persisting a new personal-data category stays with the human. Licences from blobs: react-native-health-connect MIT (in-package); @kingstinct/react-native-healthkit MIT (upstream blob; absent in-package — recorded).
+- Note: filed as INT-208 — INT-200/201 turned out to be blueprint E13-infra ids; coordinator renumbered before PR (id-collision caught by make check duplicate-ids assertion).
+- Invariants: 2 (numbers shown never interpreted), 5, 6, 17, 18 (no new persisted fields); backlog consciously 185→186.
+- LOOP_STATUS: CONTINUE
