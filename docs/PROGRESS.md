@@ -260,3 +260,10 @@
 - Found and frozen honestly: light success/successSoft measures 4.35:1 (shipped since INT-130) — needs a dedicated palette iteration, flagged in docs/design/mobile-ui.md.
 - Invariants: 5 (keys added only), 17, 18; motion budget kept; backlog consciously 188→189.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T11:45:00+03:00 · INT-025 · done (PR #247); INT-031/INT-036 in PR
+- INT-025 merged CI-green: all 135 metric ids files/08 §4 names catalogued (planned until their services exist), 26 spec targets pinned, the spec section parsed by the test itself, enforcement proved-then-reverted per acceptance. Coordinator merge finds: INT-120's entry used the _total exposition form vs its code literal (gate right, entry aligned); the live-emitted check passed on pytest collection-order luck — emitter imports now explicit and self-correcting.
+- INT-031 clinical-schemas in PR #249: nine blueprint-cited models with invariants 1/11/12/21 enforced in the type system, five event schemas (audit.v1 asserted against the INT-016 dataclass), deterministic committed codegen with drift gates; refused-fields list recorded instead of invention; sec_row clinical-core linked (inv 16).
+- INT-036 retention engine in PR #251: files/06 §3 row-cited policy classes, DEST-2017 6-month floor read from the hash chain, 3-year indestructible destruction log, two draft_needs_source classes refusing destruction pending the human (consumer-tenant consent duration; research extracts / HB-L1).
+- Simulator dev-client build blocked on host Xcode: iOS 26.1 platform not installed and only 14 GB disk free — owner informed with the exact fix; Expo Go lane unaffected.
+- LOOP_STATUS: CONTINUE

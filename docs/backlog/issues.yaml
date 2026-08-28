@@ -268,7 +268,7 @@
   title: "Metrics catalogue as code + completeness test"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "packages/clinical-schemas/metrics_catalog.yaml holds every id/unit/target/owner from 08 §4; emitting an uncatalogued metric fails make check (proved then reverted in evidence)"
   tests: [tests/observability/test_metrics_catalog.py]

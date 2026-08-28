@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 29 · todo 153 · withdrawn 1.
+**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 30 · todo 152 · withdrawn 1.
 
 ## P0
 
@@ -30,7 +30,7 @@
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | done |
 | INT-023 | Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip | E01-platform | INT-011 | area:observability | done |
 | INT-024 | k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s) | E01-platform | INT-022 | area:observability | todo |
-| INT-025 | Metrics catalogue as code + completeness test | E01-platform | INT-011 | area:observability | todo |
+| INT-025 | Metrics catalogue as code + completeness test | E01-platform | INT-011 | area:observability | done |
 | INT-030 | Postgres schema + Alembic + RLS per tenant + pgaudit | E02-data | INT-013, INT-014 | area:data | done |
 | INT-031 | clinical-schemas: pydantic models + TS codegen + event schemas | E02-data | INT-030 | area:data | todo |
 | INT-033 | HAPI FHIR exchange: mappers internal<->R4 + validation | E02-data | INT-031 | area:data | todo |
