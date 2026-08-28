@@ -23,8 +23,8 @@ describe("visibleTabs — the consent gate (02 §4)", () => {
   it("me is always last — settings never mid-rail", () => {
     for (const consents of [
       null,
-      { core: true, voice: true, wellbeing: true, documents: true },
-      { core: true, voice: false, wellbeing: false, documents: false },
+      { core: true, voice: true, wellbeing: true, documents: true, health: true },
+      { core: true, voice: false, wellbeing: false, documents: false, health: false },
     ]) {
       const tabs = visibleTabs(consents);
       expect(tabs[tabs.length - 1]).toBe("me");

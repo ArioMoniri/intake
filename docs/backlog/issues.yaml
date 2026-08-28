@@ -1774,6 +1774,36 @@
   - apps/mobile/src/lib/extract.test.ts
   - apps/mobile/src/lib/intake/voiceFirst.test.ts
   sec_row: mobile
+- id: INT-208
+  epic: E08-mobile
+  phase: P0
+  title: 'Device health connectors: HealthKit/Health Connect behind capability
+    detection and consent, device-local only'
+  depends_on:
+  - INT-193
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - typed HealthConnector interface with a test-pinned availability matrix (Expo
+    Go -> needs_dev_build via calm guidance, dynamic-import failure ->
+    needs_dev_build, iOS isHealthDataAvailable false -> platform_unsupported,
+    refused auth -> permission_denied, web -> platform_unsupported); HealthKit and
+    Health Connect adapters behind dynamic imports so Expo Go never crashes;
+    config-plugin wiring in app.json with Turkish NSHealthShareUsageDescription;
+    a consent-gated Saglik verileri section on Profilim (health scope, default
+    off); last-7-days steps, resting heart rate and sleep formatted with
+    useGrouping false and number+unit as one non-breaking atom; patient-confirmed
+    attach into the visit note draft as a labelled device_health section with
+    provenance line, scope-off honored, sent notes immutable; NO server call,
+    analytics or persistence for health data anywhere (grep-audited; persisting
+    a new personal-data category stays with the human); licences verified from
+    blobs (react-native-health-connect MIT in-package; react-native-healthkit
+    MIT upstream blob, absent in-package - recorded)
+  tests:
+  - apps/mobile/src/lib/health/capability.test.ts
+  - apps/mobile/src/lib/health/format.test.ts
+  sec_row: mobile
 - id: INT-180
   epic: E12-admin
   phase: P0

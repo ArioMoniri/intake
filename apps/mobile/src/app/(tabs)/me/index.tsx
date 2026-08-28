@@ -9,6 +9,7 @@ import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -134,6 +135,22 @@ export default function Me() {
             onToggle={() => setConsent("documents", !consents.documents)}
           />
         </Card>
+        {/* Sağlık verileri (INT-208): device-local reads behind their own
+            consent. The hint states the scope honestly — read on this phone
+            only, nothing sent, nothing enters a note unless the patient adds
+            it. Content renders only while the consent is ON. */}
+        <Card style={styles.consentCard}>
+          <Kicker label={t("me.health")} />
+          <ConsentRow
+            label={t("consent.health")}
+            on={consents.health}
+            onToggle={() => setConsent("health", !consents.health)}
+          />
+          <AppText role="caption" color="inkFaint">
+            {t("consent.health.hint")}
+          </AppText>
+        </Card>
+        {consents.health ? <HealthSection /> : null}
         <Card>
           <LanguageRow />
         </Card>
