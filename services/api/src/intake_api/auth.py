@@ -1,16 +1,23 @@
-"""Dev-bearer auth (INT-197) — EXPLICITLY the dev tier; real OIDC is INT-131.
+"""Request authentication: OTP/DPoP accounts (INT-131) + the dev-bearer tier.
 
-Exactly two synthetic accounts (:mod:`intake_api.dev_fixture`), each behind
-one bearer token read from the environment (`INTAKE_DEV_TOKEN_PATIENT` /
-`INTAKE_DEV_TOKEN_ADMIN`). No default exists in code: with either token
-unset, every /v1 request answers 503 (fail closed) and readiness reports
-``dev_auth: error``. Comparison is constant-time; tokens are never logged
-and never echoed (invariant 6).
+Two schemes resolve a principal:
+
+- ``Authorization: DPoP <access_token>`` + a ``DPoP`` proof header — the
+  real OTP tier (INT-131). The token is opaque, short-lived (15 min,
+  files/10 §2) and bound to the client key's RFC 7638 thumbprint; the proof
+  must match method, URL, token hash (``ath``) and be replay-fresh. These
+  requests are tagged ``X-Intake-Auth-Tier: otp``.
+
+- ``Authorization: Bearer <token>`` — the INT-197 dev tier: exactly two
+  synthetic accounts (:mod:`intake_api.dev_fixture`) behind env tokens
+  (`INTAKE_DEV_TOKEN_PATIENT` / `INTAKE_DEV_TOKEN_ADMIN`). No default
+  exists in code: with either token unset, every bearer /v1 request
+  answers 503 (fail closed). Comparison is constant-time; tokens are never
+  logged and never echoed (invariant 6). This tier stays load-bearing for
+  the demo and keeps its ``dev`` tag so nobody mistakes it for real auth.
 
 Every request resolves account → tenant → the RLS session context
-(``app.tenant_id``), which is the same resolution shape INT-131 will feed
-from OIDC claims.
-"""
+(``app.tenant_id``); routes downstream see one Principal shape."""
 
 from __future__ import annotations
 
@@ -21,12 +28,21 @@ from typing import Annotated, cast
 from fastapi import Depends, Request
 
 from intake_api.dev_fixture import ADMIN_ACCOUNT, PATIENT_ACCOUNT, DevAccount
-from intake_api.errors import dev_auth_unconfigured, forbidden, unauthorized
+from intake_api.errors import dev_auth_unconfigured, forbidden, otp_auth_unconfigured, unauthorized
 from intake_api.settings import ApiSettings
+from intake_api.state import get_state
 
-__all__ = ["AUTH_TIER_HEADER", "Principal", "get_settings", "require_patient", "require_principal"]
+__all__ = [
+    "AUTH_TIER_HEADER",
+    "AUTH_TIER_OTP",
+    "Principal",
+    "get_settings",
+    "require_patient",
+    "require_principal",
+]
 
 AUTH_TIER_HEADER = ("X-Intake-Auth-Tier", "dev")
+AUTH_TIER_OTP = "otp"
 
 
 def get_settings(request: Request) -> ApiSettings:
@@ -41,12 +57,20 @@ def _matches(candidate: str, expected: str | None) -> bool:
 
 
 async def require_principal(request: Request) -> DevAccount:
-    settings = get_settings(request)
-    if not settings.dev_auth_configured:
-        raise dev_auth_unconfigured()
     header = request.headers.get("authorization", "")
     scheme, _, token = header.partition(" ")
     token = token.strip()
+    if scheme.lower() == "dpop" and token:
+        # INT-131 tier: opaque access token + per-request DPoP proof
+        state = get_state(request)
+        if state.auth is None:
+            raise otp_auth_unconfigured()
+        account = await state.auth.resolve_access(request, token)
+        request.state.auth_tier = AUTH_TIER_OTP
+        return account
+    settings = get_settings(request)
+    if not settings.dev_auth_configured:
+        raise dev_auth_unconfigured()
     if scheme.lower() != "bearer" or not token:
         raise unauthorized()
     if _matches(token, settings.token_patient):
