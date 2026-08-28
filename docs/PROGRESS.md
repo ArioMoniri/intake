@@ -300,3 +300,9 @@
 - INT-040 Protocol DSL merged (#264): the invariant-1/7/10/21/22 mechanism with 28 golden fixtures and 99.89% branch coverage; zero clinical content; instruments licence registry fails closed (C-SSRS/WHO-5 BLOCKED per HB-L2/L3).
 - INT-132 consent UI in PR #266. Extract server on the box shows 4 external SIGTERM restarts (self-heals ≤60s; box-owner question).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T17:00:00+03:00 · INT-132 · done (PR #266) — wave 4 closed
+- Consent UI merged CI-green: layered İzinleriniz in the 06 §2 structure (core as info never a switch; lane sub-toggles with the affect/linguistic asymmetry; learning as honest default-on opt-outs; share deliberately absent as anti-bundling; lane:acoustic refused by name); fail-closed everywhere the legal texts are missing (INT-210), with e2e pins that no legal copy is bundled in src/. First-run after OTP verify routes through consent disclosure; coexists with the #260 nav-race guard.
+- Server gap recorded by the builder: services/api lacks patient-facing consent routes (GET /v1/consents, grant/withdraw) — needs its own issue next wave.
+- Wave 4 closed: INT-040, INT-035, INT-132 + the #260 device-found fix. Session total: 21 issues landed end-to-end.
+- LOOP_STATUS: CONTINUE

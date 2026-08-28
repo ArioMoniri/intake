@@ -1275,7 +1275,7 @@
   title: "Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what"
   depends_on: [INT-038, INT-130]
   labels: [area:mobile, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "texts loaded from docs/legal with hash binding; unbundled toggles; withdrawal instant; re-prompt on version change; Turkish primary"
   tests: [apps/mobile/e2e/consent.spec.ts]
