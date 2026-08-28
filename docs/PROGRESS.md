@@ -312,3 +312,8 @@
 - The wire contract itself was proven innocent both directions (byte-exact app request replayed → all eight candidates with verbatim quotes).
 - Also flagged by the debugger: the pinned deid artefact is per-checkout (make deid-model fetches it) and a cross-test state bleed makes test_otp_abuse's per-phone-limit flake under the full suite near top-of-hour — follow-up owed.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T17:55:00+03:00 · INT-232 · done (PR #270)
+- Patient-facing consent routes merged CI-green, seam-faithful to the merged INT-132 client (seam won over the sketch, divergences reported): snapshot with the closed six-value reason list and fail-closed empty texts; grant re-checks the bound row after the fact so a mid-flight text move rolls back; withdraw cascades via INT-038. consent_management scan declaration accepted only under /v1/consents at a path-segment boundary — stricter than pre_auth, lookalike-prefix pinned.
+- Records upload UI (INT-229 label) delivered by its builder and queued for PR: real picker → sha256 → API ingest (presigned MinIO URLs are server-loopback, never fetched from the device) → honest Taranıyor/Hazır/Reddedildi states → download via browser; dev-tier accounts keep the synthetic list with no fake upload affordance, pinned.
+- LOOP_STATUS: CONTINUE
