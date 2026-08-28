@@ -25,25 +25,39 @@ export interface NoteState {
   /** sectionId -> shared; absent means shared (default-on, visible label). */
   scopes: Record<string, boolean>;
   status: "draft" | "sent";
+  /**
+   * Device health summary lines the patient explicitly attached (INT-200).
+   * Device-local by design: they exist only in this in-memory draft, and
+   * only because the patient confirmed the attach — never auto-filled.
+   */
+  healthLines: string[] | null;
 }
 
 export type NoteAction =
   | { type: "answer"; questionId: string; values: string[] }
   | { type: "scope"; sectionId: string; shared: boolean }
+  | { type: "attachHealth"; lines: string[] }
   | { type: "send" };
 
 export function emptyNoteState(): NoteState {
-  return { answers: [], scopes: {}, status: "draft" };
+  return { answers: [], scopes: {}, status: "draft", healthLines: null };
 }
 
 export function noteReducer(state: NoteState, action: NoteAction): NoteState {
   switch (action.type) {
     case "answer": {
       const rest = state.answers.filter((a) => a.questionId !== action.questionId);
-      return { ...state, answers: [...rest, { questionId: action.questionId, values: action.values }] };
+      return {
+        ...state,
+        answers: [...rest, { questionId: action.questionId, values: action.values }],
+      };
     }
     case "scope":
       return { ...state, scopes: { ...state.scopes, [action.sectionId]: action.shared } };
+    case "attachHealth":
+      // A sent note is frozen; re-attaching on a draft replaces the block
+      // (idempotent — never a duplicate section).
+      return state.status === "sent" ? state : { ...state, healthLines: [...action.lines] };
     case "send":
       return { ...state, status: "sent" };
   }
@@ -70,13 +84,21 @@ function hasContent(answer: Answer | undefined): answer is Answer {
  * not a section — the review screen renders `review.provenance` under the
  * sections (06 §7: the note is patient-reported and diagnosis-free).
  */
-export function buildNote(answers: Answer[], account: TestAccount): NoteSection[] {
+export function buildNote(
+  answers: Answer[],
+  account: TestAccount,
+  healthLines?: readonly string[] | null,
+): NoteSection[] {
   const byId = new Map(answers.map((a) => [a.questionId, a]));
   const sections: NoteSection[] = [];
 
   const complaint = byId.get("complaint");
   if (hasContent(complaint)) {
-    sections.push({ id: "chief_complaint", titleKey: "review.section.cc", lines: answerLines(complaint) });
+    sections.push({
+      id: "chief_complaint",
+      titleKey: "review.section.cc",
+      lines: answerLines(complaint),
+    });
   }
 
   // Every answered dimension beyond the chief complaint becomes a labelled
@@ -107,12 +129,26 @@ export function buildNote(answers: Answer[], account: TestAccount): NoteSection[
       lines: [...account.medications],
     });
   }
+
+  // Device health block (INT-200): present only when the patient explicitly
+  // attached it on Profilim; the review screen frames it with the fixed
+  // provenance line (`review.healthProvenance`). Always the last section —
+  // patient-reported history stays first.
+  if (healthLines !== undefined && healthLines !== null && healthLines.length > 0) {
+    sections.push({
+      id: "device_health",
+      titleKey: "review.section.health",
+      lines: [...healthLines],
+    });
+  }
   return sections;
 }
 
 /** What actually goes to the doctor: scope-off sections are excluded. */
 export function sentSections(state: NoteState, account: TestAccount): NoteSection[] {
-  return buildNote(state.answers, account).filter((s) => state.scopes[s.id] !== false);
+  return buildNote(state.answers, account, state.healthLines).filter(
+    (s) => state.scopes[s.id] !== false,
+  );
 }
 
 /** Display status: a locally sent note wins over the fixture's ladder step. */

@@ -19,6 +19,13 @@ export interface ConsentState {
   voice: boolean;
   wellbeing: boolean;
   documents: boolean;
+  /**
+   * Device-local health data reading (INT-200): gates the HealthKit/Health
+   * Connect read on the phone itself. A NEW category of personal data, so it
+   * defaults OFF for every fixture — always an explicit patient opt-in, and
+   * nothing read under it is persisted or sent server-side.
+   */
+  health: boolean;
 }
 
 export interface VisitFixture {
@@ -56,7 +63,7 @@ export const testAccounts: readonly TestAccount[] = [
     name: "Ayşe Yılmaz",
     ageYears: 58,
     locale: "tr",
-    consents: { core: true, voice: true, wellbeing: true, documents: true },
+    consents: { core: true, voice: true, wellbeing: true, documents: true, health: false },
     visits: [
       {
         id: "v-ayse-1",
@@ -85,7 +92,7 @@ export const testAccounts: readonly TestAccount[] = [
     ageYears: 34,
     locale: "tr",
     // wellbeing OFF: proves the tab stays hidden (02 §4 — consent-gated).
-    consents: { core: true, voice: false, wellbeing: false, documents: false },
+    consents: { core: true, voice: false, wellbeing: false, documents: false, health: false },
     visits: [
       {
         id: "v-mehmet-1",
