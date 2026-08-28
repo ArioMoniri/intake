@@ -331,7 +331,7 @@
   title: "MinIO document store: signed URLs + AV hook + WORM audit bucket"
   depends_on: [INT-016]
   labels: [area:data]
-  status: doing
+  status: done
   acceptance:
     - "short-TTL signed URLs; server-side encryption; object-lock on audit bucket; bucket policies least-privilege"
   tests: [tests/data/test_signed_urls.py]

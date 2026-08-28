@@ -212,3 +212,10 @@
 - Blocked on: physician (#185); owner: licence blobs.
 - Next: merge this + #230 + #228; API slice (INT-197) and voice-first intake (INT-199) agents.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T05:45:00+03:00 · INT-034 · done (PR #230) + INT-196 merged (PR #232)
+- INT-034 merged CI-green after two coordinator fixes: check-integration now boots minio (the compose service existed; the --wait list did not include it) and a setup-uv manifest-fetch flake re-run. WORM retention proven against live MinIO in CI as well as locally.
+- INT-196 (design pass 4) merged CI-green after the evidence gate correctly demanded a make check record — ran the full local fan-out (exit 0) and recorded it rather than paraphrasing.
+- INT-019: #223 and #228 refs both drop CI events; work rebased onto current main (fresh shas, .PHONY union resolved, 46/46 tests/ci green post-rebase) and reopened as #233.
+- Fleet 3/3: dept packs (INT-198 scope), voice-first intake (INT-199 scope), API slice (INT-197 scope).
+- LOOP_STATUS: CONTINUE
