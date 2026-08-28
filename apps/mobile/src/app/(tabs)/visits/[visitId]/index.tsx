@@ -6,9 +6,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 
+import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { StatusLadder } from "@/components/StatusLadder";
-import { AppText, Card, Hairline, PrimaryButton, Screen } from "@/components/Themed";
+import { AppText, Card, Hairline, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { effectiveStatus } from "@/lib/intake/note";
@@ -33,7 +34,7 @@ export default function VisitDetail() {
   const status = effectiveStatus(visit.noteStatus, note);
   const hasAnswers = (note?.answers.length ?? 0) > 0;
   return (
-    <Screen>
+    <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
         <VisitCard visit={visit} statusOverride={status} />
         <Card style={styles.ladderCard}>
@@ -70,6 +71,6 @@ export default function VisitDetail() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  content: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
   ladderCard: { gap: spacing.md },
 });

@@ -8,11 +8,20 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TextInput } from "react-native";
 
-import { AppText, Card, PrimaryButton, Screen, useFontScale, useTheme } from "@/components/Themed";
+import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import {
+  AppText,
+  Card,
+  PrimaryButton,
+  RAIL_EDGES,
+  Screen,
+  useFontScale,
+  useTheme,
+} from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { validateNewVisit } from "@/lib/visits";
-import { radius, scaledSize, spacing } from "@/lib/theme";
+import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
 export default function NewVisit() {
   const router = useRouter();
@@ -46,7 +55,7 @@ export default function NewVisit() {
   };
 
   return (
-    <Screen>
+    <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <AppText role="hero">{t("visits.new.title")}</AppText>
         <Card>
@@ -94,12 +103,13 @@ export default function NewVisit() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
   field: {
     borderRadius: radius.control,
     borderWidth: 1,
     minHeight: 48,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    fontFamily: fonts.sans,
   },
 });

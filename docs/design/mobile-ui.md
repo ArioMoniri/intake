@@ -236,3 +236,96 @@ Verified on the iOS 18.4 sim in dark AND light (`simctl ui appearance`):
 welcome, Bugün, Vizitlerim, visit detail, all six intake steps, review
 (glass bar with content scrolling under it), İyilik hâli, Kayıtlarım,
 Profilim. All 72 tests green; no route, handler or i18n key removed.
+
+## Design pass 4 — measurement-grade Oura audit (INT-196, 2026-08-28)
+
+Method changed from pass 3: every core screen was screenshotted on the sim,
+put beside the closest Mobbin Oura capture, measured (radius, padding, type,
+label case, divider weight, colour temperature), fixed, and re-screenshotted
+— at least two iterations per screen. Mobbin references used: dark home
+cards `cddb1762-a6ca-4173-918c-b67f4ed73140` and
+`6b2d9662-daa9-40d6-b2be-a7d5f39aa3de`; score-arc homes with the floating
+rail `2909eb7a-5c05-4f79-95f4-aecc604074ba`,
+`85150daf-308e-41a4-b98c-5e6a6ee2fad0`,
+`03958157-6ab8-4046-9a49-ebf639baa348`,
+`bfe532d9-62fe-4246-9775-9c8934195bcb`; grouped lists
+`0a36170f-2c91-428d-a762-f6c91035c08a`,
+`82af77ca-b9c5-4888-9686-6e6147ef6c82`; content cards
+`6bab0416-116f-4a55-8706-97a8db9f9f15`,
+`732c6f66-9fcf-4753-afb7-8262638a6eb5`.
+
+### The floating pill rail (native tabs superseded)
+
+**Owner decision (2026-08-28): the Oura-style floating pill rail replaces
+NativeTabs for the dev tier**, superseding 02 §4's native-tabs choice;
+revisit at iOS 26 Liquid Glass ubiquity (the NativeTabs layout lives in git
+history at `src/app/(tabs)/_layout.tsx`, pre-pass-4). The layout now uses
+expo-router's JS `<Tabs>` (`expo-router/js-tabs`) with
+`tabBar={FloatingTabBar}`: a BlurView pill inset `md` from the screen edges,
+SF Symbols via expo-symbols, labels from the tr catalog. Contracts kept and
+pinned in `e2e/nav.spec.ts`: five sections registered; labels via
+`t(labelKey)`; **wellbeing UNREGISTERED (not hidden) through
+`Tabs.Protected guard={visibleTabs(consents).includes("wellbeing")}`** — the
+route rejects navigation entirely when consent is off; `animation: "fade"`
+with a 120 ms `transitionSpec` (motion budget); re-pressing the active tab
+pops its section stack (native parity); tapping a section item from a
+sibling route (me/learned) returns to the section root. Measured against
+the Oura rail: **active item is full-contrast ink, not the accent**
+(brightness + weight carry the state; the label is always present), inactive
+`inkFaint`, icon 22 + caption with 3 gap. Screens under the rail drop the
+bottom safe edge (`RAIL_EDGES` on `Screen`) so content scrolls beneath the
+pill to the physical edge, and pad scroll content with `TAB_BAR_CLEARANCE`
+(120). Focused flows (intake, review) unmount the rail entirely — Oura never
+stacks two bottom chromes — and their `GlassBar` now owns the physical
+bottom edge (safe-inset padding inside the glass;
+`GLASS_BAR_CLEARANCE` 108 → 128).
+
+### Measured deltas closed
+
+- **Radius**: card 20 → 24, hero 28 → 32 (Oura's dark cards are visibly
+  rounder; 20 read boxy at 402 pt).
+- **Card padding**: md(16) → lg(24) — Oura interiors breathe at ~24, and 16
+  cramped once the radius grew.
+- **CTA register**: PrimaryButton/SecondaryButton minHeight 52 → 56 with a
+  body-size (17) semibold label (was label 15).
+- **Body sans is now Inter** (`@expo-google-fonts/inter`, OFL 1.1) for
+  body/label/caption; Newsreader keeps hero/title. Weights load as separate
+  families and `AppText` maps the flattened style's `fontWeight` → family
+  (custom fonts don't synthesize weights on iOS); the root layout gates on
+  both faces. TextInputs carry `fonts.sans` explicitly.
+- **Kickers unboxed**: the pass-3 pill box around eyebrows was noise Oura
+  doesn't have — now dot + semibold caption, tracking 0.5 → 0.8 (İ/ı rule
+  still bans case transforms; tracking is the emphasis). Group headers on
+  Vizitlerim now read like Oura's quiet list headings.
+- **Hero scrim dies mid-card**: gradient end y 0.85 → 0.55 (measured
+  against the readiness card's falloff).
+- **Chips**: intake chips are filled and borderless in dark (tonal
+  separation, the Oura tag register); light keeps the hairline. Selected
+  keeps the primarySoft wash + accent border.
+- **List affordance**: tappable visit cards carry the Oura "›" chevron
+  (`VisitCard chevron` prop — only on rows that navigate; the detail-screen
+  card stays plain).
+- **Card hierarchy**: record cards on Kayıtlarım moved their title to the
+  serif (`title` role) — date caption / serif title / caption meta, the Oura
+  card anatomy.
+- **Screen top breathing**: hero lines `marginTop` lg → xl (Oura headers
+  sit low).
+- **Welcome CTA stack**: first dev account is the one saturated pill, the
+  rest are quiet SecondaryButtons (Oura's primary + ghost stack; also
+  restores the single-accent rule the old double-primary stack broke).
+
+Kept deliberately (evaluated, not dogma): the outside-the-card section
+kickers (our section anatomy; Oura's in-card eyebrows map to our card
+headers on detail/review), the consent state pills on Profilim (label
+carries state — colour-blind rule beats Oura's bare switches), body 17
+(dynamic-type floor; Oura's ~15 sans would fight the B1 readability
+target), and the teal accent staying exclusive to selection/action (Oura's
+white-active rail item was adopted; everything else already used ink).
+
+No palette hex changed in this pass, so the pinned AA suite is untouched
+and green. Verified on the iOS 18.4 sim, dark and light: welcome, Bugün,
+tab rail, Vizitlerim, visit detail (ladder), intake chips/single/text steps,
+review (fresh draft with glass CTA and a sent run end-to-end), Kayıtlarım,
+İyilik hâli, Profilim (consent flip removes/restores the wellbeing tab
+live). Typecheck + all 74 vitest tests green; no route, handler or i18n key
+removed.

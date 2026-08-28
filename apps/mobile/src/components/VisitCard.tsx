@@ -1,6 +1,7 @@
 /** Visit summary card used on Bugün and Vizitlerim (02 §5.1). */
 import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { SymbolView } from "expo-symbols";
 
 import { StatusChip } from "@/components/StatusChip";
 import { AppText, Card, useTheme } from "@/components/Themed";
@@ -31,9 +32,16 @@ interface VisitCardProps {
    * else stays a quiet surface card — one focal point per screen (02 §5.2).
    */
   hero?: boolean;
+  /** Show the "›" affordance — set it on cards that navigate (list rows). */
+  chevron?: boolean;
 }
 
-export function VisitCard({ visit, statusOverride, hero = false }: VisitCardProps) {
+export function VisitCard({
+  visit,
+  statusOverride,
+  hero = false,
+  chevron = false,
+}: VisitCardProps) {
   const theme = useTheme();
   const status = statusOverride ?? visit.noteStatus;
   return (
@@ -45,8 +53,20 @@ export function VisitCard({ visit, statusOverride, hero = false }: VisitCardProp
           // drags the wash through grey on the light surface.
           colors={[theme.primarySoft, `${theme.primarySoft}00`]}
           start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.85 }}
+          // Oura's card scrim dies by mid-card (design pass 4 measurement);
+          // 0.85 dragged the wash under the whole card.
+          end={{ x: 0.5, y: 0.55 }}
           style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {chevron && !hero ? (
+        // Oura list rows always carry the "›" affordance (pass 4
+        // measurement) — these cards navigate, so say so.
+        <SymbolView
+          name="chevron.right"
+          size={14}
+          tintColor={theme.inkFaint}
+          style={styles.chevron}
         />
       ) : null}
       <AppText
@@ -71,6 +91,7 @@ export function VisitCard({ visit, statusOverride, hero = false }: VisitCardProp
 
 const styles = StyleSheet.create({
   chipRow: { marginTop: spacing.xs },
+  chevron: { position: "absolute", right: spacing.lg, top: "50%" },
   hero: {
     borderRadius: radius.hero,
     padding: spacing.lg,

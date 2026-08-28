@@ -20,7 +20,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import {
   fonts,
@@ -34,9 +34,30 @@ import {
   type TypeRole,
 } from "@/lib/theme";
 
-// Fraunces is guaranteed loaded before the tree renders (root layout gates
+// The faces are guaranteed loaded before the tree renders (root layout gates
 // on useFonts); the platform serif remains only as a defensive fallback.
 const DISPLAY_FONT = fonts.display ?? Platform.select(fonts.displayFallback);
+
+/**
+ * Sans roles carry Inter (design pass 4, Oura register). Custom fonts on iOS
+ * do not synthesize weights, so the effective fontWeight in the flattened
+ * style picks the loaded family and the weight itself is dropped.
+ */
+function sansFamily(weight: TextStyle["fontWeight"]): string {
+  switch (weight) {
+    case "600":
+    case "700":
+    case "bold":
+    case 600:
+    case 700:
+      return fonts.sansSemiBold;
+    case "500":
+    case 500:
+      return fonts.sansMedium;
+    default:
+      return fonts.sans;
+  }
+}
 
 export function useTheme(): ThemeColors {
   const scheme = useColorScheme();
@@ -58,30 +79,50 @@ export function AppText({ role = "body", color = "ink", style, children }: AppTe
   const theme = useTheme();
   const fontScale = useFontScale();
   const display = role === "hero" || role === "title";
+  const flat: TextStyle = StyleSheet.flatten([
+    {
+      color: theme[color],
+      fontSize: scaledSize(role, fontScale),
+      lineHeight: lineHeight(role, fontScale),
+    },
+    display ? { fontFamily: DISPLAY_FONT } : null,
+    style,
+  ]);
+  if (!display) {
+    flat.fontFamily = sansFamily(flat.fontWeight);
+    delete flat.fontWeight;
+  }
   return (
-    <Text
-      // Sizes come from scaledSize; RN's own multiplier is disabled so the
-      // 2.0 cap (layout-survival, 02 §8.2) is applied in exactly one place.
-      allowFontScaling={false}
-      style={[
-        {
-          color: theme[color],
-          fontSize: scaledSize(role, fontScale),
-          lineHeight: lineHeight(role, fontScale),
-        },
-        display ? { fontFamily: DISPLAY_FONT } : null,
-        style,
-      ]}
-    >
+    // Sizes come from scaledSize; RN's own multiplier is disabled so the
+    // 2.0 cap (layout-survival, 02 §8.2) is applied in exactly one place.
+    <Text allowFontScaling={false} style={flat}>
       {children}
     </Text>
   );
 }
 
-export function Screen({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+/**
+ * Screens under the floating tab rail (design pass 4) drop the bottom safe
+ * edge so content scrolls UNDER the pill to the physical edge (Oura chrome);
+ * they pad their scroll content with TAB_BAR_CLEARANCE instead.
+ */
+export const RAIL_EDGES: readonly Edge[] = ["top", "left", "right"];
+
+export function Screen({
+  children,
+  style,
+  edges,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  edges?: readonly Edge[];
+}) {
   const theme = useTheme();
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }, style]}>
+    <SafeAreaView
+      edges={edges as Edge[] | undefined}
+      style={[styles.screen, { backgroundColor: theme.background }, style]}
+    >
       {children}
     </SafeAreaView>
   );
@@ -156,7 +197,7 @@ export function PrimaryButton({ label, onPress, disabled = false }: ButtonProps)
         { backgroundColor: theme.primary, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
       ]}
     >
-      <AppText role="label" color="onPrimary" style={styles.buttonLabel}>
+      <AppText role="body" color="onPrimary" style={styles.buttonLabel}>
         {label}
       </AppText>
     </Pressable>
@@ -182,7 +223,7 @@ export function SecondaryButton({ label, onPress, disabled = false }: ButtonProp
         },
       ]}
     >
-      <AppText role="label" color="ink" style={styles.buttonLabel}>
+      <AppText role="body" color="ink" style={styles.buttonLabel}>
         {label}
       </AppText>
     </Pressable>
@@ -194,7 +235,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
     borderWidth: 1,
-    padding: spacing.md,
+    // lg padding (design pass 4): Oura's card interiors breathe at ~24, and
+    // 16 read cramped once the radius went to 24.
+    padding: spacing.lg,
     gap: spacing.sm,
   },
   hairline: {
@@ -207,8 +250,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     alignItems: "center",
-    // Touch target ≥48dp (02 §8.2) even at fontScale 1.0.
-    minHeight: 52,
+    // Touch target ≥48dp (02 §8.2); 56 with a body-size semibold label is
+    // the Oura CTA register (design pass 4).
+    minHeight: 56,
     justifyContent: "center",
   },
   buttonLabel: { fontWeight: "600", letterSpacing: 0.2 },
