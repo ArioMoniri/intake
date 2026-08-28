@@ -1,4 +1,4 @@
-"""`protocols` console entry point (INT-042): the `coverage` subcommand.
+"""`protocols` console entry point: `coverage` (INT-042) + `generate-l0` (INT-057).
 
 ``protocols coverage`` prints the branch × resolution matrix of
 :func:`protocols.taxonomy.coverage` plus a one-line summary — the matrix
@@ -6,10 +6,14 @@ files/09 §6 says the admin console consumes, wired behind
 ``make coverage-matrix``.
 
 Exit-code posture (documented per the INT-042 scope): the command exits
-non-zero for MISSING branches only under ``--strict``. Today zero packs
-exist, so the matrix is honestly all-MISSING (no-silent-caps) and CI runs
-the report unstrict; the CI posture flips to ``--strict`` once the nine
-cluster packs land (files/09 §2 rollout, P1).
+non-zero for MISSING branches only under ``--strict``. Today only L0 drafts
+exist, which never count as coverage, so the matrix is honestly all-MISSING
+(no-silent-caps) and CI runs the report unstrict; the CI posture flips to
+``--strict`` once the nine cluster packs land (files/09 §2 rollout, P1).
+
+``protocols generate-l0 --branch <id>`` (or ``--all``) scaffolds the
+review-queue-only L0 drafts via :mod:`protocols.authoring` — deterministic,
+refusing excluded branches and never overwriting a pack promoted past L0.
 """
 
 from __future__ import annotations
@@ -21,8 +25,16 @@ from pathlib import Path
 
 import yaml
 
+from protocols.authoring import AuthoringError, generate_all, generate_l0
 from protocols.loader import PackRegistry, load_pack
-from protocols.taxonomy import BranchResolution, ResolutionStatus, coverage, load_taxonomy
+from protocols.taxonomy import (
+    BranchResolution,
+    BranchResolutionError,
+    ResolutionStatus,
+    Taxonomy,
+    coverage,
+    load_taxonomy,
+)
 from protocols.types import PackLayer
 
 __all__ = ["load_registry", "main"]
@@ -97,8 +109,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="exit non-zero when any branch resolves to nothing",
     )
+    gen = subparsers.add_parser(
+        "generate-l0",
+        help="scaffold review-queue-only L0 drafts (files/09 §2; INT-057)",
+        description="Deterministic L0 scaffolds from the branch taxonomy + "
+        "cluster template. L0 is never served (CLAUDE.md invariant 13); a "
+        "pack promoted past L0 is never overwritten.",
+    )
+    gen.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY)
+    gen.add_argument("--packs", type=Path, default=DEFAULT_PACKS_ROOT)
+    which = gen.add_mutually_exclusive_group(required=True)
+    which.add_argument("--branch", help="branch id from taxonomy/branches.yaml")
+    which.add_argument(
+        "--all",
+        action="store_true",
+        help="every intake branch (files/09 §2: P0 generates L0 for all)",
+    )
     args = parser.parse_args(argv)
     taxonomy = load_taxonomy(args.taxonomy)
+    if args.command == "generate-l0":
+        return _generate_l0_command(args, taxonomy)
     registry = load_registry(args.packs)
     rows = coverage(registry, taxonomy)
     print(_render(rows, len(registry)))
@@ -106,4 +136,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.strict and missing:
         print(f"STRICT: {missing} branch(es) resolve to nothing (invariant 13)")
         return 1
+    return 0
+
+
+def _generate_l0_command(args: argparse.Namespace, taxonomy: Taxonomy) -> int:
+    try:
+        if args.all:
+            paths = generate_all(taxonomy, args.packs)
+        else:
+            paths = (generate_l0(taxonomy, args.branch, args.packs),)
+    except (AuthoringError, BranchResolutionError) as exc:
+        print(f"generate-l0: {exc}")
+        return 1
+    for path in paths:
+        print(path)
     return 0

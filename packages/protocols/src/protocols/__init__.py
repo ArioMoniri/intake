@@ -9,6 +9,16 @@ issues under clinician sign-off (files/09 §2; HUMAN_BLOCKERS HB-C1..C7).
 
 from __future__ import annotations
 
+from protocols.authoring import (
+    CLUSTER_GUIDANCE,
+    NAMED_GUIDANCE_SOURCES,
+    AuthoringError,
+    ExcludedBranchAuthoringError,
+    MissingClusterTemplateError,
+    PromotedPackOverwriteError,
+    generate_all,
+    generate_l0,
+)
 from protocols.dsl import (
     ClipManifestEntry,
     Instrument,
@@ -90,14 +100,17 @@ from protocols.validator import (
 )
 
 __all__ = [
+    "CLUSTER_GUIDANCE",
     "DENY_PREFIXES",
     "DENY_SUFFIXES",
     "INSTRUMENT_LICENCES",
     "LIFE_THREAT_SET_ID",
+    "NAMED_GUIDANCE_SOURCES",
     "PLACEHOLDER_SIGNOFF_RE",
     "AckStyle",
     "AddRuleOp",
     "AddSlotOp",
+    "AuthoringError",
     "Branch",
     "BranchResolution",
     "BranchResolutionError",
@@ -106,6 +119,7 @@ __all__ = [
     "CompilableReport",
     "Delivery",
     "EK4Level",
+    "ExcludedBranchAuthoringError",
     "ExcludedBranchError",
     "Finding",
     "FindingCode",
@@ -116,6 +130,7 @@ __all__ = [
     "LicenceTable",
     "LocationAction",
     "Maturity",
+    "MissingClusterTemplateError",
     "NoServablePackError",
     "NotifyClinic",
     "Op",
@@ -125,6 +140,7 @@ __all__ = [
     "PackLayer",
     "PackRegistry",
     "PackSchemaError",
+    "PromotedPackOverwriteError",
     "ProtocolPack",
     "RedFlagAction",
     "RedFlagRoute",
@@ -152,6 +168,8 @@ __all__ = [
     "clip_text_hash",
     "coverage",
     "direct_pack_id",
+    "generate_all",
+    "generate_l0",
     "instrument_licence",
     "load_pack",
     "load_taxonomy",
