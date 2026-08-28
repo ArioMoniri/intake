@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -24,13 +24,20 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src
 	uv run pytest --cov=packages/intake_platform/src --cov-branch --cov-fail-under=85
+	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 check-ts:
 	pnpm -r lint
 	pnpm -r typecheck
 	pnpm -r test
+
+# INT-031: regenerate the committed schema exports (OpenAPI bundle, per-event
+# JSON Schemas, generated TS types). tests/schemas/test_roundtrip.py fails
+# `make check` whenever these are stale.
+schemas-codegen:
+	uv run python -m clinical_schemas.codegen
 
 dev:
 	$(COMPOSE) up -d --wait
