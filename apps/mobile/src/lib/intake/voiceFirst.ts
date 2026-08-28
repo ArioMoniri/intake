@@ -73,6 +73,14 @@ export function voiceIntakeReducer(
     case "transcript":
       return state.phase === "transcribing" ? { phase: "extracting" } : state;
     case "candidates":
+      if (state.phase === "dialogue") {
+        // Ask-ahead hand-over (INT-235): the dialogue already committed
+        // every confirmed answer; whatever could not be confirmed
+        // in-conversation arrives here as prefill for the manual steps.
+        // Empty is NOT a failure — the patient just answers the remaining
+        // questions fresh, quietly.
+        return { phase: "steps", prefill: action.prefill, failed: false };
+      }
       if (state.phase !== "extracting") {
         return state;
       }

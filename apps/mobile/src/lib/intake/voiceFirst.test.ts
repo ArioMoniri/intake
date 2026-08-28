@@ -137,8 +137,26 @@ describe("voiceIntakeReducer — spoken dialogue entry (INT-233)", () => {
     const dialogue: VoiceIntakeState = { phase: "dialogue" };
     expect(run(dialogue, { type: "record" })).toEqual(dialogue);
     expect(run(dialogue, { type: "transcript" })).toEqual(dialogue);
-    expect(run(dialogue, { type: "candidates", prefill: {} })).toEqual(dialogue);
     expect(run(dialogue, { type: "voice_ready" })).toEqual(dialogue);
+  });
+
+  it("the ask-ahead hand-over (INT-235) lands in steps with the leftover suggestions as prefill", () => {
+    // The dialogue already committed every confirmed answer; what could not
+    // be confirmed in-conversation arrives as prefill for the manual steps.
+    const dialogue: VoiceIntakeState = { phase: "dialogue" };
+    const prefill = { duration: { values: ["days"], quote: "birkaç gündür böyle" } };
+    expect(run(dialogue, { type: "candidates", prefill })).toEqual({
+      phase: "steps",
+      prefill,
+      failed: false,
+    });
+    // Empty leftovers are NOT a failure here (unlike the one-shot extract):
+    // the patient simply answers the remaining questions fresh, quietly.
+    expect(run(dialogue, { type: "candidates", prefill: {} })).toEqual({
+      phase: "steps",
+      prefill: {},
+      failed: false,
+    });
   });
 });
 

@@ -104,17 +104,18 @@ export default function TypedIntake() {
             voiceFailed={voiceState.failed}
           />
         ) : voiceState.phase === "dialogue" ? (
-          // Spoken dialogue mode (INT-233): turn-by-turn voice over the
-          // same pack. Answers commit per step, so leaving the dialogue —
-          // by choice (skip) or on a service failure — resumes these exact
-          // manual steps at the first unanswered question, nothing lost.
+          // Voice chat mode (INT-233/235): ask-ahead conversation over the
+          // same pack. Answers commit per confirm, so a service failure
+          // resumes these exact manual steps at the first unanswered
+          // question with the honest notice; a settled dialogue (or a
+          // chosen exit) hands over ONLY the unanswered questions, any
+          // unconfirmed suggestions riding along as prefill.
           <DialogueIntake
             visitId={visitId}
             questions={intakeQuestions}
             packName={visit?.department ?? "general"}
-            onExit={(reason) =>
-              dispatchVoice(reason === "failure" ? { type: "failure" } : { type: "skip" })
-            }
+            onFailed={() => dispatchVoice({ type: "failure" })}
+            onHandoff={(prefill) => dispatchVoice({ type: "candidates", prefill })}
           />
         ) : (
           <VoiceFirstIntake
