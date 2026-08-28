@@ -26,6 +26,8 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
+import intake_platform.retention.engine  # noqa: F401  (retention_*_total)
+
 # Modules that register live families at import time must be imported here
 # explicitly: the exposition check reads the default registry, and relying on
 # pytest's collection order to have imported an emitter is luck, not a gate.

@@ -106,6 +106,27 @@ metrics:
     owner: platform
     unit: "info"
     description: Python interpreter build information (prometheus_client platform collector).
+  - name: retention_destruction_runs_total
+    type: counter
+    labels: [kind, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      Destruction runs by kind (periodic/dsar) and outcome
+      (completed/refused_floor). Emitted by
+      intake_platform.retention.engine.DestructionEngine — the sec_row
+      `retention` signal: a destruction job failing silently is the threat,
+      so completions and floor refusals are both counted (INT-036,
+      DEST-2017).
+  - name: retention_destroyed_items_total
+    type: counter
+    labels: [data_class]
+    owner: platform
+    unit: "count"
+    description: >-
+      Items destroyed by the retention engine, by files/06 §3 policy data
+      class (closed DestroyableClass enumeration, never free text). Emitted
+      by intake_platform.retention.engine.DestructionEngine (INT-036).
   - name: document_upload_pipeline
     type: counter
     labels: [outcome, reason]
