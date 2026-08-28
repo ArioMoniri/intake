@@ -44,10 +44,13 @@ if TYPE_CHECKING:
     from intake_api.state import ApiState
 
 __all__ = [
+    "CONSENT_MANAGEMENT_PREFIX",
     "META_ROUTES",
     "PRE_AUTH_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
+    "consent_management",
+    "consent_management_routes",
     "ensure_consent",
     "pre_auth",
     "pre_auth_routes",
@@ -169,6 +172,32 @@ def pre_auth() -> params.Depends:
     return dependency
 
 
+class ConsentManagementDeclaration:
+    """Explicit declaration that a route IS the consent-management surface
+    (INT-232): its subject matter is the consent ledger itself, so requiring
+    a consent scope would be circular — nobody can need a consent to grant
+    their first consent, and a snapshot that 403s on the very staleness it
+    exists to report could never trigger a re-prompt. Same class as
+    pre_auth: the route cannot enforce a scope, but it may not stay silent
+    either — the scan accepts this marker ONLY under
+    CONSENT_MANAGEMENT_PREFIX (as a path segment, not a substring), so a
+    data route elsewhere cannot borrow it."""
+
+    async def __call__(self) -> None:
+        return
+
+
+#: The only prefix where a consent-management declaration is accepted.
+CONSENT_MANAGEMENT_PREFIX = "/v1/consents"
+
+
+def consent_management() -> params.Depends:
+    """Declare a route as consent management (see
+    ConsentManagementDeclaration)."""
+    dependency: params.Depends = Depends(ConsentManagementDeclaration())
+    return dependency
+
+
 def _policy_of(route: APIRoute) -> ConsentPolicy | None:
     for dependency in route.dependencies:
         call = dependency.dependency
@@ -214,6 +243,19 @@ def _is_pre_auth(route: APIRoute) -> bool:
     )
 
 
+def _is_consent_management(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, ConsentManagementDeclaration)
+        for dependency in route.dependencies
+    )
+
+
+def _under_consent_management_prefix(path: str) -> bool:
+    """Segment-boundary match: ``/v1/consents`` and ``/v1/consents/...``
+    qualify; a lookalike like ``/v1/consentsish`` does not."""
+    return path == CONSENT_MANAGEMENT_PREFIX or path.startswith(CONSENT_MANAGEMENT_PREFIX + "/")
+
+
 def pre_auth_routes(app: FastAPI) -> list[str]:
     """Every route carrying the pre-auth declaration, for the pin test."""
     marked: list[str] = []
@@ -224,16 +266,33 @@ def pre_auth_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def consent_management_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the consent-management declaration, for the pin
+    test (INT-232) — reported wherever it appears; whether the scan ACCEPTS
+    it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_consent_management(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
-    pre-auth marker — the scan test asserts this list is empty, so a new
-    route cannot land undeclared. A pre-auth marker outside PRE_AUTH_PREFIX
-    does NOT count as a declaration (it is reported here instead)."""
+    marker — the scan test asserts this list is empty, so a new route cannot
+    land undeclared (silence always fails). Two markers exist, each caged to
+    its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
+    principal yet) and consent_management under CONSENT_MANAGEMENT_PREFIX
+    (INT-232, the routes ABOUT consent). Either marker outside its prefix
+    does NOT count as a declaration (the route is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
             continue
         if _is_pre_auth(route) and path.startswith(PRE_AUTH_PREFIX):
+            continue
+        if _is_consent_management(route) and _under_consent_management_prefix(path):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

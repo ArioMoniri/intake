@@ -64,9 +64,17 @@ export function voiceIntakeReducer(
     case "transcript":
       return state.phase === "transcribing" ? { phase: "extracting" } : state;
     case "candidates":
-      return state.phase === "extracting"
+      if (state.phase !== "extracting") {
+        return state;
+      }
+      // An extract that yielded NO usable suggestion is a FAILED voice
+      // attempt: the daemon's restart window answers a valid envelope with
+      // zero candidates while its /health stays 200, and landing that
+      // silently in manual hid the failure from the patient (live bug —
+      // no prefill, no provenance, no notice). Empty prefill → failed.
+      return Object.keys(action.prefill).length > 0
         ? { phase: "steps", prefill: action.prefill, failed: false }
-        : state;
+        : { phase: "steps", prefill: {}, failed: true };
     case "failure":
       return { phase: "steps", prefill: {}, failed: true };
     case "skip":

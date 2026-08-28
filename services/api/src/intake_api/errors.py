@@ -13,6 +13,8 @@ __all__ = [
     "attestation_unverified",
     "challenge_invalid",
     "consent_required",
+    "consent_text_changed",
+    "consent_text_missing",
     "dev_auth_unconfigured",
     "dpop_invalid",
     "forbidden",
@@ -21,6 +23,7 @@ __all__ = [
     "otp_invalid",
     "otp_limited",
     "phone_invalid",
+    "purpose_unknown",
     "refresh_reused",
     "unauthorized",
     "visit_invalid",
@@ -37,6 +40,28 @@ def forbidden() -> HTTPException:
 
 def consent_required(scope: str) -> HTTPException:
     return HTTPException(status_code=403, detail={"error": "consent_required", "scope": scope})
+
+
+# --- INT-232 consent-management codes (scope is the id and nothing else, invariant 6) ----
+
+
+def purpose_unknown(scope: str) -> HTTPException:
+    """A scope outside the closed files/06 §2 list — including
+    ``lane:acoustic`` (an ICF, not a purpose) and the bare ``share`` family
+    (a share is always parameterised)."""
+    return HTTPException(status_code=422, detail={"error": "purpose_unknown", "scope": scope})
+
+
+def consent_text_changed(scope: str) -> HTTPException:
+    """The submitted {version, text_hash} no longer match the served text:
+    the patient granted against a text that has moved — refuse, re-prompt."""
+    return HTTPException(status_code=409, detail={"error": "consent_text_changed", "scope": scope})
+
+
+def consent_text_missing(scope: str) -> HTTPException:
+    """No docs/legal text exists for the purpose — no text, no grant
+    (invariant 18, matching INT-038's ConsentTextMissingError)."""
+    return HTTPException(status_code=409, detail={"error": "text_missing", "scope": scope})
 
 
 def not_found() -> HTTPException:

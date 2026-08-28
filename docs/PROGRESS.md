@@ -306,3 +306,14 @@
 - Server gap recorded by the builder: services/api lacks patient-facing consent routes (GET /v1/consents, grant/withdraw) — needs its own issue next wave.
 - Wave 4 closed: INT-040, INT-035, INT-132 + the #260 device-found fix. Session total: 21 issues landed end-to-end.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T17:40:00+03:00 · voice-lane prefill fix merged (PR #268) + daemon hardening
+- Device-found and root-caused: the extract daemon's warm-up window answers /health 200 while /extract returns a valid-but-empty envelope, and the reducer recorded that as a SUCCESSFUL voice run — the patient landed in manual-looking steps with no notice. Client fix at the state-machine seam (empty prefill = failed:true, honest notice) with the live daemon envelope pinned verbatim as a regression fixture (8/9 questions prefill with provenance). Server hardened in tandem on the box: /extract now answers 503 extract_unavailable while the LLM upstream is unreachable, never 200-empty (extract_server.py patched, supervisor-restarted, health re-verified).
+- The wire contract itself was proven innocent both directions (byte-exact app request replayed → all eight candidates with verbatim quotes).
+- Also flagged by the debugger: the pinned deid artefact is per-checkout (make deid-model fetches it) and a cross-test state bleed makes test_otp_abuse's per-phone-limit flake under the full suite near top-of-hour — follow-up owed.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T17:55:00+03:00 · INT-232 · done (PR #270)
+- Patient-facing consent routes merged CI-green, seam-faithful to the merged INT-132 client (seam won over the sketch, divergences reported): snapshot with the closed six-value reason list and fail-closed empty texts; grant re-checks the bound row after the fact so a mid-flight text move rolls back; withdraw cascades via INT-038. consent_management scan declaration accepted only under /v1/consents at a path-segment boundary — stricter than pre_auth, lookalike-prefix pinned.
+- Records upload UI (INT-229 label) delivered by its builder and queued for PR: real picker → sha256 → API ingest (presigned MinIO URLs are server-loopback, never fetched from the device) → honest Taranıyor/Hazır/Reddedildi states → download via browser; dev-tier accounts keep the synthetic list with no fake upload affordance, pinned.
+- LOOP_STATUS: CONTINUE

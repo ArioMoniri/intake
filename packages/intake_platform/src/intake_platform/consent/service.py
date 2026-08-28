@@ -54,6 +54,7 @@ __all__ = [
     "OPT_OUT_VERSION",
     "ConsentAudit",
     "ConsentDecision",
+    "Reason",
     "WithdrawalReport",
     "consent_state",
     "grant_consent",
