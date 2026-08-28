@@ -203,3 +203,12 @@
 - Blocked on: physician (#185); owner: licence blobs (whisper-tr, Freya weights, VoxCPM2 weights).
 - Next: merge #228; INT-034 PR; wire voice-extract app half after design pass lands.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T05:10:00+03:00 · INT-196 · done
+- Goal: owner directive round 4 — "still ui and fonts n shapes not close enough to oura ui … simulate and copy the oura style as much as possible" (dedicated design agent, Mobbin-measured).
+- Result: FloatingTabBar pill on expo-router/js-tabs (native tabs superseded — owner decision recorded in-file + docs/design/mobile-ui.md; the red that forced it: @react-navigation/bottom-tabs is not installed under Expo Router 57). Rail unmounts on intake/review; GlassBar owns the physical bottom; wellbeing route UNREGISTERED via Tabs.Protected when consent is off (verified live). Measured register deltas: card radius 24 / hero 32, Card padding 24, scrim 0.55, unboxed kickers, chevrons on tappable cards, dark filled chips, serif record titles, welcome quiet-secondary CTA, Inter (OFL) body with explicit weight map, Newsreader display kept. No palette hex changed → pinned AA suite untouched. 74/74 vitest + typecheck green; full live walkthrough on the simulator.
+- Invariants: 5 (no key changes), 17, 18 (none touched), motion budget 120 ms fades kept; backlog consciously 182→183 (INT-196 filed with reason).
+- Fleet: dept-packs agent (INT-198 scope) building; /extract server live on :8804 (schema-bound candidates, injection probe held); INT-034 PR #230 open.
+- Blocked on: physician (#185); owner: licence blobs.
+- Next: merge this + #230 + #228; API slice (INT-197) and voice-first intake (INT-199) agents.
+- LOOP_STATUS: CONTINUE
