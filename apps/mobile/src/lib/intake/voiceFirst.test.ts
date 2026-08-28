@@ -162,6 +162,102 @@ describe("prefillForPack (transcript → intake state, cardio pack fixture)", ()
   });
 });
 
+describe("empty extract is a FAILED voice run (live silent-prefill bug, coordinator repro)", () => {
+  const specs = toQuestionSpecs(cardio);
+  const extracting: VoiceIntakeState = { phase: "extracting" };
+
+  // Captured verbatim from the live daemon (warm) for the exact repro
+  // transcript — the proven-good contract: eight of nine questions prefill,
+  // onset dropped by the daemon itself.
+  const capturedWarmResponse = {
+    candidates: {
+      complaint: { values: ["pain"], quote: "göğsümde baskınca baskı var" },
+      duration: { values: ["days"], quote: "üç günü" },
+      pain_character: { values: ["pressure"], quote: "göğsümde baskınca baskı var" },
+      radiation: { values: ["no_radiation"], quote: "göğsümde baskınca baskı var" },
+      trigger: { values: ["exertion"], quote: "merdiven çiyor" },
+      associated: { values: ["sweating"], quote: "terleme de oluyor" },
+      severity: { values: ["moderate"], quote: "merdiven çiyor" },
+      extra: {
+        values: ["düzenli metoprolol kullanıyorum"],
+        quote: "düzenli metoprolol kullanıyorum",
+      },
+    },
+    dropped: ["onset"],
+    model: "qwen3.5-9b",
+  };
+
+  // The same daemon inside its restart window: /health keeps answering 200
+  // (llm_upstream is reported separately) and /extract answers a VALID
+  // envelope carrying zero usable candidates. The flow must land this in
+  // manual WITH the failure notice — an extract that yields no suggestion is
+  // a failed voice attempt, never a silent success that renders exactly like
+  // typed entry.
+  const warmingWindowResponse = {
+    candidates: {},
+    dropped: [
+      "complaint",
+      "duration",
+      "onset",
+      "pain_character",
+      "radiation",
+      "trigger",
+      "associated",
+      "severity",
+      "extra",
+    ],
+    model: "qwen3.5-9b",
+  };
+
+  it("a valid envelope with zero surviving candidates lands in manual WITH the notice", () => {
+    const validated = validateExtractResponse(warmingWindowResponse, specs);
+    expect(validated.ok).toBe(true);
+    if (validated.ok) {
+      const prefill = prefillForPack(cardio, validated.candidates);
+      expect(prefill).toEqual({});
+      expect(run(extracting, { type: "candidates", prefill })).toEqual({
+        phase: "steps",
+        prefill: {},
+        failed: true,
+      });
+    }
+  });
+
+  it("empty candidates outside extracting stay no-ops, and steps stays absorbing", () => {
+    const offer: VoiceIntakeState = { phase: "offer" };
+    expect(run(offer, { type: "candidates", prefill: {} })).toEqual(offer);
+    const steps: VoiceIntakeState = { phase: "steps", prefill: {}, failed: false };
+    expect(run(steps, { type: "candidates", prefill: {} })).toEqual(steps);
+  });
+
+  it("the captured live response prefills eight questions end-to-end (proven contract)", () => {
+    const validated = validateExtractResponse(capturedWarmResponse, specs);
+    expect(validated.ok).toBe(true);
+    if (validated.ok) {
+      const prefill = prefillForPack(cardio, validated.candidates);
+      expect(Object.keys(prefill)).toEqual([
+        "complaint",
+        "duration",
+        "pain_character",
+        "radiation",
+        "trigger",
+        "associated",
+        "severity",
+        "extra",
+      ]);
+      const landed = run(extracting, { type: "candidates", prefill });
+      expect(landed).toEqual({ phase: "steps", prefill, failed: false });
+      if (landed.phase === "steps") {
+        expect(landed.prefill.complaint).toEqual({
+          values: ["pain"],
+          quote: "göğsümde baskınca baskı var",
+        });
+        expect(landed.prefill.severity?.values).toEqual(["moderate"]);
+      }
+    }
+  });
+});
+
 describe("resolveAnswer (per-question confirm / change / skip)", () => {
   const prefill = { values: ["pain", "dyspnoea"], quote: "göğsümde baskı var" };
 
