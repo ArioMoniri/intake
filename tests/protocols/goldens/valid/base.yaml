@@ -1,0 +1,91 @@
+# SENTETİK TEST VERİSİ — INT-040 golden fixture. Mechanism-only: every id,
+# rule, slot and Turkish string in this file is invented for tests and has no
+# clinical meaning. Nothing here is ever served (files/04 §7: packs and
+# goldens contain synthetic data only).
+kind: pack
+id: base.synthetic
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik temel paket"
+voice:
+  allow_paraphrase: true
+  backchannel_ok: true
+  ack_style: brief
+  pace: normal
+sections:
+  ornek_bolum:
+    slots:
+      renk_tercihi:
+        type: code
+        valueset: vs.synthetic_renk
+        required: true
+        must_ask: true
+        ask_tr: "Örnek soru: hangi rengi seçersiniz?"
+        follow_up_tr: "Bir renk adı söyleyebilir misiniz?"
+        choices_tr: ["mavi", "yeşil"]
+      bekleme_suresi:
+        type: quantity
+        unit: gun
+        required: true
+        ask_tr: "Örnek soru: ne kadar süredir bekliyorsunuz?"
+        follow_up_tr: "Gün olarak yaklaşık söyleyebilir misiniz?"
+      olay_zamani:
+        type: date
+        ask_tr: "Örnek soru: bu ne zaman oldu?"
+red_flags:
+  - id: rf.synthetic_kirmizi
+    label_tr: "Sentetik kırmızı kural"
+    when: "renk_tercihi == 'kirmizi' || bekleme_suresi_asildi == true"
+    tense: now
+    tense_anchor: olay_zamani
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+        do_nots_tr:
+          - "Yalnız kalmayın."
+        why_tr: "Bu bir sentetik test metnidir."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin ve bekleyin."
+        why_tr: "Bu bir sentetik test metnidir."
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+  - id: rf.synthetic_sari
+    label_tr: "Sentetik sarı kural"
+    when: "bekleme_suresi_gun_asimi == true"
+    tense: within_7d
+    tense_anchor: olay_zamani
+    level: SARI_K2
+    route: EXPEDITE
+    notify_clinic: never
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "ikinci sentetik alıntı"

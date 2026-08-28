@@ -1,0 +1,23 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: a required slot with no follow_up_tr. Because the
+# runtime asks ahead and reconciles behind, every required slot MUST have a
+# follow_up_tr — the engine speaks it when extraction returns
+# clarification_needed (files/04 §1; files/13 §11.1). One attribute away
+# from the valid base pack.
+kind: pack
+id: base.synthetic_takipsiz
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik takipsiz paket"
+sections:
+  ornek_bolum:
+    slots:
+      renk_tercihi:
+        type: code
+        valueset: vs.synthetic_renk
+        required: true
+        ask_tr: "Örnek soru: hangi rengi seçersiniz?"

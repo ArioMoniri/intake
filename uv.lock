@@ -17,6 +17,7 @@ members = [
     "intake-clinical-schemas",
     "intake-platform",
     "intake-probes",
+    "intake-protocols",
 ]
 
 [[package]]
@@ -716,6 +717,7 @@ dependencies = [
     { name = "intake-clinical-schemas" },
     { name = "intake-platform", extra = ["ner"] },
     { name = "intake-probes" },
+    { name = "intake-protocols" },
 ]
 
 [package.dev-dependencies]
@@ -740,6 +742,7 @@ requires-dist = [
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
     { name = "intake-platform", extras = ["ner"], editable = "packages/intake_platform" },
     { name = "intake-probes", editable = "services/probes" },
+    { name = "intake-protocols", editable = "packages/protocols" },
 ]
 
 [package.metadata.requires-dev]
@@ -867,6 +870,23 @@ requires-dist = [
     { name = "redis", specifier = ">=5.0" },
 ]
 provides-extras = ["runner"]
+
+[[package]]
+name = "intake-protocols"
+version = "0.1.0"
+source = { editable = "packages/protocols" }
+dependencies = [
+    { name = "intake-clinical-schemas" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "jinja2"

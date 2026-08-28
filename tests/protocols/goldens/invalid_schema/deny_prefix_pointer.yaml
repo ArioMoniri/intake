@@ -1,0 +1,19 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: op pointer reaches into /life_threat. The deny-list
+# (files/12 §3.2 DENY_PREFIXES: /life_threat, /instruments, /ek4_mapping)
+# makes the life-threat set unreachable from any pack operation — that is
+# what makes composition monotone by construction (files/12 §1).
+kind: pack
+id: overlay.synthetic_erisim
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik erişim paketi"
+ops:
+  - op: set_attr
+    pointer: /life_threat/rules/rf.synthetic_kirmizi/notify_clinic
+    attr: notify_clinic
+    value: always

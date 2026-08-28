@@ -1,0 +1,32 @@
+# SENTETİK TEST VERİSİ — INT-040 fixture (lives under tests/fixtures/ because
+# it carries the invariant-17 sole-exception literal, which the
+# no_placeholders gate permits only under packages/protocols/** and inside
+# this allow-listed tree).
+# MUST LOAD AND VALIDATE CLEAN, but compilable() MUST exclude the rule: a
+# clinical value no human has supplied is the literal sign-off string inside
+# a rule whose status is draft_needs_source, and the compiler refuses to
+# emit such a rule into a served pack (CLAUDE.md invariant 17; files/04 §8.1
+# rule 3; HUMAN_BLOCKERS rule 1).
+kind: pack
+id: base.synthetic_taslak
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik taslak paketi"
+red_flags:
+  - id: rf.synthetic_taslak
+    label_tr: "Sentetik taslak kural"
+    when: "olcum_degeri >= (TODO: sentetik eşik requires clinical sign-off)"
+    tense: today
+    tense_anchor: olay_zamani
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    register: CALM
+    notify_clinic: always
+    status: draft_needs_source
+    source_gap: >-
+      Sentetik test gerekçesi: bu kuralın eşiği hiçbir insan tarafından
+      sağlanmadı; kural bu yüzden taslak durumundadır ve derlenmez.

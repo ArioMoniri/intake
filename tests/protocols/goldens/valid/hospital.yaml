@@ -1,0 +1,22 @@
+# SENTETİK TEST VERİSİ — INT-040 golden fixture (valid hospital pack).
+# The hospital layer's capability set (files/12 §3.1): override_text (the
+# "copy changes" case) and add_slot restricted to required: false.
+kind: pack
+id: hospital.synthetic_hastane
+layer: hospital
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik hastane katmanı"
+ops:
+  - op: override_text
+    pointer: /sections/ornek_bolum/slots/renk_tercihi/ask_tr
+    text_tr: "Örnek soru, hastane sürümü: hangi rengi seçersiniz?"
+  - op: add_slot
+    pointer: /sections/ornek_bolum/slots/hastane_ek_soru
+    slot:
+      type: boolean
+      required: false
+      ask_tr: "Örnek hastane sorusu: ek bilgi vermek ister misiniz?"
