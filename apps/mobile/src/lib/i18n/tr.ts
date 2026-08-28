@@ -93,7 +93,44 @@ export const tr = {
   "records.guide.kicker": "Belgeleriniz",
   "records.guide.title": "Raporlarınız tek yerde",
   "records.guide.body":
-    "Tahlil sonuçlarınızı ve raporlarınızı vizitten önce buraya ekleyebileceksiniz. Belgeler sizin dosyanızda kalır; hekiminizle paylaşım her zaman sizin onayınızla olur.",
+    "Tahlil sonuçlarınızı ve raporlarınızı vizitten önce buraya ekleyebilirsiniz. Belgeler sizin dosyanızda kalır; hekiminizle paylaşım her zaman sizin onayınızla olur.",
+  // INT-229 — real document upload (Kayıtlarım)
+  "records.devNote":
+    "Deneme hesabı: bu liste örnektir. Belge yükleme, telefonla doğrulanan gerçek hesapta açılır.",
+  "records.upload": "Belge yükleyin",
+  "records.uploading": "Yükleniyor…",
+  "records.state.scanning": "Taranıyor",
+  "records.state.ready": "Hazır",
+  "records.state.rejected": "Reddedildi",
+  "records.doc.pdf": "PDF belge",
+  "records.doc.image": "Görsel",
+  "records.scanningInfo": "Belge güvenlik taramasında. Hazır olunca açabilirsiniz.",
+  "records.err.type": "Bu dosya türü desteklenmiyor. PDF, JPEG veya PNG seçin.",
+  "records.err.size": "Dosya çok büyük. En çok 20 MB yükleyebilirsiniz.",
+  "records.err.network": "Bağlantı kurulamadı. Lütfen daha sonra tekrar deneyin.",
+  "records.err.session": "Oturumunuz sona erdi. Lütfen yeniden giriş yapın.",
+  "records.err.consent":
+    "Belge izniniz kapalı görünüyor. İzinlerinizi Profilim sayfasından açabilirsiniz.",
+  "records.err.scanUnavailable":
+    "Belge taraması şu anda yapılamıyor. Lütfen daha sonra tekrar deneyin.",
+  "records.err.rejected": "Belge güvenlik taramasını geçemedi ve açılmayacak.",
+  "records.err.generic": "Bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+  "records.consent.kicker": "İzin gerekli",
+  "records.consent.title": "Belgeler için izniniz kapalı",
+  "records.consent.body":
+    "Belgelerinizi görmek ve yüklemek için belge iznini açmanız gerekir. İzinlerinizi istediğiniz an değiştirebilirsiniz.",
+  "records.consent.cta": "İzinlere gidin",
+  "records.needVisit.kicker": "Önce vizit",
+  "records.needVisit.title": "Belgeler bir vizite eklenir",
+  "records.needVisit.body":
+    "Belge yüklemek için önce bir vizit ekleyin. Vizitlerim sayfasından veya buradan ekleyebilirsiniz.",
+  "records.offline.kicker": "Bağlantı yok",
+  "records.offline.title": "Sunucuya ulaşılamıyor",
+  "records.offline.body":
+    "Belgeleriniz şu anda listelenemiyor. Bağlantı gelince tekrar deneyin; yüklediğiniz belgeler kaybolmaz.",
+  "records.retry": "Tekrar deneyin",
+  "records.visit.kicker": "Vizit",
+  "records.visit.choose": "Belgenin ekleneceği viziti seçin.",
 
   "wellbeing.title": "İyilik hâli",
   "wellbeing.intro":

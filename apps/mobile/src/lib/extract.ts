@@ -169,7 +169,10 @@ export async function requestExtract(
   }
 }
 
-/** Probe the candidate bases, then run the extract against the first live one. */
+/** Probe the candidate bases, then run the extract against the first live one.
+ * One short retry rides out the dev daemon's fast-restart window (its
+ * supervisor relaunches within ~5s after an external kill); an abort is
+ * never retried. */
 export async function extractFromCandidates(
   candidates: readonly string[],
   transcript: string,
@@ -177,9 +180,24 @@ export async function extractFromCandidates(
   questions: readonly IntakeQuestion[],
   options: ExtractRequestOptions = {},
 ): Promise<ExtractResult> {
-  const base = await reachableBaseUrl(candidates, { fetchImpl: options.fetchImpl });
-  if (base === null) {
-    return { ok: false, reason: "unreachable" };
+  const specs = toQuestionSpecs(questions);
+  const attempt = async (): Promise<ExtractResult> => {
+    const base = await reachableBaseUrl(candidates, { fetchImpl: options.fetchImpl });
+    if (base === null) {
+      return { ok: false, reason: "unreachable" };
+    }
+    return requestExtract(base, transcript, pack, specs, options);
+  };
+  const first = await attempt();
+  if (first.ok || first.reason === "aborted") {
+    return first;
   }
-  return requestExtract(base, transcript, pack, toQuestionSpecs(questions), options);
+  await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+  if (options.signal?.aborted) {
+    return { ok: false, reason: "aborted" };
+  }
+  return attempt();
 }
+
+/** Delay before the single retry — longer than the supervisor's restart gap. */
+const RETRY_DELAY_MS = 8000;

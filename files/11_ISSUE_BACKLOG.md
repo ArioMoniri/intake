@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**190 issues.** By phase: P0 104 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 39 · todo 144 · withdrawn 1.
+**191 issues.** By phase: P0 105 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 40 · todo 144 · withdrawn 1.
 
 ## P0
 
@@ -105,6 +105,7 @@
 | INT-208 | Device health connectors: HealthKit/Health Connect behind capability detection and consent, device-local only | E08-mobile | INT-193 | area:mobile | done |
 | INT-209 | Design pass 5: numeric focal point (PrepGauge), Oura table anatomy, stack headers, serif weight and accent budget | E08-mobile | INT-196 | area:mobile | done |
 | INT-197 | Dev-tier API slice: dev-bearer accounts, visits/notes/documents over RLS with audit, consent and envelope encryption | E01-platform | INT-030, INT-034 | area:api | done |
+| INT-229 | Records upload UI: picker to scanned document list over the real pipeline | E07-records | INT-120, INT-197 | area:mobile | done |
 | INT-232 | Patient-facing consent routes: snapshot, grant, withdraw - seam-faithful to the INT-132 client | E01-platform | INT-038, INT-131 | area:api | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
