@@ -324,3 +324,19 @@
 - Design pass 6 delivered on its branch (PR follows #278): the CTA saturation finding (Oura bone pill ~6% sat vs our teal slab 36% — five passes never measured it), tonal secondaries, focused-flow exits, glyph-badge empty states, tabular figures; 347/347 post-merge.
 - INT-233 spoken dialogue in PR #278: agent asks aloud, synchronous barge-in (no speaking+listening state representable), per-turn extract+confirm, digit guard swept across all ten packs, clip-cache lifecycle with the invariant-3 distinction stated.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T19:10:00+03:00 · INT-233 + INT-234 · done (PRs #278, #280) — wave 6 closed
+- Spoken intake dialogue merged: the owner's "disturbable voice interaction" at the dev tier — agent asks aloud from catalog tr strings, synchronous barge-in (no speaking+listening state representable), per-turn transcribe→extract→spoken confirm, per-turn text fallback, digit guard swept across all ten packs, session clip-cache with the invariant-3 distinction stated; production dialogue remains the LiveKit Talker.
+- Design pass 6 merged: the CTA saturation register (Oura bone pill ~6% sat vs our 36% teal slab — the loudest element, unmeasured by five passes), tonal borderless secondaries, back affordances on focused flows, glyph-badge empty states, tabular figures; zero existing hexes changed, added cta/onCta AA-pinned.
+- Wave 7 building: INT-042 taxonomy, INT-033 FHIR mappers, INT-024 chaos harness. Hızlı/Detaylı modes agent queued for the next free slot (02 §22-34).
+- Session tally: 30 issues landed end-to-end.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-042 merged (PR #282)
+- Taxonomy landed: taxonomy/branches.yaml seeds all MHRS branches from 09 §1 (verify_live_list true), every branch resolves to a cluster, `protocols coverage` CLI renders the honest zero-coverage matrix, and an unknown booked branch fails the pinned test. Invariant 13's "every branch resolves" gate is now mechanical.
+- Wave 7 remainder: INT-024 chaos re-merged after a .PHONY union conflict (CI re-running); INT-033 FHIR mappers resumed after a watchdog stall; INT-235 voice-chat UI and INT-236 adaptive packs + Hızlı/Detaylı modes building.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-024 merged (PR #284)
+- Chaos harness landed: `make chaos EXPERIMENT=<id>` runs staged fault experiments; the vendor-kill experiment proves the typed fallback engages in ~2 µs against the 2 s bound, recorded as a measurement in docs/evidence/ (invariant 20 wording respected). Re-merged after a .PHONY union conflict with the taxonomy PR.
+- LOOP_STATUS: CONTINUE

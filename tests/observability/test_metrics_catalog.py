@@ -31,6 +31,7 @@ from typing import Any
 # pytest's collection order to have imported an emitter is luck, not a gate.
 # Adding a live metric without listing its module fails
 # test_live_entries_are_emitted_and_planned_entries_are_not, which points here.
+import intake_platform.chaos  # noqa: F401  (vendor_*/chaos_* resilience families, INT-024)
 import intake_platform.event_bus  # noqa: F401  (event_bus_* lag/retry/DLQ families)
 import intake_platform.retention.engine  # noqa: F401  (retention_*_total)
 import intake_platform.uploads  # noqa: F401  (document_upload_pipeline_total)

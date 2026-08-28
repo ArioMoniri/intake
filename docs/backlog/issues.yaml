@@ -257,7 +257,7 @@
   title: "k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s)"
   depends_on: [INT-022]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "k6 API smoke in CI (staging profile); documented lk load-test recipe; chaos harness kills a mock vendor adapter and asserts typed fallback within 2s and metrics emitted"
   tests: [tests/chaos/test_vendor_kill_fallback.py]
@@ -415,7 +415,7 @@
   title: "Taxonomy: all MHRS branches + clusters + visit types + coverage CLI"
   depends_on: [INT-040]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "taxonomy/branches.yaml seeded from 09 §1 with verify_live_list true; every branch resolves to a cluster; `protocols coverage` matrix; unknown booked branch fails a test"
   tests: [tests/protocols/test_taxonomy_coverage.py]
@@ -1964,6 +1964,32 @@
   tests:
   - apps/mobile/src/lib/dialogue/turn.test.ts
   - apps/mobile/src/lib/dialogue/tts.test.ts
+  sec_row: mobile
+- id: INT-234
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 6: CTA saturation register (bone pill), tonal secondaries,
+    focused-flow exits, glyph-badge empty states'
+  depends_on:
+  - INT-209
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'the measured finding five passes missed - Oura forward CTA is a bone pill
+    (~6 percent saturation) in 8/8 fresh captures vs our 36-percent teal slab -
+    closed via ADDED cta/onCta tokens (AA >=15:1 pinned) with zero existing hex
+    changes; SecondaryButton borderless tonal fill; intake/review gain back-only
+    untitled stack headers (patients no longer trapped mid-flow); GuidanceBlock
+    icon prop with the ~56pt outlined glyph badge on all seven empty states;
+    review chips filled tonal; prose hairlines removed; tabular figures on
+    step counters and date rows; deliberate keeps documented (kicker dot vs
+    ALL-CAPS per the I/i rule, teal selection as the single accent); all
+    verified change-screenshot-compare in dark and light on a separate Metro
+    port; 347 tests post-merge'
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
   sec_row: mobile
 - id: INT-180
   epic: E12-admin

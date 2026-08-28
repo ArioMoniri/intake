@@ -91,7 +91,9 @@ export function ListRow({
       <View style={styles.labels}>
         <AppText role="body">{label}</AppText>
         {sublabel ? (
-          <AppText role="caption" color="inkFaint">
+          // Tabular figures: sublabels are mostly dates, and stacked rows
+          // should hold a steady numeric column (design pass 6).
+          <AppText role="caption" color="inkFaint" style={styles.sublabel}>
             {sublabel}
           </AppText>
         ) : null}
@@ -135,6 +137,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
   },
   labels: { flex: 1, gap: 2 },
+  sublabel: { fontVariant: ["tabular-nums"] },
   // Nested child rows shift the whole content column one step right.
   rowInset: { paddingLeft: spacing.md + spacing.lg },
   // Oura hairlines start at the text column, not the group edge.
