@@ -1,0 +1,24 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: a draft_needs_source rule with no source_gap. files/04
+# §8.1 rule 3 and files/protocols/base.life_threat.yaml: a rule that cannot
+# be sourced carries status: draft_needs_source WITH a non-empty source_gap —
+# the gap statement is the honest artefact that replaces the citation.
+kind: pack
+id: base.synthetic_gerekcesiz
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik gerekçesiz taslak paketi"
+red_flags:
+  - id: rf.synthetic_gerekcesiz
+    label_tr: "Sentetik taslak kural — gerekçe eksik"
+    when: "ornek_bulgu == true"
+    tense: today
+    tense_anchor: olay_zamani
+    level: SARI_K2
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
