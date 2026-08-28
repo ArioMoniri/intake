@@ -24,8 +24,8 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src
-	uv run pytest --cov=packages/intake_platform/src --cov-branch --cov-fail-under=85
+	uv run mypy --strict packages/intake_platform/src services/api/src
+	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 
 check-ts:
 	pnpm -r lint

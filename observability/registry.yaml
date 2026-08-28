@@ -76,7 +76,7 @@ components:
   - component: api
     self_hostable: true
     self_hosted_now: false
-    host: "not running yet — services/api's first endpoints land with the E02 tier (INT-033..INT-037)"
+    host: "code landed (INT-197 dev-tier slice: dev-bearer auth, visits, notes, documents) — not yet wired into compose/systemd; flips true when the deployment issue runs it"
     license: "proprietary (repo LICENSE)"
     probe: http_health
     budget_ms: 800

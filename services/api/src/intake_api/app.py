@@ -13,6 +13,7 @@ contracts: the four health endpoints and readiness checks come from
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -31,11 +32,12 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from intake_api import notes, visits
+from intake_api import documents, notes, visits
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
+from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.settings import ApiSettings
 from intake_api.state import ApiState
 
@@ -69,6 +71,7 @@ class ApiWiring:
     cipher: EnvelopeCipher
     bootstrap: bool = True
     bootstrap_engine: AsyncEngine | None = None
+    documents: DocumentsConfig | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -80,6 +83,37 @@ def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
     return EnvelopeCipher(TransitKekProvider(SecretsProvider.from_env()))
 
 
+def _documents_from_env() -> DocumentsConfig:
+    """The INT-034 seams from the compose dev tier. The scanner slot stays
+    empty (ingest fails closed) unless the operator sets the INT-034 opt-in
+    phrase INTAKE_DEV_ALLOW_UNSCANNED=explicit-yes; ClamAV is INT-120."""
+    from intake_platform.documents import (
+        DevNullScanner,
+        DevScannerForbiddenError,
+        Scanner,
+        as_object_storage,
+    )
+    from minio import Minio
+
+    scanner: Scanner | None
+    try:
+        scanner = DevNullScanner()
+    except DevScannerForbiddenError:
+        scanner = None
+    client = Minio(
+        os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
+        access_key=os.environ.get("MINIO_ROOT_USER", "intake-dev"),
+        secret_key=os.environ.get("MINIO_ROOT_PASSWORD", "intake-dev-only"),
+        secure=os.environ.get("INTAKE_MINIO_SECURE", "") == "true",
+    )
+    return DocumentsConfig(
+        client=as_object_storage(client),
+        bucket_docs=os.environ.get("INTAKE_DOCS_BUCKET", "intake-docs"),
+        bucket_audit=os.environ.get("INTAKE_AUDIT_BUCKET", "intake-audit-worm"),
+        scanner=scanner,
+    )
+
+
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
     return ApiWiring(
@@ -89,17 +123,20 @@ def wiring_from_env() -> ApiWiring:
         cipher=_cipher_from_settings(settings),
         bootstrap=True,
         bootstrap_engine=build_engine(settings.bootstrap_db_url),
+        documents=_documents_from_env(),
     )
 
 
 def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     _setup_observability()
     w = wiring if wiring is not None else wiring_from_env()
+    audit = AuditWriter(w.audit_store)
     state = ApiState(
         settings=w.settings,
         engine=w.engine,
-        audit=AuditWriter(w.audit_store),
+        audit=audit,
         cipher=w.cipher,
+        documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
     )
 
     @asynccontextmanager
@@ -154,4 +191,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
 
     app.include_router(visits.router)
     app.include_router(notes.router)
+    app.include_router(documents.router)
     return app

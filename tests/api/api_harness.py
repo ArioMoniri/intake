@@ -7,7 +7,8 @@ the postgres-only surface (JSONB, ``gen_random_uuid()``/``now()`` server
 defaults, BigInteger identity) is swapped for dialect-neutral equivalents in
 a **DDL clone only** — the ORM statements the service issues are identical,
 and the live DDL + RLS remain proven by the integration lane
-(tests/api/test_api_postgres.py, tests/data/test_rls.py).
+(tests/api/test_api_postgres.py, tests/data/test_rls.py). The object store
+is the INT-034 unit-lane fake; nothing here dials a network.
 """
 
 from __future__ import annotations
@@ -22,11 +23,13 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 from intake_api.app import ApiWiring, create_app
-from intake_api.dev_fixture import ensure_dev_fixture
+from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_TENANT_ID, ensure_dev_fixture
+from intake_api.documents import DocumentsConfig
 from intake_api.settings import ApiSettings
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.db.models import (
     Base,
+    Consent,
     IntakeSession,
     KvkkRole,
     Patient,
@@ -35,7 +38,9 @@ from intake_platform.db.models import (
     SlotSensitivity,
     Tenant,
 )
+from intake_platform.documents import ScanVerdict
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
+from minio.commonconfig import COMPLIANCE
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -44,6 +49,7 @@ from sqlalchemy import (
     Integer,
     MetaData,
     create_engine,
+    select,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -78,6 +84,79 @@ def sqlite_ddl_clone() -> MetaData:
     return clone
 
 
+class _LockConfig:
+    mode = COMPLIANCE
+
+
+class FakeObjectStorage:
+    """In-memory ObjectStorageClient (mirrors the INT-034 unit-lane fake):
+    real bucket/object state, so tests assert what ended up where."""
+
+    def __init__(self) -> None:
+        # bucket -> key -> (payload, content_type)
+        self.buckets: dict[str, dict[str, tuple[bytes, str]]] = {}
+        self.locked: set[str] = set()
+
+    def bucket_exists(self, bucket_name: str) -> bool:
+        return bucket_name in self.buckets
+
+    def make_bucket(
+        self, bucket_name: str, location: str | None = None, object_lock: bool = False
+    ) -> None:
+        self.buckets[bucket_name] = {}
+        if object_lock:
+            self.locked.add(bucket_name)
+
+    def get_object_lock_config(self, bucket_name: str) -> Any:
+        assert bucket_name in self.locked, "lock config requested for an unlocked bucket"
+        return _LockConfig()
+
+    def set_object_lock_config(self, bucket_name: str, config: Any) -> None:
+        self.locked.add(bucket_name)
+
+    def put_object(
+        self,
+        bucket_name: str,
+        object_name: str,
+        data: Any,
+        length: int,
+        content_type: str = "application/octet-stream",
+        sse: Any | None = None,
+    ) -> object:
+        self.buckets[bucket_name][object_name] = (data.read(), content_type)
+        return object()
+
+    def copy_object(self, bucket_name: str, object_name: str, source: Any) -> object:
+        self.buckets[bucket_name][object_name] = self.buckets[source.bucket_name][
+            source.object_name
+        ]
+        return object()
+
+    def remove_object(
+        self, bucket_name: str, object_name: str, version_id: str | None = None
+    ) -> None:
+        del self.buckets[bucket_name][object_name]
+
+    def presigned_get_object(self, bucket_name: str, object_name: str, expires: Any = None) -> str:
+        return f"https://minio.local/{bucket_name}/{object_name}?verb=GET"
+
+    def presigned_put_object(self, bucket_name: str, object_name: str, expires: Any = None) -> str:
+        return f"https://minio.local/{bucket_name}/{object_name}?verb=PUT"
+
+
+class CleanScanner:
+    def scan(self, data: bytes) -> ScanVerdict:
+        return ScanVerdict.CLEAN
+
+
+class InfectedScanner:
+    def scan(self, data: bytes) -> ScanVerdict:
+        return ScanVerdict.INFECTED
+
+
+_DEFAULT_SCANNER: Any = object()
+
+
 @dataclass
 class ApiHarness:
     client: TestClient
@@ -85,6 +164,7 @@ class ApiHarness:
     audit_store: SqlAlchemyAuditStore
     cipher: EnvelopeCipher
     settings: ApiSettings
+    storage: FakeObjectStorage
 
     def patient(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {PATIENT_TOKEN}"}
@@ -92,9 +172,30 @@ class ApiHarness:
     def admin(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {ADMIN_TOKEN}"}
 
+    def revoke_consent(self, scope: str) -> None:
+        async def _revoke() -> None:
+            async with AsyncSession(self.engine) as session, session.begin():
+                rows = (
+                    await session.scalars(
+                        select(Consent).where(
+                            Consent.tenant_id == DEV_TENANT_ID,
+                            Consent.patient_id == DEV_PATIENT_ID,
+                            Consent.scope == scope,
+                        )
+                    )
+                ).all()
+                for row in rows:
+                    row.revoked_at = datetime.now(UTC)
+
+        run(_revoke())
+
 
 def build_harness(
-    tmp_path: Path, *, token_patient: str | None, token_admin: str | None
+    tmp_path: Path,
+    *,
+    token_patient: str | None,
+    token_admin: str | None,
+    scanner: Any = _DEFAULT_SCANNER,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -117,6 +218,7 @@ def build_harness(
     )
     cipher = EnvelopeCipher(FileKekProvider())
     audit_store = SqlAlchemyAuditStore(audit_engine)
+    storage = FakeObjectStorage()
     run(ensure_dev_fixture(engine))
     app = create_app(
         ApiWiring(
@@ -125,6 +227,12 @@ def build_harness(
             audit_store=audit_store,
             cipher=cipher,
             bootstrap=False,
+            documents=DocumentsConfig(
+                client=storage,
+                bucket_docs="intake-docs-unit",
+                bucket_audit="intake-audit-unit",
+                scanner=CleanScanner() if scanner is _DEFAULT_SCANNER else scanner,
+            ),
         )
     )
     with TestClient(app, raise_server_exceptions=False) as client:
@@ -134,6 +242,7 @@ def build_harness(
             audit_store=audit_store,
             cipher=cipher,
             settings=settings,
+            storage=storage,
         )
     run(engine.dispose())
     audit_engine.dispose()

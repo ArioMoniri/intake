@@ -18,6 +18,7 @@ from typing import Literal
 
 from intake_platform.db.models import (
     Consent,
+    Document,
     IntakeSession,
     Note,
     SessionStatus,
@@ -27,20 +28,25 @@ from intake_platform.db.models import (
 )
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 __all__ = [
     "SHARE_TTL",
     "VISIT_PROTOCOL_ID",
     "VISIT_PROTOCOL_VERSION",
     "VisitRecord",
+    "create_document_row",
     "create_share",
     "create_visit",
+    "get_document_row",
     "get_note_row",
     "get_visit",
     "has_consent",
+    "list_document_rows",
     "list_visits",
     "live_share",
     "revoke_live_shares",
+    "update_document_row",
     "upsert_note",
 ]
 
@@ -319,3 +325,71 @@ async def live_share(
         if _is_live(row, now):
             return row
     return None
+
+
+# --- documents (INT-034 refs; the bytes live in the object store) -----------------------
+
+
+async def create_document_row(
+    session: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    patient_id: uuid.UUID,
+    visit_id: uuid.UUID,
+    object_ref: str,
+    sha256: str,
+    media_type: str,
+    provenance: dict[str, object],
+) -> Document:
+    row = Document(
+        tenant_id=tenant_id,
+        patient_id=patient_id,
+        session_id=visit_id,
+        object_ref=object_ref,
+        sha256=sha256,
+        media_type=media_type,
+        provenance=provenance,
+    )
+    session.add(row)
+    await session.flush()
+    return row
+
+
+async def list_document_rows(
+    session: AsyncSession, *, tenant_id: uuid.UUID, visit_id: uuid.UUID
+) -> list[Document]:
+    stmt = (
+        select(Document)
+        .where(Document.tenant_id == tenant_id, Document.session_id == visit_id)
+        .order_by(Document.created_at.desc(), Document.id)
+    )
+    return list((await session.scalars(stmt)).all())
+
+
+async def get_document_row(
+    session: AsyncSession, *, tenant_id: uuid.UUID, visit_id: uuid.UUID, doc_id: uuid.UUID
+) -> Document | None:
+    stmt = select(Document).where(
+        Document.tenant_id == tenant_id,
+        Document.session_id == visit_id,
+        Document.id == doc_id,
+    )
+    return (await session.scalars(stmt)).first()
+
+
+async def update_document_row(
+    session: AsyncSession,
+    row: Document,
+    *,
+    object_ref: str | None = None,
+    sha256: str | None = None,
+    provenance: dict[str, object] | None = None,
+) -> None:
+    if object_ref is not None:
+        row.object_ref = object_ref
+    if sha256 is not None:
+        row.sha256 = sha256
+    if provenance is not None:
+        row.provenance = provenance
+        flag_modified(row, "provenance")
+    await session.flush()

@@ -5,7 +5,7 @@ tests inject their own, the env path builds the real ones (app.py)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated, cast
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, Request
 from intake_platform.envelope import EnvelopeCipher
@@ -13,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.audit import AuditWriter
 from intake_api.settings import ApiSettings
+
+if TYPE_CHECKING:
+    from intake_api.documents import DocumentsGateway
 
 __all__ = ["ApiState", "State", "get_state"]
 
@@ -23,6 +26,7 @@ class ApiState:
     engine: AsyncEngine
     audit: AuditWriter
     cipher: EnvelopeCipher
+    documents: DocumentsGateway | None = None
 
 
 def get_state(request: Request) -> ApiState:
