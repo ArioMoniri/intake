@@ -322,7 +322,7 @@
   title: "HAPI FHIR exchange: mappers internal<->R4 + validation"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "QuestionnaireResponse, Observation, Condition, MedicationStatement, AllergyIntolerance, RiskAssessment, Flag, Composition, Bundle; hypothesis roundtrip; Bundle validates on HAPI container"
   tests: [tests/integration/test_fhir_validation.py]
@@ -2558,3 +2558,25 @@
     - "i18n lint fails on missing keys; clinical tr reviewed flag enforced"
   tests: [tests/release/test_i18n_complete.py]
   legal: "805"
+- id: INT-236
+  epic: E08-mobile
+  phase: P0
+  title: 'Adaptive dev packs (askIf, DSL-mirrored) + Hizli/Detayli modes with
+    privacy deferral and instant checkpoint'
+  depends_on:
+  - INT-198
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive: next questions follow previous answers and two modes exist
+    (pre-hospital fast, in-hospital detailed) - askIf gates as serializable data
+    mirroring dsl.py ask_if with only structurally-obvious gates (clinical-judgment
+    gates refused and listed for pack owners); dynamic applicable-question progress;
+    Detayli adds the 02 s33 privacy self-check whose failure defers sensitive
+    sections with the verbatim eksik marker, and the 02 s34 instant checkpoint
+    to a v2-partial review with zero lost answers; gate-skipped is never counted
+    missing; stale-gated answers kept and marked'
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts

@@ -18,12 +18,36 @@
  * triggers → timing/course → associated → severity), and `allQuestions`
  * repeats that order globally, so the note builder's HPI lines always
  * follow the interview (questions.test.ts pins this).
+ *
+ * Adaptive flow (INT-236): `askIf` MIRRORS the DSL's `ask_if` gate on
+ * packages/protocols/src/protocols/dsl.py `Slot` — a serializable DATA
+ * predicate, never a function — so the compiled packs (INT-096) slot into
+ * the same flow machinery without any UX change. The dev tier carries only
+ * the structurally-obvious gates (a question that literally asks about the
+ * pain is gated on the complaint including pain); every gate that needs
+ * clinical judgment belongs to the physician-gated protocol chain, not
+ * here. `applicableQuestions` / `nextApplicableQuestion` /
+ * `missingQuestions` are the shared flow layer: StepFlow, the voice-first
+ * prefill and any dialogue engine consuming `packForDepartment` all gate
+ * through them.
  */
 import type { MessageKey } from "../i18n";
 
 export interface IntakeOption {
   id: string;
   labelKey: MessageKey;
+}
+
+/**
+ * Gate predicate, mirroring dsl.py `Slot.ask_if` in shape discipline:
+ * pure data (JSON round-trips), evaluated against committed answers. Met
+ * when the referenced question's answer includes ANY of the listed option
+ * ids; an unanswered gating question leaves the gate unmet, so gated
+ * questions reveal themselves as answers land.
+ */
+export interface AskIf {
+  questionId: string;
+  includesAny: readonly string[];
 }
 
 export interface IntakeQuestion {
@@ -34,6 +58,14 @@ export interface IntakeQuestion {
   /** Short label used for this answer's line in the HPI section. */
   hpiLabelKey?: MessageKey;
   options?: readonly IntakeOption[];
+  /** Ask only when met (INT-236); absent means always applicable. */
+  askIf?: AskIf;
+}
+
+/** The slice of an answer the gate evaluator needs (note.ts Answer fits). */
+export interface AnsweredValues {
+  questionId: string;
+  values: readonly string[];
 }
 
 // ---- shared core -----------------------------------------------------------
@@ -130,6 +162,8 @@ const painCharacter: IntakeQuestion = {
   titleKey: "intake.q.character",
   hintKey: "intake.q.complaint.hint",
   hpiLabelKey: "intake.hpi.character",
+  // Structurally obvious (INT-236): the question asks how the PAIN feels.
+  askIf: { questionId: "complaint", includesAny: ["pain"] },
   options: [
     { id: "pressure", labelKey: "intake.opt.pressure" },
     { id: "stabbing", labelKey: "intake.opt.stabbing" },
@@ -144,6 +178,8 @@ const radiation: IntakeQuestion = {
   titleKey: "intake.q.radiation",
   hintKey: "intake.q.complaint.hint",
   hpiLabelKey: "intake.hpi.radiation",
+  // Structurally obvious (INT-236): where the PAIN spreads.
+  askIf: { questionId: "complaint", includesAny: ["pain"] },
   options: [
     { id: "arm", labelKey: "intake.opt.radArm" },
     { id: "jaw_neck", labelKey: "intake.opt.radJawNeck" },
@@ -707,6 +743,8 @@ const gastroMeal: IntakeQuestion = {
   kind: "single",
   titleKey: "intake.q.mealRelation",
   hpiLabelKey: "intake.hpi.mealRelation",
+  // Structurally obvious (INT-236): meal relation of the stomach complaint.
+  askIf: { questionId: "complaint", includesAny: ["stomach"] },
   options: [
     { id: "after_meal", labelKey: "intake.opt.afterMeal" },
     { id: "hungry", labelKey: "intake.opt.whenHungry" },
@@ -721,6 +759,8 @@ const gastroBowel: IntakeQuestion = {
   titleKey: "intake.q.bowel",
   hintKey: "intake.q.complaint.hint",
   hpiLabelKey: "intake.hpi.bowel",
+  // Structurally obvious (INT-236): bowel habit of the stomach complaint.
+  askIf: { questionId: "complaint", includesAny: ["stomach"] },
   options: [
     { id: "constipation", labelKey: "intake.opt.constipation" },
     { id: "diarrhea", labelKey: "intake.opt.diarrhea" },
@@ -853,6 +893,75 @@ export const allQuestions: readonly IntakeQuestion[] = [
 
 /** Kept for the generic (no-department) flows and existing tests. */
 export const intakeQuestions: readonly IntakeQuestion[] = general;
+
+// ---- adaptive flow (INT-236) ------------------------------------------------
+
+/**
+ * Whether a gate is met by the committed answers. Mirrors the dev-tier
+ * reading of dsl.py `ask_if`: met when the referenced question's answer
+ * includes any listed option id; unanswered gating question → unmet, so
+ * the gated question stays hidden until its condition is established.
+ */
+export function askIfMet(askIf: AskIf | undefined, answers: readonly AnsweredValues[]): boolean {
+  if (askIf === undefined) {
+    return true;
+  }
+  const gating = answers.find((a) => a.questionId === askIf.questionId);
+  if (gating === undefined) {
+    return false;
+  }
+  return askIf.includesAny.some((id) => gating.values.includes(id));
+}
+
+/**
+ * The pack filtered to the questions applicable under the given answers —
+ * the single source of truth for the dynamic progress denominator, the
+ * step flow and any dialogue engine consuming packs. Re-evaluate whenever
+ * answers change: an edit that unmets a gate removes the question from
+ * this list while its committed answer stays in the note, marked
+ * "koşul değişti" by the note builder (never silently discarded).
+ */
+export function applicableQuestions(
+  pack: readonly IntakeQuestion[],
+  answers: readonly AnsweredValues[],
+): IntakeQuestion[] {
+  return pack.filter((q) => askIfMet(q.askIf, answers));
+}
+
+/**
+ * The next applicable question after `currentId` in pack order, or null at
+ * the end — robust even when the current question itself just left the
+ * applicable list, because it walks the FULL pack from the current
+ * position and gates each candidate.
+ */
+export function nextApplicableQuestion(
+  pack: readonly IntakeQuestion[],
+  answers: readonly AnsweredValues[],
+  currentId: string,
+): IntakeQuestion | null {
+  const at = pack.findIndex((q) => q.id === currentId);
+  for (const q of pack.slice(at + 1)) {
+    if (askIfMet(q.askIf, answers)) {
+      return q;
+    }
+  }
+  return null;
+}
+
+/**
+ * The checkpoint's eksik list (02 §34 v2-partial semantics): applicable
+ * questions without a contentful answer, in pack order. A question whose
+ * gate is unmet is SKIPPED, not missing — it never appears here.
+ */
+export function missingQuestions(
+  pack: readonly IntakeQuestion[],
+  answers: readonly AnsweredValues[],
+): IntakeQuestion[] {
+  const answered = new Set(
+    answers.filter((a) => a.values.some((v) => v.trim().length > 0)).map((a) => a.questionId),
+  );
+  return applicableQuestions(pack, answers).filter((q) => !answered.has(q.id));
+}
 
 export function optionLabelKey(questionId: string, optionId: string): MessageKey | null {
   const q = allQuestions.find((x) => x.id === questionId);

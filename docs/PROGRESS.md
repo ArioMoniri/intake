@@ -340,3 +340,13 @@
 ## 2026-08-28 — INT-024 merged (PR #284)
 - Chaos harness landed: `make chaos EXPERIMENT=<id>` runs staged fault experiments; the vendor-kill experiment proves the typed fallback engages in ~2 µs against the 2 s bound, recorded as a measurement in docs/evidence/ (invariant 20 wording respected). Re-merged after a .PHONY union conflict with the taxonomy PR.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-033 merged (PR #286)
+- FHIR R4 exchange landed: bidirectional mappers for all nine acceptance resources, seven hypothesis roundtrip properties over wire JSON, live HAPI $validate zero error/fatal in check-integration. Triage honesty pinned: LLM candidates can never enter a bundle; the RiskAssessment subset has no probability element (invariant 20 by construction). C-SSRS stays out of exchange (HB-L2); GAD-2 carries only a local coding — no verifiable LOINC total-score code exists.
+- CI note: check-py red was the known OTP rate-limit flake; gates red was the PR-title format (reruns keep the stale event payload — close/reopen refreshes it).
+- INT-041 (protocol compiler chain) is now unblocked.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-236 merged (PR #288)
+- Owner directive landed at the dev tier: askIf adaptive gates as serializable data mirroring the DSL (four structurally-obvious gates; clinical-judgment gates refused and listed for pack owners), dynamic applicable-question progress, Hızlı/Detaylı modes per 02 §22-34 — privacy self-check with the verbatim deferral marker, instant Sıranız geldi checkpoint to a v2-partial review with zero lost answers. Pack-layer helpers exported; the dialogue surface inherits gating through them.
+- LOOP_STATUS: CONTINUE
