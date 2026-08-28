@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**188 issues.** By phase: P0 102 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 27 · todo 154 · withdrawn 1.
+**188 issues.** By phase: P0 102 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 28 · todo 153 · withdrawn 1.
 
 ## P0
 
@@ -77,7 +77,7 @@
 | INT-112 | linguistic lane: TR lexicons + prosody stats + crisis bypass to triage | E06-lanes | INT-110, INT-080 | area:lanes, risk:clinical | todo |
 | INT-116 | Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs | E06-lanes | INT-081, INT-112 | area:clinical, risk:clinical, approval:human-clinical | todo |
 | INT-117 | device_functions flag: MDSW boundary enforced (Stage A non-device vs investigation mode) | E06-lanes | INT-116, INT-093, INT-038 | area:legal, risk:legal, approval:human-legal | todo |
-| INT-120 | Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR | E07-records | INT-034 | area:records, risk:security | todo |
+| INT-120 | Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR | E07-records | INT-034 | area:records, risk:security | done |
 | INT-121 | Document extraction -> FHIR with provenance + confirm cards + eval corpus | E07-records | INT-120, INT-083 | area:records | todo |
 | INT-130 | Expo app shell: SDK 57 dev build, navigation map per 02, i18n tr-first, theme, a11y base | E08-mobile | INT-001 | area:mobile | done |
 | INT-131 | Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE | E08-mobile | INT-130, INT-012, INT-013 | area:mobile, risk:security | todo |

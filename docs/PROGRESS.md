@@ -246,3 +246,10 @@
 - Filed INT-228 (todo): real Tokenizer pseudonyms exceed the document-store key-segment bound — the INT-197 workaround (row UUID as segment) must be replaced by a test-pinned integration.
 - Invariants: 4, 6, 8, 14, 15, 18; backlog consciously 186→188 (INT-197 done + INT-228 finding).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T10:15:00+03:00 · INT-197 + INT-120 merged (PRs #240, #243)
+- INT-197 dev-tier API slice merged CI-green (one gates rerun: the sub-issue label had failed silently, leaving a dangling Closes reference — recreated and re-triggered). INT-120 upload pipeline merged CI-green right after; the two branches' Makefile edits auto-merged cleanly.
+- The demo tier now has the full real path: dev-bearer accounts → visits/notes over RLS with envelope encryption and consent-checked TTL shares → presigned uploads → ClamAV scan (EICAR-proven) → clean promotion → presigned downloads, all on one audit hash chain.
+- INT-120 flip to done here; INT-197 was filed done in its own PR. OCR engine + sandbox tech need an ADR (builder refused to embed a parser in-process — correct per files/10).
+- Fleet 3/3: INT-025 metrics catalogue, INT-031 clinical schemas, INT-036 retention engine. Design pass 5 (INT-209) packaging next.
+- LOOP_STATUS: CONTINUE

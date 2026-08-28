@@ -1183,7 +1183,7 @@
   title: "Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR"
   depends_on: [INT-034]
   labels: [area:records, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "AV scan before processing; OCR in seccomp-sandboxed worker; malformed/fuzz PDFs never crash host"
   tests: [tests/records/test_upload_pipeline.py]
