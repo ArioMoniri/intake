@@ -32,7 +32,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from intake_api import documents, notes, otp_routes, visits
+from intake_api import consents, documents, notes, otp_routes, visits
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
@@ -242,4 +242,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(notes.router)
     app.include_router(documents.router)
     app.include_router(otp_routes.router)
+    app.include_router(consents.router)
     return app
