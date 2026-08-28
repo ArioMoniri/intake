@@ -130,17 +130,34 @@ export function createClipStore(
   synth: (text: string) => Promise<Uint8Array>,
 ): ClipStore {
   const root = dir.endsWith("/") ? dir : `${dir}/`;
+  // Concurrent ensures of one clip share a single synthesis: the session
+  // pre-warm (INT-235) races the speaking driver for the same names, and
+  // both must ride one request. A failed task is dropped so a later
+  // ensure can retry honestly.
+  const running = new Map<string, Promise<string>>();
   return {
     async ensure(name, text) {
       assertSpeakableTr(text); // defense in depth: no digit reaches synth
-      const path = `${root}${name}`;
-      if (await fs.exists(path)) {
-        return path;
+      const inFlight = running.get(name);
+      if (inFlight !== undefined) {
+        return inFlight;
       }
-      const bytes = await synth(text);
-      await fs.mkdirp(root);
-      await fs.writeBase64(path, bytesToBase64(bytes));
-      return path;
+      const task = (async () => {
+        const path = `${root}${name}`;
+        if (await fs.exists(path)) {
+          return path;
+        }
+        const bytes = await synth(text);
+        await fs.mkdirp(root);
+        await fs.writeBase64(path, bytesToBase64(bytes));
+        return path;
+      })();
+      running.set(name, task);
+      try {
+        return await task;
+      } finally {
+        running.delete(name);
+      }
     },
     async clear() {
       await fs.removeDir(root);
