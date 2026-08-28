@@ -239,3 +239,24 @@
 - Note: filed as INT-208 — INT-200/201 turned out to be blueprint E13-infra ids; coordinator renumbered before PR (id-collision caught by make check duplicate-ids assertion).
 - Invariants: 2 (numbers shown never interpreted), 5, 6, 17, 18 (no new persisted fields); backlog consciously 185→186.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T09:30:00+03:00 · INT-197 · done
+- Goal: owner directive — "deneme hesapları … users should be really able to use and connect and upload their files or use this app in real".
+- Result: services/api dev-tier slice — dev-bearer for exactly two synthetic accounts (fail-closed 503 without env tokens, X-Intake-Auth-Tier: dev, real OIDC stays INT-131); visits as sessions rows + visit.* slots (zero schema changes); notes envelope-encrypted at rest with status derived from live shares, share = consent-checked TTL row with only scoped-on sections; documents presign/list/download over INT-034 plus a content-ingest endpoint running the INT-034 pipeline (409 until scanned, AV posture unweakened); everything audited on one hash chain; invariant-15 endpoints via shared helpers. 490 unit tests, api 98% coverage, 5 live RLS+MinIO integration tests; make check exit 0.
+- Filed INT-228 (todo): real Tokenizer pseudonyms exceed the document-store key-segment bound — the INT-197 workaround (row UUID as segment) must be replaced by a test-pinned integration.
+- Invariants: 4, 6, 8, 14, 15, 18; backlog consciously 186→188 (INT-197 done + INT-228 finding).
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T10:15:00+03:00 · INT-197 + INT-120 merged (PRs #240, #243)
+- INT-197 dev-tier API slice merged CI-green (one gates rerun: the sub-issue label had failed silently, leaving a dangling Closes reference — recreated and re-triggered). INT-120 upload pipeline merged CI-green right after; the two branches' Makefile edits auto-merged cleanly.
+- The demo tier now has the full real path: dev-bearer accounts → visits/notes over RLS with envelope encryption and consent-checked TTL shares → presigned uploads → ClamAV scan (EICAR-proven) → clean promotion → presigned downloads, all on one audit hash chain.
+- INT-120 flip to done here; INT-197 was filed done in its own PR. OCR engine + sandbox tech need an ADR (builder refused to embed a parser in-process — correct per files/10).
+- Fleet 3/3: INT-025 metrics catalogue, INT-031 clinical schemas, INT-036 retention engine. Design pass 5 (INT-209) packaging next.
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T10:45:00+03:00 · INT-209 · done
+- Goal: owner directive, fifth repetition — "still ui and fonts n shapes not close enough to oura ui … copy the oura style as much as possible" (dedicated design agent, measurement-first).
+- Result: the biggest structural gap closed — Bugün now leads with a numeric focal point (pure-View PrepGauge semicircle, 56pt serif completion numeral via Intl.NumberFormat percent, fontScale-safe); Profilim/Kayıtlarım moved from card stacks to Oura table anatomy (ListGroup/ListRow, 56pt rows, icon wells, inset hairlines, chevrons, headers outside groups); pushed screens gained stack headers with back affordances (a real navigation gap); display serif 600→500; accent budget cut to ~one teal moment per screen (gauge in ink); surfaceRaised tokens added with the AA suite extended — zero existing hexes changed. 181/181 tests + make check green with INT-197/198/199/208/120 all merged in.
+- Found and frozen honestly: light success/successSoft measures 4.35:1 (shipped since INT-130) — needs a dedicated palette iteration, flagged in docs/design/mobile-ui.md.
+- Invariants: 5 (keys added only), 17, 18; motion budget kept; backlog consciously 188→189.
+- LOOP_STATUS: CONTINUE

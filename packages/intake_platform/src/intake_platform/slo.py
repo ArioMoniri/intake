@@ -80,6 +80,9 @@ PHI_RISK_LABEL_NAMES = frozenset(
 )
 
 _NAME_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
+#: files/08 §4 writes ids in OTel dotted form (``voice.eou_delay_ms``); the
+#: Prometheus ``name`` is that id with dots turned into underscores.
+_SPEC_ID_RE = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*$")
 _SERVICE_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 _WINDOW_RE = re.compile(r"^([0-9]+)([smhd])$")
 _WINDOW_UNIT_S = {"s": 1, "m": 60, "h": 3600, "d": 86400}
@@ -110,7 +113,19 @@ def metric_references(expr: str) -> frozenset[str]:
 
 
 class MetricDef(BaseModel):
-    """One catalogued Prometheus series family."""
+    """One catalogued Prometheus series family.
+
+    INT-025 fields (files/08 §4 completeness):
+
+    - ``id`` — the 08 §4 / OTel dotted id when it differs from ``name``; its
+      dot-to-underscore normalisation must equal ``name``.
+    - ``unit`` — required; what one observation measures (``ms``, ``count``…).
+    - ``target`` — the objective 08 §4 states, verbatim enough to grep; absent
+      when the spec states none.
+    - ``status`` — ``live`` (something emits it today) or ``planned`` (08 §4
+      names it, the emitting service has not landed). Both directions are
+      enforced by tests/observability/test_metrics_catalog.py.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -118,7 +133,16 @@ class MetricDef(BaseModel):
     type: Literal["counter", "gauge", "histogram"]
     labels: list[str]
     owner: str
+    unit: str
     description: str
+    id: str | None = None
+    target: str | None = None
+    status: Literal["live", "planned"] = "live"
+
+    @property
+    def spec_id(self) -> str:
+        """The files/08 §4 id this entry answers to (``name`` when undotted)."""
+        return self.id if self.id is not None else self.name
 
     @field_validator("name")
     @classmethod
@@ -126,6 +150,36 @@ class MetricDef(BaseModel):
         if _NAME_RE.match(value) is None:
             raise ValueError(f"not a Prometheus series name: {value!r}")
         return value
+
+    @field_validator("unit")
+    @classmethod
+    def _unit_nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("unit must not be blank")
+        return value
+
+    @field_validator("target")
+    @classmethod
+    def _target_nonblank(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("target must not be blank (omit it instead)")
+        return value
+
+    @field_validator("id")
+    @classmethod
+    def _id_shape(cls, value: str | None) -> str | None:
+        if value is not None and _SPEC_ID_RE.match(value) is None:
+            raise ValueError(f"not an OTel dotted metric id: {value!r}")
+        return value
+
+    @model_validator(mode="after")
+    def _id_normalises_to_name(self) -> MetricDef:
+        if self.id is not None and self.id.replace(".", "_") != self.name:
+            raise ValueError(
+                f"id {self.id!r} does not normalise to name {self.name!r} "
+                "(dots become underscores, nothing else changes)"
+            )
+        return self
 
     @field_validator("labels")
     @classmethod

@@ -85,6 +85,29 @@ services:
       timeout: 3s
       retries: 12
 
+  clamav:
+    # INT-120: the upload pipeline's malware verdict. Behind a profile — the
+    # image ships the whole signature database (hundreds of MB), and the unit
+    # lane never needs it (an in-test fake clamd covers the protocol).
+    # `make check-integration` activates the profile. Freshclam is disabled:
+    # dev/CI scans fixtures against the baked-in database and must not hammer
+    # the signature CDN on every boot. The -debian variant is the multi-arch
+    # one (the alpine-based default tags publish amd64 only — no arm64 dev
+    # machines otherwise).
+    image: clamav/clamav:1.4.6-debian
+    profiles: ["clamav"]
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "true"
+    ports:
+      - "127.0.0.1:3310:3310"
+    healthcheck:
+      # clamdcheck.sh ships in the image (it backs the image's own HEALTHCHECK)
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+
 volumes:
   pgdata:
   miniodata:

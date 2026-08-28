@@ -4,7 +4,7 @@
  * demo runs end-to-end on a visit the user just created. MHRS SMS import
  * and server persistence are INT-134.
  */
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TextInput } from "react-native";
 
@@ -13,9 +13,9 @@ import {
   AppText,
   Card,
   PrimaryButton,
-  RAIL_EDGES,
   Screen,
   useFontScale,
+  useStackHeader,
   useTheme,
 } from "@/components/Themed";
 import { t } from "@/lib/i18n";
@@ -26,6 +26,7 @@ import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 export default function NewVisit() {
   const router = useRouter();
   const theme = useTheme();
+  const headerOptions = useStackHeader();
   const fontScale = useFontScale();
   const { addVisit } = useSession();
   const [hospital, setHospital] = useState("");
@@ -55,9 +56,11 @@ export default function NewVisit() {
   };
 
   return (
-    <Screen edges={RAIL_EDGES}>
+    <Screen edges={["left", "right"]}>
+      {/* The pushed-screen top bar carries the title and the way back
+          (design pass 5) — the in-body hero line doubled it. */}
+      <Stack.Screen options={headerOptions(t("visits.new.title"))} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <AppText role="hero">{t("visits.new.title")}</AppText>
         <Card>
           <AppText role="label" color="inkSoft">
             {t("visits.new.hospital")}

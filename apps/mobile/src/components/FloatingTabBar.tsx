@@ -137,14 +137,16 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
             >
               <SymbolView
                 name={meta.sf as never}
-                size={22}
+                // 20 with an 11 pt caption is the measured Oura rail item
+                // (design pass 5); 22/13 read one register too loud.
+                size={20}
                 // Oura marks the active item with full-contrast ink, not the
                 // accent (pass 4 measurement) — brightness + weight carry the
                 // state, and the label is always present (02 §8.2).
                 tintColor={active ? theme.ink : theme.inkFaint}
               />
               <AppText
-                role="caption"
+                role="micro"
                 color={active ? "ink" : "inkFaint"}
                 style={active ? styles.activeLabel : undefined}
               >

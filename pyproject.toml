@@ -3,17 +3,18 @@ name = "intake"
 version = "0.1.0"
 description = "INTAKE workspace root (virtual): Turkish-first, patient-owned pre-visit intelligence"
 requires-python = ">=3.12"
-dependencies = ["intake-platform[ner]", "intake-probes"]
+dependencies = ["intake-platform[ner]", "intake-probes", "intake-api"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["packages/intake_platform", "services/probes"]
+members = ["packages/intake_platform", "services/probes", "services/api"]
 
 [tool.uv.sources]
 intake-platform = { workspace = true }
 intake-probes = { workspace = true }
+intake-api = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -35,6 +36,8 @@ dev = [
     "httpx>=0.27",
     "fakeredis[lua]>=2.23",
     "psycopg[binary]>=3.2",
+    # the services/api unit lane carries the INT-030 schema on SQLite
+    "aiosqlite>=0.20",
 ]
 
 [tool.ruff]
@@ -54,7 +57,7 @@ select = ["E", "F", "W", "I", "UP", "B", "S"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["packages/intake_platform/src", "services/probes/src"]
+files = ["packages/intake_platform/src", "services/probes/src", "services/api/src"]
 
 [[tool.mypy.overrides]]
 # optional exporter, imported only when OTEL_EXPORTER_OTLP_ENDPOINT is set;
@@ -75,3 +78,9 @@ addopts = "-q -m 'not integration'"
 markers = [
     "integration: needs the docker-compose dev tier (its own CI job; 05 §3)",
 ]
+
+[tool.coverage.run]
+# SQLAlchemy's asyncio layer runs Core through greenlet_spawn; without the
+# greenlet tracer every line the API executes past its first awaited DB call
+# vanishes from the report (measured under-count, not a real gap — INT-197).
+concurrency = ["thread", "greenlet"]

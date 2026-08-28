@@ -20,7 +20,9 @@ const statusKey = {
 export function StatusChip({ status }: { status: NoteStatus }) {
   const theme = useTheme();
   const colors = {
-    draft: { bg: theme.background, fg: theme.inkSoft, border: theme.border },
+    // Draft is a filled tonal chip (design pass 5): Oura's tag register is
+    // borderless — one raised step above the card carries the separation.
+    draft: { bg: theme.surfaceRaised, fg: theme.inkSoft, border: theme.surfaceRaised },
     sent: { bg: theme.primarySoft, fg: theme.primary, border: theme.primarySoft },
     viewed: { bg: theme.primarySoft, fg: theme.primary, border: theme.primary },
     filed: { bg: theme.successSoft, fg: theme.success, border: theme.successSoft },
