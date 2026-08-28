@@ -870,7 +870,7 @@
   title: "LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard"
   depends_on: [INT-001]
   labels: [area:voice, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "room tokens grant join+publish mic+subscribe agent only; rooms ephemeral; no recording features enabled; guard test proves no audio write paths anywhere"
   tests: [tests/voice/test_room_tokens.py, tests/voice/test_audio_retention_guard.py]

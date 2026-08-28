@@ -273,3 +273,8 @@
 - INT-036 retention engine merged CI-green: files/06 §3 row-cited policy classes; DEST-2017 6-month floor read from the engine's own hash-chain entries; 3-year destruction log indestructible three separate ways; raw_audio never_written + lane_windows memory_only pinned; two draft_needs_source classes REFUSE destruction pending the human (consumer-tenant consent duration; research extracts per ethics protocol — HB-L1); 44 time-travel tests, zero sleeps.
 - Fleet 3/3 (wave 3): INT-038 consent service, INT-090 LiveKit dev voice infra, INT-131 real onboarding/auth (owner's create-accounts directive).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T13:00:00+03:00 · INT-090 · done (PR #254)
+- LiveKit dev tier merged CI-green: HS256 room tokens with the exact minimal grant surface (canPublishData explicitly false — livekit defaults absence to true; mic source only; TTL ≤600s), live-proven against the pinned v1.13.6 server (signature accepted, ListRooms permissions-denied, corrupted signature rejected). Audio-retention guard in three layers under INT-036's policy guard; recording made structurally impossible (no redis bus = egress workers cannot register). Apache-2.0 from the raw blob at the tag; zero new deps; room_tokens.py 100% stmt+branch.
+- Fleet: INT-038 consent service + INT-131 onboarding/auth still building.
+- LOOP_STATUS: CONTINUE

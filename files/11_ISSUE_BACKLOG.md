@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 32 · todo 150 · withdrawn 1.
+**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 33 · todo 149 · withdrawn 1.
 
 ## P0
 
@@ -66,7 +66,7 @@
 | INT-083 | Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set | E04-engines | INT-081, INT-015 | area:ai | todo |
 | INT-084 | Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer | E04-engines | INT-083, INT-033 | area:engine, risk:legal | todo |
 | INT-085 | Patient summary (B1 Turkish) + reading-level check | E04-engines | INT-084 | area:engine | todo |
-| INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | todo |
+| INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | done |
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | todo |
 | INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | todo |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | todo |
