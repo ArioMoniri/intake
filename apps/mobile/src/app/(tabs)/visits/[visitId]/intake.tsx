@@ -16,6 +16,17 @@
  * provenance, still one question per turn. Skipping or any failure lands in
  * this exact manual flow — never a dead end. Suggestions are never triage
  * or a diagnosis (invariant 1); the transcript renders only as quotes.
+ *
+ * Adaptive flow + modes (INT-236): the steps run over the pack's
+ * APPLICABLE questions only — `askIf` gates mirror the DSL's ask_if
+ * (packages/protocols dsl.py), evaluated against committed answers and
+ * re-evaluated on every change, so the compiled packs (INT-096) slot in
+ * without UX change. The mode context lives on the note state: Hızlı by
+ * default; the quiet "Hastanedeyim" switch sets Detaylı, which (a) asks the
+ * one calm environment question (02 §33) and defers sensitive sections when
+ * privacy is not established, and (b) keeps a persistent "Sıranız geldi"
+ * affordance that checkpoints INSTANTLY — no dialog, no lost turns
+ * (02 §34) — into the partial-note review.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useReducer, useState } from "react";
@@ -37,7 +48,12 @@ import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
-import { packForDepartment, type IntakeQuestion } from "@/lib/intake/questions";
+import {
+  applicableQuestions,
+  nextApplicableQuestion,
+  packForDepartment,
+  type IntakeQuestion,
+} from "@/lib/intake/questions";
 import {
   initialVoiceIntakeState,
   resolveAnswer,
@@ -147,23 +163,24 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
 
+  // Adaptive flow (INT-236): the applicable list derives from the committed
+  // answers on EVERY render, so gates open and close as answers change and
+  // the progress denominator is honest ("n of applicable", never the full
+  // pack). The advance rule lives in nextApplicableQuestion (pack layer).
+  const answers = note?.answers ?? [];
+  const applicable = applicableQuestions(intakeQuestions, answers);
+
   // `q` = edit mode: jump straight to that question with its current answer
   // preloaded (the review screen's pencil). Otherwise resume at the first
-  // unanswered question.
-  const answeredIds = new Set(note?.answers.map((a) => a.questionId));
-  const requested = requestedQ ? intakeQuestions.findIndex((x) => x.id === requestedQ) : -1;
-  const firstUnanswered = intakeQuestions.findIndex((x) => !answeredIds.has(x.id));
-  const initialStep =
-    requested !== -1
-      ? requested
-      : firstUnanswered === -1
-        ? intakeQuestions.length - 1
-        : firstUnanswered;
-  const initialQuestion = intakeQuestions[initialStep];
-  const initialAnswer = note?.answers.find((a) => a.questionId === initialQuestion.id);
+  // unanswered APPLICABLE question.
+  const answeredIds = new Set(answers.map((a) => a.questionId));
+  const requested = requestedQ ? intakeQuestions.find((x) => x.id === requestedQ) : undefined;
+  const firstUnanswered = applicable.find((x) => !answeredIds.has(x.id));
+  const initialQuestion = requested ?? firstUnanswered ?? applicable[applicable.length - 1];
+  const initialAnswer = answers.find((a) => a.questionId === initialQuestion.id);
   const initialPrefill = initialAnswer === undefined ? prefill[initialQuestion.id] : undefined;
   const initialKind = initialQuestion.kind;
-  const [step, setStep] = useState(initialStep);
+  const [currentId, setCurrentId] = useState(initialQuestion.id);
   const [selected, setSelected] = useState<string[]>(
     initialKind === "text" ? [] : (initialAnswer?.values ?? initialPrefill?.values ?? []),
   );
@@ -172,36 +189,112 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       ? (initialAnswer?.values.join(" ") ?? initialPrefill?.values.join(" ") ?? "")
       : "",
   );
-  const editing = requested !== -1;
+  const editing = requested !== undefined;
 
-  const question = intakeQuestions[step];
-  const last = step === intakeQuestions.length - 1;
+  const question = intakeQuestions.find((x) => x.id === currentId) ?? initialQuestion;
+  const stepIndex = Math.max(
+    applicable.findIndex((x) => x.id === question.id),
+    0,
+  );
   // The suggestion for THIS question (saved answers always win over it).
-  const suggestion =
-    note?.answers.some((a) => a.questionId === question.id) === true
-      ? undefined
-      : prefill[question.id];
+  const suggestion = answers.some((a) => a.questionId === question.id)
+    ? undefined
+    : prefill[question.id];
+
+  // Mode context (INT-236): Hızlı default; Hastanedeyim → Detaylı (02 §2).
+  const mode = note?.mode ?? "hizli";
+  const detayli = mode === "detayli";
+  const privacy = note?.privacy ?? "unchecked";
 
   const commit = (values: string[]) => {
     if (visitId) {
       updateNote(visitId, { type: "answer", questionId: question.id, values });
     }
-    if (editing || last) {
+    if (editing) {
       // an edit returns straight to the review; a fresh run continues
       router.replace(`/(tabs)/visits/${visitId}/review`);
-    } else {
-      const next = step + 1;
-      const nextQuestion = intakeQuestions[next];
-      const nextPrefill = prefill[nextQuestion.id];
-      setSelected(nextQuestion.kind === "text" ? [] : (nextPrefill?.values ?? []));
-      setText(nextQuestion.kind === "text" ? (nextPrefill?.values.join(" ") ?? "") : "");
-      setStep(next);
+      return;
     }
+    // Advance against the answers INCLUDING this commit, so a gate this
+    // answer just opened (or closed) is honoured immediately.
+    const nextAnswers = [
+      ...answers.filter((a) => a.questionId !== question.id),
+      { questionId: question.id, values },
+    ];
+    const nextQuestion = nextApplicableQuestion(intakeQuestions, nextAnswers, question.id);
+    if (nextQuestion === null) {
+      router.replace(`/(tabs)/visits/${visitId}/review`);
+      return;
+    }
+    const nextPrefill = prefill[nextQuestion.id];
+    setSelected(nextQuestion.kind === "text" ? [] : (nextPrefill?.values ?? []));
+    setText(nextQuestion.kind === "text" ? (nextPrefill?.values.join(" ") ?? "") : "");
+    setCurrentId(nextQuestion.id);
   };
 
   const toggleChip = (id: string) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
+
+  // "Sıranız geldi" (02 §34): checkpoint INSTANTLY — no dialog, no
+  // confirmation — and land on the partial-note review. Committed answers
+  // are untouched by the reducer (test-pinned: zero lost turns).
+  const queueCalled = () => {
+    if (visitId) {
+      updateNote(visitId, { type: "checkpoint" });
+      router.replace(`/(tabs)/visits/${visitId}/review`);
+    }
+  };
+
+  const modeBar = (
+    <ModeBar
+      detayli={detayli}
+      deferredNotice={detayli && privacy === "not_private"}
+      onToggleMode={() =>
+        visitId && updateNote(visitId, { type: "mode", mode: detayli ? "hizli" : "detayli" })
+      }
+      onQueueCalled={queueCalled}
+    />
+  );
+
+  // Environment self-check (02 §33): one calm question before Detaylı
+  // continues. If privacy is not established, sensitive sections are
+  // DEFERRED — not asked quieter, not asked in text — and the note carries
+  // `eksik: ortam uygun değildi` (buildNote). Wellbeing is today's only
+  // deferral consumer; the dev packs carry no sensitive-flagged questions.
+  if (detayli && privacy === "unchecked" && !editing) {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {modeBar}
+        <AppText role="hero">{t("intake.privacy.q")}</AppText>
+        <AppText role="body" color="inkSoft">
+          {t("intake.privacy.hint")}
+        </AppText>
+        <View style={styles.optionColumn}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => visitId && updateNote(visitId, { type: "privacy", alone: false })}
+          >
+            <Card>
+              <AppText role="body">{t("intake.privacy.notAlone")}</AppText>
+            </Card>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => visitId && updateNote(visitId, { type: "privacy", alone: true })}
+          >
+            <Card>
+              <AppText role="body">{t("intake.privacy.alone")}</AppText>
+            </Card>
+          </Pressable>
+        </View>
+      </ScrollView>
+    );
+  }
 
   const floatingCta = question.kind !== "single";
 
@@ -212,21 +305,22 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
+        {modeBar}
         <View style={styles.progressRow}>
-          {intakeQuestions.map((item, i) => (
+          {applicable.map((item, i) => (
             <View
               key={item.id}
               style={[
                 styles.progressDot,
-                { backgroundColor: i <= step ? theme.primary : theme.border },
+                { backgroundColor: i <= stepIndex ? theme.primary : theme.border },
               ]}
             />
           ))}
           <AppText role="caption" color="inkFaint" style={styles.progressCount}>
-            {step + 1} / {intakeQuestions.length}
+            {stepIndex + 1} / {applicable.length}
           </AppText>
         </View>
-        {voiceFailed && step === initialStep ? (
+        {voiceFailed && question.id === initialQuestion.id ? (
           <AppText role="caption" color="inkFaint">
             {t("voiceFirst.failed")}
           </AppText>
@@ -359,12 +453,79 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   );
 }
 
+interface ModeBarProps {
+  detayli: boolean;
+  /** Show the calm one-liner that private questions are deferred (02 §33). */
+  deferredNotice: boolean;
+  onToggleMode: () => void;
+  onQueueCalled: () => void;
+}
+
+/**
+ * The quiet mode row (INT-236): the "Hastanedeyim" switch (02 §2 table —
+ * Detaylı trigger) and, while Detaylı is on, the persistent "Sıranız geldi"
+ * affordance (02 §34). Both are caption-register chips — mode is context,
+ * never the screen's subject.
+ */
+function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeBarProps) {
+  const theme = useTheme();
+  return (
+    <View style={styles.modeBlock}>
+      <View style={styles.modeRow}>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: detayli }}
+          onPress={onToggleMode}
+          style={[
+            styles.modeChip,
+            { backgroundColor: detayli ? theme.primarySoft : theme.surfaceRaised },
+          ]}
+        >
+          <AppText role="caption" color={detayli ? "primary" : "inkSoft"}>
+            {t("intake.mode.hastanedeyim")}
+          </AppText>
+        </Pressable>
+        {detayli ? (
+          <>
+            <AppText role="caption" color="inkFaint">
+              {t("intake.mode.detayliOn")}
+            </AppText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("intake.queue.called")}
+              onPress={onQueueCalled}
+              style={[styles.modeChip, styles.queueChip, { backgroundColor: theme.surfaceRaised }]}
+            >
+              <AppText role="caption" color="primary">
+                {t("intake.queue.called")}
+              </AppText>
+            </Pressable>
+          </>
+        ) : null}
+      </View>
+      {deferredNotice ? (
+        <AppText role="caption" color="inkFaint">
+          {t("intake.privacy.deferredInfo")}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
   contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
+  modeBlock: { gap: spacing.xs },
+  modeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  modeChip: {
+    borderRadius: radius.chip,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+  },
+  queueChip: { marginLeft: "auto" },
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   progressDot: { width: 8, height: 8, borderRadius: radius.chip },
   // Tabular figures so the counter doesn't reflow step to step (design
