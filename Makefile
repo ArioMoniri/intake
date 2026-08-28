@@ -17,15 +17,15 @@ setup:
 check: check-py check-ts
 
 check-integration:
-	docker compose -f infra/docker-compose.dev.yml up -d --wait postgres openbao minio
+	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
 	OPENBAO_TOKEN=$${OPENBAO_TOKEN:-intake-dev-root} uv run pytest -m integration --no-header -q -p no:cacheprovider -o addopts=""
 
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src
-	uv run pytest --cov=packages/intake_platform/src --cov-branch --cov-fail-under=85
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src services/api/src
+	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 check-ts:

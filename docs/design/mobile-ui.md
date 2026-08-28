@@ -329,3 +329,82 @@ review (fresh draft with glass CTA and a sent run end-to-end), Kayıtlarım,
 İyilik hâli, Profilim (consent flip removes/restores the wellbeing tab
 live). Typecheck + all 74 vitest tests green; no route, handler or i18n key
 removed.
+
+## Design pass 5 — the focal point, the table, the way back (INT-209, 2026-08-28)
+
+Owner critique, fifth repetition: "still ui and fonts n shapes not close
+enough to oura". Method as pass 4 — screenshot ours beside the Mobbin
+capture, measure, fix, re-screenshot (two rounds per changed screen, dark
+and light). References: score-gauge homes `bfe532d9-62fe-4246-9775-9c8934195bcb`,
+`5a37255c-77fd-4e23-884b-5d9af68a0a38`, `03958157-6ab8-4046-9a49-ebf639baa348`,
+`85150daf-308e-41a4-b98c-5e6a6ee2fad0`; settings/profile groups
+`056ace14-0c3a-4aac-bb98-2e1609fd0097`, `cfd343a6-78b6-4838-aa8e-c2175c36c265`,
+`5526a8a9-037f-4315-93b4-7f21d0e5016c`, `ada3f0f7-0d51-493d-8ee3-b898a3627478`;
+sleep detail/contributors `ded88fa6-85b6-460f-89b9-9eb71fcd2ef9`,
+`b7ae7e96-85bc-440b-8f7f-e7450f7523fd`, `04a88d46-e383-4c23-b67f-5bddc27b98eb`.
+
+### Measured gaps (before) → what closed (after)
+
+- **No numeric focal point.** Oura's home is a centred story: thin arc
+  (~2–3 pt stroke, ~85 % width), a giant serif numeral (~64 pt), an ~11 pt
+  tracked label. Our Bugün led with a left text title and a card; ~55 % of
+  the viewport below the CTA was empty. → `PrepGauge`: a pure-View
+  semicircular gauge (232 pt, 3 pt stroke; a clipped half-ring track and a
+  half-ring fill rotated about the baseline centre — no SVG dependency),
+  serif `display` numeral (new 56 pt type role) showing intake completion
+  as a locale-formatted percent (`Intl.NumberFormat` percent style — tr
+  renders `%17`, en `17%`; never hand-assembled), tracked kicker caption
+  under it. Arc and numeral are INK, not accent — in every Oura capture
+  the gauge is white; colour stays reserved for the one CTA. The numeral
+  lives OUTSIDE the clip window so fontScale 2.0 grows past the bowl
+  instead of truncating.
+- **List screens were card stacks, not tables.** Oura settings/contributor
+  rows: ~52–56 pt tall, 17 pt regular labels, groups visibly squarer than
+  content cards, hairlines BETWEEN rows only, header OUTSIDE the group,
+  "›" only where a row navigates. Ours: every row its own 24-radius card,
+  headers inside, rows ~40 pt, no chevrons. → `ListGroup`/`ListRow`
+  (`radius.group: 16` token): Profilim (account row with 36 pt tonal icon
+  well, consent rows, language row, learned row with chevron) and
+  Kayıtlarım (doc icon wells, date sublabels, the synthetic marker as the
+  group's quiet footer — Oura's under-group explanation register).
+- **No way back.** Pushed screens (visit detail, new visit) had no top bar
+  at all — no back affordance, no title; every pushed Oura screen carries
+  ‹ + centred 17 pt semibold title. → `useStackHeader` in Themed:
+  ground-coloured, shadowless, back label hidden; detail titles with the
+  department, form titles from the catalog (the in-body hero line on Yeni
+  vizit died — it doubled the bar).
+- **Serif weight.** Newsreader 600 vs Oura's bookish regular-to-medium
+  headline serif: one register too heavy at 34 pt. → display face 600 →
+  500 (`Newsreader_500Medium`; same already-vendored OFL 1.1 package —
+  LICENSE_FONT blob re-verified, no new dependency).
+- **Accent budget.** Our dark screens showed 4–6 teal moments at once
+  (kicker, hero date, glow edge, CTA, pills); Oura spends the accent about
+  once. → hero date → tracked ink; section kickers → neutral; Vizitlerim
+  add-CTA and Profilim sign-out → quiet `SecondaryButton`; the one
+  saturated pill per screen is now the forward action.
+- **Chip register.** Draft chip was an outline; Oura tags are filled and
+  borderless. → new `surfaceRaised` tone (dark `#2B2823`, light `#F1EDE4`
+  — ADDED tokens, no existing hex touched; ink/inkSoft on it added to the
+  pinned AA suite) carries draft chips, consent-off pills and icon wells.
+- **Rail metrics.** Ours icon 22 / caption 13; the Oura rail measures
+  ~20 / ~11. → icon 20, new chrome-only `micro` (11) role for rail labels.
+
+### Kept deliberately
+
+Body 17 (dynamic-type floor), the teal CTA staying full-width (our MHRS-
+familiar register; Oura's centred hug-content "Learn more" reads detached
+at B1), the pass-3 hero-card glow (one per screen, now under the gauge as
+the secondary surface), no top wordmark bar on tab roots (the serif screen
+title is our frame), and `viewed = teal outline` on the status ladder.
+Found and left: light `success` on `successSoft` measures 4.35:1 (the
+filed chip has shipped it since INT-130) — fixing it needs a palette-hex
+change this pass is forbidden to make; flagged for the next palette
+iteration.
+
+Verified on the iOS 18.4 sim (Expo Go, dark AND light): welcome, Bugün
+(%0 and %17 gauge states), Vizitlerim, visit detail with header + back,
+Yeni vizit header, intake step 1, Kayıtlarım groups, Profilim groups
+(post-merge with the INT-208 Sağlık verileri group re-expressed as
+ListGroup + footer hint). Typecheck green; 181 vitest tests green after
+merging origin/main (INT-198/199/208). No route, handler or i18n key
+removed; tr/en keys added: `today.prep`.

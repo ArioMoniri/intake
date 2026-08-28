@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
-import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, Screen, SecondaryButton } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -36,7 +36,9 @@ export default function Visits() {
         ) : null}
         {upcoming.length > 0 ? (
           <View style={styles.section}>
-            <Kicker label={t("visits.upcoming")} tone="accent" />
+            {/* Neutral like Oura's quiet group headings (design pass 5) —
+                the accent budget belongs to the screen's one action. */}
+            <Kicker label={t("visits.upcoming")} />
             {upcoming.map((visit) => (
               <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
                 <Pressable accessibilityRole="button">
@@ -58,7 +60,9 @@ export default function Visits() {
             ))}
           </View>
         ) : null}
-        <PrimaryButton
+        {/* Adding is available, not urgent — the Oura register keeps list
+            screens free of saturated CTAs (design pass 5). */}
+        <SecondaryButton
           label={t("today.addVisit")}
           onPress={() => router.push("/(tabs)/visits/new")}
         />
