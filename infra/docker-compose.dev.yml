@@ -108,6 +108,37 @@ services:
       retries: 30
       start_period: 180s
 
+  livekit:
+    # INT-090: LiveKit SFU + embedded TURN (UDP), dev tier. Behind a profile
+    # like clamav — the unit lane never boots it (tests/voice/ validates the
+    # config and this service statically); start it explicitly when driving a
+    # real voice session: `docker compose -f infra/docker-compose.dev.yml
+    # --profile livekit up -d`. v1.13.6 verified to exist on Docker Hub and
+    # via `docker manifest inspect` (multi-arch, alpine-based — busybox wget
+    # backs the healthcheck). Recording is structurally impossible here: no
+    # egress/ingress/recorder service exists in this file, the container
+    # mounts nothing writable, and livekit-dev.yaml carries no redis/webhook
+    # block (invariant 3; tests/voice/test_audio_retention_guard.py).
+    image: livekit/livekit-server:v1.13.6
+    profiles: ["livekit"]
+    command: --config /etc/livekit/livekit-dev.yaml
+    environment:
+      # dev-only pair, env-overridable; the prod pair comes from OpenBao and
+      # never enters a committed file (invariant 14). Format: "key: secret".
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-intake-dev-key}: ${LIVEKIT_API_SECRET:-intake-livekit-dev-only-secret-0001}"
+    ports:
+      - "127.0.0.1:7880:7880" # websocket signalling + RoomService API
+      - "127.0.0.1:7881:7881" # ICE over TCP (UDP-blocked networks)
+      - "127.0.0.1:3478:3478/udp" # embedded TURN, UDP only (dev tier)
+      - "127.0.0.1:50700-50720:50700-50720/udp" # RTC media (narrow dev range)
+    volumes:
+      - ./livekit/livekit-dev.yaml:/etc/livekit/livekit-dev.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7880/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
 volumes:
   pgdata:
   miniodata:
