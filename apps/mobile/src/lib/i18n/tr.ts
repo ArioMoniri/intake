@@ -47,7 +47,8 @@ export const tr = {
   "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",
   "auth.error.code": "Kod doğrulanamadı. Kodu kontrol edin ya da yeni kod isteyin.",
   "auth.error.network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
-  "auth.error.attestation": "Bu cihaz doğrulanamadı. Lütfen uygulamayı güncelleyip yeniden deneyin.",
+  "auth.error.attestation":
+    "Bu cihaz doğrulanamadı. Lütfen uygulamayı güncelleyip yeniden deneyin.",
   "auth.biometric.prompt": "Devam etmek için kimliğinizi doğrulayın.",
   "auth.biometric.locked": "Ekran kilitli",
   "auth.biometric.retry": "Yeniden deneyin",
@@ -380,6 +381,70 @@ export const tr = {
     "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez. Bir veri, notunuza ancak siz eklerseniz girer.",
   "consent.on": "Açık",
   "consent.off": "Kapalı",
+
+  // INT-132 — İzinleriniz. Bu anahtarlar yalnızca arayüz metnidir; onay
+  // metinlerinin kendisi docs/legal'den, sürüm ve damgasıyla gelir
+  // (invariant 18) ve hiçbir zaman bu kataloğa yazılmaz.
+  "consent.entry.sub": "Hangi izni ne için verdiğinizi görün ve yönetin.",
+  "consent.firstRun.body":
+    "Vizite'de her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
+  "consent.firstRun.continue": "Devam edin",
+  "consent.group.core": "Hizmet",
+  "consent.group.voice": "Sesli görüşme",
+  "consent.group.voice.hint":
+    "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi ses kaydına değil, yazıya bakar; ayrı bir izindir.",
+  "consent.group.purposes": "Diğer amaçlar",
+  "consent.group.learning": "Öğrenme",
+  "consent.group.learning.hint":
+    "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
+  "consent.lane.affect": "Ses tonundan duygu ipuçları",
+  "consent.lane.linguistic": "Yazıdan dil ipuçları",
+  "consent.learning.personal": "Sizin için öğrenme",
+  "consent.learning.service": "Hizmeti iyileştirme",
+  "consent.satisfaction": "Memnuniyet soruları",
+  "consent.research": "Araştırma",
+  "consent.who.core": "Anlattıklarınızı yalnızca siz ve onay verdiğiniz hekim görür.",
+  "consent.who.voice":
+    "Sesiniz yalnızca görüşme sırasında işlenir; kayıt saklanmaz. Veriler Türkiye'deki sunucularda kalır.",
+  "consent.who.laneAffect":
+    "Ses tonunuzdan çıkan ipuçlarını yalnızca hekiminiz görür; size bir etiket konmaz.",
+  "consent.who.laneLinguistic":
+    "Yazıya dökülen metinden çıkan ipuçlarını yalnızca hekiminiz görür.",
+  "consent.who.wellbeing":
+    "Yanıtlarınızı yalnızca siz görürsünüz; hekiminizle paylaşım her seferinde ayrıca sorulur.",
+  "consent.who.documents":
+    "Yüklediğiniz belgeler sizin dosyanızda kalır; hekiminizle paylaşım sizin onayınızla olur.",
+  "consent.who.learningPersonal":
+    "Öğrenilen her bilgi 'Hakkımda öğrendikleri' listesinde görünür ve dilediğinizde silinir.",
+  "consent.who.learningService":
+    "Kimliğinizden ayrılmış toplu veriler kullanılır; size ait tek bir kayıt paylaşılmaz.",
+  "consent.who.satisfaction":
+    "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
+  "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
+  "consent.basis.service":
+    "Bu, hizmetin kendisidir; ayrı bir düğmesi yoktur. Vizite'yi kullanmayı bırakırsanız sona erer.",
+  "consent.basis.explicit":
+    "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
+  "consent.basis.learningPersonal":
+    "Ayarladığınız hizmetin çalışması için kullanılır; bu yüzden açık gelir. Kapatırsanız kişisel öğrenme durur.",
+  "consent.basis.learningService":
+    "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
+  "consent.state.pending": "Metin hazırlanıyor",
+  "consent.state.stale": "Yeniden onay gerekli",
+  "consent.state.service": "Hizmetin temeli",
+  "consent.pending.body":
+    "Bu iznin metni hazırlanıyor. Metin yayımlanmadan izin açılamaz; hazır olduğunda burada görünür.",
+  "consent.stale.body":
+    "Bu iznin metni güncellendi. Devam etmesini isterseniz yeni metni okuyup yeniden onaylayın; onaylayana kadar izin kullanılmaz.",
+  "consent.detail.who": "Kim neyi görür",
+  "consent.detail.version": "Metin sürümü",
+  "consent.detail.binding": "Metin damgası",
+  "consent.detail.grant": "Okudum, kabul ediyorum",
+  "consent.detail.withdraw": "İzni geri çekin",
+  "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
+  "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
+  "consent.queue.note":
+    "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
 
   "me.health": "Sağlık verileri",
   "health.guide.devBuild.kicker": "Deneme sürümü",

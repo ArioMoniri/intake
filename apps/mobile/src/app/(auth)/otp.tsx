@@ -97,7 +97,9 @@ export default function OtpEntry() {
       const patientId = await verifyOtp(phone, code);
       setPendingPhone(null);
       signInOtp(patientId, maskPhone(phone));
-      router.replace("/(tabs)/today");
+      // Consent first-run (INT-132): a consent needs a subject, so it comes
+      // right after account creation — and grants nothing by itself.
+      router.replace("/(auth)/consent");
     } catch (error) {
       setProblem(errorKey(error));
       setDigits(EMPTY);

@@ -66,6 +66,8 @@ interface ListRowProps {
   trailing?: ReactNode;
   /** "›" affordance; set it ONLY on rows that navigate. */
   chevron?: boolean;
+  /** Nested child row (INT-132 lane sub-toggles): indented text column. */
+  inset?: boolean;
   onPress?: () => void;
 }
 
@@ -75,6 +77,7 @@ export function ListRow({
   icon,
   trailing,
   chevron = false,
+  inset = false,
   onPress,
 }: ListRowProps) {
   const theme = useTheme();
@@ -103,13 +106,17 @@ export function ListRow({
         accessibilityRole="button"
         accessibilityLabel={label}
         onPress={onPress}
-        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
+        style={({ pressed }) => [
+          styles.row,
+          inset ? styles.rowInset : null,
+          { opacity: pressed ? 0.7 : 1 },
+        ]}
       >
         {body}
       </Pressable>
     );
   }
-  return <View style={styles.row}>{body}</View>;
+  return <View style={[styles.row, inset ? styles.rowInset : null]}>{body}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -128,6 +135,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
   },
   labels: { flex: 1, gap: 2 },
+  // Nested child rows shift the whole content column one step right.
+  rowInset: { paddingLeft: spacing.md + spacing.lg },
   // Oura hairlines start at the text column, not the group edge.
   hairlineInset: { marginLeft: spacing.md },
   iconWell: {
