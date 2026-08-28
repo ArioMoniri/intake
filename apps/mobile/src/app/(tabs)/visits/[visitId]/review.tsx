@@ -7,7 +7,7 @@
  * with a hairline under the header row (Oura card anatomy); the send CTA
  * floats on a glass bar and the note scrolls under it.
  */
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { BiometricGate } from "@/components/BiometricGate";
@@ -18,8 +18,8 @@ import {
   Card,
   Hairline,
   PrimaryButton,
-  RAIL_EDGES,
   Screen,
+  useStackHeader,
   useTheme,
 } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
@@ -38,9 +38,13 @@ export default function ReviewAndSendGated() {
   );
 }
 
+// With the top bar shown, the header owns the top inset (design pass 6).
+const FLOW_EDGES = ["left", "right"] as const;
+
 function ReviewAndSend() {
   const router = useRouter();
   const theme = useTheme();
+  const headerOptions = useStackHeader();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote } = useSession();
   const note = notes[visitId ?? ""];
@@ -48,7 +52,8 @@ function ReviewAndSend() {
   const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
   if (!account || !note || (note.answers.length === 0 && !hasHealthBlock)) {
     return (
-      <Screen>
+      <Screen edges={FLOW_EDGES}>
+        <Stack.Screen options={headerOptions("")} />
         <AppText role="body" color="inkSoft">
           {t("review.empty")}
         </AppText>
@@ -60,7 +65,11 @@ function ReviewAndSend() {
   const sent = note.status === "sent";
 
   return (
-    <Screen style={styles.screenFlush} edges={RAIL_EDGES}>
+    <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
+      {/* Design pass 6: back-only top bar (every Oura flow carries a
+          top-left way out — Mobbin 11265937, b67baac0); the serif line in
+          the body stays the title, so the bar is untitled. */}
+      <Stack.Screen options={headerOptions("")} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
@@ -91,7 +100,9 @@ function ReviewAndSend() {
                         onPress={() =>
                           visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
                         }
-                        style={[styles.scopeChip, { borderColor: theme.border }]}
+                        // Oura tag register (design pass 6): chips are
+                        // filled and borderless, never outlined.
+                        style={[styles.scopeChip, { backgroundColor: theme.surfaceRaised }]}
                       >
                         <AppText role="caption" color="inkSoft">
                           {t("review.edit")}
@@ -112,9 +123,12 @@ function ReviewAndSend() {
                       }
                       style={[
                         styles.scopeChip,
+                        // Filled tonal state chip (design pass 6): shared
+                        // keeps the accent wash, off sits on the raised
+                        // tone — the label carries the state (02 §8.2),
+                        // the outline is gone (Oura tags are borderless).
                         {
-                          backgroundColor: shared ? theme.primarySoft : theme.background,
-                          borderColor: shared ? theme.primary : theme.border,
+                          backgroundColor: shared ? theme.primarySoft : theme.surfaceRaised,
                         },
                       ]}
                     >
@@ -191,7 +205,6 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: spacing.xs, alignItems: "center" },
   scopeChip: {
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
   },

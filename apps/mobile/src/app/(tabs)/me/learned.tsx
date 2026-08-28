@@ -22,6 +22,7 @@ export default function Learned() {
         </AppText>
         <GuidanceBlock
           accent
+          icon="eye"
           kickerKey="learned.guide.kicker"
           titleKey="learned.guide.title"
           bodyKey="learned.guide.body"
