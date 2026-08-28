@@ -5,8 +5,9 @@
 import { Link, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
-import { AppText, Card, PrimaryButton, Screen } from "@/components/Themed";
+import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -21,7 +22,7 @@ export default function Visits() {
   const upcoming = visits.filter((v) => v.date >= TODAY_FIXTURE);
   const past = visits.filter((v) => v.date < TODAY_FIXTURE);
   return (
-    <Screen>
+    <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText role="hero" style={styles.heroLine}>
           {t("visits.title")}
@@ -39,7 +40,7 @@ export default function Visits() {
             {upcoming.map((visit) => (
               <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
                 <Pressable accessibilityRole="button">
-                  <VisitCard visit={visit} />
+                  <VisitCard visit={visit} chevron />
                 </Pressable>
               </Link>
             ))}
@@ -51,7 +52,7 @@ export default function Visits() {
             {past.map((visit) => (
               <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
                 <Pressable accessibilityRole="button">
-                  <VisitCard visit={visit} />
+                  <VisitCard visit={visit} chevron />
                 </Pressable>
               </Link>
             ))}
@@ -67,7 +68,7 @@ export default function Visits() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.xl, paddingBottom: spacing.xl },
-  heroLine: { marginTop: spacing.lg },
+  content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
+  heroLine: { marginTop: spacing.xl },
   section: { gap: spacing.md },
 });

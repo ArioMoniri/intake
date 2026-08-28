@@ -56,22 +56,38 @@ describe("route tree is exactly the 02 §4 nav map", () => {
   });
 });
 
-describe("tab rail (02 §4)", () => {
+describe("tab rail (02 §4; floating pill since design pass 4)", () => {
   const layout = read(APP, "(tabs)/_layout.tsx");
+  const rail = read(SRC, "components", "FloatingTabBar.tsx");
 
-  it.each(["today", "visits", "records", "wellbeing", "me"])("registers the %s trigger", (name) => {
-    expect(layout).toContain(`name="${name}"`);
-  });
+  it.each(["today", "visits", "records", "wellbeing", "me/index"])(
+    "registers the %s screen",
+    (name) => {
+      expect(layout).toContain(`name="${name}"`);
+    },
+  );
 
-  it("labels come from i18n, never literals", () => {
+  it("labels come from i18n, never literals (rail renders t(labelKey))", () => {
     for (const key of ["tabs.today", "tabs.visits", "tabs.records", "tabs.wellbeing", "tabs.me"]) {
-      expect(layout).toContain(`t("${key}")`);
+      expect(rail).toContain(`labelKey: "${key}"`);
     }
+    expect(rail).toContain("t(meta.labelKey)");
   });
 
   it("wellbeing is consent-gated through visibleTabs — the single rule", () => {
     expect(layout).toContain("visibleTabs(consents)");
     expect(layout).toMatch(/tabs\.includes\("wellbeing"\)/);
+  });
+
+  it("the gate UNREGISTERS the route (Tabs.Protected), never just hides it", () => {
+    expect(layout).toMatch(/Tabs\.Protected guard=\{tabs\.includes\("wellbeing"\)\}/);
+  });
+
+  it("native tabs stay superseded (owner decision 2026-08-28, pass 4)", () => {
+    // The Oura floating pill replaced NativeTabs for the dev tier; the
+    // native-tabs import creeping back in is a regression against that call.
+    expect(layout).not.toContain("unstable-native-tabs");
+    expect(layout).toContain("FloatingTabBar");
   });
 });
 

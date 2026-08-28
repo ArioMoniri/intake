@@ -10,19 +10,28 @@
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from "react-native";
 
 import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
-import { AppText, Card, PrimaryButton, Screen, useFontScale, useTheme } from "@/components/Themed";
+import {
+  AppText,
+  Card,
+  PrimaryButton,
+  RAIL_EDGES,
+  Screen,
+  useFontScale,
+  useTheme,
+} from "@/components/Themed";
 import { VoiceNote } from "@/components/VoiceNote";
 import { t } from "@/lib/i18n";
 import { packForDepartment } from "@/lib/intake/questions";
 import { useSession } from "@/lib/session";
-import { radius, scaledSize, spacing } from "@/lib/theme";
+import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
 export default function TypedIntake() {
   const router = useRouter();
   const theme = useTheme();
+  const dark = useColorScheme() === "dark";
   const fontScale = useFontScale();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, updateNote, consents, visits } = useSession();
@@ -77,102 +86,105 @@ export default function TypedIntake() {
   const floatingCta = question.kind !== "single";
 
   return (
-    <Screen style={styles.screenFlush}>
-      {/* Plain wrapper inside the safe-area padding: the glass bar anchors
-          to ITS bottom (above the tab rail), not the window edge. */}
+    <Screen style={styles.screenFlush} edges={RAIL_EDGES}>
+      {/* Focused flow (design pass 4): the tab rail unmounts here, so the
+          glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
         <ScrollView
           contentContainerStyle={[styles.content, floatingCta ? styles.contentUnderBar : null]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-        <View style={styles.progressRow}>
-          {intakeQuestions.map((q, i) => (
-            <View
-              key={q.id}
-              style={[
-                styles.progressDot,
-                { backgroundColor: i <= step ? theme.primary : theme.border },
-              ]}
-            />
-          ))}
-          <AppText role="caption" color="inkFaint">
-            {step + 1} / {intakeQuestions.length}
-          </AppText>
-        </View>
-        <AppText role="hero">{t(question.titleKey)}</AppText>
-        {question.hintKey ? (
-          <AppText role="body" color="inkSoft">
-            {t(question.hintKey)}
-          </AppText>
-        ) : null}
-
-        {question.kind === "chips" ? (
-          <View style={styles.chipWrap}>
-            {question.options!.map((o) => {
-              const on = selected.includes(o.id);
-              return (
-                <Pressable
-                  key={o.id}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
-                  onPress={() => toggleChip(o.id)}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: on ? theme.primarySoft : theme.surface,
-                      borderColor: on ? theme.primary : theme.border,
-                    },
-                  ]}
-                >
-                  <AppText role="label" color={on ? "primary" : "ink"}>
-                    {t(o.labelKey)}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        {question.kind === "single" ? (
-          <View style={styles.optionColumn}>
-            {question.options!.map((o) => (
-              <Pressable key={o.id} accessibilityRole="button" onPress={() => commit([o.id])}>
-                <Card>
-                  <AppText role="body">{t(o.labelKey)}</AppText>
-                </Card>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-
-        {question.kind === "text" ? (
-          <>
-            <TextInput
-              accessibilityLabel={t(question.titleKey)}
-              value={text}
-              onChangeText={setText}
-              multiline
-              style={[
-                styles.textField,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  color: theme.ink,
-                  fontSize: scaledSize("body", fontScale),
-                },
-              ]}
-            />
-            {__DEV__ && consents?.voice ? (
-              <VoiceNote
-                onTranscript={(spoken) =>
-                  setText((prev) => (prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken))
-                }
+          <View style={styles.progressRow}>
+            {intakeQuestions.map((q, i) => (
+              <View
+                key={q.id}
+                style={[
+                  styles.progressDot,
+                  { backgroundColor: i <= step ? theme.primary : theme.border },
+                ]}
               />
-            ) : null}
-          </>
-        ) : null}
+            ))}
+            <AppText role="caption" color="inkFaint">
+              {step + 1} / {intakeQuestions.length}
+            </AppText>
+          </View>
+          <AppText role="hero">{t(question.titleKey)}</AppText>
+          {question.hintKey ? (
+            <AppText role="body" color="inkSoft">
+              {t(question.hintKey)}
+            </AppText>
+          ) : null}
 
+          {question.kind === "chips" ? (
+            <View style={styles.chipWrap}>
+              {question.options!.map((o) => {
+                const on = selected.includes(o.id);
+                return (
+                  <Pressable
+                    key={o.id}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    onPress={() => toggleChip(o.id)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: on ? theme.primarySoft : theme.surface,
+                        // Oura chips are filled, borderless in dark (tonal
+                        // separation); light keeps the hairline (pass 4).
+                        borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                      },
+                    ]}
+                  >
+                    <AppText role="label" color={on ? "primary" : "ink"}>
+                      {t(o.labelKey)}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {question.kind === "single" ? (
+            <View style={styles.optionColumn}>
+              {question.options!.map((o) => (
+                <Pressable key={o.id} accessibilityRole="button" onPress={() => commit([o.id])}>
+                  <Card>
+                    <AppText role="body">{t(o.labelKey)}</AppText>
+                  </Card>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {question.kind === "text" ? (
+            <>
+              <TextInput
+                accessibilityLabel={t(question.titleKey)}
+                value={text}
+                onChangeText={setText}
+                multiline
+                style={[
+                  styles.textField,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    color: theme.ink,
+                    fontSize: scaledSize("body", fontScale),
+                  },
+                ]}
+              />
+              {__DEV__ && consents?.voice ? (
+                <VoiceNote
+                  onTranscript={(spoken) =>
+                    setText((prev) =>
+                      prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken,
+                    )
+                  }
+                />
+              ) : null}
+            </>
+          ) : null}
         </ScrollView>
         {question.kind === "chips" ? (
           <GlassBar>
@@ -219,5 +231,6 @@ const styles = StyleSheet.create({
     minHeight: 120,
     padding: spacing.md,
     textAlignVertical: "top",
+    fontFamily: fonts.sans,
   },
 });
