@@ -17,6 +17,13 @@ __all__ = ["ApiSettings"]
 # runtime environment and have no in-code default (fail closed when unset).
 ENV_TOKEN_PATIENT = "INTAKE_DEV_TOKEN_PATIENT"  # noqa: S105 — env var name
 ENV_TOKEN_ADMIN = "INTAKE_DEV_TOKEN_ADMIN"  # noqa: S105 — env var name
+ENV_TOKENIZATION_KEY = "INTAKE_TOKENIZATION_KEY"  # noqa: S105 — env var name
+ENV_TOKENIZATION_KEY_ID = "INTAKE_TOKENIZATION_KEY_ID"
+ENV_REDIS_URL = "INTAKE_REDIS_URL"
+# Dev-only gates (INT-131): anything but the exact phrase is OFF (fail closed).
+ENV_DEV_OTP_PEEK = "INTAKE_DEV_OTP_PEEK"
+ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
+EXPLICIT_YES = "explicit-yes"
 
 KekMode = Literal["transit", "file-dev"]
 
@@ -38,6 +45,14 @@ class ApiSettings:
     audit_db_url: str
     bootstrap_db_url: str
     kek_mode: KekMode
+    # INT-131 OTP tier — all fail closed by default: no tokenization key
+    # means no OTP auth (503), and the dev gates are off unless the env
+    # carries the exact phrase "explicit-yes".
+    redis_url: str = "redis://127.0.0.1:6379/0"
+    tokenization_key: str | None = None
+    tokenization_key_id: str = "v1"
+    dev_otp_peek: bool = False
+    dev_allow_unattested: bool = False
     # Where the consent texts live (INT-038; invariant 18: texts render only
     # from docs/legal with hash binding). The default points at the repo's
     # legal tree; until INT-210 authors the texts the directory is absent and
@@ -47,6 +62,12 @@ class ApiSettings:
     @property
     def dev_auth_configured(self) -> bool:
         return bool(self.token_patient) and bool(self.token_admin)
+
+    @property
+    def otp_auth_configured(self) -> bool:
+        """The OTP tier needs the phone-tokenization key (invariant 14:
+        identifiers tokenized); without it the tier stays 503."""
+        return bool(self.tokenization_key)
 
     @classmethod
     def from_env(cls) -> ApiSettings:
@@ -66,5 +87,10 @@ class ApiSettings:
                 os.environ.get("POSTGRES_PASSWORD", "intake-dev-only"),
             ),
             kek_mode=kek_mode,
+            redis_url=os.environ.get(ENV_REDIS_URL) or "redis://127.0.0.1:6379/0",
+            tokenization_key=os.environ.get(ENV_TOKENIZATION_KEY) or None,
+            tokenization_key_id=os.environ.get(ENV_TOKENIZATION_KEY_ID) or "v1",
+            dev_otp_peek=os.environ.get(ENV_DEV_OTP_PEEK) == EXPLICIT_YES,
+            dev_allow_unattested=os.environ.get(ENV_DEV_ALLOW_UNATTESTED) == EXPLICIT_YES,
             legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
         )

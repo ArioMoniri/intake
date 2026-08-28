@@ -32,12 +32,13 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from intake_api import documents, notes, visits
+from intake_api import documents, notes, otp_routes, visits
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
 from intake_api.documents import DocumentsConfig, DocumentsGateway
+from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ApiSettings
 from intake_api.state import ApiState
 
@@ -72,6 +73,9 @@ class ApiWiring:
     bootstrap: bool = True
     bootstrap_engine: AsyncEngine | None = None
     documents: DocumentsConfig | None = None
+    # INT-131: the OTP/DPoP tier; None = unconfigured (fail closed) while
+    # the dev-bearer tier keeps carrying the demo
+    auth: AuthWiring | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -114,6 +118,39 @@ def _documents_from_env() -> DocumentsConfig:
     )
 
 
+def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
+    """INT-131 wiring. No tokenization key → None → the OTP tier answers
+    503 (fail closed) and the dev-bearer tier stays load-bearing. The
+    attestation verifier is fail-closed unless the dev phrase is set, and
+    the delivery adapter is the dev event logger — the SMS vendor contract
+    is awaiting-human (docs/evidence/INT-131.md)."""
+    if not settings.otp_auth_configured or settings.tokenization_key is None:
+        return None
+    from intake_platform.tokenization import Tokenizer
+    from redis import Redis
+
+    from intake_api.attestation import (
+        DevStructuralAttestationVerifier,
+        FailClosedAttestationVerifier,
+    )
+    from intake_api.otp import DevLogDeliveryAdapter
+
+    return AuthWiring(
+        redis_client=Redis.from_url(settings.redis_url),
+        tokenizer=Tokenizer(
+            keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
+            active_key_id=settings.tokenization_key_id,
+        ),
+        delivery=DevLogDeliveryAdapter(),
+        attestation=(
+            DevStructuralAttestationVerifier()
+            if settings.dev_allow_unattested
+            else FailClosedAttestationVerifier()
+        ),
+        dev_otp_peek=settings.dev_otp_peek,
+    )
+
+
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
     return ApiWiring(
@@ -124,6 +161,7 @@ def wiring_from_env() -> ApiWiring:
         bootstrap=True,
         bootstrap_engine=build_engine(settings.bootstrap_db_url),
         documents=_documents_from_env(),
+        auth=_auth_from_settings(settings),
     )
 
 
@@ -137,6 +175,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         audit=audit,
         cipher=w.cipher,
         documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
+        auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
     )
 
     @asynccontextmanager
@@ -146,6 +185,13 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 await ensure_dev_fixture(w.engine, w.bootstrap_engine)
             except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
                 logger.warning("dev fixture bootstrap deferred: database not ready")
+            if w.auth is not None:
+                try:
+                    # INT-131: consumer tenant for real OTP accounts (tenant
+                    # INSERT needs the owner engine, like the dev fixture)
+                    await ensure_consumer_tenant(w.bootstrap_engine or w.engine)
+                except Exception:  # noqa: BLE001 — readiness reports; ids-only log
+                    logger.warning("consumer tenant bootstrap deferred: database not ready")
         yield
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
@@ -158,11 +204,14 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     header_name, header_value = AUTH_TIER_HEADER
 
     @app.middleware("http")
-    async def _tag_dev_tier(
+    async def _tag_auth_tier(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         response = await call_next(request)
-        response.headers[header_name] = header_value
+        # honest tiering (INT-131): requests resolved through the OTP/DPoP
+        # path set request.state.auth_tier = "otp"; everything else keeps
+        # the INT-197 "dev" tag so nobody mistakes the tier they are on
+        response.headers[header_name] = getattr(request.state, "auth_tier", header_value)
         return response
 
     @app.exception_handler(StarletteHTTPException)
@@ -192,4 +241,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(visits.router)
     app.include_router(notes.router)
     app.include_router(documents.router)
+    app.include_router(otp_routes.router)
     return app

@@ -52,14 +52,17 @@
           "background": false
         }
       ],
-      "react-native-health-connect"
+      "react-native-health-connect",
+      "expo-secure-store",
+      "./plugins/withCertificatePinning"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
-      "asrHosts": ["127.0.0.1", "172.20.10.3"]
+      "asrHosts": ["127.0.0.1", "172.20.10.3"],
+      "certificatePins": []
     }
   }
 }

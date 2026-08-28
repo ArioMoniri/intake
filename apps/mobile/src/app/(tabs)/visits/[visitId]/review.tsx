@@ -10,6 +10,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { BiometricGate } from "@/components/BiometricGate";
 import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import {
@@ -21,12 +22,23 @@ import {
   Screen,
   useTheme,
 } from "@/components/Themed";
+import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { buildNote } from "@/lib/intake/note";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
-export default function ReviewAndSend() {
+export default function ReviewAndSendGated() {
+  // Note/share screen: capture blocking + biometric re-gate (10 §2, INT-131).
+  useClinicalScreenPrivacy();
+  return (
+    <BiometricGate>
+      <ReviewAndSend />
+    </BiometricGate>
+  );
+}
+
+function ReviewAndSend() {
   const router = useRouter();
   const theme = useTheme();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();

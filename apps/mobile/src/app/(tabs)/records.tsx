@@ -14,11 +14,13 @@ import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
+import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { getLocale, t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 
 export default function Records() {
+  useClinicalScreenPrivacy(); // clinical screen: FLAG_SECURE-class (INT-131)
   const { account } = useSession();
   const records = account?.records ?? [];
   return (

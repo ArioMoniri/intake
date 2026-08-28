@@ -8,10 +8,20 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 __all__ = [
+    "attestation_invalid",
+    "attestation_required",
+    "attestation_unverified",
+    "challenge_invalid",
     "consent_required",
     "dev_auth_unconfigured",
+    "dpop_invalid",
     "forbidden",
     "not_found",
+    "otp_auth_unconfigured",
+    "otp_invalid",
+    "otp_limited",
+    "phone_invalid",
+    "refresh_reused",
     "unauthorized",
     "visit_invalid",
 ]
@@ -39,3 +49,56 @@ def visit_invalid(reason: str) -> HTTPException:
 
 def dev_auth_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "dev_auth_unconfigured"})
+
+
+# --- INT-131 OTP/DPoP auth codes ---------------------------------------------------
+
+
+def otp_auth_unconfigured() -> HTTPException:
+    """OTP auth needs Redis + a tokenization key; without them it fails
+    closed while the dev-bearer tier keeps carrying the demo (INT-197)."""
+    return HTTPException(status_code=503, detail={"error": "otp_auth_unconfigured"})
+
+
+def attestation_required() -> HTTPException:
+    return HTTPException(status_code=403, detail={"error": "attestation_required"})
+
+
+def attestation_invalid() -> HTTPException:
+    return HTTPException(status_code=403, detail={"error": "attestation_invalid"})
+
+
+def attestation_unverified() -> HTTPException:
+    return HTTPException(status_code=403, detail={"error": "attestation_unverified"})
+
+
+def challenge_invalid() -> HTTPException:
+    return HTTPException(status_code=403, detail={"error": "challenge_invalid"})
+
+
+def phone_invalid() -> HTTPException:
+    return HTTPException(status_code=422, detail={"error": "phone_invalid"})
+
+
+def otp_limited(retry_after_s: float) -> HTTPException:
+    """429 with the generic code (02 §8.2: generic errors, resend limits
+    shown) — the dimension that tripped is never disclosed to the caller."""
+    return HTTPException(
+        status_code=429,
+        detail={"error": "otp_limited", "retry_after_s": round(retry_after_s, 1)},
+        headers={"Retry-After": str(int(retry_after_s) + 1)},
+    )
+
+
+def otp_invalid() -> HTTPException:
+    """One generic refusal for wrong/expired/exhausted codes — the caller
+    learns nothing about which (02 §8.2 generic errors)."""
+    return HTTPException(status_code=401, detail={"error": "otp_invalid"})
+
+
+def dpop_invalid(code: str) -> HTTPException:
+    return HTTPException(status_code=401, detail={"error": code})
+
+
+def refresh_reused() -> HTTPException:
+    return HTTPException(status_code=401, detail={"error": "refresh_reused"})

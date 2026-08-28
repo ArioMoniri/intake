@@ -33,6 +33,8 @@ import {
 } from "@/components/Themed";
 import { VoiceFirstIntake } from "@/components/VoiceFirstIntake";
 import { VoiceNote } from "@/components/VoiceNote";
+import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
+import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { packForDepartment, type IntakeQuestion } from "@/lib/intake/questions";
 import {
@@ -45,17 +47,25 @@ import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
 export default function TypedIntake() {
+  useClinicalScreenPrivacy(); // FLAG_SECURE-class capture blocking (INT-131)
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
-  const { notes, consents, visits } = useSession();
+  const { notes, consents, visits, integrity } = useSession();
   const note = notes[visitId ?? ""];
   const visit = visits.find((v) => v.id === visitId);
   const intakeQuestions = packForDepartment(visit?.department);
 
   // Voice goes FIRST on a fresh run: not edit mode, nothing answered yet,
   // voice consent ON, dev lane present. The ASR probe gates inside the flow.
+  // Jailbreak/root soft signal (10 §4, INT-131): a compromised device gets
+  // the typed lane plus the warning banner, never voice.
   const editing = typeof q === "string" && q.length > 0;
+  const integrityCompromised = !voiceAllowedForIntegrity(integrity);
   const voiceEligible =
-    __DEV__ && consents?.voice === true && !editing && (note?.answers.length ?? 0) === 0;
+    __DEV__ &&
+    consents?.voice === true &&
+    !editing &&
+    !integrityCompromised &&
+    (note?.answers.length ?? 0) === 0;
   const [voiceState, dispatchVoice] = useReducer(
     voiceIntakeReducer,
     voiceEligible,
@@ -66,6 +76,14 @@ export default function TypedIntake() {
     <Screen style={styles.screenFlush} edges={RAIL_EDGES}>
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
+      {integrityCompromised ? (
+        <View style={styles.integrityWarn}>
+          <AppText role="label">{t("auth.integrity.warnTitle")}</AppText>
+          <AppText role="caption" color="inkSoft">
+            {t("auth.integrity.warnBody")}
+          </AppText>
+        </View>
+      ) : null}
       <View style={styles.body}>
         {voiceState.phase === "steps" ? (
           <StepFlow
@@ -320,6 +338,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
 
 const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
+  integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
   contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },

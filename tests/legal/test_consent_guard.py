@@ -25,7 +25,13 @@ from pathlib import Path
 
 import pytest
 from api_harness import ApiHarness, run
-from intake_api.consent_guard import route_policies, unguarded_data_routes
+from intake_api.consent_guard import (
+    PRE_AUTH_PREFIX,
+    pre_auth,
+    pre_auth_routes,
+    route_policies,
+    unguarded_data_routes,
+)
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_TENANT_ID
 from intake_platform.consent import (
@@ -221,6 +227,36 @@ def test_guard_runs_on_the_bound_harness_too(bound_harness: ApiHarness) -> None:
 def test_every_data_route_declares_consent_scopes(harness: ApiHarness) -> None:
     app = harness.client.app
     assert unguarded_data_routes(app) == []
+
+
+def test_pre_auth_declarations_are_exactly_the_auth_bootstrap_routes(
+    harness: ApiHarness,
+) -> None:
+    """INT-131 pre-auth routes have no principal, so they cannot enforce a
+    consent scope — but they must DECLARE that, and only under /v1/auth."""
+    marked = pre_auth_routes(harness.client.app)
+    assert marked == [
+        "GET /v1/auth/dev/otp-peek",
+        "POST /v1/auth/attest/challenge",
+        "POST /v1/auth/otp/request",
+        "POST /v1/auth/otp/verify",
+        "POST /v1/auth/token/refresh",
+    ]
+    assert all(route.split(" ", 1)[1].startswith(PRE_AUTH_PREFIX) for route in marked)
+
+
+def test_pre_auth_marker_outside_the_auth_prefix_is_not_a_declaration() -> None:
+    """A data route elsewhere cannot borrow the pre-auth marker to dodge the
+    scan: outside PRE_AUTH_PREFIX it still counts as unguarded."""
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.get("/v1/sneaky", dependencies=[pre_auth()])
+    async def sneaky() -> dict[str, str]:
+        return {"ok": "no"}
+
+    assert unguarded_data_routes(app) == ["GET /v1/sneaky"]
 
 
 def test_route_policy_declarations_cover_the_api_surface(harness: ApiHarness) -> None:

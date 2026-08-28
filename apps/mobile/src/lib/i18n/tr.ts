@@ -27,6 +27,34 @@ export const tr = {
   "welcome.devNote":
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
 
+  "welcome.phoneCta": "Telefonla devam edin",
+
+  // INT-131 onboarding — 02 §8.2: the why-line, generic errors, visible
+  // resend limits; siz register, ≤ B1.
+  "auth.phone.title": "Telefonla giriş",
+  "auth.phone.why": "Numaranız yalnızca giriş için kullanılır.",
+  "auth.phone.label": "Telefon numaranız",
+  "auth.phone.hint": "Başında 05 ile yazın, örneğin 0532 111 44 55.",
+  "auth.phone.cta": "Kod isteyin",
+  "auth.phone.invalid": "Numarayı kontrol edin; 05 ile başlamalı.",
+  "auth.otp.title": "Doğrulama kodu",
+  "auth.otp.body": "Telefonunuza gelen altı haneli kodu girin.",
+  "auth.otp.verifyCta": "Giriş yapın",
+  "auth.otp.resend": "Kodu yeniden isteyin",
+  "auth.otp.resendWait": "Yeni kod isteyebilmek için kalan süre:",
+  "auth.otp.devPeek": "Kodu getirin (geliştirme)",
+  "auth.error.generic": "Bir sorun oldu. Lütfen yeniden deneyin.",
+  "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",
+  "auth.error.code": "Kod doğrulanamadı. Kodu kontrol edin ya da yeni kod isteyin.",
+  "auth.error.network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
+  "auth.error.attestation": "Bu cihaz doğrulanamadı. Lütfen uygulamayı güncelleyip yeniden deneyin.",
+  "auth.biometric.prompt": "Devam etmek için kimliğinizi doğrulayın.",
+  "auth.biometric.locked": "Ekran kilitli",
+  "auth.biometric.retry": "Yeniden deneyin",
+  "auth.integrity.warnTitle": "Cihaz güvenliği",
+  "auth.integrity.warnBody":
+    "Bu cihazda güvenlik değişikliği görünüyor. Görüşme sesli değil, yazılı olarak devam eder.",
+
   "today.nextVisit": "Sıradaki vizit",
   "today.prep": "Vizit hazırlığı",
   "today.prepareCta": "Muayeneye hazırlanın (≈3 dk)",

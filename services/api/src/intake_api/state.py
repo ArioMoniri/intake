@@ -17,6 +17,7 @@ from intake_api.settings import ApiSettings
 
 if TYPE_CHECKING:
     from intake_api.documents import DocumentsGateway
+    from intake_api.otp import OtpAuthService
 
 __all__ = ["ApiState", "State", "get_state"]
 
@@ -32,6 +33,9 @@ class ApiState:
     audit: AuditWriter
     cipher: EnvelopeCipher
     documents: DocumentsGateway | None = None
+    # INT-131: the OTP/DPoP tier; None = unconfigured (auth routes 503,
+    # DPoP-scheme requests refused) while dev-bearer keeps working
+    auth: OtpAuthService | None = None
     # INT-038: the docs/legal consent-text catalog the guard binds against;
     # defaults from settings.legal_root in __post_init__ so every state has
     # one (an absent legal tree is an EMPTY catalog — grants fail closed).

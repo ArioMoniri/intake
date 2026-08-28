@@ -22,6 +22,8 @@ const NAV_MAP = [
   "index.tsx",
   "(auth)/_layout.tsx",
   "(auth)/welcome.tsx",
+  "(auth)/phone.tsx",
+  "(auth)/otp.tsx",
   "(tabs)/_layout.tsx",
   "(tabs)/today.tsx",
   "(tabs)/visits/_layout.tsx",
