@@ -10,7 +10,7 @@
  * the quote is the patient's verbatim words, rendered as provenance only.
  */
 import type { ExtractCandidate } from "../extract";
-import type { IntakeQuestion } from "./questions";
+import { askIfMet, type AnsweredValues, type IntakeQuestion } from "./questions";
 
 export interface Prefill {
   values: string[];
@@ -91,15 +91,27 @@ export function voiceIntakeReducer(
   }
 }
 
-/** Validated candidates → per-question prefill, pack order, values copied. */
+/**
+ * Validated candidates → per-question prefill, pack order, values copied.
+ *
+ * askIf filtering (INT-236, mirroring the DSL gates): the candidates are
+ * treated as provisional answers, and a gated question keeps its
+ * suggestion only when its gate is met BY THE SUGGESTIONS themselves. A
+ * gate that cannot be established from the transcript drops the prefill —
+ * the question still surfaces normally once the patient's committed
+ * answers meet it, just without a suggestion (honest, never a dead end).
+ */
 export function prefillForPack(
   pack: readonly IntakeQuestion[],
   candidates: Record<string, ExtractCandidate>,
 ): PrefillMap {
+  const provisional: AnsweredValues[] = pack
+    .filter((question) => candidates[question.id] !== undefined)
+    .map((question) => ({ questionId: question.id, values: candidates[question.id].values }));
   const prefill: PrefillMap = {};
   for (const question of pack) {
     const candidate = candidates[question.id];
-    if (candidate) {
+    if (candidate && askIfMet(question.askIf, provisional)) {
       prefill[question.id] = { values: [...candidate.values], quote: candidate.quote };
     }
   }
