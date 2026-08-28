@@ -56,6 +56,10 @@ dev = [
     "jsonschema>=4.23",
     # the services/api unit lane carries the INT-030 schema on SQLite
     "aiosqlite>=0.20",
+    # INT-033 roundtrip property tests ("hypothesis roundtrip" is in the
+    # acceptance). MPL-2.0 (LICENSE.txt blob verified in
+    # docs/evidence/INT-033.md), test-only, never on the PHI path.
+    "hypothesis>=6.112",
 ]
 
 [tool.ruff]

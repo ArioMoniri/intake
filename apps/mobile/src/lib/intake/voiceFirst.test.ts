@@ -386,3 +386,34 @@ describe("voice-first copy (tr source of truth + en mirror, invariant 5)", () =>
     }
   });
 });
+
+// ---- INT-236: prefill filtered by askIf (adaptive flow, DSL-mirrored) ------
+
+describe("prefillForPack askIf filtering (INT-236)", () => {
+  it("drops a gated suggestion when the suggested complaint does not meet its gate", () => {
+    const prefill = prefillForPack(cardio, {
+      complaint: { values: ["fever"], quote: "ateşim var" },
+      pain_character: { values: ["pressure"], quote: "baskı gibi" },
+    });
+    expect(Object.keys(prefill)).toEqual(["complaint"]);
+  });
+
+  it("keeps the gated suggestion when the suggested complaint meets the gate", () => {
+    const prefill = prefillForPack(cardio, {
+      complaint: { values: ["pain"], quote: "göğsümde ağrı var" },
+      pain_character: { values: ["pressure"], quote: "baskı gibi" },
+    });
+    expect(Object.keys(prefill)).toEqual(["complaint", "pain_character"]);
+  });
+
+  it("drops a gated suggestion when the gating question itself has no suggestion", () => {
+    // The gate cannot be established from the transcript alone: the
+    // question will surface (or not) once the patient answers the gating
+    // question in the confirm flow — an unprovable suggestion never shows.
+    const prefill = prefillForPack(cardio, {
+      pain_character: { values: ["pressure"], quote: "baskı gibi" },
+      duration: { values: ["days"], quote: "birkaç gündür" },
+    });
+    expect(Object.keys(prefill)).toEqual(["duration"]);
+  });
+});

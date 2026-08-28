@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix chaos load
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -17,7 +17,7 @@ setup:
 check: check-py check-ts
 
 check-integration:
-	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav
+	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav hapi
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
 	OPENBAO_TOKEN=$${OPENBAO_TOKEN:-intake-dev-root} uv run pytest -m integration --no-header -q -p no:cacheprovider -o addopts=""
 
@@ -40,6 +40,14 @@ check-ts:
 # `make check` whenever these are stale.
 schemas-codegen:
 	uv run python -m clinical_schemas.codegen
+
+# INT-042: `protocols coverage` — the branch × resolution matrix over
+# packages/protocols/taxonomy/branches.yaml (files/09 §6 `taxonomy_coverage`;
+# CLAUDE.md invariant 13). Unstrict today: zero packs exist, so the matrix is
+# honestly all-MISSING. CI flips to `--strict` once the nine cluster packs
+# land (files/09 §2 P1) — then a branch resolving to nothing fails the build.
+coverage-matrix:
+	uv run protocols coverage
 
 dev:
 	$(COMPOSE) up -d --wait
@@ -100,3 +108,22 @@ obs:
 
 obs-down:
 	$(OBS_COMPOSE) down
+
+# INT-024: chaos harness (intake_platform.chaos). One first-class experiment
+# today: vendor_kill — kill the mock vendor adapter, assert the typed
+# fallback decision lands within 2 s and the resilience counters move.
+# files/10 §7 schedules these monthly in STAGING; no staging environment
+# exists yet, so this target is the standalone entry point and the scheduled
+# job arrives with the staging environment (docs/evidence/INT-024.md).
+chaos:
+	@test -n "$(EXPERIMENT)" || { echo "usage: make chaos EXPERIMENT=vendor_kill"; exit 2; }
+	uv run python -m intake_platform.chaos --experiment $(EXPERIMENT)
+
+# INT-024: k6 API smoke against a locally running services/api instance.
+# BASE_URL overrides the target (default http://127.0.0.1:8000); export
+# INTAKE_DEV_TOKEN_PATIENT to exercise the authed /v1 happy path. The CI job
+# ("staging profile") is deferred with the staging environment — the script
+# and this target are the real, runnable pieces today.
+load:
+	@command -v k6 >/dev/null || { echo "k6 is not installed (brew install k6)"; exit 2; }
+	k6 run -e BASE_URL=$${BASE_URL:-http://127.0.0.1:8000} scripts/load/k6-smoke.js

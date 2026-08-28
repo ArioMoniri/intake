@@ -25,6 +25,7 @@ import {
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { buildNote } from "@/lib/intake/note";
+import { missingQuestions, packForDepartment } from "@/lib/intake/questions";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -46,11 +47,20 @@ function ReviewAndSend() {
   const theme = useTheme();
   const headerOptions = useStackHeader();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const { account, notes, updateNote } = useSession();
+  const { account, notes, updateNote, visits } = useSession();
   const note = notes[visitId ?? ""];
 
   const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
-  if (!account || !note || (note.answers.length === 0 && !hasHealthBlock)) {
+  // A checkpointed session (02 §34) or a recorded deferral (02 §33) is a
+  // valid partial note even with zero answers — v2-partial is a product,
+  // not a failure (02 §2 "Partial value").
+  const checkpointed = note?.checkpointed === true;
+  const hasDeferral = (note?.deferred.length ?? 0) > 0;
+  if (
+    !account ||
+    !note ||
+    (note.answers.length === 0 && !hasHealthBlock && !checkpointed && !hasDeferral)
+  ) {
     return (
       <Screen edges={FLOW_EDGES}>
         <Stack.Screen options={headerOptions("")} />
@@ -61,8 +71,14 @@ function ReviewAndSend() {
     );
   }
 
-  const sections = buildNote(note.answers, account, note.healthLines);
+  const sections = buildNote(note.answers, account, note.healthLines, note.deferred);
   const sent = note.status === "sent";
+  // Eksik list for the checkpointed partial (02 §34): applicable and
+  // unanswered only — a gate-skipped question is skipped, not missing.
+  const visit = visits.find((v) => v.id === visitId);
+  const missing = checkpointed
+    ? missingQuestions(packForDepartment(visit?.department), note.answers)
+    : [];
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
@@ -78,6 +94,43 @@ function ReviewAndSend() {
           <AppText role="body" color="inkSoft">
             {t("review.intro")}
           </AppText>
+          {checkpointed && !sent ? (
+            // v2-partial (02 §34): the note as it stands, with an explicit
+            // eksik list naming what was not asked, and resume offered —
+            // the session ended by the clinic's clock, not the patient's.
+            <Card>
+              <Kicker label={t("review.eksik.title")} />
+              <Hairline />
+              <AppText role="caption" color="inkSoft">
+                {t("review.checkpointInfo")}
+              </AppText>
+              {missing.length > 0 ? (
+                <>
+                  <AppText role="caption" color="inkFaint">
+                    {t("review.eksik.intro")}
+                  </AppText>
+                  {missing.map((q) => (
+                    <AppText key={q.id} role="body" color="inkSoft">
+                      {t(q.titleKey)}
+                    </AppText>
+                  ))}
+                </>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  if (visitId) {
+                    updateNote(visitId, { type: "resume" });
+                    router.push(`/(tabs)/visits/${visitId}/intake`);
+                  }
+                }}
+              >
+                <AppText role="caption" color="primary">
+                  {t("review.resume")}
+                </AppText>
+              </Pressable>
+            </Card>
+          ) : null}
           {sections.map((section) => {
             const shared = note.scopes[section.id] !== false;
             // which intake question the pencil reopens; medications come from
