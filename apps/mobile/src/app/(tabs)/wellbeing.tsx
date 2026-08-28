@@ -5,13 +5,15 @@
  * frames the space without any screening items. Design pass 3: the frame is
  * a stack of Oura-style guidance blocks about the PRODUCT (how the space
  * will work, the privacy promise, share control) — no health advice, no
- * instrument content.
+ * instrument content. Design pass 6: sections separate on whitespace alone
+ * (Oura's explainer prose carries no hairlines — Mobbin b67baac0) and the
+ * screen's block wears the primer-badge mark.
  */
 import { ScrollView, StyleSheet } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
-import { AppText, Hairline, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { spacing } from "@/lib/theme";
@@ -29,17 +31,16 @@ export default function Wellbeing() {
         </AppText>
         <GuidanceBlock
           accent
+          icon="heart"
           kickerKey="wellbeing.guide.how.kicker"
           titleKey="wellbeing.guide.how.title"
           bodyKey="wellbeing.guide.how.body"
         />
-        <Hairline />
         <GuidanceBlock
           kickerKey="wellbeing.guide.privacy.kicker"
           titleKey="wellbeing.guide.privacy.title"
           bodyKey="wellbeing.guide.privacy.body"
         />
-        <Hairline />
         <GuidanceBlock
           kickerKey="wellbeing.guide.share.kicker"
           titleKey="wellbeing.guide.share.title"

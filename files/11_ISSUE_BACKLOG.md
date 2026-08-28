@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**192 issues.** By phase: P0 106 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 42 · todo 143 · withdrawn 1.
+**193 issues.** By phase: P0 107 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 43 · todo 143 · withdrawn 1.
 
 ## P0
 
@@ -108,6 +108,7 @@
 | INT-229 | Records upload UI: picker to scanned document list over the real pipeline | E07-records | INT-120, INT-197 | area:mobile | done |
 | INT-232 | Patient-facing consent routes: snapshot, grant, withdraw - seam-faithful to the INT-132 client | E01-platform | INT-038, INT-131 | area:api | done |
 | INT-233 | Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn confirm - LiveKit Talker remains the production path | E08-mobile | INT-198, INT-199 | area:mobile, area:voice | done |
+| INT-234 | Design pass 6: CTA saturation register (bone pill), tonal secondaries, focused-flow exits, glyph-badge empty states | E08-mobile | INT-209 | area:mobile | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | todo |

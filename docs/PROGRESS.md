@@ -324,3 +324,10 @@
 - Design pass 6 delivered on its branch (PR follows #278): the CTA saturation finding (Oura bone pill ~6% sat vs our teal slab 36% — five passes never measured it), tonal secondaries, focused-flow exits, glyph-badge empty states, tabular figures; 347/347 post-merge.
 - INT-233 spoken dialogue in PR #278: agent asks aloud, synchronous barge-in (no speaking+listening state representable), per-turn extract+confirm, digit guard swept across all ten packs, clip-cache lifecycle with the invariant-3 distinction stated.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T19:10:00+03:00 · INT-233 + INT-234 · done (PRs #278, #280) — wave 6 closed
+- Spoken intake dialogue merged: the owner's "disturbable voice interaction" at the dev tier — agent asks aloud from catalog tr strings, synchronous barge-in (no speaking+listening state representable), per-turn transcribe→extract→spoken confirm, per-turn text fallback, digit guard swept across all ten packs, session clip-cache with the invariant-3 distinction stated; production dialogue remains the LiveKit Talker.
+- Design pass 6 merged: the CTA saturation register (Oura bone pill ~6% sat vs our 36% teal slab — the loudest element, unmeasured by five passes), tonal borderless secondaries, back affordances on focused flows, glyph-badge empty states, tabular figures; zero existing hexes changed, added cta/onCta AA-pinned.
+- Wave 7 building: INT-042 taxonomy, INT-033 FHIR mappers, INT-024 chaos harness. Hızlı/Detaylı modes agent queued for the next free slot (02 §22-34).
+- Session tally: 30 issues landed end-to-end.
+- LOOP_STATUS: CONTINUE

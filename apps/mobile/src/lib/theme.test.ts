@@ -43,6 +43,11 @@ describe("palette", () => {
     // raised tone (draft chip, consent-off pill, record icon well).
     expect(contrast(c.inkSoft, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(c.ink, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+    // Design pass 6 (ADDED tokens): the neutral CTA pill — bone-on-dark /
+    // ink-on-paper — must clear AA for its label, and stay legible against
+    // both grounds it floats over.
+    expect(contrast(c.onCta, c.cta)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(c.cta, c.background)).toBeGreaterThanOrEqual(4.5);
   });
 });
 
