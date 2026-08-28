@@ -278,3 +278,9 @@
 - LiveKit dev tier merged CI-green: HS256 room tokens with the exact minimal grant surface (canPublishData explicitly false — livekit defaults absence to true; mic source only; TTL ≤600s), live-proven against the pinned v1.13.6 server (signature accepted, ListRooms permissions-denied, corrupted signature rejected). Audio-retention guard in three layers under INT-036's policy guard; recording made structurally impossible (no redis bus = egress workers cannot register). Apache-2.0 from the raw blob at the tag; zero new deps; room_tokens.py 100% stmt+branch.
 - Fleet: INT-038 consent service + INT-131 onboarding/auth still building.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T13:40:00+03:00 · INT-038 · done (PR #256)
+- Consent service merged CI-green: purpose registry verbatim from files/06 §2 (lane:acoustic rejected by name — ICF), text_hash bound to exact docs/legal bytes with fail-closed loading, withdrawal cascade synchronous in-transaction with a 30s-grid sweep bounding the crash window at 55s (schedule-property + fake-clock proofs), route-table scan pinning unguarded_data_routes == [] across the lazy included routers, structural unbundling pin. One evaluator serves guard and record checks so staleness cannot fork.
+- Awaiting-human recorded: docs/legal/consents texts do not exist (owner + counsel; blockers row) — every grant fails closed until they land; no consent copy was written by the machine.
+- Fleet: INT-131 onboarding/auth still building (last of wave 3).
+- LOOP_STATUS: CONTINUE

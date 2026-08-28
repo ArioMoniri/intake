@@ -381,7 +381,7 @@
   title: "Consent service: versioned objects, consent_guard middleware, re-prompt on change"
   depends_on: [INT-030]
   labels: [area:data, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "purposes exactly as 06 §4 (core, voice, wellbeing, lane:*, documents, learning:*, satisfaction, share:*, research); text_hash binds shown text; route-table scan test proves every data route declares scopes; withdrawal cascades within 1 min"
     - "consents are free, specific, informed, unbundled: UI cannot pre-tick, cannot gate core service on optional purposes (tests)"
