@@ -77,12 +77,16 @@ describe("shared dev-lane host probing (generalised from voice.ts)", () => {
 
 describe("toQuestionSpecs", () => {
   it("maps the cardio pack: option ids for chips/single, null for text", () => {
+    // INT-198 grew the cardio pack to the full 9-step OLDCARTS depth.
     expect(specs.map((s) => s.id)).toEqual([
       "complaint",
       "duration",
+      "onset",
       "pain_character",
+      "radiation",
       "trigger",
       "associated",
+      "severity",
       "extra",
     ]);
     expect(spec("complaint").kind).toBe("chips");
@@ -122,8 +126,14 @@ describe("validateExtractResponse (client mirrors the server rules)", () => {
   });
 
   it("drops candidates for question ids not in the pack", () => {
+    // neuro_character is a real question id from ANOTHER pack — cross-pack
+    // ids must be dropped exactly like invented ones.
     const result = validateExtractResponse(
-      { candidates: { onset: { values: ["sudden"], quote: "aniden" } }, dropped: [], model: "m" },
+      {
+        candidates: { neuro_character: { values: ["throbbing"], quote: "zonkluyor" } },
+        dropped: [],
+        model: "m",
+      },
       specs,
     );
     expect(result.ok).toBe(true);

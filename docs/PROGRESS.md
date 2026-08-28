@@ -226,3 +226,9 @@
 - Clinical-reviewer flags recorded in evidence (hemoptysis omission, ischemic radiation descriptors, neutral gyn/weight-loss options) — packs carry no red-flag logic by design (invariant 1).
 - Invariants: 1, 5, 17, 22; backlog consciously 183→184.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T07:20:00+03:00 · INT-199 · done
+- Goal: owner directive — "voice part and voice parsing is at the end and so minimal … mostly is text based" — voice becomes the FIRST-CLASS intake entry.
+- Result: fresh intake with voice consent opens with "Sesli anlatın": live ASR probe gate (fail → silent manual fallback) → free-speech recording → whisper transcript (invariant-3 file deletion, now also on the unreachable-base path — strictly tighter) → dev /extract with the visit's pack → client-re-validated candidates → one-question-per-turn confirm flow with the patient's verbatim words as provenance ("Söylediğiniz: …"); saved answers beat suggestions; every failure lands in the exact manual flow. 44 new tests; after INT-198 merge three stale cardio-pack expectations updated; 146 mobile tests + make check green.
+- Invariants: 1 (candidates are suggestions, never triage), 3, 5, 17; backlog consciously 184→185.
+- LOOP_STATUS: CONTINUE

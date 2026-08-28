@@ -110,12 +110,14 @@ describe("prefillForPack (transcript → intake state, cardio pack fixture)", ()
     complaint: { values: ["pain", "dyspnoea"], quote: "Göğsümde baskı var, nefesim daralıyor" },
     duration: { values: ["days"], quote: "birkaç gündür böyle" },
     onset: { values: ["sudden"], quote: "aniden başladı" },
+    // derm_character belongs to another pack — must be dropped, not reordered.
+    derm_character: { values: ["itchy"], quote: "kaşınıyor" },
     extra: { values: ["Merdiven çıkarken artıyor"], quote: "merdiven çıkarken artıyor" },
   };
 
   it("keeps only questions that exist in the pack, in pack order", () => {
     const prefill = prefillForPack(cardio, candidates);
-    expect(Object.keys(prefill)).toEqual(["complaint", "duration", "extra"]);
+    expect(Object.keys(prefill)).toEqual(["complaint", "duration", "onset", "extra"]);
   });
 
   it("carries values and the verbatim quote as provenance", () => {
