@@ -17,7 +17,7 @@ setup:
 check: check-py check-ts
 
 check-integration:
-	docker compose -f infra/docker-compose.dev.yml up -d --wait postgres openbao minio
+	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
 	OPENBAO_TOKEN=$${OPENBAO_TOKEN:-intake-dev-root} uv run pytest -m integration --no-header -q -p no:cacheprovider -o addopts=""
 
