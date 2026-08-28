@@ -301,6 +301,23 @@ export const tr = {
   "voice.processing": "Yazıya dökülüyor…",
   "voice.unreachable": "Ses sunucusuna şu an ulaşılamıyor.",
   "voice.permission": "Mikrofon izni gerekli.",
+  "voiceFirst.kicker": "Sesli anlatın",
+  "voiceFirst.title": "Şikâyetinizi kendi cümlelerinizle anlatın",
+  "voiceFirst.body":
+    "Konuşun, biz yazıya dökelim. Anlattıklarınız sorulara öneri olarak eklenir; her öneriyi tek tek siz onaylarsınız.",
+  "voiceFirst.checking": "Ses özelliği kontrol ediliyor…",
+  "voiceFirst.start": "Konuşmaya başlayın",
+  "voiceFirst.listening": "Sizi dinliyoruz.",
+  "voiceFirst.stop": "Bitirdim",
+  "voiceFirst.transcribing": "Anlattıklarınız yazıya dökülüyor…",
+  "voiceFirst.preparing": "Yanıt önerileri hazırlanıyor…",
+  "voiceFirst.preparingHint":
+    "Bu adım birkaç dakika sürebilir. Beklemek istemezseniz yazarak devam edebilirsiniz.",
+  "voiceFirst.typeInstead": "Yazarak devam edin",
+  "voiceFirst.cancel": "Vazgeçin, yazarak devam edin",
+  "voiceFirst.saidLabel": "Söylediğiniz:",
+  "voiceFirst.suggested": "Önerilen yanıt",
+  "voiceFirst.failed": "Ses özelliği şu an kullanılamadı. Yazarak devam edebilirsiniz.",
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
   "intake.skip": "Atlayın",
@@ -329,8 +346,38 @@ export const tr = {
   "consent.voice": "Sesli görüşme",
   "consent.wellbeing": "İyilik hâli taraması",
   "consent.documents": "Belge yükleme",
+  "consent.health": "Sağlık verisi okuma",
+  "consent.health.hint":
+    "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez. Bir veri, notunuza ancak siz eklerseniz girer.",
   "consent.on": "Açık",
   "consent.off": "Kapalı",
+
+  "me.health": "Sağlık verileri",
+  "health.guide.devBuild.kicker": "Deneme sürümü",
+  "health.guide.devBuild.title": "Bu sürümde kullanılamıyor",
+  "health.guide.devBuild.body":
+    "Telefonunuzdaki sağlık verilerini okumak için uygulamanın tam sürümü gerekir. Bu deneme sürümü sağlık verilerine erişemez; verileriniz olduğu yerde durur.",
+  "health.unsupported": "Bu cihazda sağlık verisi okunamıyor.",
+  "health.permissionDenied":
+    "Sağlık verilerine erişim izni verilmemiş. İzni telefonunuzun ayarlarından verebilirsiniz.",
+  "health.loading": "Sağlık verileri okunuyor…",
+  "health.readFailed": "Veriler şu an okunamadı. Daha sonra yeniden deneyin.",
+  "health.noData": "Son 7 günde okunacak veri bulunamadı.",
+  "health.steps.label": "Adımlar (son 7 gün)",
+  "health.rhr.label": "Dinlenme nabzı",
+  "health.sleep.label": "Uyku (gecelik ortalama)",
+  "health.unit.steps": "adım",
+  "health.unit.bpm": "atım/dk",
+  "health.unit.hours": "saat",
+  "health.attach.cta": "Vizite ekleyin",
+  "health.attach.confirm": "Bu özet, vizit notunuzun taslağına eklensin mi?",
+  "health.attach.yes": "Evet, ekleyin",
+  "health.attach.no": "Vazgeçin",
+  "health.attach.done": "Özet, vizit notunuzun taslağına eklendi.",
+  "health.attach.noVisit": "Eklemek için önce bir vizit oluşturun.",
+  "review.section.health": "Cihaz sağlık verisi",
+  // [REVIEW] fixed provenance line on the attached device-health block
+  "review.healthProvenance": "Cihaz sağlık verisi — hasta onayıyla eklendi.",
 } as const;
 
 export type MessageKey = keyof typeof tr;
