@@ -13,6 +13,7 @@ import { type ReactNode } from "react";
 import { StyleSheet, View, useColorScheme } from "react-native";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/components/Themed";
 import { glassFallback, spacing } from "@/lib/theme";
@@ -25,19 +26,23 @@ try {
 }
 
 /** Scroll-content bottom padding that keeps the last row reachable. */
-export const GLASS_BAR_CLEARANCE = 108;
+export const GLASS_BAR_CLEARANCE = 128;
 
 export function GlassBar({ children }: { children: ReactNode }) {
   const theme = useTheme();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const insets = useSafeAreaInsets();
   const fallback = glassFallback(scheme);
-  const inner = <View style={styles.inner}>{children}</View>;
+  // Design pass 4: the bar owns the physical bottom edge (host screens drop
+  // the bottom safe edge), so the home-indicator zone is inside the glass.
+  const inner = (
+    <View style={[styles.inner, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+      {children}
+    </View>
+  );
   if (liquidGlass) {
     return (
-      <GlassView
-        glassEffectStyle="regular"
-        style={[styles.bar, { borderTopColor: theme.border }]}
-      >
+      <GlassView glassEffectStyle="regular" style={[styles.bar, { borderTopColor: theme.border }]}>
         {inner}
       </GlassView>
     );
@@ -70,6 +75,5 @@ const styles = StyleSheet.create({
   inner: {
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md,
-    paddingBottom: spacing.md,
   },
 });

@@ -6,9 +6,10 @@
  */
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
-import { AppText, Card, Screen } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
 import { getLocale, t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -18,7 +19,7 @@ export default function Records() {
   const { account } = useSession();
   const records = account?.records ?? [];
   return (
-    <Screen>
+    <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText role="hero" style={styles.heroLine}>
           {t("records.title")}
@@ -38,7 +39,8 @@ export default function Records() {
                 <AppText role="caption" color="inkSoft">
                   {formatVisitDate(record.date, getLocale())}
                 </AppText>
-                <AppText role="body">{record.title}</AppText>
+                {/* Card hierarchy (pass 4): serif title / sans caption meta. */}
+                <AppText role="title">{record.title}</AppText>
                 <AppText role="caption" color="inkFaint">
                   {t("records.synthetic")}
                 </AppText>
@@ -52,7 +54,7 @@ export default function Records() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.xl, paddingBottom: spacing.xl },
-  heroLine: { marginTop: spacing.lg },
+  content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
+  heroLine: { marginTop: spacing.xl },
   section: { gap: spacing.md },
 });

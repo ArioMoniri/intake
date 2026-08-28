@@ -1699,6 +1699,29 @@
     - "floating glass CTA bars on intake/review; kicker pills + hairline dividers across cards; wellbeing/records/learned empty states become product-copy guidance blocks (tr+en, no clinical content); display leading 1.2 vs body 1.4 pinned; the found AA regression (primary on primarySoft) fixed by hex and added to the pinned contrast suite; all tests green with no invariant weakened"
   tests: [apps/mobile/e2e/nav.spec.ts, apps/mobile/src/lib/theme.test.ts]
   sec_row: "mobile"
+- id: INT-196
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 4: js-tabs floating pill rail, Oura-measured register (radius,
+    padding, Inter body), Tabs.Protected consent gate'
+  depends_on:
+  - INT-195
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - FloatingTabBar pill on expo-router/js-tabs replaces native tabs (owner decision
+    2026-08-28 recorded in-file and in docs/design/mobile-ui.md); rail unmounts on
+    intake/review so GlassBar is the only bottom chrome; wellbeing route unregistered
+    via Tabs.Protected when consent is off (verified live); Mobbin-measured register
+    deltas applied (card radius 24, hero 32, Card padding 24, scrim 0.55, unboxed
+    kickers, chevrons, dark filled chips, serif record titles, welcome quiet-secondary
+    CTA); Inter (OFL) body with explicit weight mapping, Newsreader display kept;
+    no palette hex changed (pinned AA suite untouched); all tests green
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
 - id: INT-180
   epic: E12-admin
   phase: P0

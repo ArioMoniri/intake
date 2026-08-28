@@ -8,8 +8,17 @@
 import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
-import { AppText, Card, Hairline, PrimaryButton, Screen, useTheme } from "@/components/Themed";
+import {
+  AppText,
+  Card,
+  Hairline,
+  PrimaryButton,
+  RAIL_EDGES,
+  Screen,
+  useTheme,
+} from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -88,7 +97,7 @@ export default function Me() {
     return null;
   }
   return (
-    <Screen>
+    <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText role="hero" style={styles.heroLine}>
           {t("me.title")}
@@ -142,8 +151,8 @@ export default function Me() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
-  heroLine: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  heroLine: { marginTop: spacing.xl, marginBottom: spacing.sm },
   consentCard: { gap: spacing.sm + 2 },
   consentRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   consentPill: {

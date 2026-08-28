@@ -9,14 +9,15 @@
  */
 import { ScrollView, StyleSheet } from "react-native";
 
+import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
-import { AppText, Hairline, Screen } from "@/components/Themed";
+import { AppText, Hairline, RAIL_EDGES, Screen } from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { spacing } from "@/lib/theme";
 
 export default function Wellbeing() {
   return (
-    <Screen>
+    <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText role="hero" style={styles.heroLine}>
           {t("wellbeing.title")}
@@ -48,6 +49,6 @@ export default function Wellbeing() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.xl, paddingBottom: spacing.xl },
-  heroLine: { marginTop: spacing.lg },
+  content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
+  heroLine: { marginTop: spacing.xl },
 });

@@ -9,7 +9,7 @@ import { StyleSheet, View } from "react-native";
 
 import { GlassCard } from "@/components/GlassCard";
 import { Kicker } from "@/components/Kicker";
-import { AppText, PrimaryButton, Screen } from "@/components/Themed";
+import { AppText, PrimaryButton, Screen, SecondaryButton } from "@/components/Themed";
 import { testAccounts } from "@/lib/dev/accounts";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -30,16 +30,22 @@ export default function Welcome() {
       {__DEV__ ? (
         <GlassCard style={styles.devCard}>
           <Kicker label={t("welcome.devSignIn")} />
-          {testAccounts.map((account) => (
-            <PrimaryButton
-              key={account.id}
-              label={account.name}
-              onPress={() => {
-                signIn(account);
-                router.replace("/(tabs)/today");
-              }}
-            />
-          ))}
+          {testAccounts.map((account, index) => {
+            // ONE saturated CTA per screen (02 §5.2; Oura stacks primary +
+            // quiet secondary) — the first account is the primary, the rest
+            // are quiet pills.
+            const Button = index === 0 ? PrimaryButton : SecondaryButton;
+            return (
+              <Button
+                key={account.id}
+                label={account.name}
+                onPress={() => {
+                  signIn(account);
+                  router.replace("/(tabs)/today");
+                }}
+              />
+            );
+          })}
           <AppText role="caption" color="inkFaint">
             {t("welcome.devNote")}
           </AppText>

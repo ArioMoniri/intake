@@ -60,21 +60,36 @@ export type ThemeColors = (typeof palette)[ColorScheme];
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 20 } as const;
 
-/** Softer, larger geometry (Oura register); CTAs are full pills. */
-export const radius = { card: 20, control: 999, hero: 28, chip: 999 } as const;
+/**
+ * Softer, larger geometry; CTAs are full pills. Design pass 4 (measured
+ * against Mobbin Oura captures): cards 24, hero surfaces 32 — Oura's dark
+ * cards are visibly rounder than our pass-3 20/28.
+ */
+export const radius = { card: 24, control: 999, hero: 32, chip: 999 } as const;
 
 /** Motion budget (02 §5.2a): fades only, and only this long. */
 export const motion = { fadeMs: 120 } as const;
 
 /**
- * Display face: Fraunces (OFL 1.1 — commercially usable; loaded as an app
- * asset via @expo-google-fonts/fraunces in the root layout) for hero/title
+ * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app
+ * asset via @expo-google-fonts/newsreader in the root layout) for hero/title
  * lines — the Oura-register soft serif. Body stays system sans. Platform
  * serif names remain as the pre-load fallback chain.
  */
 export const fonts = {
-  display: "Fraunces_600SemiBold",
+  display: "Newsreader_600SemiBold",
   displayFallback: { ios: "Georgia", android: "serif", default: "serif" },
+  /**
+   * Body sans: Inter (OFL 1.1 — commercially usable; loaded via
+   * @expo-google-fonts/inter in the root layout). Design pass 4: Oura's UI
+   * sans is Inter-class — rounder apertures and a taller x-height than the
+   * platform faces — so body/label/caption roles carry it explicitly.
+   * Weights are separate loaded families; Themed.tsx maps fontWeight →
+   * family (custom fonts on iOS do not synthesize weights reliably).
+   */
+  sans: "Inter_400Regular",
+  sansMedium: "Inter_500Medium",
+  sansSemiBold: "Inter_600SemiBold",
 } as const;
 
 /**
@@ -105,9 +120,11 @@ export function glassFallback(scheme: ColorScheme): {
 /**
  * Letter tracking (design pass 3, Oura register): kickers/eyebrows breathe
  * with a wide caption; everything else stays untracked. Never pair this with
- * a case transform (İ/ı rule) — the tracking IS the emphasis.
+ * a case transform (İ/ı rule) — the tracking IS the emphasis. Pass 4 widened
+ * 0.5 → 0.8 against the Mobbin captures: Oura's smallcaps eyebrows track
+ * wider than our pass-3 pills read.
  */
-export const tracking = { kicker: 0.5 } as const;
+export const tracking = { kicker: 0.8 } as const;
 
 /** Base sizes at fontScale 1.0. Body 17 matches the platform default. */
 export const typeScale = {
