@@ -1877,6 +1877,33 @@
   tests:
   - tests/security/test_document_store.py
   sec_row: identifiers
+- id: INT-229
+  epic: E07-records
+  phase: P0
+  title: 'Records upload UI: picker to scanned document list over the real
+    pipeline'
+  depends_on:
+  - INT-120
+  - INT-197
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - Kayitlarim gains a consent-gated Belge yukleyin flow - expo-document-picker
+    (MIT blob verified) limited to the server allow-list, client pre-checks
+    mirroring pdf/jpeg/png + 20 MiB with the server as enforcer, sha256 via
+    noble/hashes, declare then raw-byte ingest through the API (presigned MinIO
+    URLs are server-loopback and never fetched from a device); outcomes honest
+    (Taraniyor for quarantined, Hazir clean opens via browser url fetch,
+    Reddedildi rejected with calm copy, 503 fails closed); documents hang off a
+    server visit - ensureServerVisit bridges the session-local visit at upload
+    time only; dev-tier fixture accounts keep the synthetic list with NO upload
+    affordance and an honest dev note (pinned); tr first + en mirror; no
+    filename on the wire
+  tests:
+  - apps/mobile/src/lib/records/api.test.ts
+  - apps/mobile/src/lib/records/screen.test.ts
+  sec_row: records
 - id: INT-232
   epic: E01-platform
   phase: P0
