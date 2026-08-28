@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "description": "Net promoter score (INT-240; files/08 §4 group F nps.monthly; emitted\nvia POST /feedback/nps, files/03 §6). Standard NPS 0-10 scale.",
+  "properties": {
+    "schema_id": {
+      "const": "intake.clinical.nps.v1",
+      "default": "intake.clinical.nps.v1",
+      "description": "Versioned event id per the TS schemaId convention.",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "score": {
+      "description": "NPS 0-10 (files/08 §4 group F nps.monthly).",
+      "maximum": 10,
+      "minimum": 0,
+      "title": "Score",
+      "type": "integer"
+    },
+    "tenant_id": {
+      "description": "Owning tenant (INT-030 events.tenant_id).",
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "score"
+  ],
+  "title": "NpsV1",
+  "type": "object"
+}

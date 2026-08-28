@@ -296,6 +296,7 @@
   acceptance:
     - "PreVisitNote, PatientSummary, ExtractedRecordItem, ConsentScope, TriageResult, SessionState, PatientOverlay, ObserverState, Proposal; events csat.v1, nps.v1, clinician_pulse.v1, audit.v1, security.v1; TS generated from OpenAPI"
   tests: [tests/schemas/test_roundtrip.py]
+  sec_row: "clinical-core"
 - id: INT-032
   epic: E02-data
   phase: P3
