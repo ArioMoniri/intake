@@ -1263,7 +1263,7 @@
   title: "Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE"
   depends_on: [INT-130, INT-012, INT-013]
   labels: [area:mobile, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "OTP limits per 10 §2; App Attest/Play Integrity on OTP+session; refresh rotation with reuse detection; biometric gate; clinical screens FLAG_SECURE; jailbreak -> typed+warn"
   tests: [apps/mobile/e2e/auth.spec.ts, tests/security/test_otp_abuse.py]

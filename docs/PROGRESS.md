@@ -284,3 +284,10 @@
 - Awaiting-human recorded: docs/legal/consents texts do not exist (owner + counsel; blockers row) — every grant fails closed until they land; no consent copy was written by the machine.
 - Fleet: INT-131 onboarding/auth still building (last of wave 3).
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T14:30:00+03:00 · INT-131 · done (PR #258) — wave 3 closed
+- Onboarding/auth merged CI-green: OTP per files/10 §2 (all windows clock-injected), tokens as hashed opaque randoms bound to the client key thumbprint, DPoP with single-use jti + ath, refresh rotation where replay revokes the family (audited) but wrong-key presentation refuses without revocation; pseudonym-only patient rows; X-Intake-Auth-Tier honest (otp vs dev, dev accounts pinned working). Mobile onboarding in the pass-5 register with biometric gate/SecureStore/FLAG_SECURE/jailbreak-warn; cert-pinning config plugin wired for the next dev build.
+- The INT-038 route scan refused the new auth routes as designed; resolved with an explicit pre_auth() declaration the scan accepts only under /v1/auth (exact-list + negative-control pins) — no silent routes, no borrowed exemptions.
+- Awaiting-human (recorded): SMS vendor, App Attest/Play Integrity keys (HB-A3), pin certs, hardware-backed DPoP key module, consent texts (INT-210), #233 workflow command, Xcode iOS platform (disk-gated).
+- Session tally: 16 issues landed end-to-end this session.
+- LOOP_STATUS: CONTINUE
