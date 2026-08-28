@@ -22,6 +22,7 @@ export const en: Record<MessageKey, string> = {
     "This screen exists only in development builds; real sign-in uses phone verification.",
 
   "today.nextVisit": "Next visit",
+  "today.prep": "Visit preparation",
   "today.prepareCta": "Prepare for the visit (≈3 min)",
   "today.continueCta": "Continue",
   "today.noVisit": "No visit scheduled.",

@@ -39,6 +39,10 @@ describe("palette", () => {
     expect(contrast(c.emergency, c.emergencySoft)).toBeGreaterThanOrEqual(4.5);
     // Kickers, sent chips and scope pills set primary text on the soft wash.
     expect(contrast(c.primary, c.primarySoft)).toBeGreaterThanOrEqual(4.5);
+    // Design pass 5: tonal chips/pills and icon wells put soft ink on the
+    // raised tone (draft chip, consent-off pill, record icon well).
+    expect(contrast(c.inkSoft, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(c.ink, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
   });
 });
 
@@ -60,8 +64,9 @@ describe("dynamic type", () => {
   it("line height: display roles sit tight (1.2×), reading roles keep diacritic room (1.4×)", () => {
     // Design pass 3: the serif display collapses at book leading; body text
     // keeps 1.4 so Turkish diacritics (ğ, ş, İ) never clip at reading sizes.
+    // Pass 5 adds `display` (big numerals) to the tight set.
     for (const role of Object.keys(typeScale) as (keyof typeof typeScale)[]) {
-      const factor = role === "hero" || role === "title" ? 1.2 : 1.4;
+      const factor = role === "display" || role === "hero" || role === "title" ? 1.2 : 1.4;
       expect(lineHeight(role, 1.0)).toBe(Math.round(typeScale[role] * factor));
     }
   });

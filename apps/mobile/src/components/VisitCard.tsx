@@ -69,11 +69,9 @@ export function VisitCard({
           style={styles.chevron}
         />
       ) : null}
-      <AppText
-        role="caption"
-        color={hero ? "primary" : "inkSoft"}
-        style={hero ? styles.heroDate : undefined}
-      >
+      {/* Design pass 5: the hero date is tracked but INK — Oura spends the
+          accent once per screen, and here that moment is the CTA below. */}
+      <AppText role="caption" color="inkSoft" style={hero ? styles.heroDate : undefined}>
         {formatVisitDate(visit.date, getLocale())}
       </AppText>
       <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>

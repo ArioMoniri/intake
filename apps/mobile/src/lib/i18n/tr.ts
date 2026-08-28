@@ -28,6 +28,7 @@ export const tr = {
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
 
   "today.nextVisit": "Sıradaki vizit",
+  "today.prep": "Vizit hazırlığı",
   "today.prepareCta": "Muayeneye hazırlanın (≈3 dk)",
   "today.continueCta": "Devam edin",
   "today.noVisit": "Planlanmış bir vizitiniz yok.",
