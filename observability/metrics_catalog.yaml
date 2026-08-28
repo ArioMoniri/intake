@@ -83,3 +83,13 @@ metrics:
     labels: [implementation, major, minor, patchlevel, version]
     owner: platform
     description: Python interpreter build information (prometheus_client platform collector).
+  - name: document_upload_pipeline_total
+    type: counter
+    labels: [outcome, reason]
+    owner: records
+    description: >-
+      Upload pipeline outcomes (INT-120; files/10 §9 records signals).
+      Emitted by intake_platform.uploads.UploadPipeline. outcome is one of
+      promoted / rejected / already-processed / scan-unavailable; reason is
+      the closed RejectReason code for rejections and "none" otherwise —
+      enumerations only, never content (invariant 6).

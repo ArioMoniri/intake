@@ -77,9 +77,12 @@ __all__ = [
     "DocumentStoreError",
     "InvalidKeySegmentError",
     "NoScanConfiguredError",
+    "ObjectPayload",
+    "ObjectStat",
     "ObjectStorageClient",
     "PresignTtlError",
     "PresignedUpload",
+    "QuarantineMissingError",
     "ScanVerdict",
     "Scanner",
     "WormMisconfiguredError",
@@ -96,6 +99,14 @@ PRESIGN_TTL_CAP = timedelta(minutes=15)
 _QUARANTINE = "quarantine"
 _CLEAN = "clean"
 _INFECTED = "infected"
+# Policy rejections (sniff mismatch, size, unknown type — INT-120). Distinct
+# from infected/ so forensics can tell malware from malformed; both are
+# equally unservable (presigned_get signs clean/ only).
+_REJECTED = "rejected"
+
+# S3 error codes that mean "the object is not there" as opposed to a real
+# storage failure; anything else propagates.
+_MISSING_OBJECT_CODES = frozenset({"NoSuchKey", "NoSuchObject"})
 
 # One path segment of an object key: id-shaped, no separators, bounded so the
 # full key stays inside the audit log's 128-char resource_ref shape.
@@ -162,6 +173,13 @@ class DevScannerForbiddenError(DocumentStoreError):
     env is absent, or the environment is prod."""
 
 
+class QuarantineMissingError(DocumentStoreError):
+    """The addressed quarantine object does not exist. The INT-120 worker
+    treats an already-promoted/rejected document as a no-op *before* calling
+    the promotion path, so reaching this means the id is wrong or the object
+    vanished — loud, never silent."""
+
+
 class DocumentState(enum.Enum):
     QUARANTINED = "quarantined"
     CLEAN = "clean"
@@ -217,6 +235,24 @@ class DevNullScanner:
         return ScanVerdict.CLEAN
 
 
+class ObjectPayload(Protocol):
+    """What a fetched object hands back: the bytes, and a way to let the
+    connection go. urllib3's response object satisfies this; unit-lane fakes
+    carry the bytes directly."""
+
+    def read(self) -> bytes: ...
+
+    def close(self) -> None: ...
+
+
+class ObjectStat(Protocol):
+    """The one field the store needs from a HEAD: the size, so the INT-120
+    limit check runs *before* any byte is pulled into memory."""
+
+    @property
+    def size(self) -> int | None: ...
+
+
 class ObjectStorageClient(Protocol):
     """The narrow slice of the S3 client the store uses, call-compatible with
     :class:`minio.Minio` (pinned by :func:`as_object_storage` under mypy).
@@ -249,6 +285,10 @@ class ObjectStorageClient(Protocol):
     def remove_object(
         self, bucket_name: str, object_name: str, version_id: str | None = ...
     ) -> None: ...
+
+    def stat_object(self, bucket_name: str, object_name: str) -> ObjectStat: ...
+
+    def get_object(self, bucket_name: str, object_name: str) -> ObjectPayload: ...
 
     def presigned_get_object(
         self, bucket_name: str, object_name: str, expires: timedelta = ...
@@ -471,6 +511,167 @@ class DocumentStore:
     def _move(self, src_key: str, dst_key: str) -> None:
         self._client.copy_object(self._bucket_docs, dst_key, CopySource(self._bucket_docs, src_key))
         self._client.remove_object(self._bucket_docs, src_key)
+
+    # --- quarantine promotion path (INT-120) --------------------------------------
+
+    def _document_key(
+        self, prefix: str, tenant_id: str, patient_pseudonym: str, document_id: str
+    ) -> str:
+        _require_segment("tenant_id", tenant_id)
+        _require_segment("patient_pseudonym", patient_pseudonym)
+        _require_segment("document_id", document_id)
+        return f"{prefix}/{tenant_id}/{patient_pseudonym}/{document_id}"
+
+    def _object_exists(self, key: str) -> bool:
+        try:
+            self._client.stat_object(self._bucket_docs, key)
+        except S3Error as err:
+            if err.code in _MISSING_OBJECT_CODES:
+                return False
+            raise
+        return True
+
+    def document_state(
+        self, tenant_id: str, patient_pseudonym: str, document_id: str
+    ) -> DocumentState | None:
+        """Where a document currently sits, by prefix — the INT-120 worker's
+        idempotency check. ``None`` means the id resolves nowhere."""
+        for prefix, state in (
+            (_CLEAN, DocumentState.CLEAN),
+            (_INFECTED, DocumentState.REJECTED),
+            (_REJECTED, DocumentState.REJECTED),
+            (_QUARANTINE, DocumentState.QUARANTINED),
+        ):
+            if self._object_exists(
+                self._document_key(prefix, tenant_id, patient_pseudonym, document_id)
+            ):
+                return state
+        return None
+
+    def quarantined_size(self, tenant_id: str, patient_pseudonym: str, document_id: str) -> int:
+        """Size of a quarantined object from a HEAD — the limit check runs on
+        this *before* any byte is pulled into memory (files/10 §4)."""
+        key = self._document_key(_QUARANTINE, tenant_id, patient_pseudonym, document_id)
+        try:
+            stat = self._client.stat_object(self._bucket_docs, key)
+        except S3Error as err:
+            if err.code in _MISSING_OBJECT_CODES:
+                raise QuarantineMissingError(
+                    "the addressed quarantine object does not exist; ids only, the key "
+                    "is not echoed"
+                ) from err
+            raise
+        size = stat.size
+        if size is None:
+            raise DocumentStoreError(
+                "object store returned no size for an object it just described"
+            )
+        return size
+
+    def read_quarantined(
+        self, tenant_id: str, patient_pseudonym: str, document_id: str, *, consent_scope_ref: str
+    ) -> bytes:
+        """Fetch quarantined bytes for the scan pass. A read of clinical data,
+        so it carries a consent scope and lands in the audit chain
+        (invariant 4); the entry holds the key, never the bytes."""
+        key = self._document_key(_QUARANTINE, tenant_id, patient_pseudonym, document_id)
+        try:
+            payload = self._client.get_object(self._bucket_docs, key)
+        except S3Error as err:
+            if err.code in _MISSING_OBJECT_CODES:
+                raise QuarantineMissingError(
+                    "the addressed quarantine object does not exist; ids only, the key "
+                    "is not echoed"
+                ) from err
+            raise
+        try:
+            data = payload.read()
+        finally:
+            payload.close()
+            release = getattr(payload, "release_conn", None)
+            if callable(release):
+                release()
+        self._audit("document.scan_read", key, consent_scope_ref)
+        return data
+
+    def release_quarantined(
+        self,
+        tenant_id: str,
+        patient_pseudonym: str,
+        document_id: str,
+        file_bytes: bytes,
+        *,
+        content_type: str,
+        consent_scope_ref: str,
+    ) -> DocumentRef:
+        """Promote a scanned-clean quarantined object under ``clean/``.
+
+        The clean object is *rewritten* (not copied): the stored content type
+        becomes the sniffed canonical one, never whatever the presigned PUT
+        claimed — a payload served with an attacker-chosen content type is a
+        browser-side gadget. Defence in depth: the canonical type must still
+        be on the store allow-list, so a drifted pipeline cannot widen what
+        ``presigned_get`` will ever serve.
+        """
+        quarantine_key = self._document_key(_QUARANTINE, tenant_id, patient_pseudonym, document_id)
+        if content_type not in ALLOWED_CONTENT_TYPES:
+            raise ContentTypeNotAllowedError(
+                "content type is outside the allow-list "
+                f"({', '.join(sorted(ALLOWED_CONTENT_TYPES))}); the offered value is "
+                "not echoed here"
+            )
+        if not self._object_exists(quarantine_key):
+            raise QuarantineMissingError(
+                "cannot promote: the addressed quarantine object does not exist"
+            )
+        clean_key = self._document_key(_CLEAN, tenant_id, patient_pseudonym, document_id)
+        self._client.put_object(
+            self._bucket_docs,
+            clean_key,
+            io.BytesIO(file_bytes),
+            len(file_bytes),
+            content_type=content_type,
+            sse=self._sse,
+        )
+        self._client.remove_object(self._bucket_docs, quarantine_key)
+        self._audit("document.released", clean_key, consent_scope_ref)
+        return DocumentRef(
+            tenant_id=tenant_id,
+            patient_pseudonym=patient_pseudonym,
+            document_id=document_id,
+            bucket=self._bucket_docs,
+            key=clean_key,
+            content_type=content_type,
+            size_bytes=len(file_bytes),
+            sha256=hashlib.sha256(file_bytes).hexdigest(),
+            state=DocumentState.CLEAN,
+        )
+
+    def reject_quarantined(
+        self,
+        tenant_id: str,
+        patient_pseudonym: str,
+        document_id: str,
+        *,
+        reason_code: str,
+        malware: bool,
+        consent_scope_ref: str,
+    ) -> str:
+        """Move a quarantined object aside as rejected — ``infected/`` for a
+        malware verdict (forensics parity with :meth:`put_document`),
+        ``rejected/`` for policy refusals. The audit entry carries the reason
+        *code* only (invariant 6): ``document.rejected.<reason_code>``."""
+        _require_segment("reason_code", reason_code)
+        quarantine_key = self._document_key(_QUARANTINE, tenant_id, patient_pseudonym, document_id)
+        if not self._object_exists(quarantine_key):
+            raise QuarantineMissingError(
+                "cannot reject: the addressed quarantine object does not exist"
+            )
+        prefix = _INFECTED if malware else _REJECTED
+        dst_key = self._document_key(prefix, tenant_id, patient_pseudonym, document_id)
+        self._move(quarantine_key, dst_key)
+        self._audit(f"document.rejected.{reason_code}", dst_key, consent_scope_ref)
+        return dst_key
 
     # --- signed URLs --------------------------------------------------------------
 
