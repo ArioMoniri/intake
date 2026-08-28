@@ -73,6 +73,9 @@ class ConsentText:
     version: str
     text_hash: str  # SHA-256 hex over the exact file bytes
     path: Path
+    # The shown Turkish copy (everything after the front matter) — what the
+    # patient-facing surfaces render; the hash still covers the WHOLE file.
+    body: str
 
 
 def text_filename(purpose_id: str) -> str:
@@ -81,7 +84,8 @@ def text_filename(purpose_id: str) -> str:
     return purpose_id.replace(":", ".") + ".tr.md"
 
 
-def _parse_version(path: Path, raw: bytes) -> str:
+def _parse(path: Path, raw: bytes) -> tuple[str, str]:
+    """(version, body) from the file contract, or a fail-closed error."""
     try:
         lines = raw.decode("utf-8").splitlines()
     except UnicodeDecodeError as exc:
@@ -102,7 +106,7 @@ def _parse_version(path: Path, raw: bytes) -> str:
     body = "\n".join(lines[close_at + 1 :])
     if not body.strip():
         raise ConsentTextInvalidError(f"{path}: no consent copy after front matter")
-    return version
+    return version, body
 
 
 class ConsentTextCatalog:
@@ -128,12 +132,13 @@ class ConsentTextCatalog:
                 f"no consent text for purpose {purpose!r} at {path} — texts are authored "
                 "into docs/legal by INT-210; nothing may be granted without one"
             ) from exc
-        version = _parse_version(path, raw)
+        version, body = _parse(path, raw)
         return ConsentText(
             purpose=purpose,
             version=version,
             text_hash=hashlib.sha256(raw).hexdigest(),
             path=path,
+            body=body,
         )
 
     def try_entry(self, scope: str) -> ConsentText | None:
