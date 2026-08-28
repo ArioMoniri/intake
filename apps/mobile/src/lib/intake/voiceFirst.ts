@@ -26,6 +26,11 @@ export type VoiceIntakeState =
   | { phase: "recording" }
   | { phase: "transcribing" }
   | { phase: "extracting" }
+  /** Spoken dialogue mode (INT-233): the turn engine in lib/dialogue owns
+   * the per-step flow; this machine only holds the door. `failure` from
+   * here lands in the manual steps WITH the notice, `skip` quietly —
+   * answers are committed per step, so nothing is lost either way. */
+  | { phase: "dialogue" }
   | { phase: "steps"; prefill: PrefillMap; failed: boolean };
 
 export type VoiceIntakeAction =
@@ -35,6 +40,8 @@ export type VoiceIntakeAction =
   | { type: "stop" }
   | { type: "transcript" }
   | { type: "candidates"; prefill: PrefillMap }
+  /** The offer's second primary path: turn-by-turn spoken dialogue. */
+  | { type: "dialogue" }
   | { type: "failure" }
   | { type: "skip" };
 
@@ -59,6 +66,8 @@ export function voiceIntakeReducer(
       return state.phase === "gate" ? MANUAL : state;
     case "record":
       return state.phase === "offer" ? { phase: "recording" } : state;
+    case "dialogue":
+      return state.phase === "offer" ? { phase: "dialogue" } : state;
     case "stop":
       return state.phase === "recording" ? { phase: "transcribing" } : state;
     case "transcript":

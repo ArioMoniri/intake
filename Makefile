@@ -27,7 +27,8 @@ check-py:
 	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src services/api/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
-	uv run pytest tests/protocols --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
+	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
+	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 
 check-ts:
 	pnpm -r lint

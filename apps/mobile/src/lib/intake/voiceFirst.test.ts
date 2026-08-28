@@ -105,6 +105,43 @@ describe("voiceIntakeReducer", () => {
   });
 });
 
+describe("voiceIntakeReducer — spoken dialogue entry (INT-233)", () => {
+  it("the offer's second path opens the dialogue mode", () => {
+    expect(run({ phase: "offer" }, { type: "dialogue" })).toEqual({ phase: "dialogue" });
+  });
+
+  it("dialogue is only reachable from the offer", () => {
+    expect(run({ phase: "gate" }, { type: "dialogue" })).toEqual({ phase: "gate" });
+    expect(run({ phase: "recording" }, { type: "dialogue" })).toEqual({ phase: "recording" });
+    const steps: VoiceIntakeState = { phase: "steps", prefill: {}, failed: false };
+    expect(run(steps, { type: "dialogue" })).toEqual(steps);
+  });
+
+  it("a dialogue failure lands in the manual steps WITH the notice — answers are already committed per step", () => {
+    expect(run({ phase: "dialogue" }, { type: "failure" })).toEqual({
+      phase: "steps",
+      prefill: {},
+      failed: true,
+    });
+  });
+
+  it("leaving the dialogue by choice lands in the manual steps quietly", () => {
+    expect(run({ phase: "dialogue" }, { type: "skip" })).toEqual({
+      phase: "steps",
+      prefill: {},
+      failed: false,
+    });
+  });
+
+  it("stale one-shot actions never move the dialogue", () => {
+    const dialogue: VoiceIntakeState = { phase: "dialogue" };
+    expect(run(dialogue, { type: "record" })).toEqual(dialogue);
+    expect(run(dialogue, { type: "transcript" })).toEqual(dialogue);
+    expect(run(dialogue, { type: "candidates", prefill: {} })).toEqual(dialogue);
+    expect(run(dialogue, { type: "voice_ready" })).toEqual(dialogue);
+  });
+});
+
 describe("prefillForPack (transcript → intake state, cardio pack fixture)", () => {
   const candidates = {
     complaint: { values: ["pain", "dyspnoea"], quote: "Göğsümde baskı var, nefesim daralıyor" },

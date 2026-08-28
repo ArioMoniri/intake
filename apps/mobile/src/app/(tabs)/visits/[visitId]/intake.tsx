@@ -31,6 +31,7 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { DialogueIntake } from "@/components/DialogueIntake";
 import { VoiceFirstIntake } from "@/components/VoiceFirstIntake";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
@@ -101,6 +102,19 @@ export default function TypedIntake() {
             intakeQuestions={intakeQuestions}
             prefill={voiceState.prefill}
             voiceFailed={voiceState.failed}
+          />
+        ) : voiceState.phase === "dialogue" ? (
+          // Spoken dialogue mode (INT-233): turn-by-turn voice over the
+          // same pack. Answers commit per step, so leaving the dialogue —
+          // by choice (skip) or on a service failure — resumes these exact
+          // manual steps at the first unanswered question, nothing lost.
+          <DialogueIntake
+            visitId={visitId}
+            questions={intakeQuestions}
+            packName={visit?.department ?? "general"}
+            onExit={(reason) =>
+              dispatchVoice(reason === "failure" ? { type: "failure" } : { type: "skip" })
+            }
           />
         ) : (
           <VoiceFirstIntake

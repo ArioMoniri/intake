@@ -802,7 +802,7 @@
   title: "Deterministic triage engine (levels, monotonic merge, action scripts)"
   depends_on: [INT-040]
   labels: [area:safety, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "rules only; LLM candidates cap at YELLOW_REVIEW and can never lower a level (type-level); action scripts verbatim"
   tests: [tests/safety/test_triage_engine.py]
@@ -1931,6 +1931,40 @@
   tests:
   - tests/api/test_consent_routes.py
   sec_row: consent
+- id: INT-233
+  epic: E08-mobile
+  phase: P0
+  title: 'Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn
+    confirm - LiveKit Talker remains the production path'
+  depends_on:
+  - INT-198
+  - INT-199
+  labels:
+  - area:mobile
+  - area:voice
+  status: done
+  acceptance:
+  - 'a second voice path Karsilikli konusarak ilerleyin beside the one-shot flow
+    - the agent SPEAKS each pack question (FreyaTTS dev bridge; option hints
+    enumerated only up to four options per the Cowan bound, longer lists defer
+    to the screen), tap on the speech surface stops playback synchronously in
+    the same JS tick and opens the mic (barge-in; the reducer admits no
+    speaking+listening state so overlapping audio is structurally impossible);
+    answers transcribed and extracted per single question; confirm turn speaks
+    a short prompt with the candidate pre-selected; text fallback per turn and
+    a patient already typing is never ejected by a late async failure; every
+    dialogue failure lands in the manual step without losing answers; agent
+    speech only from catalog tr strings; assertSpeakableTr throws on any digit
+    before every synthesize call with a sweep test across all ten packs
+    (invariant 22); TTS clips cached per session under cacheDirectory/dialogue
+    and the whole dir deleted on unmount and session end - agent-voice clips,
+    with the invariant-3 patient-audio posture untouched and the distinction
+    stated in code and evidence; dev-tier honesty stated (production dialogue
+    is the LiveKit Talker per files/03 and files/13)'
+  tests:
+  - apps/mobile/src/lib/dialogue/turn.test.ts
+  - apps/mobile/src/lib/dialogue/tts.test.ts
+  sec_row: mobile
 - id: INT-180
   epic: E12-admin
   phase: P0

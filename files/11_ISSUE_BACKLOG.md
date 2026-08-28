@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**191 issues.** By phase: P0 105 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 40 · todo 144 · withdrawn 1.
+**192 issues.** By phase: P0 106 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 42 · todo 143 · withdrawn 1.
 
 ## P0
 
@@ -60,7 +60,7 @@
 | INT-058 | Signed protocol bundles: cosign sign + runtime verification + per-session hash pin | E03-protocols | INT-041, INT-019 | area:protocols, risk:security | todo |
 | INT-059 | Triage golden suite >=200 + mutation tests | E03-protocols | INT-080 | area:protocols, risk:clinical | todo |
 | INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | todo |
-| INT-080 | Deterministic triage engine (levels, monotonic merge, action scripts) | E04-engines | INT-040 | area:safety, risk:clinical | todo |
+| INT-080 | Deterministic triage engine (levels, monotonic merge, action scripts) | E04-engines | INT-040 | area:safety, risk:clinical | done |
 | INT-081 | IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays | E04-engines | INT-080, INT-056 | area:engine | todo |
 | INT-082 | Patient simulator: personas + scenarios IM-01..IM-14 headless | E04-engines | INT-081 | area:engine | todo |
 | INT-083 | Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set | E04-engines | INT-081, INT-015 | area:ai | todo |
@@ -107,6 +107,7 @@
 | INT-197 | Dev-tier API slice: dev-bearer accounts, visits/notes/documents over RLS with audit, consent and envelope encryption | E01-platform | INT-030, INT-034 | area:api | done |
 | INT-229 | Records upload UI: picker to scanned document list over the real pipeline | E07-records | INT-120, INT-197 | area:mobile | done |
 | INT-232 | Patient-facing consent routes: snapshot, grant, withdraw - seam-faithful to the INT-132 client | E01-platform | INT-038, INT-131 | area:api | done |
+| INT-233 | Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn confirm - LiveKit Talker remains the production path | E08-mobile | INT-198, INT-199 | area:mobile, area:voice | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | todo |
