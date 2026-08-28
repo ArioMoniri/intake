@@ -48,8 +48,11 @@ DEV_PATIENT_PSEUDONYM = "dev." + hashlib.sha256(b"intake-dev-tier-patient").hexd
 
 # The scopes this slice checks (invariant 4): visits/notes read under `core`,
 # document flows under `documents`, note sharing under `share:previsit_note`
-# (06 §4 naming). INT-038's consent service replaces this seeded grant with
-# real, patient-managed consent objects.
+# (files/06 §2 naming). These seed rows are UNBOUND on purpose: no docs/legal
+# text exists yet (INT-210, awaiting-human), so they carry no text_hash — and
+# the INT-038 guard treats them as stale (absent, re-prompt) the moment the
+# canonical text for their purpose lands. Real accounts (INT-131) grant only
+# through intake_platform.consent.grant_consent, which refuses without a text.
 DEV_CONSENT_SCOPES = ("core", "documents", "share:previsit_note")
 DEV_CONSENT_VERSION = "int197-dev.1"
 

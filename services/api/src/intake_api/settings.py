@@ -7,7 +7,8 @@ connects with)."""
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 __all__ = ["ApiSettings"]
@@ -37,6 +38,11 @@ class ApiSettings:
     audit_db_url: str
     bootstrap_db_url: str
     kek_mode: KekMode
+    # Where the consent texts live (INT-038; invariant 18: texts render only
+    # from docs/legal with hash binding). The default points at the repo's
+    # legal tree; until INT-210 authors the texts the directory is absent and
+    # the consent service fails closed on every new grant.
+    legal_root: Path = field(default_factory=lambda: Path("docs/legal/consents"))
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -60,4 +66,5 @@ class ApiSettings:
                 os.environ.get("POSTGRES_PASSWORD", "intake-dev-only"),
             ),
             kek_mode=kek_mode,
+            legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
         )
