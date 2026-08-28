@@ -76,3 +76,18 @@ PROBE_RESULTS_FILE ?= .cache/probe-results.json
 release-gate:
 	uv run python -m intake_probes.runner --once --out $(PROBE_RESULTS_FILE)
 	uv run python scripts/release/release_gate.py --registry observability/registry.yaml --results $(PROBE_RESULTS_FILE)
+
+# INT-023: local observability stack — compose profile `obs` (Prometheus,
+# Grafana, Loki, Tempo, OTel collector, Unleash, Keycloak, GlitchTip).
+# Dev tier only: loopback ports, dev-only credentials overridable via env.
+# CI never boots it; tests/observability/test_obs_compose.py validates the
+# file statically.
+OBS_COMPOSE := docker compose -f infra/docker-compose.obs.yml --profile obs
+
+.PHONY: obs obs-down
+
+obs:
+	$(OBS_COMPOSE) up -d --build --wait
+
+obs-down:
+	$(OBS_COMPOSE) down

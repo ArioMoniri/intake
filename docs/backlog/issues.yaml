@@ -194,7 +194,7 @@
   title: "security.yml CI job: full gate set + signing"
   depends_on: [INT-002]
   labels: [area:ci, risk:security]
-  status: todo
+  status: doing
   acceptance:
     - "gitleaks, semgrep+bandit, eslint-security, trivy fs/image/IaC + osv-scanner fail on critical/high, checkov, license allow-list (AGPL flagged), syft SBOM artifact, cosign keyless signing + SLSA provenance for images and protocol bundles on tags, schemathesis fuzz, PHI-pattern scan of fixtures"
     - "`make security` runs the same list locally; planted secret, planted critical CVE and planted PHI each fail (proved in evidence, then reverted)"
@@ -233,7 +233,7 @@
   title: "services/probes: synthetic checks + self-hosting registry + release gate"
   depends_on: [INT-010, INT-021]
   labels: [area:observability]
-  status: doing
+  status: done
   acceptance:
     - "registry table {component,self_hostable,self_hosted_now,host,license,probe,budget_ms,fallback,phi_path}; 60s runner with real dev checks (DB, Redis, MinIO, HAPI, OpenBao seal, LiveKit room join, cert expiry, backup freshness; EHRbase joins in P3 per 00 D8)"
     - "release-gate script blocks when an enabled phi_path component lacks a healthy self-hosted fallback"
@@ -246,7 +246,7 @@
   title: "Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "compose profile obs; flags via OpenFeature with in-memory provider default and Unleash provider behind config; Keycloak realm export for dev; GlitchTip DSN wired behind flag with PHI-scrub tests"
   tests: [tests/observability/test_flags_provider.py]
@@ -279,7 +279,7 @@
   title: "Postgres schema + Alembic + RLS per tenant + pgaudit"
   depends_on: [INT-013, INT-014]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "core tables (patients pseudonymised, sessions, slots, notes, consents, shares, documents, events) with RLS by tenant and role; pgaudit on; least-privilege roles"
     - "RLS tests prove tenant A cannot read tenant B even with SQL"
@@ -331,7 +331,7 @@
   title: "MinIO document store: signed URLs + AV hook + WORM audit bucket"
   depends_on: [INT-016]
   labels: [area:data]
-  status: todo
+  status: doing
   acceptance:
     - "short-TTL signed URLs; server-side encryption; object-lock on audit bucket; bucket policies least-privilege"
   tests: [tests/data/test_signed_urls.py]
