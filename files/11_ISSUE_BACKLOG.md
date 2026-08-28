@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 30 · todo 152 · withdrawn 1.
+**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 34 · todo 148 · withdrawn 1.
 
 ## P0
 
@@ -32,13 +32,13 @@
 | INT-024 | k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s) | E01-platform | INT-022 | area:observability | todo |
 | INT-025 | Metrics catalogue as code + completeness test | E01-platform | INT-011 | area:observability | done |
 | INT-030 | Postgres schema + Alembic + RLS per tenant + pgaudit | E02-data | INT-013, INT-014 | area:data | done |
-| INT-031 | clinical-schemas: pydantic models + TS codegen + event schemas | E02-data | INT-030 | area:data | todo |
+| INT-031 | clinical-schemas: pydantic models + TS codegen + event schemas | E02-data | INT-030 | area:data | done |
 | INT-033 | HAPI FHIR exchange: mappers internal<->R4 + validation | E02-data | INT-031 | area:data | todo |
 | INT-034 | MinIO document store: signed URLs + AV hook + WORM audit bucket | E02-data | INT-016 | area:data | done |
 | INT-035 | Redis streams event bus + consumer framework + DLQ | E02-data | INT-031 | area:platform | todo |
-| INT-036 | Retention & destruction engine (policy as code, 6-month periodic destruction, logs) | E02-data | INT-030 | area:data, risk:legal | todo |
+| INT-036 | Retention & destruction engine (policy as code, 6-month periodic destruction, logs) | E02-data | INT-030 | area:data, risk:legal | done |
 | INT-037 | DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker | E02-data | INT-014, INT-033 | area:data, risk:legal | todo |
-| INT-038 | Consent service: versioned objects, consent_guard middleware, re-prompt on change | E02-data | INT-030 | area:data, risk:legal | todo |
+| INT-038 | Consent service: versioned objects, consent_guard middleware, re-prompt on change | E02-data | INT-030 | area:data, risk:legal | done |
 | INT-040 | Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields) | E03-protocols | INT-031 | area:protocols | todo |
 | INT-041 | Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic | E03-protocols | INT-040, INT-033 | area:protocols | todo |
 | INT-042 | Taxonomy: all MHRS branches + clusters + visit types + coverage CLI | E03-protocols | INT-040 | area:protocols | todo |
@@ -66,7 +66,7 @@
 | INT-083 | Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set | E04-engines | INT-081, INT-015 | area:ai | todo |
 | INT-084 | Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer | E04-engines | INT-083, INT-033 | area:engine, risk:legal | todo |
 | INT-085 | Patient summary (B1 Turkish) + reading-level check | E04-engines | INT-084 | area:engine | todo |
-| INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | todo |
+| INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | done |
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | todo |
 | INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | todo |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | todo |

@@ -444,12 +444,51 @@ class Consent(Base):
             REC_AUDITOR,
         ),
     )
+    text_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        info=inv(
+            CAT_CONSENT,
+            "SHA-256 of the exact docs/legal consent text shown (invariant 18; "
+            "files/06 §2 text_hash); NULL only on pre-INT-038 dev-tier seed rows, "
+            "which the guard treats as stale the moment a canonical text exists",
+            BASIS_LEGAL_OBLIGATION,
+            RET_CONSENT_AUDIT,
+            REC_AUDITOR,
+        ),
+    )
     granted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         info=inv(
             CAT_CONSENT,
             "grant instant (proof of when açık rıza was given)",
+            BASIS_LEGAL_OBLIGATION,
+            RET_CONSENT_AUDIT,
+            REC_AUDITOR,
+        ),
+    )
+    channel: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        info=inv(
+            CAT_CONSENT,
+            "collection surface — app|kiosk|clinician|admin|web (files/06 §1 "
+            "KVKK-10: layered aydınlatma per channel; files/06 §2 channel); "
+            "NULL only on pre-INT-038 dev-tier seed rows",
+            BASIS_LEGAL_OBLIGATION,
+            RET_CONSENT_AUDIT,
+            REC_AUDITOR,
+        ),
+    )
+    evidence_ref: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        info=inv(
+            CAT_CONSENT,
+            "id of the acceptance-evidence record (files/06 §2 evidence) — an "
+            "id, never the evidence itself (invariant 6); NULL only on "
+            "pre-INT-038 dev-tier seed rows",
             BASIS_LEGAL_OBLIGATION,
             RET_CONSENT_AUDIT,
             REC_AUDITOR,

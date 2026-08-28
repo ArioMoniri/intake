@@ -17,7 +17,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from intake_platform.db.models import (
-    Consent,
     Document,
     IntakeSession,
     Note,
@@ -41,7 +40,6 @@ __all__ = [
     "get_document_row",
     "get_note_row",
     "get_visit",
-    "has_consent",
     "list_document_rows",
     "list_visits",
     "live_share",
@@ -85,24 +83,10 @@ def _is_live(share: Share, now: datetime) -> bool:
     return share.revoked_at is None and _aware(share.expires_at) > now
 
 
-# --- consent (invariant 4) ------------------------------------------------------------
-
-
-async def has_consent(
-    session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID, scope: str
-) -> bool:
-    stmt = (
-        select(Consent.id)
-        .where(
-            Consent.tenant_id == tenant_id,
-            Consent.patient_id == patient_id,
-            Consent.scope == scope,
-            Consent.revoked_at.is_(None),
-        )
-        .limit(1)
-    )
-    return (await session.scalar(stmt)) is not None
-
+# Consent checks moved to intake_platform.consent (INT-038): the guard and
+# the record-level route checks share ONE evaluator, so a text-staleness
+# refusal cannot fork between paths. A raw existence query here would be a
+# staleness-blind second opinion — deliberately removed.
 
 # --- visits ----------------------------------------------------------------------------
 

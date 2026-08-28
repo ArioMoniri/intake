@@ -7,7 +7,8 @@ connects with)."""
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 __all__ = ["ApiSettings"]
@@ -52,6 +53,11 @@ class ApiSettings:
     tokenization_key_id: str = "v1"
     dev_otp_peek: bool = False
     dev_allow_unattested: bool = False
+    # Where the consent texts live (INT-038; invariant 18: texts render only
+    # from docs/legal with hash binding). The default points at the repo's
+    # legal tree; until INT-210 authors the texts the directory is absent and
+    # the consent service fails closed on every new grant.
+    legal_root: Path = field(default_factory=lambda: Path("docs/legal/consents"))
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -86,4 +92,5 @@ class ApiSettings:
             tokenization_key_id=os.environ.get(ENV_TOKENIZATION_KEY_ID) or "v1",
             dev_otp_peek=os.environ.get(ENV_DEV_OTP_PEEK) == EXPLICIT_YES,
             dev_allow_unattested=os.environ.get(ENV_DEV_ALLOW_UNATTESTED) == EXPLICIT_YES,
+            legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
         )

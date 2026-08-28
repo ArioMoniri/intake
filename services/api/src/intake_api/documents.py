@@ -52,9 +52,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from intake_api import store
 from intake_api.audit import AuditWriter
 from intake_api.auth import Principal, require_patient
+from intake_api.consent_guard import require_scopes
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DevAccount
-from intake_api.errors import consent_required, not_found
+from intake_api.errors import not_found
 from intake_api.state import ApiState, State
 
 __all__ = ["DocumentsConfig", "DocumentsGateway", "router"]
@@ -218,15 +219,6 @@ async def _own_visit_or_404(
     return record
 
 
-async def _require_documents_consent(
-    session: AsyncSession, principal: DevAccount, patient_id: uuid.UUID
-) -> None:
-    if not await store.has_consent(
-        session, tenant_id=principal.tenant_id, patient_id=patient_id, scope=DOCUMENTS_SCOPE
-    ):
-        raise consent_required(DOCUMENTS_SCOPE)
-
-
 def _gateway(state: ApiState) -> DocumentsGateway:
     if state.documents is None:
         raise HTTPException(status_code=503, detail={"error": "documents_unconfigured"})
@@ -236,7 +228,12 @@ def _gateway(state: ApiState) -> DocumentsGateway:
 # --- endpoints -------------------------------------------------------------------------------
 
 
-@router.post("", response_model=DocumentSlotOut, status_code=201)
+@router.post(
+    "",
+    response_model=DocumentSlotOut,
+    status_code=201,
+    dependencies=[require_scopes(DOCUMENTS_SCOPE)],
+)
 async def mint_upload_slot(
     visit_id: uuid.UUID, payload: DocumentCreate, principal: Principal, state: State
 ) -> DocumentSlotOut:
@@ -250,7 +247,6 @@ async def mint_upload_slot(
 
     async with tenant_session(state.engine, patient.tenant_id) as session:
         await _own_visit_or_404(session, patient, visit_id)
-        await _require_documents_consent(session, patient, patient_id)
         slot = await gateway.presigned_upload(
             tenant_id=patient.tenant_id,
             patient_ref=patient_id.hex,
@@ -287,14 +283,13 @@ async def mint_upload_slot(
         )
 
 
-@router.get("", response_model=list[DocumentOut])
+@router.get("", response_model=list[DocumentOut], dependencies=[require_scopes(DOCUMENTS_SCOPE)])
 async def list_documents(
     visit_id: uuid.UUID, principal: Principal, state: State
 ) -> list[DocumentOut]:
     patient, patient_id = require_patient(principal)
     async with tenant_session(state.engine, patient.tenant_id) as session:
         await _own_visit_or_404(session, patient, visit_id)
-        await _require_documents_consent(session, patient, patient_id)
         rows = await store.list_document_rows(
             session, tenant_id=patient.tenant_id, visit_id=visit_id
         )
@@ -316,7 +311,11 @@ async def list_documents(
         ]
 
 
-@router.put("/{doc_id}/content", response_model=DocumentIngestOut)
+@router.put(
+    "/{doc_id}/content",
+    response_model=DocumentIngestOut,
+    dependencies=[require_scopes(DOCUMENTS_SCOPE)],
+)
 async def ingest_content(
     visit_id: uuid.UUID, doc_id: uuid.UUID, request: Request, principal: Principal, state: State
 ) -> DocumentIngestOut:
@@ -328,7 +327,6 @@ async def ingest_content(
     result: DocumentIngestOut | None = None
     async with tenant_session(state.engine, patient.tenant_id) as session:
         await _own_visit_or_404(session, patient, visit_id)
-        await _require_documents_consent(session, patient, patient_id)
         row = await store.get_document_row(
             session, tenant_id=patient.tenant_id, visit_id=visit_id, doc_id=doc_id
         )
@@ -392,7 +390,11 @@ async def ingest_content(
     return result
 
 
-@router.get("/{doc_id}/url", response_model=DownloadUrlOut)
+@router.get(
+    "/{doc_id}/url",
+    response_model=DownloadUrlOut,
+    dependencies=[require_scopes(DOCUMENTS_SCOPE)],
+)
 async def download_url(
     visit_id: uuid.UUID, doc_id: uuid.UUID, principal: Principal, state: State
 ) -> DownloadUrlOut:
@@ -400,7 +402,6 @@ async def download_url(
     gateway = _gateway(state)
     async with tenant_session(state.engine, patient.tenant_id) as session:
         await _own_visit_or_404(session, patient, visit_id)
-        await _require_documents_consent(session, patient, patient_id)
         row = await store.get_document_row(
             session, tenant_id=patient.tenant_id, visit_id=visit_id, doc_id=doc_id
         )
