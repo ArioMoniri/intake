@@ -257,7 +257,7 @@
   title: "k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s)"
   depends_on: [INT-022]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "k6 API smoke in CI (staging profile); documented lk load-test recipe; chaos harness kills a mock vendor adapter and asserts typed fallback within 2s and metrics emitted"
   tests: [tests/chaos/test_vendor_kill_fallback.py]

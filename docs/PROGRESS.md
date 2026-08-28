@@ -336,3 +336,7 @@
 - Taxonomy landed: taxonomy/branches.yaml seeds all MHRS branches from 09 §1 (verify_live_list true), every branch resolves to a cluster, `protocols coverage` CLI renders the honest zero-coverage matrix, and an unknown booked branch fails the pinned test. Invariant 13's "every branch resolves" gate is now mechanical.
 - Wave 7 remainder: INT-024 chaos re-merged after a .PHONY union conflict (CI re-running); INT-033 FHIR mappers resumed after a watchdog stall; INT-235 voice-chat UI and INT-236 adaptive packs + Hızlı/Detaylı modes building.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-024 merged (PR #284)
+- Chaos harness landed: `make chaos EXPERIMENT=<id>` runs staged fault experiments; the vendor-kill experiment proves the typed fallback engages in ~2 µs against the 2 s bound, recorded as a measurement in docs/evidence/ (invariant 20 wording respected). Re-merged after a .PHONY union conflict with the taxonomy PR.
+- LOOP_STATUS: CONTINUE
