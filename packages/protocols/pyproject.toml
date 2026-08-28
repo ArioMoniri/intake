@@ -1,7 +1,7 @@
 [project]
 name = "intake-protocols"
 version = "0.1.0"
-description = "Protocol DSL v2 (INT-040): pydantic schema, YAML loader, monotonicity/voice/instrument validator"
+description = "Protocol DSL v2 (INT-040): schema/loader/validator + branch taxonomy and coverage CLI (INT-042)"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.8",
@@ -10,6 +10,11 @@ dependencies = [
     # the DSL and TriageResult can never disagree about the RED axes.
     "intake-clinical-schemas",
 ]
+
+[project.scripts]
+# INT-042: `protocols coverage` — the CLI behind `make coverage-matrix`
+# (files/09 §6 `taxonomy_coverage`; CLAUDE.md invariant 13).
+protocols = "protocols.cli:main"
 
 [build-system]
 requires = ["hatchling"]

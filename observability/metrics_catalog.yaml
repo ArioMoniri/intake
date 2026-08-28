@@ -171,6 +171,48 @@ metrics:
       (schema_invalid). reason is the closed DeadLetterReason code — never
       exception text, which could carry PHI (invariant 6). Emitted by
       intake_platform.event_bus.Consumer (INT-035).
+  # --- live series (INT-024): chaos harness + vendor degradation router ------
+  - name: vendor_adapter_failures_total
+    type: counter
+    labels: [adapter]
+    owner: platform
+    unit: "count"
+    description: >-
+      Vendor adapter calls that failed, by adapter id. Emitted by
+      intake_platform.chaos.DegradationRouter at the provider-agnostic
+      adapter seam (AdapterProbe contract); the sec_row `resilience`
+      failure signal.
+  - name: vendor_adapter_fallbacks_total
+    type: counter
+    labels: [adapter, mode]
+    owner: platform
+    unit: "count"
+    description: >-
+      Fallback decisions handed to callers after a vendor adapter failure,
+      by adapter id and fallback mode. mode is the closed RouteMode
+      enumeration; `typed` is the degrade-to-text tier (ADR-010). Emitted
+      by intake_platform.chaos.DegradationRouter (INT-024).
+  - name: vendor_fallback_latency_seconds
+    type: histogram
+    labels: [adapter]
+    owner: platform
+    unit: "s"
+    target: "<= 2 s (INT-024 acceptance bound)"
+    description: >-
+      Seconds from the failing vendor call's start to the fallback decision
+      reaching the caller. Emitted by
+      intake_platform.chaos.DegradationRouter; the vendor_kill experiment
+      asserts the 2 s bound over this measurement.
+  - name: chaos_experiment_runs_total
+    type: counter
+    labels: [experiment, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      Chaos experiment executions, by experiment id and outcome (pass/fail).
+      files/10 §7: chaos results are tracked as metrics. Emitted by
+      intake_platform.chaos.run_vendor_kill via `make chaos
+      EXPERIMENT=<id>` (INT-024).
   # --- files/08 §4 A. Availability & SLOs — planned until the SLO attainment pipeline lands
   - name: slo_api_availability
     id: slo.api_availability
