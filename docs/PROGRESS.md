@@ -212,3 +212,17 @@
 - Blocked on: physician (#185); owner: licence blobs.
 - Next: merge this + #230 + #228; API slice (INT-197) and voice-first intake (INT-199) agents.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T05:45:00+03:00 · INT-034 · done (PR #230) + INT-196 merged (PR #232)
+- INT-034 merged CI-green after two coordinator fixes: check-integration now boots minio (the compose service existed; the --wait list did not include it) and a setup-uv manifest-fetch flake re-run. WORM retention proven against live MinIO in CI as well as locally.
+- INT-196 (design pass 4) merged CI-green after the evidence gate correctly demanded a make check record — ran the full local fan-out (exit 0) and recorded it rather than paraphrasing.
+- INT-019: #223 and #228 refs both drop CI events; work rebased onto current main (fresh shas, .PHONY union resolved, 46/46 tests/ci green post-rebase) and reopened as #233.
+- Fleet 3/3: dept packs (INT-198 scope), voice-first intake (INT-199 scope), API slice (INT-197 scope).
+- LOOP_STATUS: CONTINUE
+
+### 2026-08-28T06:40:00+03:00 · INT-198 · done
+- Goal: owner directive — "questions asked in previsit per department is not complete or correct … too short and not department based".
+- Result: 10 department packs at full OLDCARTS depth (Kardiyoloji/İç Hastalıkları 9, Nöroloji 9, KBB 8, Ortopedi 9, Dermatoloji 9, Göğüs 9, Kadın-Doğum 8, Üroloji 8, Göz 9, Gastro 9 steps), folded-ASCII regex resolution tested through Turkish diacritic spellings, allQuestions as canonical anamnesis order with every pack a pinned subsequence (HPI lines follow interview order), no numerals in any label (invariant 22 pinned), ~140 tr keys with key-for-key en mirror. note.ts unchanged — ordering authority lives in allQuestions. 102 mobile tests green; make check exit 0 after main merge.
+- Clinical-reviewer flags recorded in evidence (hemoptysis omission, ischemic radiation descriptors, neutral gyn/weight-loss options) — packs carry no red-flag logic by design (invariant 1).
+- Invariants: 1, 5, 17, 22; backlog consciously 183→184.
+- LOOP_STATUS: CONTINUE
