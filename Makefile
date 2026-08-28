@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen chaos load
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -100,3 +100,22 @@ obs:
 
 obs-down:
 	$(OBS_COMPOSE) down
+
+# INT-024: chaos harness (intake_platform.chaos). One first-class experiment
+# today: vendor_kill — kill the mock vendor adapter, assert the typed
+# fallback decision lands within 2 s and the resilience counters move.
+# files/10 §7 schedules these monthly in STAGING; no staging environment
+# exists yet, so this target is the standalone entry point and the scheduled
+# job arrives with the staging environment (docs/evidence/INT-024.md).
+chaos:
+	@test -n "$(EXPERIMENT)" || { echo "usage: make chaos EXPERIMENT=vendor_kill"; exit 2; }
+	uv run python -m intake_platform.chaos --experiment $(EXPERIMENT)
+
+# INT-024: k6 API smoke against a locally running services/api instance.
+# BASE_URL overrides the target (default http://127.0.0.1:8000); export
+# INTAKE_DEV_TOKEN_PATIENT to exercise the authed /v1 happy path. The CI job
+# ("staging profile") is deferred with the staging environment — the script
+# and this target are the real, runnable pieces today.
+load:
+	@command -v k6 >/dev/null || { echo "k6 is not installed (brew install k6)"; exit 2; }
+	k6 run -e BASE_URL=$${BASE_URL:-http://127.0.0.1:8000} scripts/load/k6-smoke.js
