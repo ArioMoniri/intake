@@ -1804,6 +1804,32 @@
   - apps/mobile/src/lib/health/capability.test.ts
   - apps/mobile/src/lib/health/format.test.ts
   sec_row: mobile
+- id: INT-209
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 5: numeric focal point (PrepGauge), Oura table anatomy, stack
+    headers, serif weight and accent budget'
+  depends_on:
+  - INT-196
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - measured gap list against fresh Mobbin Oura captures recorded in
+    docs/design/mobile-ui.md before any change; Bugun gains a pure-View
+    semicircular PrepGauge with a 56pt serif completion numeral via
+    Intl.NumberFormat percent (tr and en forms) and fontScale-safe layout;
+    Profilim and Kayitlarim move to ListGroup/ListRow table anatomy (56pt rows,
+    36pt tonal icon wells, inset hairlines, chevrons, headers outside groups,
+    group footers, radius.group 16); pushed screens gain a ground-coloured stack
+    header with back affordance; display serif 600 to 500; accent budget cut to
+    the Oura register (arc and numeral in ink); surfaceRaised tokens ADDED with
+    the AA suite extended and zero existing palette hexes changed; rail icon 20
+    with micro 11 role; 181 tests green after merging INT-198/199/208
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
 - id: INT-197
   epic: E01-platform
   phase: P0
