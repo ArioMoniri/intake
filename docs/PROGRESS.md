@@ -253,3 +253,10 @@
 - INT-120 flip to done here; INT-197 was filed done in its own PR. OCR engine + sandbox tech need an ADR (builder refused to embed a parser in-process — correct per files/10).
 - Fleet 3/3: INT-025 metrics catalogue, INT-031 clinical schemas, INT-036 retention engine. Design pass 5 (INT-209) packaging next.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T10:45:00+03:00 · INT-209 · done
+- Goal: owner directive, fifth repetition — "still ui and fonts n shapes not close enough to oura ui … copy the oura style as much as possible" (dedicated design agent, measurement-first).
+- Result: the biggest structural gap closed — Bugün now leads with a numeric focal point (pure-View PrepGauge semicircle, 56pt serif completion numeral via Intl.NumberFormat percent, fontScale-safe); Profilim/Kayıtlarım moved from card stacks to Oura table anatomy (ListGroup/ListRow, 56pt rows, icon wells, inset hairlines, chevrons, headers outside groups); pushed screens gained stack headers with back affordances (a real navigation gap); display serif 600→500; accent budget cut to ~one teal moment per screen (gauge in ink); surfaceRaised tokens added with the AA suite extended — zero existing hexes changed. 181/181 tests + make check green with INT-197/198/199/208/120 all merged in.
+- Found and frozen honestly: light success/successSoft measures 4.35:1 (shipped since INT-130) — needs a dedicated palette iteration, flagged in docs/design/mobile-ui.md.
+- Invariants: 5 (keys added only), 17, 18; motion budget kept; backlog consciously 188→189.
+- LOOP_STATUS: CONTINUE
