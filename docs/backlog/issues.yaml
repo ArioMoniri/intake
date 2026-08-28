@@ -2589,7 +2589,7 @@
   - INT-233
   labels:
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'owner directive: a chat interface showing what each side says with realtime
     parsing into muayene sections - two-sided bubble transcript (in-place ASR

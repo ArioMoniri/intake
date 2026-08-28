@@ -350,3 +350,7 @@
 ## 2026-08-28 — INT-236 merged (PR #288)
 - Owner directive landed at the dev tier: askIf adaptive gates as serializable data mirroring the DSL (four structurally-obvious gates; clinical-judgment gates refused and listed for pack owners), dynamic applicable-question progress, Hızlı/Detaylı modes per 02 §22-34 — privacy self-check with the verbatim deferral marker, instant Sıranız geldi checkpoint to a v2-partial review with zero lost answers. Pack-layer helpers exported; the dialogue surface inherits gating through them.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-235 merged (PR #290)
+- The karşılıklı konuşma surface landed: two-sided live transcript with in-place ASR replacement and inline states, ask-ahead turn advance with reconcile-behind by work id (the "soru hazırlanıyor" wait eliminated), multi-question extract absorption with skip-of-answered, session clip pre-warm, persistent typed composer, realtime "Not oluşuyor" section sheet with quote provenance. Union with INT-236 proven: 456/456 mobile tests. Simulator visual pass deferred to the next design round.
+- LOOP_STATUS: CONTINUE
