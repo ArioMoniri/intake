@@ -802,7 +802,7 @@
   title: "Deterministic triage engine (levels, monotonic merge, action scripts)"
   depends_on: [INT-040]
   labels: [area:safety, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "rules only; LLM candidates cap at YELLOW_REVIEW and can never lower a level (type-level); action scripts verbatim"
   tests: [tests/safety/test_triage_engine.py]
