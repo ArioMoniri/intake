@@ -70,8 +70,10 @@ export function VisitCard({
         />
       ) : null}
       {/* Design pass 5: the hero date is tracked but INK — Oura spends the
-          accent once per screen, and here that moment is the CTA below. */}
-      <AppText role="caption" color="inkSoft" style={hero ? styles.heroDate : undefined}>
+          accent once per screen, and here that moment is the CTA below.
+          Pass 6: dates carry tabular figures so day numbers hold a steady
+          column in stacked lists (Oura microtypography). */}
+      <AppText role="caption" color="inkSoft" style={[styles.date, hero ? styles.heroDate : null]}>
         {formatVisitDate(visit.date, getLocale())}
       </AppText>
       <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>
@@ -97,5 +99,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     gap: spacing.sm,
   },
+  date: { fontVariant: ["tabular-nums"] },
   heroDate: { fontWeight: "600", letterSpacing: tracking.kicker },
 });

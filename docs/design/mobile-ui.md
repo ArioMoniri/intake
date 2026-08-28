@@ -408,3 +408,97 @@ Yeni vizit header, intake step 1, Kayıtlarım groups, Profilim groups
 ListGroup + footer hint). Typecheck green; 181 vitest tests green after
 merging origin/main (INT-198/199/208). No route, handler or i18n key
 removed; tr/en keys added: `today.prep`.
+
+## Design pass 6 — the CTA register, the way out, the primer mark (INT-234, 2026-08-28)
+
+Owner critique, sixth repetition: "frontend should be more similar to oura
+ui from mobbin". Method as passes 4–5, but aimed at surfaces no earlier
+pass had studied: onboarding/permission primers, sheet anatomy, settings
+depth pages, trends, edit flows. Fresh Mobbin pull: primers `d1c03e40-08c5-486b-8e9e-c40d8270330c`,
+`3f29d971-9e5a-4edb-ac64-fc9f4a5b4d34`, `effb9325-fdde-485f-8e3b-85bb744e8df3`,
+`0070986e-c345-4baf-bf0f-863961541a43`, `6b8646ec-a417-4b2a-899e-1e24e8dd6ba3`;
+sheets/edit flows `19cf723a-b40c-4407-8a42-d6941e779c95`,
+`11265937-1645-488c-afe4-eb52ca52affe`, `96fb49c7-fef9-4f2c-a527-0d9a8ab0b9ae`,
+`b67baac0-cc03-4ae0-bdf4-3c8cc7e81347`, `932c11b4-6022-4d41-bf72-b2d08b66b42f`,
+`b94b3577-231c-4ad4-b29f-3104cb541bff`; settings depth
+`2e6ea278-be8a-4dcd-962f-58e10cb1ccef`, `b6b42fc3-5429-4ddc-ad30-fa3db0990a4c`,
+`94022ec1-1b9e-48e3-a46f-3f2a642b3149`, `add758e7-e613-4d3f-8753-1a4dbdd02475`,
+`a9ff1b84-a364-47b0-aa8f-101d28a0dce4`, `52fec3e3-1cc0-4e63-8e4e-c65b626b0fb7`;
+trends `4224b5e7-8a76-4df9-b44a-ffad05c402b8`, `ac7b4780-15d8-4cfa-9063-b1fc8e8fe054`.
+A dedicated light-mode search returned no true Oura light screens — Oura
+is a dark-register product, so our light theme is the *inverse* of the
+dark anatomy, not a copy of a nonexistent reference.
+
+### Measured gaps (before) → what closed (after)
+
+- **The CTA register — the loudest remaining delta.** In every fresh
+  capture with a forward action (8/8), Oura's primary is a BONE pill
+  (~#F3EDE3, saturation ≈6 %) with near-black label; ours was the
+  saturated teal slab (`#4FA79A`, saturation ≈36 %) on all 12 screens —
+  the one register Oura never uses. Pass 5 had evaluated the CTA's
+  *width* against Oura's hug-content links; its *hue* had never been
+  measured. → ADDED tokens `cta`/`onCta` (dark `#F3EDE3`/`#1C1B18`, light
+  `#1C1B18`/`#FAF8F4` — ink pill on paper, the dark anatomy inverted; no
+  existing hex touched) and `PrimaryButton` renders on them. The teal
+  accent (02 §5.2 single accent — unchanged hexes) now lives where Oura
+  spends brightness: selection (chips, language pills), progress (dots,
+  ladder), status (sent/viewed), links. AA pairs `onCta/cta` and
+  `cta/background` added to the pinned suite (≥15:1 both schemes).
+- **Quiet-button anatomy.** Oura's secondary actions ("About Counsel and
+  medical AI", "What Counsel sends to Oura", tag chips) are tonal FILLS,
+  borderless; our `SecondaryButton` was surface + 1 px outline — the
+  outline was our invention. → fill `surfaceRaised`, border dropped
+  (welcome dev pills, Vizit ekleyin, Yazarak devam edin, Çıkış yapın).
+- **No way out of focused flows.** Every Oura full-screen flow carries a
+  top-left ‹/× (7/7 captures); our intake and review had zero top
+  affordances — a patient mid-flow was trapped. → both screens now set
+  the stack header via `useStackHeader("")`: back chevron only, untitled
+  bar (the resilience-sheet anatomy — big serif title stays in the body),
+  ground-coloured, shadowless; `FLOW_EDGES` drops the top safe edge.
+  Answers already persisted in session state, so leaving and returning
+  was safe by construction.
+- **Empty states had no mark.** Oura primers open with a glyph inside a
+  hairline-outlined rounded square (~56 pt, 1 px outline, ~24 pt glyph)
+  above the title; our guidance blocks were text-only. → `GuidanceBlock`
+  gains an optional `icon` badge (56 / radius 16 / hairline border /
+  24 pt inkSoft SF Symbol), used once per screen: İyilik hâli (heart),
+  Kayıtlarım empty (folder), Hakkımda öğrendikleri (eye). Marks are
+  geometric and quiet — never the accent, never illustrative.
+- **Scope/edit chips were outlined.** Review's Düzenleyin chip was
+  border-only and the share pill switched border colours; Oura tags are
+  filled and borderless (19cf723a, trends tag rows). → Düzenleyin and
+  scope-off sit on `surfaceRaised`, scope-on keeps the `primarySoft`
+  wash; all borders gone; labels carry the state (02 §8.2).
+- **Prose sections carried hairlines.** İyilik hâli separated guidance
+  blocks with full-bleed hairlines; Oura explainer prose separates on
+  whitespace alone (b67baac0). → hairlines removed, xl gaps carry it.
+- **Proportional figures in counters and date rows.** The intake "1 / 9"
+  counter and stacked date sublabels reflowed as digits changed; Oura's
+  numeric rows are tabular. → `fontVariant: ["tabular-nums"]` on the
+  progress counter, `ListRow` sublabels and `VisitCard` dates.
+
+### Kept deliberately (evaluated against the fresh pull, not dogma)
+
+The kicker dot + tracked caption (pass-4 anatomy; Oura's plain group
+headers rely on ALL-CAPS eyebrows the İ/ı rule bans), the teal selected
+state on chips (selection is where our single accent lives now — Oura's
+ink-outline selection would leave the accent orphaned), the segmented
+Yaklaşan/Geçmiş stacked lists (Oura's Day/Week/Month control is a
+data-range picker, not a list splitter), pressed-state opacity over
+Oura's scale feedback (02 §5.2a: fades only), and the GlassBar blur strip
+under flow CTAs (pass-3/4 decision; Oura's sheet CTAs float on a content
+fade, but our bar carries the hairline that keeps the button legible over
+scrolling clinical text). Evaluated and rejected: introducing bottom
+sheets for scope editing (structural, not visual-layer; the inline chips
+keep one-screen honesty).
+
+Verified on the iOS 18.4 sim (Expo Go via a second Metro on :8085), dark
+AND light, two rounds per changed screen: welcome, Bugün (%0 gauge dark,
+%22 light), Vizitlerim, visit detail, voice-first entry (back chevron
+present), intake steps 1–3 (chips selected state, single-select cards,
+disabled bone CTA), review (tonal chips, bone send bar, back chevron),
+Kayıtlarım, İyilik hâli (badge, no hairlines), Profilim (tonal sign-out).
+Typecheck, eslint and all 281 vitest tests green; no route, handler or
+i18n key removed; zero i18n keys needed (icons carry no copy). No
+existing palette hex changed — `cta`/`onCta` are ADDED tokens with their
+AA pairs pinned.

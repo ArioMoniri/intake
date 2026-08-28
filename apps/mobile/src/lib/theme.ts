@@ -33,6 +33,13 @@ export const palette = {
     primary: "#0F7B6C", // şifa teal — the single accent
     primarySoft: "#EAF5F2", // light enough that primary text on it clears AA (4.6:1)
     onPrimary: "#FFFFFF",
+    // Design pass 6: the focal CTA is a NEUTRAL pill (Oura's forward action
+    // is bone-on-dark in every Mobbin capture; a saturated slab is the one
+    // register Oura never uses). Light mode carries the inverse: ink pill on
+    // the paper ground. ADDED tokens — no existing hex changed; the teal
+    // accent lives on in selection, progress and status moments.
+    cta: "#1C1B18",
+    onCta: "#FAF8F4",
     amber: "#9A5B00", // YELLOW status pill only
     amberSoft: "#FBF1DF",
     success: "#1B7F4B",
@@ -58,6 +65,10 @@ export const palette = {
     successSoft: "#1E2E25",
     emergency: "#E5756D",
     emergencySoft: "#392320",
+    // Design pass 6: bone pill on near-black — the measured Oura CTA
+    // (warm cream ≈6 % saturation vs the 36 % teal slab it replaces).
+    cta: "#F3EDE3",
+    onCta: "#1C1B18",
   },
 } as const;
 

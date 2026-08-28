@@ -94,6 +94,7 @@ function DevRecords({ records }: { records: readonly RecordFixture[] }) {
       {records.length === 0 ? (
         <GuidanceBlock
           accent
+          icon="folder"
           kickerKey="records.guide.kicker"
           titleKey="records.guide.title"
           bodyKey="records.guide.body"
@@ -233,6 +234,7 @@ function OtpRecords() {
       <>
         <GuidanceBlock
           accent
+          icon="calendar"
           kickerKey="records.needVisit.kicker"
           titleKey="records.needVisit.title"
           bodyKey="records.needVisit.body"
@@ -276,6 +278,7 @@ function OtpRecords() {
     return (
       <>
         <GuidanceBlock
+          icon="wifi.slash"
           kickerKey="records.offline.kicker"
           titleKey="records.offline.title"
           bodyKey="records.offline.body"
@@ -302,6 +305,7 @@ function OtpRecords() {
       {phase === "ready" && docs.length === 0 ? (
         <GuidanceBlock
           accent
+          icon="folder"
           kickerKey="records.guide.kicker"
           titleKey="records.guide.title"
           bodyKey="records.guide.body"
@@ -356,6 +360,7 @@ export default function Records() {
           <>
             <GuidanceBlock
               accent
+              icon="checkmark.shield"
               kickerKey="records.consent.kicker"
               titleKey="records.consent.title"
               bodyKey="records.consent.body"
