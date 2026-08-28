@@ -46,9 +46,19 @@ describe("typed intake fixtures (one question per screen)", () => {
 });
 
 describe("department packs (INT-194): the intake is branch-aware", () => {
-  it("cardiology/internal medicine gets character, trigger and associated dimensions", () => {
+  it("cardiology/internal medicine gets onset, character, radiation, trigger, associated, severity", () => {
     const ids = packForDepartment("Kardiyoloji").map((q) => q.id);
-    expect(ids).toEqual(["complaint", "duration", "pain_character", "trigger", "associated", "extra"]);
+    expect(ids).toEqual([
+      "complaint",
+      "duration",
+      "onset",
+      "pain_character",
+      "radiation",
+      "trigger",
+      "associated",
+      "severity",
+      "extra",
+    ]);
     expect(packForDepartment("İç Hastalıkları").map((q) => q.id)).toEqual(ids);
   });
 
@@ -64,8 +74,16 @@ describe("department packs (INT-194): the intake is branch-aware", () => {
 
   it("ENT gets the side dimension; unknown departments fall back to the core pack", () => {
     expect(packForDepartment("Kulak Burun Boğaz").map((q) => q.id)).toContain("side");
-    expect(packForDepartment("Ortopedi").map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
-    expect(packForDepartment(undefined).map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
+    expect(packForDepartment("Aile Hekimliği").map((q) => q.id)).toEqual([
+      "complaint",
+      "duration",
+      "extra",
+    ]);
+    expect(packForDepartment(undefined).map((q) => q.id)).toEqual([
+      "complaint",
+      "duration",
+      "extra",
+    ]);
   });
 
   it("every pack question and option resolves through the tr catalog", () => {
