@@ -32,7 +32,7 @@ import { discardRecording, reachableAsrBaseUrl, transcribeRecording } from "@/li
 import { spacing } from "@/lib/theme";
 
 interface VoiceFirstIntakeProps {
-  state: Exclude<VoiceIntakeState, { phase: "steps" }>;
+  state: Exclude<VoiceIntakeState, { phase: "steps" } | { phase: "dialogue" }>;
   dispatch: (action: VoiceIntakeAction) => void;
   questions: readonly IntakeQuestion[];
   /** The pack label the daemon receives (the visit's department). */
@@ -157,6 +157,11 @@ export function VoiceFirstIntake({ state, dispatch, questions, packName }: Voice
         <AppText role="body" color="inkSoft">
           {t("voiceFirst.body")}
         </AppText>
+        {phase === "gate" || phase === "offer" ? (
+          <AppText role="caption" color="inkFaint">
+            {t("dialogue.offerHint")}
+          </AppText>
+        ) : null}
         {status !== null ? (
           <View style={styles.statusRow}>
             {busy ? <ActivityIndicator color={theme.primary} /> : null}
@@ -182,11 +187,21 @@ export function VoiceFirstIntake({ state, dispatch, questions, packName }: Voice
           {phase === "recording" ? (
             <PrimaryButton label={t("voiceFirst.stop")} onPress={stopAndProcess} />
           ) : (
-            <PrimaryButton
-              label={t("voiceFirst.start")}
-              disabled={phase === "gate"}
-              onPress={start}
-            />
+            // Two primary voice paths (INT-233): the one-shot "tell it all
+            // at once" stays first; the turn-by-turn spoken dialogue is the
+            // second door into the same pack. Both gate on the ASR probe.
+            <View style={styles.pathStack}>
+              <PrimaryButton
+                label={t("voiceFirst.start")}
+                disabled={phase === "gate"}
+                onPress={start}
+              />
+              <SecondaryButton
+                label={t("dialogue.start")}
+                disabled={phase === "gate"}
+                onPress={() => dispatch({ type: "dialogue" })}
+              />
+            </View>
           )}
         </GlassBar>
       ) : null}
@@ -208,4 +223,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   skipRow: { marginTop: spacing.md },
+  pathStack: { gap: spacing.sm },
 });
