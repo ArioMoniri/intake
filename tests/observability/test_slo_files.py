@@ -53,6 +53,7 @@ def _metric(**overrides: Any) -> dict[str, Any]:
         "type": "counter",
         "labels": ["service", "method", "route", "status"],
         "owner": "platform",
+        "unit": "count",
         "description": "HTTP requests handled, by route template and status.",
     }
     base.update(overrides)
