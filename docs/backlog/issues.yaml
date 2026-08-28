@@ -1965,6 +1965,32 @@
   - apps/mobile/src/lib/dialogue/turn.test.ts
   - apps/mobile/src/lib/dialogue/tts.test.ts
   sec_row: mobile
+- id: INT-234
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 6: CTA saturation register (bone pill), tonal secondaries,
+    focused-flow exits, glyph-badge empty states'
+  depends_on:
+  - INT-209
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'the measured finding five passes missed - Oura forward CTA is a bone pill
+    (~6 percent saturation) in 8/8 fresh captures vs our 36-percent teal slab -
+    closed via ADDED cta/onCta tokens (AA >=15:1 pinned) with zero existing hex
+    changes; SecondaryButton borderless tonal fill; intake/review gain back-only
+    untitled stack headers (patients no longer trapped mid-flow); GuidanceBlock
+    icon prop with the ~56pt outlined glyph badge on all seven empty states;
+    review chips filled tonal; prose hairlines removed; tabular figures on
+    step counters and date rows; deliberate keeps documented (kicker dot vs
+    ALL-CAPS per the I/i rule, teal selection as the single accent); all
+    verified change-screenshot-compare in dark and light on a separate Metro
+    port; 347 tests post-merge'
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
 - id: INT-180
   epic: E12-admin
   phase: P0
