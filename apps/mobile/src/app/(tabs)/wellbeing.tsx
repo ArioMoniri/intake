@@ -12,10 +12,12 @@ import { ScrollView, StyleSheet } from "react-native";
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { AppText, Hairline, RAIL_EDGES, Screen } from "@/components/Themed";
+import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { spacing } from "@/lib/theme";
 
 export default function Wellbeing() {
+  useClinicalScreenPrivacy(); // clinical screen: FLAG_SECURE-class (INT-131)
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>

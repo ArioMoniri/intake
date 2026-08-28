@@ -1,8 +1,10 @@
 /**
- * Welcome (02 §4 auth flow). Real sign-in (phone verification) is INT-131;
- * in development builds this screen offers the synthetic test accounts so
- * the shell can be walked end to end. The dev block is compiled out of
- * release builds via __DEV__.
+ * Welcome (02 §4 auth flow). The primary path is REAL sign-in — phone
+ * verification (INT-131) at /(auth)/phone. Development builds additionally
+ * offer the synthetic test accounts (INT-197 demo tier, load-bearing until
+ * the OTP tier fully lands); that block is compiled out of release builds
+ * via __DEV__ and renders as quiet pills so the one saturated CTA stays
+ * the real sign-in (02 §5.2).
  */
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
@@ -27,25 +29,20 @@ export default function Welcome() {
         </AppText>
       </View>
       <AppText role="body">{t("welcome.body")}</AppText>
+      <PrimaryButton label={t("welcome.phoneCta")} onPress={() => router.push("/(auth)/phone")} />
       {__DEV__ ? (
         <GlassCard style={styles.devCard}>
           <Kicker label={t("welcome.devSignIn")} />
-          {testAccounts.map((account, index) => {
-            // ONE saturated CTA per screen (02 §5.2; Oura stacks primary +
-            // quiet secondary) — the first account is the primary, the rest
-            // are quiet pills.
-            const Button = index === 0 ? PrimaryButton : SecondaryButton;
-            return (
-              <Button
-                key={account.id}
-                label={account.name}
-                onPress={() => {
-                  signIn(account);
-                  router.replace("/(tabs)/today");
-                }}
-              />
-            );
-          })}
+          {testAccounts.map((account) => (
+            <SecondaryButton
+              key={account.id}
+              label={account.name}
+              onPress={() => {
+                signIn(account);
+                router.replace("/(tabs)/today");
+              }}
+            />
+          ))}
           <AppText role="caption" color="inkFaint">
             {t("welcome.devNote")}
           </AppText>

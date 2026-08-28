@@ -15,6 +15,7 @@
 import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 
+import { BiometricGate } from "@/components/BiometricGate";
 import { FloatingTabBar } from "@/components/FloatingTabBar";
 import { useTheme } from "@/components/Themed";
 import { motion } from "@/lib/theme";
@@ -28,6 +29,23 @@ export default function TabsLayout() {
   }
   const tabs = visibleTabs(consents);
   return (
+    // Biometric gate on app open (10 §2, INT-131): the signed-in shell
+    // renders only after the device factor passes; capability-detected, so
+    // devices without a factor pass through instead of dead-ending.
+    <BiometricGate>
+      <TabsShell tabs={tabs} themeBackground={theme.background} />
+    </BiometricGate>
+  );
+}
+
+function TabsShell({
+  tabs,
+  themeBackground,
+}: {
+  tabs: ReturnType<typeof visibleTabs>;
+  themeBackground: string;
+}) {
+  return (
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
@@ -36,7 +54,7 @@ export default function TabsLayout() {
         // Motion budget (02 §5.2a): fades only, 120 ms.
         animation: "fade",
         transitionSpec: { animation: "timing", config: { duration: motion.fadeMs } },
-        sceneStyle: { backgroundColor: theme.background },
+        sceneStyle: { backgroundColor: themeBackground },
       }}
     >
       <Tabs.Screen name="today" />

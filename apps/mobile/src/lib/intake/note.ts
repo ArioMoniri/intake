@@ -5,7 +5,6 @@
  * scope-off excludes a section from what is sent, and scope choices NEVER
  * block sending (02 §5.1 — sending is the patient's call).
  */
-import type { TestAccount } from "../dev/accounts";
 import { t, type MessageKey } from "../i18n";
 import { allQuestions, optionLabelKey } from "./questions";
 
@@ -84,9 +83,15 @@ function hasContent(answer: Answer | undefined): answer is Answer {
  * not a section — the review screen renders `review.provenance` under the
  * sections (06 §7: the note is patient-reported and diagnosis-free).
  */
+/** The slice of the signed-in account the note needs — both the dev
+ * fixtures and real OTP accounts (INT-131) satisfy it. */
+export interface NoteAccount {
+  medications: string[];
+}
+
 export function buildNote(
   answers: Answer[],
-  account: TestAccount,
+  account: NoteAccount,
   healthLines?: readonly string[] | null,
 ): NoteSection[] {
   const byId = new Map(answers.map((a) => [a.questionId, a]));
@@ -145,7 +150,7 @@ export function buildNote(
 }
 
 /** What actually goes to the doctor: scope-off sections are excluded. */
-export function sentSections(state: NoteState, account: TestAccount): NoteSection[] {
+export function sentSections(state: NoteState, account: NoteAccount): NoteSection[] {
   return buildNote(state.answers, account, state.healthLines).filter(
     (s) => state.scopes[s.id] !== false,
   );

@@ -21,6 +21,33 @@ export const en: Record<MessageKey, string> = {
   "welcome.devNote":
     "This screen exists only in development builds; real sign-in uses phone verification.",
 
+  "welcome.phoneCta": "Continue with your phone",
+
+  // INT-131 onboarding — mirrors tr key-for-key.
+  "auth.phone.title": "Sign in by phone",
+  "auth.phone.why": "Your number is only used to sign you in.",
+  "auth.phone.label": "Your phone number",
+  "auth.phone.hint": "Start with 05, for example 0532 111 44 55.",
+  "auth.phone.cta": "Request a code",
+  "auth.phone.invalid": "Check the number; it should start with 05.",
+  "auth.otp.title": "Verification code",
+  "auth.otp.body": "Enter the six-digit code sent to your phone.",
+  "auth.otp.verifyCta": "Sign in",
+  "auth.otp.resend": "Request a new code",
+  "auth.otp.resendWait": "Time left before you can request a new code:",
+  "auth.otp.devPeek": "Fetch the code (development)",
+  "auth.error.generic": "Something went wrong. Please try again.",
+  "auth.error.limited": "Too many attempts. Please wait a little and try again.",
+  "auth.error.code": "The code could not be verified. Check it or request a new one.",
+  "auth.error.network": "The server could not be reached. Check your connection.",
+  "auth.error.attestation": "This device could not be verified. Please update the app and try again.",
+  "auth.biometric.prompt": "Verify your identity to continue.",
+  "auth.biometric.locked": "Screen locked",
+  "auth.biometric.retry": "Try again",
+  "auth.integrity.warnTitle": "Device security",
+  "auth.integrity.warnBody":
+    "A security change was detected on this device. The interview continues in writing, not by voice.",
+
   "today.nextVisit": "Next visit",
   "today.prep": "Visit preparation",
   "today.prepareCta": "Prepare for the visit (≈3 min)",
