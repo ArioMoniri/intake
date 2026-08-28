@@ -291,3 +291,12 @@
 - Awaiting-human (recorded): SMS vendor, App Attest/Play Integrity keys (HB-A3), pin certs, hardware-backed DPoP key module, consent texts (INT-210), #233 workflow command, Xcode iOS platform (disk-gated).
 - Session tally: 16 issues landed end-to-end this session.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T16:45:00+03:00 · demo lane live-verified + INT-035/INT-040 merged (PRs #262, #264, #260)
+- Owner's "still shows as demo" complaint root-caused live in the simulator: a STALE Metro from an outdated branch held port 8081 (killed; fresh tunnel on current main), all four model-lane SSH forwards were down (re-attached: LLM/ASR/TTS/extract healthy), and the API was not running (now up: migrations at head, OpenBao transit, OTP tier enabled, dev gates explicit-yes).
+- Live-proven on a REAL OTP account end-to-end: phone → challenge → attested OTP → DPoP tokens → Bugün with the pass-5 PrepGauge and correct zero-consent empty state. A device-found navigation race (verify success bounced back to the phone screen) fixed as PR #260 and merged. Server auth flow independently proven by a full python replication (challenge/attestation/DPoP/verify → 200 + consent_required on data routes, exactly right for a zero-consent account).
+- Voice lane: intake opens with Sesli anlatın on the real account; synthesized Turkish patient speech (own TTS) recorded through the mic; transcription + the honest extracting state ran; the exact audio proven through whisper → /extract in 11.7s (pain/days/pressure/exertion/sweating/metoprolol with verbatim quotes, onset honestly dropped). One remaining app-side prefill-render gap has a dedicated debug agent (int-199-fix-prefill) with the full repro.
+- INT-035 event bus merged (#262): at-least-once delivery with exactly-once side effects over the INT-176 idempotency scheme, group-local retry streams (multi-group correctness), DLQ reason codes; fakeredis covered everything (finding: fakeredis miscounts XINFO lag — counted directly). Pre-existing wall-clock flake found in test_otp_abuse near top-of-hour — follow-up owed.
+- INT-040 Protocol DSL merged (#264): the invariant-1/7/10/21/22 mechanism with 28 golden fixtures and 99.89% branch coverage; zero clinical content; instruments licence registry fails closed (C-SSRS/WHO-5 BLOCKED per HB-L2/L3).
+- INT-132 consent UI in PR #266. Extract server on the box shows 4 external SIGTERM restarts (self-heals ≤60s; box-owner question).
+- LOOP_STATUS: CONTINUE

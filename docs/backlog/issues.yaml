@@ -344,7 +344,7 @@
   title: "Redis streams event bus + consumer framework + DLQ"
   depends_on: [INT-031]
   labels: [area:platform]
-  status: todo
+  status: done
   acceptance:
     - "typed producers/consumers with retries, DLQ, exactly-once handlers via idempotency keys; consumer lag metric"
   tests: [tests/platform/test_event_bus.py]
@@ -394,7 +394,7 @@
   title: "Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields)"
   depends_on: [INT-031]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "yaml schema with sections/slots/red_flags/overlays/visit_types/voice fields; validator enforces monotonicity, follow_up_tr presence, instruments allow_paraphrase=false"
   tests: [tests/protocols/test_validator.py]
