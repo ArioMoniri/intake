@@ -45,9 +45,12 @@ if TYPE_CHECKING:
 
 __all__ = [
     "META_ROUTES",
+    "PRE_AUTH_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
     "ensure_consent",
+    "pre_auth",
+    "pre_auth_routes",
     "require_scopes",
     "route_policies",
     "unguarded_data_routes",
@@ -145,6 +148,27 @@ def require_scopes(*enforced: str, conditional: tuple[str, ...] = ()) -> params.
     return dependency
 
 
+class PreAuthDeclaration:
+    """Explicit declaration that a route runs BEFORE any principal exists
+    (INT-131 onboarding: OTP, attestation, refresh). Consent scopes attach
+    to an authenticated subject, so these routes cannot enforce one — but
+    they may not stay silent either: the scan accepts this marker ONLY under
+    PRE_AUTH_PREFIX, so a data route elsewhere cannot borrow it."""
+
+    async def __call__(self) -> None:
+        return
+
+
+#: The only prefix where a pre-auth declaration is accepted by the scan.
+PRE_AUTH_PREFIX = "/v1/auth"
+
+
+def pre_auth() -> params.Depends:
+    """Declare a route as pre-authentication (see PreAuthDeclaration)."""
+    dependency: params.Depends = Depends(PreAuthDeclaration())
+    return dependency
+
+
 def _policy_of(route: APIRoute) -> ConsentPolicy | None:
     for dependency in route.dependencies:
         call = dependency.dependency
@@ -184,12 +208,32 @@ def route_policies(app: FastAPI) -> dict[tuple[str, str], ConsentPolicy]:
     return policies
 
 
+def _is_pre_auth(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, PreAuthDeclaration) for dependency in route.dependencies
+    )
+
+
+def pre_auth_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the pre-auth declaration, for the pin test."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_pre_auth(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
-    """Every data route that declares no consent scopes — the scan test
-    asserts this list is empty, so a new route cannot land undeclared."""
+    """Every data route that declares neither consent scopes nor a valid
+    pre-auth marker — the scan test asserts this list is empty, so a new
+    route cannot land undeclared. A pre-auth marker outside PRE_AUTH_PREFIX
+    does NOT count as a declaration (it is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
+            continue
+        if _is_pre_auth(route) and path.startswith(PRE_AUTH_PREFIX):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

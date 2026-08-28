@@ -13,13 +13,17 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from intake_api.consent_guard import pre_auth
 from intake_api.errors import not_found, otp_auth_unconfigured
 from intake_api.otp import OtpAuthService, TokenBundle
 from intake_api.state import ApiState, State
 
 __all__ = ["router"]
 
-router = APIRouter(prefix="/v1/auth", tags=["auth"])
+# Every route here is pre-authentication by nature (no principal exists
+# yet) and must SAY so - the INT-038 route scan refuses silent routes,
+# and the pre_auth marker is only accepted under this prefix.
+router = APIRouter(prefix="/v1/auth", tags=["auth"], dependencies=[pre_auth()])
 
 AUTH_TIER_OTP = "otp"
 
