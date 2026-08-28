@@ -2568,7 +2568,7 @@
   - INT-233
   labels:
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'owner directive: next questions follow previous answers and two modes exist
     (pre-hospital fast, in-hospital detailed) - askIf gates as serializable data

@@ -346,3 +346,7 @@
 - CI note: check-py red was the known OTP rate-limit flake; gates red was the PR-title format (reruns keep the stale event payload — close/reopen refreshes it).
 - INT-041 (protocol compiler chain) is now unblocked.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-236 merged (PR #288)
+- Owner directive landed at the dev tier: askIf adaptive gates as serializable data mirroring the DSL (four structurally-obvious gates; clinical-judgment gates refused and listed for pack owners), dynamic applicable-question progress, Hızlı/Detaylı modes per 02 §22-34 — privacy self-check with the verbatim deferral marker, instant Sıranız geldi checkpoint to a v2-partial review with zero lost answers. Pack-layer helpers exported; the dialogue surface inherits gating through them.
+- LOOP_STATUS: CONTINUE
