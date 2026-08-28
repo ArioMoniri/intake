@@ -1,5 +1,5 @@
 /**
- * Capability detection (INT-200), kept pure so the fallback matrix is
+ * Capability detection (INT-208), kept pure so the fallback matrix is
  * unit-testable in node: which connector serves this runtime, and whether
  * the patient's device-local health consent is on. The Expo Go rule is the
  * load-bearing one — native health modules cannot exist there, so the stub

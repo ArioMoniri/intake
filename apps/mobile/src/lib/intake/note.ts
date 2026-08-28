@@ -26,7 +26,7 @@ export interface NoteState {
   scopes: Record<string, boolean>;
   status: "draft" | "sent";
   /**
-   * Device health summary lines the patient explicitly attached (INT-200).
+   * Device health summary lines the patient explicitly attached (INT-208).
    * Device-local by design: they exist only in this in-memory draft, and
    * only because the patient confirmed the attach — never auto-filled.
    */
@@ -130,7 +130,7 @@ export function buildNote(
     });
   }
 
-  // Device health block (INT-200): present only when the patient explicitly
+  // Device health block (INT-208): present only when the patient explicitly
   // attached it on Profilim; the review screen frames it with the fixed
   // provenance line (`review.healthProvenance`). Always the last section —
   // patient-reported history stays first.

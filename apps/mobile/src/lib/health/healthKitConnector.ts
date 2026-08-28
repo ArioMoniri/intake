@@ -1,5 +1,5 @@
 /**
- * HealthKit connector (INT-200, iOS). The native module is loaded via a
+ * HealthKit connector (INT-208, iOS). The native module is loaded via a
  * DYNAMIC import behind an injectable loader: in Expo Go the import fails
  * and the connector degrades to `needs_dev_build` instead of crashing; in a
  * development build the loader adapts @kingstinct/react-native-healthkit

@@ -1,5 +1,5 @@
 /**
- * Sağlık verileri section on Profilim (INT-200). Renders only after the
+ * Sağlık verileri section on Profilim (INT-208). Renders only after the
  * device-local health consent is ON (the parent gates it). States are
  * honest, never dead buttons: Expo Go gets a calm guidance block saying a
  * development build is needed; a device without the platform health app

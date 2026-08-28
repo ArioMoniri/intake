@@ -20,7 +20,7 @@ export interface ConsentState {
   wellbeing: boolean;
   documents: boolean;
   /**
-   * Device-local health data reading (INT-200): gates the HealthKit/Health
+   * Device-local health data reading (INT-208): gates the HealthKit/Health
    * Connect read on the phone itself. A NEW category of personal data, so it
    * defaults OFF for every fixture — always an explicit patient opt-in, and
    * nothing read under it is persisted or sent server-side.

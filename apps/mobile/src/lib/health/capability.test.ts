@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { healthConsentOn, selectConnectorKind } from "./capability";
 
-describe("selectConnectorKind — the honest capability matrix (INT-200)", () => {
+describe("selectConnectorKind — the honest capability matrix (INT-208)", () => {
   it("Expo Go resolves to the stub on both platforms (native modules cannot load there)", () => {
     expect(selectConnectorKind({ os: "ios", executionEnvironment: "storeClient" })).toBe(
       "expo_go_stub",
@@ -33,7 +33,7 @@ describe("selectConnectorKind — the honest capability matrix (INT-200)", () =>
   });
 });
 
-describe("healthConsentOn — the section gate (device-local consent, INT-200)", () => {
+describe("healthConsentOn — the section gate (device-local consent, INT-208)", () => {
   it("is off signed out and off until the patient turns it on", () => {
     expect(healthConsentOn(null)).toBe(false);
     expect(

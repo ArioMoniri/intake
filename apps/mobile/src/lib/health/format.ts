@@ -1,5 +1,5 @@
 /**
- * Display formatting for device health values (INT-200), under the
+ * Display formatting for device health values (INT-208), under the
  * invariant-22 display discipline even though these are wellness metrics,
  * not clinical quantities: `useGrouping:false` for every number, and
  * number + unit joined into ONE non-breaking atom. Numerals are allowed in

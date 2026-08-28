@@ -1,5 +1,5 @@
 /**
- * Health Connect connector (INT-200, Android). Same shape as the HealthKit
+ * Health Connect connector (INT-208, Android). Same shape as the HealthKit
  * side: the native module (react-native-health-connect, MIT) loads via a
  * dynamic import behind an injectable loader, so Expo Go degrades to
  * `needs_dev_build` and the decision logic is unit-testable with a fake api.

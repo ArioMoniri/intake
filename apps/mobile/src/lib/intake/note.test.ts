@@ -91,7 +91,7 @@ describe("buildNote labelled HPI lines — department packs", () => {
   });
 });
 
-// ---- INT-200: device health summary attachment ------------------------------
+// ---- INT-208: device health summary attachment ------------------------------
 
 const ayse = getTestAccount("ayse")!;
 
@@ -101,7 +101,7 @@ function withHealth(state: NoteState = emptyNoteState()): NoteState {
   return noteReducer(state, { type: "attachHealth", lines: HEALTH_LINES });
 }
 
-describe("attachHealth — device health summary into the note draft (INT-200)", () => {
+describe("attachHealth — device health summary into the note draft (INT-208)", () => {
   it("empty state carries no health attachment", () => {
     expect(emptyNoteState().healthLines).toBeNull();
     const sections = buildNote([], ayse, null);

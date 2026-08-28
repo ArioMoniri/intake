@@ -1,5 +1,5 @@
 /**
- * Health connector wiring (INT-200): the only file in lib/health that reads
+ * Health connector wiring (INT-208): the only file in lib/health that reads
  * the real runtime (Platform, Expo Constants). Everything it composes is
  * pure and node-tested; this switch is mechanical.
  */

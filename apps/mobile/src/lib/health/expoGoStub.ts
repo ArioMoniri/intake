@@ -1,5 +1,5 @@
 /**
- * The honest stubs (INT-200): Expo Go cannot load native health modules, and
+ * The honest stubs (INT-208): Expo Go cannot load native health modules, and
  * unsupported platforms cannot read health data at all. Both say so through
  * the availability status and REFUSE to read — never fake data, never a dead
  * button (the UI renders guidance instead of controls for these states).

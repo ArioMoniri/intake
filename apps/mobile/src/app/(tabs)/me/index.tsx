@@ -135,7 +135,7 @@ export default function Me() {
             onToggle={() => setConsent("documents", !consents.documents)}
           />
         </Card>
-        {/* Sağlık verileri (INT-200): device-local reads behind their own
+        {/* Sağlık verileri (INT-208): device-local reads behind their own
             consent. The hint states the scope honestly — read on this phone
             only, nothing sent, nothing enters a note unless the patient adds
             it. Content renders only while the consent is ON. */}

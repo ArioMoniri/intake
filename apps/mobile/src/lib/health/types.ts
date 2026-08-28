@@ -1,5 +1,5 @@
 /**
- * Device health connectors (INT-200): typed boundary between the UI and
+ * Device health connectors (INT-208): typed boundary between the UI and
  * HealthKit / Health Connect. Everything here is DEVICE-LOCAL by design —
  * health metrics are a new category of personal data and server persistence
  * has not been approved (CLAUDE.md: persisting new data categories needs the
