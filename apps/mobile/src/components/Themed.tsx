@@ -206,7 +206,13 @@ interface ButtonProps {
   disabled?: boolean;
 }
 
-/** The ONE saturated CTA a screen gets (02 §5.2: single accent). Pill form. */
+/**
+ * The ONE focal CTA a screen gets — full-width pill on the NEUTRAL `cta`
+ * tone (design pass 6: Oura's forward action is a bone pill on dark in
+ * every Mobbin capture — d1c03e40, 19cf723a, 96fb49c7 — never a saturated
+ * slab; light mode carries the inverse ink pill). The teal accent (02 §5.2:
+ * single accent) now lives in selection, progress and status moments.
+ */
 export function PrimaryButton({ label, onPress, disabled = false }: ButtonProps) {
   const theme = useTheme();
   return (
@@ -217,17 +223,22 @@ export function PrimaryButton({ label, onPress, disabled = false }: ButtonProps)
       disabled={disabled}
       style={({ pressed }) => [
         styles.primaryButton,
-        { backgroundColor: theme.primary, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+        { backgroundColor: theme.cta, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
       ]}
     >
-      <AppText role="body" color="onPrimary" style={styles.buttonLabel}>
+      <AppText role="body" color="onCta" style={styles.buttonLabel}>
         {label}
       </AppText>
     </Pressable>
   );
 }
 
-/** Oura-register quiet pill for secondary actions: surface + hairline. */
+/**
+ * Oura-register quiet pill for secondary actions: a tonal FILL one step
+ * above the ground, borderless (design pass 6 measurement — Oura's quiet
+ * buttons and tag chips are filled, never outlined; the pass-5 hairline
+ * outline was our invention).
+ */
 export function SecondaryButton({ label, onPress, disabled = false }: ButtonProps) {
   const theme = useTheme();
   return (
@@ -239,9 +250,7 @@ export function SecondaryButton({ label, onPress, disabled = false }: ButtonProp
       style={({ pressed }) => [
         styles.primaryButton,
         {
-          backgroundColor: theme.surface,
-          borderWidth: 1,
-          borderColor: theme.border,
+          backgroundColor: theme.surfaceRaised,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
         },
       ]}

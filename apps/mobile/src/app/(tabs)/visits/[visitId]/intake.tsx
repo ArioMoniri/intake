@@ -17,7 +17,7 @@
  * this exact manual flow — never a dead end. Suggestions are never triage
  * or a diagnosis (invariant 1); the transcript renders only as quotes.
  */
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from "react-native";
 
@@ -26,9 +26,9 @@ import {
   AppText,
   Card,
   PrimaryButton,
-  RAIL_EDGES,
   Screen,
   useFontScale,
+  useStackHeader,
   useTheme,
 } from "@/components/Themed";
 import { VoiceFirstIntake } from "@/components/VoiceFirstIntake";
@@ -46,8 +46,12 @@ import {
 import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
+// With the top bar shown, the header owns the top inset (design pass 6).
+const FLOW_EDGES = ["left", "right"] as const;
+
 export default function TypedIntake() {
   useClinicalScreenPrivacy(); // FLAG_SECURE-class capture blocking (INT-131)
+  const headerOptions = useStackHeader();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, consents, visits, integrity } = useSession();
   const note = notes[visitId ?? ""];
@@ -73,7 +77,12 @@ export default function TypedIntake() {
   );
 
   return (
-    <Screen style={styles.screenFlush} edges={RAIL_EDGES}>
+    <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
+      {/* Design pass 6: every Oura full-screen flow carries a top-left way
+          out (Mobbin 11265937, 96fb49c7); ours had none. Back-only bar —
+          the serif question line stays the screen's title, so the bar
+          itself is untitled (the resilience-sheet anatomy, b67baac0). */}
+      <Stack.Screen options={headerOptions("")} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       {integrityCompromised ? (
@@ -199,7 +208,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
               ]}
             />
           ))}
-          <AppText role="caption" color="inkFaint">
+          <AppText role="caption" color="inkFaint" style={styles.progressCount}>
             {step + 1} / {intakeQuestions.length}
           </AppText>
         </View>
@@ -344,6 +353,9 @@ const styles = StyleSheet.create({
   contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   progressDot: { width: 8, height: 8, borderRadius: radius.chip },
+  // Tabular figures so the counter doesn't reflow step to step (design
+  // pass 6 microtypography — Oura's numeric rows are tabular).
+  progressCount: { fontVariant: ["tabular-nums"] },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,

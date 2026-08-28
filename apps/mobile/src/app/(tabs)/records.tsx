@@ -32,6 +32,7 @@ export default function Records() {
         {records.length === 0 ? (
           <GuidanceBlock
             accent
+            icon="folder"
             kickerKey="records.guide.kicker"
             titleKey="records.guide.title"
             bodyKey="records.guide.body"
