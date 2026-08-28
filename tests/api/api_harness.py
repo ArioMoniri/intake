@@ -196,6 +196,7 @@ def build_harness(
     token_patient: str | None,
     token_admin: str | None,
     scanner: Any = _DEFAULT_SCANNER,
+    legal_root: Path | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -215,6 +216,9 @@ def build_harness(
         audit_db_url=f"sqlite+pysqlite:///{audit_db}",
         bootstrap_db_url=f"sqlite+aiosqlite:///{app_db}",
         kek_mode="file-dev",
+        # default: the pre-INT-210 state — no consent texts on disk, so the
+        # catalog is empty and only the seeded (unbound) dev grants stand
+        legal_root=legal_root if legal_root is not None else tmp_path / "legal-not-authored",
     )
     cipher = EnvelopeCipher(FileKekProvider())
     audit_store = SqlAlchemyAuditStore(audit_engine)
