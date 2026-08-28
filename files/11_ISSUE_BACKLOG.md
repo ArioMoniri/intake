@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**194 issues.** By phase: P0 108 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 45 · todo 142 · withdrawn 1.
+**194 issues.** By phase: P0 108 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 46 · todo 141 · withdrawn 1.
 
 ## P0
 
@@ -33,7 +33,7 @@
 | INT-025 | Metrics catalogue as code + completeness test | E01-platform | INT-011 | area:observability | done |
 | INT-030 | Postgres schema + Alembic + RLS per tenant + pgaudit | E02-data | INT-013, INT-014 | area:data | done |
 | INT-031 | clinical-schemas: pydantic models + TS codegen + event schemas | E02-data | INT-030 | area:data | done |
-| INT-033 | HAPI FHIR exchange: mappers internal<->R4 + validation | E02-data | INT-031 | area:data | todo |
+| INT-033 | HAPI FHIR exchange: mappers internal<->R4 + validation | E02-data | INT-031 | area:data | done |
 | INT-034 | MinIO document store: signed URLs + AV hook + WORM audit bucket | E02-data | INT-016 | area:data | done |
 | INT-035 | Redis streams event bus + consumer framework + DLQ | E02-data | INT-031 | area:platform | done |
 | INT-036 | Retention & destruction engine (policy as code, 6-month periodic destruction, logs) | E02-data | INT-030 | area:data, risk:legal | done |

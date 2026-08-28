@@ -322,7 +322,7 @@
   title: "HAPI FHIR exchange: mappers internal<->R4 + validation"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "QuestionnaireResponse, Observation, Condition, MedicationStatement, AllergyIntolerance, RiskAssessment, Flag, Composition, Bundle; hypothesis roundtrip; Bundle validates on HAPI container"
   tests: [tests/integration/test_fhir_validation.py]
