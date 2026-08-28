@@ -40,7 +40,8 @@ export const en: Record<MessageKey, string> = {
   "auth.error.limited": "Too many attempts. Please wait a little and try again.",
   "auth.error.code": "The code could not be verified. Check it or request a new one.",
   "auth.error.network": "The server could not be reached. Check your connection.",
-  "auth.error.attestation": "This device could not be verified. Please update the app and try again.",
+  "auth.error.attestation":
+    "This device could not be verified. Please update the app and try again.",
   "auth.biometric.prompt": "Verify your identity to continue.",
   "auth.biometric.locked": "Screen locked",
   "auth.biometric.retry": "Try again",
@@ -373,6 +374,70 @@ export const en: Record<MessageKey, string> = {
     "Your steps, heart rate and sleep are read only on this phone; nothing is sent anywhere. A value enters your note only if you add it yourself.",
   "consent.on": "On",
   "consent.off": "Off",
+
+  // INT-132 — Your permissions. UI chrome only; the consent texts
+  // themselves arrive from docs/legal with version and hash, never from
+  // this catalog (invariant 18).
+  "consent.entry.sub": "See and manage what each permission is for.",
+  "consent.firstRun.body":
+    "In Vizite every permission stands on its own. Nothing that needs your permission comes switched on. You do not have to decide now; you can turn each one on when it comes up, or here.",
+  "consent.firstRun.continue": "Continue",
+  "consent.group.core": "Service",
+  "consent.group.voice": "Voice sessions",
+  "consent.group.voice.hint":
+    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the recording; it is a separate permission.",
+  "consent.group.purposes": "Other purposes",
+  "consent.group.learning": "Learning",
+  "consent.group.learning.hint":
+    "These two options exist so the service works and come switched on; you can turn them off at any time.",
+  "consent.lane.affect": "Mood cues from tone of voice",
+  "consent.lane.linguistic": "Language cues from text",
+  "consent.learning.personal": "Learning for you",
+  "consent.learning.service": "Improving the service",
+  "consent.satisfaction": "Satisfaction questions",
+  "consent.research": "Research",
+  "consent.who.core": "Only you and the doctor you approve see what you share.",
+  "consent.who.voice":
+    "Your voice is processed only during the session; no recording is kept. Data stays on servers in Türkiye.",
+  "consent.who.laneAffect":
+    "Only your doctor sees cues drawn from your tone of voice; no label is put on you.",
+  "consent.who.laneLinguistic": "Only your doctor sees cues drawn from the transcribed text.",
+  "consent.who.wellbeing":
+    "Only you see your answers; sharing with your doctor is asked separately every time.",
+  "consent.who.documents":
+    "Uploaded documents stay in your file; sharing with your doctor happens with your approval.",
+  "consent.who.learningPersonal":
+    "Everything learned appears in the 'What it learned about me' list and can be deleted whenever you wish.",
+  "consent.who.learningService":
+    "Aggregated data separated from your identity is used; no single record of yours is shared.",
+  "consent.who.satisfaction":
+    "Your answers are used to evaluate the service; they do not go to your doctor.",
+  "consent.who.research": "Your data is used in research only if you approve.",
+  "consent.basis.service":
+    "This is the service itself; it has no switch. It ends when you stop using Vizite.",
+  "consent.basis.explicit":
+    "Based on your explicit consent. You can withdraw at any moment; withdrawal takes effect immediately.",
+  "consent.basis.learningPersonal":
+    "Used so the service you configured can work; that is why it comes switched on. If you turn it off, personal learning stops.",
+  "consent.basis.learningService":
+    "The service is improved with aggregated data separated from your identity; that is why it comes switched on. Turning it off restricts no feature.",
+  "consent.state.pending": "Text in preparation",
+  "consent.state.stale": "Needs new approval",
+  "consent.state.service": "Basis of the service",
+  "consent.pending.body":
+    "The text for this permission is being prepared. It cannot be switched on before the text is published; it will appear here once ready.",
+  "consent.stale.body":
+    "The text for this permission has changed. If you want it to continue, read the new text and approve again; until you approve, the permission is not used.",
+  "consent.detail.who": "Who sees what",
+  "consent.detail.version": "Text version",
+  "consent.detail.binding": "Text fingerprint",
+  "consent.detail.grant": "I have read it and I accept",
+  "consent.detail.withdraw": "Withdraw this permission",
+  "consent.detail.withdrawNote": "Withdrawal takes effect immediately.",
+  "consent.detail.needsVoice":
+    "This option can only be switched on while the voice session permission is on.",
+  "consent.queue.note":
+    "Your changes were applied on this device; they will reach the server once a connection is available.",
 
   "me.health": "Health data",
   "health.guide.devBuild.kicker": "Preview build",

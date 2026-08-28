@@ -1,9 +1,10 @@
 /**
  * Profilim (02 §4): identity, consents, language, and the "what it learned
- * about me" ledger entry point. Consent chips toggle SESSION-LOCAL state on
- * the synthetic accounts so the consent gate is demonstrable (flip wellbeing
- * and watch the tab appear/disappear); the real product mutates consents
- * only through the versioned consent ledger (invariant 4, INT-060s).
+ * about me" ledger entry point. Consents live on their own layered
+ * İzinleriniz screen (INT-132) — this screen carries the permanent
+ * one-tap-away entry row; only the device-local health toggle (INT-208)
+ * stays inline, because it never leaves the phone and mirrors no server
+ * purpose.
  *
  * Design pass 5: the Oura settings anatomy — group headers OUTSIDE the
  * groups, squarer ListGroups of 56 pt rows with hairlines between, "›" on
@@ -72,12 +73,6 @@ export default function Me() {
     // renders without a session; render nothing during that frame.
     return null;
   }
-  const consentRows = [
-    { key: "core" as const, label: t("consent.core") },
-    { key: "voice" as const, label: t("consent.voice") },
-    { key: "wellbeing" as const, label: t("consent.wellbeing") },
-    { key: "documents" as const, label: t("consent.documents") },
-  ];
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -91,25 +86,19 @@ export default function Me() {
             sublabel={t("me.syntheticBadge")}
           />
         </ListGroup>
+        {/* İzinleriniz (INT-132): the per-purpose record moved to its own
+            layered screen — every 06 §2 purpose, versioned texts, one-tap
+            withdrawal. This row is the permanent one-tap-away entry. */}
         <View style={styles.section}>
           <Kicker label={t("me.consents")} />
           <ListGroup>
-            {consentRows.map((row) => (
-              <ListRow
-                key={row.key}
-                label={row.label}
-                trailing={
-                  <StatePill
-                    label={consents[row.key] ? t("consent.on") : t("consent.off")}
-                    active={consents[row.key]}
-                    activeColor="success"
-                    accessibilityRole="switch"
-                    checked={consents[row.key]}
-                    onPress={() => setConsent(row.key, !consents[row.key])}
-                  />
-                }
-              />
-            ))}
+            <ListRow
+              icon="checkmark.shield"
+              label={t("me.consents")}
+              sublabel={t("consent.entry.sub")}
+              chevron
+              onPress={() => router.push("/(tabs)/me/consents")}
+            />
           </ListGroup>
         </View>
         {/* Sağlık verileri (INT-208): device-local reads behind their own

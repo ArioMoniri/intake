@@ -24,6 +24,7 @@ const NAV_MAP = [
   "(auth)/welcome.tsx",
   "(auth)/phone.tsx",
   "(auth)/otp.tsx",
+  "(auth)/consent.tsx",
   "(tabs)/_layout.tsx",
   "(tabs)/today.tsx",
   "(tabs)/visits/_layout.tsx",
@@ -36,6 +37,8 @@ const NAV_MAP = [
   "(tabs)/wellbeing.tsx",
   "(tabs)/me/index.tsx",
   "(tabs)/me/learned.tsx",
+  "(tabs)/me/consents/index.tsx",
+  "(tabs)/me/consents/[purpose].tsx",
 ];
 
 function walk(dir: string): string[] {
