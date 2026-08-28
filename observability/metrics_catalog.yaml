@@ -106,7 +106,7 @@ metrics:
     owner: platform
     unit: "info"
     description: Python interpreter build information (prometheus_client platform collector).
-  - name: document_upload_pipeline_total
+  - name: document_upload_pipeline
     type: counter
     labels: [outcome, reason]
     owner: records

@@ -26,6 +26,12 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
+# Modules that register live families at import time must be imported here
+# explicitly: the exposition check reads the default registry, and relying on
+# pytest's collection order to have imported an emitter is luck, not a gate.
+# Adding a live metric without listing its module fails
+# test_live_entries_are_emitted_and_planned_entries_are_not, which points here.
+import intake_platform.uploads  # noqa: F401  (document_upload_pipeline_total)
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
