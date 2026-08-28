@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen chaos load
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix chaos load
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -40,6 +40,14 @@ check-ts:
 # `make check` whenever these are stale.
 schemas-codegen:
 	uv run python -m clinical_schemas.codegen
+
+# INT-042: `protocols coverage` — the branch × resolution matrix over
+# packages/protocols/taxonomy/branches.yaml (files/09 §6 `taxonomy_coverage`;
+# CLAUDE.md invariant 13). Unstrict today: zero packs exist, so the matrix is
+# honestly all-MISSING. CI flips to `--strict` once the nine cluster packs
+# land (files/09 §2 P1) — then a branch resolving to nothing fails the build.
+coverage-matrix:
+	uv run protocols coverage
 
 dev:
 	$(COMPOSE) up -d --wait
