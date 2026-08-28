@@ -1877,6 +1877,33 @@
   tests:
   - tests/security/test_document_store.py
   sec_row: identifiers
+- id: INT-232
+  epic: E01-platform
+  phase: P0
+  title: 'Patient-facing consent routes: snapshot, grant, withdraw - seam-faithful
+    to the INT-132 client'
+  depends_on:
+  - INT-038
+  - INT-131
+  labels:
+  - area:api
+  status: done
+  acceptance:
+  - GET /v1/consents returns the client seam shape verbatim ({scopes:[{scope,
+    reason, version, text_hash}], texts:[{purpose, version, text_hash, body}]};
+    reason is the closed six-value INT-038 list; text_missing expressed by
+    absence from texts, fail-closed empty when docs/legal is absent - pinned);
+    POST grant refuses on version+hash mismatch with the current catalog text
+    (409 consent_text_changed) and on missing text (409 text_missing), re-checks
+    the bound row after grant so a mid-flight text move rolls back; POST withdraw
+    cascades instantly via the INT-038 service; all three patient-only and
+    audited; lane:acoustic and bare share 422 with purpose id only; the route
+    scan accepts a consent_management declaration ONLY under /v1/consents at a
+    path-segment boundary (lookalike-prefix negative control pinned) - silence
+    still fails
+  tests:
+  - tests/api/test_consent_routes.py
+  sec_row: consent
 - id: INT-180
   epic: E12-admin
   phase: P0
