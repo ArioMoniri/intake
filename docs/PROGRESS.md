@@ -239,3 +239,10 @@
 - Note: filed as INT-208 — INT-200/201 turned out to be blueprint E13-infra ids; coordinator renumbered before PR (id-collision caught by make check duplicate-ids assertion).
 - Invariants: 2 (numbers shown never interpreted), 5, 6, 17, 18 (no new persisted fields); backlog consciously 185→186.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T09:30:00+03:00 · INT-197 · done
+- Goal: owner directive — "deneme hesapları … users should be really able to use and connect and upload their files or use this app in real".
+- Result: services/api dev-tier slice — dev-bearer for exactly two synthetic accounts (fail-closed 503 without env tokens, X-Intake-Auth-Tier: dev, real OIDC stays INT-131); visits as sessions rows + visit.* slots (zero schema changes); notes envelope-encrypted at rest with status derived from live shares, share = consent-checked TTL row with only scoped-on sections; documents presign/list/download over INT-034 plus a content-ingest endpoint running the INT-034 pipeline (409 until scanned, AV posture unweakened); everything audited on one hash chain; invariant-15 endpoints via shared helpers. 490 unit tests, api 98% coverage, 5 live RLS+MinIO integration tests; make check exit 0.
+- Filed INT-228 (todo): real Tokenizer pseudonyms exceed the document-store key-segment bound — the INT-197 workaround (row UUID as segment) must be replaced by a test-pinned integration.
+- Invariants: 4, 6, 8, 14, 15, 18; backlog consciously 186→188 (INT-197 done + INT-228 finding).
+- LOOP_STATUS: CONTINUE

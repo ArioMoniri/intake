@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**186 issues.** By phase: P0 101 · P1 45 · P2 36 · P3 4. By status: doing 6 · done 26 · todo 153 · withdrawn 1.
+**188 issues.** By phase: P0 102 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 27 · todo 154 · withdrawn 1.
 
 ## P0
 
@@ -103,6 +103,7 @@
 | INT-198 | Department intake packs: 10 branches at full OLDCARTS depth, canonical anamnesis order, severity in words | E08-mobile | INT-194 | area:mobile | done |
 | INT-199 | Voice-first intake entry: speak freely -> whisper transcript -> schema-bound extract -> per-question confirm flow with verbatim provenance | E08-mobile | INT-194 | area:mobile, area:voice | done |
 | INT-208 | Device health connectors: HealthKit/Health Connect behind capability detection and consent, device-local only | E08-mobile | INT-193 | area:mobile | done |
+| INT-197 | Dev-tier API slice: dev-bearer accounts, visits/notes/documents over RLS with audit, consent and envelope encryption | E01-platform | INT-030, INT-034 | area:api | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | todo |
@@ -139,6 +140,7 @@
 | INT-160 | Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS | E10-connectors | INT-018, INT-035 | area:connectors, risk:security | todo |
 | INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | INT-160, INT-033 | area:connectors, approval:human-vendor, live-smoke | todo |
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | todo |
+| INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | todo |
 | INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | todo |
 | INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | todo |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin | todo |
