@@ -331,3 +331,8 @@
 - Wave 7 building: INT-042 taxonomy, INT-033 FHIR mappers, INT-024 chaos harness. Hızlı/Detaylı modes agent queued for the next free slot (02 §22-34).
 - Session tally: 30 issues landed end-to-end.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-042 merged (PR #282)
+- Taxonomy landed: taxonomy/branches.yaml seeds all MHRS branches from 09 §1 (verify_live_list true), every branch resolves to a cluster, `protocols coverage` CLI renders the honest zero-coverage matrix, and an unknown booked branch fails the pinned test. Invariant 13's "every branch resolves" gate is now mechanical.
+- Wave 7 remainder: INT-024 chaos re-merged after a .PHONY union conflict (CI re-running); INT-033 FHIR mappers resumed after a watchdog stall; INT-235 voice-chat UI and INT-236 adaptive packs + Hızlı/Detaylı modes building.
+- LOOP_STATUS: CONTINUE

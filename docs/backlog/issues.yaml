@@ -415,7 +415,7 @@
   title: "Taxonomy: all MHRS branches + clusters + visit types + coverage CLI"
   depends_on: [INT-040]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "taxonomy/branches.yaml seeded from 09 §1 with verify_live_list true; every branch resolves to a cluster; `protocols coverage` matrix; unknown booked branch fails a test"
   tests: [tests/protocols/test_taxonomy_coverage.py]
