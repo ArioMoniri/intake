@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 30 · todo 152 · withdrawn 1.
+**189 issues.** By phase: P0 103 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 32 · todo 150 · withdrawn 1.
 
 ## P0
 
@@ -32,11 +32,11 @@
 | INT-024 | k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s) | E01-platform | INT-022 | area:observability | todo |
 | INT-025 | Metrics catalogue as code + completeness test | E01-platform | INT-011 | area:observability | done |
 | INT-030 | Postgres schema + Alembic + RLS per tenant + pgaudit | E02-data | INT-013, INT-014 | area:data | done |
-| INT-031 | clinical-schemas: pydantic models + TS codegen + event schemas | E02-data | INT-030 | area:data | todo |
+| INT-031 | clinical-schemas: pydantic models + TS codegen + event schemas | E02-data | INT-030 | area:data | done |
 | INT-033 | HAPI FHIR exchange: mappers internal<->R4 + validation | E02-data | INT-031 | area:data | todo |
 | INT-034 | MinIO document store: signed URLs + AV hook + WORM audit bucket | E02-data | INT-016 | area:data | done |
 | INT-035 | Redis streams event bus + consumer framework + DLQ | E02-data | INT-031 | area:platform | todo |
-| INT-036 | Retention & destruction engine (policy as code, 6-month periodic destruction, logs) | E02-data | INT-030 | area:data, risk:legal | todo |
+| INT-036 | Retention & destruction engine (policy as code, 6-month periodic destruction, logs) | E02-data | INT-030 | area:data, risk:legal | done |
 | INT-037 | DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker | E02-data | INT-014, INT-033 | area:data, risk:legal | todo |
 | INT-038 | Consent service: versioned objects, consent_guard middleware, re-prompt on change | E02-data | INT-030 | area:data, risk:legal | todo |
 | INT-040 | Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields) | E03-protocols | INT-031 | area:protocols | todo |

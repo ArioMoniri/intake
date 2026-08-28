@@ -267,3 +267,9 @@
 - INT-036 retention engine in PR #251: files/06 §3 row-cited policy classes, DEST-2017 6-month floor read from the hash chain, 3-year indestructible destruction log, two draft_needs_source classes refusing destruction pending the human (consumer-tenant consent duration; research extracts / HB-L1).
 - Simulator dev-client build blocked on host Xcode: iOS 26.1 platform not installed and only 14 GB disk free — owner informed with the exact fix; Expo Go lane unaffected.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T12:20:00+03:00 · INT-031 + INT-036 · done (PRs #249, #251)
+- INT-031 clinical-schemas merged CI-green: nine blueprint-cited pydantic models with invariants 1/11/12/21 in the type system (LLM triage candidates capped YELLOW_REVIEW type-level; RED requires register+location with no default), five versioned event schemas (audit.v1 asserted against the INT-016 dataclass), deterministic committed codegen with byte-compare drift gates; refused-fields list instead of invention; workspace unions with INT-197 resolved (pyproject members/mypy, Makefile check-py, uv.lock regenerated).
+- INT-036 retention engine merged CI-green: files/06 §3 row-cited policy classes; DEST-2017 6-month floor read from the engine's own hash-chain entries; 3-year destruction log indestructible three separate ways; raw_audio never_written + lane_windows memory_only pinned; two draft_needs_source classes REFUSE destruction pending the human (consumer-tenant consent duration; research extracts per ethics protocol — HB-L1); 44 time-travel tests, zero sleeps.
+- Fleet 3/3 (wave 3): INT-038 consent service, INT-090 LiveKit dev voice infra, INT-131 real onboarding/auth (owner's create-accounts directive).
+- LOOP_STATUS: CONTINUE

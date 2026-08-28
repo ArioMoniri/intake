@@ -292,7 +292,7 @@
   title: "clinical-schemas: pydantic models + TS codegen + event schemas"
   depends_on: [INT-030]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "PreVisitNote, PatientSummary, ExtractedRecordItem, ConsentScope, TriageResult, SessionState, PatientOverlay, ObserverState, Proposal; events csat.v1, nps.v1, clinician_pulse.v1, audit.v1, security.v1; TS generated from OpenAPI"
   tests: [tests/schemas/test_roundtrip.py]
@@ -354,7 +354,7 @@
   title: "Retention & destruction engine (policy as code, 6-month periodic destruction, logs)"
   depends_on: [INT-030]
   labels: [area:data, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "policy file mirrors 06 §3 retention matrix; scheduled destruction runs at most every 6 months per DEST-2017; destruction log kept 3 years; lane windows zeroing verified; raw-audio guard extended"
     - "time-travel tests prove each class purges on schedule"
