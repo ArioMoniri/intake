@@ -106,6 +106,17 @@ metrics:
     owner: platform
     unit: "info"
     description: Python interpreter build information (prometheus_client platform collector).
+  - name: document_upload_pipeline_total
+    type: counter
+    labels: [outcome, reason]
+    owner: records
+    unit: "count"
+    description: >-
+      Upload pipeline outcomes (INT-120; files/10 §9 records signals).
+      Emitted by intake_platform.uploads.UploadPipeline. outcome is one of
+      promoted / rejected / already-processed / scan-unavailable; reason is
+      the closed RejectReason code for rejections and "none" otherwise —
+      enumerations only, never content (invariant 6).
   # --- files/08 §4 A. Availability & SLOs — planned until the SLO attainment pipeline lands
   - name: slo_api_availability
     id: slo.api_availability

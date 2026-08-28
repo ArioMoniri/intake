@@ -1,15 +1,18 @@
 /**
  * Kayıtlarım (02 §4): patient-owned documents; upload flows are INT-138.
  * Design pass 3: the empty state is an Oura-style guidance block about the
- * product (what will live here, who controls sharing) instead of a lone
- * "nothing here" card; the populated list gets a kicker.
+ * product. Design pass 5: the populated list is the Oura grouped-row
+ * anatomy — one squarer group, 56+ pt rows with a tonal leading icon well,
+ * 17 pt sans labels, hairlines between rows — instead of a stack of content
+ * cards; the synthetic marker becomes the group's single quiet footer.
  */
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
-import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
+import { ListGroup, ListRow } from "@/components/ListRow";
+import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
 import { getLocale, t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -33,19 +36,17 @@ export default function Records() {
           />
         ) : (
           <View style={styles.section}>
-            <Kicker label={t("records.guide.kicker")} tone="accent" />
-            {records.map((record) => (
-              <Card key={record.id}>
-                <AppText role="caption" color="inkSoft">
-                  {formatVisitDate(record.date, getLocale())}
-                </AppText>
-                {/* Card hierarchy (pass 4): serif title / sans caption meta. */}
-                <AppText role="title">{record.title}</AppText>
-                <AppText role="caption" color="inkFaint">
-                  {t("records.synthetic")}
-                </AppText>
-              </Card>
-            ))}
+            <Kicker label={t("records.guide.kicker")} />
+            <ListGroup footer={t("records.synthetic")}>
+              {records.map((record) => (
+                <ListRow
+                  key={record.id}
+                  icon="doc.text"
+                  label={record.title}
+                  sublabel={formatVisitDate(record.date, getLocale())}
+                />
+              ))}
+            </ListGroup>
           </View>
         )}
       </ScrollView>
@@ -56,5 +57,5 @@ export default function Records() {
 const styles = StyleSheet.create({
   content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
   heroLine: { marginTop: spacing.xl },
-  section: { gap: spacing.md },
+  section: { gap: spacing.sm },
 });

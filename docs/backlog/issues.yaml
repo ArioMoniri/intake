@@ -1183,7 +1183,7 @@
   title: "Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR"
   depends_on: [INT-034]
   labels: [area:records, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "AV scan before processing; OCR in seccomp-sandboxed worker; malformed/fuzz PDFs never crash host"
   tests: [tests/records/test_upload_pipeline.py]
@@ -1804,6 +1804,78 @@
   - apps/mobile/src/lib/health/capability.test.ts
   - apps/mobile/src/lib/health/format.test.ts
   sec_row: mobile
+- id: INT-209
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 5: numeric focal point (PrepGauge), Oura table anatomy, stack
+    headers, serif weight and accent budget'
+  depends_on:
+  - INT-196
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - measured gap list against fresh Mobbin Oura captures recorded in
+    docs/design/mobile-ui.md before any change; Bugun gains a pure-View
+    semicircular PrepGauge with a 56pt serif completion numeral via
+    Intl.NumberFormat percent (tr and en forms) and fontScale-safe layout;
+    Profilim and Kayitlarim move to ListGroup/ListRow table anatomy (56pt rows,
+    36pt tonal icon wells, inset hairlines, chevrons, headers outside groups,
+    group footers, radius.group 16); pushed screens gain a ground-coloured stack
+    header with back affordance; display serif 600 to 500; accent budget cut to
+    the Oura register (arc and numeral in ink); surfaceRaised tokens ADDED with
+    the AA suite extended and zero existing palette hexes changed; rail icon 20
+    with micro 11 role; 181 tests green after merging INT-198/199/208
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
+- id: INT-197
+  epic: E01-platform
+  phase: P0
+  title: 'Dev-tier API slice: dev-bearer accounts, visits/notes/documents over RLS
+    with audit, consent and envelope encryption'
+  depends_on:
+  - INT-030
+  - INT-034
+  labels:
+  - area:api
+  status: done
+  acceptance:
+  - dev bearer auth for exactly two synthetic accounts (tokens only from
+    INTAKE_DEV_TOKEN_PATIENT/ADMIN, fail-closed 503 when unset, readyz reports it,
+    every response tagged X-Intake-Auth-Tier dev; real OIDC stays INT-131); visits
+    as sessions rows + visit.* slots with zero schema changes; note payload at
+    rest is one EncryptedField envelope (asserted on raw rows), status derived
+    from live shares never stored in clear, sending checks share consent and
+    writes a TTL share row with only scoped-on sections; documents presign/list/
+    download-url over the INT-034 store plus a content-ingest endpoint running the
+    INT-034 pipeline (fail-closed AV posture unweakened, 409 until scanned);
+    every clinical read/share consent-checked and audited on the same hash chain
+    (invariant 4); /healthz /readyz /metrics /version via shared helpers
+    (invariant 15); ids-only logging (invariant 6); api coverage >= 85
+  tests:
+  - tests/api/test_api_postgres.py
+  sec_row: api
+- id: INT-228
+  epic: E02-data
+  phase: P1
+  title: 'Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate
+    or widen the shape'
+  depends_on:
+  - INT-034
+  labels:
+  - area:data
+  status: todo
+  acceptance:
+  - real Tokenizer pseudonyms (kid. + 64 hex, ~68 chars) fit the document-store
+    key discipline end to end - either _SEGMENT_SHAPE widens with the audit-ref
+    bound re-proven, or a documented derivation maps pseudonym -> segment; the
+    INT-197 workaround (patient row UUID hex as the segment) is removed and the
+    integration is test-pinned
+  tests:
+  - tests/security/test_document_store.py
+  sec_row: identifiers
 - id: INT-180
   epic: E12-admin
   phase: P0

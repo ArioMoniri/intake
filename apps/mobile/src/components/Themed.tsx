@@ -7,7 +7,7 @@
  * Oura/Tiimo signature); light-mode cards float on a soft wide shadow,
  * dark mode separates tonally.
  */
-import { type ReactNode } from "react";
+import { type ComponentProps, type ReactNode } from "react";
 import {
   Platform,
   Pressable,
@@ -20,6 +20,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import {
@@ -68,6 +69,28 @@ export function useFontScale(): number {
   return useWindowDimensions().fontScale;
 }
 
+type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
+
+/**
+ * Oura-register top bar for pushed screens (design pass 5): centred 17 pt
+ * semibold sans title, "‹" back with no label, ground-coloured and
+ * shadowless so it reads as part of the page, not chrome. Screens that use
+ * it drop the top safe edge — the header owns that inset.
+ */
+export function useStackHeader(): (title: string) => StackScreenOptions {
+  const theme = useTheme();
+  return (title: string) => ({
+    headerShown: true,
+    title,
+    headerTitleAlign: "center",
+    headerTitleStyle: { fontFamily: fonts.sansSemiBold, fontSize: 17, color: theme.ink },
+    headerStyle: { backgroundColor: theme.background },
+    headerShadowVisible: false,
+    headerTintColor: theme.ink,
+    headerBackButtonDisplayMode: "minimal",
+  });
+}
+
 interface AppTextProps {
   role?: TypeRole;
   color?: keyof ThemeColors;
@@ -78,7 +101,7 @@ interface AppTextProps {
 export function AppText({ role = "body", color = "ink", style, children }: AppTextProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
-  const display = role === "hero" || role === "title";
+  const display = role === "display" || role === "hero" || role === "title";
   const flat: TextStyle = StyleSheet.flatten([
     {
       color: theme[color],
