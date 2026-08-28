@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "description": "Quarterly clinician pulse (INT-240; files/08 §4 group F:\nclinician.pulse, quarterly 1-5).",
+  "properties": {
+    "clinician_ref": {
+      "description": "Clinician as an id — never a name (invariant 6; files/08 §4 group F).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+      "title": "Clinician Ref",
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "intake.clinical.clinician_pulse.v1",
+      "default": "intake.clinical.clinician_pulse.v1",
+      "description": "Versioned event id per the TS schemaId convention.",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "score": {
+      "description": "Pulse score 1-5 (files/08 §4 group F clinician.pulse).",
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Score",
+      "type": "integer"
+    },
+    "tenant_id": {
+      "description": "Owning tenant (INT-030 events.tenant_id).",
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "clinician_ref",
+    "score"
+  ],
+  "title": "ClinicianPulseV1",
+  "type": "object"
+}

@@ -1,0 +1,119 @@
+"""Retention & destruction engine (INT-036; files/06 §3; KVKK-7, DEST-2017).
+
+- :mod:`intake_platform.retention.policy` — the 06 §3 matrix as code, with
+  the audio, protected-class and no-invented-duration guards in the loader;
+- :mod:`intake_platform.retention.planner` — pure due/refused planning for
+  the periodic sweep and the targeted DSAR path;
+- :mod:`intake_platform.retention.engine` — the DEST-2017 cadence floor, the
+  hash-chained destruction log and the routed executor seam;
+- :mod:`intake_platform.retention.executors` — concrete destroyers over the
+  INT-030 tables and the INT-034 object store (WORM boundary enforced).
+"""
+
+from intake_platform.retention.engine import (
+    ACTION_DSAR_DESTROYED,
+    ACTION_DSAR_RUN,
+    ACTION_PERIODIC_DESTROYED,
+    ACTION_PERIODIC_RUN,
+    RETENTION_DESTROYED_ITEMS_TOTAL,
+    RETENTION_DESTRUCTION_RUNS_TOTAL,
+    Destroyer,
+    DestructionEngine,
+    DestructionReport,
+    DraftClassDestructionError,
+    NoExecutorRegisteredError,
+    PeriodicRunTooSoonError,
+    RetentionEngineError,
+    RetentionExecutor,
+    RoutingExecutor,
+    RunKind,
+)
+from intake_platform.retention.executors import (
+    DocumentObjectDestroyer,
+    ObjectRemover,
+    UnknownBucketError,
+    WormBundleProtectedError,
+    sqlalchemy_destroyers,
+)
+from intake_platform.retention.planner import (
+    DestructionPlan,
+    DueItem,
+    InventoryItem,
+    RefusedItem,
+    add_months,
+    dsar_plan,
+    due_for_destruction,
+)
+from intake_platform.retention.policy import (
+    PROTECTED_CLASS_NAMES,
+    AudioRetentionClassError,
+    ClassStatus,
+    DestroyableClass,
+    DestructionLogSpec,
+    NonPersistedRow,
+    PeriodicDestructionSpec,
+    PolicyClass,
+    PolicyClassMismatchError,
+    ProtectedClassError,
+    ProtectedRow,
+    RawAudioRowMissingError,
+    RetentionKind,
+    RetentionPolicy,
+    RetentionPolicyError,
+    RetentionRule,
+    default_policy_path,
+    load_default_policy,
+    load_policy,
+    parse_policy,
+)
+
+__all__ = [
+    "ACTION_DSAR_DESTROYED",
+    "ACTION_DSAR_RUN",
+    "ACTION_PERIODIC_DESTROYED",
+    "ACTION_PERIODIC_RUN",
+    "PROTECTED_CLASS_NAMES",
+    "RETENTION_DESTROYED_ITEMS_TOTAL",
+    "RETENTION_DESTRUCTION_RUNS_TOTAL",
+    "AudioRetentionClassError",
+    "ClassStatus",
+    "DestroyableClass",
+    "Destroyer",
+    "DestructionEngine",
+    "DestructionLogSpec",
+    "DestructionPlan",
+    "DestructionReport",
+    "DocumentObjectDestroyer",
+    "DraftClassDestructionError",
+    "DueItem",
+    "InventoryItem",
+    "NoExecutorRegisteredError",
+    "NonPersistedRow",
+    "ObjectRemover",
+    "PeriodicDestructionSpec",
+    "PeriodicRunTooSoonError",
+    "PolicyClass",
+    "PolicyClassMismatchError",
+    "ProtectedClassError",
+    "ProtectedRow",
+    "RawAudioRowMissingError",
+    "RefusedItem",
+    "RetentionEngineError",
+    "RetentionExecutor",
+    "RetentionKind",
+    "RetentionPolicy",
+    "RetentionPolicyError",
+    "RetentionRule",
+    "RoutingExecutor",
+    "RunKind",
+    "UnknownBucketError",
+    "WormBundleProtectedError",
+    "add_months",
+    "default_policy_path",
+    "dsar_plan",
+    "due_for_destruction",
+    "load_default_policy",
+    "load_policy",
+    "parse_policy",
+    "sqlalchemy_destroyers",
+]
