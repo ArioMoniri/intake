@@ -331,7 +331,7 @@
   title: "MinIO document store: signed URLs + AV hook + WORM audit bucket"
   depends_on: [INT-016]
   labels: [area:data]
-  status: doing
+  status: done
   acceptance:
     - "short-TTL signed URLs; server-side encryption; object-lock on audit bucket; bucket policies least-privilege"
   tests: [tests/data/test_signed_urls.py]
@@ -1721,6 +1721,31 @@
   tests:
   - apps/mobile/e2e/nav.spec.ts
   - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
+- id: INT-198
+  epic: E08-mobile
+  phase: P0
+  title: 'Department intake packs: 10 branches at full OLDCARTS depth, canonical
+    anamnesis order, severity in words'
+  depends_on:
+  - INT-194
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - packs for Kardiyoloji/Ic Hastaliklari, Noroloji, KBB, Ortopedi, Dermatoloji,
+    Gogus Hastaliklari, Kadin Hastaliklari ve Dogum, Uroloji, Goz Hastaliklari,
+    Gastroenteroloji, each 6-9 steps over neutral OLDCARTS dimensions (onset,
+    location/side, duration, character, radiation, triggers, timing, associated,
+    severity in words); resolution via folded-ASCII PACKS regexes tested through
+    Turkish diacritic spellings; allQuestions is the canonical anamnesis order and
+    every pack is a pinned subsequence of it so HPI lines follow interview order;
+    no numeral characters in any label (invariant 22 pinned by test); tr keys
+    source of truth with key-for-key en mirror; note rendering pinned for two new
+    packs with shuffled answer order
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts
+  - apps/mobile/src/lib/intake/note.test.ts
   sec_row: mobile
 - id: INT-180
   epic: E12-admin
