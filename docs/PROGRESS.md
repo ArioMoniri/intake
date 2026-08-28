@@ -194,3 +194,12 @@
 - Invariants: 5, 17, 18 (product copy only), 02 §5.2 motion budget kept (static gradients only).
 - Next: merge; INT-019 + INT-022 agents still building.
 - LOOP_STATUS: CONTINUE
+
+### 2026-08-28T04:30:00+03:00 · merge wave: INT-022/INT-023/INT-030 + INT-034 built · done
+- Merged with CI validated on main: #221 INT-022 (probe registry + release gate, honest 6-gap exit 1), #225 INT-023 (observability compose profile, 13 services, `make obs`), #227 INT-030 (postgres schema + alembic + tenant RLS live-proven under FORCE RLS, SqlAlchemyAuditStore, 67/67 inventory annotations, db 100% coverage). #223's branch kept dropping CI events even after fresh pushes — replaced by #228 (identical commits, fresh ref int-19-secgates); INT-019 stays doing until it lands.
+- INT-034 delivered by subagent on int-34-minio-docs (7d2fcbd): WORM audit bucket with COMPLIANCE retention proven against live MinIO (version delete refused server-side), signed-URL contract suite, quarantine→clean AV hook failing closed (DevNullScanner only behind INTAKE_DEV_ALLOW_UNSCANNED=explicit-yes), documents.py 100% stmt+branch, suite 343 py green at 91.96%. PR next.
+- Fleet: design pass 4 (js-tabs + FloatingTabBar pill, rail yields on intake/review) and voice-extract server (/extract on :8804, schema-bound candidates, injection probe) in flight.
+- Invariants: 4, 13, 14, 15, 18; no gate touched; backlog flips INT-022/023/030→done, INT-019/034→doing.
+- Blocked on: physician (#185); owner: licence blobs (whisper-tr, Freya weights, VoxCPM2 weights).
+- Next: merge #228; INT-034 PR; wire voice-extract app half after design pass lands.
+- LOOP_STATUS: CONTINUE
