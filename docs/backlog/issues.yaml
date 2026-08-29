@@ -601,7 +601,7 @@
   title: "Protocol Authoring Agent: L0 drafts for every branch + no-serve guard"
   depends_on: [INT-042]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "`protocols generate-l0 --branch <id>` scaffolds from cluster+template with citation placeholders resolved to named Turkish guidance sources; L0 resolution for a live session raises; regeneration idempotent"
     - "agent has zero access to patient data (import-boundary test)"
@@ -2580,3 +2580,25 @@
     missing; stale-gated answers kept and marked'
   tests:
   - apps/mobile/src/lib/intake/questions.test.ts
+- id: INT-235
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice chat surface: two-sided live transcript with ask-ahead dialogue
+    and realtime section panel'
+  depends_on:
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive: a chat interface showing what each side says with realtime
+    parsing into muayene sections - two-sided bubble transcript (in-place ASR
+    replacement, inline shimmer states, no status takeovers), ask-ahead turn
+    advance with reconcile-behind by work id (stale results dropped, live turn
+    never moved), multi-question extract absorption with skip-of-answered,
+    session clip pre-warm, persistent typed composer on the identical utterance
+    path, Not olusuyor section strip with quote provenance and confirm chips;
+    all answered goes straight to review and only genuinely unanswered
+    questions fall to prefilled text steps'
+  tests:
+  - apps/mobile/src/lib/dialogue/stream.test.ts

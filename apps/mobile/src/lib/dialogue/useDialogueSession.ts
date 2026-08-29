@@ -1,9 +1,20 @@
 /**
- * The imperative driver behind the spoken dialogue screen (INT-233): owns
- * the turn reducer plus every side effect — clip synthesis/caching and
- * playback, the recorder, the single-question extract, and the audio
- * teardown. The screen (components/DialogueIntake.tsx) renders state and
- * stores answers; this hook never touches the session note or navigation.
+ * The imperative driver behind the voice chat surface (INT-233 base,
+ * INT-235 ask-ahead pass): owns the stream reducer plus every side
+ * effect — clip synthesis/caching and playback, the recorder, the
+ * background transcribe→extract pipelines, and the audio teardown. The
+ * screen (components/DialogueIntake.tsx) renders state and stores
+ * answers; this hook never touches the session note or navigation.
+ *
+ * ASK-AHEAD (owner feedback; the blueprint IntakeEngine pattern at dev
+ * tier): the next question never waits for the previous answer's
+ * pipeline — `utterance` advances the turn the moment the mic closes,
+ * and each utterance's transcribe→extract runs detached, reconciling by
+ * work id. The WHOLE session's question clips pre-warm in parallel at
+ * mount, so "soru hazırlanıyor" is the exception, not the rhythm — and
+ * the bubble always shows the question TEXT instantly regardless.
+ * A typed composer submit is the same conversation: one utterance that
+ * skips the ASR hop.
  *
  * DISTURBABLE guarantee lives here: `bargeIn` calls `player.pause()` — a
  * synchronous call on the shared native object — before dispatching, so
@@ -11,8 +22,8 @@
  * cleared before the next clip, means no overlapping audio ever.
  *
  * Audio hygiene: clips under cacheDirectory/dialogue/ are AGENT-voice
- * audio synthesized from catalog tr strings, deleted wholesale on unmount
- * AND on session end. PATIENT recordings keep lib/voice.ts's
+ * audio synthesized from catalog tr strings, deleted wholesale on
+ * unmount AND on session end. PATIENT recordings keep lib/voice.ts's
  * delete-after-upload posture (invariant 3 governs those — untouched).
  * The numeral guard sits inside the synth path (invariant 22 mirror).
  */
@@ -26,46 +37,64 @@ import {
 } from "expo-audio";
 
 import { configuredServiceCandidates } from "../dev/expoHosts";
-import { EXTRACT_PORT, extractFromCandidates } from "../extract";
+import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, dialogueClipStore, reachableTtsBaseUrl } from "./clips";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
-import { clipName, type ClipStore } from "./tts";
 import {
-  dialogueReducer,
-  initialDialogueState,
-  type DialogueAction,
-  type DialogueState,
-} from "./turn";
+  dialogueStreamReducer,
+  initialDialogueStreamState,
+  type DialogueStreamAction,
+  type DialogueStreamState,
+} from "./stream";
+import { clipName, type ClipStore } from "./tts";
+import type { DialogueCandidate } from "./turn";
 
 export interface DialogueSessionOptions {
   questions: readonly IntakeQuestion[];
   /** The pack label the extract daemon receives (the visit's department). */
   packName: string;
-  /** All steps committed — the caller routes onward. Clips already gone. */
+  /** Every question answered — the caller routes onward. Clips gone. */
   onDone: () => void;
   /** Hard service failure — the caller lands in the manual steps. */
   onFailed: () => void;
+  /** Dialogue settled with questions left: the caller hands the manual
+   * steps whatever suggestions remain unconfirmed (may be empty). */
+  onHandoff: (leftovers: Record<string, DialogueCandidate>) => void;
 }
 
 export interface DialogueSession {
-  state: DialogueState;
-  /** True only while a clip is audibly playing — the screen says
+  /** Turn + pending suggestions + committed answers + the chat log. */
+  state: DialogueStreamState;
+  /** True only while a clip is audibly playing — the bubble says
    * "preparing" honestly until then (no duration claim, 02 §5.2). */
   playing: boolean;
-  /** Tap during agent speech: stop playback NOW, open the mic. */
+  /** Tap on the speaking bubble: stop playback NOW, open the mic. */
   bargeIn: () => void;
-  /** "Bitirdim" / tap-to-stop: single-shot close of one listen. */
+  /** "Bitirdim" / tap-to-stop: take the utterance, advance NOW; the
+   * transcribe→extract pipeline reconciles behind by work id. */
   finishListening: () => Promise<void>;
-  /** "Yazarak yanıtlayın": typed fallback for THIS step only. */
-  typeThisStep: () => Promise<void>;
+  /** Composer submit: a typed utterance — the same conversation. */
+  sendTyped: (text: string) => Promise<void>;
   /** Leave the whole dialogue by choice; resolves after audio cleanup. */
   leave: () => Promise<void>;
-  /** Advance after the caller stored this step's answer. */
-  advance: (kind: "confirm" | "commit") => void;
+  /** Confirm the live turn's candidate with the on-screen values. */
+  confirm: (values: string[]) => void;
+  /** Panel-row confirm of one pending suggestion (caller stores it). */
+  confirmPending: (questionId: string) => void;
   /** From the confirm card: the patient speaks the correction instead. */
   speakCorrection: () => void;
+}
+
+function toCandidates(
+  candidates: Record<string, ExtractCandidate>,
+): Record<string, DialogueCandidate> {
+  const mapped: Record<string, DialogueCandidate> = {};
+  for (const [questionId, candidate] of Object.entries(candidates)) {
+    mapped[questionId] = { values: [...candidate.values], quote: candidate.quote };
+  }
+  return mapped;
 }
 
 export function useDialogueSession({
@@ -73,12 +102,13 @@ export function useDialogueSession({
   packName,
   onDone,
   onFailed,
+  onHandoff,
 }: DialogueSessionOptions): DialogueSession {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [state, dispatch] = useReducer(
-    (s: DialogueState, a: DialogueAction) => dialogueReducer(questions, s, a),
-    undefined,
-    initialDialogueState,
+    (s: DialogueStreamState, a: DialogueStreamAction) => dialogueStreamReducer(questions, s, a),
+    questions,
+    initialDialogueStreamState,
   );
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -86,12 +116,18 @@ export function useDialogueSession({
 
   const storeRef = useRef<Promise<ClipStore> | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
+  /** One controller for every background extract of the session. */
   const abortRef = useRef<AbortController | null>(null);
   const closedRef = useRef(false);
-  /** Single-shot guard for the two stop affordances on one listen. */
+  /** Single-shot guard for the stop affordances on one listen. */
   const finishingRef = useRef(false);
-  /** Set when the patient bails out of the voice loop mid-flight. */
-  const cancelledRef = useRef(false);
+  /** Monotonic work id — the reconcile-behind address space. */
+  const workRef = useRef(0);
+
+  const sessionSignal = () => {
+    abortRef.current ??= new AbortController();
+    return abortRef.current.signal;
+  };
 
   /** Mic permission + TTS probe, once per session; failure is terminal. */
   const clipStore = (): Promise<ClipStore> => {
@@ -137,9 +173,47 @@ export function useDialogueSession({
     }
   };
 
-  // Speaking driver: ensure the clip (cache hit after the first ask of a
-  // session), then play it; end of clip hands the turn over.
-  const speaking = state.phase === "speaking" ? state : null;
+  // Pre-warm the WHOLE session's scripted clips in parallel at mount
+  // (ask-ahead: "soru hazırlanıyor" must be the exception). Failures stay
+  // silent here — the speaking driver re-ensures per turn and surfaces a
+  // real store failure honestly there.
+  useEffect(() => {
+    let stale = false;
+    (async () => {
+      try {
+        const store = await clipStore();
+        if (stale) {
+          return;
+        }
+        await Promise.allSettled(
+          questions.flatMap((question) => {
+            const clips = [
+              store.ensure(clipName("question", question.id), questionSpeechTr(question)),
+            ];
+            if (question.kind === "text") {
+              // The generic confirm line is scripted too — free text never
+              // names a clip and patient words are never synthesized.
+              clips.push(
+                store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, [])),
+              );
+            }
+            return clips;
+          }),
+        );
+      } catch {
+        // surfaced by the speaking driver on its own ensure
+      }
+    })();
+    return () => {
+      stale = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per session; questions is stable
+  }, []);
+
+  // Speaking driver: ensure the clip (pre-warm makes this a cache hit),
+  // then play it; end of clip hands the turn over. Reconcile updates keep
+  // the turn object's identity, so they never restart a clip.
+  const speaking = state.turn.phase === "speaking" ? state.turn : null;
   useEffect(() => {
     if (speaking === null) {
       return;
@@ -192,13 +266,12 @@ export function useDialogueSession({
   }, [speaking]);
 
   // Listening driver: the mic opens when the machine says listen.
-  const listening = state.phase === "listening" ? state : null;
+  const listening = state.turn.phase === "listening" ? state.turn : null;
   useEffect(() => {
     if (listening === null) {
       return;
     }
     finishingRef.current = false; // a fresh listen re-arms the stop guard
-    cancelledRef.current = false; // and clears any earlier bail-out
     let stale = false;
     (async () => {
       try {
@@ -223,27 +296,35 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- listening is a fresh object per turn entry
   }, [listening]);
 
-  // Session end: agent clips are deleted and the flow moves on.
+  // Session end: agent clips are deleted and the flow moves on. Handoff
+  // carries the unconfirmed leftovers to the manual steps as prefill.
   useEffect(() => {
-    if (state.phase === "done") {
+    if (state.turn.phase === "done") {
       closedRef.current = true;
+      abortRef.current?.abort();
       void clearDialogueClips();
       onDone();
-    } else if (state.phase === "failed") {
+    } else if (state.turn.phase === "failed") {
       closedRef.current = true;
+      abortRef.current?.abort();
       void stopAndDiscardRecording();
       void clearDialogueClips();
       onFailed();
+    } else if (state.turn.phase === "handoff") {
+      closedRef.current = true;
+      abortRef.current?.abort();
+      void clearDialogueClips();
+      onHandoff(stateRef.current.pending);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- terminal transitions only
-  }, [state.phase]);
+  }, [state.turn.phase]);
 
   // Unmount: stop audio both ways and delete the whole agent-clip cache.
   useEffect(() => {
     return () => {
       stopPlayback();
       abortRef.current?.abort();
-      if (!closedRef.current && stateRef.current.phase === "listening") {
+      if (!closedRef.current && stateRef.current.turn.phase === "listening") {
         void stopAndDiscardRecording();
       }
       void clearDialogueClips();
@@ -251,69 +332,112 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
   }, []);
 
-  /** "Bitirdim" / tap-to-stop: close the mic, transcribe, extract against
-   * THIS single question (fast path), and let the reducer route the rest.
-   * The ref guard makes the two stop affordances (surface tap and the
-   * "Bitirdim" button) single-shot — the recording is processed once. */
+  /** The reconcile tail every utterance shares: extract against every
+   * remaining unanswered question (the daemon accepts any subset), then
+   * settle the work id. Failures settle EMPTY — extraction is enrichment
+   * in ask-ahead, never a reason to kill the conversation. A text-kind
+   * question's own answer is the transcript verbatim, no model hop. */
+  const runExtract = async (
+    workId: number,
+    transcript: string,
+    utteranceQuestion: IntakeQuestion | null,
+  ) => {
+    const verbatimTextId =
+      utteranceQuestion !== null && utteranceQuestion.kind === "text" ? utteranceQuestion.id : null;
+    const verbatim: Record<string, DialogueCandidate> =
+      verbatimTextId !== null
+        ? { [verbatimTextId]: { values: [transcript], quote: transcript } }
+        : {};
+    const remaining = questions.filter(
+      (q) => stateRef.current.answers[q.id] === undefined && q.id !== verbatimTextId,
+    );
+    if (remaining.length === 0) {
+      dispatch({ type: "extract_settled", workId, candidates: verbatim });
+      return;
+    }
+    const result = await extractFromCandidates(
+      configuredServiceCandidates(EXTRACT_PORT),
+      transcript,
+      packName,
+      remaining,
+      { signal: sessionSignal() },
+    );
+    if (closedRef.current) {
+      return;
+    }
+    dispatch({
+      type: "extract_settled",
+      workId,
+      // The verbatim transcript outranks any model paraphrase of itself.
+      candidates: result.ok ? { ...toCandidates(result.candidates), ...verbatim } : verbatim,
+    });
+  };
+
+  /** "Bitirdim" / tap-to-stop: close the mic and advance NOW (ask-ahead);
+   * transcription and extraction reconcile behind under this work id.
+   * The ref guard keeps the stop affordances single-shot. */
   const finishListening = async () => {
-    if (finishingRef.current || stateRef.current.phase !== "listening") {
+    if (finishingRef.current || stateRef.current.turn.phase !== "listening") {
       return;
     }
     finishingRef.current = true;
-    const question = questions[stateRef.current.step];
-    dispatch({ type: "stop" });
+    const question = questions[stateRef.current.turn.step];
+    let uri: string | null = null;
     try {
       await recorder.stop();
+      uri = recorder.uri;
     } catch {
       dispatch({ type: "failure" });
       return;
     }
-    const uri = recorder.uri;
+    const workId = (workRef.current += 1);
+    dispatch({ type: "utterance", workId }); // the next question speaks NOW
     if (uri === null) {
-      // Nothing was captured — not a service failure; this step falls to
-      // typing via the empty-transcript rule.
-      dispatch({ type: "transcript", text: "" });
+      // Nothing was captured — the bubble goes; the question falls to the
+      // manual steps at the end if nothing else fills it.
+      dispatch({ type: "transcript_ready", workId, text: "" });
+      dispatch({ type: "extract_settled", workId, candidates: {} });
       return;
     }
     let transcript = "";
     try {
       transcript = await transcribeRecording(uri); // deletes the file after upload
     } catch {
-      dispatch({ type: "failure" });
+      if (!closedRef.current) {
+        dispatch({ type: "failure" }); // a broken ASR lane is a hard failure
+      }
       return;
     }
-    if (cancelledRef.current) {
-      return; // the patient already moved on (typed fallback or exit)
-    }
-    dispatch({ type: "transcript", text: transcript });
-    if (transcript.trim().length === 0 || question.kind === "text") {
-      return; // reducer handled it: typing fallback, or transcript-as-answer
-    }
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const result = await extractFromCandidates(
-      configuredServiceCandidates(EXTRACT_PORT),
-      transcript,
-      packName,
-      [question], // single-question spec — the daemon accepts any subset
-      { signal: controller.signal },
-    );
-    if (controller.signal.aborted) {
+    if (closedRef.current) {
       return;
     }
-    if (result.ok) {
-      const candidate = result.candidates[question.id];
-      dispatch(
-        candidate !== undefined
-          ? {
-              type: "candidate",
-              candidate: { values: [...candidate.values], quote: candidate.quote },
-            }
-          : { type: "no_candidate" },
-      );
-    } else if (result.reason !== "aborted") {
-      dispatch({ type: "failure" });
+    dispatch({ type: "transcript_ready", workId, text: transcript });
+    const trimmed = transcript.trim();
+    if (trimmed.length === 0) {
+      dispatch({ type: "extract_settled", workId, candidates: {} });
+      return;
     }
+    await runExtract(workId, trimmed, question);
+  };
+
+  /** Composer submit: voice and text are ONE conversation — a typed
+   * utterance takes the same path as a spoken one, minus the ASR hop. */
+  const sendTyped = async (raw: string) => {
+    const text = raw.trim();
+    const phase = stateRef.current.turn.phase;
+    if (text.length === 0 || phase === "done" || phase === "failed" || phase === "handoff") {
+      return;
+    }
+    stopPlayback(); // typing over agent speech is a barge-in
+    const step = "step" in stateRef.current.turn ? stateRef.current.turn.step : -1;
+    if (phase === "listening") {
+      finishingRef.current = true; // the abandoned listen is never processed
+      await stopAndDiscardRecording();
+    }
+    const workId = (workRef.current += 1);
+    dispatch({ type: "typed", workId, text });
+    // During the end wait there is no live question; enrich everything.
+    await runExtract(workId, text, step >= 0 ? questions[step] : null);
   };
 
   const bargeIn = () => {
@@ -321,22 +445,11 @@ export function useDialogueSession({
     dispatch({ type: "barge_in" });
   };
 
-  const typeThisStep = async () => {
-    cancelledRef.current = true;
-    stopPlayback();
-    abortRef.current?.abort();
-    if (stateRef.current.phase === "listening") {
-      await stopAndDiscardRecording();
-    }
-    dispatch({ type: "type" });
-  };
-
   const leave = async () => {
     closedRef.current = true;
-    cancelledRef.current = true;
     stopPlayback();
     abortRef.current?.abort();
-    if (stateRef.current.phase === "listening") {
+    if (stateRef.current.turn.phase === "listening") {
       await stopAndDiscardRecording();
     }
     await clearDialogueClips();
@@ -347,9 +460,10 @@ export function useDialogueSession({
     playing,
     bargeIn,
     finishListening,
-    typeThisStep,
+    sendTyped,
     leave,
-    advance: (kind) => dispatch({ type: kind }),
+    confirm: (values) => dispatch({ type: "confirm", values }),
+    confirmPending: (questionId) => dispatch({ type: "confirm_pending", questionId }),
     speakCorrection: () => dispatch({ type: "speak" }),
   };
 }
