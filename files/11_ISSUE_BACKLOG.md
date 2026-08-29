@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**202 issues.** By phase: P0 116 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 71 · todo 121 · withdrawn 1.
+**202 issues.** By phase: P0 116 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 74 · todo 118 · withdrawn 1.
 
 ## P0
 
@@ -124,8 +124,8 @@
 | INT-238 | Kaynaklar ingest defect: the virus scanner slot was never wired, so every upload stuck in quarantine | E02-data | INT-120, INT-034 | area:data | done |
 | INT-239 | Dialogue-only intake with answer-driven dev packs: delete the two-button chooser, branch every department on prior answers | E08-mobile | INT-235, INT-236 | area:mobile | done |
 | INT-243 | Serve the intended production TTS tier (VoxCPM2) behind a licence-verified registry row, with the fallback voice kept | E05-voice | INT-237 | area:voice | done |
-| INT-247 | Carried-forward facts must be confirmable before they read as current (the client half of INT-170) | E11-learning | INT-133 | area:mobile | todo |
-| INT-248 | PolicyGuard precision: Turkish morphology, and the disclaimer the guard was rejecting | E05-voice | INT-091 | area:voice | todo |
+| INT-247 | Carried-forward facts must be confirmable before they read as current (the client half of INT-170) | E11-learning | INT-133 | area:mobile | done |
+| INT-248 | PolicyGuard precision: Turkish morphology, and the disclaimer the guard was rejecting | E05-voice | INT-091 | area:voice | done |
 | INT-249 | Latency-aware voice lane selection: a health check that answers is not a lane that can speak | E05-voice | INT-243 | area:voice | done |
 
 ## P1
@@ -175,7 +175,7 @@
 | INT-224 | Store compliance: Apple health guidelines + Google Play Health policy + Data safety/privacy labels + IARC | E14-legal | — | area:legal, risk:legal, approval:human-legal | todo |
 | INT-226 | Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page | E14-legal | INT-144 | area:legal | todo |
 | INT-241 | Wait-time metrics end-to-end + SDS-01 style exports | E16-experience | INT-240, INT-025 | area:experience | todo |
-| INT-242 | NPS scheduling + clinician pulse survey cadence | E16-experience | INT-240 | area:experience | todo |
+| INT-242 | NPS scheduling + clinician pulse survey cadence | E16-experience | INT-240 | area:experience | done |
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 

@@ -2506,7 +2506,7 @@
   title: "NPS scheduling + clinician pulse survey cadence"
   depends_on: [INT-240]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "monthly NPS prompt honoring quiet hours; quarterly pulse; opt-outs respected"
   tests: [tests/experience/test_survey_cadence.py]
@@ -2721,7 +2721,7 @@
   - INT-133
   labels:
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'owner bug report that a medication carried from a previous visit was shown as
     current with no way to say it had stopped, which a clinician reading the note
@@ -2749,7 +2749,7 @@
   labels:
   - area:voice
   sec_row: intake-voice
-  status: todo
+  status: done
   acceptance:
   - 'a localization audit reported the guard rejecting legitimate copy, and every
     claim was verified before a pattern was touched by reproducing the count
