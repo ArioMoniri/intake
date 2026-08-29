@@ -220,6 +220,16 @@ POLICYGUARD_FINDINGS = frozenset(
         ("treatment", "carried.action.undo"),
         ("jargon", "welcome.body"),
         ("multi_question", "health.attach.confirm"),
+        # INT-250 — guard false positive, and the purest case of the `_SEN`
+        # morphology defect in the catalogue: "Besin" is the bare noun "food",
+        # an option chip on the allergy question. It ends in the letters -sin,
+        # which `_SEN` reads as the second-person-singular suffix. A one-word
+        # noun cannot address anyone in any register. The copy is correct as
+        # written — "besin alerjisi" is the ordinary Turkish term and the B1
+        # word a patient reads on any allergy form — so nothing here is
+        # rewritten to dodge the pattern.
+        # Owner: services/voice-runtime, via the runtime-reviewer (INT-248).
+        ("register", "intake.opt.allergyFood"),
         ("register", "app.tagline"),
         ("register", "auth.error.code"),
         ("register", "auth.error.network"),

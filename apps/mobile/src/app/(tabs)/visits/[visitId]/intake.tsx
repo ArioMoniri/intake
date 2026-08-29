@@ -54,7 +54,7 @@ import { t } from "@/lib/i18n";
 import {
   applicableQuestions,
   nextApplicableQuestion,
-  packForDepartment,
+  packForVisit,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
 import {
@@ -76,7 +76,14 @@ export default function TypedIntake() {
   const { notes, consents, visits, integrity } = useSession();
   const note = notes[visitId ?? ""];
   const visit = visits.find((v) => v.id === visitId);
-  const intakeQuestions = packForDepartment(visit?.department);
+  // The pack a visit runs = the department's dimensions + the universal
+  // history block, narrowed to this session's profile (INT-250): Hızlı asks
+  // meds/allergies, Detaylı adds the PMH/FH deltas, and a section the 02 §33
+  // self-check deferred is absent rather than asked quietly.
+  const intakeQuestions = packForVisit(visit?.department, {
+    mode: note?.mode ?? "hizli",
+    deferred: note?.deferred,
+  });
 
   // Voice goes FIRST on a fresh run: not edit mode, nothing answered yet,
   // voice consent ON, dev lane present. The ASR probe gates inside the flow.
@@ -316,6 +323,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   }
 
   const floatingCta = question.kind !== "single";
+  // INT-250: the text CTA used to read "Bitir" unconditionally, which was
+  // true only while `extra` was the one text step in the pack. The universal
+  // history block adds free-text steps mid-flow, so the label now follows
+  // the flow: "Bitir" when this is the last applicable question (or an edit
+  // returning to the review), "Devam" otherwise.
+  const isLastApplicable =
+    applicable.length > 0 && applicable[applicable.length - 1].id === question.id;
+  const ctaLabel = editing || isLastApplicable ? t("intake.finish") : t("intake.next");
 
   return (
     <>
@@ -492,7 +507,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       {question.kind === "chips" ? (
         <GlassBar>
           <PrimaryButton
-            label={editing ? t("intake.finish") : t("intake.next")}
+            label={ctaLabel}
             disabled={selected.length === 0}
             onPress={() => commit(selected)}
           />
@@ -501,7 +516,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       {question.kind === "text" ? (
         <GlassBar>
           <PrimaryButton
-            label={t("intake.finish")}
+            label={ctaLabel}
             onPress={() => commit(text.trim().length > 0 ? [text.trim()] : [])}
           />
         </GlassBar>

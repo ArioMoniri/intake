@@ -60,6 +60,11 @@ export function sectionLabelKey(question: IntakeQuestion): MessageKey {
   if (question.hpiLabelKey !== undefined) {
     return question.hpiLabelKey;
   }
+  // INT-250: a universal history question renders in its OWN note section,
+  // so its line label is `lineLabelKey`, not `hpiLabelKey`.
+  if (question.lineLabelKey !== undefined) {
+    return question.lineLabelKey;
+  }
   if (question.id === "complaint") {
     return "review.section.cc";
   }

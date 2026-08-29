@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  factActionKey,
   factSourceKey,
   factStateKey,
   reconcileCarriedFacts,
@@ -104,9 +105,17 @@ describe("catalogue keys for the ledger", () => {
   });
 
   it("undecided has its own state copy — it is not rendered as a no", () => {
-    expect(factStateKey(undefined)).toBe("carried.state.unconfirmed");
-    expect(factStateKey(decide("confirmed"))).toBe("carried.state.confirmed");
-    expect(factStateKey(decide("changed"))).toBe("carried.state.changed");
-    expect(factStateKey(decide("stopped"))).toBe("carried.state.stopped");
+    expect(factStateKey("medication", undefined)).toBe("carried.state.unconfirmed");
+    expect(factStateKey("medication", decide("confirmed"))).toBe("carried.state.confirmed");
+    expect(factStateKey("medication", decide("changed"))).toBe("carried.state.changed");
+    expect(factStateKey("medication", decide("stopped"))).toBe("carried.state.stopped");
+  });
+
+  // INT-250: the same three outcomes, in the words that kind of fact takes.
+  it("an allergy takes allergy words — nothing about it is 'stopped'", () => {
+    expect(factStateKey("allergy", undefined)).toBe("carried.state.unconfirmed");
+    expect(factStateKey("allergy", decide("stopped"))).toBe("carried.state.allergy.stopped");
+    expect(factActionKey("allergy", "stopped")).toBe("carried.action.allergy.stopped");
+    expect(factActionKey("medication", "stopped")).toBe("carried.action.stopped");
   });
 });

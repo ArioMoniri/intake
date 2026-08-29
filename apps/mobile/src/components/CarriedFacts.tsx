@@ -21,25 +21,19 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { AppText, Hairline, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
-import { t, type MessageKey } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import {
+  FACT_OUTCOMES,
+  factActionKey,
   factSourceKey,
   factStateKey,
   formatFactDate,
   type CarriedFact,
   type FactAsserter,
   type FactDecision,
-  type FactOutcome,
   type FactReview,
 } from "@/lib/intake/carriedFacts";
 import { radius, spacing } from "@/lib/theme";
-
-/** The three answers, in the order the copy reads them. */
-const OUTCOMES: readonly { outcome: FactOutcome; labelKey: MessageKey }[] = [
-  { outcome: "confirmed", labelKey: "carried.action.confirm" },
-  { outcome: "changed", labelKey: "carried.action.changed" },
-  { outcome: "stopped", labelKey: "carried.action.stopped" },
-];
 
 /** Where a fact came from and when — the "where from" files/09 §3 requires. */
 function Provenance({ fact }: { fact: CarriedFact }) {
@@ -123,10 +117,12 @@ export function CarriedFactReview({
             </AppText>
             <Provenance fact={fact} />
             <View style={styles.chipRow}>
-              {OUTCOMES.map(({ outcome, labelKey }) => (
+              {/* INT-250: the answer words follow the fact's KIND — an
+                  allergy is not "stopped", it is either there or it is not. */}
+              {FACT_OUTCOMES.map((outcome) => (
                 <Chip
                   key={outcome}
-                  label={t(labelKey)}
+                  label={t(factActionKey(fact.kind, outcome))}
                   context={fact.text}
                   selected={decision?.outcome === outcome}
                   disabled={disabled}
@@ -140,7 +136,7 @@ export function CarriedFactReview({
               ))}
             </View>
             <AppText role="caption" color={decision === undefined ? "inkFaint" : "inkSoft"}>
-              {t(factStateKey(decision))}
+              {t(factStateKey(fact.kind, decision))}
               {decision === undefined ? "" : ` · ${t("carried.action.undo")}`}
             </AppText>
           </View>

@@ -35,9 +35,12 @@ describe("visit creation runs on the production taxonomy", () => {
     expect(feed).toContain('"seed"');
   });
 
-  it("pack selection stays behind the packForDepartment glue", () => {
+  it("pack selection stays behind the packForVisit glue", () => {
+    // INT-250: the screen composes the department pack with the universal
+    // history block for this session's profile, so the glue it reaches for
+    // is packForVisit — which resolves packForDepartment underneath.
     const intake = read(APP, "(tabs)/visits/[visitId]/intake.tsx");
-    expect(intake).toContain("packForDepartment");
+    expect(intake).toContain("packForVisit");
   });
 
   it("the visit record carries its type into the session state", () => {

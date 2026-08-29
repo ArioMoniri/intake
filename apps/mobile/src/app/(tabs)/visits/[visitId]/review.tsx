@@ -27,8 +27,9 @@ import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
 import { buildNote } from "@/lib/intake/note";
-import { missingQuestions, packForDepartment } from "@/lib/intake/questions";
+import { missingQuestions, packForVisit } from "@/lib/intake/questions";
 import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -45,6 +46,16 @@ export default function ReviewAndSendGated() {
 
 // With the top bar shown, the header owns the top inset (design pass 6).
 const FLOW_EDGES = ["left", "right"] as const;
+
+/**
+ * Which carried-fact kind each note section reviews (INT-250). A section not
+ * listed here shows no review block at all, so a fact can never be answered
+ * under the wrong heading.
+ */
+const CARRIED_IN_SECTION: Record<string, CarriedFactKind | undefined> = {
+  medications: "medication",
+  allergies: "allergy",
+};
 
 function ReviewAndSend() {
   const router = useRouter();
@@ -90,7 +101,13 @@ function ReviewAndSend() {
   // unanswered only — a gate-skipped question is skipped, not missing.
   const visit = visits.find((v) => v.id === visitId);
   const missing = checkpointed
-    ? missingQuestions(packForDepartment(visit?.department), note.answers)
+    ? missingQuestions(
+        // The same pack the flow ran (INT-250): a question this session's
+        // mode never asks, or one the environment deferred, is not `eksik` —
+        // the deferral has its own marker section and says why.
+        packForVisit(visit?.department, { mode: note.mode, deferred: note.deferred }),
+        note.answers,
+      )
     : [];
 
   return (
@@ -246,24 +263,28 @@ function ReviewAndSend() {
                   </Pressable>
                 ) : null}
                 {section.id === "medications" ? (
-                  <>
-                    <AppText role="caption" color="inkFaint">
-                      {t("review.medsNote")}
-                    </AppText>
-                    {/* INT-247: the answer that makes a carried fact current
-                        — or records that the patient stopped it. Nothing
-                        here is preselected (invariant 12). */}
-                    <CarriedFactReview
-                      facts={account.carriedFacts}
-                      review={note.factReview}
-                      asserter={{ role: "patient", attribution: companion.attribution }}
-                      disabled={sent}
-                      onDecide={(factId, decision) =>
-                        visitId && updateNote(visitId, { type: "fact", factId, decision })
-                      }
-                    />
-                  </>
+                  <AppText role="caption" color="inkFaint">
+                    {t("review.medsNote")}
+                  </AppText>
                 ) : null}
+                {/* INT-247: the answer that makes a carried fact current —
+                    or records that the patient retracted it. Nothing here is
+                    preselected (invariant 12). INT-250 files each kind under
+                    its own section, so an allergy is never reviewed inside
+                    the medication list. */}
+                {CARRIED_IN_SECTION[section.id] === undefined ? null : (
+                  <CarriedFactReview
+                    facts={account.carriedFacts.filter(
+                      (fact) => fact.kind === CARRIED_IN_SECTION[section.id],
+                    )}
+                    review={note.factReview}
+                    asserter={{ role: "patient", attribution: companion.attribution }}
+                    disabled={sent}
+                    onDecide={(factId, decision) =>
+                      visitId && updateNote(visitId, { type: "fact", factId, decision })
+                    }
+                  />
+                )}
                 {section.id === "device_health" ? (
                   <AppText role="caption" color="inkFaint">
                     {t("review.healthProvenance")}
