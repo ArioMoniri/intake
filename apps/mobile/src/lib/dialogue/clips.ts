@@ -1,7 +1,12 @@
 /**
- * Expo-bound side of the dialogue clip cache (INT-233): the FreyaTTS host
- * probe (same dev-lane candidate walk as whisper/extract) and the
- * filesystem the pure ClipStore writes through.
+ * Expo-bound side of the dialogue clip cache (INT-233): the TTS host probe
+ * (same dev-lane candidate walk as whisper/extract) and the filesystem the
+ * pure ClipStore writes through.
+ *
+ * INT-240: that probe now walks a LADDER rather than one port — VoxCPM2 on
+ * 8805 first (files/03 §4.9.1 rows 10-11), FreyaTTS on 8803 as the automatic
+ * fallback (row 12). Order and ports come from app.json `extra.ttsLanes`,
+ * not from a constant in this file; see ttsLane.ts.
  *
  * The clips under FileSystem.cacheDirectory/dialogue/ are AGENT-VOICE
  * audio: WAVs synthesized from catalog tr strings, one per question per
@@ -13,13 +18,21 @@
  */
 import * as FileSystem from "expo-file-system/legacy";
 
-import { configuredServiceCandidates } from "../dev/expoHosts";
-import { reachableBaseUrl } from "../dev/hosts";
-import { createClipStore, synthesizeWav, TTS_PORT, type ClipFs, type ClipStore } from "./tts";
+import { configuredTtsLaneCandidates } from "../dev/expoHosts";
+import { createClipStore, synthesizeWav, type ClipFs, type ClipStore } from "./tts";
+import { resolveTtsLane, type TtsLaneBase } from "./ttsLane";
+
+/**
+ * First lane in the ladder whose /health answers — VoxCPM2 (8805) before
+ * Freya (8803); null when the whole ladder is down.
+ */
+export async function reachableTtsLane(): Promise<TtsLaneBase | null> {
+  return resolveTtsLane(configuredTtsLaneCandidates());
+}
 
 /** First TTS base whose /health answers; null when the lane is down. */
 export async function reachableTtsBaseUrl(): Promise<string | null> {
-  return reachableBaseUrl(configuredServiceCandidates(TTS_PORT));
+  return (await reachableTtsLane())?.base ?? null;
 }
 
 export function dialogueClipDir(): string {

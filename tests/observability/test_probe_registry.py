@@ -18,7 +18,7 @@ import socketserver
 import ssl
 import threading
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import fakeredis
@@ -76,6 +76,20 @@ def _registry(*entries: dict[str, object]) -> Registry:
     return Registry.model_validate({"components": list(entries)})
 
 
+# A complete, well-formed model-provenance block (INT-240). Tests delete one
+# key at a time from it to prove each half of the pin is load-bearing.
+_MODEL_PROVENANCE: dict[str, object] = {
+    "model_id": "openbmb/VoxCPM2",
+    "revision": "32279effe8c19989596f05d353d1447f51d9e915",
+    "weights_sha256": {
+        "model.safetensors": "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+    },
+    "licence_verified_at": date(2026, 8, 29),
+    "licence_blob_url": "https://example.invalid/LICENSE",
+    "licence_blob_sha256": "4f10acc209addacfad28293315c74c4cd648f771ee1263a748f1781d1e0265e4",
+}
+
+
 # --- the shipped registry ---------------------------------------------------------
 
 
@@ -102,7 +116,7 @@ def test_shipped_registry_loads_and_validates() -> None:
 
 def test_shipped_registry_has_exactly_the_acceptance_schema() -> None:
     raw = yaml.safe_load(REGISTRY_PATH.read_text(encoding="utf-8"))
-    expected = {
+    required = {
         "component",
         "self_hostable",
         "self_hosted_now",
@@ -113,8 +127,22 @@ def test_shipped_registry_has_exactly_the_acceptance_schema() -> None:
         "fallback",
         "phi_path",
     }
+    # INT-240 extends the row with an OPTIONAL model-provenance block, so an
+    # auditor can see the pin and the exact licence blob that was read rather
+    # than a prose claim inside `host` (files/03 §4.9.0 rule 3, invariant 19).
+    optional = {
+        "model_id",
+        "revision",
+        "weights_sha256",
+        "licence_verified_at",
+        "licence_blob_url",
+        "licence_blob_sha256",
+        "licence_note",
+    }
     for row in raw["components"]:
-        assert set(row) == expected, f"row {row.get('component')} deviates from the schema"
+        keys = set(row)
+        assert required <= keys, f"row {row.get('component')} is missing required keys"
+        assert keys <= required | optional, f"row {row.get('component')} has unknown keys"
 
 
 def test_every_phi_path_component_is_self_hostable() -> None:
@@ -147,10 +175,98 @@ def test_model_rows_mirror_the_03_491_pins() -> None:
     freya = by_name["freya-tts"]
     assert "d124e07" in freya.host
     assert "Apache-2.0" in freya.license
-    assert "32279eff" in freya.license and "NO licence blob" in freya.license
+    # INT-240 closed the open finding this row used to carry ("VoxCPM2 VAE
+    # weights @32279eff have NO licence blob"): VoxCPM2 has its own row now,
+    # with the blob url and sha it was verified from. Freya's licence line
+    # must no longer speak for another model.
+    assert "32279eff" not in freya.license
+    assert "NO licence blob" not in freya.license
 
     deid = by_name["deid-tr-ner-v1"]
     assert "MIT" in deid.license and "CC-BY-4.0" in deid.license
+
+
+# --- INT-240: VoxCPM2 (files/03 §4.9.1 rows 10-11) ---------------------------------
+
+
+def test_voxcpm2_row_pins_the_model_and_falls_back_to_freya() -> None:
+    entry = load_registry(REGISTRY_PATH).get("voxcpm2-tts")
+    assert entry.model_id == "openbmb/VoxCPM2"
+    assert entry.revision == "32279effe8c19989596f05d353d1447f51d9e915"
+    assert entry.phi_path is True
+    assert entry.self_hostable is True
+    assert entry.probe is ProbeId.HTTP_HEALTH
+    # row 12 is the whole-session fallback and it stays serving (8803)
+    assert entry.fallback == "component:freya-tts"
+    assert entry.weights_sha256["model.safetensors"] == (
+        "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+    )
+    assert entry.weights_sha256["audiovae.pth"] == (
+        "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1"
+    )
+
+
+def test_voxcpm2_licence_is_verified_from_a_named_blob_not_a_card_tag() -> None:
+    # files/03 §4.9.0 rule 3 + invariant 19: the auditor must be able to see
+    # WHAT WAS READ. The HF weights repo has no LICENSE file at all, so the
+    # url must point at the vendor source repo, pinned to a commit.
+    entry = load_registry(REGISTRY_PATH).get("voxcpm2-tts")
+    assert entry.licence_verified_at == date(2026, 8, 29)
+    assert entry.licence_blob_url == (
+        "https://raw.githubusercontent.com/OpenBMB/VoxCPM/"
+        "272b8ffbf660b0cfd07e20fdef538f335a4f92ca/LICENSE"
+    )
+    assert entry.licence_blob_sha256 == (
+        "4f10acc209addacfad28293315c74c4cd648f771ee1263a748f1781d1e0265e4"
+    )
+    assert entry.licence_note is not None
+    note = entry.licence_note.lower()
+    assert "no license" in note, "the note must say plainly that the HF repo carries no LICENSE"
+    assert "openbmb/voxcpm" in note, "the note must say where the blob came from"
+
+
+def test_declaring_a_model_id_requires_the_full_pin() -> None:
+    # a half-pinned model row is worse than none: it looks verified
+    for missing in ("revision", "weights_sha256", "licence_verified_at"):
+        row = _entry(**_MODEL_PROVENANCE)
+        del row[missing]
+        with pytest.raises(ValidationError, match="model_id"):
+            _registry(row)
+
+
+def test_claiming_licence_verification_requires_naming_the_blob() -> None:
+    # you cannot assert `licence_verified_at` without saying which blob you
+    # read and what it hashed to — that is the whole point of §4.9.0 rule 3
+    for missing in ("licence_blob_url", "licence_blob_sha256"):
+        row = _entry(**_MODEL_PROVENANCE)
+        del row[missing]
+        with pytest.raises(ValidationError, match="licence_verified_at"):
+            _registry(row)
+
+
+def test_provenance_hashes_and_revision_must_be_well_formed() -> None:
+    with pytest.raises(ValidationError):
+        _registry(_entry(**{**_MODEL_PROVENANCE, "revision": "32279ef"}))  # short sha
+    with pytest.raises(ValidationError):
+        _registry(_entry(**{**_MODEL_PROVENANCE, "licence_blob_sha256": "NOTAHASH"}))
+    with pytest.raises(ValidationError):
+        _registry(_entry(**{**_MODEL_PROVENANCE, "weights_sha256": {"w.bin": "cafe"}}))
+    with pytest.raises(ValidationError):
+        _registry(_entry(**{**_MODEL_PROVENANCE, "weights_sha256": {}}))
+
+
+def test_licence_blob_url_must_be_https() -> None:
+    # a http:// blob url is not evidence of anything
+    with pytest.raises(ValidationError):
+        _registry(
+            _entry(**{**_MODEL_PROVENANCE, "licence_blob_url": "http://example.invalid/LICENSE"})
+        )
+
+
+def test_rows_without_a_model_id_stay_valid_untouched() -> None:
+    # the provenance block is additive: the ten service rows do not carry a
+    # model pin and must not be forced to invent one
+    assert _registry(_entry()).get("sample").model_id is None
 
 
 def test_voice_runtime_is_marked_planned_with_the_livekit_probe() -> None:

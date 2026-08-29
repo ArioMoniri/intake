@@ -234,6 +234,16 @@ def test_shipped_registry_blocks_today_even_with_every_probe_healthy(tmp_path: P
     the infra rows fall back to `backups`, which no job produces yet, and the
     served models declare no self-hosted fallback. That is the gate working,
     not a defect — the listing is pinned so it shrinks consciously.
+
+    INT-240 moved one row in each direction, which is what a real fallback
+    looks like. `voxcpm2-tts` is enabled and on the PHI path yet does NOT
+    appear here: it names `component:freya-tts`, which is enabled and healthy,
+    so the ladder satisfies the gate. `freya-tts` appears here for the first
+    time, because flipping it to `self_hosted_now: true` (it has been serving
+    on 8803 since INT-233) makes the gate look at it — and it is the bottom of
+    the TTS ladder, files/03 §4.9.1 row 12, with nothing behind it but the
+    `typed` profile mode, which is a mode and not a component. So the set does
+    not shrink here; it becomes honest about a lane that was already running.
     """
     registry = load_registry(REGISTRY_PATH)
     results = _write_results(tmp_path, [_result(e.component, "healthy") for e in registry])
@@ -247,4 +257,9 @@ def test_shipped_registry_blocks_today_even_with_every_probe_healthy(tmp_path: P
         "openbao",
         "qwen3.5-9b",
         "whisper-tr-medical",
+        "freya-tts",
     }
+    assert "voxcpm2-tts" not in blocked, (
+        "voxcpm2-tts falls back to a healthy, self-hosted freya-tts — the gate "
+        "must accept the TTS ladder"
+    )
