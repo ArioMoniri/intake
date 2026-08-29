@@ -83,7 +83,8 @@
         { "id": "voxcpm2", "port": 8805 },
         { "id": "freya", "port": 8803 }
       ],
-      "certificatePins": []
+      "certificatePins": [],
+      "glitchtipDsn": ""
     }
   }
 }
