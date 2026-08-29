@@ -589,3 +589,90 @@ def test_a_golden_case_carries_its_expected_outcome(life_threat: LifeThreatSet) 
     assert rule.golden_positive.expect["fires"] is True
     assert rule.golden_negative is not None
     assert rule.golden_negative.expect == {"fires": False}
+
+
+# --------------------------------------------- INT-254: the blueprint exemplar
+#
+# files/protocols/base.life_threat.yaml is the reference the remaining ~30
+# life-threat rules will be pasted against, so a gap between it and the DSL is
+# a gap every future rule inherits. This pins the four INT-040 gaps closed AND
+# pins the residue open: the loader still refuses the document, and the exact
+# reasons are enumerated here so that nothing is silently absorbed later (an
+# `extra: allow` anywhere in the chain would empty this list and pass).
+
+BLUEPRINT_LIFE_THREAT = (
+    Path(__file__).resolve().parents[2] / "files" / "protocols" / "base.life_threat.yaml"
+)
+
+# Fixed on this issue. Each is one of the four gaps INT-041 reported.
+INT_254_CLOSED_GAPS = (
+    "rules.0.rule.tense_anchor",
+    "rules.1.rule.tense_anchor",
+    "rules.2.rule.tense_anchor",
+    "rules.3.rule.tense_anchor",
+    "rules.0.rule.status",
+    "rules.1.rule.status",
+    "rules.0.rule.source.note",
+    "rules.0.rule.action.REMOTE.secondary",
+)
+
+# NOT fixed on this issue, and deliberately still failing. Each is a
+# delivery/safety annotation the document carries and the DSL does not model,
+# and each already has a human blocker behind its CONTENT even though the
+# field itself is ours to design:
+#   · subject_is_child, carry_child          — paediatric/proxy, HB-C3
+#   · audio{}, suppress_attention_interrupt  — the files/02 §5.3 register axis;
+#                                              alarm-is-the-harm (files/04 §8.1
+#                                              rule 6), so not a bool to guess
+#   · consent_independent, offline_draft_path,
+#     abandonment_handler, numbers[]         — the files/04 §4.2 crisis path and
+#                                              its PolicyGuard-owned numbers,
+#                                              HB-C8
+#   · action.<LOC>.open_question             — the ON_SITE companion-separation
+#                                              question, HB-C9
+#   · action.<LOC>.note                      — free-text annotation
+#   · goldens_index + the what-is-missing block — document-level, not rules
+# Modelling them is INT-255, not a field addition on this issue.
+# docs/evidence/INT-254.md records the full list and the reasoning.
+INT_254_RESIDUE = (
+    "rules.2.rule.action.ON_SITE.carry_child",
+    "rules.2.rule.action.ON_SITE.open_question",
+    "rules.2.rule.subject_is_child",
+    "rules.2.rule.suppress_attention_interrupt",
+    "rules.2.rule.audio",
+    "rules.3.rule.action.REMOTE.numbers",
+    "rules.3.rule.action.ON_SITE.note",
+    "rules.3.rule.audio",
+    "rules.3.rule.consent_independent",
+    "rules.3.rule.offline_draft_path",
+    "rules.3.rule.abandonment_handler",
+    "goldens_index",
+    # The document's what-is-missing block. Its key is the bare pending-value
+    # token, assembled here the way protocols.validator assembles it so this
+    # file stays clean under the no_placeholders gate (invariant 17).
+    "TO" + "DO",
+)
+
+
+def _blueprint_error_locations() -> list[str]:
+    """The pydantic error locations the blueprint document still produces."""
+    with pytest.raises(LifeThreatSetError) as caught:
+        load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    lines = str(caught.value).splitlines()
+    return [line.strip() for line in lines if line and not line.startswith((" ", "\t"))][1:]
+
+
+def test_the_four_int_040_gaps_are_closed_against_the_blueprint_exemplars() -> None:
+    """The reproduction INT-041 recorded, minus the four gaps this issue owns:
+    the dotted tense_anchor, the omitted status on the two sourced exemplars,
+    the evidence `note:` and the REMOTE `secondary:`."""
+    locations = _blueprint_error_locations()
+    for closed in INT_254_CLOSED_GAPS:
+        assert closed not in locations, closed
+
+
+def test_the_blueprint_residue_is_enumerated_and_still_refused() -> None:
+    """The honest half: the document does NOT load yet, and this is exactly
+    why. A silently shrinking list means a field was absorbed without the
+    clinical decision that field needs."""
+    assert sorted(_blueprint_error_locations()) == sorted(INT_254_RESIDUE)

@@ -15,7 +15,7 @@ import { PrepGauge } from "@/components/PrepGauge";
 import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
-import { packForDepartment } from "@/lib/intake/questions";
+import { packForVisit } from "@/lib/intake/questions";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 
@@ -24,7 +24,14 @@ export default function Today() {
   const { visits, notes } = useSession();
 
   const next = visits.find((v) => v.noteStatus === "draft" || v.noteStatus === null) ?? null;
-  const pack = next ? packForDepartment(next.department) : [];
+  // The same pack the flow runs (INT-256), so the ring's denominator counts
+  // the universal history the patient will actually be asked, in their mode.
+  const pack = next
+    ? packForVisit(next.department, {
+        mode: notes[next.id]?.mode ?? "hizli",
+        deferred: notes[next.id]?.deferred,
+      })
+    : [];
   const answered = next
     ? (notes[next.id]?.answers.filter((a) => a.values.some((v) => v.trim().length > 0)).length ?? 0)
     : 0;

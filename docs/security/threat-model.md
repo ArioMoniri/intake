@@ -532,8 +532,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   as enforced).
 - **Controls (files/10):** typed schemas with the mapper coverage floor (CLAUDE.md invariant
   8); roundtrip tests; magnitude-outranks-unit with a flag on disagreement (§9.2 rule 1).
-- **Signals:** land with INT-032.
-- **Tests:** OPT template roundtrip lands with INT-032.
+- **Signals:** INT-032 landed the export tier and it emits **no metric**, because nothing runs
+  it: the `ehrbase` registry row is `self_hosted_now: false` behind the compose `export`
+  profile, and no service imports the client yet. What exists today is the `ehrbase` synthetic
+  probe — wired only when `INTAKE_EHRBASE_HEALTH_URL` names a target, so an unrun tier reports
+  SKIPPED rather than a false green — and the client's typed refusals:
+  `EhrbaseTemplateRejectedError` for an OPT the CDR will not parse, `OpenEhrExportBlocked` for
+  an answer with no leaf binding. A counter for [I] over-broad export lands with the issue that
+  wires the tier into a service, not before.
+- **Tests:** `tests/integration/test_ehrbase_roundtrip.py` (INT-032) — OPT upload → fetch →
+  parse → archetype-root identity against the committed template; composition envelope write →
+  read → identity; the CONTRIBUTION audit. `tests/schemas/test_openehr_export.py` holds [T]
+  shut from the other side: an answered slot with no leaf binding is refused, never dropped and
+  never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
+  `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an
+  exception message.
 
 ## `protocol-registry` — signed bundles and the clip cache
 
@@ -781,6 +794,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `live` and emitted by `intake_metrics.metrics`, published only for a named cohort over a
   stated window and only at or above the k ≥ 10 floor. No tenant, clinic or clinician label
   on any of them, so no dashboard can re-slice a satisfaction series down to one person.
+  Wait times (INT-241, files/08 §4 group G) join them on the same terms: `wait.records_processing_s`
+  is `live` because both of its instants exist in this repo, its only label is the closed ingest
+  content-type enumeration, and it is published from a rollup rather than observed raw — a
+  histogram scraped after one observation would expose that patient's exact wait through `_sum`
+  over `_count`. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`,
+  `wait.doctor_link_first_open_h` and `wait.checkin_to_seen_min` stay `planned`: each is missing
+  one of its two instants, and `intake_platform.wait_times.WAIT_SOURCES` records which, so the
+  catalogue status and the writer cannot drift from the truth (invariant 13).
+- **Controls added by INT-241:** the aggregate excludes patients who refused
+  `learning:service_improvement` (files/06 §2 — the de-identified-aggregate purpose), decided by
+  the same platform evaluator the route guard uses; a per-`document_type` breakdown is suppressed
+  **whole** when any cell falls below the floor, because a total plus all-but-one cell hands the
+  reader the missing cell; the rollup type carries no minimum and no maximum at any cohort size;
+  the SDS-01 style export (`GET /v1/admin/experience/wait-times.csv`) has no clinic, branch,
+  clinician or patient column, carries the window bounds and measurement instant on every row,
+  and runs every cell through the one committed injection guard,
+  `intake_platform.export_safety.sanitise_cell` (invariant 47; files/08 §0c F13). Tenant scope on
+  both admin reads comes from the principal — there is no `?tenant=` parameter to pass
+  (files/08 §8, §0c F9).
   `survey_invitation_total{kind,channel,message_class,status}` (INT-242) is the scheduling
   side: closed enumerations only, and its `status` label is the standing record of why no
   invitation is sent — `blocked_iys_consent_absent` for the 6563 gate,
@@ -794,6 +826,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   rollup reads, exposed nowhere in the rollup or the exposition; k ≥ 10 suppression) ·
   `tests/experience/test_metrics_service.py` (invariant 15 for `services/metrics`; invariant 20:
   no CSAT/NPS figure in docs/regulatory/ or docs/legal/) ·
+  `tests/experience/test_wait_metrics.py` (catalogue status held against the source registry in
+  both directions; recording an unmeasurable kind fails closed; complementary breakdown
+  suppression; no minimum or maximum on the rollup type; the opt-out honoured end to end; the
+  export's column set, its suppressed-row marking and a formula lead neutralised in a registry
+  note; the admin routes' declared scope, admin-only access and absent tenant parameter).
   `tests/experience/test_survey_cadence.py` (INT-242: the İYS gate blocks a patient NPS
   invitation and opening the safety flag does not unblock it; a stub registry that *does*
   answer clears it, so the gate is a real check and not a constant; no survey `ReminderKind`

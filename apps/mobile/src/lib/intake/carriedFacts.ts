@@ -51,13 +51,13 @@ export type CarriedFactSource =
   "confirmed_intake_extraction" | "clinician_accepted_note" | "confirmed_imported_record";
 
 /**
- * Medications are the only carried category today (files/04 §5
- * `PreVisitNote.medications[]`, files/04 §2 `meds_allergies`: "confirm
- * imported list; new/stopped meds"). Conditions, allergies and baselines
- * are also `PatientOverlay` facts (files/09 §3) and join this union when
- * their note sections exist.
+ * Medications and allergies — two of the `PatientOverlay` categories
+ * files/09 §3 names ("medication list and adherence pattern, allergies").
+ * `allergy` joined in INT-256 on exactly the condition this comment already
+ * set: its note section (files/04 §5 `PreVisitNote.allergies[]`) now exists.
+ * Conditions and baselines join the same way when theirs do.
  */
-export type CarriedFactKind = "medication";
+export type CarriedFactKind = "medication" | "allergy";
 
 /** Who asserted something — INT-133's vocabulary, not a parallel one. */
 export type FactAsserter = { role: "patient"; attribution: Attribution } | { role: "clinician" };
@@ -177,24 +177,80 @@ const SOURCE_KEY: Record<CarriedFactSource, MessageKey> = {
   confirmed_imported_record: "carried.source.confirmed_imported_record",
 };
 
-const STATE_KEY: Record<FactOutcome, MessageKey> = {
-  confirmed: "carried.state.confirmed",
-  changed: "carried.state.changed",
-  stopped: "carried.state.stopped",
+/**
+ * The three outcomes in the order the copy reads them — the screen's chip
+ * row and any future surface walk this, so the order is declared once.
+ */
+export const FACT_OUTCOMES: readonly FactOutcome[] = ["confirmed", "changed", "stopped"];
+
+/**
+ * INT-256 makes the three lookups KIND-AWARE, because the medication copy is
+ * not reusable as allergy copy: a patient does not "stop" an allergy, and a
+ * note line reading "hasta bıraktığını söyledi" against a penicillin allergy
+ * would be a false clinical statement, not an awkward one. Same three
+ * outcomes, same reconciliation vocabulary (04 §5), different words.
+ *
+ * `changed` still records disagreement without capturing a replacement, and
+ * `stopped` still means "the patient says this is not so" — for an allergy
+ * that reads as "I do not have that allergy". Neither line says what the
+ * retraction MEANS; the clinician resolves it, exactly as for a medication.
+ */
+const STATE_KEY: Record<CarriedFactKind, Record<FactOutcome, MessageKey>> = {
+  medication: {
+    confirmed: "carried.state.confirmed",
+    changed: "carried.state.changed",
+    stopped: "carried.state.stopped",
+  },
+  allergy: {
+    confirmed: "carried.state.allergy.confirmed",
+    changed: "carried.state.allergy.changed",
+    stopped: "carried.state.allergy.stopped",
+  },
 };
 
-const NOTE_MARKER_KEY: Record<FactOutcome, Record<FactAsserter["role"], MessageKey>> = {
-  confirmed: {
-    patient: "note.fact.confirmed.patient",
-    clinician: "note.fact.confirmed.clinician",
+const ACTION_KEY: Record<CarriedFactKind, Record<FactOutcome, MessageKey>> = {
+  medication: {
+    confirmed: "carried.action.confirm",
+    changed: "carried.action.changed",
+    stopped: "carried.action.stopped",
   },
-  changed: {
-    patient: "note.fact.changed.patient",
-    clinician: "note.fact.changed.clinician",
+  allergy: {
+    confirmed: "carried.action.allergy.confirm",
+    changed: "carried.action.allergy.changed",
+    stopped: "carried.action.allergy.stopped",
   },
-  stopped: {
-    patient: "note.fact.stopped.patient",
-    clinician: "note.fact.stopped.clinician",
+};
+
+type MarkerByRole = Record<FactAsserter["role"], MessageKey>;
+
+const NOTE_MARKER_KEY: Record<CarriedFactKind, Record<FactOutcome, MarkerByRole>> = {
+  medication: {
+    confirmed: {
+      patient: "note.fact.confirmed.patient",
+      clinician: "note.fact.confirmed.clinician",
+    },
+    changed: {
+      patient: "note.fact.changed.patient",
+      clinician: "note.fact.changed.clinician",
+    },
+    stopped: {
+      patient: "note.fact.stopped.patient",
+      clinician: "note.fact.stopped.clinician",
+    },
+  },
+  allergy: {
+    confirmed: {
+      patient: "note.fact.allergy.confirmed.patient",
+      clinician: "note.fact.allergy.confirmed.clinician",
+    },
+    changed: {
+      patient: "note.fact.allergy.changed.patient",
+      clinician: "note.fact.allergy.changed.clinician",
+    },
+    stopped: {
+      patient: "note.fact.allergy.stopped.patient",
+      clinician: "note.fact.allergy.stopped.clinician",
+    },
   },
 };
 
@@ -204,14 +260,22 @@ export function factSourceKey(source: CarriedFactSource): MessageKey {
 }
 
 /** The ledger's state chip. Undecided has its OWN copy — the screen never
- * renders silence as a no. */
-export function factStateKey(decision: FactDecision | undefined): MessageKey {
-  return decision === undefined ? "carried.state.unconfirmed" : STATE_KEY[decision.outcome];
+ * renders silence as a no, and it reads the same for both kinds. */
+export function factStateKey(
+  kind: CarriedFactKind,
+  decision: FactDecision | undefined,
+): MessageKey {
+  return decision === undefined ? "carried.state.unconfirmed" : STATE_KEY[kind][decision.outcome];
+}
+
+/** The label on one answer chip, in the words that kind of fact takes. */
+export function factActionKey(kind: CarriedFactKind, outcome: FactOutcome): MessageKey {
+  return ACTION_KEY[kind][outcome];
 }
 
 /** The note's marker for one resolved fact — who said it, in which role. */
 export function factNoteMarkerKey(entry: ReconciledFact): MessageKey {
-  return NOTE_MARKER_KEY[entry.decision.outcome][entry.decision.by.role];
+  return NOTE_MARKER_KEY[entry.fact.kind][entry.decision.outcome][entry.decision.by.role];
 }
 
 /**
