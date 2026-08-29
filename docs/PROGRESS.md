@@ -358,3 +358,7 @@
 ## 2026-08-28 — INT-057 merged (PR #293)
 - Protocol Authoring Agent landed: generate-l0 scaffolds guideline-cited L0 draft packs for all 91 intake branches (excluded cluster refused), citation placeholders carry the blueprint's named guidance categories with all eight cluster-specific titles marked awaiting-human, pack_compilable refuses every stub, import-boundary AST scan proves zero patient-data access, regeneration idempotent. The department-question content chain now has its scaffold tier for every branch.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-223 merged (PR #295)
+- Minor & guardian rules landed fail-closed: age/actor resolution enforced inside ensure_consent (single enforcement point), typed 403 leaking neither DOB nor band, no DOB collected or persisted, every non-adult path guardian-gated, non-TR subjects refused rather than judged against TR thresholds, guardian_links behind a shut flag with awaiting-human basis/retention. Nine contested legal values refused and filed as HB-L20 for Turkish health-law counsel.
+- LOOP_STATUS: CONTINUE
