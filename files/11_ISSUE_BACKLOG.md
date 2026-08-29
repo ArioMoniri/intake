@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**206 issues.** By phase: P0 119 · P1 47 · P2 36 · P3 4. By status: awaiting-human 2 · doing 8 · done 76 · todo 119 · withdrawn 1.
+**207 issues.** By phase: P0 119 · P1 47 · P2 36 · P3 5. By status: awaiting-human 2 · doing 8 · done 77 · todo 119 · withdrawn 1.
 
 ## P0
 
@@ -181,7 +181,7 @@
 | INT-242 | NPS scheduling + clinician pulse survey cadence | E16-experience | INT-240 | area:experience | done |
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
-| INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | todo |
+| INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 
 ## P2
 
@@ -229,6 +229,7 @@
 | id | title | epic | depends on | labels | status |
 |---|---|---|---|---|---|
 | INT-032 | EHRbase export tier: OPT templates + client + roundtrip (P3 export per D8) | E02-data | INT-031 | area:data | todo |
+| INT-257 | openEHR OPT: the committed template has no occurrences and a live CDR rejects it | E02-data | INT-032 | area:data | todo |
 | INT-097 | residency_tr_models tier on GPU: compose.residency, node sizing, on-hardware latency evidence | E05-voice | INT-094, INT-095 | area:voice, approval:human-infra, gpu, blocked:contract | todo |
 | INT-225 | ISO 27001 ISMS: scope, SoA, risk register, policies, internal audit, certification audit | E14-legal | INT-215, INT-192 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-251 | Billing: hospital e-Fatura via provider; patient subscription via PSP (iyzico/PayTR); never store PAN | E17-release | INT-222 | area:release, risk:legal, approval:human-legal | todo |

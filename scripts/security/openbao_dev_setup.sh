@@ -36,6 +36,15 @@ path "database/creds/${policy}" { capabilities = ["read"] }
 POLICY
 done
 
+# INT-032 — the openEHR export tier's CDR credentials. The compose `export`
+# profile configures EHRbase with the same dev pair; intake_platform.ehrbase
+# reads it from here and from nowhere else (invariant 14), so a machine that
+# overrides EHRBASE_USER/EHRBASE_PASSWORD for compose must export the same
+# values before running this script.
+$BAO kv put secret/ehrbase \
+  username="${EHRBASE_USER:-intake-dev}" \
+  password="${EHRBASE_PASSWORD:-intake-dev-only}" >/dev/null
+
 # Transit for the identity vault (INT-013); envelope-encryption engine work is INT-014
 $BAO secrets enable transit 2>/dev/null || true
 $BAO write -f transit/keys/tokenization >/dev/null
@@ -43,4 +52,4 @@ $BAO write -f transit/keys/tokenization >/dev/null
 # vault DDL + roles on the dev Postgres
 docker exec -i intake-dev-postgres-1 psql -U "${POSTGRES_USER:-intake}" -d "${POSTGRES_DB:-intake}" < scripts/security/identity_vault.sql >/dev/null
 
-echo "openbao dev setup complete (kv v2, database 24h roles, 3 policies, transit, identity vault)"
+echo "openbao dev setup complete (kv v2, database 24h roles, 3 policies, transit, identity vault, ehrbase creds)"
