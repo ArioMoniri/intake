@@ -27,13 +27,16 @@ Most rows here gate whether something may be **served**, not whether it may be *
 
 Everything here needs a **licensed physician**, and for paediatric content a **paediatrician specifically**. The owner is a medical student and researcher; he is the product owner and the clinical *reviewer*, and where a row says "physician of record" that is a separate, named, licensed signature under CODEOWNERS. "Reviewed by the team" is not a signature.
 
-> **Physician of record named, 29 Aug 2026: Dr Efe Onganer** (named by the owner). Every row below whose `who` reads "physician of record" or "clinician" is now addressed to him. Three things this does **not** do, and they are the difference between an addressee and a signature:
+> **Physician of record named, 29 Aug 2026: Dr Efe Onganer** (named by the owner). Every row below whose `who` read "physician of record" or "clinician" is now addressed to him.
 >
-> 1. **It is not a sign-off.** HB-C1 needs six filled fields — `reviewer_name`, `reviewer_licence_no`, `reviewer_specialty`, `signed_commit`, `signed_on`, `paediatric_reviewer_name`. A name supplied in chat fills one of six. The licence number, the specialty and the paediatric reviewer are still unsupplied, and no agent may invent any of them.
-> 2. **Most of these rows are authorship, not signature.** HB-C2 is ~30 adult rules to write, HB-C3 is a paediatric set that does not exist at all, HB-C4 a pregnancy set that does not exist at all, HB-C7 a real number for every `TODO: threshold requires clinical sign-off`. Naming the signer does not produce the content.
-> 3. **HB-C3 still needs a paediatrician specifically** unless Dr Onganer holds that specialty — the section's own rule, unchanged.
+> **He is a signing clinician, not a repository user.** The medical signature is the `clinical_signoff` block's recorded fields — `reviewer_name`, `reviewer_licence_no`, `reviewer_specialty`, `signed_commit`, `signed_on`, `paediatric_reviewer_name` — not a GitHub review. Read the section header's "under CODEOWNERS" as *the signature is recorded in the repository and attributable*, not as *the signer holds a GitHub account*. Repository ownership rests with the owner alone.
 >
-> **`.github/CODEOWNERS` does not exist in this repository.** CLAUDE.md requires CODEOWNER review for every change under `packages/protocols/**`, and that gate has therefore never been enforceable. Creating it needs Dr Onganer's GitHub handle.
+> Two things the name does not do, and they are the difference between an addressee and a signature:
+>
+> 1. **Most of these rows are authorship, not signature.** HB-C2 is ~30 adult rules to write, HB-C3 a paediatric set that does not exist at all, HB-C4 a pregnancy set that does not exist at all, HB-C7 a real number for every `TODO: threshold requires clinical sign-off`. Naming the signer does not produce the content, and no agent may invent any of it.
+> 2. **HB-C3 still needs a paediatrician** unless Dr Onganer holds that specialty — the section's own rule, unchanged.
+>
+> `reviewer_name` is recorded here rather than written into `clinical_signoff` today, because there is not yet content to sign: the adult set is unwritten and every threshold is a placeholder. The block is filled when the content exists and the remaining fields are supplied.
 
 | id | what is needed | who | what it blocks | status | raised |
 |---|---|---|---|---|---|
