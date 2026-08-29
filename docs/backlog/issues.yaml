@@ -2401,7 +2401,7 @@
   title: "Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code"
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "age from verified DOB; under-18 requires guardian account+consent; adolescent private-section share policy per 06 §6; tests for each age band"
   tests: [tests/legal/test_minor_rules.py]
