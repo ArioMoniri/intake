@@ -145,6 +145,39 @@ obs:
 obs-down:
 	$(OBS_COMPOSE) down
 
+# INT-175: self-hosted Langfuse — its own compose file (six containers,
+# including a ClickHouse of its own), profile `langfuse`. Secrets come from
+# OpenBao via scripts/observability/langfuse_secrets.sh; nothing is defaulted
+# in the compose file and nothing is added to env.example (invariant 14).
+# CI never boots it; tests/observability/test_langfuse_gate.py validates the
+# file statically. HB-I1/HB-I2 block booting it on the owner's laptop.
+#
+# What reaches this stack is ids, enums and counts and nothing else — the
+# boundary is intake_platform.observability.spans, and HB-L6 is why.
+LANGFUSE_COMPOSE := docker compose -f infra/docker-compose.langfuse.yml --profile langfuse
+
+.PHONY: langfuse langfuse-down langfuse-seed langfuse-experiment
+
+langfuse-seed:
+	scripts/observability/langfuse_secrets.sh --seed
+
+langfuse:
+	eval "$$(scripts/observability/langfuse_secrets.sh --export)" && $(LANGFUSE_COMPOSE) up -d --wait
+
+langfuse-down:
+	$(LANGFUSE_COMPOSE) down
+
+# The recorded-experiment gate (acceptance: "CI job runs recorded simulator
+# experiment and gates on scores"). No model is called: the run file is
+# recorded structural output and the gate is arithmetic over it, so this is
+# safe in CI, which never calls a live API. The fixture's provenance —
+# hand-authored in the simulator's shape, because packages/llm-evals does not
+# exist yet — is recorded in docs/evidence/INT-175.md, not glossed.
+langfuse-experiment:
+	uv run python scripts/observability/langfuse_experiment.py \
+	  --run tests/fixtures/experiments/extraction_recorded_run.jsonl \
+	  --thresholds observability/experiment_thresholds.yaml
+
 # INT-024: chaos harness (intake_platform.chaos). One first-class experiment
 # today: vendor_kill — kill the mock vendor adapter, assert the typed
 # fallback decision lands within 2 s and the resilience counters move.

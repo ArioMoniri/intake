@@ -175,6 +175,18 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
     if llm_health_url:
         wiring["qwen3.5-9b"] = partial(probes.http_health, http_client, llm_health_url)
 
+    # INT-175: the Langfuse tier lives in its own compose file and is not part
+    # of `make dev`, so it is wired only where its target exists — otherwise
+    # both rows surface as SKIPPED in every sweep, which is the honest state.
+    langfuse_health_url = env.get("INTAKE_LANGFUSE_HEALTH_URL", "")
+    if langfuse_health_url:
+        wiring["langfuse"] = partial(probes.http_health, http_client, langfuse_health_url)
+        wiring["langfuse-clickhouse"] = partial(
+            probes.http_health,
+            http_client,
+            env.get("INTAKE_LANGFUSE_CLICKHOUSE_URL", "http://127.0.0.1:8123/ping"),
+        )
+
     tls_target = env.get("INTAKE_TLS_PROBE_TARGET", "")
     if tls_target:
         host, _, port = tls_target.partition(":")
