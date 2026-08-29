@@ -146,6 +146,9 @@ PROSE_REGISTER_FINDINGS = frozenset(
     {
         "a11y.backHint",
         "a11y.closeHint",
+        # INT-246: __DEV__-only diagnostic copy, never patient-facing; same
+        # short-imperative class as the entries below.
+        "devVoice.hint",
         "a11y.companion.ackHint",
         "a11y.companion.roleHint",
         "a11y.companion.speakerHint",
@@ -208,6 +211,11 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 POLICYGUARD_FINDINGS = frozenset(
     {
         ("diagnosis", "app.disclaimer"),
+        # INT-246 — a LIVE demonstration of the sen-detector defect INT-248 is
+        # verifying: "Ana makinede kontrol edin" is the POLITE imperative, and
+        # the pattern matches its `edin` ending as second-person-singular
+        # address. The string is also __DEV__-only and never reaches a patient.
+        ("register", "devVoice.hint"),
         ("jargon", "welcome.body"),
         ("multi_question", "health.attach.confirm"),
         ("register", "app.tagline"),
