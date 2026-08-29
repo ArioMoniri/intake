@@ -56,6 +56,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "CONSENT_MANAGEMENT_PREFIX",
+    "DATA_SUBJECT_RIGHT_PREFIX",
     "META_ROUTES",
     "PRE_AUTH_PREFIX",
     "REFERENCE_DATA_PREFIX",
@@ -63,6 +64,8 @@ __all__ = [
     "ConsentPolicy",
     "consent_management",
     "consent_management_routes",
+    "data_subject_right",
+    "data_subject_right_routes",
     "ensure_age_actor",
     "ensure_consent",
     "pre_auth",
@@ -241,6 +244,29 @@ def consent_management() -> params.Depends:
     return dependency
 
 
+class DataSubjectRightDeclaration:
+    """Explicit declaration that a route IS the exercise of a statutory
+    data-subject right (INT-037: KVKK m.11 access/rectify/erasure, answered
+    within the m.13 window).
+
+    Its lawful basis is legal obligation, not açık rıza, so requiring a
+    consent scope here would be a defect rather than a safeguard: the request
+    a withdrawal provokes is exactly the request a consent-gated route would
+    refuse, and a patient who withdrew ``core`` would find their erasure right
+    unreachable. Same class as pre_auth and consent_management — the route
+    cannot enforce a scope, but it may not stay silent either, so the scan
+    accepts this marker ONLY under DATA_SUBJECT_RIGHT_PREFIX (as a path
+    segment, not a substring).
+
+    Access control does not disappear with the scope: these routes are
+    patient-only (``require_patient``), act on the requesting subject's own
+    rows, and audit every action against the ``basis:KVKK-11/13`` reference.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 class ReferenceDataDeclaration:
     """Explicit declaration that a route serves REFERENCE DATA only
     (INT-134): a versioned projection of a committed artefact — the branch
@@ -257,8 +283,18 @@ class ReferenceDataDeclaration:
         return
 
 
+#: The only prefix where a data-subject-right declaration is accepted.
+DATA_SUBJECT_RIGHT_PREFIX = "/v1/me/dsar"
+
 #: The only prefix where a reference-data declaration is accepted.
 REFERENCE_DATA_PREFIX = "/v1/taxonomy"
+
+
+def data_subject_right() -> params.Depends:
+    """Declare a route as a statutory data-subject right (see
+    DataSubjectRightDeclaration)."""
+    dependency: params.Depends = Depends(DataSubjectRightDeclaration())
+    return dependency
 
 
 def reference_data() -> params.Depends:
@@ -319,6 +355,13 @@ def _is_consent_management(route: APIRoute) -> bool:
     )
 
 
+def _is_data_subject_right(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, DataSubjectRightDeclaration)
+        for dependency in route.dependencies
+    )
+
+
 def _is_reference_data(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, ReferenceDataDeclaration)
@@ -326,15 +369,25 @@ def _is_reference_data(route: APIRoute) -> bool:
     )
 
 
+def _under_prefix(path: str, prefix: str) -> bool:
+    """Segment-boundary match: the prefix itself and ``<prefix>/...`` qualify;
+    a lookalike like ``/v1/consentsish`` does not. Three cages share this rule
+    now, so it lives once rather than being re-derived per marker."""
+    return path == prefix or path.startswith(prefix + "/")
+
+
 def _under_consent_management_prefix(path: str) -> bool:
-    """Segment-boundary match: ``/v1/consents`` and ``/v1/consents/...``
-    qualify; a lookalike like ``/v1/consentsish`` does not."""
-    return path == CONSENT_MANAGEMENT_PREFIX or path.startswith(CONSENT_MANAGEMENT_PREFIX + "/")
+    return _under_prefix(path, CONSENT_MANAGEMENT_PREFIX)
 
 
 def _under_reference_data_prefix(path: str) -> bool:
     """Segment-boundary match, same rule as the consent-management cage."""
-    return path == REFERENCE_DATA_PREFIX or path.startswith(REFERENCE_DATA_PREFIX + "/")
+    return _under_prefix(path, REFERENCE_DATA_PREFIX)
+
+
+def _under_data_subject_right_prefix(path: str) -> bool:
+    """Segment-boundary match, same rule as the other two cages."""
+    return _under_prefix(path, DATA_SUBJECT_RIGHT_PREFIX)
 
 
 def pre_auth_routes(app: FastAPI) -> list[str]:
@@ -359,6 +412,18 @@ def consent_management_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def data_subject_right_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the statutory-right declaration, for the pin test
+    (INT-037) — reported wherever it appears; whether the scan ACCEPTS it is
+    unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_data_subject_right(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def reference_data_routes(app: FastAPI) -> list[str]:
     """Every route carrying the reference-data declaration, for the pin
     test (INT-134) — reported wherever it appears; whether the scan ACCEPTS
@@ -374,22 +439,26 @@ def reference_data_routes(app: FastAPI) -> list[str]:
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
-    land undeclared (silence always fails). Three markers exist, each caged
-    to its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
+    land undeclared (silence always fails). Four markers exist, each caged to
+    its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
     principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
-    (INT-232, the routes ABOUT consent) and reference_data under
-    REFERENCE_DATA_PREFIX (INT-134, versioned artefact projections holding
-    no patient data). Any marker outside its prefix does NOT count as a
-    declaration (the route is reported here instead)."""
+    (INT-232, the routes ABOUT consent), reference_data under
+    REFERENCE_DATA_PREFIX (INT-134, versioned artefact projections holding no
+    patient data) and data_subject_right under DATA_SUBJECT_RIGHT_PREFIX
+    (INT-037, the statutory rights whose basis is legal obligation rather than
+    consent). Any marker outside its prefix does NOT count as a declaration
+    (the route is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
             continue
-        if _is_pre_auth(route) and path.startswith(PRE_AUTH_PREFIX):
+        if _is_pre_auth(route) and _under_prefix(path, PRE_AUTH_PREFIX):
             continue
         if _is_consent_management(route) and _under_consent_management_prefix(path):
             continue
         if _is_reference_data(route) and _under_reference_data_prefix(path):
+            continue
+        if _is_data_subject_right(route) and _under_data_subject_right_prefix(path):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

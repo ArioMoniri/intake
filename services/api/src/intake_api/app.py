@@ -19,6 +19,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -32,7 +33,15 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from intake_api import consents, documents, notes, otp_routes, taxonomy_routes, visits
+from intake_api import (
+    consents,
+    documents,
+    dsar,
+    notes,
+    otp_routes,
+    taxonomy_routes,
+    visits,
+)
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
@@ -233,6 +242,26 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         detail = exc.detail if isinstance(exc.detail, dict) else {"error": str(exc.detail)}
         return JSONResponse(detail, status_code=exc.status_code, headers=exc.headers)
 
+    @app.exception_handler(RequestValidationError)
+    async def _validation_errors_without_the_input(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """FastAPI's default 422 body echoes the rejected value back — for a
+        note line or a DSAR correction that is patient free text leaving the
+        boundary into every access log and trace (invariant 6). Keep the
+        machine-readable part (type + field) and drop ``input``/``ctx``, which
+        are the only members that can carry content."""
+        return JSONResponse(
+            {
+                "error": "validation_error",
+                "detail": [
+                    {"type": item.get("type", ""), "loc": [str(p) for p in item.get("loc", ())]}
+                    for item in exc.errors()
+                ],
+            },
+            status_code=422,
+        )
+
     async def _db_ready() -> bool:
         async with w.engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -256,4 +285,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
     app.include_router(taxonomy_routes.router)
+    app.include_router(dsar.router)
     return app

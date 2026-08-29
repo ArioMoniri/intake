@@ -11,11 +11,13 @@
  */
 import { describe, expect, it, vi } from "vitest";
 
+import { encodeWav, parseWav, SENTENCE_GAP_MS } from "./speechShaping";
 import {
   assertSpeakableTr,
   bytesToBase64,
   clipName,
   createClipStore,
+  synthesizeClip,
   synthesizeWav,
   TTS_PORT,
   type ClipFs,
@@ -111,6 +113,94 @@ describe("synthesizeWav", () => {
     await expect(
       synthesizeWav("http://x", "Merhaba", { fetchImpl: fakeFetch(200, new Uint8Array([])) }),
     ).rejects.toThrow();
+  });
+});
+
+describe("synthesizeClip (INT-237: one request per sentence, then assembled)", () => {
+  const SR = 48_000;
+
+  function wavOf(ms: number): Uint8Array {
+    const n = Math.round((SR * ms) / 1000);
+    const samples = Int16Array.from({ length: n }, (_, i) =>
+      Math.round(9_000 * Math.sin((2 * Math.PI * 220 * i) / SR)),
+    );
+    return encodeWav({ sampleRate: SR, samples });
+  }
+
+  /** Answers every request with a fresh 200 ms clip, recording the texts. */
+  function recordingFetch() {
+    const texts: string[] = [];
+    const impl = vi.fn(async (_url: string, init: RequestInit) => {
+      texts.push(JSON.parse(init.body as string).text);
+      const body = wavOf(200);
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () =>
+          body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+      };
+    }) as unknown as typeof fetch & ReturnType<typeof vi.fn>;
+    return { impl, texts };
+  }
+
+  it("sends one request per sentence, each verbatim plus its terminal mark", async () => {
+    const { impl, texts } = recordingFetch();
+    await synthesizeClip(
+      "http://x",
+      "Nasıl başladı? Seçenekler: Aniden başladı veya Yavaş yavaş gelişti.",
+      { fetchImpl: impl },
+    );
+    expect(texts).toEqual([
+      "Nasıl başladı?",
+      "Seçenekler: Aniden başladı veya Yavaş yavaş gelişti.",
+    ]);
+  });
+
+  it("the concatenated spoken text is the original, verbatim (invariant 10)", async () => {
+    const original =
+      "Sizi şöyle anladık: Ağrı ve Ateş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.";
+    const { impl, texts } = recordingFetch();
+    await synthesizeClip("http://x", original, { fetchImpl: impl });
+    // both sentences already end in a mark, so the spoken forms are the
+    // scripted text unchanged and rejoin to it exactly
+    expect(texts.join(" ")).toBe(original);
+  });
+
+  it("joins the parts with a real inter-sentence gap", async () => {
+    const { impl } = recordingFetch();
+    const two = await synthesizeClip("http://x", "Bir cümle. İki cümle.", { fetchImpl: impl });
+    const one = await synthesizeClip("http://x", "Bir cümle.", { fetchImpl: impl });
+    const gap = Math.round((SR * SENTENCE_GAP_MS) / 1000);
+    const joined = parseWav(two).samples.length;
+    const single = parseWav(one).samples.length;
+    expect(joined).toBe(single * 2 + gap);
+  });
+
+  it("still refuses a digit before any network call", async () => {
+    const { impl } = recordingFetch();
+    await expect(synthesizeClip("http://x", "3 gün önce.", { fetchImpl: impl })).rejects.toThrow(
+      "tts_numeral_blocked",
+    );
+    expect((impl as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
+  });
+
+  it("trims a single-sentence clip too, so every turn starts the same way", async () => {
+    const lead = Math.round(SR * 0.3);
+    const speech = Int16Array.from({ length: Math.round(SR * 0.2) }, (_, i) =>
+      Math.round(9_000 * Math.sin((2 * Math.PI * 220 * i) / SR)),
+    );
+    const padded = new Int16Array(lead + speech.length);
+    padded.set(speech, lead);
+    const body = encodeWav({ sampleRate: SR, samples: padded });
+    const impl = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () =>
+        body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+    })) as unknown as typeof fetch;
+
+    const out = parseWav(await synthesizeClip("http://x", "Tek cümle.", { fetchImpl: impl }));
+    expect(out.samples.length).toBeLessThan(padded.length);
   });
 });
 
