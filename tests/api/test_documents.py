@@ -20,14 +20,19 @@ import hashlib
 import uuid
 from pathlib import Path
 
+import pytest
 from api_harness import (
     ApiHarness,
     InfectedScanner,
+    UnreachableScanner,
     build_harness,
     run,
 )
+from intake_api import store
+from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_PATIENT_PSEUDONYM, DEV_TENANT_ID
 from intake_platform.audit import verify_entries
 from intake_platform.db.models import Document
+from intake_platform.documents import patient_segment
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -184,6 +189,39 @@ def test_ingest_without_scanner_fails_closed(tmp_path: Path) -> None:
         gen.close()
 
 
+def test_ingest_with_an_unreachable_scanner_is_a_typed_refusal(tmp_path: Path) -> None:
+    """INT-238 — a scanner that cannot produce a verdict (clamd down, timed
+    out, garbage reply) is a SCAN FAILURE, not a server crash: the client
+    must get a typed 503 it can word honestly, and the document must stay
+    quarantined rather than leaking as clean."""
+    gen = build_harness(
+        tmp_path,
+        token_patient="unit-lane-patient-token",
+        token_admin="unit-lane-admin-token",
+        scanner=UnreachableScanner(),
+    )
+    harness = next(gen)
+    try:
+        visit_id = _visit(harness)
+        doc_id = str(_mint(harness, visit_id)["id"])
+        response = harness.client.put(
+            f"/v1/visits/{visit_id}/documents/{doc_id}/content",
+            content=PDF_BYTES,
+            headers={**harness.patient(), "Content-Type": "application/pdf"},
+        )
+        assert response.status_code == 503
+        assert response.json() == {"error": "scan_failed"}
+
+        listed = harness.client.get(f"/v1/visits/{visit_id}/documents", headers=harness.patient())
+        assert [row["state"] for row in listed.json()] == ["quarantined"]
+        url = harness.client.get(
+            f"/v1/visits/{visit_id}/documents/{doc_id}/url", headers=harness.patient()
+        )
+        assert url.status_code == 409
+    finally:
+        gen.close()
+
+
 def test_infected_upload_is_rejected_and_never_fetchable(tmp_path: Path) -> None:
     gen = build_harness(
         tmp_path,
@@ -302,3 +340,126 @@ def test_unknown_visit_or_document_is_404(harness: ApiHarness) -> None:
         ).status_code
         == 404
     )
+
+
+# --- INT-228: object keys carry the tokenized pseudonym, not the patient row id ------
+#
+# The INT-197 slice passed `patient_id.hex` — the patients row's primary key —
+# where the store expects a pseudonym, because a real Tokenizer pseudonym did
+# not fit the old 40-char key-segment bound. It fits now (the segment is
+# derived and fixed-width), so the workaround goes and the API passes the
+# pseudonym the patients row actually carries.
+
+
+def _object_keys(harness: ApiHarness) -> list[str]:
+    return [key for bucket in harness.storage.buckets.values() for key in bucket]
+
+
+def test_object_keys_are_derived_from_the_patients_own_pseudonym(harness: ApiHarness) -> None:
+    visit_id = _visit(harness)
+    doc_id = str(_mint(harness, visit_id)["id"])
+    _ingest(harness, visit_id, doc_id)
+
+    expected = patient_segment(DEV_PATIENT_PSEUDONYM)
+    workaround = patient_segment(DEV_PATIENT_ID.hex)
+    keys = _object_keys(harness)
+    assert keys, "the flow must have written at least one object"
+    for key in keys:
+        assert key.split("/")[2] == expected
+        assert key.split("/")[2] != workaround
+
+
+def test_no_patient_row_id_reaches_an_object_key_or_an_audit_row(harness: ApiHarness) -> None:
+    """Invariant 6: the patients primary key is an internal identifier, not
+    something to scatter through object storage and a hash chain that outlives
+    the row. Invariant 14: what addresses a patient externally is tokenized."""
+    visit_id = _visit(harness)
+    doc_id = str(_mint(harness, visit_id)["id"])
+    _ingest(harness, visit_id, doc_id)
+    assert (
+        harness.client.get(
+            f"/v1/visits/{visit_id}/documents/{doc_id}/url", headers=harness.patient()
+        ).status_code
+        == 200
+    )
+
+    raw_id = DEV_PATIENT_ID.hex
+    assert all(raw_id not in key for key in _object_keys(harness))
+    for entry in harness.audit_store.entries():
+        assert raw_id not in entry.resource_ref
+    # nor does the pseudonym itself: the key carries its one-way image
+    assert all(DEV_PATIENT_PSEUDONYM not in key for key in _object_keys(harness))
+
+
+def test_a_document_written_under_the_old_key_shape_is_still_downloadable(
+    harness: ApiHarness,
+) -> None:
+    """The compatibility guarantee, as a test rather than a paragraph.
+
+    A row written before INT-228 has an object_ref whose patient segment is the
+    32-hex patient row id — a shape today's derivation can never produce (it
+    emits 43 base64url characters). The download path must sign the key the row
+    records, not one it recomputes; if anyone ever re-derives the key here, the
+    old object becomes unreachable and this test fails.
+    """
+    visit_id = _visit(harness)
+    legacy_document_id = uuid.uuid4().hex
+    legacy_key = f"clean/{DEV_TENANT_ID}/{DEV_PATIENT_ID.hex}/{legacy_document_id}"
+    assert len(legacy_key.split("/")[2]) == 32  # the pre-INT-228 segment shape
+
+    bucket = "intake-docs-unit"
+    harness.storage.buckets.setdefault(bucket, {})[legacy_key] = (PDF_BYTES, "application/pdf")
+
+    async def _seed() -> uuid.UUID:
+        async with AsyncSession(harness.engine, expire_on_commit=False) as session, session.begin():
+            row = Document(
+                tenant_id=DEV_TENANT_ID,
+                patient_id=DEV_PATIENT_ID,
+                session_id=uuid.UUID(visit_id),
+                object_ref=f"{bucket}/{legacy_key}",
+                sha256=PDF_SHA,
+                media_type="application/pdf",
+                provenance={
+                    "channel": "presigned-put",
+                    "state": "clean",
+                    "sha256_verified": True,
+                    "clean_document_id": legacy_document_id,
+                    "size_bytes": len(PDF_BYTES),
+                },
+            )
+            session.add(row)
+            await session.flush()
+            return row.id
+
+    legacy_row_id = run(_seed())
+
+    response = harness.client.get(
+        f"/v1/visits/{visit_id}/documents/{legacy_row_id}/url", headers=harness.patient()
+    )
+    assert response.status_code == 200, response.text
+    # the signed URL addresses the OLD key verbatim — not a recomputed one
+    assert legacy_key in response.json()["url"]
+    assert patient_segment(DEV_PATIENT_PSEUDONYM) not in response.json()["url"]
+
+
+def test_a_patient_row_without_a_pseudonym_refuses_instead_of_falling_back(
+    harness: ApiHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the pseudonym cannot be resolved the request fails closed. The
+    tempting fallback — the patient row id, which is right there — is the
+    workaround this issue removed; reintroducing it silently would be worse
+    than a 503 (invariant 14)."""
+
+    async def _unresolvable(*_args: object, **_kwargs: object) -> str | None:
+        return None
+
+    monkeypatch.setattr(store, "get_patient_pseudonym", _unresolvable)
+    visit_id = _visit(harness)
+    response = harness.client.post(
+        f"/v1/visits/{visit_id}/documents",
+        json={"content_type": "application/pdf", "sha256": PDF_SHA},
+        headers=harness.patient(),
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "patient_unresolved"}
+    assert harness.storage.buckets.get("intake-docs-unit", {}) == {}

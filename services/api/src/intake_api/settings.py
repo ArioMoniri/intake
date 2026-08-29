@@ -58,6 +58,12 @@ class ApiSettings:
     # legal tree; until INT-210 authors the texts the directory is absent and
     # the consent service fails closed on every new grant.
     legal_root: Path = field(default_factory=lambda: Path("docs/legal/consents"))
+    # The branch taxonomy the /v1/taxonomy feed serves (INT-134; files/09 §1
+    # names this file the source of truth). Absent or invalid → the feed and
+    # the branch-backed visit path answer 503, never an empty list.
+    taxonomy_path: Path = field(
+        default_factory=lambda: Path("packages/protocols/taxonomy/branches.yaml")
+    )
 
     @property
     def dev_auth_configured(self) -> bool:

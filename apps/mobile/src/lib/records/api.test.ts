@@ -200,6 +200,20 @@ describe("upload — slot mint then byte ingest through the API", () => {
     ).rejects.toMatchObject({ kind: "scan_unavailable" });
   });
 
+  it("maps 503 scan_failed to scan_unavailable — a wired scanner with no verdict", async () => {
+    // INT-238: clamd is configured but unreachable/timed out. To the patient
+    // that is the same honest "we could not check this file yet" as an
+    // unconfigured scanner — never a success, never a server-error narrative.
+    mocks.authedFetch
+      .mockResolvedValueOnce(
+        json(201, { id: "doc-2", state: "quarantined", upload_url: "u", expires_s: 300 }),
+      )
+      .mockResolvedValueOnce(json(503, { error: "scan_failed" }));
+    await expect(
+      upload("visit-1", { uri: "file:///a", name: "a.pdf", mimeType: "application/pdf" }),
+    ).rejects.toMatchObject({ kind: "scan_unavailable" });
+  });
+
   it("a 422 document_rejected is an OUTCOME (state rejected), not a throw", async () => {
     mocks.authedFetch
       .mockResolvedValueOnce(

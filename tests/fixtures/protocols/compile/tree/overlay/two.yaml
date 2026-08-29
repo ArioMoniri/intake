@@ -1,0 +1,18 @@
+# SENTETİK TEST VERİSİ — INT-041 compiler fixture (idempotent overlay pair).
+# The same pointer and the same value as overlay.sentetik_bir: files/12 §3.4
+# calls this idempotent and it must merge silently. Mechanism only.
+kind: pack
+id: overlay.sentetik_iki
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik bindirme iki"
+extends: base.derlenebilir
+ops:
+  - op: set_attr
+    pointer: /sections/ziyaret/slots/renk_secimi
+    attr: required
+    value: true

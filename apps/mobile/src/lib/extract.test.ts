@@ -77,15 +77,23 @@ describe("shared dev-lane host probing (generalised from voice.ts)", () => {
 
 describe("toQuestionSpecs", () => {
   it("maps the cardio pack: option ids for chips/single, null for text", () => {
-    // INT-198 grew the cardio pack to the full 9-step OLDCARTS depth.
+    // INT-198 grew the cardio pack to full OLDCARTS depth; INT-239 added
+    // the answer-gated follow-ups. Extraction covers the WHOLE pack, gated
+    // questions included: the patient may volunteer a detail before its
+    // gate opens, and the suggestion then waits for the gate rather than
+    // being thrown away.
     expect(specs.map((s) => s.id)).toEqual([
       "complaint",
       "duration",
       "onset",
       "pain_character",
       "radiation",
+      "radiation_side",
+      "breath_timing",
+      "breath_lying",
       "trigger",
       "associated",
+      "cardio_palpitation",
       "severity",
       "extra",
     ]);

@@ -151,6 +151,18 @@ class Slot(FrozenModel):
     delivery: Delivery | None = Field(
         default=None, description="voice|text_first|text_only (files/13 §13)."
     )
+    openehr_path: str | None = Field(
+        default=None,
+        description="The openEHR archetype-path annotation ADR-002 keeps on every "
+        "slot so the P3 export is a migration and not a rewrite; validated against "
+        "the committed operational template by the compiler, not here (files/12 §8.1).",
+    )
+    openehr_deferred_reason: str | None = Field(
+        default=None,
+        description="Why this slot carries no path yet. files/12 §8 makes the pair "
+        "exclusive and exhaustive with a CHECK constraint, so absence is a recorded "
+        "decision rather than an oversight; the compiler enforces the same rule.",
+    )
 
     @model_validator(mode="after")
     def _typed_slot_shape(self) -> Slot:

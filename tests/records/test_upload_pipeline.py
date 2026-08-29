@@ -50,6 +50,7 @@ from intake_platform.documents import (
     DocumentStore,
     QuarantineMissingError,
     ScanVerdict,
+    patient_segment,
 )
 from intake_platform.uploads import (
     CLAMD_HOST_ENV,
@@ -78,6 +79,9 @@ DOCS_BUCKET = "intake-docs"
 AUDIT_BUCKET = "intake-audit-worm"
 TENANT = "tenant-ankara"
 PSN = "psn-7f3a"
+# what the pseudonym becomes inside an object key (INT-228): derived and
+# fixed-width, never the pseudonym itself
+SEG = patient_segment(PSN)
 DOC_ID = "0f0e0d0c0b0a09080706050403020100"
 CONSENT = "consent:document-upload:v1"
 
@@ -375,7 +379,7 @@ def _store(fake: FakeObjectStorage | None = None) -> tuple[DocumentStore, FakeOb
 
 
 def _quarantine(storage: FakeObjectStorage, data: bytes, document_id: str = DOC_ID) -> str:
-    key = f"quarantine/{TENANT}/{PSN}/{document_id}"
+    key = f"quarantine/{TENANT}/{SEG}/{document_id}"
     storage.buckets[DOCS_BUCKET][key] = (data, "application/octet-stream")
     return key
 
@@ -675,7 +679,7 @@ def test_clean_pdf_is_promoted_via_the_documents_path() -> None:
     assert outcome.already_processed is False  # type: ignore[attr-defined]
     assert outcome.content_type == "application/pdf"  # type: ignore[attr-defined]
     assert scanner.seen == [PDF_BYTES]
-    clean_key = f"clean/{TENANT}/{PSN}/{DOC_ID}"
+    clean_key = f"clean/{TENANT}/{SEG}/{DOC_ID}"
     payload, content_type = storage.buckets[DOCS_BUCKET][clean_key]
     assert payload == PDF_BYTES
     assert content_type == "application/pdf"
@@ -695,7 +699,7 @@ def test_promoted_content_type_is_the_sniffed_canonical_not_the_claimed_alias() 
     pipeline = UploadPipeline(store, CleanScanner())
     outcome = _process(pipeline, claimed="image/jpg")
     assert outcome.content_type == "image/jpeg"  # type: ignore[attr-defined]
-    _, content_type = storage.buckets[DOCS_BUCKET][f"clean/{TENANT}/{PSN}/{DOC_ID}"]
+    _, content_type = storage.buckets[DOCS_BUCKET][f"clean/{TENANT}/{SEG}/{DOC_ID}"]
     assert content_type == "image/jpeg"
 
 
@@ -728,7 +732,7 @@ def test_oversized_object_is_rejected_before_any_scan() -> None:
     assert outcome.state is DocumentState.REJECTED  # type: ignore[attr-defined]
     assert outcome.reason is RejectReason.TOO_LARGE  # type: ignore[attr-defined]
     assert scanner.seen == []  # never scanned, never even read
-    assert f"rejected/{TENANT}/{PSN}/{DOC_ID}" in storage.buckets[DOCS_BUCKET]
+    assert f"rejected/{TENANT}/{SEG}/{DOC_ID}" in storage.buckets[DOCS_BUCKET]
     assert _actions(store) == ["document.rejected.too-large"]
 
 
@@ -790,7 +794,7 @@ def test_claimed_versus_sniffed_mismatch_is_rejected() -> None:
     outcome = _process(pipeline, claimed="application/pdf")  # claim says pdf
     assert outcome.reason is RejectReason.TYPE_MISMATCH  # type: ignore[attr-defined]
     assert scanner.seen == []
-    assert f"rejected/{TENANT}/{PSN}/{DOC_ID}" in storage.buckets[DOCS_BUCKET]
+    assert f"rejected/{TENANT}/{SEG}/{DOC_ID}" in storage.buckets[DOCS_BUCKET]
     assert _actions(store) == ["document.scan_read", "document.rejected.type-mismatch"]
 
 
@@ -801,7 +805,7 @@ def test_infected_object_lands_under_infected_for_forensics() -> None:
     outcome = _process(pipeline)
     assert outcome.state is DocumentState.REJECTED  # type: ignore[attr-defined]
     assert outcome.reason is RejectReason.MALWARE  # type: ignore[attr-defined]
-    assert f"infected/{TENANT}/{PSN}/{DOC_ID}" in storage.buckets[DOCS_BUCKET]
+    assert f"infected/{TENANT}/{SEG}/{DOC_ID}" in storage.buckets[DOCS_BUCKET]
     assert not any(k.startswith("quarantine/") for k in storage.buckets[DOCS_BUCKET])
     assert _actions(store) == ["document.scan_read", "document.rejected.malware"]
 
@@ -891,13 +895,13 @@ def test_document_state_reports_each_prefix() -> None:
     assert store.document_state(TENANT, PSN, DOC_ID) is None
     key = _quarantine(storage, PDF_BYTES)
     assert store.document_state(TENANT, PSN, DOC_ID) is DocumentState.QUARANTINED
-    storage.buckets[DOCS_BUCKET][f"clean/{TENANT}/{PSN}/{DOC_ID}"] = storage.buckets[DOCS_BUCKET][
+    storage.buckets[DOCS_BUCKET][f"clean/{TENANT}/{SEG}/{DOC_ID}"] = storage.buckets[DOCS_BUCKET][
         key
     ]
     del storage.buckets[DOCS_BUCKET][key]
     assert store.document_state(TENANT, PSN, DOC_ID) is DocumentState.CLEAN
     other = "1f0e0d0c0b0a09080706050403020100"
-    storage.buckets[DOCS_BUCKET][f"rejected/{TENANT}/{PSN}/{other}"] = (PDF_BYTES, "x")
+    storage.buckets[DOCS_BUCKET][f"rejected/{TENANT}/{SEG}/{other}"] = (PDF_BYTES, "x")
     assert store.document_state(TENANT, PSN, other) is DocumentState.REJECTED
 
 

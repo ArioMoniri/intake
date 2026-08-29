@@ -1,0 +1,93 @@
+# SENTETİK TEST VERİSİ — INT-041 compiler fixture. Mechanism only: every id,
+# rule, slot and Turkish string here is invented for tests and carries no
+# clinical meaning. Nothing in this file is ever served (files/04 §7).
+kind: pack
+id: base.derlenebilir
+layer: base
+version: 1.2.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik derlenebilir temel paket"
+voice:
+  allow_paraphrase: false
+  backchannel_ok: true
+  ack_style: brief
+  pace: normal
+sections:
+  ziyaret:
+    delivery: voice
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]"
+        ask_tr: "Bugün sizi buraya getiren nedir?"
+        follow_up_tr: "En önemli şikâyetinizi söyleyebilir misiniz?"
+      sure_dakika:
+        type: quantity
+        unit: min
+        required: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
+        ask_tr: "Bu şikâyet ne kadar sürüyor?"
+        confirm_tr: "Sentetik doz alanı: mg cinsinden mi?"
+        follow_up_tr: "Yaklaşık olarak söyleyebilir misiniz?"
+      renk_secimi:
+        type: code
+        valueset: vs.sentetik_renk
+        required: false
+        ask_if: "ziyaret.basvuru_nedeni == 'sentetik'"
+        openehr_deferred_reason: >-
+          leaf-node binding awaits an openEHR informatician; the composition and
+          archetype roots are pinned, the at-code path is not authored
+        ask_tr: "Hangi rengi seçersiniz?"
+        choices_tr: ["mavi", "yeşil"]
+  tarama:
+    delivery: text_only
+    slots:
+      sessiz_soru:
+        type: boolean
+        required: false
+        openehr_deferred_reason: >-
+          screening content is text_only (files/13 §13) and carries no openEHR
+          binding in this synthetic fixture
+        ask_tr: "Sentetik metin-yalnız soru."
+red_flags:
+  - id: rf.sentetik_kirmizi
+    label_tr: "Sentetik kırmızı kural"
+    when: "ziyaret.basvuru_nedeni == 'sentetik_acil'"
+    tense: now
+    tense_anchor: sure_dakika
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+        do_nots_tr:
+          - "Yalnız kalmayın."
+        why_tr: "Bu bir sentetik test metnidir."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin."
+        why_tr: "Bu bir sentetik test metnidir."
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE

@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix chaos load
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile chaos load safety
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -30,6 +30,14 @@ check-py:
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 
+# INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
+# mutation harness) and the PolicyGuard suite, at their own coverage floors.
+# check-py runs these lanes too; this target exists so a change under
+# packages/protocols can be cleared without the full fan-out.
+safety:
+	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
+	uv run python scripts/safety/triage_mutation_report.py
+
 check-ts:
 	pnpm -r lint
 	pnpm -r typecheck
@@ -49,11 +57,25 @@ schemas-codegen:
 coverage-matrix:
 	uv run protocols coverage
 
+# INT-041: the deterministic emit (files/03 §6 outputs a-e) for one pack.
+# PACK and VOICE are required and have no defaults: VOICE keys the clip cache
+# (files/03 §4.9.1 row 10 `sha256(text_tr, voice_id)`) and a default would be
+# a value chosen once by an engineer for every future build. Includes the tr
+# normalisation round-trip gate (CLAUDE.md invariant 22). Refuses on today's
+# tree — every pack is L0 and the life-threat sign-off is empty (HB-C1).
+protocols-compile:
+	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
+	uv run protocols compile --pack $(PACK) --voice $(VOICE)
+
+# INT-238: the clamav profile belongs to `dev`, not only to
+# check-integration. Document ingest fails closed without a scanner, so a dev
+# stack without clamd cannot add a record at all; the API wires ClamAvScanner
+# whenever INTAKE_CLAMD_HOST is set (see env.example).
 dev:
-	$(COMPOSE) up -d --wait
+	$(COMPOSE) --profile clamav up -d --wait
 
 dev-down:
-	$(COMPOSE) down
+	$(COMPOSE) --profile clamav down
 
 # INT-015: the pinned NER de-id artefact (names/addresses tier). Fetched from
 # the repo's own release — no vendor — and verified against the pinned sha

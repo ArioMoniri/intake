@@ -32,7 +32,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from intake_api import consents, documents, notes, otp_routes, visits
+from intake_api import consents, documents, notes, otp_routes, taxonomy_routes, visits
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
@@ -88,22 +88,34 @@ def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
 
 
 def _documents_from_env() -> DocumentsConfig:
-    """The INT-034 seams from the compose dev tier. The scanner slot stays
-    empty (ingest fails closed) unless the operator sets the INT-034 opt-in
-    phrase INTAKE_DEV_ALLOW_UNSCANNED=explicit-yes; ClamAV is INT-120."""
+    """The INT-034 seams from the compose dev tier.
+
+    Scanner precedence, strongest first (INT-238): the INT-120 ClamAV client
+    whenever a clamd endpoint is configured, then the INT-034 dev stub behind
+    its opt-in phrase INTAKE_DEV_ALLOW_UNSCANNED=explicit-yes, then nothing —
+    and nothing means ingest fails closed. The real scanner is checked FIRST
+    so the dev stub can never shadow a live clamd and quietly turn a verdict
+    into an assumption. Before this order existed the slot only ever held the
+    stub, so on the documented dev stack — which starts a healthy ClamAV on
+    3310 — every upload answered 503 scan_not_configured.
+    """
     from intake_platform.documents import (
         DevNullScanner,
         DevScannerForbiddenError,
         Scanner,
         as_object_storage,
     )
+    from intake_platform.uploads import ClamAvScanner, ClamdNotConfiguredError
     from minio import Minio
 
     scanner: Scanner | None
     try:
-        scanner = DevNullScanner()
-    except DevScannerForbiddenError:
-        scanner = None
+        scanner = ClamAvScanner.from_env()
+    except ClamdNotConfiguredError:
+        try:
+            scanner = DevNullScanner()
+        except DevScannerForbiddenError:
+            scanner = None
     client = Minio(
         os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
         access_key=os.environ.get("MINIO_ROOT_USER", "intake-dev"),
@@ -243,4 +255,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(documents.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
+    app.include_router(taxonomy_routes.router)
     return app
