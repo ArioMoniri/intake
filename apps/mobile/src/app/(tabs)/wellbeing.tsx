@@ -23,7 +23,7 @@ export default function Wellbeing() {
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("wellbeing.title")}
         </AppText>
         <AppText role="body" color="inkSoft">

@@ -23,7 +23,9 @@ export default function Welcome() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.hero}>
-        <AppText role="hero">{t("app.name")}</AppText>
+        <AppText role="hero" heading>
+          {t("app.name")}
+        </AppText>
         <AppText role="body" color="inkSoft">
           {t("app.tagline")}
         </AppText>

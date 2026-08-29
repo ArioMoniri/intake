@@ -425,7 +425,7 @@
   title: "base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175"
   depends_on: [INT-041]
   labels: [area:protocols, risk:clinical, approval:human-clinical]
-  status: todo
+  status: awaiting-human
   # SCHEDULING NOTE, 27 Aug 2026. This issue unblocks 78 of 175 issues and v1.4 placed it at depth 9,
   # so the agent would work for days before the owner ever saw the thing everything else waits on.
   # It is now drafted immediately after INT-001..004 and put in the owner's inbox on day 2. The agent
@@ -635,7 +635,7 @@
   title: "Clip cache builder per voice + MinIO + coverage test"
   depends_on: [INT-041, INT-034]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "all scripted text pre-synthesised per voice at compile keyed sha256(text_tr,voice_id); mock TTS in CI; coverage report per pack"
   tests: [tests/voice/test_clip_manifest.py]
@@ -1415,7 +1415,7 @@
   title: "Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report"
   depends_on: [INT-130]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: awaiting-human
   acceptance:
     - "axe/a11y CI checks; VoiceOver/TalkBack scripts; docs/legal/accessibility-statement.md (EN 301 549 mapping)"
   tests: [apps/mobile/e2e/a11y.spec.ts]
@@ -2166,7 +2166,7 @@
   title: "Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence"
   depends_on: [INT-030, INT-034]
   labels: [area:infra, risk:security]
-  status: todo
+  status: doing
   acceptance:
     - "RPO 15min/RTO 4h demonstrated in a drill script whose output is stored as evidence; quarterly schedule"
   tests: [tests/infra/test_restore_drill.py]

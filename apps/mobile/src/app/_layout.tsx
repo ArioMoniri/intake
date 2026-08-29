@@ -23,12 +23,18 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+import { screenAnimation } from "@/lib/a11y/motion";
+import { useReducedMotion } from "@/lib/a11y/prefs";
 import { SessionProvider, useSession } from "@/lib/session";
 
 function LocalizedStack() {
   const { locale } = useSession();
+  const reduceMotion = useReducedMotion();
   return (
-    <Stack key={locale} screenOptions={{ headerShown: false, animation: "fade" }}>
+    <Stack
+      key={locale}
+      screenOptions={{ headerShown: false, animation: screenAnimation(reduceMotion) }}
+    >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
     </Stack>

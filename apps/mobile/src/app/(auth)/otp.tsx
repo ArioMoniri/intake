@@ -23,6 +23,8 @@ import {
 import { AuthApiError, devPeekOtp, requestOtp, verifyOtp } from "@/lib/auth/api";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
 import { OTP_LENGTH, isCompleteOtp, maskPhone } from "@/lib/auth/phone";
+import { labelled } from "@/lib/a11y/labels";
+import { useLiveAnnouncement } from "@/lib/a11y/prefs";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, scaledSize, spacing } from "@/lib/theme";
@@ -79,6 +81,10 @@ export default function OtpEntry() {
     const timer = setTimeout(() => setResendWait((s) => s - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendWait]);
+
+  // Before the early return: hooks may not be conditional. Android gets the
+  // live region on the line itself; this is the half iOS hears.
+  useLiveAnnouncement(problem === null ? null : labelled(t("a11y.error"), t(problem)));
 
   if (phone === null) {
     return <Screen>{null}</Screen>;
@@ -155,7 +161,12 @@ export default function OtpEntry() {
                 ref={(node) => {
                   inputs.current[index] = node;
                 }}
-                accessibilityLabel={`${t("auth.otp.title")} ${index + 1}/${OTP_LENGTH}`}
+                // "Doğrulama kodu hanesi: 3". The old form glued the
+                // position on with a slash, which screen readers speak as
+                // "bölü"; how many boxes there are is already in the body
+                // line ("altı haneli kodu girin").
+                accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
+                allowFontScaling={false}
                 value={digit}
                 onChangeText={(value) => setDigit(index, value)}
                 keyboardType="number-pad"
@@ -177,7 +188,11 @@ export default function OtpEntry() {
           </View>
         </Card>
         {problem !== null ? (
-          <AppText role="body" color="amber">
+          // SC 3.3.1: a wrong code also clears every box and moves focus, so
+          // the reason must be announced or the patient only perceives the
+          // form emptying itself. Visible copy unchanged; the spoken form
+          // carries the "Hata" prefix (useLiveAnnouncement above).
+          <AppText role="body" color="amber" live="assertive">
             {t(problem)}
           </AppText>
         ) : null}
@@ -187,6 +202,11 @@ export default function OtpEntry() {
           disabled={busy || !complete}
         />
         {resendWait > 0 ? (
+          // SC 2.2.1 posture: this is a server rate limit, not a time limit
+          // on the patient's own input — nothing is lost or submitted when
+          // it runs out, so no extension mechanism is owed. It is
+          // deliberately NOT a live region: announcing a new number every
+          // second would itself be the interruption SC 2.2.2 warns about.
           <AppText role="caption" color="inkFaint" style={styles.resendWait}>
             {t("auth.otp.resendWait")} {resendWait}
           </AppText>

@@ -10,6 +10,7 @@ dependencies = [
     "intake-api",
     "intake-protocols",
     "intake-voice-runtime",
+    "intake-voice-clips",
 ]
 
 [tool.uv]
@@ -20,6 +21,7 @@ members = [
     "packages/intake_platform",
     "packages/clinical-schemas",
     "packages/protocols",
+    "packages/voice-clips",
     "services/probes",
     "services/api",
     "services/voice-runtime",
@@ -32,6 +34,7 @@ intake-clinical-schemas = { workspace = true }
 intake-api = { workspace = true }
 intake-protocols = { workspace = true }
 intake-voice-runtime = { workspace = true }
+intake-voice-clips = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -86,6 +89,7 @@ files = [
     "packages/intake_platform/src",
     "packages/clinical-schemas/src",
     "packages/protocols/src",
+    "packages/voice-clips/src",
     "services/probes/src",
     "services/api/src",
     "services/voice-runtime/src",
@@ -95,6 +99,14 @@ files = [
 # optional exporter, imported only when OTEL_EXPORTER_OTLP_ENDPOINT is set;
 # the package is deliberately not a dependency (local-only default posture)
 module = "opentelemetry.exporter.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# INT-060: soundfile ships no py.typed and typeshed carries no stubs. It is
+# reached from exactly one module (protocols.clips.audio), which wraps it in
+# two functions with annotated returns, so the untyped surface stops there
+# instead of spreading through the clip builder.
+module = "soundfile"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

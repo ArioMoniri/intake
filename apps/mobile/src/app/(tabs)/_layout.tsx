@@ -18,6 +18,8 @@ import { Tabs } from "expo-router/js-tabs";
 import { BiometricGate } from "@/components/BiometricGate";
 import { FloatingTabBar } from "@/components/FloatingTabBar";
 import { useTheme } from "@/components/Themed";
+import { motionMs, screenAnimation } from "@/lib/a11y/motion";
+import { useReducedMotion } from "@/lib/a11y/prefs";
 import { motion } from "@/lib/theme";
 import { useSession, visibleTabs } from "@/lib/session";
 
@@ -45,15 +47,20 @@ function TabsShell({
   tabs: ReturnType<typeof visibleTabs>;
   themeBackground: string;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: true,
-        // Motion budget (02 §5.2a): fades only, 120 ms.
-        animation: "fade",
-        transitionSpec: { animation: "timing", config: { duration: motion.fadeMs } },
+        // Motion budget (02 §5.2a): fades only, 120 ms — and nothing at all
+        // when the OS asks for reduced motion (INT-144, SC 2.2.2).
+        animation: screenAnimation(reduceMotion),
+        transitionSpec: {
+          animation: "timing",
+          config: { duration: motionMs(reduceMotion, motion.fadeMs) },
+        },
         sceneStyle: { backgroundColor: themeBackground },
       }}
     >

@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile chaos load safety
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -24,11 +24,12 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src services/api/src services/voice-runtime/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src services/api/src services/voice-runtime/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
+	uv run pytest tests/voice --cov=packages/voice-clips/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/voice --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
@@ -68,6 +69,17 @@ coverage-matrix:
 protocols-compile:
 	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
 	uv run protocols compile --pack $(PACK) --voice $(VOICE)
+
+# INT-060: pre-synthesise the compiled clip manifests for one voice into the
+# MinIO clip cache (files/03 §4.9.1 row 10, keyed sha256(text_tr, voice_id)).
+# VOICE is required and has no default, like protocols-compile: the key is
+# per-voice, so a default would silently build somebody else's cache. The TTS
+# source is also never guessed — set exactly one of INTAKE_TTS_ENDPOINT (a
+# self-hosted lane) or INTAKE_TTS_RECORDED_DIR (recorded responses; the CI and
+# no-GPU dev path). Refuses on today's tree: no pack compiles yet (HB-C1).
+clips:
+	@test -n "$(VOICE)" || { echo "usage: make clips VOICE=<voice_id>"; exit 2; }
+	uv run intake-clips --voice $(VOICE)
 
 # INT-238: the clamav profile belongs to `dev`, not only to
 # check-integration. Document ingest fails closed without a scanner, so a dev
@@ -151,3 +163,25 @@ chaos:
 load:
 	@command -v k6 >/dev/null || { echo "k6 is not installed (brew install k6)"; exit 2; }
 	k6 run -e BASE_URL=$${BASE_URL:-http://127.0.0.1:8000} scripts/load/k6-smoke.js
+
+# INT-202: backups — pgBackRest PITR (encrypted repository), MinIO replication
+# to the second location, and the restore drill. files/10 §8 schedules the
+# drill quarterly; `backup-drill-ci` is what that scheduled job calls.
+#
+# Only `backup-drill-dry` runs on this host. The real drill stands up a second
+# Postgres, a second object store and a restore target, which needs more disk
+# and more container memory than HB-I1/HB-I2 record as available — the script
+# refuses rather than shrinking the drill to fit.
+.PHONY: backup-config-check backup-drill-dry backup-drill backup-drill-ci
+
+backup-config-check:
+	uv run pytest tests/infra -q -o addopts=""
+
+backup-drill-dry:
+	scripts/backup/restore_drill.sh --dry-run
+
+backup-drill:
+	scripts/backup/restore_drill.sh --run
+
+backup-drill-ci: backup-config-check
+	scripts/backup/restore_drill.sh --run
