@@ -35,6 +35,7 @@ import intake_platform.chaos  # noqa: F401  (vendor_*/chaos_* resilience familie
 import intake_platform.event_bus  # noqa: F401  (event_bus_* lag/retry/DLQ families)
 import intake_platform.retention.engine  # noqa: F401  (retention_*_total)
 import intake_platform.uploads  # noqa: F401  (document_upload_pipeline_total)
+import intake_voice_runtime.metrics  # noqa: F401  (talker_/policyguard_/delivery_ families, INT-091)
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient

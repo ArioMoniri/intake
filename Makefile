@@ -24,11 +24,12 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src services/api/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src services/api/src services/voice-runtime/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
+	uv run pytest tests/voice --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
@@ -37,6 +38,7 @@ check-py:
 safety:
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run python scripts/safety/triage_mutation_report.py
+	uv run pytest tests/voice --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 check-ts:
 	pnpm -r lint
