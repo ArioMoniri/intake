@@ -16,11 +16,11 @@
  * between rows only, quiet footer), fade-only motion (02 §5.2a); state is
  * always labelled, never colour alone (02 §8.2).
  */
-import { Modal, Pressable, ScrollView, StyleSheet, View, useColorScheme } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SymbolView } from "expo-symbols";
 
 import { ListGroup } from "@/components/ListRow";
-import { AppText, useTheme } from "@/components/Themed";
+import { AppText, useScheme, useTheme } from "@/components/Themed";
 import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
 import { modalAnimation } from "@/lib/a11y/motion";
 import { useReducedMotion } from "@/lib/a11y/prefs";
@@ -84,7 +84,7 @@ interface SectionRowViewProps {
 
 function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
   const theme = useTheme();
-  const dark = useColorScheme() === "dark";
+  const dark = useScheme() === "dark";
   const values = valueText(row);
   const body = (
     <>
