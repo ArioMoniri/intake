@@ -5,6 +5,8 @@ description = "Patient/clinician JSON API — dev-tier slice (INT-197): dev-bear
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
+    "intake-clinical-schemas",
+    "intake-metrics",
     "intake-platform",
     "intake-protocols",
     "psycopg[binary]>=3.2",
@@ -13,6 +15,11 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+intake-clinical-schemas = { workspace = true }
+# INT-241: the admin Experience surface renders the rollups services/metrics
+# owns. Declared rather than duplicated — a second k-anonymity floor is a
+# floor that gets lowered by accident (files/08 §0c F9).
+intake-metrics = { workspace = true }
 intake-platform = { workspace = true }
 intake-protocols = { workspace = true }
 

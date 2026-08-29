@@ -850,6 +850,8 @@ version = "0.1.0"
 source = { editable = "services/api" }
 dependencies = [
     { name = "fastapi" },
+    { name = "intake-clinical-schemas" },
+    { name = "intake-metrics" },
     { name = "intake-platform" },
     { name = "intake-protocols" },
     { name = "psycopg", extra = ["binary"] },
@@ -860,6 +862,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-metrics", editable = "services/metrics" },
     { name = "intake-platform", editable = "packages/intake_platform" },
     { name = "intake-protocols", editable = "packages/protocols" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },

@@ -20,6 +20,7 @@ __all__ = [
     "dev_auth_unconfigured",
     "dpop_invalid",
     "forbidden",
+    "invalid_window",
     "not_found",
     "otp_auth_unconfigured",
     "otp_invalid",
@@ -102,6 +103,16 @@ def not_found() -> HTTPException:
 
 def visit_invalid(reason: str) -> HTTPException:
     return HTTPException(status_code=422, detail={"error": reason})
+
+
+def invalid_window(reason: str) -> HTTPException:
+    """INT-241: a measurement window that is not a forward instant range.
+
+    ``Cohort`` owns the rule (invariant 20 — a figure without a window is not
+    a measurement); this turns its refusal into a 422 carrying the reason
+    text, which names bounds and never data.
+    """
+    return HTTPException(status_code=422, detail={"error": "invalid_window", "reason": reason})
 
 
 def taxonomy_unconfigured() -> HTTPException:

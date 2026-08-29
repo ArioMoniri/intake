@@ -16,14 +16,16 @@ a ``SessionState`` to reach the mapper would mean inventing a ``protocol_hash``
 never does (HUMAN_BLOCKERS.md rule 1). The QuestionnaireResponse is therefore
 built from the stored slot rows directly, in the shape INT-033 emits.
 
-Invariant 47 (`export_injection_guard`, files/10 §9; files/08 §0c F13) lives
-here: the attacker writes the content, a compliance officer opens the export
-in a spreadsheet, and KVKK m.13 obliges us to produce it. Every free-text
-value crossing into the export goes through :func:`sanitise_cell` — control
-characters and CRLF collapse to spaces, and a leading ``= + - @`` is prefixed
-with an apostrophe per OWASP. The guard neutralises; it never deletes, because
-an export that quietly drops what the patient wrote is a worse answer than one
-with a visible apostrophe.
+Invariant 47 (`export_injection_guard`, files/10 §9; files/08 §0c F13)
+applies here: the attacker writes the content, a compliance officer opens the
+export in a spreadsheet, and KVKK m.13 obliges us to produce it. Every
+free-text value crossing into the export goes through :func:`sanitise_cell` —
+control characters and CRLF collapse to spaces, and a leading ``= + - @`` is
+prefixed with an apostrophe per OWASP. The guard neutralises; it never
+deletes, because an export that quietly drops what the patient wrote is a
+worse answer than one with a visible apostrophe. The function itself moved to
+``intake_platform.export_safety`` when INT-241 added a second export that
+needs it; two copies of a security control are two copies that can drift.
 """
 
 from __future__ import annotations
@@ -56,6 +58,7 @@ from clinical_schemas.mappers.r4 import (
 from intake_platform.db.envelope_json import encrypted_field_from_json
 from intake_platform.db.models import SessionStatus, SlotSensitivity
 from intake_platform.envelope import EnvelopeCipher
+from intake_platform.export_safety import sanitise_cell, sanitise_cells
 from intake_platform.legal import LegalStrings
 
 from intake_api.dsar.store import SubjectRecord
@@ -70,9 +73,6 @@ __all__ = [
     "sanitise_cell",
 ]
 
-#: Characters a spreadsheet treats as the start of a formula (OWASP).
-_FORMULA_LEADS: Final = ("=", "+", "-", "@", "\t", "\r")
-
 _SUBJECT_ID_SYSTEM: Final = "urn:intake:fhir:NamingSystem:dsar-subject"
 _DSAR_SECTION_SYSTEM: Final = "urn:intake:fhir:CodeSystem:dsar-export-section"
 
@@ -84,18 +84,8 @@ _SESSION_TO_QR_STATUS: Final[Mapping[SessionStatus, str]] = {
 }
 
 
-def sanitise_cell(value: str) -> str:
-    """Invariant 47: neutralise a value so opening the export cannot execute
-    it, without changing what it says."""
-    flattened = "".join(" " if (ord(char) < 0x20 or ord(char) == 0x7F) else char for char in value)
-    collapsed = " ".join(flattened.split())
-    if collapsed.startswith(_FORMULA_LEADS):
-        return "'" + collapsed
-    return collapsed
-
-
 def _cells(values: Iterable[object]) -> tuple[str, ...]:
-    return tuple(sanitise_cell(str(value)) for value in values)
+    return sanitise_cells(values)
 
 
 def _stamp(value: datetime | None) -> str:

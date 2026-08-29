@@ -45,7 +45,7 @@ TS_PATH = "src/generated/models.ts"
 
 # The nine clinical objects of the INT-031 acceptance (TriageResult enters as
 # its two discriminated members plus the named union), the recorded lane
-# signal (files/03 §4.8), and the five events.
+# signal (files/03 §4.8), and the six events.
 EXPORTED_MODELS: tuple[type[BaseModel], ...] = (
     PreVisitNote,
     PatientSummary,
