@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 66 · todo 123 · withdrawn 1.
+**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 67 · todo 122 · withdrawn 1.
 
 ## P0
 
@@ -117,7 +117,7 @@
 | INT-212 | Retention & destruction policy doc (DEST-2017) bound to the engine | E14-legal | INT-036, INT-210 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-216 | MDSW file: intended purpose, qualification (MDCG 2019-11 Rev.1), Rule 11 classification (Class IIb), device/non-device boundary table | E14-legal | INT-117 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-223 | Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code | E14-legal | INT-038 | area:legal, risk:legal, approval:human-legal | done |
-| INT-240 | CSAT/NPS/clinician-pulse events + endpoints + rollups | E16-experience | INT-035, INT-031 | area:experience | todo |
+| INT-240 | CSAT/NPS/clinician-pulse events + endpoints + rollups | E16-experience | INT-035, INT-031 | area:experience | done |
 | INT-236 | Adaptive dev packs (askIf, DSL-mirrored) + Hizli/Detayli modes with privacy deferral and instant checkpoint | E08-mobile | INT-198, INT-233 | area:mobile | done |
 | INT-235 | Voice chat surface: two-sided live transcript with ask-ahead dialogue and realtime section panel | E08-mobile | INT-233 | area:mobile | done |
 | INT-237 | TTS delivery shaping: sentence splitting, boundary gaps, silence trim - and the measurement that identified the voice model as the dominant cause | E08-mobile | INT-233 | area:mobile | done |

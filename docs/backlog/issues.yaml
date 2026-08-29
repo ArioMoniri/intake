@@ -2483,7 +2483,7 @@
   title: "CSAT/NPS/clinician-pulse events + endpoints + rollups"
   depends_on: [INT-035, INT-031]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "csat.v1 (1-5 + reason enum + optional text), nps.v1, clinician_pulse.v1; POST /sessions/{id}/csat, /feedback/nps; rollups in services/metrics"
   tests: [tests/experience/test_csat_flow.py]
