@@ -2736,3 +2736,57 @@
     first answer and probes each dead candidate exactly once'
   tests:
   - tests/mobile/test_voice_doctor.py
+- id: INT-248
+  epic: E05-voice
+  phase: P0
+  title: 'PolicyGuard precision: Turkish morphology, and the disclaimer the guard
+    was rejecting'
+  depends_on:
+  - INT-091
+  labels:
+  - area:voice
+  sec_row: intake-voice
+  status: todo
+  acceptance:
+  - 'a localization audit reported the guard rejecting legitimate copy, and every
+    claim was verified before a pattern was touched by reproducing the count
+    exactly: the informal-address detector was a list of final syllables so the
+    polite imperative matched a past-tense pattern and the product could not say
+    its commonest imperative, a diagnosis pattern matched inside a negated verb so
+    the disclaimer written to satisfy the invariant was reported as a diagnosis
+    claim, two red-flag action scripts were affected through the same syllable, and
+    a fronted subject before a comma counted as a second question; the guard is
+    made precise rather than permissive by anchoring on the morphology that the
+    past-tense suffix surfaces voiceless only after a voiceless obstruent, with
+    near-miss controls proving genuine informal address, real diagnosis claims and
+    real treatment instructions are still caught and coverage strictly increases;
+    the catalogue goes to zero findings behind a standing gate, and the two real
+    copy defects found on the way are reported rather than fixed because clinical
+    lexicon growth is a clinical review'
+  tests:
+  - tests/release/test_i18n_complete.py
+- id: INT-249
+  epic: E05-voice
+  phase: P0
+  title: 'Latency-aware voice lane selection: a health check that answers is not a
+    lane that can speak'
+  depends_on:
+  - INT-243
+  labels:
+  - area:voice
+  status: done
+  acceptance:
+  - 'measured on live daemons, the preferred voice answered its health probe in a
+    seventh of a second and then took four to six seconds to synthesise a sentence
+    while the fallback took about one, and selection on health alone chose the slow
+    one so the patient watched a spinner: selection becomes latency-aware against
+    the round-trip figure the blueprint states for the production profile rather
+    than the streaming stage figure, which measurement showed would have rejected
+    both lanes and left no voice at all; every synthesis call gains a hard cap with
+    fallback, because the previous cap applied per sentence in sequence and a two
+    sentence clip could hold for a minute before failing terminally into the manual
+    steps; the question text is proved to render without waiting on audio and a late
+    result is proved unable to rebuild the turn and restart the clip; and the
+    selection is cached per session and re-probed on failure'
+  tests:
+  - apps/mobile/src/lib/dialogue/ttsLane.test.ts

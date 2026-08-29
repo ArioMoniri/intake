@@ -40,7 +40,7 @@ import { configuredServiceCandidates } from "../dev/expoHosts";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
-import { clearDialogueClips, dialogueClipStore, reachableTtsBaseUrl } from "./clips";
+import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
   dialogueStreamReducer,
@@ -129,18 +129,24 @@ export function useDialogueSession({
     return abortRef.current.signal;
   };
 
-  /** Mic permission + TTS probe, once per session; failure is terminal. */
+  /**
+   * Mic permission + the session's lane selector, once per session.
+   *
+   * INT-249: the store is bound to the SELECTOR, not to a base resolved
+   * here. The lane is still probed once — probing costs a real synthesis and
+   * must not happen per turn — but the probe now times that synthesis
+   * against the blueprint's turn budget, and a lane that wedges later is
+   * re-probed instead of blocking every remaining clip behind it. A mic
+   * denial is still terminal; an unreachable ladder surfaces from the
+   * selector on the first `ensure`.
+   */
   const clipStore = (): Promise<ClipStore> => {
     storeRef.current ??= (async () => {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!permission.granted) {
         throw new Error("mic_denied");
       }
-      const base = await reachableTtsBaseUrl();
-      if (base === null) {
-        throw new Error("tts_unreachable");
-      }
-      return dialogueClipStore(base);
+      return dialogueClipStore(createDialogueTtsLaneSelector());
     })();
     return storeRef.current;
   };
