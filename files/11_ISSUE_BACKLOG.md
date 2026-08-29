@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 68 · todo 121 · withdrawn 1.
+**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 69 · todo 120 · withdrawn 1.
 
 ## P0
 
@@ -198,7 +198,7 @@
 | INT-124 | Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval | E07-records | INT-121 | area:records, gpu | todo |
 | INT-162 | HBYS/SBYS adapter kit (HL7v2 ORU / file drop / FHIR) + USVS mapping + KTS registration pack | E10-connectors | INT-160 | area:connectors, risk:legal, approval:human-legal | todo |
 | INT-163 | Check-in: signed QR payload + desk verification + checkin_to_seen metric | E10-connectors | INT-160, INT-143 | area:connectors | todo |
-| INT-171 | De-identified analytics views + k-anonymity helper + rollups | E11-learning | INT-015, INT-030 | area:learning, risk:legal | todo |
+| INT-171 | De-identified analytics views + k-anonymity helper + rollups | E11-learning | INT-015, INT-030 | area:learning, risk:legal | done |
 | INT-172 | services/learning Inspector->Architect + proposal schema + evidence bundles + PR bot (open-not-merge) | E11-learning | INT-171, INT-004 | area:learning, risk:clinical | todo |
 | INT-173 | Canary/rollback controller on guardrail KPIs (5/25/100) | E11-learning | INT-172, INT-025 | area:learning | todo |
 | INT-174 | DSPy+GEPA offline optimisation (extraction, note modules only) with clinician-edit metric + held-out | E11-learning | INT-153, INT-172 | area:learning | todo |
