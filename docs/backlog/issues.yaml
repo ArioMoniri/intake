@@ -2712,3 +2712,25 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+- id: INT-244
+  epic: E00-governance
+  phase: P0
+  title: 'Name the physician of record in the clinical blocker ledger, and record
+    what a name does and does not unlock'
+  depends_on: []
+  labels:
+  - area:governance
+  status: todo
+  acceptance:
+  - 'the clinical sign-off section addressed an anonymous role, so eleven open rows
+    had no addressee: the owner names the physician of record and every row whose
+    who column read physician of record or clinician is addressed to him, while the
+    same edit records that he is a signing clinician rather than a repository user
+    (the signature is the recorded sign-off fields, attributable in the repository,
+    not a code review, and the signer needs no account), that most of the rows are
+    authorship rather than signature so naming the signer produces no content, that
+    the paediatric row still needs a paediatrician unless he holds that specialty,
+    and that the sign-off block stays empty until there is content to sign and the
+    remaining fields are supplied'
+  tests:
+  - tests/backlog/test_schema.py
