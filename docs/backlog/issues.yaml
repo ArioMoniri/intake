@@ -2724,7 +2724,7 @@
   labels:
   - area:protocols
   sec_row: protocol-registry
-  status: done
+  status: doing
   evidence: docs/evidence/INT-254.md
   acceptance:
   - '`tense_anchor` is typed as a slot REFERENCE in the `when` grammar''s namespace,
