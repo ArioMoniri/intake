@@ -497,3 +497,9 @@
 - Free text is refused the label de-identified entirely — not redacted, not scrubbed, absent from the DDL and unreachable at the grant, with HB-L6 cited at three places. k = 10 was not invented; four blueprint sections state it.
 - Scope addition: the Loop-2 opt-out is enforced, because an opt-out nothing checks is the decoration this issue exists to remove.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-205 merged (PR #348)
+- SIEM feed where alerts CANNOT carry narrative: SecurityAlert has no field narrative can occupy, and the normaliser projects vendor payloads onto a closed key tuple rather than filtering them. Fourteen tests plant a Turkish symptom sentence across nine vendor fields including a filename carrying a patient's name and — the sharp case — Wazuh's rule.description, which the vendor interpolates event fields into, so rule names now resolve from committed XML by id and never from the event.
+- Licence ancestry mattered: wazuh-indexer forks OpenSearch, not Elasticsearch — the wrong ancestor would have put SSPL on the PHI path. Wazuh manager is GPL-2.0-only with an OpenSSL exception and a redistribution-scoped derivative-work reading, which is why the ruleset is written from scratch in the user id range. Falco's engine and its rules repo were read separately. All tags dereferenced first, because Wazuh's are annotated and an undereferenced ref 404s into a silent "no licence".
+- Not exercised and not shrunk to fit: the tier needs 80 GiB against 14 free, so the deploy exits 3 naming the blockers. No correlation window and no alert retention invented; the deploy exits 2 naming the retention ask.
+- LOOP_STATUS: CONTINUE
