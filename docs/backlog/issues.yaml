@@ -2553,7 +2553,7 @@
   title: "Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit"
   depends_on: [INT-130]
   labels: [area:release]
-  status: todo
+  status: done
   acceptance:
     - "i18n lint fails on missing keys; clinical tr reviewed flag enforced"
   tests: [tests/release/test_i18n_complete.py]
