@@ -2825,7 +2825,7 @@
   title: "Universal history sections (allergy, medication, PMH, family) composed onto every department pack"
   depends_on: [INT-247]
   labels: [area:engine]
-  status: todo
+  status: done
   acceptance:
     - "historyQuestions authored once in 04 section 1 order and COMPOSED onto every department pack by packForVisit(department, profile), never duplicated per department"
     - "18 steps across allergies/medications/pmh/family_social; the pmh and family blocks are Detayli-only and the mode gating is asserted, not assumed"
