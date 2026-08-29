@@ -1589,7 +1589,7 @@
   title: "services/learning Inspector->Architect + proposal schema + evidence bundles + PR bot (open-not-merge)"
   depends_on: [INT-171, INT-004]
   labels: [area:learning, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "proposal_scope CI test blocks forbidden paths (red-flag levels, instruments, consent texts, Talker tools, PolicyGuard, residency routing); sandboxed job read-only creds no egress; signed proposals"
   tests: [tests/learning/test_proposal_scope.py]
