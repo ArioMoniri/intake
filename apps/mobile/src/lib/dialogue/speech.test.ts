@@ -12,7 +12,12 @@ import { describe, expect, it } from "vitest";
 import { en } from "../i18n/en";
 import { tr, type MessageKey } from "../i18n/tr";
 import { allQuestions, packForDepartment } from "../intake/questions";
-import { confirmSpeechTr, MAX_SPOKEN_OPTION_HINTS, questionSpeechTr } from "./speech";
+import {
+  confirmSpeechTr,
+  MAX_SPOKEN_OPTION_HINTS,
+  questionAsideTr,
+  questionSpeechTr,
+} from "./speech";
 import { assertSpeakableTr } from "./tts";
 
 const cardio = packForDepartment("Kardiyoloji");
@@ -37,16 +42,67 @@ describe("questionSpeechTr", () => {
     );
   });
 
-  it("points to the screen instead of enumerating when the list exceeds the spoken bound", () => {
+  it("asks openly instead of enumerating when the list exceeds the spoken bound", () => {
     expect(complaint.options!.length).toBeGreaterThan(MAX_SPOKEN_OPTION_HINTS);
     const speech = questionSpeechTr(complaint);
     expect(speech).toContain(tr["intake.q.complaint"]);
-    expect(speech).toContain(tr["dialogue.optionsOnScreen"]);
     expect(speech).not.toContain(tr["intake.opt.headache"]);
   });
+});
 
-  it("speaks the hint where the question has one", () => {
-    expect(questionSpeechTr(extra)).toContain(tr["intake.q.extra.hint"]);
+// INT-261 — the second half of the field report. On screen, in the voice
+// phase, under the "Karşılıklı konuşma" kicker, the first bubble read:
+//
+//     Sizi bugün hekime getiren nedir?
+//     Birden fazla seçebilirsiniz.
+//
+// The agent said that too. It is the TYPED form's control hint — the pack
+// carries it as `hintKey` so the chips screen can tell you the grid is
+// multi-select — and in a spoken turn it is simply false: no chips are
+// rendered during a question turn (they open at `confirming`), so there is
+// nothing to select more than one of. Same for `intake.q.extra.hint`
+// ("you may leave it blank": no field), and same for the composed
+// "Seçenekleri ekranda görebilirsiniz." — the options are NOT on screen.
+//
+// The rule, and it is invariant 10's rule: what the agent says in a turn is
+// the question and what belongs to asking it. Copy that describes a CONTROL
+// belongs to the lane that has the control. `questionAsideTr` is the only
+// thing the agent adds to a question now, and the bubble renders the same
+// aside — so a patient whose voice lane went silent reads exactly what a
+// patient who can hear it is told.
+describe("questionSpeechTr — the typed lane's control copy never crosses (INT-261)", () => {
+  const controlHints = ["intake.q.complaint.hint", "intake.q.extra.hint"] as const;
+
+  it("no question in any pack speaks a control hint", () => {
+    for (const question of allQuestions) {
+      const speech = questionSpeechTr(question);
+      for (const key of controlHints) {
+        expect(speech, `${question.id} / ${key}`).not.toContain(tr[key]);
+      }
+    }
+  });
+
+  it("a question turn never claims the options are on screen — they are not", () => {
+    for (const question of allQuestions) {
+      expect(questionSpeechTr(question), question.id).not.toContain(
+        "Seçenekleri ekranda görebilirsiniz.",
+      );
+    }
+  });
+
+  it("the aside is the ONLY thing the agent adds, and the bubble can render it", () => {
+    // ≤ four options: the spoken enumeration, which IS part of asking.
+    expect(questionAsideTr(duration)).toBe(
+      `${tr["dialogue.optionsIntro"]} ${tr["intake.opt.today"]}, ${tr["intake.opt.days"]}, ${tr["intake.opt.week"]} ${tr["dialogue.or"]} ${tr["intake.opt.month"]}.`,
+    );
+    // Above the bound, and for free text: nothing to add.
+    expect(questionAsideTr(complaint)).toBeNull();
+    expect(questionAsideTr(extra)).toBeNull();
+    // Speech is exactly question + aside, so the two channels cannot drift.
+    expect(questionSpeechTr(duration)).toBe(
+      `${tr["intake.q.duration"]} ${questionAsideTr(duration)}`,
+    );
+    expect(questionSpeechTr(complaint)).toBe(tr["intake.q.complaint"]);
   });
 });
 
@@ -101,7 +157,6 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
     "dialogue.speakingHint",
     "dialogue.listeningHint",
     "dialogue.optionsIntro",
-    "dialogue.optionsOnScreen",
     "dialogue.and",
     "dialogue.or",
     "dialogue.confirmIntro",
@@ -110,6 +165,7 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
     "dialogue.confirm",
     "dialogue.speakCorrection",
     "dialogue.typeThisStep",
+    "dialogue.voiceMuted",
   ] as const satisfies readonly MessageKey[];
 
   it("every key exists non-empty in tr and in the en mirror", () => {
@@ -131,6 +187,14 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
       expect(tr[key].toLocaleLowerCase("tr-TR"), key).not.toContain("tanı");
       expect(tr[key].toLocaleLowerCase("tr-TR"), key).not.toContain("teşhis");
     }
+  });
+
+  it("the false 'options are on screen' line is gone from both catalogs (INT-261)", () => {
+    // It was only ever spoken during a question turn, and during a question
+    // turn there are no options on screen. A string that is never true is
+    // not copy to keep behind a flag; it is copy to delete.
+    expect((tr as Record<string, string>)["dialogue.optionsOnScreen"]).toBeUndefined();
+    expect((en as Record<string, string>)["dialogue.optionsOnScreen"]).toBeUndefined();
   });
 
   it("the entry IS the conversation — no chooser copy survives (INT-239)", () => {

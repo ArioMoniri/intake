@@ -2911,6 +2911,44 @@
     selection is cached per session and re-probed on failure'
   tests:
   - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+- id: INT-261
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice intake mixes with the typed form: a clip that cannot be spoken ends
+    the whole conversation, and the spoken turn reads the typed form''s control copy'
+  depends_on:
+  - INT-239
+  - INT-249
+  labels:
+  - area:mobile
+  - area:voice
+  status: todo
+  acceptance:
+  - 'reported from the field as "voice and text based dynamic questions gets mixed
+    up" and reproduced twice on the simulator with every dev lane answering its
+    health probe: answering the first spoken question drops the patient into the
+    typed form, which re-asks that same question from zero under a notice blaming
+    the voice feature, and in the second reproduction the turn instead sat on
+    "soru hazırlanıyor" indefinitely because nothing bounds a clip end to end
+    while lane admission, per-lane fallback and per-sentence synthesis each
+    bound only their own request and multiply; so a clip that cannot be
+    synthesised silences the agent for the session instead of ending the
+    conversation, since the question text, the microphone, the composer, the
+    extraction and the confirm turn need no agent audio, and the patient is told
+    once in tr that reading aloud stopped; a clip gets one lane admission plus
+    one synthesis per sentence and past that the turn continues without a voice,
+    with both figures taken from the committed constants rather than chosen;
+    a genuinely fatal dialogue hands the typed steps the same unconfirmed
+    suggestions a tidy hand-over does, so no exit loses what was said; and the
+    agent no longer speaks or renders the typed lane''s control copy, which
+    promised a multi-select grid and options on screen during a turn that
+    renders neither'
+  tests:
+  - apps/mobile/src/lib/dialogue/stream.test.ts
+  - apps/mobile/src/lib/dialogue/speech.test.ts
+  - apps/mobile/src/lib/dialogue/tts.test.ts
+  - apps/mobile/src/lib/intake/voiceFirst.test.ts
+  sec_row: "intake-voice"
 - id: INT-256
   epic: E04-engines
   phase: P1

@@ -28,8 +28,10 @@ export type VoiceIntakeState =
   | { phase: "gate" }
   /** The spoken dialogue: lib/dialogue owns the turns, this machine only
    * holds the door. `failure` from here lands in the manual steps WITH the
-   * notice, `skip` quietly — answers are committed per confirm, so nothing
-   * is lost either way. */
+   * notice, `skip` quietly — answers are committed per confirm and both
+   * carry the unconfirmed suggestions as prefill, so nothing the patient
+   * said is lost by either exit. A TTS outage is NOT one of these exits:
+   * the conversation goes silent and continues (INT-261, stream.ts). */
   | { phase: "dialogue" }
   | { phase: "steps"; prefill: PrefillMap; failed: boolean };
 
@@ -39,7 +41,15 @@ export type VoiceIntakeAction =
   | { type: "voice_unavailable" }
   /** Dialogue hand-over: whatever it could not confirm, as prefill. */
   | { type: "candidates"; prefill: PrefillMap }
-  | { type: "failure" }
+  /**
+   * The dialogue cannot continue (no microphone, no ASR). It carries the
+   * same leftovers a tidy hand-over would (INT-261): both actions land the
+   * patient in the SAME typed steps, so both must arrive with everything
+   * the conversation extracted from the patient's own words. `prefill` is
+   * required rather than optional — a caller that has leftovers and forgets
+   * to pass them is exactly the defect this replaced.
+   */
+  | { type: "failure"; prefill: PrefillMap }
   /** "Yazarak devam edin" — the typed lane, reachable from anywhere. */
   | { type: "skip" };
 
@@ -72,7 +82,7 @@ export function voiceIntakeReducer(
         ? { phase: "steps", prefill: action.prefill, failed: false }
         : state;
     case "failure":
-      return { phase: "steps", prefill: {}, failed: true };
+      return { phase: "steps", prefill: action.prefill, failed: true };
     case "skip":
       return MANUAL;
   }
