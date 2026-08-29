@@ -2666,7 +2666,7 @@
   - INT-237
   labels:
   - area:voice
-  sec_row: models
+  sec_row: self-hosting
   status: todo
   acceptance:
   - 'the measurement pass having shown the dev voice band-limited with absent
