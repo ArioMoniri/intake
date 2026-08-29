@@ -156,13 +156,62 @@ components:
 
   - component: freya-tts
     self_hostable: true
-    self_hosted_now: false
-    host: "freyavoice/Freya-TTS@d124e07 — not deployed: commit-pinned git install awaits owner approval (docs/runbooks/team-gpu-server.md)"
-    license: "Apache-2.0 (code LICENSE blob verified @d124e07); VoxCPM2 VAE weights @32279eff have NO licence blob — open finding"
+    # INT-243: flipped true. The owner approval this row was waiting on landed
+    # and the daemon has been serving since INT-233 — /health on 8803 answers
+    # {"model":"freyavoice/Freya-TTS","revision":"d124e07…","device":"cuda"}.
+    # It matters beyond bookkeeping: voxcpm2-tts below names this row as its
+    # fallback, and a fallback the release gate believes is not running is a
+    # fiction.
+    self_hosted_now: true
+    host: "freyavoice/Freya-TTS@d124e07 (code pin 146d36c) — team GPU server, loopback 127.0.0.1:8803, CUDA, supervised by bin/serve_tts_supervised.sh (dev/synthetic only). files/03 §4.9.1 row 12: the whole-session TTS fallback, selected at session start"
+    # INT-243: the trailing "VoxCPM2 VAE weights @32279eff have NO licence
+    # blob — open finding" is REMOVED from this row. It was never Freya's
+    # finding to carry, and it is now closed: VoxCPM2 has its own row below,
+    # with the blob url and sha it was actually verified from.
+    license: "Apache-2.0 (code LICENSE blob verified @d124e07)"
     probe: http_health
     budget_ms: 3000
+    # the bottom of the TTS ladder (files/03 §4.9.1 row 12): nothing stands
+    # behind it but `typed`, which is a profile mode, not a component. The
+    # gate blocks on this row, by design.
     fallback: "none"
     phi_path: true
+
+  - component: voxcpm2-tts
+    self_hostable: true
+    self_hosted_now: true
+    host: "openbmb/VoxCPM2@32279eff (voxcpm==2.0.3) — team GPU server, loopback 127.0.0.1:8805, supervised by bin/serve_voxcpm2_supervised.sh (dev/synthetic only; PHI-path in-country serving is contract-gated, files/00_STATE.md §3 D11). Serving on CPU today: the box is a shared MIG 3g.71gb slice with ~3.4 GiB free against this model's ~8 GiB, so the server's device ladder chose CPU (RTF ~4). That serves files/03 §4.9.1 row 10, the compile-time clip path, and NOT row 11, the dynamic 0.14 s-TTFT path, which stays VRAM-blocked — docs/evidence/INT-243.md"
+    license: "Apache-2.0 (stock, unmodified — raw LICENSE blob read and hashed; see licence_blob_url and licence_note)"
+    probe: http_health
+    budget_ms: 3000
+    # files/03 §4.9.1 row 12 stays serving on 8803 as the whole-session
+    # fallback, so a failed VoxCPM2 rollout costs nothing
+    fallback: "component:freya-tts"
+    phi_path: true
+    model_id: "openbmb/VoxCPM2"
+    revision: "32279effe8c19989596f05d353d1447f51d9e915"
+    weights_sha256:
+      model.safetensors: "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+      audiovae.pth: "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1"
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/OpenBMB/VoxCPM/272b8ffbf660b0cfd07e20fdef538f335a4f92ca/LICENSE"
+    licence_blob_sha256: "4f10acc209addacfad28293315c74c4cd648f771ee1263a748f1781d1e0265e4"
+    licence_note: >-
+      The Hugging Face weights repo openbmb/VoxCPM2 carries NO LICENSE file at
+      any revision — the path 404s, so there is no blob to read there, and the
+      card tag would be exactly the badge that files/03 §4.9.0 rule 3 refuses.
+      The grant recorded here was read from the vendor SOURCE repo instead:
+      OpenBMB/VoxCPM at commit 272b8ffbf660b0cfd07e20fdef538f335a4f92ca, the
+      same project that publishes the voxcpm==2.0.3 inference package used to
+      serve these weights. The blob is stock unmodified Apache-2.0 — 200 lines,
+      no addendum, no acceptable-use rider, no field-of-use restriction,
+      irrevocable section 2 grant, commercial use permitted. It is vendored
+      NEXT TO the mirrored weights on the serving host, at
+      /data/intake/models/hf/hub/models--openbmb--VoxCPM2/ as LICENSE,
+      SHA256SUMS and LICENCE_PROVENANCE.md, so the grant travels with the
+      artefact instead of resting on a README the vendor can edit. Audited
+      2026-08-29; supersedes the "NO licence blob — open finding" that the
+      freya-tts row used to carry on VoxCPM2's behalf.
 
   - component: deid-tr-ner-v1
     self_hostable: true
