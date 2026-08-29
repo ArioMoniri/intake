@@ -309,12 +309,25 @@
   title: "EHRbase export tier: OPT templates + client + roundtrip (P3 export per D8)"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "intake composition template (OPT) uploaded on boot; write/read composition per session; contribution audit"
     - "integration test writes and reads a composition against EHRbase container"
   tests: [tests/integration/test_ehrbase_roundtrip.py]
   legal: "KSVY-5"
+  sec_row: "clinical-core"
+- id: INT-257
+  epic: E02-data
+  phase: P3
+  # Found by INT-032 against a live EHRbase 2.35.1: the committed OPT does not upload.
+  title: "openEHR OPT: the committed template has no occurrences and a live CDR rejects it"
+  depends_on: [INT-032]
+  labels: [area:data]
+  status: todo
+  acceptance:
+    - "every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"
+    - "OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"
+  tests: [tests/integration/test_ehrbase_roundtrip.py]
   sec_row: "clinical-core"
 - id: INT-033
   epic: E02-data
@@ -2495,7 +2508,7 @@
   title: "Wait-time metrics end-to-end + SDS-01 style exports"
   depends_on: [INT-240, INT-025]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "time_to_first_question, note_ready_after_wrapup, doctor_link_first_open, checkin_to_seen (connector), records_processing emitted and dashboarded"
   tests: [tests/experience/test_wait_metrics.py]
@@ -2712,6 +2725,87 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+- id: INT-254
+  epic: E03-protocols
+  phase: P0
+  title: 'DSL/life-threat reconciliation: tense_anchor is a slot reference, explicit
+    rule status, source note, secondary action — and the validator AttributeError
+    INT-041 routed around'
+  depends_on:
+  - INT-040
+  - INT-041
+  labels:
+  - area:protocols
+  sec_row: protocol-registry
+  status: done
+  evidence: docs/evidence/INT-254.md
+  acceptance:
+  - '`tense_anchor` is typed as a slot REFERENCE in the `when` grammar''s namespace,
+    not a bare slot key: `protocols.triage.engine` unions it into
+    `referenced_slots(when)` and `TriageContext.answers` is keyed "by the dotted
+    slot reference exactly as the when predicate spells it", so one pattern is
+    shared by the DSL and the tokenizer and a test asserts the two cannot drift.
+    Bare keys stay valid, so no existing pack changes'
+  - 'the two sourced exemplars in files/protocols/base.life_threat.yaml carry
+    `status: active` explicitly; `RedFlagRule.status` stays REQUIRED with no
+    default, because a default would make a forgotten status read `active` —
+    the unsafe direction (CLAUDE.md invariant 17)'
+  - '`SourceBlock.note` and `LocationAction.secondary` exist as optional fields
+    with tests; `secondary` carries the same action-code shape as `primary`, and
+    the ON_SITE/112 model validator is proven still to hold with it set'
+  - 'validator `_tr_texts` no longer dereferences a location branch without
+    checking it, and a structurally incomplete RED action produces a
+    `RED_ACTION_UNRESOLVED` Finding out of `validate_packs` instead of an
+    AttributeError — matching the guard `compile/resolve.py` already carries'
+  - 'the four named error classes are gone from `protocols compile --life-threat
+    files/protocols/base.life_threat.yaml`; every remaining error is listed in the
+    evidence with its class, and none of them is silently absorbed'
+  tests:
+  - tests/protocols/test_dsl_schema.py
+  - tests/protocols/test_validator.py
+  - tests/protocols/test_compiler_fail_closed.py
+- id: INT-255
+  epic: E03-protocols
+  phase: P0
+  title: 'Model the eleven life-threat delivery annotations the DSL still refuses
+    (audio/register, the crisis path, paediatric proxy, document-level blocks)'
+  depends_on:
+  - INT-254
+  labels:
+  - area:protocols
+  - risk:clinical
+  - approval:human-clinical
+  sec_row: protocol-registry
+  status: todo
+  acceptance:
+  - 'after INT-254 the blueprint life-threat document still fails to load with 13
+    errors, pinned by `test_the_blueprint_residue_is_enumerated_and_still_refused`.
+    Each is an annotation files/protocols/base.life_threat.yaml carries and
+    `RedFlagRule`/`LocationAction`/`LifeThreatSet` do not model:
+    `subject_is_child`, `carry_child`, `audio: {spoken, prosody, alert_sound}`,
+    `suppress_attention_interrupt`, `consent_independent`, `offline_draft_path`,
+    `abandonment_handler`, `numbers: []`, `action.<LOC>.open_question`,
+    `action.<LOC>.note`, and the document-level `goldens_index` and `TODO` blocks'
+  - 'the delivery annotations are NOT plain optional fields: `audio` and
+    `suppress_attention_interrupt` carry the files/02 §5.3 register axis, and the
+    paediatric airway exemplar is KIRMIZI_K1 and CALM at once precisely because
+    alarm is the harm (files/04 §8.1 rule 6). A default chosen by an engineer here
+    is the failure invariant 21 names, so each field is modelled with no default
+    or is not modelled at all'
+  - '`consent_independent`, `offline_draft_path`, `abandonment_handler` and
+    `numbers` are the files/04 §4.2 crisis path: build the mechanism, wire the gate,
+    fail closed, leave the content empty (HUMAN_BLOCKERS rule 2, HB-C8). No model,
+    search tool or learning proposal may ever populate a crisis number (files/04
+    §4.1); the numbers stay in docs/legal/strings.yaml under PolicyGuard'
+  - 'the residue list in tests/protocols/test_compiler_edges.py shrinks to empty
+    only as fields are modelled — never by loosening `extra: forbid` anywhere in
+    the chain, which would empty it silently and pass'
+  - 'when the list is empty, `protocols compile --life-threat
+    files/protocols/base.life_threat.yaml` loads the blueprint document, and the
+    sign-off interlock (HB-C1) is then the only thing keeping it out of a bundle'
+  tests:
+  - tests/protocols/test_compiler_edges.py
+  - tests/protocols/test_dsl_schema.py
 - id: INT-246
   epic: E08-mobile
   phase: P0
@@ -2817,6 +2911,7 @@
     selection is cached per session and re-probed on failure'
   tests:
   - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+<<<<<<< HEAD
 - id: INT-257
   epic: E14-legal
   phase: P1
@@ -2828,3 +2923,21 @@
     - "every committed external-facing string tree is a declared tree of intake_platform.legal.claims and scans green; the device-function lexicon runs over it too; a near-miss control proves the permitted fixed copy survives; the trees that are not committed to this repo are named with the human who owns them"
   tests: [tests/legal/test_marketing_claims_gate.py]
   legal: "TCY-R11,STORE"
+=======
+- id: INT-256
+  epic: E04-engines
+  phase: P1
+  # The universal history block only. Guideline-grounded, department-specific clinical
+  # content stays with INT-043 -> INT-044..051, which is awaiting-human (HB-C1).
+  title: "Universal history sections (allergy, medication, PMH, family) composed onto every department pack"
+  depends_on: [INT-247]
+  labels: [area:engine]
+  status: done
+  acceptance:
+    - "historyQuestions authored once in 04 section 1 order and COMPOSED onto every department pack by packForVisit(department, profile), never duplicated per department"
+    - "18 steps across allergies/medications/pmh/family_social; the pmh and family blocks are Detayli-only and the mode gating is asserted, not assumed"
+    - "carried facts render per kind: a carried allergy never appears in the medication list and never takes medication-shaped wording"
+    - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
+  tests: [apps/mobile/src/lib/intake/history.test.ts]
+  sec_row: "intake-typed"
+>>>>>>> origin/main

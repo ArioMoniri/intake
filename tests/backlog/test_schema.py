@@ -36,10 +36,15 @@ def test_ids_unique_and_well_formed() -> None:
     ids = [i["id"] for i in issues]
     assert len(ids) == len(set(ids))
     # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
+<<<<<<< HEAD
     # owner directive 2026-08-27) + INT-257 (INT-224 found that the marketing
     # claims-control gate files/01 §3b calls a P1 deliverable had no issue at
     # all). Grow this count only with a stated reason.
     assert len(ids) == 204
+=======
+    # owner directive 2026-08-27). Grow this count only with a stated reason.
+    assert len(ids) == 207
+>>>>>>> origin/main
     import re
 
     for i in ids:
