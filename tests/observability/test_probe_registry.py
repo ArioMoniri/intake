@@ -152,11 +152,32 @@ def test_every_phi_path_component_is_self_hostable() -> None:
             assert e.self_hostable, f"{e.component} is on the PHI path but not self-hostable"
 
 
-def test_ehrbase_is_absent_and_the_d8_citation_is_recorded() -> None:
+def test_ehrbase_joined_with_int032_and_is_not_enabled() -> None:
+    """Until INT-032 this row had to be absent, and the test said so. The row
+    exists now (the P3 export tier landed), and what must stay true is
+    narrower: D8 is still cited, and the CDR is NOT enabled — it lives behind
+    the compose `export` profile and no deployment serves from it, so the
+    release gate must not treat it as a live PHI-path dependency."""
     registry = load_registry(REGISTRY_PATH)
-    assert not any("ehrbase" in e.component.lower() for e in registry)
+    rows = [e for e in registry if "ehrbase" in e.component.lower()]
+    assert [e.component for e in rows] == ["ehrbase"]
+    row = rows[0]
+    assert row.self_hosted_now is False, (
+        "an enabled EHRbase row would make the P3 export tier look like a running "
+        "dependency; nothing serves from it (00 §3 D8)"
+    )
+    assert row.phi_path is True and row.self_hostable is True
+    assert row.license == "Apache-2.0"
+    assert row.licence_verified_at == date(2026, 8, 29)
+    assert row.licence_blob_url == (
+        "https://raw.githubusercontent.com/ehrbase/ehrbase/v2.35.1/LICENSE"
+    )
+    assert row.licence_blob_sha256 == (
+        "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    )
+    assert "2.35.1" in row.host, "the registry host must pin the image tag the compose runs"
     text = REGISTRY_PATH.read_text(encoding="utf-8")
-    assert "D8" in text and "00_STATE" in text, "EHRbase absence must cite files/00_STATE.md §3 D8"
+    assert "D8" in text and "00_STATE" in text, "the EHRbase row must cite files/00_STATE.md §3 D8"
 
 
 def test_model_rows_mirror_the_03_491_pins() -> None:

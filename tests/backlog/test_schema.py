@@ -39,7 +39,7 @@ def test_ids_unique_and_well_formed() -> None:
     # owner directive 2026-08-27) + INT-258 (overlay composition mechanism,
     # split out of INT-056 so the engine spine is not blocked on clinical
     # content). Grow this count only with a stated reason.
-    assert len(ids) == 207
+    assert len(ids) == 208
     import re
 
     for i in ids:

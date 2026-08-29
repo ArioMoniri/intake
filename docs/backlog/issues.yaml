@@ -309,12 +309,25 @@
   title: "EHRbase export tier: OPT templates + client + roundtrip (P3 export per D8)"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "intake composition template (OPT) uploaded on boot; write/read composition per session; contribution audit"
     - "integration test writes and reads a composition against EHRbase container"
   tests: [tests/integration/test_ehrbase_roundtrip.py]
   legal: "KSVY-5"
+  sec_row: "clinical-core"
+- id: INT-257
+  epic: E02-data
+  phase: P3
+  # Found by INT-032 against a live EHRbase 2.35.1: the committed OPT does not upload.
+  title: "openEHR OPT: the committed template has no occurrences and a live CDR rejects it"
+  depends_on: [INT-032]
+  labels: [area:data]
+  status: todo
+  acceptance:
+    - "every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"
+    - "OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"
+  tests: [tests/integration/test_ehrbase_roundtrip.py]
   sec_row: "clinical-core"
 - id: INT-033
   epic: E02-data
