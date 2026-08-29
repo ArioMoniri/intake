@@ -197,6 +197,7 @@ def build_harness(
     token_admin: str | None,
     scanner: Any = _DEFAULT_SCANNER,
     legal_root: Path | None = None,
+    legal_strings: Path | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -219,6 +220,13 @@ def build_harness(
         # default: the pre-INT-210 state — no consent texts on disk, so the
         # catalog is empty and only the seeded (unbound) dev grants stand
         legal_root=legal_root if legal_root is not None else tmp_path / "legal-not-authored",
+        # default: the pre-INT-210 state for the files/06 §7 fixed strings
+        # too — everything that renders them fails closed (INT-037)
+        legal_strings_path=(
+            legal_strings
+            if legal_strings is not None
+            else tmp_path / "legal-not-authored" / "strings.yaml"
+        ),
     )
     cipher = EnvelopeCipher(FileKekProvider())
     audit_store = SqlAlchemyAuditStore(audit_engine)

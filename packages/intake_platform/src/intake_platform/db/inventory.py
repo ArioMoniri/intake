@@ -77,6 +77,11 @@ RET_CONSENT_AUDIT = "10 years for hospital tenants; WORM copy; audit is append-o
 RET_SHARE = "share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)"
 RET_EVENTS = "telemetry window: 30 d hot / 1 y cold; PHI-free by construction (06 §3)"
 RET_TENANT = "life of the tenant contract plus statutory retention on the DPA (06 §3)"
+RET_DSAR = (
+    "record of a KVKK m.11/m.13 rights exercise: kept with the consent & audit tier, "
+    "10 years (06 §3), which also carries the DEST-2017 ≥ 3-year floor for the "
+    "destruction records among them (06 §1 KVKK-7)"
+)
 
 # --- recipients ------------------------------------------------------------------------
 

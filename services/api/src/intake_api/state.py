@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Annotated, cast
 from fastapi import Depends, Request
 from intake_platform.consent import ConsentTextCatalog
 from intake_platform.envelope import EnvelopeCipher
+from intake_platform.legal import LegalStringsCatalog
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.audit import AuditWriter
@@ -40,9 +41,13 @@ class ApiState:
     # defaults from settings.legal_root in __post_init__ so every state has
     # one (an absent legal tree is an EMPTY catalog — grants fail closed).
     consent_catalog: ConsentTextCatalog = field(init=False)
+    # INT-037: the files/06 §7 fixed strings the DSAR export document renders
+    # from. An absent file is a fail-closed export, never a default string.
+    legal_strings: LegalStringsCatalog = field(init=False)
 
     def __post_init__(self) -> None:
         self.consent_catalog = _catalog_from_settings(self.settings)
+        self.legal_strings = LegalStringsCatalog(self.settings.legal_strings_path)
 
 
 def get_state(request: Request) -> ApiState:

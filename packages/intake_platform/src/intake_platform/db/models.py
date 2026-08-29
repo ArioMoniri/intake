@@ -57,6 +57,7 @@ from intake_platform.db.inventory import (
     REC_INTERNAL,
     REC_PATIENT_CLINICIAN,
     RET_CONSENT_AUDIT,
+    RET_DSAR,
     RET_EVENTS,
     RET_RECORD,
     RET_SHARE,
@@ -68,6 +69,10 @@ __all__ = [
     "Base",
     "Consent",
     "Document",
+    "DsarKind",
+    "DsarRectification",
+    "DsarRequest",
+    "DsarStatus",
     "Event",
     "IntakeSession",
     "KvkkRole",
@@ -105,6 +110,26 @@ class KvkkRole(enum.StrEnum):
 class SessionStatus(enum.StrEnum):
     CREATED = "created"
     ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class DsarKind(enum.StrEnum):
+    """The KVKK m.11 rights INT-037 serves. Closed by construction: a request
+    the tracker cannot name is a request nobody is accountable for."""
+
+    EXPORT = "export"
+    DELETE = "delete"
+    RECTIFY = "rectify"
+
+
+class DsarStatus(enum.StrEnum):
+    """``received`` — the m.13 clock is running; ``scheduled`` — an erasure
+    inside its files/06 §3 grace; ``completed`` — answered or executed;
+    ``cancelled`` — the subject withdrew the erasure inside the grace."""
+
+    RECEIVED = "received"
+    SCHEDULED = "scheduled"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
@@ -630,6 +655,193 @@ class Document(Base):
             BASIS_CONTRACT,
             RET_RECORD,
             REC_INTERNAL,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_RECORD)
+
+
+class DsarRequest(Base):
+    """One data-subject request and its KVKK m.13 clock (INT-037).
+
+    The SLA queue is read by operations staff, so this row carries ids, a
+    closed kind/status and timestamps — and nothing else (invariant 6). What
+    the subject asked to correct lives, encrypted, on ``dsar_rectifications``;
+    what they asked to receive is assembled at read time and never stored.
+    """
+
+    __tablename__ = "dsar_requests"
+    __table_args__ = (Index("ix_dsar_requests_tenant_status", "tenant_id", "status"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk("data-subject request key", RET_DSAR)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_DSAR)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised data subject exercising the right",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    kind: Mapped[DsarKind] = mapped_column(
+        Enum(
+            DsarKind,
+            name="dsar_kind",
+            native_enum=False,
+            length=16,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "which KVKK m.11 right was exercised (export|delete|rectify)",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    status: Mapped[DsarStatus] = mapped_column(
+        Enum(
+            DsarStatus,
+            name="dsar_status",
+            native_enum=False,
+            length=16,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "lifecycle state of the request (received|scheduled|completed|cancelled)",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "when the request arrived — the instant the KVKK m.13 clock starts",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    due_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "statutory response deadline: received_at + 30 days (06 §1 KVKK-11/13)",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    grace_ends_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "erasure only: end of the 30-day deletion grace, after which the "
+            "crypto-shred executes (06 §3); NULL for every other kind",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "when the request was answered or executed; NULL while the clock runs",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+    legal_strings_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "SHA-256 of the exact docs/legal/strings.yaml bytes the answer was "
+            "issued under (invariant 18, the consents.text_hash precedent): a "
+            "re-issue against moved copy is refused rather than restated; NULL "
+            "until an export is first rendered and for kinds that render none",
+            BASIS_LEGAL_OBLIGATION,
+            RET_DSAR,
+            REC_AUDITOR,
+        ),
+    )
+
+
+class DsarRectification(Base):
+    """A KVKK m.11 / KSVY m.13 correction, stored as an ADDENDUM.
+
+    files/02 §3: rectification produces "an addendum rather than a silent
+    rewrite" — overwriting the note would falsify the record of what the
+    patient actually said, which is the one thing an audit cannot survive. The
+    correction is the subject's own words, so it is special-category health
+    data and carries an envelope like every other clinical payload.
+    """
+
+    __tablename__ = "dsar_rectifications"
+
+    id: Mapped[uuid.UUID] = _uuid_pk("rectification addendum key", RET_RECORD)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_RECORD)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient whose record the addendum corrects",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("dsar_requests.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the m.11 request this addendum answers",
+            BASIS_LEGAL_OBLIGATION,
+            RET_RECORD,
+            REC_AUDITOR,
+        ),
+    )
+    target_ref: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "what is being corrected, as an id-shaped reference (kind:uuid) — "
+            "validated at the boundary so free text cannot enter a column the "
+            "tracker and the audit both read (invariant 6)",
+            BASIS_LEGAL_OBLIGATION,
+            RET_RECORD,
+            REC_AUDITOR,
+        ),
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the correction in the patient's own words as EncryptedField JSON "
+            "(field-level envelope encryption; never plaintext at rest)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_RECORD)

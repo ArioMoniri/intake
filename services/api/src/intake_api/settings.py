@@ -58,6 +58,10 @@ class ApiSettings:
     # legal tree; until INT-210 authors the texts the directory is absent and
     # the consent service fails closed on every new grant.
     legal_root: Path = field(default_factory=lambda: Path("docs/legal/consents"))
+    # Where the files/06 §7 fixed strings live (INT-037 renders the DSAR
+    # export document from them, hash-bound). Absent until INT-210 authors
+    # them, which is why every renderer of these strings fails closed.
+    legal_strings_path: Path = field(default_factory=lambda: Path("docs/legal/strings.yaml"))
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -93,4 +97,7 @@ class ApiSettings:
             dev_otp_peek=os.environ.get(ENV_DEV_OTP_PEEK) == EXPLICIT_YES,
             dev_allow_unattested=os.environ.get(ENV_DEV_ALLOW_UNATTESTED) == EXPLICIT_YES,
             legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
+            legal_strings_path=Path(
+                os.environ.get("INTAKE_LEGAL_STRINGS") or "docs/legal/strings.yaml"
+            ),
         )

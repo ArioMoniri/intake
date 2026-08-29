@@ -39,6 +39,9 @@ TENANT_SCOPED = (
     "shares",
     "documents",
     "events",
+    # INT-037 — the DSAR tracker and the rectification addenda
+    "dsar_requests",
+    "dsar_rectifications",
 )
 
 CLINICIAN_READ = ("patients", "sessions", "slots", "notes", "documents")
@@ -69,9 +72,15 @@ FORBIDDEN_COLUMN_NAMES = frozenset(
 
 
 def _migration_source() -> str:
-    candidates = sorted((REPO / "migrations" / "versions").glob("*int030*.py"))
-    assert candidates, "the INT-030 migration file is missing under migrations/versions/"
-    return "\n".join(path.read_text(encoding="utf-8") for path in candidates)
+    """The whole migration tree, not just INT-030's file: a tenant-scoped
+    table added by a later revision must bring its own RLS, and a scan that
+    only read 0001 would report the strongest possible pass for a table it
+    never looked at."""
+    candidates = sorted((REPO / "migrations" / "versions").glob("*.py"))
+    assert candidates, "no migrations found under migrations/versions/"
+    joined = "\n".join(path.read_text(encoding="utf-8") for path in candidates)
+    assert "0001_int030" in joined, "the INT-030 migration file is missing"
+    return joined
 
 
 # --- model metadata ---------------------------------------------------------------
