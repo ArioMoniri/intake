@@ -47,6 +47,8 @@ import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
+import { joinParts } from "@/lib/a11y/labels";
+import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import {
@@ -104,7 +106,15 @@ export default function TypedIntake() {
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       {integrityCompromised ? (
-        <View style={styles.integrityWarn}>
+        <View
+          accessible
+          accessibilityLabel={joinParts(
+            t("auth.integrity.warnTitle"),
+            t("auth.integrity.warnBody"),
+          )}
+          accessibilityLiveRegion="polite"
+          style={styles.integrityWarn}
+        >
           <AppText role="label">{t("auth.integrity.warnTitle")}</AppText>
           <AppText role="caption" color="inkSoft">
             {t("auth.integrity.warnBody")}
@@ -273,13 +283,17 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         keyboardDismissMode="on-drag"
       >
         {modeBar}
-        <AppText role="hero">{t("intake.privacy.q")}</AppText>
+        <AppText role="hero" heading>
+          {t("intake.privacy.q")}
+        </AppText>
         <AppText role="body" color="inkSoft">
           {t("intake.privacy.hint")}
         </AppText>
         <View style={styles.optionColumn}>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t("intake.privacy.notAlone")}
+            style={styles.cardTarget}
             onPress={() => visitId && updateNote(visitId, { type: "privacy", alone: false })}
           >
             <Card>
@@ -288,6 +302,8 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </Pressable>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t("intake.privacy.alone")}
+            style={styles.cardTarget}
             onPress={() => visitId && updateNote(visitId, { type: "privacy", alone: true })}
           >
             <Card>
@@ -310,9 +326,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       >
         {modeBar}
         <View style={styles.progressRow}>
+          {/* SC 1.4.1: per-question progress exists here ONLY as a hue, and
+              a hue is not a fact. The dots are hidden as the decoration
+              they are and the counter beside them carries the state. */}
           {applicable.map((item, i) => (
             <View
               key={item.id}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
               style={[
                 styles.progressDot,
                 {
@@ -336,7 +357,11 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             {t("voiceFirst.failed")}
           </AppText>
         ) : null}
-        <AppText role="hero">{t(question.titleKey)}</AppText>
+        {/* The bar is untitled by design (pass 6), so the question line is
+            this screen's title and must be a heading (SC 1.3.1). */}
+        <AppText role="hero" heading>
+          {t(question.titleKey)}
+        </AppText>
         {question.hintKey ? (
           <AppText role="body" color="inkSoft">
             {t(question.hintKey)}
@@ -364,6 +389,8 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                 <Pressable
                   key={o.id}
                   accessibilityRole="checkbox"
+                  accessibilityLabel={t(o.labelKey)}
+                  accessibilityHint={t("a11y.selectHint")}
                   accessibilityState={{ checked: on }}
                   onPress={() => toggleChip(o.id)}
                   style={[
@@ -392,7 +419,24 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
               return (
                 <Pressable
                   key={o.id}
-                  accessibilityRole="button"
+                  // One answer per turn: a radio says so, a button does not.
+                  accessibilityRole="radio"
+                  // The suggested card is marked by a wash only — the word
+                  // "Önerilen" is inside the card, so it survives the merge
+                  // as context after the option itself (SC 1.4.1, 2.5.3).
+                  // The card renders "Önerilen yanıt" ABOVE the option, so
+                  // the name follows the same order the eye reads.
+                  accessibilityLabel={joinParts(
+                    suggested ? t("voiceFirst.suggested") : null,
+                    t(o.labelKey),
+                  )}
+                  // NOT `checked: suggested`. "Önerilen" means the voice pass
+                  // proposed this option, not that the patient chose it, and
+                  // nothing commits until the tap below (invariant 1). A
+                  // reader announcing it as selected would be the one
+                  // modality in which the suggestion looks like an answer.
+                  accessibilityState={{ checked: false }}
+                  style={styles.cardTarget}
                   onPress={() =>
                     commit(
                       resolveAnswer(
@@ -420,6 +464,8 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           <>
             <TextInput
               accessibilityLabel={t(question.titleKey)}
+              accessibilityHint={question.hintKey ? t(question.hintKey) : undefined}
+              allowFontScaling={false}
               value={text}
               onChangeText={setText}
               multiline
@@ -485,7 +531,9 @@ function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeB
       <View style={styles.modeRow}>
         <Pressable
           accessibilityRole="switch"
+          accessibilityLabel={t("intake.mode.hastanedeyim")}
           accessibilityState={{ checked: detayli }}
+          hitSlop={verticalSlop(26)}
           onPress={onToggleMode}
           style={[
             styles.modeChip,
@@ -504,6 +552,7 @@ function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeB
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("intake.queue.called")}
+              hitSlop={verticalSlop(26)}
               onPress={onQueueCalled}
               style={[styles.modeChip, styles.queueChip, { backgroundColor: theme.surfaceRaised }]}
             >
@@ -537,6 +586,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   queueChip: { marginLeft: "auto" },
+  // The Card inside is far taller than the floor; declaring it keeps the
+  // SC 2.5.8 guarantee a property of the control rather than of its content.
+  cardTarget: { minHeight: MIN_TAP },
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   progressDot: { width: 8, height: 8, borderRadius: radius.chip },
   // Tabular figures so the counter doesn't reflow step to step (design

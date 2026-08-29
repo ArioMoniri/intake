@@ -38,7 +38,12 @@ export function PrepGauge({ fraction, label }: { fraction: number; label: string
     <View
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={`${label}: ${value}`}
+      accessibilityLabel={label}
+      // INT-144: the value belongs in accessibilityValue, not glued into the
+      // name. `text` is the locale-formatted percent the eye reads (tr "%42",
+      // en "42%" — never hand-assembled, 00 §2); now/min/max let the screen
+      // reader use its own progress idiom and report change on re-render.
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100), text: value }}
       style={styles.wrap}
     >
       <View style={styles.window} pointerEvents="none">

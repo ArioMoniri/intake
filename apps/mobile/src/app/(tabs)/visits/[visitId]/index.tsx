@@ -61,6 +61,12 @@ export default function VisitDetail() {
             <AppText role="body">{t(visitTypeLabelKey(visit.visitType))}</AppText>
           </Card>
         ) : null}
+        {/* SC 1.3.1: each rung names its own state (StatusLadder). A
+            wrapping accessibilityRole="list" was tried and removed — on a
+            View that is not `accessible` iOS exposes neither the role nor
+            the label, and making it accessible would swallow all four
+            rungs into one element. The Kicker above already names the
+            group for both eye and reader. */}
         <Card style={styles.ladderCard}>
           <Kicker label={t("visits.detail.noteStatus")} />
           <Hairline />

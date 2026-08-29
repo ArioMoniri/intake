@@ -19,6 +19,8 @@ import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
+import { joinParts, labelled } from "@/lib/a11y/labels";
+import { useLiveAnnouncement } from "@/lib/a11y/prefs";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
 import {
@@ -137,6 +139,11 @@ function OtpRecords() {
   const [docs, setDocs] = useState<RecordDoc[]>([]);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<MessageKey | null>(null);
+  const noticeIsError = notice !== null && notice !== "records.scanningInfo";
+  // Android hears the live region on the line; this is the iOS half.
+  useLiveAnnouncement(
+    notice === null ? null : noticeIsError ? labelled(t("a11y.error"), t(notice)) : t(notice),
+  );
 
   const refresh = useCallback(async (visit: VisitFixture) => {
     setPhase("loading");
@@ -260,8 +267,9 @@ function OtpRecords() {
               key={visit.id}
               icon="calendar"
               label={visit.hospital}
-              sublabel={`${visit.department} · ${formatVisitDate(visit.date, getLocale())}`}
+              sublabel={joinParts(visit.department, formatVisitDate(visit.date, getLocale()))}
               chevron
+              hint={t("a11y.openHint")}
               onPress={() => setChosen(visit)}
             />
           ))}
@@ -296,8 +304,9 @@ function OtpRecords() {
           <ListRow
             icon="calendar"
             label={selected.hospital}
-            sublabel={`${selected.department} · ${formatVisitDate(selected.date, getLocale())}`}
+            sublabel={joinParts(selected.department, formatVisitDate(selected.date, getLocale()))}
             chevron={pick.kind === "choose"}
+            hint={pick.kind === "choose" ? t("a11y.openHint") : undefined}
             onPress={pick.kind === "choose" ? () => setChosen(null) : undefined}
           />
         </ListGroup>
@@ -324,7 +333,12 @@ function OtpRecords() {
                   t(doc.contentType === "application/pdf" ? "records.doc.pdf" : "records.doc.image")
                 }
                 sublabel={formatVisitDate(doc.createdAt.slice(0, 10), getLocale())}
+                // The scan state is a word in the trailing chip, but a
+                // pressed row merges its subtree — so the state is repeated
+                // into the row's own name or it is lost (SC 4.1.2).
+                labelContext={t(SCAN_STATE_KEY[doc.state])}
                 trailing={<ScanChip state={doc.state} />}
+                hint={doc.state === "rejected" ? undefined : t("a11y.openHint")}
                 onPress={doc.state === "rejected" ? undefined : () => void onOpen(doc)}
               />
             ))}
@@ -332,7 +346,12 @@ function OtpRecords() {
         </View>
       ) : null}
       {notice !== null ? (
-        <AppText role="body" color="amber">
+        // SC 3.3.1. `notice` is not always an error: "records.scanningInfo"
+        // is a progress line, so only the error kinds are prefixed "Hata"
+        // and announced assertively — dressing a scan-in-progress message as
+        // an error would be worse than not announcing it. Visible copy is
+        // unchanged either way.
+        <AppText role="body" color="amber" live={noticeIsError ? "assertive" : "polite"}>
           {t(notice)}
         </AppText>
       ) : null}
@@ -353,7 +372,7 @@ export default function Records() {
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("records.title")}
         </AppText>
         {!documentsAllowed ? (

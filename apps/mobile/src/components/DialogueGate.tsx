@@ -20,6 +20,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { GLASS_BAR_CLEARANCE } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import { AppText, useTheme } from "@/components/Themed";
+import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import type { VoiceIntakeAction } from "@/lib/intake/voiceFirst";
 import { reachableAsrBaseUrl } from "@/lib/voice";
@@ -47,18 +48,30 @@ export function DialogueGate({ dispatch }: DialogueGateProps) {
   return (
     <View style={styles.content}>
       <Kicker label={t("dialogue.kicker")} tone="accent" />
-      <AppText role="hero">{t("dialogue.entryTitle")}</AppText>
+      <AppText role="hero" heading>
+        {t("dialogue.entryTitle")}
+      </AppText>
       <AppText role="body" color="inkSoft">
         {t("dialogue.entryBody")}
       </AppText>
-      <View style={styles.statusRow}>
+      {/* The probe is a wait, and a spinner is invisible to a screen
+          reader — the row announces itself instead (SC 4.1.2). */}
+      <View style={styles.statusRow} accessible accessibilityLiveRegion="polite">
         <ActivityIndicator color={theme.primary} />
         <AppText role="label" color="inkSoft">
           {t("voiceFirst.checking")}
         </AppText>
       </View>
       <View style={styles.typedRow}>
-        <Pressable accessibilityRole="button" onPress={() => dispatch({ type: "skip" })}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("voiceFirst.typeInstead")}
+          accessibilityHint={t("a11y.typedHint")}
+          // A lone 18 pt caption line: slop lifts the target to the floor
+          // without turning the quiet second door into a button.
+          hitSlop={verticalSlop(18)}
+          onPress={() => dispatch({ type: "skip" })}
+        >
           <AppText role="caption" color="inkFaint">
             {t("voiceFirst.typeInstead")}
           </AppText>

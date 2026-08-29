@@ -2,10 +2,17 @@
  * The 02 §5.1 status ladder as a vertical timeline: Taslak → Gönderildi →
  * Hekim görüntüledi → Dosyaya eklendi. Reached steps carry the accent; the
  * label always carries the meaning (colour never alone — 02 §8.2).
+ *
+ * INT-144: "reached" was the one thing here still carried by colour and
+ * weight alone. The rung labels were always spoken, but nothing told a
+ * screen-reader user WHICH rungs the note had passed. Each rung now names
+ * its own state, the ladder is one labelled group, and the rail glyphs are
+ * hidden as the decoration they are (SC 1.4.1, SC 1.3.1).
  */
 import { StyleSheet, View } from "react-native";
 
 import { AppText, useTheme } from "@/components/Themed";
+import { labelled } from "@/lib/a11y/labels";
 import type { NoteStatus } from "@/lib/dev/accounts";
 import { t } from "@/lib/i18n";
 import { radius, spacing } from "@/lib/theme";
@@ -29,8 +36,23 @@ export function StatusLadder({ current }: { current: NoteStatus }) {
         const reached = i <= reachedIndex;
         const nextReached = i + 1 <= reachedIndex;
         return (
-          <View key={step.status} style={styles.row}>
-            <View style={styles.rail}>
+          <View
+            key={step.status}
+            // One rung, one accessible element, one sentence: "Gönderildi:
+            // tamamlandı". Reading the label and the dot separately would
+            // give the reader the word without the state.
+            accessible
+            accessibilityLabel={labelled(
+              t(step.key),
+              reached ? t("a11y.ladder.reached") : t("a11y.ladder.pending"),
+            )}
+            style={styles.row}
+          >
+            <View
+              style={styles.rail}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
               <View
                 style={[
                   styles.dot,

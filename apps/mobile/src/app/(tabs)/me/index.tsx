@@ -20,6 +20,8 @@ import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
+import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -30,18 +32,27 @@ import { radius, spacing } from "@/lib/theme";
  */
 function StatePill({
   label,
+  context,
   active,
   activeColor,
   onPress,
   accessibilityRole = "button",
   checked,
+  hint,
 }: {
   label: string;
+  /**
+   * What the pill governs (INT-144). Its visible word is a state — "Açık",
+   * "Türkçe" — which alone names nothing; the row supplies the subject to
+   * the eye, and this supplies it to a screen reader.
+   */
+  context?: string;
   active: boolean;
   activeColor: "success" | "primary";
   onPress: () => void;
   accessibilityRole?: "button" | "switch";
   checked?: boolean;
+  hint?: string;
 }) {
   const theme = useTheme();
   const bg = active
@@ -53,8 +64,14 @@ function StatePill({
   return (
     <Pressable
       accessibilityRole={accessibilityRole}
-      accessibilityLabel={label}
+      // Visible word first (SC 2.5.3), subject after.
+      accessibilityLabel={withContext(label, context)}
+      accessibilityHint={hint}
       accessibilityState={accessibilityRole === "switch" ? { checked } : { selected: active }}
+      // 30 pt by design (Oura tag register). Slop lifts the TARGET to the
+      // SC 2.5.8 floor without disturbing the 56 pt row it sits in; vertical
+      // only, so the tr and en pills never swallow each other.
+      hitSlop={verticalSlop(30)}
       onPress={onPress}
       style={[styles.statePill, { backgroundColor: bg }]}
     >
@@ -76,7 +93,7 @@ export default function Me() {
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("me.title")}
         </AppText>
         <ListGroup>
@@ -97,6 +114,7 @@ export default function Me() {
               label={t("me.consents")}
               sublabel={t("consent.entry.sub")}
               chevron
+              hint={t("a11y.openHint")}
               onPress={() => router.push("/(tabs)/me/consents")}
             />
           </ListGroup>
@@ -114,6 +132,8 @@ export default function Me() {
               trailing={
                 <StatePill
                   label={consents.health ? t("consent.on") : t("consent.off")}
+                  context={t("consent.health")}
+                  hint={t("a11y.consent.switchHint")}
                   active={consents.health}
                   activeColor="success"
                   accessibilityRole="switch"
@@ -134,6 +154,7 @@ export default function Me() {
                   <StatePill
                     key={code}
                     label={code === "tr" ? t("lang.tr") : t("lang.en")}
+                    context={t("me.language")}
                     active={locale === code}
                     activeColor="primary"
                     onPress={() => switchLocale(code)}
@@ -145,6 +166,7 @@ export default function Me() {
           <ListRow
             label={t("me.learned")}
             chevron
+            hint={t("a11y.openHint")}
             onPress={() => router.push("/(tabs)/me/learned")}
           />
         </ListGroup>

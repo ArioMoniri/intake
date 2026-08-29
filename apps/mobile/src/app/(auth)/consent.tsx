@@ -66,7 +66,7 @@ export default function FirstRunConsent() {
   return (
     <Screen edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("me.consents")}
         </AppText>
         <AppText role="body" color="inkSoft">

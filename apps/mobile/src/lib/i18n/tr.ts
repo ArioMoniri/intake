@@ -696,6 +696,40 @@ export const tr = {
   "review.section.health": "Cihaz sağlık verisi",
   // [REVIEW] fixed provenance line on the attached device-health block
   "review.healthProvenance": "Cihaz sağlık verisi — hasta onayıyla eklendi.",
+  // ── INT-144 · screen-reader strings ──────────────────────────────────
+  // Never rendered visually: these are what VoiceOver and TalkBack speak.
+  // Same rules as everything else — B1, `siz`, no clinical interpretation
+  // (a name or a hint may only re-say what is already on the screen), and
+  // no ALL-CAPS. The `…Hint` keys describe what activation does; they never
+  // replace a control's visible words (SC 2.5.3).
+  "a11y.error": "Hata",
+  "a11y.openHint": "Ayrıntıları açmak için iki kez dokunun.",
+  "a11y.backHint": "Önceki ekrana dönmek için iki kez dokunun.",
+  "a11y.closeHint": "Kapatmak için iki kez dokunun.",
+  "a11y.selectHint": "Seçmek için iki kez dokunun.",
+  "a11y.confirmHint": "Onaylamak için iki kez dokunun.",
+  "a11y.shareHint": "Bu bölümün paylaşımını açıp kapatmak için iki kez dokunun.",
+  "a11y.typedHint": "Konuşmak yerine yazarak devam etmek için iki kez dokunun.",
+  "a11y.otp.digit": "Doğrulama kodu hanesi",
+  "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açmak için iki kez dokunun.",
+  "a11y.consent.switchHint": "Bu izni açıp kapatmak için iki kez dokunun.",
+  "a11y.ladder.reached": "tamamlandı",
+  "a11y.ladder.pending": "henüz tamamlanmadı",
+  // The two voices of the conversation. The agent is named with the product
+  // name, never a human first name (02 §5: no persona presented as a
+  // person); "Siz" keeps the app-wide register.
+  "a11y.speaker.agent": "Vizite",
+  "a11y.speaker.patient": "Siz",
+  "a11y.dialogue.transcript": "Konuşma dökümü",
+  "a11y.dialogue.speaking": "Vizite konuşuyor",
+  "a11y.dialogue.preparing": "Soru hazırlanıyor",
+  "a11y.dialogue.transcribing": "Söyledikleriniz yazıya dökülüyor",
+  "a11y.dialogue.settling": "Notunuz hazırlanıyor",
+  "a11y.dialogue.bargeInHint": "Sözü kesip konuşmaya başlamak için iki kez dokunun.",
+  "a11y.dialogue.stopHint": "Konuşmanızı bitirmek için iki kez dokunun.",
+  "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
+  "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
+  "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

@@ -24,6 +24,7 @@ import { Pressable, StyleSheet, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText, useTheme } from "@/components/Themed";
+import { MIN_TAP } from "@/lib/a11y/target";
 import { t, type MessageKey } from "@/lib/i18n";
 import { glassFallback, radius, spacing } from "@/lib/theme";
 
@@ -187,6 +188,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     minWidth: 54,
+    // INT-144, SC 2.5.8: the rail item measured ~46 pt only because the
+    // caption happened to render at that size. Pinned so the target cannot
+    // drift under the floor if the `micro` role is ever retuned.
+    minHeight: MIN_TAP,
   },
   activeLabel: { fontWeight: "600" },
 });

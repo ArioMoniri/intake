@@ -50,7 +50,12 @@ export function GuidanceBlock({
         </View>
       ) : null}
       <Kicker label={t(kickerKey)} tone={accent ? "accent" : "neutral"} />
-      <AppText role="title">{t(titleKey)}</AppText>
+      {/* A guidance block is a titled section, so its title is a heading
+          (SC 1.3.1): the heading rotor is how a screen-reader user moves
+          between blocks instead of reading all of them in sequence. */}
+      <AppText role="title" heading>
+        {t(titleKey)}
+      </AppText>
       <AppText role="body" color="inkSoft">
         {t(bodyKey)}
       </AppText>

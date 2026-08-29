@@ -21,6 +21,10 @@ import { SymbolView } from "expo-symbols";
 
 import { ListGroup } from "@/components/ListRow";
 import { AppText, useTheme } from "@/components/Themed";
+import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
+import { modalAnimation } from "@/lib/a11y/motion";
+import { useReducedMotion } from "@/lib/a11y/prefs";
+import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import type { SectionPanelModel, SectionRow } from "@/lib/dialogue/sectionPanel";
 import { t } from "@/lib/i18n";
 import { optionLabelKey } from "@/lib/intake/questions";
@@ -49,7 +53,14 @@ export function SectionStrip({ filled, total, onPress }: SectionStripProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${t("dialogue.noteForming")} · ${count} ${t("dialogue.sectionsLabel")}`}
+      accessibilityLabel={joinParts(
+        t("dialogue.noteForming"),
+        `${count} ${t("dialogue.sectionsLabel")}`,
+      )}
+      accessibilityHint={t("a11y.dialogue.sectionsHint")}
+      // The strip is 36 pt of chrome on the glass bar; slop carries it to
+      // the SC 2.5.8 floor without pushing the composer off the screen.
+      hitSlop={verticalSlop(36)}
       onPress={onPress}
       style={({ pressed }) => [styles.strip, { opacity: pressed ? 0.7 : 1 }]}
     >
@@ -123,7 +134,11 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${t(row.labelKey)}: ${values} — ${t("dialogue.confirm")}`}
+        // The row's own visible chip says "Onaylayın", so that is what the
+        // name starts with (SC 2.5.3); the section and the suggested value
+        // follow as the context the eye takes from the row's position.
+        accessibilityLabel={withContext(t("dialogue.confirm"), labelled(t(row.labelKey), values))}
+        accessibilityHint={t("a11y.confirmHint")}
         onPress={() => onConfirm(row.questionId)}
         style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
       >
@@ -131,7 +146,21 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
       </Pressable>
     );
   }
-  return <View style={styles.row}>{body}</View>;
+  // A settled row is one fact, so it is one accessible element: section,
+  // then value, then the patient's own words as provenance. Read as four
+  // separate nodes it becomes four unrelated fragments in the rotor.
+  return (
+    <View
+      accessible
+      accessibilityLabel={labelled(
+        t(row.labelKey),
+        joinParts(row.status === "empty" ? t("dialogue.sectionEmpty") : values, row.quote),
+      )}
+      style={styles.row}
+    >
+      {body}
+    </View>
+  );
 }
 
 interface SectionSheetProps {
@@ -144,19 +173,44 @@ interface SectionSheetProps {
 /** The expanded sheet: every section as a grouped-table row. */
 export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionSheetProps) {
   const theme = useTheme();
+  const reduceMotion = useReducedMotion();
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType={modalAnimation(reduceMotion)}
+      onRequestClose={onClose}
+    >
       <View style={styles.backdropWrap}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("dialogue.close")}
+          accessibilityHint={t("a11y.closeHint")}
           onPress={onClose}
           style={[StyleSheet.absoluteFill, styles.backdrop]}
         />
-        <View style={[styles.sheet, { backgroundColor: theme.background }]}>
+        {/* SC 2.4.3: the modal flag belongs HERE, not on <Modal>. React
+            Native's Modal enumerates the props it forwards to the native
+            host view (Libraries/Modal/Modal.js) and `accessibilityViewIsModal`
+            is not among them — set there it type-checks and does nothing.
+            On the sheet it does the real work: the dismiss backdrop and
+            anything behind leave the accessibility tree, so a swipe cannot
+            walk out of the sheet into content the eye cannot see. Dismissal
+            stays reachable through the labelled close control below. */}
+        <View
+          accessibilityViewIsModal
+          style={[styles.sheet, { backgroundColor: theme.background }]}
+        >
           <View style={styles.sheetHeader}>
-            <AppText role="title">{t("dialogue.sectionsTitle")}</AppText>
-            <Pressable accessibilityRole="button" onPress={onClose}>
+            <AppText role="title" heading>
+              {t("dialogue.sectionsTitle")}
+            </AppText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("dialogue.close")}
+              hitSlop={verticalSlop(21)}
+              onPress={onClose}
+            >
               <AppText role="label" color="inkSoft">
                 {t("dialogue.close")}
               </AppText>
@@ -190,7 +244,9 @@ const styles = StyleSheet.create({
   // (design pass 6 microtypography).
   stripCount: { fontVariant: ["tabular-nums"] },
   backdropWrap: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { backgroundColor: "rgba(0, 0, 0, 0.4)" },
+  // The dismiss backdrop covers the screen behind the sheet; the floor is
+  // declared rather than inherited from absoluteFill (SC 2.5.8).
+  backdrop: { backgroundColor: "rgba(0, 0, 0, 0.4)", minHeight: MIN_TAP },
   sheet: {
     borderTopLeftRadius: radius.card,
     borderTopRightRadius: radius.card,

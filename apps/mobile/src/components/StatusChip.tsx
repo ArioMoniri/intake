@@ -17,6 +17,16 @@ const statusKey = {
   filed: "status.filed",
 } as const;
 
+/**
+ * The catalog key for a note status (INT-144). Exported so a card that
+ * WRAPS this chip in a Pressable can put the same word in its accessible
+ * name: a merged subtree is one element, and the status must survive the
+ * merge rather than being the one thing that only the eye receives.
+ */
+export function statusLabelKey(status: NoteStatus): (typeof statusKey)[NoteStatus] {
+  return statusKey[status];
+}
+
 export function StatusChip({ status }: { status: NoteStatus }) {
   const theme = useTheme();
   const colors = {

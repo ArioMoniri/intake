@@ -14,7 +14,11 @@ import { Pressable, StyleSheet, View, useColorScheme } from "react-native";
 import { SymbolView } from "expo-symbols";
 
 import { AppText, Hairline, useTheme } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
 import { palette, radius, shadow, spacing } from "@/lib/theme";
+
+/** Action name for the row's nested trailing control. */
+const SECONDARY_ACTION = "secondary";
 
 export function ListGroup({ children, footer }: { children: ReactNode; footer?: string }) {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -69,6 +73,35 @@ interface ListRowProps {
   /** Nested child row (INT-132 lane sub-toggles): indented text column. */
   inset?: boolean;
   onPress?: () => void;
+  /**
+   * What activating the row does (INT-144). A row and a switch nested in its
+   * trailing slot are two different controls that used to carry the same
+   * accessible name; the hint is what separates "open the consent text" from
+   * "withdraw the consent" for a screen-reader user.
+   */
+  hint?: string;
+  /**
+   * Context spoken after the visible label — a date, a trailing value — for
+   * rows whose label alone is ambiguous once position is gone. The visible
+   * label always comes FIRST (SC 2.5.3 Label in Name).
+   */
+  labelContext?: string;
+  /**
+   * The row's SECOND action, when a control is nested in `trailing`
+   * (INT-144).
+   *
+   * A pressable row is `accessible` by default, which merges its whole
+   * subtree into one element — so a `Pressable` in the trailing slot is not
+   * focusable at all on iOS and its role, state and target are inert. That
+   * is how the consent switch became unreachable: a screen-reader user could
+   * open a purpose's text but could not withdraw the consent.
+   *
+   * A custom accessibility action is the platform's answer: VoiceOver
+   * surfaces it in the actions rotor and TalkBack in its local context menu,
+   * so both reach the toggle without the row having to stop being one
+   * element. The trailing control stays exactly as it is for pointer use.
+   */
+  secondaryAction?: { label: string; onPress: () => void };
 }
 
 export function ListRow({
@@ -79,6 +112,9 @@ export function ListRow({
   chevron = false,
   inset = false,
   onPress,
+  hint,
+  labelContext,
+  secondaryAction,
 }: ListRowProps) {
   const theme = useTheme();
   const body = (
@@ -106,7 +142,22 @@ export function ListRow({
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={label}
+        accessibilityLabel={withContext(label, labelContext, sublabel)}
+        accessibilityHint={hint}
+        accessibilityActions={
+          secondaryAction
+            ? [{ name: SECONDARY_ACTION, label: secondaryAction.label }]
+            : undefined
+        }
+        onAccessibilityAction={
+          secondaryAction
+            ? (event) => {
+                if (event.nativeEvent.actionName === SECONDARY_ACTION) {
+                  secondaryAction.onPress();
+                }
+              }
+            : undefined
+        }
         onPress={onPress}
         style={({ pressed }) => [
           styles.row,
