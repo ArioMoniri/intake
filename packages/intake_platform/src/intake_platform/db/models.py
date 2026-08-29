@@ -67,6 +67,7 @@ from intake_platform.db.inventory import (
     RET_EVENTS,
     RET_NOTIFICATION_PREFERENCE,
     RET_RECORD,
+    RET_SATISFACTION,
     RET_SHARE,
     RET_TENANT,
     inv,
