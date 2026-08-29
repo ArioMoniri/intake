@@ -2613,7 +2613,7 @@
   labels:
   - area:data
   sec_row: identifiers
-  status: todo
+  status: done
   acceptance:
   - 'owner bug report - documents could not be added: app.py built its Scanner slot
     from the dev stub alone, which is unconstructible without an opt-in env var, so
