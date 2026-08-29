@@ -367,7 +367,7 @@
   title: "DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker"
   depends_on: [INT-014, INT-033]
   labels: [area:data, risk:legal]
-  status: todo
+  status: done
   acceptance:
     # CORRECTED 27 Aug 2026 per 00 §3 D8: the DSAR export bundles FHIR+PDF in P0;
     # the openEHR composition joins the bundle when INT-032 lands in P3.

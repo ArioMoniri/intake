@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 59 · todo 133 · withdrawn 1.
+**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 60 · todo 132 · withdrawn 1.
 
 ## P0
 
@@ -37,7 +37,7 @@
 | INT-034 | MinIO document store: signed URLs + AV hook + WORM audit bucket | E02-data | INT-016 | area:data | done |
 | INT-035 | Redis streams event bus + consumer framework + DLQ | E02-data | INT-031 | area:platform | done |
 | INT-036 | Retention & destruction engine (policy as code, 6-month periodic destruction, logs) | E02-data | INT-030 | area:data, risk:legal | done |
-| INT-037 | DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker | E02-data | INT-014, INT-033 | area:data, risk:legal | todo |
+| INT-037 | DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker | E02-data | INT-014, INT-033 | area:data, risk:legal | done |
 | INT-038 | Consent service: versioned objects, consent_guard middleware, re-prompt on change | E02-data | INT-030 | area:data, risk:legal | done |
 | INT-040 | Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields) | E03-protocols | INT-031 | area:protocols | done |
 | INT-041 | Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic | E03-protocols | INT-040, INT-033 | area:protocols | done |
