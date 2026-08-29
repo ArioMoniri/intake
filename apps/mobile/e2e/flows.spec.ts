@@ -143,6 +143,9 @@ describe("note builder + reducer (pure)", () => {
     expect(hpi.lines[1]).toMatch(/^Hasta notu: Merdiven/);
     const meds = sections.find((s) => s.id === "medications")!;
     expect(meds.lines.join(" ")).toContain("Metoprolol");
+    // INT-247: carried out of the earlier visit and not answered for this
+    // one, so it prints as unconfirmed — never as a current medication.
+    expect(meds.lines.join(" ")).toContain("bu ziyarette onaylanmadı");
   });
 
   it("resume: saving answers keeps progress in state", () => {

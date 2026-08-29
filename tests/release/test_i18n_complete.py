@@ -146,9 +146,10 @@ PROSE_REGISTER_FINDINGS = frozenset(
     {
         "a11y.backHint",
         "a11y.closeHint",
-        # INT-246: __DEV__-only diagnostic copy, never patient-facing; same
-        # short-imperative class as the entries below.
-        "devVoice.hint",
+        # INT-247: same class as the 34 above — short imperative in
+        # instructional prose, consistent with the catalogue while the -iniz
+        # question is one decision for the copy owner.
+        "a11y.carried.hint",
         "a11y.companion.ackHint",
         "a11y.companion.roleHint",
         "a11y.companion.speakerHint",

@@ -97,13 +97,23 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
             {t("dialogue.sectionEmpty")}
           </AppText>
         ) : (
-          <AppText role="body" color={row.status === "suggested" ? "inkSoft" : "ink"}>
+          <AppText
+            role="body"
+            color={row.status === "suggested" || row.status === "carried" ? "inkSoft" : "ink"}
+          >
             {values.length > 0 ? values : "—"}
           </AppText>
         )}
         {row.status === "suggested" ? (
           <AppText role="caption" color="primary">
             {t("voiceFirst.suggested")}
+          </AppText>
+        ) : null}
+        {row.status === "carried" ? (
+          // INT-247: an earlier visit's record, quiet and explicitly
+          // unanswered — never the weight an answered row gets.
+          <AppText role="caption" color="inkFaint">
+            {t("carried.kicker")} · {t("carried.state.unconfirmed")}
           </AppText>
         ) : null}
         {row.quote.length > 0 ? (

@@ -2506,7 +2506,7 @@
   title: "NPS scheduling + clinician pulse survey cadence"
   depends_on: [INT-240]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "monthly NPS prompt honoring quiet hours; quarterly pulse; opt-outs respected"
   tests: [tests/experience/test_survey_cadence.py]
@@ -2736,6 +2736,33 @@
     first answer and probes each dead candidate exactly once'
   tests:
   - tests/mobile/test_voice_doctor.py
+- id: INT-247
+  epic: E11-learning
+  phase: P0
+  title: 'Carried-forward facts must be confirmable before they read as current
+    (the client half of INT-170)'
+  depends_on:
+  - INT-133
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner bug report that a medication carried from a previous visit was shown as
+    current with no way to say it had stopped, which a clinician reading the note
+    would believe: the demo seed is proved unable to reach a real account and that
+    proof is pinned rather than merely true, and a carried fact arrives
+    unconfirmed with confirmation enforced in the type rather than the interface -
+    the carried type has no field readable as current, the reconciled type
+    requires a decision, and undecided facts sit in a different type the renderer
+    cannot accept; stopped is rendered distinguishably from absent because they
+    mean different things to a clinician, provenance consumes the existing
+    attribution rather than a parallel notion, and everything requiring clinical
+    judgement is refused - what stopping a drug means is not inferred, no
+    structured dose editor is added because a dose is numeric and free numeric
+    entry is barred on the clinical path, and the undefined reconciliation value is
+    left to the pack owners'
+  tests:
+  - apps/mobile/src/lib/intake/note.test.ts
 - id: INT-248
   epic: E05-voice
   phase: P0
@@ -2746,7 +2773,7 @@
   labels:
   - area:voice
   sec_row: intake-voice
-  status: todo
+  status: done
   acceptance:
   - 'a localization audit reported the guard rejecting legitimate copy, and every
     claim was verified before a pattern was touched by reproducing the count
