@@ -125,12 +125,18 @@ describe("design invariants as source facts", () => {
 
   it("no banned filler tokens in the app source (invariant 17)", () => {
     // Tokens assembled so this spec never trips the repo-wide gate itself.
-    const banned = new RegExp(
-      ["TO" + "DO", "FIX" + "ME", "lor" + "em", "place" + "holder"].join("|"),
-      "i",
-    );
+    // Case follows the repo-wide gate script, which is the authority: its
+    // grep -E is case-SENSITIVE, so the marker tokens are uppercase and the
+    // prose tokens lowercase. The "i" flag this spec used to carry made it
+    // stricter than that gate in a way that flagged DATA rather than filler
+    // — "Ortodonti", a Turkish dental branch in the INT-042 taxonomy,
+    // contains the letters of the lowercased marker token.
+    const markers = new RegExp(["TO" + "DO", "FIX" + "ME"].join("|"));
+    const prose = new RegExp(["lor" + "em", "place" + "holder"].join("|"), "i");
     for (const file of walk(SRC)) {
-      expect(read(file), file).not.toMatch(banned);
+      const source = read(file);
+      expect(source, file).not.toMatch(markers);
+      expect(source, file).not.toMatch(prose);
     }
   });
 });

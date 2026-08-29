@@ -624,7 +624,7 @@
   title: "Triage golden suite >=200 + mutation tests"
   depends_on: [INT-080]
   labels: [area:protocols, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "goldens across base+clusters+deep; a deliberately broken RED rule fails the suite (proved, reverted)"
   tests: [tests/safety/test_triage_goldens.py]
@@ -1299,7 +1299,7 @@
   title: "Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types"
   depends_on: [INT-130, INT-042]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "branch list from taxonomy; unknown branch -> cluster with notice; OCR path behind documents consent"
   tests: [apps/mobile/e2e/visits.spec.ts]
@@ -2401,7 +2401,7 @@
   title: "Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code"
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "age from verified DOB; under-18 requires guardian account+consent; adolescent private-section share policy per 06 §6; tests for each age band"
   tests: [tests/legal/test_minor_rules.py]

@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix chaos load
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix chaos load safety
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -29,6 +29,14 @@ check-py:
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
+
+# INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
+# mutation harness) and the PolicyGuard suite, at their own coverage floors.
+# check-py runs these lanes too; this target exists so a change under
+# packages/protocols can be cleared without the full fan-out.
+safety:
+	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
+	uv run python scripts/safety/triage_mutation_report.py
 
 check-ts:
 	pnpm -r lint
