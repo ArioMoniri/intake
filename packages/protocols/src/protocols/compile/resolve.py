@@ -32,6 +32,7 @@ from pydantic import Field
 from protocols.bindings import OperationalTemplate, fhir_link_id
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import LifeThreatSet
+from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
 from protocols.dsl import Instrument, RedFlagRule, Slot, VoiceSettings
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
@@ -62,18 +63,9 @@ _LAYER_RANK: Mapping[PackLayer, int] = {layer: rank for rank, layer in enumerate
 
 # Findings the compiler re-raises as monotonicity refusals rather than as
 # generic validation findings: each one is a child relaxing what a parent
-# fixed (CLAUDE.md invariant 7; files/12 §4).
-_MONOTONICITY_FINDINGS = frozenset(
-    {
-        FindingCode.RULE_REDECLARED,
-        FindingCode.TIGHTEN_BAD_ID,
-        FindingCode.TIGHTEN_LEVEL_DOWNGRADE,
-        FindingCode.TIGHTEN_NOT_DISJUNCTION,
-        FindingCode.TIGHTEN_UNKNOWN_PARENT,
-        FindingCode.ATTR_LOOSENED,
-        FindingCode.SUPPRESS_MUST_ASK,
-    }
-)
+# fixed (CLAUDE.md invariant 7; files/12 §4). The set lives with the overlay
+# compose step so the resolver and the composer report one code for one fault.
+_MONOTONICITY_FINDINGS = MONOTONICITY_FINDINGS
 _PARAPHRASE_FINDINGS = frozenset({FindingCode.INSTRUMENT_PARAPHRASE})
 _SERVABLE_MATURITY = frozenset({Maturity.L1, Maturity.L2, Maturity.L3})
 
@@ -135,6 +127,24 @@ class ResolvedProtocol(FrozenModel):
 
 def _refusal(code: RefusalCode, subject: str, message: str) -> Refusal:
     return Refusal(code=code, subject=subject, message=message)
+
+
+def _refused(refusals: Sequence[Refusal]) -> CompileError:
+    """One fault, one line. Several passes legitimately reach the same fault —
+    the cross-pack validator and the overlay composer both resolve an
+    overlay's rules — and an author reading "tighten_rule names unknown
+    parent" twice learns nothing the second time and reasonably wonders
+    whether there are two faults. Order is preserved so the report stays
+    stable across runs (files/12 §3.4 asks for every reason, not for every
+    reason twice)."""
+    seen: set[Refusal] = set()
+    unique: list[Refusal] = []
+    for refusal in refusals:
+        if refusal in seen:
+            continue
+        seen.add(refusal)
+        unique.append(refusal)
+    return CompileError(tuple(unique))
 
 
 def _canonical(payload: object) -> str:
@@ -540,7 +550,7 @@ def resolve_protocol(
     target = registry.maybe(pack_id)
     if target is None:
         refusals.append(_refusal(RefusalCode.UNKNOWN_PACK, pack_id, "no such pack in the registry"))
-        raise CompileError(tuple(refusals))
+        raise _refused(refusals)
 
     chain, chain_refusals = _chain_of(target, registry)
     refusals.extend(chain_refusals)
@@ -554,7 +564,7 @@ def resolve_protocol(
             continue
         overlay_packs.append(overlay)
     if chain_refusals:
-        raise CompileError(tuple(refusals))
+        raise _refused(refusals)
 
     applied = [*chain, *(p for p in overlay_packs if p.id not in {c.id for c in chain})]
     for pack in applied:
@@ -593,12 +603,18 @@ def resolve_protocol(
     ]
     if structural:
         refusals.extend(structural)
-        raise CompileError(tuple(refusals))
+        raise _refused(refusals)
 
     sub = PackRegistry()
     for pack in applied:
         sub.add(pack)
-    for finding in validate_packs(sub, licences):
+
+    # The chain first, because an overlay's tighten parent lives in the pack
+    # the overlay is applied TO, not in its own (usually absent) extends
+    # chain — files/04 §2.3, INT-258. Its findings are reported once, by
+    # validate_packs below, which resolves the same chain.
+    base_rules, _ = resolve_red_flags(target, sub)
+    for finding in validate_packs(sub, licences, tighten_parents=base_rules):
         if finding.code in _MONOTONICITY_FINDINGS:
             code = RefusalCode.MONOTONICITY_VIOLATION
         elif finding.code in _PARAPHRASE_FINDINGS:
@@ -607,30 +623,15 @@ def resolve_protocol(
             code = RefusalCode.VALIDATION_FINDING
         refusals.append(_refusal(code, f"{finding.pack_id}:{finding.subject}", finding.message))
 
-    rules: dict[str, RedFlagRule] = {}
-    for pack in (target, *overlay_packs):
-        resolved, findings = resolve_red_flags(pack, sub)
-        for finding in findings:
-            code = (
-                RefusalCode.MONOTONICITY_VIOLATION
-                if finding.code in _MONOTONICITY_FINDINGS
-                else RefusalCode.VALIDATION_FINDING
-            )
-            refusals.append(_refusal(code, f"{finding.pack_id}:{finding.subject}", finding.message))
-        for rule_id, rule in resolved.items():
-            existing = rules.get(rule_id)
-            if existing is not None and existing != rule:
-                refusals.append(
-                    _refusal(
-                        RefusalCode.MONOTONICITY_VIOLATION,
-                        rule_id,
-                        "two applied packs define the same rule id differently — "
-                        "inherited rules are immutable (files/12 §4 layer 1)",
-                    )
-                )
-                continue
-            rules[rule_id] = rule
-    refusals.extend(_rule_refusals(sorted(rules.values(), key=lambda r: r.id)))
+    composition, overlay_refusals = compose_overlay_rules(
+        base_rules=base_rules,
+        overlays=overlay_packs,
+        registry=sub,
+        life_threat_rule_ids=frozenset(entry.rule.id for entry in life_threat.rules),
+    )
+    refusals.extend(overlay_refusals)
+    rules: dict[str, RedFlagRule] = composition.by_id
+    refusals.extend(_rule_refusals(composition.rules))
 
     sections_state = _merge_chain(applied)
     entries = _ordered_ops(applied)
@@ -695,7 +696,7 @@ def resolve_protocol(
         )
 
     if refusals:
-        raise CompileError(tuple(refusals))
+        raise _refused(refusals)
 
     instruments = tuple(
         sorted({i.id: i for pack in applied for i in pack.instruments}.values(), key=lambda i: i.id)
@@ -705,7 +706,7 @@ def resolve_protocol(
         version=target.version,
         title_tr=target.title_tr,
         chain=tuple(pack.id for pack in chain),
-        overlays=tuple(sorted(pack.id for pack in overlay_packs)),
+        overlays=composition.overlays,
         sections=tuple(sections),
         red_flags=tuple(sorted(rules.values(), key=lambda r: r.id)),
         life_threat_rules=tuple(

@@ -526,7 +526,6 @@ export const tr = {
   "dialogue.speakingHint": "Araya girmek için dokunun",
   "dialogue.listeningHint": "Bitirince dokunun",
   "dialogue.optionsIntro": "Seçenekler:",
-  "dialogue.optionsOnScreen": "Seçenekleri ekranda görebilirsiniz.",
   "dialogue.and": "ve",
   "dialogue.or": "veya",
   "dialogue.confirmIntro": "Sizi şöyle anladık:",
@@ -536,6 +535,12 @@ export const tr = {
   "dialogue.speakCorrection": "Düzeltmeyi söyleyin",
   "dialogue.typeThisStep": "Yazarak yanıtlayın",
   "dialogue.transcribing": "Yazıya dökülüyor…",
+  // INT-261. Shown once when the agent's voice fails mid-conversation. It
+  // names what stopped (the reading aloud), leaves no doubt that the rest
+  // continues, and tells the patient what to do — instructional prose, so
+  // `-iniz`. Never "hata", never an apology for something the patient did.
+  "dialogue.voiceMuted":
+    "Sesli okuma şu an çalışmıyor. Soruları ekrandan okuyabilir, konuşarak ya da yazarak yanıtlayabilirsiniz.",
   "dialogue.noteForming": "Not oluşuyor",
   "dialogue.sectionsLabel": "bölüm",
   "dialogue.sectionsTitle": "Not bölümleri",
