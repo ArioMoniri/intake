@@ -916,7 +916,6 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** k-anonymity refusals landed with INT-171 —
   `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
   whose labels carry a view name and a reason class only, because a refusal labelled with
-<<<<<<< HEAD
   the branch or the week it withheld would publish that cell to Prometheus. Proposals and
   rejections landed with INT-172 — `learning_findings_total{signal}`,
   `learning_proposals_total{signal,target}`,
@@ -957,7 +956,6 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   digest — the primitive and the canonical form the audit chain and `room_tokens` already
   use — with the key handed in rather than fetched, so the package holds no secrets client
   either.
-=======
   the branch or the week it withheld would publish that cell to Prometheus. **INT-230 adds
   `research_extract_refused_total{spec,reason}` and `research_extract_served_total{spec}` on
   the same rule — a spec name and a reason class, never a study id, a recipient, a window or
@@ -978,7 +976,6 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   "anonymised", and a test asserts it. Whether KSVY m.16(2)'s separate limb (scientific
   processing under KVKK m.28/1(c)) would additionally apply is a counsel question and is
   asserted nowhere.
->>>>>>> origin/main
 - **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
   and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
   sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no

@@ -1517,7 +1517,6 @@ metrics:
       and were served, by view name. Read against
       analytics_view_refused_total it is the refusal rate the learning loop is
       operating at.
-<<<<<<< HEAD
 
   # --- INT-172: the Inspector -> Architect pipeline itself. files/10 §9's
   # learning row names "proposals, rejections, k-anonymity refusals,
@@ -1568,7 +1567,6 @@ metrics:
       evidence-bundle completeness; this is it. A bundle is incomplete while
       any artefact in intake_learning.evidence.REQUIRED_CHECKS is unavailable,
       and an incomplete bundle cannot open a pull request.
-=======
   # --- INT-230: the research export gate. Same posture as the INT-171 pair
   # above and for the same reason — a refusal labelled with the study cohort,
   # the window or a dimension value would publish to Prometheus exactly what
@@ -1603,7 +1601,6 @@ metrics:
       because the subject key is a keyed derivation and remains personal data
       under KVKK (KSVY m.16(1)'s anonymisation route is not the one this
       pipeline takes).
->>>>>>> origin/main
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
