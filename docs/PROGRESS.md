@@ -459,3 +459,17 @@
 - Fails closed on what is absent rather than stubbing: no TTS adapter (INT-095), no room-token route (INT-103's finding), HMAC attestation belongs to INT-093. Two clinician questions recorded: the safe-bridge sentence when PolicyGuard drops a whole turn (silent until then, asserted), and delivery deadlines for the non-urgent classes, which 12 §6 does not state.
 - The voice chain is now complete end to end in the repo: compiler → clip cache → LiveKit transport → Talker, with the production voice serving.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-145 merged (PR #334)
+- Client crash reporting built as a DENY-BY-DEFAULT allow-list of 17 keys read out of the untrusted event, never a regex blocklist. The exception message is not sent; the wire carries an error code. Thirteen tag keys are split by who supplies them, each with its own shape — load-bearing, because an allow-listed key is not enough when "05321234567" is a well-formed string. Breadcrumbs carry a route template, never a URL.
+- Adversarially proven: a Turkish symptom sentence, a phone number, a checksum-valid TCKN and a patient-named document title planted into message, exception values, frame vars and source context, frame module and function, three breadcrumbs including a full network URL with query, on-list and off-list tags, extra, contexts, user, request and attachments — all asserted absent from the envelope BYTES including percent-encoded forms, with a blanket rule that no character above ASCII 126 appears at all. The suite was then MUTATED THREE WAYS AND REVERTED to prove it bites.
+- No dependency added: deny-by-default and "replay unreachable rather than unconfigured" ruled a vendor SDK out. No metric promoted — all four ids stay planned because an RN client serves no /metrics. No default endpoint; nothing buffers to disk.
+- Finding: the repo has no third-party npm licence sink at all; licence_verified_at exists only in the model registry.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-133 merged (PR #331)
+- Profiles, companions and guardian flows on INT-223's rules engine. NO UNDER-18 IS SERVED BY ANY PATH: under-12 and 12-17 refuse with guardian_consent_required, a self-declared DOB refuses, a non-TR subject refuses, and the guardian sees nothing of an adolescent-private section without a recorded clinic policy. Each refusal records which HB-L20 question gates it — SERVER-SIDE ONLY, because a body or a screen printing "adolescent_self_consent" would itself disclose the subject's age band.
+- All four INT-223 refusals hold under test, including a sweep of every role x speaker x acknowledgement for a 14-year-old and an inspection proving no emancipation affordance exists anywhere in src/.
+- No new personal-data category: the attribution facts already existed on ScreeningProvenance and already exported to FHIR, lifted to the session so one flag cannot drift into three. Nothing identifies the companion.
+- Honest omission: no metric emitted, because the catalogue names no id for the proxy-reported share and invariant 13 forbids emitting what the catalogue does not hold.
+- LOOP_STATUS: CONTINUE

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 __all__ = [
     "age_gate_refused",
+    "proxy_acknowledgement_required",
     "attestation_invalid",
     "attestation_required",
     "attestation_unverified",
@@ -55,6 +56,22 @@ def age_gate_refused(code: str, scope: str) -> HTTPException:
     band, no narrative (invariant 6). The client maps the code to its own tr
     copy (invariant 5)."""
     return HTTPException(status_code=403, detail={"error": code, "scope": scope})
+
+
+# --- INT-133 companion / proxy flow -------------------------------------------------------
+
+
+def proxy_acknowledgement_required() -> HTTPException:
+    """A companion declared the role but has not acknowledged answering on
+    the patient's behalf (files/06 §6). A bare code: the body says what is
+    missing and nothing about the subject or the companion (invariant 6).
+
+    This is NOT the guardian path. Acknowledging the role proves no legal
+    representation — the proof standard is the awaiting-human
+    ``guardian_relationship_proof`` policy row — and a minor subject is
+    refused by the age gate long before this code can be reached.
+    """
+    return HTTPException(status_code=422, detail={"error": "proxy_acknowledgement_required"})
 
 
 # --- INT-232 consent-management codes (scope is the id and nothing else, invariant 6) ----
