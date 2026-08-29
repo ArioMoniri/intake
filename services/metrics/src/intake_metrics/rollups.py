@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from clinical_schemas.events import ClinicianPulseV1, CsatReason, CsatV1, NpsV1
+from intake_platform.analytics import K_ANONYMITY_FLOOR
 from intake_platform.db.models import Event
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,8 +56,10 @@ __all__ = [
 ]
 
 #: files/06 §8 and files/08 §0c F9, quoted by the `experience` threat row:
-#: "k-anonymity floor on aggregates (k >= 10)". Not a tuning knob — a floor.
-MIN_COHORT = 10
+#: "k-anonymity floor on aggregates (k >= 10)". Not a tuning knob — a floor,
+#: and since INT-171 a floor stated in exactly one place: two copies of a
+#: privacy threshold are two chances for one of them to drift down.
+MIN_COHORT = K_ANONYMITY_FLOOR
 
 #: The standard NPS bands (0-10). ``nps.v1`` states "Standard NPS 0-10 scale",
 #: and the promoter/passive/detractor split is that scale's definition, not a
