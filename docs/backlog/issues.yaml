@@ -2721,7 +2721,7 @@
   - INT-243
   labels:
   - area:voice
-  status: todo
+  status: done
   acceptance:
   - 'measured on live daemons, the preferred voice answered its health probe in a
     seventh of a second and then took four to six seconds to synthesise a sentence
