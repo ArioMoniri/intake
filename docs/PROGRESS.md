@@ -368,3 +368,9 @@
 - Three findings recorded: base-RED edits are caught at build time by tighten_rule's verbatim parent pin (invariant 7 by construction); the rules file's own LT-01-N negative control cannot catch a gate loosening because its three-day anchor is masked by the tense guard (same-day near misses added); the route axis was nearly left unpinned — the first draft documented an assertion it did not make.
 - Honest headroom: no cluster or deep pack exists yet, so "clusters+deep" waits on INT-044..052/INT-061+.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-134 merged (PR #297)
+- The demo department list is gone: GET /v1/taxonomy/branches projects branches.yaml (9 clusters, 92 branches, name_tr verbatim) with version = sha256 of the served bytes, 503 rather than an empty picker, and a device fallback chain of server feed → cached last-good → bundled seed pinned field-for-field to the YAML. A third scan marker, reference_data, is caged to /v1/taxonomy by the same segment-boundary rule as pre_auth and consent_management; unguarded_data_routes() stays empty. Merged cleanly with INT-223's age gate and re-verified.
+- MHRS SMS paste-parse ships whole (raw SMS never persisted — cleared in the same reducer action that parses it); image OCR is wired fail-closed behind documents consent AND an honestly-false licence flag per 03 §4.9.2(f). Visit date is optional per 02 §2b.
+- Gate defect corrected: nav.spec.ts matched filler tokens case-insensitively while the canonical no_placeholders.sh is case-sensitive, so the real branch name "Ortodonti" tripped it.
+- LOOP_STATUS: CONTINUE

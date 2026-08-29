@@ -1299,7 +1299,7 @@
   title: "Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types"
   depends_on: [INT-130, INT-042]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "branch list from taxonomy; unknown branch -> cluster with notice; OCR path behind documents consent"
   tests: [apps/mobile/e2e/visits.spec.ts]
