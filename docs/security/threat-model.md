@@ -893,24 +893,49 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 ## `learning-loops` — proposal-only learning
 
 - **Assets:** evidence bundles, proposal PRs, de-identified analytics views, PatientOverlay
-  facts.
+  facts, **research extracts and the register that records them (INT-230)**.
 - **Trust boundaries:** learning agent ↔ everything it may not touch (red-flag levels,
   instruments, consent texts, the Talker tool list, PolicyGuard, profile routing — CLAUDE.md
-  invariant 12); aggregates ↔ individuals (k ≥ 10).
+  invariant 12); aggregates ↔ individuals (k ≥ 10); **the consented clinical context ↔ a
+  research recipient outside it (INT-230: a separate consent purpose, a separate ethics
+  approval, a separate retention clock)**.
 - **Threats (STRIDE/LINDDUN):** [T] poisoning through crafted proposals; [Dd/L]
-  de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary.
+  de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary;
+  **[Nc/L] an export taken under a care consent rather than the `research` one, or under an
+  approval that has lapsed; [I] a direct identifier riding out inside an id-shaped field;
+  [Dd] linkage of two studies' extracts by an investigator holding both**.
 - **Controls (files/10):** §9 learning row — proposal-only with evidence bundles, k ≥ 10,
   sandboxed agent with read-only credentials, PR bot least privilege, canary and rollback;
-  PatientOverlay facts require patient or clinician confirmation at type level.
+  PatientOverlay facts require patient or clinician confirmation at type level. **INT-230
+  adds: the `research` scope evaluated through the one consent evaluator with a refuser
+  DROPPED rather than flagged; a signed-off study registry with no grace day past
+  `approval_valid_until` (invariant 35); a closed per-dimension vocabulary with the INT-015
+  pattern tier adding refusals on top; a study-scoped keyed pseudonym so two extracts do not
+  join; the `research_extracts` retention row gating creation; and an append-only register
+  carrying the ethics id and the content hash and no patient reference.**
 - **Signals:** k-anonymity refusals landed with INT-171 —
   `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
   whose labels carry a view name and a reason class only, because a refusal labelled with
-  the branch or the week it withheld would publish that cell to Prometheus. Proposals,
-  rejections and rollbacks land with INT-172/INT-173.
+  the branch or the week it withheld would publish that cell to Prometheus. **INT-230 adds
+  `research_extract_refused_total{spec,reason}` and `research_extract_served_total{spec}` on
+  the same rule — a spec name and a reason class, never a study id, a recipient, a window or
+  a subject count.** Proposals, rejections and rollbacks land with INT-172/INT-173.
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);
-  `proposal_scope` lands with INT-172; overlay monotonicity property test with INT-056.
+  **`export_gates` landed with INT-230 (`tests/research/test_export_gates.py`), including
+  the corpus lane that drives every INT-015 fixture sentence AND every bare fixture
+  identifier through the export value check**; `proposal_scope` lands with INT-172; overlay
+  monotonicity property test with INT-056.
+- **Named for what it is (INT-230): pseudonymisation, not anonymisation.** KSVY m.16(1)
+  permits scientific work on health data *anonim hâle getirilen* by the controller, under
+  the KVKK m.28/1(b) exemption. A keyed HMAC pseudonym is re-derivable by whoever holds the
+  key and is therefore personal data, so that route is unavailable and the pipeline takes
+  the other one files/06 §75 states in the same sentence — consent plus a recorded ethics
+  id. No type, function or constant in `intake_platform.research` carries the word
+  "anonymised", and a test asserts it. Whether KSVY m.16(2)'s separate limb (scientific
+  processing under KVKK m.28/1(c)) would additionally apply is a counsel question and is
+  asserted nowhere.
 - **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
   and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
   sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no

@@ -225,8 +225,13 @@ def test_backlog_parses_and_is_complete() -> None:
     ids = [i["id"] for i in issues]
     assert len(ids) == len(set(ids)), "duplicate issue ids"
     # 175 blueprint issues (07 §3.11) + INT-176..178 from the 2026-08-27
+<<<<<<< HEAD
     # security review (tracker issue #195) + INT-258 (overlay composition
     # mechanism); grows only with a stated reason.
+=======
+    # security review (tracker issue #195) + INT-262 (research differencing,
+    # raised by INT-230); grows only with a stated reason.
+>>>>>>> origin/main
     assert len(ids) == 210, f"expected 175 blueprint + 35 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 

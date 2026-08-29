@@ -1517,6 +1517,40 @@ metrics:
       and were served, by view name. Read against
       analytics_view_refused_total it is the refusal rate the learning loop is
       operating at.
+  # --- INT-230: the research export gate. Same posture as the INT-171 pair
+  # above and for the same reason — a refusal labelled with the study cohort,
+  # the window or a dimension value would publish to Prometheus exactly what
+  # the refusal withheld, and Prometheus retains it (inv. 6). `spec` is the
+  # extract spec's declared name, never a study id or a recipient; `reason` is
+  # a closed class. Neither series counts subjects: a count of extracts is a
+  # count of extracts. files/08 §4 names no id for either, so the names are
+  # ours (the INT-171 precedent).
+  - name: research_extract_refused_total
+    type: counter
+    labels: [spec, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      Research export requests refused, by extract spec name and reason class
+      (unknown_study, approval_not_in_force, approval_lapsed,
+      recipient_not_approved, retention_unset, value_not_id_shaped,
+      value_carries_identifier, value_outside_vocabulary,
+      dimension_set_mismatch, measure_not_a_count, order_statistic_measure,
+      spec_field_not_id_shaped, below_k). Emitted by
+      intake_platform.research.extract. Today every request refuses:
+      study_registry.yaml is empty (HB-L1, HB-R1) and the research_extracts
+      retention class is draft_needs_source (HB-I8).
+  - name: research_extract_served_total
+    type: counter
+    labels: [spec]
+    owner: learning
+    unit: "count"
+    description: >-
+      Pseudonymised research extracts served, by extract spec name. A count of
+      extracts, never of subjects — and pseudonymised rather than anonymised,
+      because the subject key is a keyed derivation and remains personal data
+      under KVKK (KSVY m.16(1)'s anonymisation route is not the one this
+      pipeline takes).
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):

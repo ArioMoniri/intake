@@ -1,0 +1,54 @@
+# study_registry.yaml — the closed set of research studies an extract may be
+# taken for (INT-230; files/06 §75 ETİK row, KSVY m.16, TCKAY).
+#
+# THIS FILE IS EMPTY ON PURPOSE, AND IT MUST STAY EMPTY UNTIL A HUMAN FILLS IT.
+#
+# No study exists. No ethics approval has been applied for, let alone granted.
+# Every field a row needs is a value no agent may invent (CLAUDE.md "never
+# invent a value"; files/HUMAN_BLOCKERS.md rule 1), so the registry ships with
+# zero rows and `intake_platform.research` refuses every export request that
+# names a study — which is every export request.
+#
+# What is blocking, and who unblocks it:
+#
+#   HB-L1  The clinical investigation SITE has not been named. TCKAY m.5/6
+#          restricts sites to a university health application & research
+#          centre — a general private Acıbadem hospital does not qualify — so
+#          the study must sit at Acıbadem Mehmet Ali Aydınlar Üniversitesi's
+#          uygulama ve araştırma merkezi. Owner.
+#
+#   HB-R1  The ethics decision itself: `ethics_approval_id`, `approval_date`,
+#          `approval_valid_until`, the `protocol_version` it was approved
+#          against, and the closed `recipients` list. The committee is KAEK
+#          (2025-KAEK-51, Aktif — NOT ATADEK, files/00 §0 item 4), and the
+#          sequence is binding: KAEK first, then TİTCK (TCKAY m.8/2). Owner +
+#          counsel.
+#
+#   HB-I8  Related, and independently blocking: `research_extracts` in
+#          retention_policy.yaml is `draft_needs_source` because files/06 §3
+#          says "Research extracts: per ethics protocol" and no protocol
+#          exists. The export gate checks that row too, so an extract with no
+#          destruction clock cannot be created even once a study is
+#          registered.
+#
+# When a row IS added, every field below is required and none has a default.
+# `approval_valid_until` has NO grace period (files/10 §9, invariant 35): the
+# day after it, the same request refuses exactly as an unregistered study
+# does. TCKAY m.11 makes an amendment a fresh submission, so a new approval
+# means a new row rather than an edited one — the register then ties each
+# extract to the protocol version that was in force when it was taken.
+#
+# Shape of a row, for whoever fills this in:
+#
+#   studies:
+#     - study_id: <id-shaped>
+#       site: <id-shaped>
+#       ethics_committee: <id-shaped>
+#       ethics_approval_id: <id-shaped, the committee's decision id>
+#       approval_date: YYYY-MM-DD
+#       approval_valid_until: YYYY-MM-DD
+#       protocol_version: <id-shaped>
+#       recipients: [<id-shaped>, ...]   # at least one; an empty list would
+#                                        # be an open-ended transfer
+
+studies: []

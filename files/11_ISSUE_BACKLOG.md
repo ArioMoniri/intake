@@ -5,7 +5,11 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
+<<<<<<< HEAD
 **210 issues.** By phase: P0 122 · P1 47 · P2 36 · P3 5. By status: awaiting-human 3 · doing 7 · done 83 · todo 116 · withdrawn 1.
+=======
+**210 issues.** By phase: P0 121 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 83 · todo 116 · withdrawn 1.
+>>>>>>> origin/main
 
 ## P0
 
@@ -132,7 +136,10 @@
 | INT-249 | Latency-aware voice lane selection: a health check that answers is not a lane that can speak | E05-voice | INT-243 | area:voice | done |
 | INT-261 | Voice intake mixes with the typed form: a clip that cannot be spoken ends the whole conversation, and the spoken turn reads the typed form's control copy | E08-mobile | INT-239, INT-249 | area:mobile, area:voice | done |
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | done |
+<<<<<<< HEAD
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
+=======
+>>>>>>> origin/main
 
 ## P1
 
@@ -223,8 +230,9 @@
 | INT-221 | Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance | E14-legal | INT-183, INT-162 | area:legal, risk:legal | todo |
 | INT-222 | Consumer/commercial: mesafeli sozlesme pre-info + withdrawal (if paid tier), IYS integration for marketing, Turkish-language compliance | E14-legal | INT-210 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-227 | AI governance file: model cards, TR bias/fairness eval (dialect, gender, age), transparency labels, EU AI Act readiness note | E14-legal | INT-095, INT-116 | area:legal, risk:legal | todo |
-| INT-230 | Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies | E15-research | INT-015, INT-038 | area:research, risk:legal, approval:human-legal | todo |
+| INT-230 | Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies | E15-research | INT-015, INT-038 | area:research, risk:legal, approval:human-legal | done |
 | INT-231 | Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation) | E15-research | INT-230 | area:research | todo |
+| INT-262 | Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies) | E15-research | INT-230 | area:research, risk:legal, approval:human-legal | todo |
 | INT-250 | Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook | E17-release | INT-189, INT-213 | area:release, risk:legal | todo |
 
 ## P3
