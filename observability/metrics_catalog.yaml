@@ -1510,6 +1510,56 @@ metrics:
       and were served, by view name. Read against
       analytics_view_refused_total it is the refusal rate the learning loop is
       operating at.
+
+  # --- INT-172: the Inspector -> Architect pipeline itself. files/10 §9's
+  # learning row names "proposals, rejections, k-anonymity refusals,
+  # rollbacks" as the console signals; the first two are here, the third is
+  # analytics_view_refused_total above, and rollbacks arrive with INT-173's
+  # canary controller. Label sets stay minimal for INT-171's reason: a
+  # proposal labelled with the pack or the clinic it concerns would publish
+  # that cohort to Prometheus, which retains it (inv. 6). `target` is a class
+  # name from intake_learning.proposals.PROPOSAL_TARGETS — a closed set of
+  # ten, not a pack id.
+  - name: learning_findings_total
+    type: counter
+    labels: [signal]
+    owner: learning
+    unit: "count"
+    description: >-
+      Case-level findings written by a Loop 2 Inspector, by files/09 §4 signal
+      (step_skip_rate, session_abandonment). Emitted by
+      intake_learning.inspector; a finding is derived from a k-gated
+      Measurement and never from a session row.
+  - name: learning_proposals_total
+    type: counter
+    labels: [signal, target]
+    owner: learning
+    unit: "count"
+    description: >-
+      Loop 2 proposals the Architect emitted, by signal and proposal-target
+      type. A proposal is data: this counts what was written down for a
+      clinician to review, never what changed (CLAUDE.md invariant 12).
+  - name: learning_proposals_refused_total
+    type: counter
+    labels: [signal, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      Findings the Architect declined to promote, by signal and reason class
+      (not_recurring, below_effect_floor, below_subject_floor,
+      below_tenant_floor, no_stated_target_mapping). This is files/10 §9's
+      "rejections" signal; the reason is a class and never a cohort.
+  - name: learning_evidence_bundles_total
+    type: counter
+    labels: [view, status]
+    owner: learning
+    unit: "count"
+    description: >-
+      Evidence bundles built for a Loop 2 proposal, by analytics view and
+      completeness (complete/incomplete). files/08 §4 group L asks for
+      evidence-bundle completeness; this is it. A bundle is incomplete while
+      any artefact in intake_learning.evidence.REQUIRED_CHECKS is unavailable,
+      and an incomplete bundle cannot open a pull request.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
@@ -1526,8 +1576,12 @@ metrics:
 # - group K, compliance: consent coverage by version, vendor notifications
 #   due/overdue, DSAR SLA, residency attestation per tenant, retention job
 #   success (sec_audit_chain_ok covers the daily integrity check).
-# - group L, learning loops: proposals opened/approved/rejected, canary
-#   outcomes, rollback count, evidence-bundle completeness, GEPA experiment
-#   deltas on held-out sets. ("k-anonymity rejections" left this list with
-#   INT-171: analytics_view_refused_total above is that KPI, catalogued under
-#   a name of ours because 08 §4 states the row without an id.)
+# - group L, learning loops: proposals approved, canary outcomes, rollback
+#   count, GEPA experiment deltas on held-out sets. ("k-anonymity rejections"
+#   left this list with INT-171: analytics_view_refused_total above is that
+#   KPI, catalogued under a name of ours because 08 §4 states the row without
+#   an id. "Proposals opened/rejected" and "evidence-bundle completeness" left
+#   it with INT-172: learning_proposals_total, learning_proposals_refused_total
+#   and learning_evidence_bundles_total above. What remains needs someone
+#   outside this repo — an approval is a clinician's action in GitHub, and
+#   canary/rollback arrive with INT-173.)

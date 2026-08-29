@@ -106,6 +106,21 @@ components:
     # patient's own words live in csat_texts, which this service never reads
     phi_path: false
 
+  - component: learning
+    self_hostable: true
+    self_hosted_now: false
+    host: "this package (services/learning) — INT-172 lands the Inspector -> Architect pipeline; the weekly schedule and the PR-bot identity land with the deployment issues"
+    license: "proprietary (repo LICENSE)"
+    probe: http_health
+    budget_ms: 800
+    fallback: "none"
+    # files/09 §7: read-only credentials on the de-identified analytics views
+    # (INT-171's svc_learning_reader holds SELECT and nothing else), never a
+    # raw table. The pipeline's import closure reaches no HTTP client, no
+    # protocol pack and no patient content — tests/learning/
+    # test_proposal_scope.py asserts it — so this sits off the PHI path
+    phi_path: false
+
   - component: voice-runtime
     self_hostable: true
     self_hosted_now: false

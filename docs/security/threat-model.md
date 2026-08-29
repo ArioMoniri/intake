@@ -850,12 +850,46 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** k-anonymity refusals landed with INT-171 —
   `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
   whose labels carry a view name and a reason class only, because a refusal labelled with
-  the branch or the week it withheld would publish that cell to Prometheus. Proposals,
-  rejections and rollbacks land with INT-172/INT-173.
+  the branch or the week it withheld would publish that cell to Prometheus. Proposals and
+  rejections landed with INT-172 — `learning_findings_total{signal}`,
+  `learning_proposals_total{signal,target}`,
+  `learning_proposals_refused_total{signal,reason}` and
+  `learning_evidence_bundles_total{view,status}`, labelled the same way and for the same
+  reason: `target` is one of ten class names and `reason` is a refusal class, never a pack,
+  a clinic or a cohort. Rollbacks land with INT-173.
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);
-  `proposal_scope` lands with INT-172; overlay monotonicity property test with INT-056.
+  `proposal_scope` landed with INT-172 (`tests/learning/test_proposal_scope.py`, plus
+  `tests/learning/test_inspector_architect.py` and
+  `tests/learning/test_evidence_bundle.py`); overlay monotonicity property test with
+  INT-056.
+- **Over-reach is unreachable, not rejected (INT-172):** `proposal_scope` walks the
+  *transitive* first-party import closure of `services/learning` with `ast` and asserts it
+  reaches none of `packages/protocols`, `services/voice-runtime`, `intake_platform.legal`,
+  `intake_platform.consent`, `intake_platform.profiles`, `services/api` or
+  `packages/voice-clips` — so the [E] threat has no code path rather than a guard on one.
+  Three further gates make the rest structural: the pipeline's own imports are allow-listed
+  (no HTTP client, no process spawner, no filesystem module — files/09 §7's "no egress" as a
+  property of the source, with the sandbox as the second layer rather than the only one); no
+  module in the package holds a write-capable call, which is why keeping a proposal out of a
+  protocol pack needs no path allow-list; and the proposal vocabulary is a closed tuple of
+  ten frozen dataclasses in which no field can carry a triage level or a path.
+  `CandidateRedFlag` has no `level` field at all — invariant 1's YELLOW_REVIEW cap as a
+  class constant rather than a validator, the same move `LlmCandidateTriage` makes in
+  `clinical_schemas.triage`.
+- **What a bundle carries, and the one thing refused (INT-172):** ids, counts and
+  citations. Citations are members of a closed enumeration; every id arrived through
+  INT-171's id-shape gate, and `EvidenceBundle.build` re-runs `materialise` on the way in
+  rather than trusting a `Measurement` handed to it, so the k floor and the shape check
+  apply again to the artefact that leaves the sandbox. The only prose is the analytics
+  registry's own committed `cohort_description`, byte for byte — an attacker-supplied cohort
+  is refused without being echoed. files/09 §4's "de-identified exemplars" are **absent, not
+  empty**: that is the claim HB-L6 records as one Turkish NLP cannot support, and the
+  evidence bundle is the last place to re-make it. Signing is HMAC-SHA256 over the canonical
+  digest — the primitive and the canonical form the audit chain and `room_tokens` already
+  use — with the key handed in rather than fetched, so the package holds no secrets client
+  either.
 - **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
   and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
   sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no
