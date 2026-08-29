@@ -58,19 +58,37 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 
 - **Assets:** workflow definitions, runner credentials, build artefacts, SBOMs, signing
   identity, the gate set itself.
-- **Trust boundaries:** GitHub-hosted (later TR self-hosted, INT-206) runners ↔ repo ↔
-  registries; PR author ↔ required checks.
+- **Trust boundaries:** GitHub-hosted runners ↔ repo ↔ registries; PR author ↔ required
+  checks. INT-206 adds the self-hosted TR-DC pool as a *declared* boundary
+  (`infra/ci/runners.yaml`) — and the pool list is empty, so today the boundary is the
+  GitHub-hosted one. HB-I7 (spend) and HB-L11 (physical residency is not legal residency)
+  own that — **not HB-I5, which is GPU supply and does not bind a CPU CI runner** — and no
+  facility, provider or label is invented to close the gap.
 - **Threats (STRIDE/LINDDUN):** [T] a repointed action tag or poisoned artefact (ci.yml pins
   actions to commit SHAs for exactly this reason); [E] workflow permission escalation;
-  [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14).
+  [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
+  [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
+  the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
+  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided.
 - **Controls (files/10):** §8 in full — OSV/Trivy/Checkov fail-on high, licence check, Syft
   SBOM, cosign keyless signing with SLSA provenance, schemathesis, MobSF; CI carries no
-  secrets and never calls a vendor (ci.yml header; CLAUDE.md).
+  secrets and never calls a vendor (ci.yml header; CLAUDE.md). **INT-206 adds the
+  no-PHI-in-CI policy** (`intake_platform.ci`, declared in `infra/ci/no-phi-policy.yaml`,
+  run by `make ci-policy`): every identifier-shaped value in a scanned tree must sit inside
+  a synthetic corpus a human declared *and pinned by sha256*, so a new identifier can only
+  arrive through a reviewed diff; env names as well as values are scanned; a declared
+  corpus may not be printed into the job log, uploaded as an artefact or cached; every
+  `runs-on` must resolve to a known hosted label or a declared pool, failing closed
+  otherwise. The gate's own report carries digests, never values — it runs in a job whose
+  stdout is retained 30 d hot / 1 y cold (files/10 §6).
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
-  with INT-019 (security.yml) and INT-187/INT-192 (console surfaces).
+  with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
+  `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
+  Skipped naming HB-I7 while no pool is declared — never as healthy.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
-  tests/security/test_threat_model.py (the sec_row linkage gate); full gate job lands with
-  INT-019.
+  tests/security/test_threat_model.py (the sec_row linkage gate);
+  tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
+  heartbeat probe); full gate job lands with INT-019.
 
 ## `secrets` — OpenBao and service credentials
 

@@ -2233,8 +2233,8 @@
   phase: P1
   title: "GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy"
   depends_on: [INT-002]
-  labels: [area:infra]
-  status: todo
+  labels: [area:infra, approval:human-infra, blocked:contract]
+  status: awaiting-human
   acceptance:
     - "runner heartbeats probed; CI uses synthetic fixtures only (scan)"
   tests: [tests/infra/test_ci_no_phi.py]
@@ -2433,7 +2433,7 @@
   title: "Store compliance: Apple health guidelines + Google Play Health policy + Data safety/privacy labels + IARC"
   depends_on: []
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "checklists as tests where automatable; labels generated from the data inventory (single source)"
   tests: [tests/legal/test_store_labels.py]

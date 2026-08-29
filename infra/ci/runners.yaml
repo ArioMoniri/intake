@@ -1,0 +1,53 @@
+# INT-206 — the self-hosted CI runner pools (files/08 §6 CI row; files/06 §5).
+#
+# THE LIST IS EMPTY AND THAT IS THE CURRENT STATE, not an omission.
+#
+# Two open rows own it, and neither is an engineering question:
+#
+#   HB-I7  — self-hosted CI runners. 175 issues x a realistic 35-60 min PR gate
+#            is 100-175 CPU-hours; the loop is bounded by CI, not by the model.
+#            Owner (spend).
+#   HB-L11 — physical residency is not legal residency. The operator of the AWS
+#            Istanbul Local Zone is AWS EMEA SARL and its control plane sits in
+#            Frankfurt, so "runners in the TR DC" is a claim somebody has to be
+#            able to defend, not a box to tick. Counsel.
+#
+# AND ONE ROW THAT LOOKS LIKE IT APPLIES AND DOES NOT. HB-I5 records that no
+# in-country provider is under contract — but that row is about GPU supply, and
+# a CI runner needs CPU. files/00_STATE.md §2 records the AWS Istanbul Local
+# Zone as GA since May 2026 with C7i/M7i/R7i, EBS, VPC, ECS and EKS: this shape
+# exactly. Capacity is not the constraint here, the decision and the spend are.
+# Reading HB-I5 as blocking CI runners would postpone a choice that is actually
+# available to be made.
+#
+# So there is no facility to name, no provider to name and no runner label that
+# resolves to anything — not because none could exist, but because nobody has
+# chosen. Nothing here is filled in with a plausible value:
+# intake_platform.ci fails closed on any `runs-on` that names a self-hosted
+# label absent from this file, and the runner-heartbeat probe reports the
+# blocker row rather than a result. Until a pool exists, CI runs on
+# GitHub-hosted runners, which files/08 §6 records as the fallback precisely
+# because no PHI is ever in CI.
+#
+# WHAT A ROW MUST CARRY, and why each field is refused rather than defaulted:
+#
+#   label                the runner label a workflow selects it by
+#   location             the facility. A data-centre nobody has contracted has
+#                        no location, and writing one would make the residency
+#                        claim in files/06 §5 unfalsifiable
+#   provider             the operator. Same reason; it is also the DPA
+#                        counterparty
+#   runner_group         the GitHub runner group the pool registers into, so
+#                        the pool is reachable from this repository only
+#   ephemeral            must be true. A persistent runner keeps a workspace
+#                        between jobs, and a workspace that outlives a job is
+#                        the mechanism by which one repository's checkout
+#                        reaches the next one
+#   phi_path             must be false. There is no CI job that may touch
+#                        patient data; a pool declaring otherwise is refused
+#                        at load rather than at review
+#   heartbeat_url        what the probe reads (files/08 §6: "runner heartbeat")
+#   max_heartbeat_age_s  how stale a heartbeat may be before the pool is
+#                        reported unhealthy
+
+pools: []
