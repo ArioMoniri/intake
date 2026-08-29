@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "DocumentKind": {
+      "description": "The ``document_type`` breakdown files/08 §4 G asks of\n``wait.records_processing_s``.\n\nThese are the THREE content types the ingest allow-list already accepts\n(``intake_platform.documents.ALLOWED_CONTENT_TYPES``), renamed to a label\nvalue. It is deliberately not a clinical document taxonomy — lab report,\ndischarge summary, prescription — because this repo has none and inventing\none here would be a value chosen once by an engineer for every future\nreader. ``intake_platform.wait_times`` holds the mapping and a test fails\nthe build if the allow-list gains a type this enum does not cover.",
+      "enum": [
+        "pdf",
+        "jpeg",
+        "png"
+      ],
+      "title": "DocumentKind",
+      "type": "string"
+    },
+    "WaitKind": {
+      "description": "The wait intervals files/08 §4 group G names and INT-241's acceptance\nenumerates. A closed set: a kind outside group G has no catalogue row, so\nit has no honest way to be emitted (invariant 13).",
+      "enum": [
+        "time_to_first_question",
+        "note_ready_after_wrapup",
+        "doctor_link_first_open",
+        "checkin_to_seen",
+        "records_processing"
+      ],
+      "title": "WaitKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One completed wait interval (INT-241; files/08 §4 group G).\n\n**A duration, not two instants.** The interval is reduced to a scalar\nbefore it is written: instants plus a session id are a queue position that\ncorrelates to a person, a duration is not. The row's own ``created_at``\nstill owns event time (the module convention above), which is what puts\nthe observation inside a rollup window.\n\n**No free text and no minimum unit of one.** ``kind`` and\n``document_type`` are closed enumerations; ``duration_ms`` is a count of\nmilliseconds. There is nowhere for an identifier or a sentence to ride\n(invariant 6), which is what lets the rollups read the payload directly.",
+  "properties": {
+    "document_type": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DocumentKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Ingest content kind, for wait.records_processing_s only (files/08 §4 G: 'by document type'). None for every other kind."
+    },
+    "duration_ms": {
+      "description": "Elapsed milliseconds between the interval's two instants, measured on a monotonic clock. A count, never a wall-clock pair.",
+      "minimum": 0,
+      "title": "Duration Ms",
+      "type": "integer"
+    },
+    "kind": {
+      "$ref": "#/$defs/WaitKind",
+      "description": "Which files/08 §4 group G interval this measures (closed set)."
+    },
+    "schema_id": {
+      "const": "intake.clinical.wait.v1",
+      "default": "intake.clinical.wait.v1",
+      "description": "Versioned event id per the TS schemaId convention.",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "description": "Owning tenant (INT-030 events.tenant_id).",
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "kind",
+    "duration_ms"
+  ],
+  "title": "WaitV1",
+  "type": "object"
+}

@@ -29,9 +29,12 @@ from clinical_schemas.events import (
     ClinicianPulseV1,
     CsatReason,
     CsatV1,
+    DocumentKind,
     NpsV1,
     SecurityEventCategory,
     SecurityV1,
+    WaitKind,
+    WaitV1,
 )
 from clinical_schemas.note import (
     AllergyItem,
@@ -116,6 +119,7 @@ __all__ = [
     "Consideration",
     "CsatReason",
     "CsatV1",
+    "DocumentKind",
     "EvidenceBundle",
     "EvidenceStats",
     "ExtractedRecordItem",
@@ -166,6 +170,8 @@ __all__ = [
     "TriageLevel",
     "TriageResult",
     "VerificationStatus",
+    "WaitKind",
+    "WaitV1",
     "fact_needs_reconfirmation",
     "schema_id",
 ]
