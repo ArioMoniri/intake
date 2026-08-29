@@ -58,6 +58,7 @@ __all__ = [
     "CONSENT_MANAGEMENT_PREFIX",
     "META_ROUTES",
     "PRE_AUTH_PREFIX",
+    "REFERENCE_DATA_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
     "consent_management",
@@ -66,6 +67,8 @@ __all__ = [
     "ensure_consent",
     "pre_auth",
     "pre_auth_routes",
+    "reference_data",
+    "reference_data_routes",
     "require_scopes",
     "route_policies",
     "unguarded_data_routes",
@@ -238,6 +241,32 @@ def consent_management() -> params.Depends:
     return dependency
 
 
+class ReferenceDataDeclaration:
+    """Explicit declaration that a route serves REFERENCE DATA only
+    (INT-134): a versioned projection of a committed artefact — the branch
+    taxonomy — that contains no patient data at all. Consent scopes attach
+    to a data subject's clinical data; demanding one here would over-claim
+    (and would block the picker before the patient has granted anything).
+    Same class as pre_auth and consent_management: the route cannot enforce
+    a scope, but it may not stay silent either — the scan accepts this
+    marker ONLY under REFERENCE_DATA_PREFIX (as a path segment, not a
+    substring), so a data route elsewhere cannot borrow it. Authentication
+    is unchanged: the route still requires a principal."""
+
+    async def __call__(self) -> None:
+        return
+
+
+#: The only prefix where a reference-data declaration is accepted.
+REFERENCE_DATA_PREFIX = "/v1/taxonomy"
+
+
+def reference_data() -> params.Depends:
+    """Declare a route as reference data (see ReferenceDataDeclaration)."""
+    dependency: params.Depends = Depends(ReferenceDataDeclaration())
+    return dependency
+
+
 def _policy_of(route: APIRoute) -> ConsentPolicy | None:
     for dependency in route.dependencies:
         call = dependency.dependency
@@ -290,10 +319,22 @@ def _is_consent_management(route: APIRoute) -> bool:
     )
 
 
+def _is_reference_data(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, ReferenceDataDeclaration)
+        for dependency in route.dependencies
+    )
+
+
 def _under_consent_management_prefix(path: str) -> bool:
     """Segment-boundary match: ``/v1/consents`` and ``/v1/consents/...``
     qualify; a lookalike like ``/v1/consentsish`` does not."""
     return path == CONSENT_MANAGEMENT_PREFIX or path.startswith(CONSENT_MANAGEMENT_PREFIX + "/")
+
+
+def _under_reference_data_prefix(path: str) -> bool:
+    """Segment-boundary match, same rule as the consent-management cage."""
+    return path == REFERENCE_DATA_PREFIX or path.startswith(REFERENCE_DATA_PREFIX + "/")
 
 
 def pre_auth_routes(app: FastAPI) -> list[str]:
@@ -318,14 +359,28 @@ def consent_management_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def reference_data_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the reference-data declaration, for the pin
+    test (INT-134) — reported wherever it appears; whether the scan ACCEPTS
+    it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_reference_data(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
-    land undeclared (silence always fails). Two markers exist, each caged to
-    its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
-    principal yet) and consent_management under CONSENT_MANAGEMENT_PREFIX
-    (INT-232, the routes ABOUT consent). Either marker outside its prefix
-    does NOT count as a declaration (the route is reported here instead)."""
+    land undeclared (silence always fails). Three markers exist, each caged
+    to its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
+    principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
+    (INT-232, the routes ABOUT consent) and reference_data under
+    REFERENCE_DATA_PREFIX (INT-134, versioned artefact projections holding
+    no patient data). Any marker outside its prefix does NOT count as a
+    declaration (the route is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -333,6 +388,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_pre_auth(route) and path.startswith(PRE_AUTH_PREFIX):
             continue
         if _is_consent_management(route) and _under_consent_management_prefix(path):
+            continue
+        if _is_reference_data(route) and _under_reference_data_prefix(path):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

@@ -38,6 +38,8 @@ def _to_out(record: store.VisitRecord) -> VisitOut:
         id=record.id,
         hospital=record.hospital,
         department=record.department,
+        branch_id=record.branch_id,
+        visit_type=record.visit_type,
         date=record.date,
         note_status=record.note_status,
     )
@@ -99,15 +101,18 @@ async def list_visits(principal: Principal, state: State) -> list[VisitOut]:
 )
 async def create_visit(payload: VisitCreate, principal: Principal, state: State) -> VisitOut:
     patient, patient_id = require_patient(principal)
-    hospital, department, date = validated_new_visit(payload)
+    loaded = state.taxonomy()
+    visit = validated_new_visit(payload, loaded.taxonomy if loaded is not None else None)
     async with tenant_session(state.engine, patient.tenant_id) as session:
         visit_id = await store.create_visit(
             session,
             tenant_id=patient.tenant_id,
             patient_id=patient_id,
-            hospital=hospital,
-            department=department,
-            date=date,
+            hospital=visit.hospital,
+            department=visit.department,
+            date=visit.date,
+            branch_id=visit.branch_id,
+            visit_type=visit.visit_type,
         )
         await state.audit.record(
             actor=patient.account_id,
@@ -116,7 +121,13 @@ async def create_visit(payload: VisitCreate, principal: Principal, state: State)
             consent_scope=f"scope:{CORE_SCOPE}",
         )
     return VisitOut(
-        id=visit_id, hospital=hospital, department=department, date=date, note_status=None
+        id=visit_id,
+        hospital=visit.hospital,
+        department=visit.department,
+        branch_id=visit.branch_id,
+        visit_type=visit.visit_type,
+        date=visit.date,
+        note_status=None,
     )
 
 
