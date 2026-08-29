@@ -228,7 +228,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # security review (tracker issue #195) + INT-262/263 (the wall-clock-seeded
     # OTP test clock and the fixed-window budget deviation found while fixing
     # it); grows only with a stated reason.
-    assert len(ids) == 209, f"expected 175 blueprint + 34 added issues, got {len(ids)}"
+    assert len(ids) == 210, f"expected 175 blueprint + 35 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

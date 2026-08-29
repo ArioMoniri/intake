@@ -39,7 +39,7 @@ def test_ids_unique_and_well_formed() -> None:
     # owner directive 2026-08-27) + INT-262/263 (the wall-clock-seeded OTP test
     # clock, and the fixed-window budget deviation found while fixing it).
     # Grow this count only with a stated reason.
-    assert len(ids) == 209
+    assert len(ids) == 210
     import re
 
     for i in ids:
