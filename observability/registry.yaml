@@ -94,6 +94,18 @@ components:
     # probes read health endpoints only — no PHI reaches this service
     phi_path: false
 
+  - component: metrics
+    self_hostable: true
+    self_hosted_now: false
+    host: "this package (services/metrics) — INT-240 lands the satisfaction rollups; the hourly scheduler and its Postgres wiring land with the deployment issues"
+    license: "proprietary (repo LICENSE)"
+    probe: http_health
+    budget_ms: 800
+    fallback: "none"
+    # rollups are counts and scores over the PHI-free events column; the
+    # patient's own words live in csat_texts, which this service never reads
+    phi_path: false
+
   - component: voice-runtime
     self_hostable: true
     self_hosted_now: false

@@ -1,0 +1,28 @@
+[project]
+name = "intake-metrics"
+version = "0.1.0"
+description = "INTAKE metrics service: catalogue rollups over the event streams (INT-240)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "intake-clinical-schemas",
+    "intake-platform",
+    "prometheus-client>=0.20",
+    "pydantic>=2.8",
+    "sqlalchemy[asyncio]>=2.0.36",
+]
+
+[tool.uv.sources]
+intake-platform = { workspace = true }
+intake-clinical-schemas = { workspace = true }
+
+[tool.intake]
+health = "intake_metrics.app:create_app"
+probe = "metrics.http"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/intake_metrics"]

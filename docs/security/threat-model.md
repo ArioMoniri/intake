@@ -741,8 +741,19 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   unaware of how feedback is used.
 - **Controls (files/10):** invariant 6 (ids only in analytics); k-anonymity floor on
   aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion.
-- **Signals:** land with INT-240 (events and rollups).
-- **Tests:** land with INT-240.
+- **Signals:** `csat.score`, `csat.reason`, `nps.monthly`, `clinician.pulse` — catalogued
+  `live` and emitted by `intake_metrics.metrics`, published only for a named cohort over a
+  stated window and only at or above the k ≥ 10 floor. No tenant, clinic or clinician label
+  on any of them, so no dashboard can re-slice a satisfaction series down to one person.
+- **Tests:** `tests/experience/test_csat_flow.py` (the split: scores to `events`, the sentence
+  to the envelope-encrypted `csat_texts`; the §3 redaction baseline on ingestion; the response,
+  the audit entry and the event payload all free of the patient's words; both FK cascades, so
+  a DSAR erasure and the files/06 §3 `satisfaction` clock each reach the text) ·
+  `tests/experience/test_rollups.py` (`test_a_rollup_of_adversarial_responses_exposes_none_of_it`
+  — a symptom sentence, a phone number and a clinician's name forced into the very rows the
+  rollup reads, exposed nowhere in the rollup or the exposition; k ≥ 10 suppression) ·
+  `tests/experience/test_metrics_service.py` (invariant 15 for `services/metrics`; invariant 20:
+  no CSAT/NPS figure in docs/regulatory/ or docs/legal/).
 
 ---
 

@@ -663,6 +663,10 @@ metrics:
       REDs nobody has acknowledged yet, by tenant and age band; pages past
       the tenant SLA.
   # --- files/08 §4 F. Experience & satisfaction
+  # INT-240 made these four live: intake_metrics.metrics constructs them and
+  # intake_metrics.rollups feeds them. Every value is published for a named
+  # cohort over a stated window and only at or above the k >= 10 floor — the
+  # series carry measurements, never a property of the product (invariant 20).
   - name: csat_score
     id: csat.score
     type: histogram
@@ -670,7 +674,7 @@ metrics:
     owner: experience
     unit: "score (1-5)"
     target: ">= 4.3"
-    status: planned
+    status: live
     description: Patient CSAT score distribution.
   - name: csat_reason
     id: csat.reason
@@ -678,7 +682,7 @@ metrics:
     labels: [reason]
     owner: experience
     unit: "count"
-    status: planned
+    status: live
     description: CSAT reason distribution (enumerated reasons only).
   - name: nps_monthly
     id: nps.monthly
@@ -686,7 +690,7 @@ metrics:
     labels: []
     owner: experience
     unit: "score"
-    status: planned
+    status: live
     description: Monthly NPS.
   - name: clinician_pulse
     id: clinician.pulse
@@ -694,7 +698,7 @@ metrics:
     labels: []
     owner: experience
     unit: "score (1-5)"
-    status: planned
+    status: live
     description: Quarterly clinician pulse survey score.
   - name: session_completion_rate
     id: session.completion_rate
