@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix chaos load
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile chaos load
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -48,6 +48,16 @@ schemas-codegen:
 # land (files/09 §2 P1) — then a branch resolving to nothing fails the build.
 coverage-matrix:
 	uv run protocols coverage
+
+# INT-041: the deterministic emit (files/03 §6 outputs a-e) for one pack.
+# PACK and VOICE are required and have no defaults: VOICE keys the clip cache
+# (files/03 §4.9.1 row 10 `sha256(text_tr, voice_id)`) and a default would be
+# a value chosen once by an engineer for every future build. Includes the tr
+# normalisation round-trip gate (CLAUDE.md invariant 22). Refuses on today's
+# tree — every pack is L0 and the life-threat sign-off is empty (HB-C1).
+protocols-compile:
+	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
+	uv run protocols compile --pack $(PACK) --voice $(VOICE)
 
 dev:
 	$(COMPOSE) up -d --wait

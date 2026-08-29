@@ -1,7 +1,7 @@
 [project]
 name = "intake-protocols"
 version = "0.1.0"
-description = "Protocol DSL v2 (INT-040): schema/loader/validator + branch taxonomy and coverage CLI (INT-042)"
+description = "Protocol DSL v2 (INT-040): schema/loader/validator, branch taxonomy and coverage CLI (INT-042), deterministic compiler to FHIR/openEHR/Pydantic/TS/clips (INT-041)"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.8",
@@ -12,8 +12,8 @@ dependencies = [
 ]
 
 [project.scripts]
-# INT-042: `protocols coverage` — the CLI behind `make coverage-matrix`
-# (files/09 §6 `taxonomy_coverage`; CLAUDE.md invariant 13).
+# One CLI, one namespace: `coverage` (INT-042, behind `make coverage-matrix`),
+# `generate-l0` (INT-057) and `compile` (INT-041, behind `make protocols-compile`).
 protocols = "protocols.cli:main"
 
 [build-system]
