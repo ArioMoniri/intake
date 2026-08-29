@@ -39,7 +39,7 @@ def test_ids_unique_and_well_formed() -> None:
     # owner directive 2026-08-27) + INT-262 (INT-230 raised the differencing
     # gap in its own evidence rather than leaving it unrecorded).
     # Grow this count only with a stated reason.
-    assert len(ids) == 208
+    assert len(ids) == 210
     import re
 
     for i in ids:

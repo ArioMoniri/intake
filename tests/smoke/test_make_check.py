@@ -227,7 +227,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # 175 blueprint issues (07 §3.11) + INT-176..178 from the 2026-08-27
     # security review (tracker issue #195) + INT-262 (research differencing,
     # raised by INT-230); grows only with a stated reason.
-    assert len(ids) == 208, f"expected 175 blueprint + 33 added issues, got {len(ids)}"
+    assert len(ids) == 210, f"expected 175 blueprint + 35 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

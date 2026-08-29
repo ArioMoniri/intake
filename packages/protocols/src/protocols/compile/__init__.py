@@ -44,6 +44,13 @@ from protocols.compile.life_threat import (
     LifeThreatSetError,
     load_life_threat_set,
 )
+from protocols.compile.overlay import (
+    MONOTONICITY_FINDINGS,
+    OverlayComposition,
+    OverlaySelection,
+    activate_overlays,
+    compose_overlay_rules,
+)
 from protocols.compile.resolve import (
     ResolvedProtocol,
     ResolvedSection,
@@ -67,6 +74,7 @@ __all__ = [
     "DIST_ROOT",
     "DOSE_FORM_CHIPS",
     "DRUG_ORTHOGRAPHY",
+    "MONOTONICITY_FINDINGS",
     "SIGNOFF_FIELDS",
     "TR_UNITS",
     "VALUESET_CANONICAL_PREFIX",
@@ -81,6 +89,8 @@ __all__ = [
     "LifeThreatRule",
     "LifeThreatSet",
     "LifeThreatSetError",
+    "OverlayComposition",
+    "OverlaySelection",
     "Refusal",
     "RefusalCode",
     "Replacement",
@@ -88,9 +98,11 @@ __all__ = [
     "ResolvedSection",
     "ResolvedSlot",
     "TrExpansionError",
+    "activate_overlays",
     "assert_round_trip",
     "clip_manifest",
     "compile_bundle",
+    "compose_overlay_rules",
     "expand_tr",
     "load_life_threat_set",
     "model_name",
