@@ -154,7 +154,7 @@
   title: "Hash-chained audit log + WORM export + daily verifier"
   depends_on: [INT-014]
   labels: [area:security]
-  status: todo
+  status: doing
   acceptance:
     - "audit.v1 events chained (prev-hash), verifier job, MinIO object-lock bucket copy; patient-visible access-log view model"
     - "tamper test flips one row and the verifier detects it"
@@ -194,7 +194,7 @@
   title: "security.yml CI job: full gate set + signing"
   depends_on: [INT-002]
   labels: [area:ci, risk:security]
-  status: todo
+  status: doing
   acceptance:
     - "gitleaks, semgrep+bandit, eslint-security, trivy fs/image/IaC + osv-scanner fail on critical/high, checkov, license allow-list (AGPL flagged), syft SBOM artifact, cosign keyless signing + SLSA provenance for images and protocol bundles on tags, schemathesis fuzz, PHI-pattern scan of fixtures"
     - "`make security` runs the same list locally; planted secret, planted critical CVE and planted PHI each fail (proved in evidence, then reverted)"
@@ -207,7 +207,9 @@
   title: "Threat model + incident runbook + PR linkage"
   depends_on: [INT-003]
   labels: [area:security, risk:legal]
-  status: todo
+  # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
+  # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
+  status: doing
   acceptance:
     - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
@@ -220,7 +222,7 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: doing
   acceptance:
     - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
@@ -231,7 +233,7 @@
   title: "services/probes: synthetic checks + self-hosting registry + release gate"
   depends_on: [INT-010, INT-021]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "registry table {component,self_hostable,self_hosted_now,host,license,probe,budget_ms,fallback,phi_path}; 60s runner with real dev checks (DB, Redis, MinIO, HAPI, OpenBao seal, LiveKit room join, cert expiry, backup freshness; EHRbase joins in P3 per 00 D8)"
     - "release-gate script blocks when an enabled phi_path component lacks a healthy self-hosted fallback"
@@ -244,7 +246,7 @@
   title: "Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "compose profile obs; flags via OpenFeature with in-memory provider default and Unleash provider behind config; Keycloak realm export for dev; GlitchTip DSN wired behind flag with PHI-scrub tests"
   tests: [tests/observability/test_flags_provider.py]
@@ -255,7 +257,7 @@
   title: "k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s)"
   depends_on: [INT-022]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "k6 API smoke in CI (staging profile); documented lk load-test recipe; chaos harness kills a mock vendor adapter and asserts typed fallback within 2s and metrics emitted"
   tests: [tests/chaos/test_vendor_kill_fallback.py]
@@ -266,7 +268,7 @@
   title: "Metrics catalogue as code + completeness test"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "packages/clinical-schemas/metrics_catalog.yaml holds every id/unit/target/owner from 08 §4; emitting an uncatalogued metric fails make check (proved then reverted in evidence)"
   tests: [tests/observability/test_metrics_catalog.py]
@@ -277,7 +279,7 @@
   title: "Postgres schema + Alembic + RLS per tenant + pgaudit"
   depends_on: [INT-013, INT-014]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "core tables (patients pseudonymised, sessions, slots, notes, consents, shares, documents, events) with RLS by tenant and role; pgaudit on; least-privilege roles"
     - "RLS tests prove tenant A cannot read tenant B even with SQL"
@@ -290,10 +292,11 @@
   title: "clinical-schemas: pydantic models + TS codegen + event schemas"
   depends_on: [INT-030]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "PreVisitNote, PatientSummary, ExtractedRecordItem, ConsentScope, TriageResult, SessionState, PatientOverlay, ObserverState, Proposal; events csat.v1, nps.v1, clinician_pulse.v1, audit.v1, security.v1; TS generated from OpenAPI"
   tests: [tests/schemas/test_roundtrip.py]
+  sec_row: "clinical-core"
 - id: INT-032
   epic: E02-data
   phase: P3
@@ -319,7 +322,7 @@
   title: "HAPI FHIR exchange: mappers internal<->R4 + validation"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "QuestionnaireResponse, Observation, Condition, MedicationStatement, AllergyIntolerance, RiskAssessment, Flag, Composition, Bundle; hypothesis roundtrip; Bundle validates on HAPI container"
   tests: [tests/integration/test_fhir_validation.py]
@@ -329,7 +332,7 @@
   title: "MinIO document store: signed URLs + AV hook + WORM audit bucket"
   depends_on: [INT-016]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "short-TTL signed URLs; server-side encryption; object-lock on audit bucket; bucket policies least-privilege"
   tests: [tests/data/test_signed_urls.py]
@@ -341,7 +344,7 @@
   title: "Redis streams event bus + consumer framework + DLQ"
   depends_on: [INT-031]
   labels: [area:platform]
-  status: todo
+  status: done
   acceptance:
     - "typed producers/consumers with retries, DLQ, exactly-once handlers via idempotency keys; consumer lag metric"
   tests: [tests/platform/test_event_bus.py]
@@ -351,7 +354,7 @@
   title: "Retention & destruction engine (policy as code, 6-month periodic destruction, logs)"
   depends_on: [INT-030]
   labels: [area:data, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "policy file mirrors 06 §3 retention matrix; scheduled destruction runs at most every 6 months per DEST-2017; destruction log kept 3 years; lane windows zeroing verified; raw-audio guard extended"
     - "time-travel tests prove each class purges on schedule"
@@ -364,7 +367,7 @@
   title: "DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker"
   depends_on: [INT-014, INT-033]
   labels: [area:data, risk:legal]
-  status: todo
+  status: done
   acceptance:
     # CORRECTED 27 Aug 2026 per 00 §3 D8: the DSAR export bundles FHIR+PDF in P0;
     # the openEHR composition joins the bundle when INT-032 lands in P3.
@@ -378,7 +381,7 @@
   title: "Consent service: versioned objects, consent_guard middleware, re-prompt on change"
   depends_on: [INT-030]
   labels: [area:data, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "purposes exactly as 06 §4 (core, voice, wellbeing, lane:*, documents, learning:*, satisfaction, share:*, research); text_hash binds shown text; route-table scan test proves every data route declares scopes; withdrawal cascades within 1 min"
     - "consents are free, specific, informed, unbundled: UI cannot pre-tick, cannot gate core service on optional purposes (tests)"
@@ -391,7 +394,7 @@
   title: "Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields)"
   depends_on: [INT-031]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "yaml schema with sections/slots/red_flags/overlays/visit_types/voice fields; validator enforces monotonicity, follow_up_tr presence, instruments allow_paraphrase=false"
   tests: [tests/protocols/test_validator.py]
@@ -402,7 +405,7 @@
   title: "Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic"
   depends_on: [INT-040, INT-033]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "two runs produce identical hashes; resolved-protocol hash pinned per session; compile artifacts under packages/protocols/dist"
   tests: [tests/protocols/test_compiler_determinism.py]
@@ -412,7 +415,7 @@
   title: "Taxonomy: all MHRS branches + clusters + visit types + coverage CLI"
   depends_on: [INT-040]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "taxonomy/branches.yaml seeded from 09 §1 with verify_live_list true; every branch resolves to a cluster; `protocols coverage` matrix; unknown booked branch fails a test"
   tests: [tests/protocols/test_taxonomy_coverage.py]
@@ -422,7 +425,7 @@
   title: "base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175"
   depends_on: [INT-041]
   labels: [area:protocols, risk:clinical, approval:human-clinical]
-  status: todo
+  status: awaiting-human
   # SCHEDULING NOTE, 27 Aug 2026. This issue unblocks 78 of 175 issues and v1.4 placed it at depth 9,
   # so the agent would work for days before the owner ever saw the thing everything else waits on.
   # It is now drafted immediately after INT-001..004 and put in the owner's inbox on day 2. The agent
@@ -598,7 +601,7 @@
   title: "Protocol Authoring Agent: L0 drafts for every branch + no-serve guard"
   depends_on: [INT-042]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "`protocols generate-l0 --branch <id>` scaffolds from cluster+template with citation placeholders resolved to named Turkish guidance sources; L0 resolution for a live session raises; regeneration idempotent"
     - "agent has zero access to patient data (import-boundary test)"
@@ -621,7 +624,7 @@
   title: "Triage golden suite >=200 + mutation tests"
   depends_on: [INT-080]
   labels: [area:protocols, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "goldens across base+clusters+deep; a deliberately broken RED rule fails the suite (proved, reverted)"
   tests: [tests/safety/test_triage_goldens.py]
@@ -632,7 +635,7 @@
   title: "Clip cache builder per voice + MinIO + coverage test"
   depends_on: [INT-041, INT-034]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "all scripted text pre-synthesised per voice at compile keyed sha256(text_tr,voice_id); mock TTS in CI; coverage report per pack"
   tests: [tests/voice/test_clip_manifest.py]
@@ -799,7 +802,7 @@
   title: "Deterministic triage engine (levels, monotonic merge, action scripts)"
   depends_on: [INT-040]
   labels: [area:safety, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "rules only; LLM candidates cap at YELLOW_REVIEW and can never lower a level (type-level); action scripts verbatim"
   tests: [tests/safety/test_triage_engine.py]
@@ -867,7 +870,7 @@
   title: "LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard"
   depends_on: [INT-001]
   labels: [area:voice, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "room tokens grant join+publish mic+subscribe agent only; rooms ephemeral; no recording features enabled; guard test proves no audio write paths anywhere"
   tests: [tests/voice/test_room_tokens.py, tests/voice/test_audio_retention_guard.py]
@@ -879,7 +882,7 @@
   title: "Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player"
   depends_on: [INT-060, INT-090]
   labels: [area:voice, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "exactly protocol_next, submit_utterance, cancel_work, request_repeat_or_clarify, patient_memory, respond_permission; adding a seventh fails introspection; PolicyGuard <=20ms per sentence"
   tests: [tests/voice/test_six_tools.py, tests/voice/test_policyguard_latency.py]
@@ -1044,7 +1047,7 @@
   title: "Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background"
   depends_on: [INT-130, INT-090]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "mic permission copy per store rules; RTT/jitter/loss attached to turns; reconnect resumes session; background pauses safely"
   tests: [apps/mobile/e2e/voice.spec.ts]
@@ -1181,7 +1184,7 @@
   title: "Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR"
   depends_on: [INT-034]
   labels: [area:records, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "AV scan before processing; OCR in seccomp-sandboxed worker; malformed/fuzz PDFs never crash host"
   tests: [tests/records/test_upload_pipeline.py]
@@ -1260,7 +1263,7 @@
   title: "Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE"
   depends_on: [INT-130, INT-012, INT-013]
   labels: [area:mobile, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "OTP limits per 10 §2; App Attest/Play Integrity on OTP+session; refresh rotation with reuse detection; biometric gate; clinical screens FLAG_SECURE; jailbreak -> typed+warn"
   tests: [apps/mobile/e2e/auth.spec.ts, tests/security/test_otp_abuse.py]
@@ -1272,7 +1275,7 @@
   title: "Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what"
   depends_on: [INT-038, INT-130]
   labels: [area:mobile, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "texts loaded from docs/legal with hash binding; unbundled toggles; withdrawal instant; re-prompt on version change; Turkish primary"
   tests: [apps/mobile/e2e/consent.spec.ts]
@@ -1284,7 +1287,7 @@
   title: "Profiles, companions, guardian flows (minors), proxy acknowledgement"
   depends_on: [INT-131, INT-223]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "under-18 only via guardian account with guardian consent; adolescent private-section policy implemented per 06 §6; proxy-reported flag on every record"
   tests: [apps/mobile/e2e/guardian.spec.ts]
@@ -1296,7 +1299,7 @@
   title: "Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types"
   depends_on: [INT-130, INT-042]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "branch list from taxonomy; unknown branch -> cluster with notice; OCR path behind documents consent"
   tests: [apps/mobile/e2e/visits.spec.ts]
@@ -1377,7 +1380,7 @@
   title: "Notifications: content-free reminders, quiet hours, opt-out; transactional-only"
   depends_on: [INT-130]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "no PHI in push; reminders classified transactional (no IYS consent needed); any marketing path requires IYS consent and is off by default"
   tests: [apps/mobile/e2e/notifications.spec.ts]
@@ -1412,7 +1415,7 @@
   title: "Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report"
   depends_on: [INT-130]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: awaiting-human
   acceptance:
     - "axe/a11y CI checks; VoiceOver/TalkBack scripts; docs/legal/accessibility-statement.md (EN 301 549 mapping)"
   tests: [apps/mobile/e2e/a11y.spec.ts]
@@ -1424,7 +1427,7 @@
   title: "Client telemetry: GlitchTip crash (PHI-scrubbed), perf, RUM web"
   depends_on: [INT-023, INT-130]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "crash-free metric wired; scrub tests; cold-start p95 tracked"
   tests: [tests/mobile/test_crash_scrub.py]
@@ -1554,7 +1557,7 @@
   title: "De-identified analytics views + k-anonymity helper + rollups"
   depends_on: [INT-015, INT-030]
   labels: [area:learning, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "k>=10 enforced at query layer; refusals metered; no free-text outside review UI"
   tests: [tests/learning/test_k_anonymity.py]
@@ -1599,7 +1602,7 @@
   title: "Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate"
   depends_on: [INT-023]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "compose profile; OTel span export; CI job runs recorded simulator experiment and gates on scores"
   tests: [tests/observability/test_langfuse_gate.py]
@@ -1671,6 +1674,323 @@
     - "serif display heroes, deep dark palette, glass surfaces with fallback, teal-tinted native rail; add-visit writes session state end-to-end; tr/en switch re-renders the whole tree; clinician brief in CC->HPI->meds order with provenance line; every screen and button walked in the iOS simulator with the two found navigation/locale bugs fixed"
   tests: [apps/mobile/e2e/flows.spec.ts, apps/mobile/e2e/nav.spec.ts]
   sec_row: "mobile"
+# INT-194: owner directives 2026-08-27 late — editable review, working voice
+# note lane against our own ASR, department-based intake packs.
+- id: INT-194
+  epic: E08-mobile
+  phase: P0
+  title: "Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs"
+  depends_on: [INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "review sections reopen their question prefilled and return on save; __DEV__ voice pill records, ships audio to the team-box whisper-tr endpoint, deletes the file, drops the transcript into the note; Kardiyoloji/İç Hastalıkları, Nöroloji and KBB get their own anamnesis dimensions (severity in words, never numerals) feeding labelled HPI lines; consent.voice gates the pill"
+  tests: [apps/mobile/e2e/flows.spec.ts]
+  sec_row: "intake-typed"
+# INT-195: owner directive 2026-08-28 — dedicated design-agent pass to the
+# Oura register: real glass layering, kicker anatomy, guidance blocks.
+- id: INT-195
+  epic: E08-mobile
+  phase: P0
+  title: "Design pass 3: Oura-register glass layering, kicker/hairline anatomy, guidance-block empty states, Fraunces leading, AA fix"
+  depends_on: [INT-194]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "floating glass CTA bars on intake/review; kicker pills + hairline dividers across cards; wellbeing/records/learned empty states become product-copy guidance blocks (tr+en, no clinical content); display leading 1.2 vs body 1.4 pinned; the found AA regression (primary on primarySoft) fixed by hex and added to the pinned contrast suite; all tests green with no invariant weakened"
+  tests: [apps/mobile/e2e/nav.spec.ts, apps/mobile/src/lib/theme.test.ts]
+  sec_row: "mobile"
+- id: INT-196
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 4: js-tabs floating pill rail, Oura-measured register (radius,
+    padding, Inter body), Tabs.Protected consent gate'
+  depends_on:
+  - INT-195
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - FloatingTabBar pill on expo-router/js-tabs replaces native tabs (owner decision
+    2026-08-28 recorded in-file and in docs/design/mobile-ui.md); rail unmounts on
+    intake/review so GlassBar is the only bottom chrome; wellbeing route unregistered
+    via Tabs.Protected when consent is off (verified live); Mobbin-measured register
+    deltas applied (card radius 24, hero 32, Card padding 24, scrim 0.55, unboxed
+    kickers, chevrons, dark filled chips, serif record titles, welcome quiet-secondary
+    CTA); Inter (OFL) body with explicit weight mapping, Newsreader display kept;
+    no palette hex changed (pinned AA suite untouched); all tests green
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
+- id: INT-198
+  epic: E08-mobile
+  phase: P0
+  title: 'Department intake packs: 10 branches at full OLDCARTS depth, canonical
+    anamnesis order, severity in words'
+  depends_on:
+  - INT-194
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - packs for Kardiyoloji/Ic Hastaliklari, Noroloji, KBB, Ortopedi, Dermatoloji,
+    Gogus Hastaliklari, Kadin Hastaliklari ve Dogum, Uroloji, Goz Hastaliklari,
+    Gastroenteroloji, each 6-9 steps over neutral OLDCARTS dimensions (onset,
+    location/side, duration, character, radiation, triggers, timing, associated,
+    severity in words); resolution via folded-ASCII PACKS regexes tested through
+    Turkish diacritic spellings; allQuestions is the canonical anamnesis order and
+    every pack is a pinned subsequence of it so HPI lines follow interview order;
+    no numeral characters in any label (invariant 22 pinned by test); tr keys
+    source of truth with key-for-key en mirror; note rendering pinned for two new
+    packs with shuffled answer order
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts
+  - apps/mobile/src/lib/intake/note.test.ts
+  sec_row: mobile
+- id: INT-199
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice-first intake entry: speak freely -> whisper transcript -> schema-bound
+    extract -> per-question confirm flow with verbatim provenance'
+  depends_on:
+  - INT-194
+  labels:
+  - area:mobile
+  - area:voice
+  status: done
+  acceptance:
+  - fresh intake with voice consent offers a speak-first step gated on a live ASR
+    health probe (probe fail -> silent manual fallback); recording transcribed by
+    the existing invariant-3 path (file deleted in finally, including the
+    unreachable-base path) and sent to the dev /extract endpoint with the visit's
+    pack structure; client re-validates the wire (unknown ids and off-options
+    dropped, single-select exactly one) and never trusts it; suggestions render as
+    a one-question-per-turn confirm flow with the patient's verbatim words as
+    provenance; saved answers beat suggestions; every failure (503, timeout,
+    cancel, mic denial) lands in the exact manual flow; nothing presents LLM
+    output as triage or diagnosis (invariant 1); tr keys source of truth with en
+    mirror
+  tests:
+  - apps/mobile/src/lib/extract.test.ts
+  - apps/mobile/src/lib/intake/voiceFirst.test.ts
+  sec_row: mobile
+- id: INT-208
+  epic: E08-mobile
+  phase: P0
+  title: 'Device health connectors: HealthKit/Health Connect behind capability
+    detection and consent, device-local only'
+  depends_on:
+  - INT-193
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - typed HealthConnector interface with a test-pinned availability matrix (Expo
+    Go -> needs_dev_build via calm guidance, dynamic-import failure ->
+    needs_dev_build, iOS isHealthDataAvailable false -> platform_unsupported,
+    refused auth -> permission_denied, web -> platform_unsupported); HealthKit and
+    Health Connect adapters behind dynamic imports so Expo Go never crashes;
+    config-plugin wiring in app.json with Turkish NSHealthShareUsageDescription;
+    a consent-gated Saglik verileri section on Profilim (health scope, default
+    off); last-7-days steps, resting heart rate and sleep formatted with
+    useGrouping false and number+unit as one non-breaking atom; patient-confirmed
+    attach into the visit note draft as a labelled device_health section with
+    provenance line, scope-off honored, sent notes immutable; NO server call,
+    analytics or persistence for health data anywhere (grep-audited; persisting
+    a new personal-data category stays with the human); licences verified from
+    blobs (react-native-health-connect MIT in-package; react-native-healthkit
+    MIT upstream blob, absent in-package - recorded)
+  tests:
+  - apps/mobile/src/lib/health/capability.test.ts
+  - apps/mobile/src/lib/health/format.test.ts
+  sec_row: mobile
+- id: INT-209
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 5: numeric focal point (PrepGauge), Oura table anatomy, stack
+    headers, serif weight and accent budget'
+  depends_on:
+  - INT-196
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - measured gap list against fresh Mobbin Oura captures recorded in
+    docs/design/mobile-ui.md before any change; Bugun gains a pure-View
+    semicircular PrepGauge with a 56pt serif completion numeral via
+    Intl.NumberFormat percent (tr and en forms) and fontScale-safe layout;
+    Profilim and Kayitlarim move to ListGroup/ListRow table anatomy (56pt rows,
+    36pt tonal icon wells, inset hairlines, chevrons, headers outside groups,
+    group footers, radius.group 16); pushed screens gain a ground-coloured stack
+    header with back affordance; display serif 600 to 500; accent budget cut to
+    the Oura register (arc and numeral in ink); surfaceRaised tokens ADDED with
+    the AA suite extended and zero existing palette hexes changed; rail icon 20
+    with micro 11 role; 181 tests green after merging INT-198/199/208
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
+- id: INT-197
+  epic: E01-platform
+  phase: P0
+  title: 'Dev-tier API slice: dev-bearer accounts, visits/notes/documents over RLS
+    with audit, consent and envelope encryption'
+  depends_on:
+  - INT-030
+  - INT-034
+  labels:
+  - area:api
+  status: done
+  acceptance:
+  - dev bearer auth for exactly two synthetic accounts (tokens only from
+    INTAKE_DEV_TOKEN_PATIENT/ADMIN, fail-closed 503 when unset, readyz reports it,
+    every response tagged X-Intake-Auth-Tier dev; real OIDC stays INT-131); visits
+    as sessions rows + visit.* slots with zero schema changes; note payload at
+    rest is one EncryptedField envelope (asserted on raw rows), status derived
+    from live shares never stored in clear, sending checks share consent and
+    writes a TTL share row with only scoped-on sections; documents presign/list/
+    download-url over the INT-034 store plus a content-ingest endpoint running the
+    INT-034 pipeline (fail-closed AV posture unweakened, 409 until scanned);
+    every clinical read/share consent-checked and audited on the same hash chain
+    (invariant 4); /healthz /readyz /metrics /version via shared helpers
+    (invariant 15); ids-only logging (invariant 6); api coverage >= 85
+  tests:
+  - tests/api/test_api_postgres.py
+  sec_row: api
+- id: INT-228
+  epic: E02-data
+  phase: P1
+  title: 'Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate
+    or widen the shape'
+  depends_on:
+  - INT-034
+  labels:
+  - area:data
+  status: done
+  acceptance:
+  - real Tokenizer pseudonyms (kid. + 64 hex, ~68 chars) fit the document-store
+    key discipline end to end - either _SEGMENT_SHAPE widens with the audit-ref
+    bound re-proven, or a documented derivation maps pseudonym -> segment; the
+    INT-197 workaround (patient row UUID hex as the segment) is removed and the
+    integration is test-pinned
+  tests:
+  - tests/security/test_document_store.py
+  sec_row: identifiers
+- id: INT-229
+  epic: E07-records
+  phase: P0
+  title: 'Records upload UI: picker to scanned document list over the real
+    pipeline'
+  depends_on:
+  - INT-120
+  - INT-197
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - Kayitlarim gains a consent-gated Belge yukleyin flow - expo-document-picker
+    (MIT blob verified) limited to the server allow-list, client pre-checks
+    mirroring pdf/jpeg/png + 20 MiB with the server as enforcer, sha256 via
+    noble/hashes, declare then raw-byte ingest through the API (presigned MinIO
+    URLs are server-loopback and never fetched from a device); outcomes honest
+    (Taraniyor for quarantined, Hazir clean opens via browser url fetch,
+    Reddedildi rejected with calm copy, 503 fails closed); documents hang off a
+    server visit - ensureServerVisit bridges the session-local visit at upload
+    time only; dev-tier fixture accounts keep the synthetic list with NO upload
+    affordance and an honest dev note (pinned); tr first + en mirror; no
+    filename on the wire
+  tests:
+  - apps/mobile/src/lib/records/api.test.ts
+  - apps/mobile/src/lib/records/screen.test.ts
+  sec_row: records
+- id: INT-232
+  epic: E01-platform
+  phase: P0
+  title: 'Patient-facing consent routes: snapshot, grant, withdraw - seam-faithful
+    to the INT-132 client'
+  depends_on:
+  - INT-038
+  - INT-131
+  labels:
+  - area:api
+  status: done
+  acceptance:
+  - GET /v1/consents returns the client seam shape verbatim ({scopes:[{scope,
+    reason, version, text_hash}], texts:[{purpose, version, text_hash, body}]};
+    reason is the closed six-value INT-038 list; text_missing expressed by
+    absence from texts, fail-closed empty when docs/legal is absent - pinned);
+    POST grant refuses on version+hash mismatch with the current catalog text
+    (409 consent_text_changed) and on missing text (409 text_missing), re-checks
+    the bound row after grant so a mid-flight text move rolls back; POST withdraw
+    cascades instantly via the INT-038 service; all three patient-only and
+    audited; lane:acoustic and bare share 422 with purpose id only; the route
+    scan accepts a consent_management declaration ONLY under /v1/consents at a
+    path-segment boundary (lookalike-prefix negative control pinned) - silence
+    still fails
+  tests:
+  - tests/api/test_consent_routes.py
+  sec_row: consent
+- id: INT-233
+  epic: E08-mobile
+  phase: P0
+  title: 'Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn
+    confirm - LiveKit Talker remains the production path'
+  depends_on:
+  - INT-198
+  - INT-199
+  labels:
+  - area:mobile
+  - area:voice
+  status: done
+  acceptance:
+  - 'a second voice path Karsilikli konusarak ilerleyin beside the one-shot flow
+    - the agent SPEAKS each pack question (FreyaTTS dev bridge; option hints
+    enumerated only up to four options per the Cowan bound, longer lists defer
+    to the screen), tap on the speech surface stops playback synchronously in
+    the same JS tick and opens the mic (barge-in; the reducer admits no
+    speaking+listening state so overlapping audio is structurally impossible);
+    answers transcribed and extracted per single question; confirm turn speaks
+    a short prompt with the candidate pre-selected; text fallback per turn and
+    a patient already typing is never ejected by a late async failure; every
+    dialogue failure lands in the manual step without losing answers; agent
+    speech only from catalog tr strings; assertSpeakableTr throws on any digit
+    before every synthesize call with a sweep test across all ten packs
+    (invariant 22); TTS clips cached per session under cacheDirectory/dialogue
+    and the whole dir deleted on unmount and session end - agent-voice clips,
+    with the invariant-3 patient-audio posture untouched and the distinction
+    stated in code and evidence; dev-tier honesty stated (production dialogue
+    is the LiveKit Talker per files/03 and files/13)'
+  tests:
+  - apps/mobile/src/lib/dialogue/turn.test.ts
+  - apps/mobile/src/lib/dialogue/tts.test.ts
+  sec_row: mobile
+- id: INT-234
+  epic: E08-mobile
+  phase: P0
+  title: 'Design pass 6: CTA saturation register (bone pill), tonal secondaries,
+    focused-flow exits, glyph-badge empty states'
+  depends_on:
+  - INT-209
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'the measured finding five passes missed - Oura forward CTA is a bone pill
+    (~6 percent saturation) in 8/8 fresh captures vs our 36-percent teal slab -
+    closed via ADDED cta/onCta tokens (AA >=15:1 pinned) with zero existing hex
+    changes; SecondaryButton borderless tonal fill; intake/review gain back-only
+    untitled stack headers (patients no longer trapped mid-flow); GuidanceBlock
+    icon prop with the ~56pt outlined glyph badge on all seven empty states;
+    review chips filled tonal; prose hairlines removed; tabular figures on
+    step counters and date rows; deliberate keeps documented (kicker dot vs
+    ALL-CAPS per the I/i rule, teal selection as the single accent); all
+    verified change-screenshot-compare in dark and light on a separate Metro
+    port; 347 tests post-merge'
+  tests:
+  - apps/mobile/e2e/nav.spec.ts
+  - apps/mobile/src/lib/theme.test.ts
+  sec_row: mobile
 - id: INT-180
   epic: E12-admin
   phase: P0
@@ -1846,7 +2166,7 @@
   title: "Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence"
   depends_on: [INT-030, INT-034]
   labels: [area:infra, risk:security]
-  status: todo
+  status: doing
   acceptance:
     - "RPO 15min/RTO 4h demonstrated in a drill script whose output is stored as evidence; quarterly schedule"
   tests: [tests/infra/test_restore_drill.py]
@@ -1882,7 +2202,7 @@
   title: "Wazuh + Falco deployment + rules + console feed"
   depends_on: [INT-023]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "auth anomalies, k8s audit, container runtime alerts wired to Security module"
   tests: [tests/infra/test_siem_feed.py]
@@ -2081,7 +2401,7 @@
   title: "Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code"
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "age from verified DOB; under-18 requires guardian account+consent; adolescent private-section share policy per 06 §6; tests for each age band"
   tests: [tests/legal/test_minor_rules.py]
@@ -2163,7 +2483,7 @@
   title: "CSAT/NPS/clinician-pulse events + endpoints + rollups"
   depends_on: [INT-035, INT-031]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "csat.v1 (1-5 + reason enum + optional text), nps.v1, clinician_pulse.v1; POST /sessions/{id}/csat, /feedback/nps; rollups in services/metrics"
   tests: [tests/experience/test_csat_flow.py]
@@ -2175,7 +2495,7 @@
   title: "Wait-time metrics end-to-end + SDS-01 style exports"
   depends_on: [INT-240, INT-025]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "time_to_first_question, note_ready_after_wrapup, doctor_link_first_open, checkin_to_seen (connector), records_processing emitted and dashboarded"
   tests: [tests/experience/test_wait_metrics.py]
@@ -2186,7 +2506,7 @@
   title: "NPS scheduling + clinician pulse survey cadence"
   depends_on: [INT-240]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "monthly NPS prompt honoring quiet hours; quarterly pulse; opt-outs respected"
   tests: [tests/experience/test_survey_cadence.py]
@@ -2233,8 +2553,267 @@
   title: "Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit"
   depends_on: [INT-130]
   labels: [area:release]
-  status: todo
+  status: done
   acceptance:
     - "i18n lint fails on missing keys; clinical tr reviewed flag enforced"
   tests: [tests/release/test_i18n_complete.py]
   legal: "805"
+- id: INT-236
+  epic: E08-mobile
+  phase: P0
+  title: 'Adaptive dev packs (askIf, DSL-mirrored) + Hizli/Detayli modes with
+    privacy deferral and instant checkpoint'
+  depends_on:
+  - INT-198
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive: next questions follow previous answers and two modes exist
+    (pre-hospital fast, in-hospital detailed) - askIf gates as serializable data
+    mirroring dsl.py ask_if with only structurally-obvious gates (clinical-judgment
+    gates refused and listed for pack owners); dynamic applicable-question progress;
+    Detayli adds the 02 s33 privacy self-check whose failure defers sensitive
+    sections with the verbatim eksik marker, and the 02 s34 instant checkpoint
+    to a v2-partial review with zero lost answers; gate-skipped is never counted
+    missing; stale-gated answers kept and marked'
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts
+- id: INT-235
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice chat surface: two-sided live transcript with ask-ahead dialogue
+    and realtime section panel'
+  depends_on:
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive: a chat interface showing what each side says with realtime
+    parsing into muayene sections - two-sided bubble transcript (in-place ASR
+    replacement, inline shimmer states, no status takeovers), ask-ahead turn
+    advance with reconcile-behind by work id (stale results dropped, live turn
+    never moved), multi-question extract absorption with skip-of-answered,
+    session clip pre-warm, persistent typed composer on the identical utterance
+    path, Not olusuyor section strip with quote provenance and confirm chips;
+    all answered goes straight to review and only genuinely unanswered
+    questions fall to prefilled text steps'
+  tests:
+  - apps/mobile/src/lib/dialogue/stream.test.ts
+- id: INT-237
+  epic: E08-mobile
+  phase: P0
+  title: 'TTS delivery shaping: sentence splitting, boundary gaps, silence trim -
+    and the measurement that identified the voice model as the dominant cause'
+  depends_on:
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner complaint that the spoken voice is awkward, answered with measurement
+    before change: sixteen probes on the dev lane established that the pinned
+    fallback voice is telephony-band with no energy above about three and a half
+    kilohertz so Turkish fricatives are absent, that its duration head allocates
+    erratically, that sentence boundaries were indistinguishable from commas and
+    that clip edges were ragged; the client-side seam fixes what it can - split at
+    sentence boundaries only with verbatim preservation test-pinned, guaranteed
+    terminal punctuation for interrogative prosody, one sentence per request,
+    trimmed heads and tails with a short raised-cosine fade, consistent inter
+    sentence gaps - and the three red-flag imperatives that had been run together
+    at more than twice normal speaking rate are separated; the regression case
+    where splitting made one composed question worse is kept in the evidence
+    rather than dropped, and the honest verdict is recorded that the remaining
+    gap belongs to the model tier and not to any client seam'
+  tests:
+  - apps/mobile/src/lib/dialogue/speechShaping.test.ts
+- id: INT-238
+  epic: E02-data
+  phase: P0
+  title: 'Kaynaklar ingest defect: the virus scanner slot was never wired, so every
+    upload stuck in quarantine'
+  depends_on:
+  - INT-120
+  - INT-034
+  labels:
+  - area:data
+  sec_row: identifiers
+  status: done
+  acceptance:
+  - 'owner bug report - documents could not be added: app.py built its Scanner slot
+    from the dev stub alone, which is unconstructible without an opt-in env var, so
+    on any normal stack the slot was None and DocumentStore fell back to
+    no-scan-configured while a healthy ClamAV sat unused and INT-120s tested
+    ClamAvScanner sat unreferenced; scanner precedence becomes strongest-first
+    (real scanner, then the opt-in dev stub, then None) so the stub can never
+    shadow a live clamd, a scanner that cannot produce a verdict returns a typed
+    503 instead of an uncaught 500 with the row left quarantined, the client maps
+    it to the existing unavailable kind, make dev carries the clamav profile, and
+    the whole path is proved end to end on the live stack including an EICAR
+    rejection; the api harness injected a clean scanner into every case which is
+    why no test caught the slot the service actually builds at boot'
+  tests:
+  - tests/api/test_document_scan_wiring.py
+- id: INT-239
+  epic: E08-mobile
+  phase: P0
+  title: 'Dialogue-only intake with answer-driven dev packs: delete the two-button
+    chooser, branch every department on prior answers'
+  depends_on:
+  - INT-235
+  - INT-236
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive that it should only be karsilikli konusma and that the same
+    fixed nine questions must stop being asked regardless of answers: the offer
+    screen with two co-equal buttons and the whole one-shot record-transcribe-
+    extract path are deleted rather than hidden, typed intake stays reachable as
+    the accessibility path from the gate, from inside the dialogue, from the
+    composer and on every failure; every department pack gains gated follow-ups
+    in the serializable ask-if shape the DSL uses, with second-level chains where
+    the structure warrants, and a test pins the exact symmetric difference of the
+    asked sets for two divergent first answers in ten departments so a fixed
+    sequence cannot come back unnoticed; one predicate drives typed steps, spoken
+    dialogue and the section panel, only a confirmed answer opens a gate, a
+    suggestion that lands early waits for its gate instead of being dropped, and
+    the progress indicator stops implying a fixed total; every gate needing
+    clinical judgment is refused and listed for pack owners'
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts
+- id: INT-243
+  epic: E05-voice
+  phase: P0
+  title: 'Serve the intended production TTS tier (VoxCPM2) behind a licence-verified
+    registry row, with the fallback voice kept'
+  depends_on:
+  - INT-237
+  labels:
+  - area:voice
+  sec_row: self-hosting
+  status: done
+  acceptance:
+  - 'the measurement pass having shown the dev voice band-limited with absent
+    Turkish fricative energy, and a licence audit having read the Apache-2.0 blob
+    from the vendor source repository because the weights repository carries no
+    licence file at all, the intended tier is served on its own port with the
+    fallback left running so a failed rollout costs nothing: the registry row
+    records the pinned model and revision, both weight digests, the licence blob
+    url and digest and the date it was read, and a note stating plainly that the
+    weights repository has no licence file; the licence blob is vendored beside
+    the mirrored weights so the grant travels with the artefact; the built-in text
+    normaliser is proven disabled by a load-time and per-synthesis assertion that
+    fails the request rather than speaking, with a positive control showing what
+    it would otherwise do to a blood pressure; the client takes the lane from
+    configuration with automatic fallback; and the A/B is reported as
+    measurements on a named corpus with a date, never as a quality claim'
+  tests:
+  - tests/observability/test_probe_registry.py
+- id: INT-246
+  epic: E08-mobile
+  phase: P0
+  title: 'Make a dead voice lane announce itself in development, and add a host
+    probe that measures rather than pings'
+  depends_on:
+  - INT-239
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'an incident where the owner reported the voice interface missing for hours
+    while it was built, merged and running - the cause being a dead tunnel to the
+    speech server and a fallback that is silent by design, correct for a patient
+    and invisible to a developer: in development only, the fallback states which
+    candidate addresses were tried and how each failed, while production behaviour
+    is unchanged and pinned so the diagnostic returns nothing for every report
+    shape rather than being a hidden element; a host-side probe reports one line
+    per lane and exits non-zero when a required lane is down, with every verdict in
+    its suite taken against a real local socket rather than a mocked error; and no
+    retry loop hammers a dead host, pinned by tests that the walk stops at the
+    first answer and probes each dead candidate exactly once'
+  tests:
+  - tests/mobile/test_voice_doctor.py
+- id: INT-247
+  epic: E11-learning
+  phase: P0
+  title: 'Carried-forward facts must be confirmable before they read as current
+    (the client half of INT-170)'
+  depends_on:
+  - INT-133
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner bug report that a medication carried from a previous visit was shown as
+    current with no way to say it had stopped, which a clinician reading the note
+    would believe: the demo seed is proved unable to reach a real account and that
+    proof is pinned rather than merely true, and a carried fact arrives
+    unconfirmed with confirmation enforced in the type rather than the interface -
+    the carried type has no field readable as current, the reconciled type
+    requires a decision, and undecided facts sit in a different type the renderer
+    cannot accept; stopped is rendered distinguishably from absent because they
+    mean different things to a clinician, provenance consumes the existing
+    attribution rather than a parallel notion, and everything requiring clinical
+    judgement is refused - what stopping a drug means is not inferred, no
+    structured dose editor is added because a dose is numeric and free numeric
+    entry is barred on the clinical path, and the undefined reconciliation value is
+    left to the pack owners'
+  tests:
+  - apps/mobile/src/lib/intake/note.test.ts
+- id: INT-248
+  epic: E05-voice
+  phase: P0
+  title: 'PolicyGuard precision: Turkish morphology, and the disclaimer the guard
+    was rejecting'
+  depends_on:
+  - INT-091
+  labels:
+  - area:voice
+  sec_row: intake-voice
+  status: done
+  acceptance:
+  - 'a localization audit reported the guard rejecting legitimate copy, and every
+    claim was verified before a pattern was touched by reproducing the count
+    exactly: the informal-address detector was a list of final syllables so the
+    polite imperative matched a past-tense pattern and the product could not say
+    its commonest imperative, a diagnosis pattern matched inside a negated verb so
+    the disclaimer written to satisfy the invariant was reported as a diagnosis
+    claim, two red-flag action scripts were affected through the same syllable, and
+    a fronted subject before a comma counted as a second question; the guard is
+    made precise rather than permissive by anchoring on the morphology that the
+    past-tense suffix surfaces voiceless only after a voiceless obstruent, with
+    near-miss controls proving genuine informal address, real diagnosis claims and
+    real treatment instructions are still caught and coverage strictly increases;
+    the catalogue goes to zero findings behind a standing gate, and the two real
+    copy defects found on the way are reported rather than fixed because clinical
+    lexicon growth is a clinical review'
+  tests:
+  - tests/release/test_i18n_complete.py
+- id: INT-249
+  epic: E05-voice
+  phase: P0
+  title: 'Latency-aware voice lane selection: a health check that answers is not a
+    lane that can speak'
+  depends_on:
+  - INT-243
+  labels:
+  - area:voice
+  status: done
+  acceptance:
+  - 'measured on live daemons, the preferred voice answered its health probe in a
+    seventh of a second and then took four to six seconds to synthesise a sentence
+    while the fallback took about one, and selection on health alone chose the slow
+    one so the patient watched a spinner: selection becomes latency-aware against
+    the round-trip figure the blueprint states for the production profile rather
+    than the streaming stage figure, which measurement showed would have rejected
+    both lanes and left no voice at all; every synthesis call gains a hard cap with
+    fallback, because the previous cap applied per sentence in sequence and a two
+    sentence clip could hold for a minute before failing terminally into the manual
+    steps; the question text is proved to render without waiting on audio and a late
+    result is proved unable to rebuild the turn and restart the clip; and the
+    selection is cached per session and re-probed on failure'
+  tests:
+  - apps/mobile/src/lib/dialogue/ttsLane.test.ts

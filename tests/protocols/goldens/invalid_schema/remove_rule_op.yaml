@@ -1,0 +1,18 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: rule deletion is UNREPRESENTABLE in the op language.
+# files/12 §3.1 defines the closed op set (add_slot, add_rule, tighten_rule,
+# override_text, set_attr, reorder, set_voice, suppress_slot); there is no
+# remove_rule, so monotonicity holds by construction (CLAUDE.md invariant 7).
+kind: pack
+id: specialty.synthetic_silici
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik silici paket"
+extends: base.synthetic
+ops:
+  - op: remove_rule
+    pointer: /red_flags/rf.synthetic_kirmizi

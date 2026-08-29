@@ -1,0 +1,33 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION (with base.synthetic in the registry): the child
+# redeclares inherited rf.synthetic_kirmizi at a LOWER level with a narrower
+# gate. Replacement is the classic monotonicity failure (files/12 §4 layer 1:
+# inherited rules are immutable; add refuses an existing key). One attribute
+# from the valid child: the rule id collides instead of being new.
+kind: pack
+id: specialty.synthetic_golge
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik gölgeleme paketi"
+extends: base.synthetic
+red_flags:
+  - id: rf.synthetic_kirmizi
+    label_tr: "Sentetik kural — kaçak yeniden bildirim"
+    when: "renk_tercihi == 'kirmizi' && yas_grubu == 'ileri'"
+    tense: now
+    tense_anchor: olay_zamani
+    level: SARI_K2
+    route: EXPEDITE
+    notify_clinic: never
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-B
+      guideline_title: "Sentetik kılavuz B"
+      version_or_date: "sürüm iki"
+      url: "https://example.invalid/syn-guide-b"
+      retrieved_on: 2026-08-28
+      quote: "gölgeleme sentetik alıntısı"

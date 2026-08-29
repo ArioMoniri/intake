@@ -1,0 +1,40 @@
+# docs/slo/metrics.yaml — SLOs for services/metrics (INT-240; invariant 15).
+#
+# Same conventions as docs/slo/api.yaml (schema: intake_platform.slo.SLOFile).
+# The rollup service exposes the shared http middleware, so its SLI rides the
+# catalogued http_requests_total family. Burn-rate rules for this file join
+# infra/observability/prometheus-rules.yaml when the live stack lands
+# (INT-023) — the generator is pinned to api.yaml today and grows there.
+#
+# The objective is the probes-tier 99.5, not the api's 99.9: a rollup that
+# arrives late is a stale dashboard, not a patient waiting. Raising it later is
+# always permitted; claiming 99.9 for an undeployed service would not be.
+service: metrics
+owner: experience
+slos:
+  - name: availability
+    sli: >-
+      sum(rate(http_requests_total{service="metrics",status=~"5.."}[5m]))
+      /
+      sum(rate(http_requests_total{service="metrics"}[5m]))
+    objective: 99.5
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket

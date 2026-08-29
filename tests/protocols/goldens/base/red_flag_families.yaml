@@ -1,0 +1,383 @@
+# =====================================================================================
+#  base.intake — goldens for the thirteen universal red-flag families (04 §3)
+#  CI gate: `every_rule_has_a_true_positive_and_a_near_miss_negative` (04 §8.2)
+#  Issue: INT-043
+# =====================================================================================
+#
+#  SENTETİK TEST VERİSİ. Every persona, age and detail below is invented for tests
+#  (04 §7: packs and goldens contain synthetic data only). No case describes a real
+#  patient and none is drawn from a record.
+#
+#  WHY THE NEAR-MISS NEGATIVE MATTERS MORE THAN THE POSITIVE.
+#  A true positive tells you the rule fires on the case its author had in their head
+#  while writing the gate, so it passes almost by construction — and it keeps passing
+#  under every loosening of that gate. A positive can therefore only ever detect
+#  UNDER-triggering. Over-triggering is the failure that kills the product, it is
+#  invisible to positives, and it is invisible in production too: a false RED looks
+#  like a cautious system, the patient is seen, is fine, and nobody files anything. It
+#  surfaces months later as clinicians who have learned to ignore the alert — at which
+#  point the rule that matters is ignored along with the rest.
+#
+#  So every negative here sits ONE attribute away from its positive, on the exact
+#  attribute the gate will turn on, and names the loosening it defends against. A
+#  distant negative ("a healthy person with no symptoms does not fire the chest-pain
+#  rule") tests nothing: it fails only if the engine is entirely broken.
+#
+#  ⚠️ EVERY CASE IS CARRIED, NOT EXECUTED — `executable: false` on all thirteen.
+#  The trigger each one would exercise is unsigned (HB-C1): `when` is the sanctioned
+#  pending literal and the family sits at the schema's floor. A golden asserting
+#  `fires: true` today would be asserting the very clinical judgment the physician has
+#  not made, wearing a test's clothes — and it would then pass against a gate that
+#  says nothing. The suite turns executable in the same pull request that supplies the
+#  trigger, the EK-4 level, the route, the register and the three location actions.
+#
+#  ⚠️ These negatives are NOT a false-positive budget. 04 §8.3 deletes the two-percent
+#  false-RED ceiling because a hard ceiling creates continuous pressure to weaken
+#  rules, and it exempts rf.sah_ottawa, rf.meningitis_pattern and rf.ectopic_possible
+#  from any ceiling at all. The two things point in opposite directions and the
+#  difference is deliberate: a near-miss defends against silent gate DRIFT, and
+#  whoever makes one of these negatives pass must not do it by narrowing the gate.
+# =====================================================================================
+
+kind: red_flag_goldens
+pack_id: base.intake
+families:
+
+  rf.chest_pain_acute:
+    attribute_under_test: >-
+      Which EK-4 arm the presentation lands in. 04 §4 splits chest pain across three
+      levels, so the discriminating attribute is the cardiac-feature set, not the
+      presence of chest pain.
+    executable: false
+    blocked_by: >-
+      HB-C1 — the trigger, the EK-4 arm boundaries, the route, the register and the
+      three location actions are all unsigned. HB-C7 for any threshold inside them.
+    positive:
+      id: BI-01-P
+      case: >-
+        Adult, pressure across the front of the chest for the last hour, sweating,
+        the feeling spreading into the left arm. Fast mode, visit confirmed, at home.
+    near_miss_negative:
+      id: BI-01-N
+      case: >-
+        Adult, sharp one-sided chest pain for three days, worse on a deep breath and
+        worse when pressing the spot, no sweating, no spread, no breathlessness.
+      why_it_is_a_near_miss: >-
+        Same slot value for chest pain, same body region, same patient anxiety. It
+        differs only on the character and radiation attributes. If the gate is ever
+        loosened to the presence of chest pain alone, this is the case that starts
+        firing on musculoskeletal chest-wall pain — and nobody notices, because the
+        positive still passes. It must also not be excluded on "it hurts when I press
+        it": self-reported tenderness is not the palpation finding, and 04 §8.1 rule 1
+        rules the manoeuvre out as a trigger entirely.
+
+  rf.stroke_fast:
+    attribute_under_test: >-
+      Suddenness plus the presence of a focal deficit, anchored to a knowable
+      last-known-well time.
+    executable: false
+    blocked_by: >-
+      HB-C1 — the trigger, the EK-4 level, the route, the register and the three
+      location actions are unsigned. HB-C6 supplied the anchor slot; the window the
+      family turns on is a clinical value.
+    positive:
+      id: BI-02-P
+      case: >-
+        Adult, was completely well earlier this morning; since then one side of the
+        face has dropped and the arm on that side will not lift properly.
+    near_miss_negative:
+      id: BI-02-N
+      case: >-
+        Adult who has had migraine with visual aura since adolescence, describing the
+        familiar aura and a heaviness in one arm that has come on gradually over the
+        last hour and is already easing, on the same background as every previous
+        attack.
+      why_it_is_a_near_miss: >-
+        A focal neurological complaint with an identifiable onset, differing from the
+        positive on suddenness and on the pattern being previously experienced. A gate
+        loosened to "any new focal symptom" sends a large recurring group to the
+        emergency department every time their usual aura arrives, which is how the
+        alert stops being read.
+
+  rf.dyspnoea_rest:
+    attribute_under_test: >-
+      Breathlessness AT REST, versus breathlessness on exertion — and its
+      layperson-answerable proxy, which cannot be a respiratory-rate count.
+    executable: false
+    blocked_by: >-
+      HB-C1 — the trigger, the EK-4 level, the route, the register and the three
+      location actions are unsigned. 04 §8.1 rule 1 forbids the count that a guideline
+      would use, so the reportable form has to be authored, not derived.
+    positive:
+      id: BI-03-P
+      case: >-
+        Adult who is breathless sitting still and can only manage a few words before
+        having to take another breath.
+    near_miss_negative:
+      id: BI-03-N
+      case: >-
+        Adult with long-standing lung disease who is breathless climbing the stairs to
+        their flat, as they have been for two years, and is comfortable sitting down.
+      why_it_is_a_near_miss: >-
+        Same complaint word, same slot, and the patient will answer yes to "are you
+        breathless". It differs only on at-rest versus on-exertion. A gate that reads
+        the complaint rather than the rest state converts every stable chronic
+        respiratory patient in the branch into a red flag.
+
+  rf.anaphylaxis:
+    attribute_under_test: >-
+      Airway or breathing involvement together with an exposure, rather than a skin
+      reaction alone.
+    executable: false
+    blocked_by: >-
+      HB-C1 — the trigger, the EK-4 level, the route, the register and the three
+      location actions are unsigned, and 04 §8.1 rule 6 makes the do-not list part of
+      the action script rather than an addendum to it.
+    positive:
+      id: BI-04-P
+      case: >-
+        Adult whose lips and tongue began swelling shortly after a meal and who now
+        says their throat feels tight and their breathing is difficult.
+    near_miss_negative:
+      id: BI-04-N
+      case: >-
+        Adult with an itchy raised rash over the trunk that started shortly after the
+        same meal, no swelling of the lips or tongue, breathing and swallowing normal.
+      why_it_is_a_near_miss: >-
+        Same exposure, same time course, same patient alarm, differing only on airway
+        and breathing involvement. It is also the case where a loosened gate is most
+        tempting, because urticaria after an exposure genuinely can progress — the
+        correct answer is a clinician-authored safety-net instruction, not a wider
+        trigger.
+
+  rf.severe_bleeding:
+    attribute_under_test: >-
+      Volume or haemodynamic consequence, as a layperson can report it, rather than
+      the presence of blood.
+    executable: false
+    blocked_by: >-
+      HB-C1 — the trigger, the EK-4 level, the route, the register and the three
+      location actions are unsigned, and what counts as large-volume in a patient's
+      own words is HB-C7.
+    positive:
+      id: BI-05-P
+      case: >-
+        Adult passing black tarry stool since yesterday who felt faint and had to sit
+        down on standing up this morning.
+    near_miss_negative:
+      id: BI-05-N
+      case: >-
+        Adult who noticed bright red streaks on the paper after a hard stool, with a
+        long history of the same, no dizziness, no black stool.
+      why_it_is_a_near_miss: >-
+        Both answer yes to bleeding from the bowel. They differ on colour and on the
+        dizziness attribute. 04 §8.2's Turkish negation adversarial set has this exact
+        shape in it — "kanama yoktu, sadece siyahtı" — so the negative also guards the
+        extraction step and not only the rule.
+
+  rf.suicidal_intent:
+    attribute_under_test: >-
+      An expressed plan or intent, distinguished from idiomatic despair, by a
+      clinician-authored lexicon rather than a substring match.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions; HB-C8 because
+      04 §4.2's escalation policy does not exist; HB-L2 because 04 §3 states this
+      trigger in C-SSRS terms and C-SSRS is licence-blocked, so it cannot be written
+      that way at all.
+    positive:
+      id: BI-06-P
+      case: >-
+        Adult who says mid-session that they no longer want to be alive and describes
+        having thought about how. Another speaker is audible in the room.
+    near_miss_negative:
+      id: BI-06-N
+      case: >-
+        Adult describing long-standing back pain who says they cannot go on living
+        with this pain and cannot bear it any more, in a session about that pain.
+      why_it_is_a_near_miss: >-
+        Near-identical surface Turkish; the phrase "yaşamak istemiyorum" appears in
+        both. This is the case a naive substring lexicon fires on, and firing it means
+        a distressed pain patient is silently reported to a clinic inbox as a crisis
+        disclosure — a wrong clinical record and a privacy harm at once. It is also
+        the case a model-generated lexicon gets wrong, which is one reason the lexicon
+        must be clinician-authored. Whoever makes this negative pass must not do it by
+        narrowing the gate: 04 §8.3 exempts the deliberately low-specificity families
+        from any false-positive ceiling for exactly this reason.
+
+  rf.sepsis_like:
+    attribute_under_test: >-
+      Fever together with a systemic feature, routed on age and pregnancy, and
+      tightened by the immunosuppression gatekeeper.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions; HB-C4 because the
+      pregnancy rule set the routing needs does not exist; HB-C7 for every threshold.
+    positive:
+      id: BI-07-P
+      case: >-
+        Adult on chemotherapy, feverish since last night, shivering in bouts, and the
+        relative on the call says they are not making sense the way they usually do.
+    near_miss_negative:
+      id: BI-07-N
+      case: >-
+        The same adult on chemotherapy, feverish since last night, no shivering bouts,
+        fully oriented, drinking normally and reporting a sore throat.
+      why_it_is_a_near_miss: >-
+        Identical on the immunosuppression gatekeeper and on fever — the two attributes
+        a loosened gate would reach for first — and differing only on the systemic
+        features. It is the case that shows why the immunosuppression slot is a gate
+        and not a trigger: on its own it converts every oncology patient with a cold
+        into a red flag, and 04 §8.2 requires the routing to branch on age and
+        pregnancy as well.
+
+  rf.thunderclap_headache:
+    attribute_under_test: >-
+      Time to peak intensity, not the intensity itself.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions; HB-C7 for the
+      time-to-peak value, and 04 §8.3 for how this family relates to rf.sah_ottawa.
+    positive:
+      id: BI-08-P
+      case: >-
+        Adult whose headache reached its very worst almost the instant it began this
+        afternoon, unlike any headache they have had.
+    near_miss_negative:
+      id: BI-08-N
+      case: >-
+        Adult with the worst headache of their life, which built up over the course of
+        the afternoon and has been getting steadily worse since.
+      why_it_is_a_near_miss: >-
+        Both patients answer yes to "worst headache ever" — the phrase 04 §3 uses. They
+        differ only on time to peak. A gate written on severity rather than on
+        suddenness fires on a large fraction of migraine and tension headache, and
+        rf.sah_ottawa's specificity is already low by design, so this family cannot
+        afford to duplicate it badly.
+
+  rf.pregnancy_bleeding_pain:
+    attribute_under_test: >-
+      Pregnancy or possible pregnancy as the gate, with bleeding or pain as the
+      trigger — and the atypical presentation NG126 warns is common.
+    executable: false
+    blocked_by: >-
+      HB-C1 and HB-C4 — the pregnancy rule set does not exist at all and needs
+      obstetric input, not a general signature.
+    positive:
+      id: BI-09-P
+      case: >-
+        Adult who says she may be pregnant, with one-sided lower abdominal pain since
+        this morning and light bleeding.
+    near_miss_negative:
+      id: BI-09-N
+      case: >-
+        Adult who says she is not pregnant and whose last period is not late,
+        describing the same one-sided lower abdominal pain she gets in the middle of
+        every cycle, with no bleeding.
+      why_it_is_a_near_miss: >-
+        Same pain, same site, same words, differing only on the pregnancy gate — which
+        is why 13 §4 asks for pregnancy and last menstrual period early and
+        universally: ruptured ectopic classically presents in a woman who does not know
+        she is pregnant. The negative therefore guards the gate in BOTH directions, and
+        "I am not pregnant" is not the same slot value as a negative test.
+
+  rf.fever_high_persistent:
+    attribute_under_test: >-
+      Temperature and duration together, with a different pair of both under an
+      immunosuppression overlay — every one of those four numbers unsigned.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions; HB-C7 for all four
+      threshold values; and 04 §3 marks the family YELLOW or RED per overlay, so
+      whether it is one conditional family or two is itself undecided.
+    positive:
+      id: BI-10-P
+      case: >-
+        Adult on a biologic medicine with a measured fever that started yesterday.
+    near_miss_negative:
+      id: BI-10-N
+      case: >-
+        Adult not on any immune-suppressing treatment, with a measured fever that
+        started yesterday and is settling with simple measures.
+      why_it_is_a_near_miss: >-
+        Identical fever, identical duration, differing only on the overlay attribute
+        that changes the threshold. This is the family where an invented number does
+        the most damage, because both the temperature and the duration move under the
+        overlay and a plausible pair reads as authoritative in a file named for fever.
+
+  rf.weight_loss_unintentional:
+    attribute_under_test: >-
+      Unintentional, over a defined period, as a proportion — with intentionality as
+      the discriminating attribute.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions; HB-C7 for the
+      proportion and the period.
+    positive:
+      id: BI-11-P
+      case: >-
+        Adult whose clothes have become loose over the last few months without any
+        change in what they eat or do, and who has not been trying to lose weight.
+    near_miss_negative:
+      id: BI-11-N
+      case: >-
+        Adult who has lost the same amount over the same period while deliberately
+        dieting and walking daily, and is pleased about it.
+      why_it_is_a_near_miss: >-
+        Identical on the weight slot and on the period. It differs only on
+        intentionality, which is the word 04 §3 puts in the family name and the one a
+        gate written on the number alone silently drops.
+
+  rf.new_neuro_deficit_subacute:
+    attribute_under_test: >-
+      The tense boundary against rf.stroke_fast: progression over days rather than
+      sudden onset.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions, and 04 §8.1 rule 4
+      requires a genuinely different action script per tense — reusing one across
+      tenses is a lint failure, so the boundary must be decided before either family
+      can be written.
+    positive:
+      id: BI-12-P
+      case: >-
+        Adult whose leg weakness and numbness have been getting worse each day for the
+        past week, with no single moment of onset.
+    near_miss_negative:
+      id: BI-12-N
+      case: >-
+        Adult with the same leg weakness and numbness which came on all at once this
+        morning and has not changed since.
+      why_it_is_a_near_miss: >-
+        Same deficit, same limb, same slot values; the only difference is the tense,
+        and the correct outcome is that this case belongs to rf.stroke_fast instead.
+        A negative that merely does not fire would be satisfied by a gate that fires
+        nothing at all, so this one asserts where the case LANDS, not only where it
+        does not.
+
+  rf.suicidal_ideation_passive:
+    attribute_under_test: >-
+      Passive ideation without plan or intent, separated from the active family above
+      it — and reachable without going through two screening thresholds first.
+    executable: false
+    blocked_by: >-
+      HB-C1 for the trigger, level, route, register and actions; HB-C8 for the
+      escalation policy; HB-L2 because 04 §3 states the trigger partly in C-SSRS terms
+      and C-SSRS is licence-blocked.
+    positive:
+      id: BI-13-P
+      case: >-
+        Adult who says there are mornings when they would rather not wake up, with no
+        plan, no preparation and no intent.
+    near_miss_negative:
+      id: BI-13-N
+      case: >-
+        Adult who says they are exhausted and would like to sleep for a week, in a
+        session about insomnia and shift work.
+      why_it_is_a_near_miss: >-
+        Both are statements about not wanting to be awake, differing on whether the
+        wish is about being alive. The wider structural risk this family carries is the
+        opposite one, and 04 §4.2 names it: the cascade puts the suicide gate behind
+        two thresholds, so passive ideation in someone who scores low on the short
+        screener is never asked about at all. That is a design fault the negative
+        cannot test and the clinician must resolve.

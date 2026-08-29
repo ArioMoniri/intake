@@ -1,0 +1,38 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: tighten_rule minting a rule at a LOWER EK-4 level
+# than its parent (KIRMIZI_K2 → SARI_K2). Children add or tighten, never
+# relax (CLAUDE.md invariant 7); level downgrades are rejected. The `when`
+# is a well-formed disjunction — the level is the single attribute under
+# test.
+kind: pack
+id: specialty.synthetic_indirici
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik indirici paket"
+extends: base.synthetic
+ops:
+  - op: tighten_rule
+    parent_rule_id: rf.synthetic_kirmizi
+    rule:
+      id: rf.synthetic_kirmizi.hafif
+      label_tr: "Sentetik kural — seviyesi indirilmiş"
+      when: >-
+        (renk_tercihi == 'kirmizi' || bekleme_suresi_asildi == true)
+        || ek_soru == true
+      tense: now
+      tense_anchor: olay_zamani
+      level: SARI_K2
+      route: EXPEDITE
+      notify_clinic: never
+      status: active
+      source:
+        guideline_id: SYN-GUIDE-B
+        guideline_title: "Sentetik kılavuz B"
+        version_or_date: "sürüm iki"
+        url: "https://example.invalid/syn-guide-b"
+        retrieved_on: 2026-08-28
+        quote: "indirme sentetik alıntısı"

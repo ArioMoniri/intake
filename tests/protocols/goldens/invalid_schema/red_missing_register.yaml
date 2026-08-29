@@ -1,0 +1,46 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: a KIRMIZI rule with no register. Register is required
+# with NO permitted default (CLAUDE.md invariant 21; files/02 §5.3; the rule
+# schema in files/protocols/base.life_threat.yaml). Identical to the valid
+# base pack's rule except for the missing line.
+kind: pack
+id: base.synthetic_kayitsiz
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik kayıtsız paket"
+red_flags:
+  - id: rf.synthetic_kayitsiz
+    label_tr: "Sentetik kural — kayıt eksik"
+    when: "ornek_bulgu == true"
+    tense: now
+    tense_anchor: olay_zamani
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin ve bekleyin."
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE

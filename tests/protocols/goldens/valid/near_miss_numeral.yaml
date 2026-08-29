@@ -1,0 +1,21 @@
+# SENTETİK TEST VERİSİ — INT-040 golden fixture (near-miss for the numeral
+# gate, CLAUDE.md invariant 22). "iki gün" is spelled out and PASSES; the
+# paired invalid fixture writes the same phrase with a digit and fails.
+kind: pack
+id: base.synthetic_yazi
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik yazıyla sayı paketi"
+sections:
+  ornek_bolum:
+    slots:
+      sure_sorusu:
+        type: quantity
+        unit: gun
+        required: true
+        ask_tr: "Örnek soru: yaklaşık iki gün mü sürdü?"
+        follow_up_tr: "Örneğin iki gün gibi, yazıyla söyleyebilir misiniz?"

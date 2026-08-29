@@ -1,0 +1,53 @@
+# INT-090 — LiveKit SFU dev config (single host, mock-adapter tier).
+# DEV ONLY. API keys arrive via the LIVEKIT_KEYS environment variable set in
+# infra/docker-compose.dev.yml (dev-only default, env-overridable); this file
+# never carries a key (invariants 13/14).
+#
+# Recording is structurally impossible in this tier, not merely switched off
+# (invariant 3 — raw audio is never written anywhere):
+#   - no `redis` block: egress/ingress workers register over the redis/psrpc
+#     bus, so with no bus a recording request has nothing to reach;
+#   - no `ingress`, no `webhook` block, no egress/recorder service in the
+#     compose file, and the livekit container mounts no writable volume;
+#   - tests/voice/test_audio_retention_guard.py parses this file and the
+#     compose file and fails if any of that changes.
+#
+# Production residency is a different shape (files/03 §4.4b, 00 §2 D11): SFU
+# and coturn co-located in a Turkish PoP, TURN over udp/3478 + tcp/443 +
+# tls/443 with real certificates, TCP/TLS relay selection wired as degradation
+# trigger T4 — see docs/runbooks/voice-livekit-dev.md. Do not grow this file
+# toward that; it stays dev-tier honest.
+
+port: 7880
+
+rtc:
+  tcp_port: 7881
+  # deliberately narrow range for a laptop dev tier; production sizes this
+  # to the node
+  port_range_start: 50700
+  port_range_end: 50720
+  # single host, loopback published: never advertise a discovered public IP
+  use_external_ip: false
+
+room:
+  # rooms exist only while a session runs (acceptance: "rooms ephemeral")
+  auto_create: true
+  # seconds an empty room waits for its first participant before closing
+  empty_timeout: 300
+  # seconds a room survives after the last participant leaves
+  departure_timeout: 20
+  # patient + agent + reconnect headroom; voice intake never needs a crowd
+  max_participants: 4
+  # audio-only product surface: no video codec is negotiable in a dev room
+  enabled_codecs:
+    - mime: audio/opus
+
+turn:
+  # embedded TURN, UDP only — the honest single-host dev tier. TLS/TCP relay
+  # needs certificates and reintroduces TCP head-of-line blocking on media
+  # (files/03 §4.4b: a TCP/TLS relay is a degradation trigger, not a success).
+  enabled: true
+  udp_port: 3478
+
+logging:
+  level: info
