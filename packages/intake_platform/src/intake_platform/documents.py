@@ -10,13 +10,15 @@ a scanner cannot silently serve unscanned files. The one escape hatch for the
 dev tier, :class:`DevNullScanner`, is unconstructible unless
 ``INTAKE_DEV_ALLOW_UNSCANNED=explicit-yes`` and never in prod.
 
-Object keys are ``<prefix>/<tenant_id>/<patient_pseudonym>/<uuid4hex>``.
+Object keys are ``<prefix>/<tenant_id>/<patient_segment>/<uuid4hex>``.
 There is deliberately no filename parameter: patient-supplied filenames are
 the classic PHI carrier ("MR-raporu-Ayşe-Yılmaz.pdf"), and a parameter that
-does not exist cannot leak (invariant 6). The pseudonym comes from the
-tokenization service (INT-013) and is the only patient-adjacent token a key
-may carry. The declared sha256 is recomputed server-side — the client's claim
-is data, not truth (invariant 14 posture).
+does not exist cannot leak (invariant 6). The declared sha256 is recomputed
+server-side — the client's claim is data, not truth (invariant 14 posture).
+
+``patient_segment`` is *derived* from the tokenization pseudonym (INT-013)
+rather than being it — see the key-length budget below for why, and
+:func:`patient_segment` for what the derivation guarantees.
 
 The audit bucket is WORM: created with S3 object-lock and a default
 COMPLIANCE retention, it holds the hash-chain exports from
@@ -41,6 +43,7 @@ plumbed through to ``put_object``) lands with the infra issues; the files/10
 
 from __future__ import annotations
 
+import base64
 import enum
 import hashlib
 import io
@@ -59,11 +62,17 @@ from minio.objectlockconfig import DAYS, ObjectLockConfig
 from minio.sse import Sse
 
 from intake_platform.audit import AuditChain
+from intake_platform.tokenization import PSEUDONYM_MAX_LEN
 
 __all__ = [
     "ALLOWED_CONTENT_TYPES",
+    "AUDIT_RESOURCE_REF_CAP",
     "DEFAULT_PRESIGN_TTL",
+    "DOCUMENT_ID_LEN",
     "MAX_DOCUMENT_BYTES",
+    "MAX_DOCUMENT_KEY_LEN",
+    "MAX_TENANT_ID_LEN",
+    "PATIENT_SEGMENT_LEN",
     "PRESIGN_TTL_CAP",
     "ContentTypeNotAllowedError",
     "DevNullScanner",
@@ -87,6 +96,7 @@ __all__ = [
     "Scanner",
     "WormMisconfiguredError",
     "as_object_storage",
+    "patient_segment",
 ]
 
 MAX_DOCUMENT_BYTES = 20 * 1024 * 1024
@@ -103,14 +113,65 @@ _INFECTED = "infected"
 # from infected/ so forensics can tell malware from malformed; both are
 # equally unservable (presigned_get signs clean/ only).
 _REJECTED = "rejected"
+_KEY_PREFIXES = (_QUARANTINE, _CLEAN, _INFECTED, _REJECTED)
 
 # S3 error codes that mean "the object is not there" as opposed to a real
 # storage failure; anything else propagates.
 _MISSING_OBJECT_CODES = frozenset({"NoSuchKey", "NoSuchObject"})
 
-# One path segment of an object key: id-shaped, no separators, bounded so the
-# full key stays inside the audit log's 128-char resource_ref shape.
-_SEGMENT_SHAPE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,39}")
+# --- the object-key length budget (INT-228) -----------------------------------------
+#
+# Every object key this module builds is written verbatim into the hash-chained
+# audit log, whose resource_ref is id-shaped and at most 128 characters
+# (intake_platform.audit). A key that cannot be audited is an object that
+# cannot be shared under invariant 4, so the key's worst case is a budget to be
+# spent, not a hope:
+#
+#     <prefix>  /  <tenant_id>  /  <patient_segment>  /  <document_id>
+#        10     1       40      1         43          1        32       = 128
+#
+# The pseudonym is *not* in that budget, and cannot be. A tokenization
+# pseudonym is ``<key_id>.<64 hex>`` — up to PSEUDONYM_MAX_LEN (97) characters —
+# and the free space beside a 40-char tenant and a 32-char document id is 43.
+# Widening the segment to hold a pseudonym would overrun the audit bound; making
+# one fit by cutting it would swap a 256-bit identifier for a prefix, so two
+# patients whose pseudonyms happen to agree on their first characters would
+# share an object prefix. Neither is acceptable, so the key carries
+# ``patient_segment(pseudonym)`` instead: a fixed-width, non-truncating
+# encoding, 43 characters for every pseudonym that exists or ever will. The
+# budget is then satisfied by construction rather than by validation.
+AUDIT_RESOURCE_REF_CAP = 128
+MAX_TENANT_ID_LEN = 40
+# base64url of a 32-byte digest: ceil(256 / 6) = 43 characters unpadded, and 43
+# is also the floor — 256 bits do not fit in fewer characters of any alphabet
+# this small, which is why nothing shorter is on the table.
+PATIENT_SEGMENT_LEN = 43
+DOCUMENT_ID_LEN = 32  # uuid4().hex — this module mints every document id
+MAX_DOCUMENT_KEY_LEN = (
+    max(len(prefix) for prefix in _KEY_PREFIXES)
+    + 1
+    + MAX_TENANT_ID_LEN
+    + 1
+    + PATIENT_SEGMENT_LEN
+    + 1
+    + DOCUMENT_ID_LEN
+)
+
+# One caller-supplied path segment (tenant ids, bucket names, reason codes):
+# id-shaped, no separators, bounded by the budget above.
+_SEGMENT_SHAPE = re.compile(rf"[A-Za-z0-9][A-Za-z0-9._-]{{0,{MAX_TENANT_ID_LEN - 1}}}")
+# A document id is never caller-invented: this module mints them as uuid4 hex,
+# and pinning the shape to exactly that is what keeps the 32 in the budget
+# honest. Anything else was never one of ours.
+_DOCUMENT_ID_SHAPE = re.compile(rf"[0-9a-f]{{{DOCUMENT_ID_LEN}}}")
+# What may be offered as a patient pseudonym. Wider than a key segment because
+# it no longer becomes one — but still opaque and bounded, and bounded by the
+# tokenizer's own published maximum so the two modules cannot drift apart: if
+# PSEUDONYM_MAX_LEN grows, this grows with it and the key does not move.
+_PATIENT_REF_SHAPE = re.compile(rf"[A-Za-z0-9][A-Za-z0-9._-]{{0,{PSEUDONYM_MAX_LEN - 1}}}")
+# Domain separation: this digest addresses objects and nothing else, so it can
+# never collide with some other sha256 taken over the same pseudonym elsewhere.
+_PATIENT_SEGMENT_DOMAIN = b"intake/documents/patient-key-segment/v1\x00"
 
 _DEV_UNSCANNED_ENV = "INTAKE_DEV_ALLOW_UNSCANNED"
 _DEV_UNSCANNED_PHRASE = "explicit-yes"
@@ -339,10 +400,59 @@ def _utc_now() -> datetime:
 def _require_segment(field_name: str, value: str) -> None:
     if not _SEGMENT_SHAPE.fullmatch(value):
         raise InvalidKeySegmentError(
-            f"{field_name} must be id-shaped ([A-Za-z0-9._-], ≤40 chars, no separators); "
+            f"{field_name} must be id-shaped ([A-Za-z0-9._-], ≤{MAX_TENANT_ID_LEN} chars, "
+            "no separators); the refused value is not echoed because a malformed "
+            "identifier may be patient-identifying free text (invariant 6)"
+        )
+
+
+def _require_patient_pseudonym(value: str) -> None:
+    if not _PATIENT_REF_SHAPE.fullmatch(value):
+        raise InvalidKeySegmentError(
+            f"patient_pseudonym must be an opaque token ([A-Za-z0-9._-], "
+            f"≤{PSEUDONYM_MAX_LEN} chars — the tokenizer's own maximum, no separators); "
             "the refused value is not echoed because a malformed identifier may be "
             "patient-identifying free text (invariant 6)"
         )
+
+
+def _require_document_id(value: str) -> None:
+    if not _DOCUMENT_ID_SHAPE.fullmatch(value):
+        raise InvalidKeySegmentError(
+            f"document_id must be {DOCUMENT_ID_LEN} lowercase hex characters — the shape "
+            "this store mints (uuid4 hex) and therefore the only shape it addresses; "
+            "the refused value is not echoed (invariant 6)"
+        )
+
+
+def patient_segment(patient_pseudonym: str) -> str:
+    """The patient-addressing part of an object key: fixed width, always.
+
+    Why derived rather than the pseudonym itself: the pseudonym is up to
+    :data:`~intake_platform.tokenization.PSEUDONYM_MAX_LEN` characters and the
+    key budget above leaves it 43, so the pseudonym cannot go in the key and
+    could only be *made* to fit by cutting it. Cutting is the one option that
+    is not merely inelegant but wrong — a prefix of an HMAC is a shorter
+    identifier, and two patients sharing that prefix would share an object
+    prefix and a signed-URL namespace.
+
+    So the segment is the *whole* SHA-256 of the pseudonym, re-encoded
+    base64url: 256 bits in, 256 bits out, 43 characters wide whatever went in.
+    Two patients share a segment only on a SHA-256 collision, which is the
+    collision bound the HMAC pseudonym already has — the key derivation adds no
+    collision path of its own. Being one-way is a second benefit: the object
+    key and every audit row quoting it carry an image of the join key rather
+    than the join key (invariant 6), while the store can still address any
+    patient it is handed a pseudonym for.
+
+    Rotation behaves as it did before: a new key generation produces a new
+    pseudonym and therefore a new segment. Existing objects keep the keys they
+    were stored under — nothing re-derives a key for an object that already
+    has one.
+    """
+    _require_patient_pseudonym(patient_pseudonym)
+    digest = hashlib.sha256(_PATIENT_SEGMENT_DOMAIN + patient_pseudonym.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 def _require_ttl(expires: timedelta) -> None:
@@ -455,7 +565,7 @@ class DocumentStore:
         forensics, never fetchable), and returns a CLEAN ref otherwise.
         """
         _require_segment("tenant_id", tenant_id)
-        _require_segment("patient_pseudonym", patient_pseudonym)
+        _require_patient_pseudonym(patient_pseudonym)
         if len(file_bytes) > MAX_DOCUMENT_BYTES:
             raise DocumentTooLargeError(
                 f"document is {len(file_bytes)} bytes; the cap is {MAX_DOCUMENT_BYTES} (20 MB)"
@@ -474,7 +584,7 @@ class DocumentStore:
                 "echoed here)"
             )
         document_id = uuid.uuid4().hex
-        quarantine_key = f"{_QUARANTINE}/{tenant_id}/{patient_pseudonym}/{document_id}"
+        quarantine_key = self._document_key(_QUARANTINE, tenant_id, patient_pseudonym, document_id)
         self._client.put_object(
             self._bucket_docs,
             quarantine_key,
@@ -486,14 +596,14 @@ class DocumentStore:
         self._audit("document.stored", quarantine_key, consent_scope_ref)
         verdict = self._scanner.scan(file_bytes)
         if verdict is ScanVerdict.INFECTED:
-            infected_key = f"{_INFECTED}/{tenant_id}/{patient_pseudonym}/{document_id}"
+            infected_key = self._document_key(_INFECTED, tenant_id, patient_pseudonym, document_id)
             self._move(quarantine_key, infected_key)
             self._audit("document.rejected", infected_key, consent_scope_ref)
             raise DocumentRejectedError(
                 f"document {document_id} failed the malware scan; it was retained under "
                 "the infected/ prefix for forensics and will never be fetchable"
             )
-        clean_key = f"{_CLEAN}/{tenant_id}/{patient_pseudonym}/{document_id}"
+        clean_key = self._document_key(_CLEAN, tenant_id, patient_pseudonym, document_id)
         self._move(quarantine_key, clean_key)
         self._audit("document.released", clean_key, consent_scope_ref)
         return DocumentRef(
@@ -517,10 +627,12 @@ class DocumentStore:
     def _document_key(
         self, prefix: str, tenant_id: str, patient_pseudonym: str, document_id: str
     ) -> str:
+        """The one place an object key is spelled. Every public path routes
+        through here, so the length budget above is enforced in a single spot
+        and the patient segment is derived exactly once per shape."""
         _require_segment("tenant_id", tenant_id)
-        _require_segment("patient_pseudonym", patient_pseudonym)
-        _require_segment("document_id", document_id)
-        return f"{prefix}/{tenant_id}/{patient_pseudonym}/{document_id}"
+        _require_document_id(document_id)
+        return f"{prefix}/{tenant_id}/{patient_segment(patient_pseudonym)}/{document_id}"
 
     def _object_exists(self, key: str) -> bool:
         try:
@@ -713,10 +825,10 @@ class DocumentStore:
         the bytes never transit this process, so promotion belongs to the
         INT-120 scan worker, not to this method."""
         _require_segment("tenant_id", tenant_id)
-        _require_segment("patient_pseudonym", patient_pseudonym)
+        _require_patient_pseudonym(patient_pseudonym)
         _require_ttl(expires)
         document_id = uuid.uuid4().hex
-        key = f"{_QUARANTINE}/{tenant_id}/{patient_pseudonym}/{document_id}"
+        key = self._document_key(_QUARANTINE, tenant_id, patient_pseudonym, document_id)
         url = self._client.presigned_put_object(self._bucket_docs, key, expires=expires)
         self._audit("document.presigned", key, consent_scope_ref)
         return PresignedUpload(document_id=document_id, key=key, url=url, expires=expires)

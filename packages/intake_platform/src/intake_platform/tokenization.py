@@ -8,6 +8,14 @@ readable only by the tokenization role; logs carry ``pseudonym[:8]``.
 
 Key rotation: new writes use the active key id; old pseudonyms remain
 reproducible by naming their key id (re-tokenisation jobs link old → new).
+
+The pseudonym's *shape* is a published contract, not an implementation
+detail (INT-228). Downstream code — the document store's object keys above
+all — has to size itself against what this module can emit, and "about 68
+characters" is not something another module can size against. So the key-id
+alphabet and length are enforced here at construction, which makes
+:data:`PSEUDONYM_MAX_LEN` a bound this module *cannot* exceed rather than an
+observation about the key ids someone happens to have configured today.
 """
 
 from __future__ import annotations
@@ -21,9 +29,43 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from intake_platform.secrets import SecretsProvider
 
-__all__ = ["IdentityVault", "Tokenizer"]
+__all__ = [
+    "DIGEST_HEX_LEN",
+    "KEY_ID_SHAPE",
+    "MAX_KEY_ID_LEN",
+    "PSEUDONYM_MAX_LEN",
+    "IdentityVault",
+    "InvalidKeyIdError",
+    "Tokenizer",
+]
 
 _STRIP = re.compile(r"[\s\-().]")
+
+MAX_KEY_ID_LEN = 32
+# A key id names a key generation ("v1", "v2") and is carried inside every
+# pseudonym derived under it, so it lives in the same conservative alphabet a
+# downstream identifier segment does: no separators, no whitespace, nothing
+# that reads as a path or a shell flag.
+KEY_ID_SHAPE = re.compile(rf"[A-Za-z0-9][A-Za-z0-9._-]{{0,{MAX_KEY_ID_LEN - 1}}}")
+DIGEST_HEX_LEN = 64  # SHA-256, hex
+#: The longest string :meth:`Tokenizer.pseudonym` can return: ``<key_id>.<hex>``.
+PSEUDONYM_MAX_LEN = MAX_KEY_ID_LEN + 1 + DIGEST_HEX_LEN
+
+
+class InvalidKeyIdError(ValueError):
+    """A tokenization key id is outside the published shape. Distinct from the
+    ``KeyError`` an *unknown* key id raises: this one is malformed, and a
+    malformed key id would put an unbounded string inside every pseudonym it
+    signs. The offending value is not echoed — it arrives from configuration
+    and reaching a log is exactly what this refusal prevents."""
+
+
+def _require_key_id(key_id: str) -> None:
+    if not KEY_ID_SHAPE.fullmatch(key_id):
+        raise InvalidKeyIdError(
+            f"tokenization key id must be id-shaped ([A-Za-z0-9._-], ≤{MAX_KEY_ID_LEN} chars, "
+            "leading alphanumeric); the refused value is not echoed"
+        )
 
 
 def _normalise(value: str) -> str:
@@ -35,12 +77,16 @@ def _normalise(value: str) -> str:
 
 class Tokenizer:
     def __init__(self, keys: dict[str, bytes], active_key_id: str) -> None:
+        for key_id in keys:
+            _require_key_id(key_id)
         if active_key_id not in keys:
             raise KeyError(f"active key id {active_key_id!r} not in key set")
         self._keys = dict(keys)
         self._active = active_key_id
 
     def pseudonym(self, value: str, key_id: str | None = None) -> str:
+        """``<key_id>.<64 hex>`` — never longer than :data:`PSEUDONYM_MAX_LEN`,
+        because every key id in the set was shape-checked at construction."""
         kid = key_id or self._active
         if kid not in self._keys:
             raise KeyError(f"unknown tokenization key id {kid!r}")

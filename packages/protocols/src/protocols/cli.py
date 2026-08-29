@@ -1,4 +1,4 @@
-"""`protocols` console entry point: `coverage` (INT-042) + `generate-l0` (INT-057).
+"""`protocols` console entry point: `coverage`, `generate-l0`, `compile`.
 
 ``protocols coverage`` prints the branch × resolution matrix of
 :func:`protocols.taxonomy.coverage` plus a one-line summary — the matrix
@@ -14,6 +14,16 @@ exist, which never count as coverage, so the matrix is honestly all-MISSING
 ``protocols generate-l0 --branch <id>`` (or ``--all``) scaffolds the
 review-queue-only L0 drafts via :mod:`protocols.authoring` — deterministic,
 refusing excluded branches and never overwriting a pack promoted past L0.
+
+``protocols compile --pack <id> --voice <voice_id>`` emits the five files/03
+§6 artefacts into ``packages/protocols/dist`` (INT-041). It writes nothing
+unless every gate passes, and prints every refusal rather than the first —
+today the real pack tree is all L0, so on that tree it refuses, which is the
+honest state and not a failure of the command.
+
+``--voice`` has no default on purpose: the clip cache is keyed by
+``sha256(text_tr, voice_id)`` (files/03 §4.9.1 row 10), and a default voice
+id would be a value chosen once by an engineer for every future build.
 """
 
 from __future__ import annotations
@@ -26,7 +36,16 @@ from pathlib import Path
 import yaml
 
 from protocols.authoring import AuthoringError, generate_all, generate_l0
-from protocols.loader import PackRegistry, load_pack
+from protocols.bindings import OPT_PATH, OptError, load_opt
+from protocols.compile import (
+    DIST_ROOT,
+    CompileError,
+    LifeThreatSetError,
+    compile_bundle,
+    load_life_threat_set,
+    write_bundle,
+)
+from protocols.loader import PackRegistry, PackSchemaError, load_pack
 from protocols.taxonomy import (
     BranchResolution,
     BranchResolutionError,
@@ -125,7 +144,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="every intake branch (files/09 §2: P0 generates L0 for all)",
     )
+    com = subparsers.add_parser(
+        "compile",
+        help="emit the files/03 §6 artefacts for one pack (INT-041)",
+        description="Resolve a pack over its chain and overlays, then emit the "
+        "FHIR R4 Questionnaire, openEHR bindings, Pydantic and TS slot types and "
+        "the clip manifest. Deterministic: two runs are byte-identical.",
+        epilog="Writes nothing unless every gate passes; prints every refusal. "
+        "The clinical sign-off interlock (HB-C1) and the L0 no-serve rule "
+        "(invariant 13) mean the real pack tree refuses today, by design.",
+    )
+    com.add_argument("--pack", required=True, help="pack id to compile")
+    com.add_argument("--packs", type=Path, default=DEFAULT_PACKS_ROOT)
+    com.add_argument(
+        "--life-threat",
+        type=Path,
+        default=DEFAULT_PACKS_ROOT / "base" / "life_threat.yaml",
+        help="the kind: life_threat_set document (files/12 §1)",
+    )
+    com.add_argument("--opt", type=Path, default=OPT_PATH, help="the pinned .opt")
+    com.add_argument(
+        "--voice",
+        required=True,
+        help="voice id the clip manifest is keyed for; no default (files/03 §4.9.1)",
+    )
+    com.add_argument(
+        "--overlay",
+        action="append",
+        default=[],
+        dest="overlays",
+        help="overlay pack id to apply; repeatable",
+    )
+    com.add_argument("--out", type=Path, default=DIST_ROOT)
     args = parser.parse_args(argv)
+    if args.command == "compile":
+        return _compile_command(args)
     taxonomy = load_taxonomy(args.taxonomy)
     if args.command == "generate-l0":
         return _generate_l0_command(args, taxonomy)
@@ -136,6 +189,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.strict and missing:
         print(f"STRICT: {missing} branch(es) resolve to nothing (invariant 13)")
         return 1
+    return 0
+
+
+def _compile_command(args: argparse.Namespace) -> int:
+    """Compile one pack, or print every reason the compiler refused."""
+    try:
+        life_threat = load_life_threat_set(args.life_threat)
+        template = load_opt(args.opt)
+        registry = load_registry(args.packs)
+    except (LifeThreatSetError, OptError, PackSchemaError) as exc:
+        print(f"compile: {exc}")
+        return 1
+    try:
+        bundle = compile_bundle(
+            pack_id=args.pack,
+            registry=registry,
+            life_threat=life_threat,
+            template=template,
+            voice=args.voice,
+            overlays=tuple(args.overlays),
+        )
+    except CompileError as exc:
+        print(f"compile: refused to emit {args.pack} ({len(exc.refusals)} reasons)")
+        for refusal in exc.refusals:
+            print(f"  {refusal.code.value} {refusal.subject}: {refusal.message}")
+        return 1
+    for path in write_bundle(bundle, args.out):
+        print(path)
+    print(f"resolved_protocol_hash: {bundle.resolved_protocol_hash}")
     return 0
 
 

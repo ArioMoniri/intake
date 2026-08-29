@@ -405,7 +405,7 @@
   title: "Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic"
   depends_on: [INT-040, INT-033]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "two runs produce identical hashes; resolved-protocol hash pinned per session; compile artifacts under packages/protocols/dist"
   tests: [tests/protocols/test_compiler_determinism.py]
@@ -1867,7 +1867,7 @@
   - INT-034
   labels:
   - area:data
-  status: todo
+  status: done
   acceptance:
   - real Tokenizer pseudonyms (kid. + 64 hex, ~68 chars) fit the document-store
     key discipline end to end - either _SEGMENT_SHAPE widens with the audit-ref
@@ -2629,3 +2629,58 @@
     gap belongs to the model tier and not to any client seam'
   tests:
   - apps/mobile/src/lib/dialogue/speechShaping.test.ts
+- id: INT-238
+  epic: E02-data
+  phase: P0
+  title: 'Kaynaklar ingest defect: the virus scanner slot was never wired, so every
+    upload stuck in quarantine'
+  depends_on:
+  - INT-120
+  - INT-034
+  labels:
+  - area:data
+  sec_row: identifiers
+  status: done
+  acceptance:
+  - 'owner bug report - documents could not be added: app.py built its Scanner slot
+    from the dev stub alone, which is unconstructible without an opt-in env var, so
+    on any normal stack the slot was None and DocumentStore fell back to
+    no-scan-configured while a healthy ClamAV sat unused and INT-120s tested
+    ClamAvScanner sat unreferenced; scanner precedence becomes strongest-first
+    (real scanner, then the opt-in dev stub, then None) so the stub can never
+    shadow a live clamd, a scanner that cannot produce a verdict returns a typed
+    503 instead of an uncaught 500 with the row left quarantined, the client maps
+    it to the existing unavailable kind, make dev carries the clamav profile, and
+    the whole path is proved end to end on the live stack including an EICAR
+    rejection; the api harness injected a clean scanner into every case which is
+    why no test caught the slot the service actually builds at boot'
+  tests:
+  - tests/api/test_document_scan_wiring.py
+- id: INT-239
+  epic: E08-mobile
+  phase: P0
+  title: 'Dialogue-only intake with answer-driven dev packs: delete the two-button
+    chooser, branch every department on prior answers'
+  depends_on:
+  - INT-235
+  - INT-236
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive that it should only be karsilikli konusma and that the same
+    fixed nine questions must stop being asked regardless of answers: the offer
+    screen with two co-equal buttons and the whole one-shot record-transcribe-
+    extract path are deleted rather than hidden, typed intake stays reachable as
+    the accessibility path from the gate, from inside the dialogue, from the
+    composer and on every failure; every department pack gains gated follow-ups
+    in the serializable ask-if shape the DSL uses, with second-level chains where
+    the structure warrants, and a test pins the exact symmetric difference of the
+    asked sets for two divergent first answers in ten departments so a fixed
+    sequence cannot come back unnoticed; one predicate drives typed steps, spoken
+    dialogue and the section panel, only a confirmed answer opens a gate, a
+    suggestion that lands early waits for its gate instead of being dropped, and
+    the progress indicator stops implying a fixed total; every gate needing
+    clinical judgment is refused and listed for pack owners'
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts

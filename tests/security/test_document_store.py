@@ -39,10 +39,16 @@ from datetime import UTC, datetime, timedelta
 from typing import BinaryIO
 
 import pytest
+from hypothesis import assume, given, settings, target
+from hypothesis import strategies as st
 from intake_platform.audit import AuditChain, InMemoryAuditStore
 from intake_platform.documents import (
     ALLOWED_CONTENT_TYPES,
+    AUDIT_RESOURCE_REF_CAP,
     MAX_DOCUMENT_BYTES,
+    MAX_DOCUMENT_KEY_LEN,
+    MAX_TENANT_ID_LEN,
+    PATIENT_SEGMENT_LEN,
     ContentTypeNotAllowedError,
     DevNullScanner,
     DevScannerForbiddenError,
@@ -57,7 +63,9 @@ from intake_platform.documents import (
     ScanVerdict,
     WormMisconfiguredError,
     as_object_storage,
+    patient_segment,
 )
+from intake_platform.tokenization import MAX_KEY_ID_LEN, PSEUDONYM_MAX_LEN, Tokenizer
 from minio import Minio
 from minio.commonconfig import COMPLIANCE, GOVERNANCE
 from minio.error import S3Error
@@ -306,7 +314,7 @@ def test_put_document_clean_flow_promotes_quarantine_to_clean() -> None:
     ref = _put(store)
     assert ref.state is DocumentState.CLEAN  # type: ignore[attr-defined]
     key: str = ref.key  # type: ignore[attr-defined]
-    assert key.startswith("clean/tenant-ankara/psn-7f3a/")
+    assert key.startswith(f"clean/tenant-ankara/{patient_segment('psn-7f3a')}/")
     assert key in fake.buckets[DOCS_BUCKET].objects
     payload, content_type = fake.buckets[DOCS_BUCKET].objects[key]
     assert payload == PDF_BYTES
@@ -319,17 +327,74 @@ def test_put_document_clean_flow_promotes_quarantine_to_clean() -> None:
     assert chain.verify().ok
 
 
-def test_object_key_is_tenant_pseudonym_uuid_and_nothing_else() -> None:
+def test_object_key_is_tenant_patient_segment_uuid_and_nothing_else() -> None:
     store, _, _ = _store(scanner=CleanScanner())
     store.ensure_buckets()
     ref = _put(store)
-    prefix, tenant, pseudonym, document_id = ref.key.split("/")  # type: ignore[attr-defined]
+    prefix, tenant, segment, document_id = ref.key.split("/")  # type: ignore[attr-defined]
     assert prefix == "clean"
     assert tenant == "tenant-ankara"
-    assert pseudonym == "psn-7f3a"
+    assert segment == patient_segment("psn-7f3a")
+    assert len(segment) == PATIENT_SEGMENT_LEN
     assert HEX32.fullmatch(document_id)
     # No filename can leak into a key because no filename parameter exists.
     assert "filename" not in inspect.signature(DocumentStore.put_document).parameters
+
+
+def test_the_key_budget_exactly_fills_the_audit_resource_ref() -> None:
+    """The arithmetic in documents.py is load-bearing, so it is pinned rather
+    than trusted: a key of the declared worst-case length is the longest thing
+    the audit chain will take, and one character more is not."""
+    assert MAX_DOCUMENT_KEY_LEN == AUDIT_RESOURCE_REF_CAP
+    chain = AuditChain(InMemoryAuditStore())
+    chain.append(
+        actor="svc-documents",
+        action="document.stored",
+        resource_ref="q" * MAX_DOCUMENT_KEY_LEN,
+        consent_scope_ref="consent:document-upload:v1",
+    )
+    with pytest.raises(ValueError, match="resource_ref"):
+        chain.append(
+            actor="svc-documents",
+            action="document.stored",
+            resource_ref="q" * (MAX_DOCUMENT_KEY_LEN + 1),
+            consent_scope_ref="consent:document-upload:v1",
+        )
+
+
+def test_the_longest_possible_key_is_reachable_and_still_auditable() -> None:
+    """The budget is spent to the last character, so its worst case is not a
+    hypothetical: the longest prefix plus a maximal tenant id plus a
+    maximal-length pseudonym plus a minted document id has to land on exactly
+    MAX_DOCUMENT_KEY_LEN and still be something the audit chain accepts."""
+    pseudonym = _pseudonym("v" * MAX_KEY_ID_LEN, "05321114455")
+    assert len(pseudonym) == PSEUDONYM_MAX_LEN
+    store, _, chain = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    slot = store.presigned_put(  # quarantine/ — the longest of the four prefixes
+        "t" * MAX_TENANT_ID_LEN,
+        pseudonym,
+        consent_scope_ref="consent:document-upload:v1",
+    )
+    assert len(slot.key) == MAX_DOCUMENT_KEY_LEN
+    assert chain._store.entries()[-1].resource_ref == slot.key  # type: ignore[attr-defined]
+    assert chain.verify().ok
+
+
+def test_a_document_id_the_store_never_minted_is_refused() -> None:
+    """32 lowercase hex is what ``uuid4().hex`` is and therefore the only shape
+    this store addresses; the budget's 32 depends on it."""
+    store, _, chain = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    for bad_id in ("", "not-a-uuid", "0" * 31, "0" * 33, "0" * 32 + "a", "A" * 32):
+        with pytest.raises(InvalidKeySegmentError, match="document_id"):
+            store.document_state("tenant-ankara", "psn-7f3a", bad_id)
+    assert _actions(chain) == []  # refused before anything is looked up or logged
+    # and the shape the store mints for itself is the shape it accepts back
+    slot = store.presigned_put(
+        "tenant-ankara", "psn-7f3a", consent_scope_ref="consent:document-upload:v1"
+    )
+    assert HEX32.fullmatch(slot.document_id)
 
 
 def test_oversized_document_is_refused_before_anything_is_stored() -> None:
@@ -388,18 +453,186 @@ def test_declared_sha256_is_case_insensitive() -> None:
 
 @pytest.mark.parametrize(
     "bad_segment",
-    ["", "has/slash", "has space", "hasta-adı", "-leading", "x" * 41],
+    ["", "has/slash", "has space", "hasta-adı", "-leading", "x" * (MAX_TENANT_ID_LEN + 1)],
 )
-def test_key_segments_must_be_id_shaped(bad_segment: str) -> None:
+def test_tenant_ids_must_be_id_shaped(bad_segment: str) -> None:
     store, _, chain = _store(scanner=CleanScanner())
     store.ensure_buckets()
-    for field in ("tenant_id", "patient_pseudonym"):
-        with pytest.raises(InvalidKeySegmentError) as excinfo:
-            _put(store, **{field: bad_segment})
-        assert field in str(excinfo.value)
-        if bad_segment:
-            assert bad_segment not in str(excinfo.value)  # never echo the value
+    with pytest.raises(InvalidKeySegmentError) as excinfo:
+        _put(store, tenant_id=bad_segment)
+    assert "tenant_id" in str(excinfo.value)
+    if bad_segment:
+        assert bad_segment not in str(excinfo.value)  # never echo the value
     assert _actions(chain) == []
+
+
+@pytest.mark.parametrize(
+    "bad_pseudonym",
+    ["", "has/slash", "has space", "hasta-adı", "-leading", "x" * (PSEUDONYM_MAX_LEN + 1)],
+)
+def test_patient_pseudonyms_must_be_opaque_and_bounded(bad_pseudonym: str) -> None:
+    """A pseudonym is no longer a key segment, so it is no longer held to the
+    40-char segment rule — but it stays opaque and bounded by the tokenizer's
+    own maximum. Free text (a name, a sentence, anything with a space or a
+    separator) is still refused, and still never echoed: the whole reason the
+    check exists is that a malformed pseudonym may *be* the patient's name."""
+    store, _, chain = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    with pytest.raises(InvalidKeySegmentError) as excinfo:
+        _put(store, patient_pseudonym=bad_pseudonym)
+    assert "patient_pseudonym" in str(excinfo.value)
+    if bad_pseudonym:
+        assert bad_pseudonym not in str(excinfo.value)
+    assert _actions(chain) == []
+
+
+# --- INT-228: the tokenizer ↔ document-store boundary, as properties ----------------
+#
+# The examples above all use a stand-in pseudonym ("psn-7f3a"). A *real* one
+# from intake_platform.tokenization is ``<key_id>.<64 hex>`` — far longer — and
+# the object key it lands in is written verbatim into the hash-chained audit
+# log, whose resource_ref is itself bounded. Three modules therefore have to
+# agree on one arithmetic, and examples cannot show agreement over an input
+# space: these are properties.
+#
+# Every generated identifier is synthetic (digits and punctuation only) —
+# no real TCKN, no real phone number, nothing patient-derived (invariant 6).
+
+MAX_EXAMPLES = 50
+_HMAC_KEY = b"unit-lane-tokenization-key"
+# key ids are version tags in practice ("v1", "v2"); the strategy covers the
+# whole id-shaped space so a longer one cannot silently break the bound.
+_key_ids = st.from_regex(r"[A-Za-z0-9][A-Za-z0-9._-]{0,31}", fullmatch=True)
+_identifiers = st.text(alphabet="0123456789 +-()", min_size=1, max_size=24)
+_tenants = st.from_regex(r"[A-Za-z0-9][A-Za-z0-9._-]{0,39}", fullmatch=True)
+
+
+def _by_length(character: str, longest: int = 112) -> st.SearchStrategy[str]:
+    """A segment whose only interesting dimension is its length.
+
+    The bound is a length property and it only breaks when several segments sit
+    near their limit at once, which free-form text generation reaches roughly
+    never. Holding the content constant leaves hypothesis one dial per segment,
+    which ``target`` below can actually climb. Shape (alphabet, separators,
+    emptiness) is covered by the example lane and by the refusal branch here.
+    """
+    return st.integers(min_value=0, max_value=longest).map(lambda n: character * n)
+
+
+def _pseudonym(key_id: str, identifier: str) -> str:
+    return Tokenizer(keys={key_id: _HMAC_KEY}, active_key_id=key_id).pseudonym(identifier)
+
+
+@settings(max_examples=MAX_EXAMPLES, deadline=None)
+@given(key_id=_key_ids, identifier=_identifiers, tenant_id=_tenants)
+def test_a_real_tokenizer_pseudonym_survives_the_whole_key_path(
+    key_id: str, identifier: str, tenant_id: str
+) -> None:
+    """The property the two modules must share: anything the Tokenizer emits is
+    storable, and the key it produces is one the audit chain will accept.
+
+    The chain is the oracle, not a hand-copied regex — ``_audit`` appends the
+    key verbatim, so an over-long or misshapen key raises inside ``put_document``
+    and this test fails without asserting anything about the bound itself.
+    """
+    store, _, chain = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    ref = _put(store, tenant_id=tenant_id, patient_pseudonym=_pseudonym(key_id, identifier))
+    assert chain._store.entries()[-1].resource_ref == ref.key  # type: ignore[attr-defined]
+    assert chain.verify().ok
+
+
+@settings(max_examples=MAX_EXAMPLES, deadline=None)
+@given(key_id=_key_ids, identifier=_identifiers)
+def test_the_pseudonym_itself_never_appears_in_an_object_key(key_id: str, identifier: str) -> None:
+    """A pseudonym is a join key across the identity vault; an object key and
+    every audit row that quotes it are a much wider blast radius than the vault.
+    The key carries a one-way image of the pseudonym, never the pseudonym
+    (invariant 6 — least identifying material that still addresses the object)."""
+    pseudonym = _pseudonym(key_id, identifier)
+    store, _, chain = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    ref = _put(store, patient_pseudonym=pseudonym)
+    digest_hex = pseudonym.split(".", 1)[1]
+    assert pseudonym not in ref.key
+    assert digest_hex not in ref.key
+    assert all(digest_hex not in entry.resource_ref for entry in chain._store.entries())  # type: ignore[attr-defined]
+
+
+@settings(max_examples=MAX_EXAMPLES, deadline=None)
+@given(key_id=_key_ids, left=_identifiers, right=_identifiers)
+def test_two_patients_never_share_a_key_segment(key_id: str, left: str, right: str) -> None:
+    """The anti-truncation property, stated as the harm rather than the
+    mechanism: distinct pseudonyms must address distinct object prefixes. Any
+    implementation that made a long pseudonym fit by cutting it would fail
+    here on the first pair sharing a prefix."""
+    first, second = _pseudonym(key_id, left), _pseudonym(key_id, right)
+    assume(first != second)
+    store, _, _ = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    segments = {
+        _put(store, patient_pseudonym=first).key.split("/")[2],  # type: ignore[attr-defined]
+        _put(store, patient_pseudonym=second).key.split("/")[2],  # type: ignore[attr-defined]
+    }
+    assert len(segments) == 2
+
+
+@settings(max_examples=MAX_EXAMPLES, deadline=None)
+@given(short_id=_key_ids, long_id=_key_ids, identifier=_identifiers)
+def test_the_key_segment_width_does_not_depend_on_the_pseudonym(
+    short_id: str, long_id: str, identifier: str
+) -> None:
+    """Bounded *by construction*: the segment is the same width for every
+    pseudonym, so no future change to the pseudonym's shape can push a key
+    past the audit bound. A validated-not-derived segment would vary here."""
+    store, _, _ = _store(scanner=CleanScanner())
+    store.ensure_buckets()
+    widths = {
+        len(_put(store, patient_pseudonym=_pseudonym(key_id, identifier)).key.split("/")[2])  # type: ignore[attr-defined]
+        for key_id in (short_id, long_id)
+    }
+    assert len(widths) == 1
+
+
+@settings(max_examples=300, deadline=None)
+@given(
+    tenant_id=_by_length("a"),
+    patient_pseudonym=_by_length("b"),
+    # hex-shaped so the document-id branch stays reachable whatever the store
+    # decides an id looks like
+    document_id=_by_length("0"),
+)
+def test_no_input_yields_a_key_the_audit_chain_cannot_hold(
+    tenant_id: str, patient_pseudonym: str, document_id: str
+) -> None:
+    """Over the *whole* input space there are exactly two outcomes: the store
+    refuses the input up front, or it builds a key the audit chain accepts.
+    A third outcome — an object that exists but cannot be audited — would
+    break invariant 4, so the bound has to hold for every accepted input, not
+    only for the ones the happy path generates.
+
+    This drives ``_document_key`` because that is the single builder every
+    public path routes through, and the only one reachable with a
+    caller-supplied document id (``UploadPipeline`` forwards one straight in).
+    """
+    store, _, chain = _store(scanner=CleanScanner())
+    keys: list[str] = []
+    for prefix in ("quarantine", "clean", "infected", "rejected"):
+        try:
+            keys.append(store._document_key(prefix, tenant_id, patient_pseudonym, document_id))
+        except InvalidKeySegmentError:
+            return  # refused before anything is stored: nothing to audit
+    # the failure mode is a *long* key, and the longest one needs all three
+    # segments maximal at once — too rare a coincidence for undirected
+    # generation, so hypothesis is told what to push on.
+    target(float(max(len(key) for key in keys)), label="object key length")
+    for key in keys:
+        chain.append(
+            actor="svc-documents",
+            action="document.stored",
+            resource_ref=key,
+            consent_scope_ref="consent:document-upload:v1",
+        )
 
 
 # --- the AV hook: nothing serves unscanned ------------------------------------------

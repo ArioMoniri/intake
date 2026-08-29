@@ -87,6 +87,12 @@ class ProtocolPack(FrozenModel):
         description="Instrument sub-protocol definitions referenced by "
         "section questionnaires (files/03 §6).",
     )
+    supersedes: tuple[PackId, ...] = Field(
+        default=(),
+        description="The explicit, reviewed escape hatch of files/12 §3.4: named "
+        "packs whose ops this one replaces. Two writers of one pointer with "
+        "different values are otherwise a compile error, never last-writer-wins.",
+    )
     ops: tuple[Op, ...] = Field(default=(), description="Ordered typed merge ops (files/12 §3.1).")
 
     @field_validator("extends")
