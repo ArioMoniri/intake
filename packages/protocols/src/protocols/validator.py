@@ -17,6 +17,12 @@ What is enforced here, each with its blueprint anchor:
 - **Numerals** (CLAUDE.md invariant 22; files/03 §4.9.6): patient-facing
   Turkish containing any digit is rejected outright at the DSL layer; the
   compiler slice (INT-041) owns the Turkish-orthography expansion.
+- **RED action resolution** (CLAUDE.md invariant 21; files/04 §8.2): a RED
+  rule whose action does not resolve for REMOTE, ON_SITE and UNKNOWN is a
+  finding here as well as a refusal in the compiler slice. The three keys
+  are required on the type, so this fires only on an object that reached the
+  validator past validation — but when it does, the report must name the
+  rule instead of raising out of the middle of the run.
 - **The invariant-17 sole exception**: the only permitted pending-value form
   is the literal ``TODO: <what> requires clinical sign-off`` inside a
   ``draft_needs_source`` rule; the compiler refuses to serve such rules, and
@@ -82,6 +88,7 @@ class FindingCode(enum.StrEnum):
     INSTRUMENT_PARAPHRASE = "INSTRUMENT_PARAPHRASE"
     INSTRUMENT_LICENCE_NOT_GO = "INSTRUMENT_LICENCE_NOT_GO"
     NUMERAL_IN_TR = "NUMERAL_IN_TR"
+    RED_ACTION_UNRESOLVED = "RED_ACTION_UNRESOLVED"
     SUPPRESS_MUST_ASK = "SUPPRESS_MUST_ASK"
     CAPABILITY_VIOLATION = "CAPABILITY_VIOLATION"
     UNKNOWN_TARGET = "UNKNOWN_TARGET"
@@ -344,15 +351,54 @@ def _tr_texts(pack: ProtocolPack) -> list[tuple[str, str]]:
             texts.append((f"{instrument.id}.{item.id}", item.text_tr))
     for rule in _declared_rules(pack):
         if rule.action is not None:
+            # Every branch is checked before it is read. The three location
+            # keys are required on RedFlagAction, so a None here means the
+            # object reached the validator without full validation — which is
+            # exactly the case protocols.compile.resolve guards the same way,
+            # and reporting it beats an AttributeError that names no rule and
+            # takes every remaining finding in the registry with it.
             for location in (rule.action.remote, rule.action.on_site):
+                if location is None:
+                    continue
                 for text in (location.action_tr, location.why_tr, *location.do_nots_tr):
                     if text is not None:
                         texts.append((rule.id, text))
-            texts.append((rule.id, rule.action.unknown.ask_one_tr))
+            if rule.action.unknown is not None:
+                texts.append((rule.id, rule.action.unknown.ask_one_tr))
     for op in pack.ops:
         if isinstance(op, OverrideTextOp):
             texts.append((op.pointer, op.text_tr))
     return texts
+
+
+def _red_action_findings(pack: ProtocolPack) -> list[Finding]:
+    """A RED rule whose action does not resolve for all three locations
+    (CLAUDE.md invariant 21; files/04 §8.2
+    ``every_red_action_resolves_for_all_three_locations``).
+
+    The DSL-layer twin of ``RefusalCode.RED_ACTION_UNRESOLVED`` in the
+    compiler slice: the type says all three keys are required, so this fires
+    only on an object built past validation — and when it does, the report
+    must name the rule rather than raise.
+    """
+    return [
+        _finding(
+            FindingCode.RED_ACTION_UNRESOLVED,
+            pack.id,
+            rule.id,
+            "a RED action must resolve for all three locations — REMOTE, "
+            "ON_SITE and UNKNOWN — with no fallback (CLAUDE.md invariant 21; "
+            "files/04 §8.2 every_red_action_resolves_for_all_three_locations)",
+        )
+        for rule in _declared_rules(pack)
+        if rule.level.is_red
+        and (
+            rule.action is None
+            or rule.action.remote is None
+            or rule.action.on_site is None
+            or rule.action.unknown is None
+        )
+    ]
 
 
 def _voice_findings(pack: ProtocolPack) -> list[Finding]:
@@ -597,6 +643,7 @@ def validate_packs(
     for pack in registry:
         _, resolution_findings = resolve_red_flags(pack, registry)
         findings.extend(resolution_findings)
+        findings.extend(_red_action_findings(pack))
         findings.extend(_voice_findings(pack))
         findings.extend(_signoff_findings(pack))
         findings.extend(_instrument_findings(pack, licences))
