@@ -2202,7 +2202,7 @@
   title: "Wazuh + Falco deployment + rules + console feed"
   depends_on: [INT-023]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "auth anomalies, k8s audit, container runtime alerts wired to Security module"
   tests: [tests/infra/test_siem_feed.py]
