@@ -34,6 +34,8 @@ EXPECTED_TABLES = {
     # that column's "id-shaped values only, no PHI" declaration stays true
     # (invariant 6)
     "csat_texts",
+    # INT-141 — notification opt-out and quiet hours
+    "notification_preferences",
 }
 
 

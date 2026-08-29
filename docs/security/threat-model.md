@@ -710,8 +710,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   İYS consent record (CLAUDE.md invariant 18); [D] reminder volume driving opt-outs.
 - **Controls (files/10):** §9 notifications row — content-free pushes, quiet hours, opt-out;
   §4 mobile — no PHI in push or deep links; transactional-only default.
-- **Signals:** delivery and opt-out rates (§9) land with INT-141.
-- **Tests:** content tests (no clinical terms in payloads) land with INT-141.
+- **Signals:** `notification_dispatch_total{channel,message_class,status}` carries both
+  the delivery rate and the opt-out rate off one status label, and
+  `notification_preference_changed_total{change}` the opt-out flow (INT-141; both
+  catalogued in `observability/metrics_catalog.yaml` — files/08 §4 names no id for this
+  row, so they enter the catalogue without one).
+- **Tests:** `tests/legal/test_notifications.py` — content-freedom as vocabulary closure
+  (every token of a payload must already be in the committed template corpus, so any
+  interpolation at all fails) plus an adversarial patient whose branch label shares a
+  word with the generic copy; the four İYS locks (no commercial template; an abstract
+  `IysConsentRecord` with no concrete subclass in the tree; a registry that refuses; the
+  `commercial_messaging` safety flag); quiet hours with no invented default; opt-out.
+  `tests/api/test_notification_prefs.py` — the persisted register, its route declaration
+  and its survival across a restart. `apps/mobile/e2e/notifications.spec.ts` — the app
+  never assembles a body and grows no marketing switch.
 
 ## `mobile` — the patient app (MASVS)
 

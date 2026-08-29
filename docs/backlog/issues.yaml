@@ -1380,7 +1380,7 @@
   title: "Notifications: content-free reminders, quiet hours, opt-out; transactional-only"
   depends_on: [INT-130]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "no PHI in push; reminders classified transactional (no IYS consent needed); any marketing path requires IYS consent and is off by default"
   tests: [apps/mobile/e2e/notifications.spec.ts]
@@ -1602,7 +1602,7 @@
   title: "Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate"
   depends_on: [INT-023]
   labels: [area:observability]
-  status: todo
+  status: done
   acceptance:
     - "compose profile; OTel span export; CI job runs recorded simulator experiment and gates on scores"
   tests: [tests/observability/test_langfuse_gate.py]

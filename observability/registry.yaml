@@ -138,6 +138,83 @@ components:
     fallback: "none"
     phi_path: true
 
+  # --- INT-175: the self-hosted LLM-trace tier -------------------------------
+
+  - component: langfuse
+    self_hostable: true
+    # the tier exists (infra/docker-compose.langfuse.yml) and is validated
+    # statically; it has not been booted on this host — six containers
+    # including ClickHouse is exactly what HB-I1 (disk) and HB-I2 (container
+    # memory) record as unavailable. Flips true when a host runs it.
+    self_hosted_now: false
+    host: "infra/docker-compose.langfuse.yml, profile `langfuse` — langfuse/langfuse:4.24.0 + langfuse/langfuse-worker:4.24.0 on their own Postgres/ClickHouse/Redis/MinIO; web on loopback 127.0.0.1:3030, every backing store on the project network only. Not booted here: HB-I1/HB-I2"
+    license: "MIT Expat (core, LICENSE blob verified @v4.24.0) — see licence_note for the ee/ carve-out, which is NOT MIT and is not licensed in"
+    probe: http_health
+    budget_ms: 2000
+    fallback: "none"
+    # phi_path FALSE, and this is a claim the tests hold rather than a hope.
+    # files/08 §6 is right that a stock Langfuse is a transcript store: it
+    # exists to keep prompts and completions verbatim, and the extraction
+    # prompt IS the patient's transcript. What makes this row false is
+    # upstream of Langfuse — intake_platform.observability.spans has no field
+    # a transcript can occupy and no configuration that could grow one, and
+    # tests/observability/test_langfuse_gate.py plants a Turkish symptom
+    # sentence at every seam to prove it. The day a content-carrying mode is
+    # built — which needs files/HUMAN_BLOCKERS.md HB-L6 answered first — this
+    # flips to true and the release gate binds on it.
+    phi_path: false
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/langfuse/langfuse/0037ad19dac83b857201632ba9e37c06a1c7eacd/LICENSE"
+    licence_blob_sha256: "fd09d42b5b16606ad2042cc1edf3a82da1c47743709f170c959c74758af229d6"
+    licence_note: >-
+      Langfuse is open CORE, not open source end to end, and "MIT" alone would
+      be the laundered claim files/03 §4.9.0 rule 3 exists to catch. Both
+      blobs were read at the pinned release commit
+      0037ad19dac83b857201632ba9e37c06a1c7eacd (tag v4.24.0), 2026-08-29:
+      (a) LICENSE — 25 lines, MIT Expat, sha256
+      fd09d42b5b16606ad2042cc1edf3a82da1c47743709f170c959c74758af229d6. Its own
+      preamble carves out "ee/", "web/src/ee/" and "worker/src/ee/".
+      (b) ee/LICENSE — 50 lines, "Langfuse Enterprise license", sha256
+      760f5202be4f31f9f8ca43a3c558bebaa5187fa7d7eccad6a32de8392cdccee6, which
+      says the software "may only be used, if you ... have a valid Langfuse
+      Enterprise License". The published Docker image CONTAINS that code.
+      What we use is MIT: web/src/ee/features at that commit is admin-api,
+      audit-log-viewer, billing, multi-tenant-sso, sfdc-sync, sso-settings,
+      ui-customization and verified-domains — and annotation queues are NOT
+      among them; they live at web/src/features/annotation-queues, under the
+      MIT tree. The entitlement map
+      (web/src/features/entitlements/constants/entitlements.ts) gives plan
+      `oss` "annotation-queue-count": false, which in that file's own typing
+      means unlimited. So the three acceptance queues are usable under MIT.
+      No enterprise licence key is set anywhere in this repo, which keeps the
+      ee/ paths inert; setting one without a signed agreement would be an
+      unlicensed commercial use (invariant 19). Re-verify both blobs on every
+      version bump: an open-core vendor moves the line, not the licence text.
+
+  - component: langfuse-clickhouse
+    self_hostable: true
+    self_hosted_now: false
+    host: "infra/docker-compose.langfuse.yml, profile `langfuse` — clickhouse/clickhouse-server:25.12.11.4, project network only, no published port. Langfuse's own analytics store; it holds the same id-only spans and nothing else"
+    license: "Apache-2.0 (LICENSE blob verified @v25.12.11.4-stable — 203 lines, stock, no acceptable-use rider, no field-of-use restriction)"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    # same reasoning as the `langfuse` row: it stores what Langfuse ingests,
+    # and what Langfuse ingests carries no patient content by construction
+    phi_path: false
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/ClickHouse/ClickHouse/7852f16b4962eb6e129cc446b2c889b91d702061/LICENSE"
+    licence_blob_sha256: "e276e9cd356772864ed82575f081ef1b8225914c3ac39a03c9112821a7e33f62"
+    licence_note: >-
+      Read at commit 7852f16b4962eb6e129cc446b2c889b91d702061, which is what
+      tag v25.12.11.4-stable dereferences to — the tag matching the pinned
+      image. Stock Apache-2.0 with a ClickHouse, Inc. copyright line; the one
+      grep hit for "addendum" is line 121 of the standard appendix
+      ("or as an addendum to the NOTICE text"), boilerplate rather than a
+      rider. ClickHouse acquired Langfuse in January 2026 (files/05 §"Langfuse
+      is self-hostable with an MIT core"), so both licences now sit under the
+      same owner and both are re-verified together on a version bump.
+
   # --- model rows: pins mirror files/03 §4.9.1; licences are the verified
   # --- findings, carried verbatim (files/03 §4.9.0 rule 3) -------------------
 
