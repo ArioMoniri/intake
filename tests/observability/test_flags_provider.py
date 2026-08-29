@@ -2,8 +2,8 @@
 
 Pinned here:
 - the in-memory provider is the DEFAULT and needs no environment at all;
-- the four safety flags (``device_functions``, ``s2s``, ``learning_apply``,
-  ``satisfaction_prompts``) exist with False defaults, cannot be defaulted
+- the five safety flags (``device_functions``, ``s2s``, ``learning_apply``,
+  ``satisfaction_prompts``, ``guardian_link``) exist with False defaults, cannot be defaulted
   open by a careless caller, and cannot be flipped by the Unleash provider
   unless the payload explicitly carries ``enabled: true``;
 - the Unleash provider is constructed only when ``INTAKE_UNLEASH_URL`` is
@@ -29,7 +29,13 @@ from intake_platform.flags import (
     default_provider,
 )
 
-SAFETY_FLAGS = ("device_functions", "s2s", "learning_apply", "satisfaction_prompts")
+SAFETY_FLAGS = (
+    "device_functions",
+    "s2s",
+    "learning_apply",
+    "satisfaction_prompts",
+    "guardian_link",
+)
 CTX_SENTINEL = "Ahmet Yilmaz 05321234567"  # must never appear in a log line
 FLAGS_LOGGER = "intake_platform.flags"
 
