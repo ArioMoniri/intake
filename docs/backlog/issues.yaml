@@ -601,7 +601,7 @@
   title: "Protocol Authoring Agent: L0 drafts for every branch + no-serve guard"
   depends_on: [INT-042]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "`protocols generate-l0 --branch <id>` scaffolds from cluster+template with citation placeholders resolved to named Turkish guidance sources; L0 resolution for a live session raises; regeneration idempotent"
     - "agent has zero access to patient data (import-boundary test)"
@@ -2401,7 +2401,7 @@
   title: "Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code"
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "age from verified DOB; under-18 requires guardian account+consent; adolescent private-section share policy per 06 §6; tests for each age band"
   tests: [tests/legal/test_minor_rules.py]
@@ -2558,3 +2558,47 @@
     - "i18n lint fails on missing keys; clinical tr reviewed flag enforced"
   tests: [tests/release/test_i18n_complete.py]
   legal: "805"
+- id: INT-236
+  epic: E08-mobile
+  phase: P0
+  title: 'Adaptive dev packs (askIf, DSL-mirrored) + Hizli/Detayli modes with
+    privacy deferral and instant checkpoint'
+  depends_on:
+  - INT-198
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive: next questions follow previous answers and two modes exist
+    (pre-hospital fast, in-hospital detailed) - askIf gates as serializable data
+    mirroring dsl.py ask_if with only structurally-obvious gates (clinical-judgment
+    gates refused and listed for pack owners); dynamic applicable-question progress;
+    Detayli adds the 02 s33 privacy self-check whose failure defers sensitive
+    sections with the verbatim eksik marker, and the 02 s34 instant checkpoint
+    to a v2-partial review with zero lost answers; gate-skipped is never counted
+    missing; stale-gated answers kept and marked'
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts
+- id: INT-235
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice chat surface: two-sided live transcript with ask-ahead dialogue
+    and realtime section panel'
+  depends_on:
+  - INT-233
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner directive: a chat interface showing what each side says with realtime
+    parsing into muayene sections - two-sided bubble transcript (in-place ASR
+    replacement, inline shimmer states, no status takeovers), ask-ahead turn
+    advance with reconcile-behind by work id (stale results dropped, live turn
+    never moved), multi-question extract absorption with skip-of-answered,
+    session clip pre-warm, persistent typed composer on the identical utterance
+    path, Not olusuyor section strip with quote provenance and confirm chips;
+    all answered goes straight to review and only genuinely unanswered
+    questions fall to prefilled text steps'
+  tests:
+  - apps/mobile/src/lib/dialogue/stream.test.ts

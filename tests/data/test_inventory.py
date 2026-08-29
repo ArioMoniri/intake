@@ -22,6 +22,7 @@ EXPECTED_TABLES = {
     "slots",
     "notes",
     "consents",
+    "guardian_links",
     "shares",
     "documents",
     "events",

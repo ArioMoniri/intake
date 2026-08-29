@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { en } from "../i18n/en";
 import { tr } from "../i18n/tr";
-import { allQuestions, optionLabelKey, packForDepartment, type IntakeQuestion } from "./questions";
+import {
+  allQuestions,
+  applicableQuestions,
+  missingQuestions,
+  nextApplicableQuestion,
+  optionLabelKey,
+  packForDepartment,
+  type AskIf,
+  type IntakeQuestion,
+} from "./questions";
 
 /**
  * Department strings exactly as visits carry them (MHRS-style, Turkish
@@ -140,6 +149,138 @@ describe("catalog coverage and invariant 22 (no numerals)", () => {
       expect((tr as Record<string, string>)[key], `tr ${key}`).not.toMatch(/[0-9]/);
       expect((en as Record<string, string>)[key], `en ${key}`).not.toMatch(/[0-9]/);
     }
+  });
+});
+
+// ---- INT-236: answer-dependent flow — askIf gates mirroring the DSL --------
+
+describe("askIf gates (INT-236 — serializable data, mirroring dsl.py ask_if)", () => {
+  /**
+   * Exactly the structurally-obvious gates, nothing else: a question that
+   * literally asks about the pain (its character, where it spreads) is
+   * gated on the complaint including pain; the gastro pack's meal/bowel
+   * dimensions on the complaint including the stomach chip. Any further
+   * gate needs clinical judgment and belongs to the physician-gated packs
+   * (INT-096), never here.
+   */
+  const GATES: Record<string, AskIf> = {
+    pain_character: { questionId: "complaint", includesAny: ["pain"] },
+    radiation: { questionId: "complaint", includesAny: ["pain"] },
+    gastro_meal: { questionId: "complaint", includesAny: ["stomach"] },
+    gastro_bowel: { questionId: "complaint", includesAny: ["stomach"] },
+  };
+
+  it("exactly the four structurally-obvious gates exist — no other question is gated", () => {
+    for (const q of allQuestions) {
+      if (q.id in GATES) {
+        expect(q.askIf, q.id).toEqual(GATES[q.id]);
+      } else {
+        expect(q.askIf, q.id).toBeUndefined();
+      }
+    }
+  });
+
+  it("askIf is data, never a function — it survives a JSON round-trip (DSL parity)", () => {
+    const q = allQuestions.find((x) => x.id === "pain_character")!;
+    expect(JSON.parse(JSON.stringify(q.askIf))).toEqual(q.askIf);
+  });
+});
+
+describe("applicableQuestions (skip unmet gates; re-evaluate as answers change)", () => {
+  const cardio = packForDepartment("Kardiyoloji");
+  const gastro = packForDepartment("Gastroenteroloji");
+
+  it("with no answers, gated questions are not applicable yet — dynamic denominator", () => {
+    expect(applicableQuestions(cardio, []).map((q) => q.id)).toEqual([
+      "complaint",
+      "duration",
+      "onset",
+      "trigger",
+      "associated",
+      "severity",
+      "extra",
+    ]);
+  });
+
+  it("a complaint including pain reveals pain_character and radiation, in pack order", () => {
+    const answers = [{ questionId: "complaint", values: ["pain"] }];
+    expect(applicableQuestions(cardio, answers).map((q) => q.id)).toEqual([
+      "complaint",
+      "duration",
+      "onset",
+      "pain_character",
+      "radiation",
+      "trigger",
+      "associated",
+      "severity",
+      "extra",
+    ]);
+  });
+
+  it("a stomach complaint in the gastro pack reveals the meal and bowel dimensions", () => {
+    const answers = [{ questionId: "complaint", values: ["stomach", "fatigue"] }];
+    const ids = applicableQuestions(gastro, answers).map((q) => q.id);
+    expect(ids).toContain("gastro_meal");
+    expect(ids).toContain("gastro_bowel");
+  });
+
+  it("an edit that unmets the gate hides the question again — its answer is kept upstream", () => {
+    const answered = [
+      { questionId: "complaint", values: ["pain"] },
+      { questionId: "pain_character", values: ["pressure"] },
+    ];
+    expect(applicableQuestions(cardio, answered).map((q) => q.id)).toContain("pain_character");
+    const edited = [
+      { questionId: "complaint", values: ["fever"] },
+      { questionId: "pain_character", values: ["pressure"] },
+    ];
+    expect(applicableQuestions(cardio, edited).map((q) => q.id)).not.toContain("pain_character");
+  });
+});
+
+describe("nextApplicableQuestion (the flow's single advance rule)", () => {
+  const cardio = packForDepartment("Kardiyoloji");
+
+  it("skips both gated questions after onset when the complaint is not pain", () => {
+    const answers = [{ questionId: "complaint", values: ["fever"] }];
+    expect(nextApplicableQuestion(cardio, answers, "onset")?.id).toBe("trigger");
+  });
+
+  it("walks into the gated question when the gate is met", () => {
+    const answers = [{ questionId: "complaint", values: ["pain"] }];
+    expect(nextApplicableQuestion(cardio, answers, "onset")?.id).toBe("pain_character");
+  });
+
+  it("returns null after the closing free note", () => {
+    expect(nextApplicableQuestion(cardio, [], "extra")).toBeNull();
+  });
+});
+
+describe("missingQuestions (checkpoint eksik list — applicable and unanswered only)", () => {
+  const gastro = packForDepartment("Gastroenteroloji");
+
+  it("lists the applicable questions without a contentful answer, in pack order", () => {
+    const answers = [
+      { questionId: "complaint", values: ["stomach"] },
+      { questionId: "duration", values: ["week"] },
+      { questionId: "gastro_location", values: [""] },
+    ];
+    expect(missingQuestions(gastro, answers).map((q) => q.id)).toEqual([
+      "gastro_location",
+      "gastro_character",
+      "gastro_meal",
+      "gastro_bowel",
+      "gastro_assoc",
+      "severity",
+      "extra",
+    ]);
+  });
+
+  it("never lists a question whose gate is unmet — skipped is not missing", () => {
+    const answers = [{ questionId: "complaint", values: ["fever"] }];
+    const ids = missingQuestions(gastro, answers).map((q) => q.id);
+    expect(ids).not.toContain("gastro_meal");
+    expect(ids).not.toContain("gastro_bowel");
   });
 });
 

@@ -403,9 +403,29 @@ export const tr = {
   "dialogue.confirm": "Onaylayın",
   "dialogue.speakCorrection": "Düzeltmeyi söyleyin",
   "dialogue.typeThisStep": "Yazarak yanıtlayın",
+  "dialogue.transcribing": "Yazıya dökülüyor…",
+  "dialogue.noteForming": "Not oluşuyor",
+  "dialogue.sectionsLabel": "bölüm",
+  "dialogue.sectionsTitle": "Not bölümleri",
+  "dialogue.sectionEmpty": "Henüz yanıtlanmadı",
+  "dialogue.sheetHint": "Öneriler siz onayladıktan sonra nota eklenir.",
+  "dialogue.close": "Kapatın",
+  "dialogue.send": "Gönderin",
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
   "intake.skip": "Atlayın",
+
+  // INT-236 — Hızlı/Detaylı mod (02 §2), ortam kontrolü (02 §33) ve
+  // "Sıranız geldi" kesme noktası (02 §34).
+  "intake.mode.hastanedeyim": "Hastanedeyim",
+  "intake.mode.detayliOn": "Detaylı mod açık",
+  "intake.privacy.q": "Yanınızda başkası var mı?",
+  "intake.privacy.hint": "Bazı sorular özeldir. Ortam uygun değilse onları sonraya bırakırız.",
+  "intake.privacy.alone": "Hayır, yalnızım",
+  "intake.privacy.notAlone": "Evet, yanımda biri var",
+  "intake.privacy.deferredInfo":
+    "Özel sorular şimdi sorulmayacak. Uygun bir ortamda devam edebilirsiniz.",
+  "intake.queue.called": "Sıranız geldi",
 
   "review.title": "Hekiminize gidecek not",
   "review.intro": "Bölümleri kontrol edin. Neyin paylaşılacağına siz karar verirsiniz.",
@@ -423,6 +443,17 @@ export const tr = {
   "review.send": "Hekiminize gönderin",
   "review.sentInfo": "Notunuz gönderildi. Hekiminiz görüntülediğinde durumu burada görürsünüz.",
   "review.empty": "Henüz yanıt yok. Önce birkaç soruyu yanıtlayın.",
+  // INT-236 — hekime görünen erteleme işareti (02 §33: birebir
+  // "eksik: ortam uygun değildi"), koşul işareti ve kesme noktası özeti.
+  "review.section.deferred": "Ertelenen bölümler",
+  "note.deferred.wellbeing": "İyilik hâli taraması",
+  "note.deferred.marker": "eksik: ortam uygun değildi",
+  "review.hpi.staleCondition": "koşul değişti",
+  "review.eksik.title": "Eksik kalanlar",
+  "review.eksik.intro": "Bu sorular henüz yanıtlanmadı:",
+  "review.resume": "Kaldığınız yerden devam edin",
+  "review.checkpointInfo":
+    "Sıranız geldiği için ara verildi. Not bu haliyle hazır; dilerseniz sonra devam edebilirsiniz.",
 
   "visit.prepare": "Muayeneye hazırlanın",
   "visit.reviewNote": "Notu kontrol edin",

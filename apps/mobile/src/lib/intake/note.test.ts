@@ -148,3 +148,122 @@ describe("attachHealth — device health summary into the note draft (INT-208)",
     expect(ids[ids.length - 1]).toBe("device_health");
   });
 });
+
+// ---- INT-236: Hızlı/Detaylı mode, environment deferral, checkpoint ----------
+
+describe("mode context (02 §2 — Hızlı default, Hastanedeyim sets Detaylı)", () => {
+  it("a fresh note starts in Hızlı with the environment unchecked and nothing deferred", () => {
+    const s = emptyNoteState();
+    expect(s.mode).toBe("hizli");
+    expect(s.privacy).toBe("unchecked");
+    expect(s.deferred).toEqual([]);
+    expect(s.checkpointed).toBe(false);
+  });
+
+  it("the Hastanedeyim switch sets Detaylı and is reversible", () => {
+    const on = noteReducer(emptyNoteState(), { type: "mode", mode: "detayli" });
+    expect(on.mode).toBe("detayli");
+    const off = noteReducer(on, { type: "mode", mode: "hizli" });
+    expect(off.mode).toBe("hizli");
+  });
+
+  it("a sent note is frozen — mode, privacy and checkpoint are no-ops after send", () => {
+    let s = noteReducer(emptyNoteState(), { type: "send" });
+    s = noteReducer(s, { type: "mode", mode: "detayli" });
+    s = noteReducer(s, { type: "privacy", alone: false });
+    s = noteReducer(s, { type: "checkpoint" });
+    expect(s.mode).toBe("hizli");
+    expect(s.privacy).toBe("unchecked");
+    expect(s.deferred).toEqual([]);
+    expect(s.checkpointed).toBe(false);
+  });
+});
+
+describe("environment privacy self-check (02 §33 — deferred, not asked)", () => {
+  const detayli = () => noteReducer(emptyNoteState(), { type: "mode", mode: "detayli" });
+
+  it("alone establishes privacy and defers nothing", () => {
+    const s = noteReducer(detayli(), { type: "privacy", alone: true });
+    expect(s.privacy).toBe("private");
+    expect(s.deferred).toEqual([]);
+  });
+
+  it("someone present defers the wellbeing entry point — today's only deferral consumer", () => {
+    const s = noteReducer(detayli(), { type: "privacy", alone: false });
+    expect(s.privacy).toBe("not_private");
+    expect(s.deferred).toEqual(["wellbeing"]);
+  });
+
+  it("re-establishing privacy lifts the deferral — nothing was asked, nothing is lost", () => {
+    let s = noteReducer(detayli(), { type: "privacy", alone: false });
+    s = noteReducer(s, { type: "privacy", alone: true });
+    expect(s.privacy).toBe("private");
+    expect(s.deferred).toEqual([]);
+  });
+
+  it("the deferral is carried into the note verbatim: eksik: ortam uygun değildi", () => {
+    const sections = buildNote([], account, null, ["wellbeing"]);
+    const deferred = sections.find((s) => s.id === "deferred");
+    expect(deferred).toBeDefined();
+    expect(deferred!.titleKey).toBe("review.section.deferred");
+    expect(deferred!.lines).toEqual(["İyilik hâli taraması — eksik: ortam uygun değildi"]);
+  });
+
+  it("no deferral, no deferred section — and the section always renders last", () => {
+    expect(buildNote([], account, null, []).find((s) => s.id === "deferred")).toBeUndefined();
+    const answers: Answer[] = [{ questionId: "complaint", values: ["pain"] }];
+    const ids = buildNote(answers, account, HEALTH_LINES, ["wellbeing"]).map((s) => s.id);
+    expect(ids[ids.length - 1]).toBe("deferred");
+  });
+
+  it("sentSections carries the deferral by default; scope-off excludes it (patient's call)", () => {
+    let s = noteReducer(detayli(), { type: "privacy", alone: false });
+    expect(sentSections(s, ayse).find((x) => x.id === "deferred")).toBeDefined();
+    s = noteReducer(s, { type: "scope", sectionId: "deferred", shared: false });
+    expect(sentSections(s, ayse).find((x) => x.id === "deferred")).toBeUndefined();
+  });
+});
+
+describe("clinic-interruptible checkpoint (02 §34 — instant, zero lost turns)", () => {
+  it("checkpoint keeps every committed answer and the note stays a draft", () => {
+    let s = emptyNoteState();
+    s = noteReducer(s, { type: "answer", questionId: "complaint", values: ["pain"] });
+    s = noteReducer(s, { type: "answer", questionId: "duration", values: ["days"] });
+    const cp = noteReducer(s, { type: "checkpoint" });
+    expect(cp.answers).toEqual(s.answers);
+    expect(cp.checkpointed).toBe(true);
+    expect(cp.status).toBe("draft");
+  });
+
+  it("resume clears the checkpoint and keeps the answers", () => {
+    let s = noteReducer(emptyNoteState(), {
+      type: "answer",
+      questionId: "complaint",
+      values: ["pain"],
+    });
+    s = noteReducer(s, { type: "checkpoint" });
+    s = noteReducer(s, { type: "resume" });
+    expect(s.checkpointed).toBe(false);
+    expect(s.answers).toEqual([{ questionId: "complaint", values: ["pain"] }]);
+  });
+});
+
+describe("koşul değişti (an edit that unmets a gate keeps the answer, marked)", () => {
+  it("renders the stale answer's line with the marker instead of discarding it", () => {
+    const answers: Answer[] = [
+      { questionId: "complaint", values: ["fever"] },
+      { questionId: "gastro_meal", values: ["after_meal"] },
+    ];
+    const hpi = buildNote(answers, account).find((s) => s.id === "hpi")!;
+    expect(hpi.lines).toContain("Yemekle ilişkisi: Yemekten sonra artıyor (koşul değişti)");
+  });
+
+  it("a met gate renders the plain line, no marker", () => {
+    const answers: Answer[] = [
+      { questionId: "complaint", values: ["stomach"] },
+      { questionId: "gastro_meal", values: ["after_meal"] },
+    ];
+    const hpi = buildNote(answers, account).find((s) => s.id === "hpi")!;
+    expect(hpi.lines).toContain("Yemekle ilişkisi: Yemekten sonra artıyor");
+  });
+});

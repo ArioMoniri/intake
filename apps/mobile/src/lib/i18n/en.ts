@@ -397,9 +397,30 @@ export const en: Record<MessageKey, string> = {
   "dialogue.confirm": "Confirm",
   "dialogue.speakCorrection": "Say the correction",
   "dialogue.typeThisStep": "Answer by typing",
+  "dialogue.transcribing": "Transcribing…",
+  "dialogue.noteForming": "Note taking shape",
+  "dialogue.sectionsLabel": "sections",
+  "dialogue.sectionsTitle": "Note sections",
+  "dialogue.sectionEmpty": "Not answered yet",
+  "dialogue.sheetHint": "Suggestions are added to the note only after you confirm them.",
+  "dialogue.close": "Close",
+  "dialogue.send": "Send",
   "intake.next": "Continue",
   "intake.finish": "See the summary",
   "intake.skip": "Skip",
+
+  // INT-236 — Hızlı/Detaylı mode (02 §2), environment check (02 §33) and
+  // the "your turn" checkpoint (02 §34).
+  "intake.mode.hastanedeyim": "I am at the hospital",
+  "intake.mode.detayliOn": "Detailed mode on",
+  "intake.privacy.q": "Is anyone with you right now?",
+  "intake.privacy.hint":
+    "Some questions are private. If the setting is not suitable, we leave them for later.",
+  "intake.privacy.alone": "No, I am alone",
+  "intake.privacy.notAlone": "Yes, someone is with me",
+  "intake.privacy.deferredInfo":
+    "Private questions will not be asked now. You can continue in a suitable setting.",
+  "intake.queue.called": "It is your turn",
 
   "review.title": "The note going to your doctor",
   "review.intro": "Check the sections. What gets shared is your decision.",
@@ -416,6 +437,17 @@ export const en: Record<MessageKey, string> = {
   "review.send": "Send to your doctor",
   "review.sentInfo": "Your note was sent. You will see the status here once your doctor views it.",
   "review.empty": "No answers yet. Answer a few questions first.",
+  // INT-236 — clinician-visible deferral marker (02 §33), stale-condition
+  // marker and the checkpoint summary.
+  "review.section.deferred": "Deferred sections",
+  "note.deferred.wellbeing": "Wellbeing screening",
+  "note.deferred.marker": "missing: the setting was not suitable",
+  "review.hpi.staleCondition": "condition changed",
+  "review.eksik.title": "Still missing",
+  "review.eksik.intro": "These questions have not been answered yet:",
+  "review.resume": "Continue where you left off",
+  "review.checkpointInfo":
+    "Paused because it was your turn. The note is ready as it is; you can continue later if you wish.",
 
   "visit.prepare": "Prepare for the visit",
   "visit.reviewNote": "Review the note",

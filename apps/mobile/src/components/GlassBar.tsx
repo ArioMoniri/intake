@@ -28,11 +28,20 @@ try {
 /** Scroll-content bottom padding that keeps the last row reachable. */
 export const GLASS_BAR_CLEARANCE = 128;
 
-export function GlassBar({ children }: { children: ReactNode }) {
+interface GlassBarProps {
+  children: ReactNode;
+  /** Default true: pinned to the screen's bottom edge. False lets a host
+   * stack the bar inside its own bottom-pinned cluster (INT-235: the
+   * dialogue's section strip sits on the same glass, above the CTA). */
+  floating?: boolean;
+}
+
+export function GlassBar({ children, floating = true }: GlassBarProps) {
   const theme = useTheme();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const fallback = glassFallback(scheme);
+  const barStyle = floating ? [styles.bar, styles.floating] : [styles.bar];
   // Design pass 4: the bar owns the physical bottom edge (host screens drop
   // the bottom safe edge), so the home-indicator zone is inside the glass.
   const inner = (
@@ -42,13 +51,13 @@ export function GlassBar({ children }: { children: ReactNode }) {
   );
   if (liquidGlass) {
     return (
-      <GlassView glassEffectStyle="regular" style={[styles.bar, { borderTopColor: theme.border }]}>
+      <GlassView glassEffectStyle="regular" style={[...barStyle, { borderTopColor: theme.border }]}>
         {inner}
       </GlassView>
     );
   }
   return (
-    <View style={[styles.bar, { borderTopColor: fallback.borderColor }]}>
+    <View style={[...barStyle, { borderTopColor: fallback.borderColor }]}>
       <BlurView
         intensity={55}
         tint={scheme === "dark" ? "dark" : "light"}
@@ -65,12 +74,14 @@ export function GlassBar({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   bar: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  floating: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
   },
   inner: {
     paddingHorizontal: spacing.screen,
