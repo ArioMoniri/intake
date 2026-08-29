@@ -2629,3 +2629,31 @@
     why no test caught the slot the service actually builds at boot'
   tests:
   - tests/api/test_document_scan_wiring.py
+- id: INT-239
+  epic: E08-mobile
+  phase: P0
+  title: 'Dialogue-only intake with answer-driven dev packs: delete the two-button
+    chooser, branch every department on prior answers'
+  depends_on:
+  - INT-235
+  - INT-236
+  labels:
+  - area:mobile
+  status: todo
+  acceptance:
+  - 'owner directive that it should only be karsilikli konusma and that the same
+    fixed nine questions must stop being asked regardless of answers: the offer
+    screen with two co-equal buttons and the whole one-shot record-transcribe-
+    extract path are deleted rather than hidden, typed intake stays reachable as
+    the accessibility path from the gate, from inside the dialogue, from the
+    composer and on every failure; every department pack gains gated follow-ups
+    in the serializable ask-if shape the DSL uses, with second-level chains where
+    the structure warrants, and a test pins the exact symmetric difference of the
+    asked sets for two divergent first answers in ten departments so a fixed
+    sequence cannot come back unnoticed; one predicate drives typed steps, spoken
+    dialogue and the section panel, only a confirmed answer opens a gate, a
+    suggestion that lands early waits for its gate instead of being dropped, and
+    the progress indicator stops implying a fixed total; every gate needing
+    clinical judgment is refused and listed for pack owners'
+  tests:
+  - apps/mobile/src/lib/intake/questions.test.ts
