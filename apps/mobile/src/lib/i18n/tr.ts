@@ -809,6 +809,38 @@ export const tr = {
   "a11y.companion.speakerHint": "Soruları kimin yanıtladığını seçmek için iki kez dokunun.",
   "a11y.companion.ackHint": "Onayı verip geri almak için iki kez dokunun.",
   "a11y.companion.thirdPartyHint": "Yanınızda biri olduğunu belirtmek için iki kez dokunun.",
+  // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
+  // Patient copy for the confirm / changed / stopped step and the
+  // transparency ledger, plus the markers the note carries. The note markers
+  // say who said what — never what stopping a medication means.
+  "carried.kicker": "Önceki ziyaretten",
+  "carried.title": "Bunlar hâlâ geçerli mi?",
+  "carried.body":
+    "Aşağıdaki bilgiler önceki ziyaretlerinizde kaydedilmişti. Siz yanıtlamadan hiçbiri bu ziyaretin notuna güncel bilgi olarak yazılmaz.",
+  "carried.action.confirm": "Devam ediyorum",
+  "carried.action.changed": "Değişti",
+  "carried.action.stopped": "Bıraktım",
+  "carried.action.undo": "Yanıtı geri alın",
+  "carried.state.unconfirmed": "Henüz yanıtlamadınız",
+  "carried.state.confirmed": "Devam ediyor",
+  "carried.state.changed": "Değişti",
+  "carried.state.stopped": "Bıraktım",
+  "carried.recordedOn": "Kayıt tarihi",
+  "carried.source.confirmed_intake_extraction": "Önceki görüşmenizde kendiniz söylemiştiniz",
+  "carried.source.clinician_accepted_note": "Hekiminizin onayladığı notta yer alıyor",
+  "carried.source.confirmed_imported_record": "Onayladığınız bir belgeden geldi",
+  "carried.empty": "Önceki ziyaretlerden taşınan bir bilgi yok.",
+  "carried.ledger.body":
+    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin bugün de geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
+  "note.fact.previousRecord": "önceki kayıt",
+  "note.fact.unconfirmed": "bu ziyarette onaylanmadı",
+  "note.fact.confirmed.patient": "hasta bu ziyarette devam ettiğini söyledi",
+  "note.fact.confirmed.clinician": "hekim bu ziyarette devam ettiğini kaydetti",
+  "note.fact.changed.patient": "hasta değiştiğini söyledi; yeni bilgi alınmadı",
+  "note.fact.changed.clinician": "hekim değiştiğini kaydetti; yeni bilgi alınmadı",
+  "note.fact.stopped.patient": "hasta bıraktığını söyledi",
+  "note.fact.stopped.clinician": "hekim bırakıldığını kaydetti",
+  "a11y.carried.hint": "Bu bilginin bugün de geçerli olup olmadığını seçmek için iki kez dokunun.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

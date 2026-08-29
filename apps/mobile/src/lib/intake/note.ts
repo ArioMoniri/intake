@@ -13,8 +13,24 @@
  * instantly at the reducer level, zero lost turns). The mechanics mirror
  * what the compiled packs (packages/protocols dsl.py) will drive, so they
  * slot in without UX change.
+ *
+ * INT-247 replaces the account's `medications: string[]` with carried facts
+ * (./carriedFacts). A fact recorded at an earlier visit is not a fact about
+ * this one until the patient or a clinician says so, so the medications
+ * section is built only from a `FactReconciliation` — and a fact the patient
+ * reports having STOPPED prints a line of its own, because to a clinician
+ * that is a different finding from an absent medication.
  */
 import { t, type MessageKey } from "../i18n";
+import {
+  factNoteMarkerKey,
+  formatFactDate,
+  reconcileCarriedFacts,
+  type CarriedFact,
+  type FactDecision,
+  type FactReconciliation,
+  type FactReview,
+} from "./carriedFacts";
 import { allQuestions, askIfMet, optionLabelKey } from "./questions";
 
 export interface Answer {
@@ -62,6 +78,13 @@ export interface NoteState {
   deferred: string[];
   /** "Sıranız geldi" checkpoint flag (02 §34) — instant, resumable. */
   checkpointed: boolean;
+  /**
+   * What the patient (or a clinician) said about each carried fact IN THIS
+   * VISIT, keyed by fact id (INT-247). An id absent from the map is
+   * undecided — which is a state of its own, never a silent yes and never
+   * a silent no (invariant 12).
+   */
+  factReview: Record<string, FactDecision>;
 }
 
 export type NoteAction =
@@ -72,7 +95,9 @@ export type NoteAction =
   | { type: "mode"; mode: IntakeMode }
   | { type: "privacy"; alone: boolean }
   | { type: "checkpoint" }
-  | { type: "resume" };
+  | { type: "resume" }
+  /** Decide a carried fact for this visit; `null` takes the answer back. */
+  | { type: "fact"; factId: string; decision: FactDecision | null };
 
 export function emptyNoteState(): NoteState {
   return {
@@ -84,6 +109,7 @@ export function emptyNoteState(): NoteState {
     privacy: "unchecked",
     deferred: [],
     checkpointed: false,
+    factReview: {},
   };
 }
 
@@ -136,6 +162,19 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
       return state.status === "sent" ? state : { ...state, checkpointed: true };
     case "resume":
       return state.status === "sent" ? state : { ...state, checkpointed: false };
+    case "fact": {
+      // A sent note is frozen — the same rule as attachHealth.
+      if (state.status === "sent") {
+        return state;
+      }
+      const next = { ...state.factReview };
+      if (action.decision === null) {
+        delete next[action.factId];
+      } else {
+        next[action.factId] = action.decision;
+      }
+      return { ...state, factReview: next };
+    }
   }
 }
 
@@ -163,7 +202,47 @@ function hasContent(answer: Answer | undefined): answer is Answer {
 /** The slice of the signed-in account the note needs — both the dev
  * fixtures and real OTP accounts (INT-131) satisfy it. */
 export interface NoteAccount {
-  medications: string[];
+  /**
+   * Facts recorded at earlier visits (INT-247). CARRIED, not current: the
+   * type has no "current medications" to read, so no caller can print one
+   * without going through `reconcileCarriedFacts` and this visit's review.
+   */
+  carriedFacts: readonly CarriedFact[];
+}
+
+/**
+ * The medications section, built only from a `FactReconciliation`. Four line
+ * forms, each carrying who said what and when the fact was first recorded:
+ *
+ *   current      Metoprolol — hasta bu ziyarette devam ettiğini söyledi — …
+ *   conflict     Metoprolol — hasta değiştiğini söyledi; yeni bilgi alınmadı — …
+ *   stopped      Metoprolol — hasta bıraktığını söyledi — önceki kayıt: 12 Mayıs 2026
+ *   unconfirmed  Metoprolol — bu ziyarette onaylanmadı — önceki kayıt: 12 Mayıs 2026
+ *
+ * `stopped` is deliberately a line and not an omission: to a clinician
+ * "absent" and "the patient says they stopped it" are different findings,
+ * and reconciling them is the point of files/04 §2 `meds_allergies`. Same
+ * reason `unconfirmed` is printed rather than dropped — files/04 §5 already
+ * models an unconfirmed history item (`pmh.status`), and hiding an
+ * unreconciled medication would trade one silent error for another.
+ *
+ * One section, not four, because the section id is also the share-scope unit
+ * the patient toggles (02 §5.1) and the server's `SectionId` literal.
+ */
+function medicationLines(reconciliation: FactReconciliation): string[] {
+  const previously = (iso: string) => `${t("note.fact.previousRecord")}: ${formatFactDate(iso)}`;
+  const resolved = [
+    ...reconciliation.current,
+    ...reconciliation.conflicted,
+    ...reconciliation.stopped,
+  ].map(
+    (entry) =>
+      `${entry.fact.text} — ${t(factNoteMarkerKey(entry))} — ${previously(entry.fact.assertedAt)}`,
+  );
+  const open = reconciliation.unconfirmed.map(
+    (fact) => `${fact.text} — ${t("note.fact.unconfirmed")} — ${previously(fact.assertedAt)}`,
+  );
+  return [...resolved, ...open];
 }
 
 export function buildNote(
@@ -171,6 +250,7 @@ export function buildNote(
   account: NoteAccount,
   healthLines?: readonly string[] | null,
   deferred?: readonly string[],
+  factReview?: FactReview,
 ): NoteSection[] {
   const byId = new Map(answers.map((a) => [a.questionId, a]));
   const sections: NoteSection[] = [];
@@ -210,11 +290,14 @@ export function buildNote(
     sections.push({ id: "hpi", titleKey: "review.section.hpi", lines: hpiLines });
   }
 
-  if (account.medications.length > 0) {
+  const medications = medicationLines(
+    reconcileCarriedFacts(account.carriedFacts, factReview ?? {}),
+  );
+  if (medications.length > 0) {
     sections.push({
       id: "medications",
       titleKey: "review.section.medications",
-      lines: [...account.medications],
+      lines: medications,
     });
   }
 
@@ -246,9 +329,13 @@ export function buildNote(
 
 /** What actually goes to the doctor: scope-off sections are excluded. */
 export function sentSections(state: NoteState, account: NoteAccount): NoteSection[] {
-  return buildNote(state.answers, account, state.healthLines, state.deferred).filter(
-    (s) => state.scopes[s.id] !== false,
-  );
+  return buildNote(
+    state.answers,
+    account,
+    state.healthLines,
+    state.deferred,
+    state.factReview,
+  ).filter((s) => state.scopes[s.id] !== false);
 }
 
 /** Display status: a locally sent note wins over the fixture's ladder step. */

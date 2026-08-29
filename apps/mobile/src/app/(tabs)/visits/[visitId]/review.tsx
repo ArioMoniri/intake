@@ -11,6 +11,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { BiometricGate } from "@/components/BiometricGate";
+import { CarriedFactReview } from "@/components/CarriedFacts";
 import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import {
@@ -28,6 +29,7 @@ import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { buildNote } from "@/lib/intake/note";
 import { missingQuestions, packForDepartment } from "@/lib/intake/questions";
+import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -50,6 +52,9 @@ function ReviewAndSend() {
   const headerOptions = useStackHeader();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote, visits } = useSession();
+  // Who is answering the carried-fact question — INT-133's derived
+  // attribution, the same value the note's own provenance uses.
+  const companion = useCompanionOutcome();
   const note = notes[visitId ?? ""];
 
   const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
@@ -73,7 +78,13 @@ function ReviewAndSend() {
     );
   }
 
-  const sections = buildNote(note.answers, account, note.healthLines, note.deferred);
+  const sections = buildNote(
+    note.answers,
+    account,
+    note.healthLines,
+    note.deferred,
+    note.factReview,
+  );
   const sent = note.status === "sent";
   // Eksik list for the checkpointed partial (02 §34): applicable and
   // unanswered only — a gate-skipped question is skipped, not missing.
@@ -223,10 +234,7 @@ function ReviewAndSend() {
                 {section.id === "hpi" && !sent ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={withContext(
-                      t("review.edit"),
-                      t("review.hpi.patientNote"),
-                    )}
+                    accessibilityLabel={withContext(t("review.edit"), t("review.hpi.patientNote"))}
                     hitSlop={verticalSlop(18)}
                     onPress={() =>
                       visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=extra`)
@@ -238,9 +246,23 @@ function ReviewAndSend() {
                   </Pressable>
                 ) : null}
                 {section.id === "medications" ? (
-                  <AppText role="caption" color="inkFaint">
-                    {t("review.medsNote")}
-                  </AppText>
+                  <>
+                    <AppText role="caption" color="inkFaint">
+                      {t("review.medsNote")}
+                    </AppText>
+                    {/* INT-247: the answer that makes a carried fact current
+                        — or records that the patient stopped it. Nothing
+                        here is preselected (invariant 12). */}
+                    <CarriedFactReview
+                      facts={account.carriedFacts}
+                      review={note.factReview}
+                      asserter={{ role: "patient", attribution: companion.attribution }}
+                      disabled={sent}
+                      onDecide={(factId, decision) =>
+                        visitId && updateNote(visitId, { type: "fact", factId, decision })
+                      }
+                    />
+                  </>
                 ) : null}
                 {section.id === "device_health" ? (
                   <AppText role="caption" color="inkFaint">

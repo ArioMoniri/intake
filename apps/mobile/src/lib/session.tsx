@@ -18,6 +18,7 @@ import {
 import type { DeviceIntegrity } from "./auth/integrityState";
 import type { ConsentState, RecordFixture, TestAccount, VisitFixture } from "./dev/accounts";
 import { setLocale, type Locale } from "./i18n";
+import type { CarriedFact } from "./intake/carriedFacts";
 import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
 import { buildLocalVisit, type NewVisitInput } from "./visits";
 
@@ -39,7 +40,13 @@ export interface SessionAccount {
   locale: Locale;
   consents: ConsentState;
   visits: VisitFixture[];
-  medications: string[];
+  /**
+   * Facts carried from earlier visits (INT-247). A real (`otp`) account is
+   * created with none: nothing enters a session that did not come out of
+   * that patient's own confirmed history, and nothing here is current until
+   * the visit's own review says so (invariant 12).
+   */
+  carriedFacts: CarriedFact[];
   records: RecordFixture[];
 }
 
@@ -124,7 +131,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       locale: "tr",
       consents: { ...OTP_ACCOUNT_CONSENTS },
       visits: [],
-      medications: [],
+      carriedFacts: [],
       records: [],
     });
     setConsents({ ...OTP_ACCOUNT_CONSENTS });

@@ -784,4 +784,35 @@ export const en: Record<MessageKey, string> = {
   "a11y.companion.speakerHint": "Double tap to choose who answers the questions.",
   "a11y.companion.ackHint": "Double tap to give or take back the acknowledgement.",
   "a11y.companion.thirdPartyHint": "Double tap to say someone is with you.",
+  // ---- INT-247: facts carried from earlier visits -------------------------
+  // Mirrors the tr block key-for-key (invariant 5; tr is the source of
+  // truth). The note markers report who said what, nothing more.
+  "carried.kicker": "From an earlier visit",
+  "carried.title": "Is this still true?",
+  "carried.body":
+    "The items below were recorded at your earlier visits. None of them goes into this visit's note as current until you answer.",
+  "carried.action.confirm": "Still taking it",
+  "carried.action.changed": "It changed",
+  "carried.action.stopped": "I stopped it",
+  "carried.action.undo": "Take the answer back",
+  "carried.state.unconfirmed": "You have not answered yet",
+  "carried.state.confirmed": "Still taking it",
+  "carried.state.changed": "Changed",
+  "carried.state.stopped": "Stopped",
+  "carried.recordedOn": "Recorded on",
+  "carried.source.confirmed_intake_extraction": "You said so yourself at an earlier session",
+  "carried.source.clinician_accepted_note": "It is in a note your doctor accepted",
+  "carried.source.confirmed_imported_record": "It came from a document you confirmed",
+  "carried.empty": "Nothing has been carried over from earlier visits.",
+  "carried.ledger.body":
+    "Here you can see what has been carried over from your earlier visits and where each item came from. Which of them still holds today is asked at each visit's review step.",
+  "note.fact.previousRecord": "previously recorded",
+  "note.fact.unconfirmed": "not confirmed at this visit",
+  "note.fact.confirmed.patient": "the patient says they are still taking it",
+  "note.fact.confirmed.clinician": "the clinician recorded it as continuing",
+  "note.fact.changed.patient": "the patient says it changed; no new detail taken",
+  "note.fact.changed.clinician": "the clinician recorded a change; no new detail taken",
+  "note.fact.stopped.patient": "the patient says they stopped it",
+  "note.fact.stopped.clinician": "the clinician recorded it as stopped",
+  "a11y.carried.hint": "Double tap to say whether this still holds today.",
 };
