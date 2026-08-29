@@ -2684,3 +2684,31 @@
     clinical judgment is refused and listed for pack owners'
   tests:
   - apps/mobile/src/lib/intake/questions.test.ts
+- id: INT-243
+  epic: E05-voice
+  phase: P0
+  title: 'Serve the intended production TTS tier (VoxCPM2) behind a licence-verified
+    registry row, with the fallback voice kept'
+  depends_on:
+  - INT-237
+  labels:
+  - area:voice
+  sec_row: self-hosting
+  status: todo
+  acceptance:
+  - 'the measurement pass having shown the dev voice band-limited with absent
+    Turkish fricative energy, and a licence audit having read the Apache-2.0 blob
+    from the vendor source repository because the weights repository carries no
+    licence file at all, the intended tier is served on its own port with the
+    fallback left running so a failed rollout costs nothing: the registry row
+    records the pinned model and revision, both weight digests, the licence blob
+    url and digest and the date it was read, and a note stating plainly that the
+    weights repository has no licence file; the licence blob is vendored beside
+    the mirrored weights so the grant travels with the artefact; the built-in text
+    normaliser is proven disabled by a load-time and per-synthesis assertion that
+    fails the request rather than speaking, with a positive control showing what
+    it would otherwise do to a blood pressure; the client takes the lane from
+    configuration with automatic fallback; and the A/B is reported as
+    measurements on a named corpus with a date, never as a quality claim'
+  tests:
+  - tests/observability/test_probe_registry.py
