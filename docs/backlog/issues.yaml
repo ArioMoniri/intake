@@ -2480,7 +2480,23 @@
   title: "Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies"
   depends_on: [INT-015, INT-038]
   labels: [area:research, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-230.md
+  # NOTE 29 Aug 2026 — one deviation, stated rather than papered over. The
+  # acceptance says "anonymisation validated on corpus". Anonymisation is not
+  # what this pipeline can produce: the subject key is a keyed HMAC pseudonym,
+  # re-derivable by whoever holds the tokenization key, so it is personal data
+  # under KVKK and KSVY m.16(1)'s anonymisation route is unavailable. What is
+  # delivered instead, and validated on the INT-015 corpus, is an EXCLUSION
+  # rule — no corpus sentence and no bare corpus identifier can become an
+  # export value — with the artefact named PseudonymisedExtract throughout and
+  # a test forbidding the word "anonym" in any public name. The pipeline rides
+  # files/06 §75's other route ("All research consented (`research`) or
+  # anonymised per KSVY-16"): consent plus a recorded ethics id. Which limb of
+  # m.16 that actually is, is HB-L21 (counsel).
+  # The gate is shipped, tested and FAILING CLOSED: study_registry.yaml holds
+  # zero studies (HB-R1, site HB-L1) and research_extracts retention is
+  # draft_needs_source (HB-I8), so every export refuses today.
   acceptance:
     - "exports only with research consent + ethics id; anonymisation validated on corpus; register of research extracts"
   tests: [tests/research/test_export_gates.py]
@@ -2497,6 +2513,29 @@
     - "pre-registered analysis scripts; blinded exports; reproducible notebooks under tests"
   tests: [tests/research/test_notebooks_run.py]
   legal: "ETİK"
+- id: INT-262
+  epic: E15-research
+  phase: P2
+  title: "Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies)"
+  depends_on: [INT-230]
+  labels: [area:research, risk:legal, approval:human-legal]
+  status: todo
+  # Raised by INT-230, which states the gap in its own evidence rather than
+  # leaving it unrecorded. INT-230's k gate holds for ONE extract: every
+  # quasi-identifier combination carries at least k subjects. It does not
+  # compare a new request against the extracts already in the register, so an
+  # investigator who takes the same spec over 2026-W01..W12 and then over
+  # 2026-W01..W11 differences the two and recovers the twelfth week's cells —
+  # at any k. The register already holds what a gate would need (study, spec,
+  # window, subjects, k, content hash); what it does not hold is the POLICY,
+  # and the honest reason this is a separate issue is that the policy has a
+  # parameter no agent may pick: how much window overlap, and how many
+  # requests, a study may make. That is an ethics-committee decision.
+  acceptance:
+    - "the export gate reads the register for prior extracts of the same study+spec and refuses an overlapping window unless the study's registry row states an explicit query budget; the budget has no default and an absent one fails closed; golden test differences two extracts and proves the second is refused"
+  tests: [tests/research/test_differencing_gate.py]
+  legal: "KVKK-16,KSVY-16,ETİK"
+  sec_row: "learning-loops"
 - id: INT-240
   epic: E16-experience
   phase: P0
