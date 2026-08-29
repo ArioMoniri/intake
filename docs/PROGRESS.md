@@ -518,3 +518,9 @@
 - HB-C12b raised from that work and it is the session's most serious finding: two RED why_tr blocks state something about the PATIENT'S CONDITION ("Anlattığınız belirtiler kalple ilgili olabilir"), against the pack's own header. The paediatric one cannot be served; THE CHEST-PAIN ONE IS FULLY SOURCED AND WOULD COMPILE.
 - Recorded honestly: I broke main earlier this evening by letting a resolution script commit through a failed YAML check, putting conflict markers into the backlog. Repaired, and the practice changed — resolve from git's own conflict list, sweep for markers, validate, and chain with &&.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-246 merged (PR #352): the last of the wave
+- A dead voice lane now announces itself in development instead of degrading silently. Production behaviour is unchanged and pinned: the diagnostic returns nothing for every report shape, so production is the banner having no content rather than a hidden element.
+- `make voice-doctor` answers "is voice up?" in one command, one line per lane, non-zero when a required lane is down — every verdict in its suite taken against a real local socket rather than a mocked error. Its own suite caught it printing "every lane answered" while a lane was refused.
+- This exists because of a real incident: the owner reported the voice interface missing for hours while it was built, merged and running. Two causes stacked — a Metro bundler that had served the previous evening's bundle all day (its file watcher never fires under /private/tmp), and a dead tunnel to the speech server. Both now have standing guards: Metro auto-refreshes on every main change, and the lane probe is one command.
+- LOOP_STATUS: CONTINUE

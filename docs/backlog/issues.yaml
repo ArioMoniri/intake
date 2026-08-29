@@ -2721,7 +2721,7 @@
   - INT-239
   labels:
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'an incident where the owner reported the voice interface missing for hours
     while it was built, merged and running - the cause being a dead tunnel to the
