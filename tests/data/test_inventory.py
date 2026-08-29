@@ -27,6 +27,9 @@ EXPECTED_TABLES = {
     "documents",
     "events",
     "audit_chain",
+    # INT-037 — data-subject rights
+    "dsar_requests",
+    "dsar_rectifications",
 }
 
 
