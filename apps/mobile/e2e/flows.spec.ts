@@ -137,7 +137,7 @@ describe("note builder + reducer (pure)", () => {
 
   it("builds the standardized brief: chief complaint → HPI → carried history", () => {
     const sections = buildNote(answered, ayse);
-    // INT-250: Ayşe carries an allergy as well as a medication, and each
+    // INT-256: Ayşe carries an allergy as well as a medication, and each
     // files under its own files/04 §5 section — never one list of both.
     expect(sections.map((s) => s.id)).toEqual([
       "chief_complaint",

@@ -190,7 +190,7 @@ describe("environment privacy self-check (02 §33 — deferred, not asked)", () 
     expect(s.deferred).toEqual([]);
   });
 
-  it("someone present defers every sensitive section — wellbeing and, since INT-250, family history", () => {
+  it("someone present defers every sensitive section — wellbeing and, since INT-256, family history", () => {
     const s = noteReducer(detayli(), { type: "privacy", alone: false });
     expect(s.privacy).toBe("not_private");
     expect(s.deferred).toEqual(["wellbeing", "family_history"]);

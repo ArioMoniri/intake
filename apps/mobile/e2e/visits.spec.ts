@@ -36,7 +36,7 @@ describe("visit creation runs on the production taxonomy", () => {
   });
 
   it("pack selection stays behind the packForVisit glue", () => {
-    // INT-250: the screen composes the department pack with the universal
+    // INT-256: the screen composes the department pack with the universal
     // history block for this session's profile, so the glue it reaches for
     // is packForVisit — which resolves packForDepartment underneath.
     const intake = read(APP, "(tabs)/visits/[visitId]/intake.tsx");

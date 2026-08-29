@@ -53,7 +53,7 @@ export type CarriedFactSource =
 /**
  * Medications and allergies — two of the `PatientOverlay` categories
  * files/09 §3 names ("medication list and adherence pattern, allergies").
- * `allergy` joined in INT-250 on exactly the condition this comment already
+ * `allergy` joined in INT-256 on exactly the condition this comment already
  * set: its note section (files/04 §5 `PreVisitNote.allergies[]`) now exists.
  * Conditions and baselines join the same way when theirs do.
  */
@@ -184,7 +184,7 @@ const SOURCE_KEY: Record<CarriedFactSource, MessageKey> = {
 export const FACT_OUTCOMES: readonly FactOutcome[] = ["confirmed", "changed", "stopped"];
 
 /**
- * INT-250 makes the three lookups KIND-AWARE, because the medication copy is
+ * INT-256 makes the three lookups KIND-AWARE, because the medication copy is
  * not reusable as allergy copy: a patient does not "stop" an allergy, and a
  * note line reading "hasta bıraktığını söyledi" against a penicillin allergy
  * would be a false clinical statement, not an awkward one. Same three

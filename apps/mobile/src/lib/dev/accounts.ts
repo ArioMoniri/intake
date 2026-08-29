@@ -110,7 +110,7 @@ export const testAccounts: readonly TestAccount[] = [
         assertedAt: "2026-05-12",
         sourceVisitId: "v-ayse-0",
       },
-      // INT-250: the same shape for the other carried category files/09 §3
+      // INT-256: the same shape for the other carried category files/09 §3
       // names. An allergy carried out of an earlier visit is not an allergy
       // of THIS one until Ayşe says so, and the note says as much until she
       // does — the medication bug, one section over.

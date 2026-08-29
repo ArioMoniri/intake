@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**203 issues.** By phase: P0 117 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 75 · todo 118 · withdrawn 1.
+**204 issues.** By phase: P0 117 · P1 47 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 75 · todo 119 · withdrawn 1.
 
 ## P0
 
@@ -179,6 +179,7 @@
 | INT-242 | NPS scheduling + clinician pulse survey cadence | E16-experience | INT-240 | area:experience | done |
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
+| INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | todo |
 
 ## P2
 

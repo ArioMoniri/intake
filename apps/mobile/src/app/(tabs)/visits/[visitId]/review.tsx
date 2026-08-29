@@ -48,7 +48,7 @@ export default function ReviewAndSendGated() {
 const FLOW_EDGES = ["left", "right"] as const;
 
 /**
- * Which carried-fact kind each note section reviews (INT-250). A section not
+ * Which carried-fact kind each note section reviews (INT-256). A section not
  * listed here shows no review block at all, so a fact can never be answered
  * under the wrong heading.
  */
@@ -102,7 +102,7 @@ function ReviewAndSend() {
   const visit = visits.find((v) => v.id === visitId);
   const missing = checkpointed
     ? missingQuestions(
-        // The same pack the flow ran (INT-250): a question this session's
+        // The same pack the flow ran (INT-256): a question this session's
         // mode never asks, or one the environment deferred, is not `eksik` —
         // the deferral has its own marker section and says why.
         packForVisit(visit?.department, { mode: note.mode, deferred: note.deferred }),
@@ -269,7 +269,7 @@ function ReviewAndSend() {
                 ) : null}
                 {/* INT-247: the answer that makes a carried fact current —
                     or records that the patient retracted it. Nothing here is
-                    preselected (invariant 12). INT-250 files each kind under
+                    preselected (invariant 12). INT-256 files each kind under
                     its own section, so an allergy is never reviewed inside
                     the medication list. */}
                 {CARRIED_IN_SECTION[section.id] === undefined ? null : (

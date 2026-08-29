@@ -117,7 +117,7 @@ export function CarriedFactReview({
             </AppText>
             <Provenance fact={fact} />
             <View style={styles.chipRow}>
-              {/* INT-250: the answer words follow the fact's KIND — an
+              {/* INT-256: the answer words follow the fact's KIND — an
                   allergy is not "stopped", it is either there or it is not. */}
               {FACT_OUTCOMES.map((outcome) => (
                 <Chip

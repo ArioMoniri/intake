@@ -47,7 +47,7 @@
  * (lib/dialogue/stream.ts) and the realtime section panel all gate through
  * them, so the flow length is decided by the answers in every surface.
  *
- * INT-250 adds the UNIVERSAL history block — 04 §1 rows 5 and 6,
+ * INT-256 adds the UNIVERSAL history block — 04 §1 rows 5 and 6,
  * `meds_allergies` and `pmh_fh_sh`: allergies, medications, past medical
  * history, family history. It is COMPOSED onto a department pack by
  * `packForVisit`, never copied into the ten arrays, because that is what the
@@ -59,7 +59,7 @@
  * carries a threshold; the answers are recorded and rendered and nothing is
  * concluded from them. The guideline-grounded, department-specific content
  * is INT-043 → INT-044..051 and is awaiting a physician (HB-C1). What was
- * deliberately NOT authored is listed in docs/evidence/INT-250.md.
+ * deliberately NOT authored is listed in docs/evidence/INT-256.md.
  */
 import type { MessageKey } from "../i18n";
 
@@ -110,7 +110,7 @@ export type IntakeMode = "hizli" | "detayli";
 
 /**
  * A unit the 02 §33 environment self-check may push to a home session.
- * `wellbeing` is INT-236's; `family_history` is INT-250's second consumer —
+ * `wellbeing` is INT-236's; `family_history` is INT-256's second consumer —
  * family history is a disclosure about people who are not in the room, and
  * 02 §33's rule is that a sensitive section is deferred, never asked more
  * quietly.
@@ -1258,7 +1258,7 @@ const gastro: IntakeQuestion[] = [
   extra,
 ];
 
-// ---- the universal history block (INT-250) ----------------------------------
+// ---- the universal history block (INT-256) ----------------------------------
 //
 // 04 §1 rows 5 and 6, authored once and inherited by every branch the way
 // base.intake is (03 §6). Wording follows base/intake.yaml's own `ask_tr` and
@@ -1641,7 +1641,7 @@ export function packForDepartment(department: string | undefined): IntakeQuestio
 }
 
 /**
- * The universal block narrowed to one session profile (INT-250). Two filters,
+ * The universal block narrowed to one session profile (INT-256). Two filters,
  * both session-constant:
  *
  * - `modes` — 02 §2. A question with no `modes` is asked in both; the

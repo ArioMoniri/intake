@@ -24,7 +24,7 @@ export default function Today() {
   const { visits, notes } = useSession();
 
   const next = visits.find((v) => v.noteStatus === "draft" || v.noteStatus === null) ?? null;
-  // The same pack the flow runs (INT-250), so the ring's denominator counts
+  // The same pack the flow runs (INT-256), so the ring's denominator counts
   // the universal history the patient will actually be asked, in their mode.
   const pack = next
     ? packForVisit(next.department, {

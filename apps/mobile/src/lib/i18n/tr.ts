@@ -856,7 +856,7 @@ export const tr = {
   "note.fact.stopped.patient": "hasta bıraktığını söyledi",
   "note.fact.stopped.clinician": "hekim bırakıldığını kaydetti",
   "a11y.carried.hint": "Bu bilginin bugün de geçerli olup olmadığını seçmek için iki kez dokunun.",
-  // ---- INT-250: her ön görüşmede sorulan geçmiş bilgileri ------------------
+  // ---- INT-256: her ön görüşmede sorulan geçmiş bilgileri ------------------
   // 04 §1 satır 5–6 (`meds_allergies`, `pmh_fh_sh`). Soru metinleri
   // packages/protocols/base/intake.yaml içindeki `ask_tr`/`follow_up_tr`
   // ifadelerini izler. Hiçbiri bir şiddet derecesi sormaz, hiçbiri bir

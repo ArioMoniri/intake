@@ -826,7 +826,7 @@ export const en: Record<MessageKey, string> = {
   "note.fact.stopped.patient": "the patient says they stopped it",
   "note.fact.stopped.clinician": "the clinician recorded it as stopped",
   "a11y.carried.hint": "Double tap to say whether this still holds today.",
-  // ---- INT-250: the universal history every intake asks -------------------
+  // ---- INT-256: the universal history every intake asks -------------------
   // Mirrors the tr block key-for-key (invariant 5; tr is the source of
   // truth). Nothing here grades a reaction or concludes anything from an
   // answer — the questions record, and the note renders what was recorded.

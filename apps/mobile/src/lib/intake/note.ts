@@ -21,7 +21,7 @@
  * reports having STOPPED prints a line of its own, because to a clinician
  * that is a different finding from an absent medication.
  *
- * INT-250 adds the three universal history sections. Their ids are the
+ * INT-256 adds the three universal history sections. Their ids are the
  * `PreVisitNote` field names of files/04 §5 — `pmh`, `allergies`,
  * `family_social` — which are what `packages/clinical-schemas`
  * `NOTE_SECTION_IDS` and the composition mapper already key on, so no
@@ -57,7 +57,7 @@ export interface Answer {
 
 /**
  * 02 §2: Hızlı (pre-hospital, default) vs Detaylı (in-hospital). Defined in
- * ./questions since INT-250, because the pack layer is what the mode selects
+ * ./questions since INT-256, because the pack layer is what the mode selects
  * a profile from; re-exported here so every existing importer is unchanged.
  */
 export type { IntakeMode };
@@ -67,7 +67,7 @@ export type PrivacyState = "unchecked" | "private" | "not_private";
 
 /**
  * The wellbeing entry point — INT-236's deferral consumer, and the first of
- * two since INT-250 added family history (./questions
+ * two since INT-256 added family history (./questions
  * `FAMILY_HISTORY_DEFERRAL`). The wellbeing instruments are a separate,
  * licence-BLOCKED surface (HB-L2/HB-L3), so this id defers an entry point
  * rather than a set of pack questions; family history defers actual
@@ -187,7 +187,7 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
       }
       // Third party present (02 §33): sensitive sections are DEFERRED —
       // not asked quieter, not asked in text, not asked at all here.
-      // INT-250: family history joins wellbeing, because it is a disclosure
+      // INT-256: family history joins wellbeing, because it is a disclosure
       // about people who are not in the room to consent to it.
       return {
         ...state,
@@ -269,7 +269,7 @@ export interface NoteAccount {
  * models an unconfirmed history item (`pmh.status`), and hiding an
  * unreconciled medication would trade one silent error for another.
  *
- * INT-250: the same four forms serve allergies, in allergy words — the
+ * INT-256: the same four forms serve allergies, in allergy words — the
  * marker key is chosen from `fact.kind` inside `factNoteMarkerKey`, so this
  * builder never has to know which kind it is rendering.
  */
@@ -416,7 +416,7 @@ export function buildNote(
     });
   }
 
-  // Environment deferral (02 §33, INT-236, second consumer in INT-250): the
+  // Environment deferral (02 §33, INT-236, second consumer in INT-256): the
   // clinician-visible marker is the verbatim `eksik: ortam uygun değildi`,
   // the same for every deferred unit — the note says WHAT is missing and
   // WHY the setting was wrong, never a reason invented per section. Always

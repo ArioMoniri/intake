@@ -111,7 +111,7 @@ describe("catalogue keys for the ledger", () => {
     expect(factStateKey("medication", decide("stopped"))).toBe("carried.state.stopped");
   });
 
-  // INT-250: the same three outcomes, in the words that kind of fact takes.
+  // INT-256: the same three outcomes, in the words that kind of fact takes.
   it("an allergy takes allergy words — nothing about it is 'stopped'", () => {
     expect(factStateKey("allergy", undefined)).toBe("carried.state.unconfirmed");
     expect(factStateKey("allergy", decide("stopped"))).toBe("carried.state.allergy.stopped");

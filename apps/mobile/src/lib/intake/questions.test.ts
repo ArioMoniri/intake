@@ -207,7 +207,7 @@ describe("askIf gates (INT-236/239 — serializable data, mirroring dsl.py ask_i
       questionId: "gastro_bowel",
       includesAny: ["constipation", "diarrhea", "alternating"],
     },
-    // INT-250 — the universal history block. Same rule, one section over: a
+    // INT-256 — the universal history block. Same rule, one section over: a
     // gate here only ever asks for a further detail of something the patient
     // has already said they have. None of them reads the chief complaint,
     // none crosses a section boundary, and none encodes a clinical meaning.

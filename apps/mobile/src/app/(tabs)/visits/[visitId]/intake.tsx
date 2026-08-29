@@ -79,7 +79,7 @@ export default function TypedIntake() {
   const note = notes[visitId ?? ""];
   const visit = visits.find((v) => v.id === visitId);
   // The pack a visit runs = the department's dimensions + the universal
-  // history block, narrowed to this session's profile (INT-250): Hızlı asks
+  // history block, narrowed to this session's profile (INT-256): Hızlı asks
   // meds/allergies, Detaylı adds the PMH/FH deltas, and a section the 02 §33
   // self-check deferred is absent rather than asked quietly.
   const intakeQuestions = packForVisit(visit?.department, {
@@ -331,7 +331,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   }
 
   const floatingCta = question.kind !== "single";
-  // INT-250: the text CTA used to read "Bitir" unconditionally, which was
+  // INT-256: the text CTA used to read "Bitir" unconditionally, which was
   // true only while `extra` was the one text step in the pack. The universal
   // history block adds free-text steps mid-flow, so the label now follows
   // the flow: "Bitir" when this is the last applicable question (or an edit
