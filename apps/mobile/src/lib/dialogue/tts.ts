@@ -15,7 +15,15 @@
  * delete-after-upload posture in lib/voice.ts untouched. The expo-bound
  * filesystem and host probing live in clips.ts; everything here is pure and
  * node-testable.
+ *
+ * INT-237: a clip is synthesized one SENTENCE per request and assembled
+ * here, because the daemon gives every clause boundary the same fixed gap
+ * and cannot express a sentence break. `synthesizeClip` is the entry point
+ * the clip store uses; `synthesizeWav` remains the single-request
+ * primitive. See speechShaping.ts for the shaping contract and
+ * docs/evidence/INT-237.md for the measurements.
  */
+import { assembleClip, shapeForSpeech } from "./speechShaping";
 
 export const TTS_PORT = 8803;
 
@@ -107,6 +115,42 @@ export async function synthesizeWav(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Synthesizes one clip: the text is shaped into sentences, each sentence is
+ * synthesized on its own, and the pieces are trimmed, faded and joined with
+ * the shaped inter-sentence gaps (INT-237).
+ *
+ * Invariant 10 holds because shaping is punctuation-neutral on words — the
+ * chunks are exact substrings of the input in order — and invariant 22
+ * holds because the whole text is guarded here and each chunk is guarded
+ * again inside `synthesizeWav`.
+ */
+export async function synthesizeClip(
+  base: string,
+  text: string,
+  options: SynthesizeOptions = {},
+): Promise<Uint8Array> {
+  assertSpeakableTr(text);
+  const chunks = shapeForSpeech(text);
+  if (chunks.length === 0) {
+    throw new Error("tts_empty_text");
+  }
+  if (chunks.length === 1) {
+    // one sentence: nothing to join, but still trim and fade the edges
+    return assembleClip([await synthesizeWav(base, chunks[0].spoken, options)], [0]);
+  }
+  // sequential, not parallel: the daemon synthesizes under a single lock,
+  // so concurrent requests would queue anyway and only cost us timeouts.
+  const parts: Uint8Array[] = [];
+  for (const chunk of chunks) {
+    parts.push(await synthesizeWav(base, chunk.spoken, options));
+  }
+  return assembleClip(
+    parts,
+    chunks.map((chunk) => chunk.gapMs),
+  );
 }
 
 /** The slice of a filesystem the clip store needs — expo-bound in clips.ts. */

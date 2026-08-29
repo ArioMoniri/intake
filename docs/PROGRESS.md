@@ -398,3 +398,10 @@
 - Two judgement calls: the microphone purpose string claimed the app records what you say ("kaydetmek"/"to record") and was corrected in both locales — the product never records (invariant 3), and a store purpose string promising a recording we do not make is the wrong kind of inaccurate. And the vendor's usual webrtc config plugin was refused because it declares CAMERA (no video path) and the iOS background-audio mode, which would let capture continue behind a backgrounded medical app; plugins/withVoiceAudio.js does audio-only and strips both.
 - Not worked around: mint_room_token still has no HTTP route, so a session refuses to start with token_unavailable rather than using a stubbed or locally synthesised JWT. Turn-taking events stay unmapped (INT-091/092 own that wire protocol).
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-237 merged (PR #313)
+- Owner complaint "tts is so awkward" answered with measurement before change. Sixteen probes established the dev voice is band-limited to 3040-3445 Hz across ALL of them — a 405 Hz spread from one-word to 153-character utterances, so Turkish ş/s/ç/z/f fricative energy is absent — and that its duration head allocates erratically (two 31/33-char strings 1.9x apart in rate).
+- The safety finding: the three RED imperatives sent as one string ran at 15.38 c/s against 6.4-8.8 c/s separately — the same words 2.4x faster, 90 ms apart, on an emergency script. Now 6.87 c/s at 320 ms apart.
+- Client-seam shaping: sentence-boundary splitting with verbatim preservation test-pinned (invariant 10), guaranteed terminal punctuation, 15 ms head/tail trim with an 8 ms fade, consistent 300-320 ms boundaries; median cost +0.21 s/turn. Rate is NOT improved and one composed question got worse — kept in the evidence as the counter-example rather than dropped.
+- Verdict recorded: the band limit and the duration head are architectural properties of the pinned artefact and unreachable from any client seam. That artefact is 03 §4.9.1 row 12, the fallback — not the production tier. INT-243 acts on it.
+- LOOP_STATUS: CONTINUE

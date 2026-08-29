@@ -19,12 +19,14 @@
 import * as FileSystem from "expo-file-system/legacy";
 
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
-import { createClipStore, synthesizeWav, type ClipFs, type ClipStore } from "./tts";
+import { createClipStore, synthesizeClip, type ClipFs, type ClipStore } from "./tts";
 import { resolveTtsLane, type TtsLaneBase } from "./ttsLane";
 
 /**
  * First lane in the ladder whose /health answers — VoxCPM2 (8805) before
- * Freya (8803); null when the whole ladder is down.
+ * Freya (8803); null when the whole ladder is down. INT-243 chose the lane;
+ * INT-237's synthesizeClip shapes what is sent to whichever lane answers, so
+ * the two compose rather than compete.
  */
 export async function reachableTtsLane(): Promise<TtsLaneBase | null> {
   return resolveTtsLane(configuredTtsLaneCandidates());
@@ -59,7 +61,9 @@ const expoClipFs: ClipFs = {
 
 /** Session clip store bound to the probed base and the app cache dir. */
 export function dialogueClipStore(base: string): ClipStore {
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) => synthesizeWav(base, text));
+  // INT-237: synthesizeClip, not synthesizeWav — one request per sentence,
+  // trimmed, faded and joined with a real sentence gap.
+  return createClipStore(dialogueClipDir(), expoClipFs, (text) => synthesizeClip(base, text));
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */
