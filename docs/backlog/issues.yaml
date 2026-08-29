@@ -882,7 +882,7 @@
   title: "Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player"
   depends_on: [INT-060, INT-090]
   labels: [area:voice, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "exactly protocol_next, submit_utterance, cancel_work, request_repeat_or_clarify, patient_memory, respond_permission; adding a seventh fails introspection; PolicyGuard <=20ms per sentence"
   tests: [tests/voice/test_six_tools.py, tests/voice/test_policyguard_latency.py]
