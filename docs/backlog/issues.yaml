@@ -1287,7 +1287,7 @@
   title: "Profiles, companions, guardian flows (minors), proxy acknowledgement"
   depends_on: [INT-131, INT-223]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "under-18 only via guardian account with guardian consent; adolescent private-section policy implemented per 06 §6; proxy-reported flag on every record"
   tests: [apps/mobile/e2e/guardian.spec.ts]

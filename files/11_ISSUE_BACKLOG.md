@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 63 · todo 126 · withdrawn 1.
+**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 64 · todo 125 · withdrawn 1.
 
 ## P0
 
@@ -82,7 +82,7 @@
 | INT-130 | Expo app shell: SDK 57 dev build, navigation map per 02, i18n tr-first, theme, a11y base | E08-mobile | INT-001 | area:mobile | done |
 | INT-131 | Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE | E08-mobile | INT-130, INT-012, INT-013 | area:mobile, risk:security | done |
 | INT-132 | Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what | E08-mobile | INT-038, INT-130 | area:mobile, risk:legal, approval:human-legal | done |
-| INT-133 | Profiles, companions, guardian flows (minors), proxy acknowledgement | E08-mobile | INT-131, INT-223 | area:mobile, risk:legal | todo |
+| INT-133 | Profiles, companions, guardian flows (minors), proxy acknowledgement | E08-mobile | INT-131, INT-223 | area:mobile, risk:legal | done |
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
 | INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | todo |
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | todo |

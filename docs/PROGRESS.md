@@ -466,3 +466,10 @@
 - No dependency added: deny-by-default and "replay unreachable rather than unconfigured" ruled a vendor SDK out. No metric promoted — all four ids stay planned because an RN client serves no /metrics. No default endpoint; nothing buffers to disk.
 - Finding: the repo has no third-party npm licence sink at all; licence_verified_at exists only in the model registry.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-133 merged (PR #331)
+- Profiles, companions and guardian flows on INT-223's rules engine. NO UNDER-18 IS SERVED BY ANY PATH: under-12 and 12-17 refuse with guardian_consent_required, a self-declared DOB refuses, a non-TR subject refuses, and the guardian sees nothing of an adolescent-private section without a recorded clinic policy. Each refusal records which HB-L20 question gates it — SERVER-SIDE ONLY, because a body or a screen printing "adolescent_self_consent" would itself disclose the subject's age band.
+- All four INT-223 refusals hold under test, including a sweep of every role x speaker x acknowledgement for a 14-year-old and an inspection proving no emancipation affordance exists anywhere in src/.
+- No new personal-data category: the attribution facts already existed on ScreeningProvenance and already exported to FHIR, lifted to the session so one flag cannot drift into three. Nothing identifies the companion.
+- Honest omission: no metric emitted, because the catalogue names no id for the proxy-reported share and invariant 13 forbids emitting what the catalogue does not hold.
+- LOOP_STATUS: CONTINUE
