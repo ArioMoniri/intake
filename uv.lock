@@ -15,6 +15,7 @@ members = [
     "intake",
     "intake-api",
     "intake-clinical-schemas",
+    "intake-metrics",
     "intake-platform",
     "intake-probes",
     "intake-protocols",
@@ -789,6 +790,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "intake-api" },
     { name = "intake-clinical-schemas" },
+    { name = "intake-metrics" },
     { name = "intake-platform", extra = ["ner"] },
     { name = "intake-probes" },
     { name = "intake-protocols" },
@@ -817,6 +819,7 @@ dev = [
 requires-dist = [
     { name = "intake-api", editable = "services/api" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-metrics", editable = "services/metrics" },
     { name = "intake-platform", extras = ["ner"], editable = "packages/intake_platform" },
     { name = "intake-probes", editable = "services/probes" },
     { name = "intake-protocols", editable = "packages/protocols" },
@@ -874,6 +877,29 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2.8" }]
+
+[[package]]
+name = "intake-metrics"
+version = "0.1.0"
+source = { editable = "services/metrics" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "intake-clinical-schemas" },
+    { name = "intake-platform" },
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "prometheus-client", specifier = ">=0.20" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
+]
 
 [[package]]
 name = "intake-platform"

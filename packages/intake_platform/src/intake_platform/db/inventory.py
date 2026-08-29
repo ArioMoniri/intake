@@ -102,6 +102,15 @@ RET_DSAR = (
     "10 years (06 §3), which also carries the DEST-2017 ≥ 3-year floor for the "
     "destruction records among them (06 §1 KVKK-7)"
 )
+# INT-240: files/06 §3 "Satisfaction: with account." — an EVENT-based clock
+# rather than a duration: the row becomes due the moment the account is deleted
+# and not before (retention/retention_policy.yaml data_class `satisfaction`,
+# status: sourced, dsar_erasable: true). No survey cadence, sampling rate or
+# window is invented here; the blueprint states none and this issue asks for none.
+RET_SATISFACTION = (
+    "with account: due the moment the account is deleted, never before; "
+    "DSAR-erasable (06 §3 satisfaction row)"
+)
 # INT-223: files/06 §3 has no row for guardian linkage, and inventing one
 # would be inventing a retention clock. The gate stays shut instead.
 RET_AWAITING_HUMAN_GUARDIAN = (

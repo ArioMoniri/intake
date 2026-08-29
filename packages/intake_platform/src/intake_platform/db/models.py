@@ -67,6 +67,7 @@ from intake_platform.db.inventory import (
     RET_EVENTS,
     RET_NOTIFICATION_PREFERENCE,
     RET_RECORD,
+    RET_SATISFACTION,
     RET_SHARE,
     RET_TENANT,
     inv,
@@ -1195,3 +1196,77 @@ class NotificationPreference(Base):
             REC_INTERNAL,
         ),
     )
+
+
+class CsatText(Base):
+    """INT-240 — the optional free text on a ``csat.v1`` response.
+
+    Why it is not a column on ``events``: satisfaction feedback is written by
+    the patient, so it WILL carry symptoms and names, and ``events.payload`` is
+    declared id-shaped and PHI-free because the rollups and the console read it
+    (invariant 6; threat row `experience` threat [I]). Splitting the sentence
+    out keeps that declaration true instead of quietly weakening it — the
+    scores stay analysable and the words stay behind an envelope.
+
+    Storage is the clinical regime: field-level envelope encryption, never
+    plaintext at rest (invariant 14), exactly like ``notes.payload`` and
+    ``dsar_rectifications.payload``.
+
+    Destruction needs no new sweeper, which is the point of both foreign keys
+    being ``ON DELETE CASCADE``:
+
+    - **session** — a KVKK m.7/m.11 erasure deletes the subject's sessions
+      (``intake_api.dsar.shred``), so the words go with them;
+    - **event** — the files/06 §3 ``satisfaction`` class ("with account")
+      destroys the event rows (``retention.executors.destroy_events``), so the
+      words go with those too.
+
+    A third sweeper could fall out of step with the two that already exist; a
+    foreign key cannot.
+    """
+
+    __tablename__ = "csat_texts"
+
+    id: Mapped[uuid.UUID] = _uuid_pk("csat free-text row key", RET_SATISFACTION)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_SATISFACTION)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the session the response rates; the FK cascade is what makes a "
+            "DSAR erasure reach the text (invariant 4)",
+            BASIS_CONTRACT,
+            RET_SATISFACTION,
+            REC_INTERNAL,
+        ),
+    )
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("events.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the csat.v1 event row this text belongs to; the FK cascade is "
+            "what makes the 06 §3 satisfaction clock reach the text",
+            BASIS_CONTRACT,
+            RET_SATISFACTION,
+            REC_INTERNAL,
+        ),
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the patient's satisfaction comment in their own words as "
+            "EncryptedField JSON (field-level envelope encryption; never "
+            "plaintext at rest). Health data whatever the survey calls it: "
+            "free text about a visit carries symptoms",
+            BASIS_HEALTH_CONSENT,
+            RET_SATISFACTION,
+            REC_INTERNAL,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_SATISFACTION)
