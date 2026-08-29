@@ -190,10 +190,10 @@ describe("environment privacy self-check (02 §33 — deferred, not asked)", () 
     expect(s.deferred).toEqual([]);
   });
 
-  it("someone present defers the wellbeing entry point — today's only deferral consumer", () => {
+  it("someone present defers every sensitive section — wellbeing and, since INT-256, family history", () => {
     const s = noteReducer(detayli(), { type: "privacy", alone: false });
     expect(s.privacy).toBe("not_private");
-    expect(s.deferred).toEqual(["wellbeing"]);
+    expect(s.deferred).toEqual(["wellbeing", "family_history"]);
   });
 
   it("re-establishing privacy lifts the deferral — nothing was asked, nothing is lost", () => {

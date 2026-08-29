@@ -570,3 +570,153 @@ def test_registry_len_counts_packs(tmp_path: Path) -> None:
     assert len(registry) == 0
     registry.add(load_pack(path))
     assert len(registry) == 1
+
+
+# ---------------------------------------------------------------------------
+# INT-254 — the four schema gaps between RedFlagRule and the life-threat
+# exemplars in files/protocols/base.life_threat.yaml.
+# ---------------------------------------------------------------------------
+
+# Anchors the `when` tokenizer accepts as ONE ident, so the DSL must accept
+# them as a tense_anchor: files/12 §2.4 unions the anchor into the predicate's
+# reference set (protocols/triage/engine.py) and TriageContext.answers is
+# keyed "by the dotted slot reference exactly as the when predicate spells it".
+REFERENCE_ANCHORS = (
+    "olay_zamani",
+    "sikayet_suresi",
+    "chest_pain.onset_at",
+    "airway.onset_at",
+    "transcript.utterance_at",
+    "a.b.c",
+)
+
+# Spellings that are NOT a single reference. Widening tense_anchor must not
+# widen it past the grammar: each of these is either a different token
+# sequence or no token at all.
+NON_REFERENCE_ANCHORS = (
+    "Chest_pain.onset_at",
+    "chest_pain.Onset_at",
+    "chest_pain.",
+    ".onset_at",
+    "chest_pain..onset_at",
+    "_onset_at",
+    "9onset",
+    "chest pain.onset_at",
+    "chest_pain.onset_at ",
+    "",
+)
+
+
+@pytest.mark.parametrize("anchor", REFERENCE_ANCHORS)
+def test_tense_anchor_accepts_a_section_qualified_reference(anchor: str) -> None:
+    """Gap 1: every exemplar in files/protocols/base.life_threat.yaml writes a
+    dotted `<section>.<slot>` anchor. A bare-key constraint makes them
+    unrepresentable, and the only ways out are dropping the section (two
+    sections may both carry `onset_at`) or a `__` rewrite — both of which
+    put the anchor in a different namespace from the predicate it is unioned
+    with."""
+    from protocols import RedFlagRule
+
+    rule = RedFlagRule.model_validate(_rule_payload(tense_anchor=anchor))
+    assert rule.tense_anchor == anchor
+
+
+@pytest.mark.parametrize("anchor", NON_REFERENCE_ANCHORS)
+def test_tense_anchor_rejects_a_non_reference(anchor: str) -> None:
+    from protocols import RedFlagRule
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        RedFlagRule.model_validate(_rule_payload(tense_anchor=anchor))
+
+
+def test_tense_anchor_and_the_when_grammar_share_one_reference_pattern() -> None:
+    """The anchor and the predicate's references are the same namespace by
+    construction — engine.py unions them. Two patterns would let them drift,
+    so there is one, and this asserts the tokenizer really uses it."""
+    import re
+
+    from protocols.triage.expr import _TOKEN_RE
+    from protocols.types import SLOT_REF_PATTERN
+
+    assert f"(?P<ident>{SLOT_REF_PATTERN})" in _TOKEN_RE.pattern
+    anchored = re.compile(f"^{SLOT_REF_PATTERN}$")
+    for anchor in REFERENCE_ANCHORS:
+        assert anchored.match(anchor), anchor
+    for anchor in NON_REFERENCE_ANCHORS:
+        assert anchored.match(anchor) is None, anchor
+
+
+def test_rule_status_stays_required_with_no_default() -> None:
+    """Gap 2: the two sourced exemplars omit `status`, and the tempting fix is
+    a default of `active`. That makes a FORGOTTEN status read active — the
+    unsafe direction, and exactly the "chosen once, by an engineer, for every
+    future rule" failure CLAUDE.md invariant 17 and files/02 §5.3 name. The
+    exemplars carry the value instead."""
+    from protocols import RedFlagRule
+    from pydantic import ValidationError
+
+    assert RedFlagRule.model_fields["status"].is_required()
+    payload = _rule_payload()
+    del payload["status"]
+    with pytest.raises(ValidationError, match="status"):
+        RedFlagRule.model_validate(payload)
+
+
+def test_source_block_carries_an_optional_note() -> None:
+    """Gap 3: exemplar 1's evidence block carries a `note:` recording why the
+    EK-4 chest-pain split is three sibling rules and naming the CI gate that
+    asserts the third arm. It is provenance commentary, absent by default."""
+    from protocols import RedFlagRule
+
+    assert RedFlagRule.model_validate(_rule_payload()).source is not None
+    assert RedFlagRule.model_validate(_rule_payload()).source.note is None
+    payload = _rule_payload()
+    source = payload["source"]
+    assert isinstance(source, dict)
+    source["note"] = "EK-4 bu tabloyu üç kola ayırır; bu kural o kollardan biridir."
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.source is not None
+    assert rule.source.note is not None
+
+
+def test_location_action_carries_an_optional_secondary() -> None:
+    """Gap 4: exemplar 1's REMOTE action is `primary: CALL_112` with
+    `secondary: NEAREST_ACIL_ADDRESS_AS_TEXT`. Folding it into `primary`
+    would make one field mean two actions."""
+    from protocols import RedFlagRule
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    assert RedFlagRule.model_validate(payload).action.remote.secondary is None
+    action["REMOTE"] = _location(
+        primary="CALL_112",
+        secondary="NEAREST_ACIL_ADDRESS_AS_TEXT",
+        show_112=True,
+        notify_staff_immediate=False,
+    )
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    assert rule.action.remote.secondary == "NEAREST_ACIL_ADDRESS_AS_TEXT"
+
+
+def test_secondary_action_carries_the_same_code_shape_as_primary() -> None:
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112", secondary="en yakın acil", show_112=True, notify_staff_immediate=False
+    )
+    _expect_rule_rejected("secondary", action=action)
+
+
+def test_on_site_still_never_offers_112_when_a_secondary_action_is_set() -> None:
+    """Adding a second action code must not open a second carrier for the
+    ON_SITE 112 affordance (CLAUDE.md invariant 21; files/04 §8.2
+    on_site_action_never_offers_112)."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(secondary="NEAREST_ACIL_ADDRESS_AS_TEXT", show_112=True)
+    _expect_rule_rejected("ON_SITE action never offers 112", action=action)
