@@ -7,11 +7,15 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
-import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
-import { VisitCard } from "@/components/VisitCard";
-import { t } from "@/lib/i18n";
+import { statusLabelKey } from "@/components/StatusChip";
+import { AppText, Card, RAIL_EDGES, Screen, SecondaryButton } from "@/components/Themed";
+import { VisitCard, formatVisitDate } from "@/components/VisitCard";
+import { joinParts } from "@/lib/a11y/labels";
+import { MIN_TAP } from "@/lib/a11y/target";
+import { getLocale, t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
+import { splitVisits } from "@/lib/visits";
 
 const TODAY_FIXTURE = "2026-08-27";
 
@@ -19,12 +23,26 @@ export default function Visits() {
   const router = useRouter();
   const { visits } = useSession();
 
-  const upcoming = visits.filter((v) => v.date >= TODAY_FIXTURE);
-  const past = visits.filter((v) => v.date < TODAY_FIXTURE);
+  // a dateless visit is upcoming, not past (INT-134) — see splitVisits
+  const { upcoming, past } = splitVisits(visits, TODAY_FIXTURE);
+
+  /**
+   * A card's accessible name (INT-144). Wrapping the card in a Pressable
+   * merges its four lines into one element, and RN's derived name drops the
+   * status chip; naming it explicitly keeps department, hospital, date AND
+   * ladder state in the one sentence a screen-reader user hears.
+   */
+  const cardLabel = (visit: (typeof visits)[number]): string =>
+    joinParts(
+      visit.department,
+      visit.hospital,
+      formatVisitDate(visit.date, getLocale()),
+      visit.noteStatus === null ? null : t(statusLabelKey(visit.noteStatus)),
+    );
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("visits.title")}
         </AppText>
         {visits.length === 0 ? (
@@ -36,10 +54,17 @@ export default function Visits() {
         ) : null}
         {upcoming.length > 0 ? (
           <View style={styles.section}>
-            <Kicker label={t("visits.upcoming")} tone="accent" />
+            {/* Neutral like Oura's quiet group headings (design pass 5) —
+                the accent budget belongs to the screen's one action. */}
+            <Kicker label={t("visits.upcoming")} />
             {upcoming.map((visit) => (
               <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-                <Pressable accessibilityRole="button">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={cardLabel(visit)}
+                  accessibilityHint={t("a11y.openHint")}
+                  style={styles.cardTarget}
+                >
                   <VisitCard visit={visit} chevron />
                 </Pressable>
               </Link>
@@ -51,14 +76,21 @@ export default function Visits() {
             <Kicker label={t("visits.past")} />
             {past.map((visit) => (
               <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-                <Pressable accessibilityRole="button">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={cardLabel(visit)}
+                  accessibilityHint={t("a11y.openHint")}
+                  style={styles.cardTarget}
+                >
                   <VisitCard visit={visit} chevron />
                 </Pressable>
               </Link>
             ))}
           </View>
         ) : null}
-        <PrimaryButton
+        {/* Adding is available, not urgent — the Oura register keeps list
+            screens free of saturated CTAs (design pass 5). */}
+        <SecondaryButton
           label={t("today.addVisit")}
           onPress={() => router.push("/(tabs)/visits/new")}
         />
@@ -71,4 +103,8 @@ const styles = StyleSheet.create({
   content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
   heroLine: { marginTop: spacing.xl },
   section: { gap: spacing.md },
+  // The card inside is far taller than the floor; declaring it keeps the
+  // SC 2.5.8 guarantee a property of THIS element rather than of whatever
+  // happens to be rendered in it.
+  cardTarget: { minHeight: MIN_TAP },
 });

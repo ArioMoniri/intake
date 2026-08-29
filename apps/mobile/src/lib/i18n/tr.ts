@@ -20,19 +20,47 @@ export const tr = {
   "tabs.wellbeing": "İyilik hâli",
   "tabs.me": "Profilim",
 
-  "welcome.title": "Hoş geldiniz",
   "welcome.body":
     "Vizite, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
   "welcome.devSignIn": "Deneme hesabıyla girin",
   "welcome.devNote":
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
 
+  "welcome.phoneCta": "Telefonla devam edin",
+
+  // INT-131 onboarding — 02 §8.2: the why-line, generic errors, visible
+  // resend limits; siz register, ≤ B1.
+  "auth.phone.title": "Telefonla giriş",
+  "auth.phone.why": "Numaranız yalnızca giriş için kullanılır.",
+  "auth.phone.label": "Telefon numaranız",
+  "auth.phone.hint": "Başında 05 ile yazın, örneğin 0532 111 44 55.",
+  "auth.phone.cta": "Kod isteyin",
+  "auth.phone.invalid": "Numarayı kontrol edin; 05 ile başlamalı.",
+  "auth.otp.title": "Doğrulama kodu",
+  "auth.otp.body": "Telefonunuza gelen altı haneli kodu girin.",
+  "auth.otp.verifyCta": "Giriş yapın",
+  "auth.otp.resend": "Kodu yeniden isteyin",
+  "auth.otp.resendWait": "Yeni kod isteyebilmek için kalan süre:",
+  "auth.otp.devPeek": "Kodu getirin (geliştirme)",
+  "auth.error.generic": "Bir sorun oldu. Lütfen yeniden deneyin.",
+  "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",
+  "auth.error.code": "Kod doğrulanamadı. Kodu kontrol edin ya da yeni kod isteyin.",
+  "auth.error.network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
+  "auth.error.attestation":
+    "Bu cihaz doğrulanamadı. Lütfen uygulamayı güncelleyip yeniden deneyin.",
+  "auth.biometric.prompt": "Devam etmek için kimliğinizi doğrulayın.",
+  "auth.biometric.locked": "Ekran kilitli",
+  "auth.biometric.retry": "Yeniden deneyin",
+  "auth.integrity.warnTitle": "Cihaz güvenliği",
+  "auth.integrity.warnBody":
+    "Bu cihazda güvenlik değişikliği görünüyor. Görüşme sesli değil, yazılı olarak devam eder.",
+
   "today.nextVisit": "Sıradaki vizit",
+  "today.prep": "Vizit hazırlığı",
   "today.prepareCta": "Muayeneye hazırlanın (≈3 dk)",
   "today.continueCta": "Devam edin",
   "today.noVisit": "Planlanmış bir vizitiniz yok.",
   "today.addVisit": "Vizit ekleyin",
-  "today.uploadQuick": "Kayıt yükleyin",
 
   "status.draft": "Taslak",
   "status.sent": "Gönderildi",
@@ -43,32 +71,91 @@ export const tr = {
   "visits.upcoming": "Yaklaşan",
   "visits.past": "Geçmiş",
   "visits.empty": "Henüz vizit eklemediniz.",
+  "visits.noDate": "Tarih eklenmedi",
   "visits.new.title": "Yeni vizit",
-  "visits.new.manual": "Elle ekleyin",
-  "visits.new.hint": "Hastane, bölüm ve tarihi girin; MHRS mesajından ekleme yolda.",
+  "visits.new.hint": "Randevu mesajınızı yapıştırın ya da bilgileri elle girin.",
   "visits.new.hospital": "Hastane",
-  "visits.new.department": "Bölüm",
+  "visits.new.branch": "Poliklinik",
+  "visits.new.branchSearch": "Poliklinik arayın",
+  "visits.new.branchChange": "Değiştirin",
+  "visits.new.branchMore": "Aramak için yazmaya başlayın.",
+  "visits.new.visitType": "Vizit türü",
   "visits.new.date": "Tarih",
   "visits.new.dateHint": "Yıl-ay-gün biçiminde yazın, örneğin 2026-09-15.",
+  "visits.new.dateOptional": "Randevu tarihiniz belli değilse boş bırakın.",
   "visits.new.save": "Vizit ekleyin",
-  "visits.new.missingFields": "Lütfen hastane ve bölüm alanlarını doldurun.",
+  "visits.new.missingFields": "Lütfen hastane, poliklinik ve vizit türünü seçin.",
   "visits.new.badDate": "Tarihi yıl-ay-gün biçiminde yazın.",
-  "visits.detail.summary": "Özet",
+  // MHRS randevu mesajı: telefonda okunur, yalnızca yapı saklanır
+  "visits.new.smsTitle": "Randevu mesajından ekleyin",
+  "visits.new.smsHint": "MHRS randevu mesajınızı buraya yapıştırın. Mesajın kendisi kaydedilmez.",
+  "visits.new.smsAction": "Mesajı okuyun",
+  "visits.new.smsFilled": "Randevu bilgileriniz dolduruldu. Lütfen kontrol edin.",
+  "visits.new.smsUnknownBranch": "Poliklinik adını tanıyamadık. Listeden siz seçin.",
+  "visits.new.smsNoDate": "Mesajda tarih bulamadık. Tarihi siz ekleyin.",
+  "visits.new.smsUnreadable": "Bu mesajı okuyamadık. Bilgileri elle girebilirsiniz.",
+  "visits.new.ocrUnavailable": "Görüntüden okuma henüz açık değil. Mesajı metin olarak yapıştırın.",
+  // Vizit türleri — files/09 §1
+  "visits.type.first": "İlk başvuru",
+  "visits.type.followup": "Kontrol",
+  "visits.type.preop": "Ameliyat öncesi",
+  "visits.type.report": "Rapor",
+  "visits.type.pregnancy_followup": "Gebe takibi",
+  "visits.type.chronic_review": "Süregelen hastalık değerlendirmesi",
+  "visits.type.post_discharge": "Taburculuk sonrası",
+  "visits.type.screening": "Tarama",
+  "visits.type.second_opinion": "İkinci görüş",
+  "visits.type.teleconsult": "Uzaktan görüşme",
   "visits.detail.noteStatus": "Not durumu",
   "visits.detail.notStarted": "Görüşme henüz başlamadı.",
 
   "records.title": "Kayıtlarım",
-  "records.empty": "Henüz kayıt yok. Tahlil ve raporlarınızı vizitten önce ekleyebilirsiniz.",
   "records.synthetic": "Örnek veri — sentetik",
   "records.guide.kicker": "Belgeleriniz",
   "records.guide.title": "Raporlarınız tek yerde",
   "records.guide.body":
-    "Tahlil sonuçlarınızı ve raporlarınızı vizitten önce buraya ekleyebileceksiniz. Belgeler sizin dosyanızda kalır; hekiminizle paylaşım her zaman sizin onayınızla olur.",
+    "Tahlil sonuçlarınızı ve raporlarınızı vizitten önce buraya ekleyebilirsiniz. Belgeler sizin dosyanızda kalır; hekiminizle paylaşım her zaman sizin onayınızla olur.",
+  // INT-229 — real document upload (Kayıtlarım)
+  "records.devNote":
+    "Deneme hesabı: bu liste örnektir. Belge yükleme, telefonla doğrulanan gerçek hesapta açılır.",
+  "records.upload": "Belge yükleyin",
+  "records.uploading": "Yükleniyor…",
+  "records.state.scanning": "Taranıyor",
+  "records.state.ready": "Hazır",
+  "records.state.rejected": "Reddedildi",
+  "records.doc.pdf": "PDF belge",
+  "records.doc.image": "Görsel",
+  "records.scanningInfo": "Belge güvenlik taramasında. Hazır olunca açabilirsiniz.",
+  "records.err.type": "Bu dosya türü desteklenmiyor. PDF, JPEG veya PNG seçin.",
+  "records.err.size": "Dosya çok büyük. En çok 20 MB yükleyebilirsiniz.",
+  "records.err.network": "Bağlantı kurulamadı. Lütfen daha sonra tekrar deneyin.",
+  "records.err.session": "Oturumunuz sona erdi. Lütfen yeniden giriş yapın.",
+  "records.err.consent":
+    "Belge izniniz kapalı görünüyor. İzinlerinizi Profilim sayfasından açabilirsiniz.",
+  "records.err.scanUnavailable":
+    "Belge taraması şu anda yapılamıyor. Lütfen daha sonra tekrar deneyin.",
+  "records.err.rejected": "Belge güvenlik taramasını geçemedi ve açılmayacak.",
+  "records.err.generic": "Bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+  "records.consent.kicker": "İzin gerekli",
+  "records.consent.title": "Belgeler için izniniz kapalı",
+  "records.consent.body":
+    "Belgelerinizi görmek ve yüklemek için belge iznini açmanız gerekir. İzinlerinizi istediğiniz an değiştirebilirsiniz.",
+  "records.consent.cta": "İzinlere gidin",
+  "records.needVisit.kicker": "Önce vizit",
+  "records.needVisit.title": "Belgeler bir vizite eklenir",
+  "records.needVisit.body":
+    "Belge yüklemek için önce bir vizit ekleyin. Vizitlerim sayfasından veya buradan ekleyebilirsiniz.",
+  "records.offline.kicker": "Bağlantı yok",
+  "records.offline.title": "Sunucuya ulaşılamıyor",
+  "records.offline.body":
+    "Belgeleriniz şu anda listelenemiyor. Bağlantı gelince tekrar deneyin; yüklediğiniz belgeler kaybolmaz.",
+  "records.retry": "Tekrar deneyin",
+  "records.visit.kicker": "Vizit",
+  "records.visit.choose": "Belgenin ekleneceği viziti seçin.",
 
   "wellbeing.title": "İyilik hâli",
   "wellbeing.intro":
     "Kendinizi nasıl hissettiğinizi takip edin; paylaşım her zaman sizin kontrolünüzde.",
-  "wellbeing.empty": "Henüz bir kayıt yok.",
   "wellbeing.guide.how.kicker": "Nasıl işleyecek",
   "wellbeing.guide.how.title": "Bu alan sizin için hazırlanıyor",
   "wellbeing.guide.how.body":
@@ -96,7 +183,6 @@ export const tr = {
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
-  "intake.title": "Muayeneye hazırlık",
   "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
   "intake.q.complaint.hint": "Birden fazla seçebilirsiniz.",
   "intake.opt.pain": "Ağrı",
@@ -152,16 +238,325 @@ export const tr = {
   "intake.opt.congestion": "Burun tıkanıklığı",
   "intake.opt.hearingLoss": "İşitmede azalma",
   "intake.opt.tinnitus": "Çınlama",
+  // Kardiyoloji / İç Hastalıkları
+  "intake.q.radiation": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu?",
+  "intake.hpi.radiation": "Yayılım",
+  "intake.opt.radArm": "Kola yayılıyor",
+  "intake.opt.radJawNeck": "Çeneye ya da boyna yayılıyor",
+  "intake.opt.radBack": "Sırta yayılıyor",
+  "intake.opt.radNone": "Yayılmıyor",
+  "intake.opt.dizziness": "Baş dönmesi",
+  "intake.opt.ankleSwelling": "Ayak bileklerinde şişlik",
+  // Nöroloji
+  "intake.opt.throbbing": "Zonklama şeklinde",
+  "intake.opt.electric": "Elektrik çarpması gibi",
+  "intake.opt.withMovement": "Hareketle artıyor",
+  "intake.opt.withLightNoise": "Işık ya da gürültüyle artıyor",
+  "intake.opt.withSleepless": "Uykusuz kalınca artıyor",
+  "intake.q.course": "Şikâyetiniz zaman içinde nasıl değişiyor?",
+  "intake.hpi.course": "Seyir",
+  "intake.opt.inAttacks": "Ataklar hâlinde geliyor",
+  "intake.opt.constant": "Sürekli var",
+  "intake.opt.varies": "Gün içinde artıp azalıyor",
+  "intake.opt.balance": "Dengede güçlük",
+  // Kulak Burun Boğaz
+  "intake.opt.withSwallow": "Yutkununca artıyor",
+  "intake.opt.withColdAir": "Soğuk havada artıyor",
+  "intake.opt.atNight": "Gece artıyor",
+  "intake.opt.hoarseness": "Ses kısıklığı",
+  // Ortopedi
+  "intake.q.mechanism": "Şikâyetiniz nasıl ortaya çıktı?",
+  "intake.hpi.mechanism": "Ortaya çıkışı",
+  "intake.opt.afterFall": "Bir düşme ya da darbe sonrası",
+  "intake.opt.afterStrain": "Ağır kaldırma ya da zorlanma sonrası",
+  "intake.opt.noEvent": "Kendiliğinden, yavaş yavaş",
+  "intake.q.region": "Şikâyetiniz en çok hangi bölgede?",
+  "intake.hpi.region": "Bölge",
+  "intake.opt.knee": "Diz",
+  "intake.opt.hip": "Kalça",
+  "intake.opt.shoulder": "Omuz",
+  "intake.opt.lowBack": "Bel",
+  "intake.opt.neckRegion": "Boyun",
+  "intake.opt.handWrist": "El ya da el bileği",
+  "intake.opt.footAnkle": "Ayak ya da ayak bileği",
+  "intake.opt.restEases": "Dinlenince azalıyor",
+  "intake.opt.morningStiff": "Sabahları tutukluk oluyor",
+  "intake.opt.nightPain": "Gece uykudan uyandırıyor",
+  "intake.opt.swelling": "Şişlik",
+  "intake.opt.redness": "Kızarıklık",
+  "intake.opt.limitedMotion": "Hareketlerde kısıtlılık",
+  // Dermatoloji
+  "intake.q.skinWhere": "Cilt şikâyetiniz vücudunuzun neresinde?",
+  "intake.q.skinLook": "Şikâyetli bölgede neler oluyor?",
+  "intake.hpi.appearance": "Görünüm ve his",
+  "intake.opt.face": "Yüz",
+  "intake.opt.scalp": "Saçlı deri",
+  "intake.opt.trunk": "Gövde",
+  "intake.opt.arms": "Kollar",
+  "intake.opt.legs": "Bacaklar",
+  "intake.opt.handsFeet": "Eller ya da ayaklar",
+  "intake.opt.widespread": "Yaygın, birden çok bölgede",
+  "intake.opt.itchy": "Kaşıntı",
+  "intake.opt.painful": "Ağrı ya da hassasiyet",
+  "intake.opt.flaking": "Pullanma",
+  "intake.opt.blisters": "İçi su dolu kabarcıklar",
+  "intake.opt.raised": "Kabarıklık",
+  "intake.opt.withSun": "Güneşe çıkınca artıyor",
+  "intake.opt.withSweat": "Terleyince artıyor",
+  "intake.opt.afterProduct": "Yeni bir ürün ya da ilaç sonrası başladı",
+  "intake.opt.spreading": "Yayılıyor",
+  "intake.opt.same": "Aynı kalıyor",
+  "intake.opt.improving": "Azalıyor",
+  "intake.opt.comesGoes": "Gelip gidiyor",
+  "intake.opt.jointPain": "Eklem ağrısı",
+  "intake.opt.nailChange": "Tırnaklarda değişiklik",
+  // Göğüs Hastalıkları
+  "intake.q.breathCharacter": "Öksürük ya da nefes şikâyetinizi nasıl tarif edersiniz?",
+  "intake.hpi.quality": "Nitelik",
+  "intake.opt.dryCough": "Kuru öksürük",
+  "intake.opt.phlegmCough": "Balgamlı öksürük",
+  "intake.opt.wheeze": "Hırıltı ya da ıslık sesi",
+  "intake.opt.painfulBreath": "Nefes alırken batma",
+  "intake.opt.whenLying": "Yatar pozisyonda artıyor",
+  "intake.q.timeOfDay": "Şikâyetiniz günün hangi vaktinde daha belirgin?",
+  "intake.hpi.timing": "Zamanlama",
+  "intake.opt.inMorning": "Sabahları daha belirgin",
+  "intake.opt.allDay": "Gün boyu benzer",
+  "intake.opt.nightSweats": "Gece terlemesi",
+  "intake.opt.phlegmColor": "Balgam renginde değişiklik",
+  "intake.opt.weightLoss": "Son dönemde istemeden kilo verme",
+  // Kadın Hastalıkları ve Doğum
+  "intake.q.cycleRelation": "Şikâyetinizin âdet döneminizle ilişkisi var mı?",
+  "intake.hpi.cycle": "Âdet ile ilişkisi",
+  "intake.opt.duringPeriod": "Âdet sırasında artıyor",
+  "intake.opt.beforePeriod": "Âdetten önceki günlerde artıyor",
+  "intake.opt.noCycleRelation": "Âdetle ilişkisi yok",
+  "intake.opt.noPeriod": "Âdet görmüyorum",
+  "intake.opt.cycleChange": "Âdet düzeninde değişiklik",
+  "intake.opt.bleedingChange": "Âdet dışı kanama",
+  "intake.opt.dischargeChange": "Akıntıda değişiklik",
+  "intake.opt.urineBurning": "İdrar yaparken yanma",
+  // Üroloji
+  "intake.q.urination": "İdrar yaparken bir değişiklik fark ediyor musunuz?",
+  "intake.hpi.urination": "İdrar şikâyetleri",
+  "intake.opt.frequentUrination": "Sık idrara çıkma",
+  "intake.opt.nightUrination": "Gece idrara kalkma",
+  "intake.opt.weakStream": "İdrarı başlatmada güçlük ya da zayıf akış",
+  "intake.opt.leakage": "İdrar kaçırma",
+  "intake.opt.flankPain": "Yan tarafta ya da belde ağrı",
+  "intake.opt.urineColor": "İdrar renginde değişiklik",
+  // Göz Hastalıkları
+  "intake.q.eyeFeel": "Gözünüzde nasıl bir rahatsızlık var?",
+  "intake.opt.gritty": "Batma, kum kaçmış hissi",
+  "intake.opt.burningFeel": "Yanma hissi",
+  "intake.opt.watering": "Sulanma",
+  "intake.q.vision": "Görmenizde bir değişiklik oldu mu?",
+  "intake.hpi.vision": "Görme",
+  "intake.opt.blurry": "Bulanık görme",
+  "intake.opt.doubleVision": "Çift görme",
+  "intake.opt.floaters": "Uçuşan nokta ya da çizgiler",
+  "intake.opt.halos": "Işıkların çevresinde halkalar",
+  "intake.opt.eyeDischarge": "Çapaklanma",
+  // Gastroenteroloji
+  "intake.q.abdomenWhere": "Şikâyetiniz karnınızın neresinde?",
+  "intake.opt.upperAbdomen": "Karnın üst kısmında",
+  "intake.opt.lowerAbdomen": "Karnın alt kısmında",
+  "intake.opt.abdomenRight": "Sağ tarafta",
+  "intake.opt.abdomenLeft": "Sol tarafta",
+  "intake.opt.aroundNavel": "Göbek çevresinde",
+  "intake.opt.wholeAbdomen": "Tüm karında",
+  "intake.opt.cramping": "Kramp şeklinde",
+  "intake.opt.bloatingFeel": "Şişkinlik, dolgunluk hissi",
+  "intake.q.mealRelation": "Şikâyetinizin yemekle ilişkisi var mı?",
+  "intake.hpi.mealRelation": "Yemekle ilişkisi",
+  "intake.opt.afterMeal": "Yemekten sonra artıyor",
+  "intake.opt.whenHungry": "Aç kalınca artıyor",
+  "intake.opt.easedByMeal": "Yemek yiyince azalıyor",
+  "intake.q.bowel": "Tuvalet alışkanlığınızda değişiklik var mı?",
+  "intake.hpi.bowel": "Bağırsak alışkanlığı",
+  "intake.opt.constipation": "Kabızlık",
+  "intake.opt.diarrhea": "İshal",
+  "intake.opt.alternatingBowel": "Bazen kabızlık bazen ishal",
+  "intake.opt.vomiting": "Kusma",
+  "intake.opt.heartburn": "Göğse doğru yanma ya da ekşime",
+  "intake.opt.appetiteLoss": "İştahta azalma",
   "intake.q.extra": "Eklemek istediğiniz bir şey var mı?",
   "intake.q.extra.hint": "İsterseniz boş bırakabilirsiniz.",
+  // INT-239 — answer-gated follow-ups. Each asks for a further detail of
+  // something the patient already named; none names a condition, a treatment
+  // or a danger, and none asks for a number.
+  "intake.q.radiationSide": "Yayılma hangi tarafta?",
+  "intake.hpi.radiationSide": "Yayılım tarafı",
+  "intake.q.breathTiming": "Nefes darlığınız ne zaman oluyor?",
+  "intake.hpi.breathTiming": "Nefes darlığının zamanı",
+  "intake.q.breathLying": "Uzanınca rahatlamak için ne yapıyorsunuz?",
+  "intake.hpi.breathLying": "Uzanınca yapılan",
+  "intake.opt.raisePillow": "Yastığı yükseltiyorum",
+  "intake.opt.sitUp": "Oturuyorum",
+  "intake.opt.nothingSpecial": "Özel bir şey yapmıyorum",
+  "intake.opt.notSure": "Emin değilim",
+  "intake.q.feverPattern": "Ateşiniz en çok ne zaman yükseliyor?",
+  "intake.hpi.feverPattern": "Ateşin zamanı",
+  "intake.q.palpitation": "Çarpıntınızı nasıl tarif edersiniz?",
+  "intake.hpi.palpitation": "Çarpıntının niteliği",
+  "intake.opt.fastRegular": "Hızlı ve düzenli",
+  "intake.opt.irregularBeat": "Düzensiz",
+  "intake.opt.skippedBeats": "Arada atlıyor gibi",
+  "intake.q.headWhere": "Baş ağrınız başınızın neresinde?",
+  "intake.opt.oneSide": "Tek tarafta",
+  "intake.opt.bothSides": "İki tarafta",
+  "intake.opt.foreheadEye": "Alın ve göz çevresinde",
+  "intake.opt.fromNeck": "Enseden başlıyor",
+  "intake.q.headSameSide": "Ağrı her seferinde aynı tarafta mı oluyor?",
+  "intake.hpi.headSameSide": "Taraf tutarlılığı",
+  "intake.opt.alwaysSameSide": "Hep aynı tarafta",
+  "intake.opt.sideChanges": "Taraf değişiyor",
+  "intake.q.numbWhere": "Uyuşma en çok nerede oluyor?",
+  "intake.hpi.numbWhere": "Uyuşmanın yeri",
+  "intake.opt.severalPlaces": "Birden çok yerde",
+  "intake.q.painWhere": "Ağrınız en çok nerede?",
+  "intake.opt.inEar": "Kulakta",
+  "intake.opt.inThroat": "Boğazda",
+  "intake.opt.faceForehead": "Yüzde ve alında",
+  "intake.opt.inJaw": "Çenede",
+  "intake.q.swallow": "Yutkunurken ne oluyor?",
+  "intake.hpi.swallow": "Yutkunma",
+  "intake.opt.painIncreases": "Ağrı artıyor",
+  "intake.opt.stuckFeeling": "Takılma hissi oluyor",
+  "intake.opt.voiceChange": "Sesim değişiyor",
+  "intake.opt.noChange": "Bir değişiklik olmuyor",
+  "intake.q.hearSide": "İşitmedeki azalma hangi kulakta?",
+  "intake.hpi.hearSide": "İşitme tarafı",
+  "intake.q.fallHow": "Nasıl düştünüz ya da darbe aldınız?",
+  "intake.hpi.fallHow": "Düşme biçimi",
+  "intake.opt.slipped": "Kayarak ya da takılarak",
+  "intake.opt.onStairs": "Merdivende",
+  "intake.opt.fromHeight": "Yüksek bir yerden",
+  "intake.opt.duringSport": "Spor yaparken",
+  "intake.q.spineSpread": "Ağrı kolunuza ya da bacağınıza yayılıyor mu?",
+  "intake.hpi.spineSpread": "Kol ya da bacağa yayılım",
+  "intake.opt.radLeg": "Bacağa yayılıyor",
+  "intake.q.spreadFeel": "Yayıldığı yerde başka bir his var mı?",
+  "intake.hpi.spreadFeel": "Yayılım hissi",
+  "intake.opt.tingling": "Karıncalanma",
+  "intake.opt.numbFeeling": "Uyuşma",
+  "intake.opt.bothOfThem": "İkisi de",
+  "intake.q.itchWhen": "Kaşıntı ne zaman artıyor?",
+  "intake.hpi.itchWhen": "Kaşıntının zamanı",
+  "intake.opt.inHeat": "Sıcakta artıyor",
+  "intake.q.itchSleep": "Kaşıntı uykunuzu bölüyor mu?",
+  "intake.hpi.itchSleep": "Uykuya etkisi",
+  "intake.opt.yes": "Evet",
+  "intake.opt.sometimes": "Bazen",
+  "intake.opt.no": "Hayır",
+  "intake.q.feverSkinOrder": "Ateş ile cilt şikâyetinizden hangisi önce başladı?",
+  "intake.hpi.feverSkinOrder": "Ateş ile sıra",
+  "intake.opt.feverFirst": "Önce ateş",
+  "intake.opt.skinFirst": "Önce cilt şikâyeti",
+  "intake.opt.sameTime": "Aynı zamanda",
+  "intake.opt.dontRemember": "Hatırlamıyorum",
+  "intake.opt.inLowerBack": "Belde",
+  "intake.opt.inGroin": "Kasıkta",
+  "intake.q.flankSide": "Yan ya da bel ağrısı hangi tarafta?",
+  "intake.hpi.flankSide": "Yan ağrısının tarafı",
+  "intake.q.eyePainMove": "Ağrı gözünüzü hareket ettirince değişiyor mu?",
+  "intake.hpi.eyePainMove": "Hareketle değişim",
+  "intake.q.eyeHeadache": "Baş ağrınız ile göz şikâyetiniz birlikte mi oluyor?",
+  "intake.hpi.eyeHeadache": "Baş ağrısıyla ilişkisi",
+  "intake.opt.together": "Birlikte oluyor",
+  "intake.opt.headacheFirst": "Önce baş ağrısı",
+  "intake.opt.eyeFirst": "Önce göz şikâyeti",
+  "intake.opt.separately": "Ayrı ayrı oluyor",
+  "intake.q.bowelRelief": "Tuvalete çıkınca şikâyetiniz değişiyor mu?",
+  "intake.hpi.bowelRelief": "Tuvalet sonrası",
+  "intake.opt.itEases": "Azalıyor",
+  "intake.opt.itIncreases": "Artıyor",
+  // The flow length follows the answers, so the progress row counts what is
+  // answered and says plainly that more questions may follow (INT-239).
+  "intake.progress.answered": "soru yanıtlandı",
+  "intake.progress.grows": "Yanıtlarınıza göre birkaç soru daha gelebilir.",
   "voice.speakToAdd": "Konuşarak ekleyin",
   "voice.listening": "Dinliyor… durdurmak için dokunun",
   "voice.processing": "Yazıya dökülüyor…",
   "voice.unreachable": "Ses sunucusuna şu an ulaşılamıyor.",
   "voice.permission": "Mikrofon izni gerekli.",
+
+  // INT-103 — canlı sesli görüşme istemcisi (LiveKit). Mikrofon izni metni
+  // mağaza kurallarına göre: önce nedenini söyleyen bir satır, sonra sistem
+  // izni. Kayıt saklanmadığı için hiçbir metin "kayıt" demez (invariant 3).
+  //
+  // INT-253: `voice.mic.*` ve `voice.session.*` INT-103'ün kabulüne bağlıdır
+  // (apps/mobile/e2e/voice.spec.ts) ama hiçbir ekran bunları göstermiyor —
+  // oturum makinesi connecting/reconnecting/backgrounded/interrupted
+  // aşamalarına gerçekten giriyor, hasta hiçbirini görmüyor. Kayıt
+  // tests/release/test_i18n_complete.py · UNWIRED_ACCEPTANCE_KEYS.
+  "voice.mic.why":
+    "Sesli görüşme için mikrofon izni gerekir. Sesiniz yalnızca görüşme sırasında işlenir; kaydı saklanmaz.",
+  "voice.mic.cta": "Mikrofona izin verin",
+  "voice.mic.settingsHint": "İzni daha sonra telefonunuzun ayarlarından da verebilirsiniz.",
+  "voice.transport.ok": "Sesli görüşme bu cihazda kullanılabilir.",
+  "voice.transport.needsDevBuild":
+    "Sesli görüşme bu uygulama sürümünde açılamıyor. Tam sürümü kullanın ya da yazarak devam edin.",
+  "voice.transport.unsupported":
+    "Sesli görüşme bu cihazda desteklenmiyor. Yazarak devam edebilirsiniz.",
+  "voice.transport.micDenied":
+    "Mikrofon izni verilmedi. İzni telefonunuzun ayarlarından verebilirsiniz.",
+  "voice.session.connecting": "Bağlanılıyor…",
+  "voice.session.reconnecting": "Bağlantı yeniden kuruluyor…",
+  "voice.session.paused":
+    "Görüşme duraklatıldı. Uygulamaya döndüğünüzde kaldığınız yerden devam edersiniz.",
+  "voice.session.interrupted":
+    "Görüşme duraklatıldı. Telefon görüşmeniz bittiğinde devam edebilirsiniz.",
+  "voice.session.weakLink": "Bağlantınız zayıf. Sesiniz kesilirse yazarak devam edebilirsiniz.",
+  "voice.session.ended": "Sesli görüşme sonlandı. Yazarak devam edebilirsiniz.",
+
+  "voiceFirst.checking": "Ses özelliği hazırlanıyor…",
+  "voiceFirst.listening": "Sizi dinliyoruz.",
+  "voiceFirst.stop": "Bitirdim",
+  "voiceFirst.preparing": "Yanıt önerileri hazırlanıyor…",
+  "voiceFirst.typeInstead": "Yazarak devam edin",
+  "voiceFirst.saidLabel": "Söylediğiniz:",
+  "voiceFirst.suggested": "Önerilen yanıt",
+  "voiceFirst.failed": "Ses özelliği şu an kullanılamadı. Yazarak devam edebilirsiniz.",
+  "dialogue.kicker": "Karşılıklı konuşma",
+  "dialogue.entryTitle": "Sizinle konuşarak ilerleyelim",
+  "dialogue.entryBody":
+    "Soruları sesli soracağız, siz de konuşarak yanıtlayın. İstediğiniz an yazarak da devam edebilirsiniz.",
+  "dialogue.preparing": "Soru hazırlanıyor…",
+  "dialogue.speakingHint": "Araya girmek için dokunun",
+  "dialogue.listeningHint": "Bitirince dokunun",
+  "dialogue.optionsIntro": "Seçenekler:",
+  "dialogue.optionsOnScreen": "Seçenekleri ekranda görebilirsiniz.",
+  "dialogue.and": "ve",
+  "dialogue.or": "veya",
+  "dialogue.confirmIntro": "Sizi şöyle anladık:",
+  "dialogue.confirmAsk": "Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+  "dialogue.confirmTextGeneric": "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
+  "dialogue.confirm": "Onaylayın",
+  "dialogue.speakCorrection": "Düzeltmeyi söyleyin",
+  "dialogue.typeThisStep": "Yazarak yanıtlayın",
+  "dialogue.transcribing": "Yazıya dökülüyor…",
+  "dialogue.noteForming": "Not oluşuyor",
+  "dialogue.sectionsLabel": "bölüm",
+  "dialogue.sectionsTitle": "Not bölümleri",
+  "dialogue.sectionEmpty": "Henüz yanıtlanmadı",
+  "dialogue.sheetHint": "Öneriler siz onayladıktan sonra nota eklenir.",
+  "dialogue.close": "Kapatın",
+  "dialogue.send": "Gönderin",
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
-  "intake.skip": "Atlayın",
+
+  // INT-236 — Hızlı/Detaylı mod (02 §2), ortam kontrolü (02 §33) ve
+  // "Sıranız geldi" kesme noktası (02 §34).
+  "intake.mode.hastanedeyim": "Hastanedeyim",
+  "intake.mode.detayliOn": "Detaylı mod açık",
+  "intake.privacy.q": "Yanınızda başkası var mı?",
+  "intake.privacy.hint": "Bazı sorular özeldir. Ortam uygun değilse onları sonraya bırakırız.",
+  "intake.privacy.alone": "Hayır, yalnızım",
+  "intake.privacy.notAlone": "Evet, yanımda biri var",
+  "intake.privacy.deferredInfo":
+    "Özel sorular şimdi sorulmayacak. Uygun bir ortamda devam edebilirsiniz.",
+  "intake.queue.called": "Sıranız geldi",
 
   "review.title": "Hekiminize gidecek not",
   "review.intro": "Bölümleri kontrol edin. Neyin paylaşılacağına siz karar verirsiniz.",
@@ -179,6 +574,17 @@ export const tr = {
   "review.send": "Hekiminize gönderin",
   "review.sentInfo": "Notunuz gönderildi. Hekiminiz görüntülediğinde durumu burada görürsünüz.",
   "review.empty": "Henüz yanıt yok. Önce birkaç soruyu yanıtlayın.",
+  // INT-236 — hekime görünen erteleme işareti (02 §33: birebir
+  // "eksik: ortam uygun değildi"), koşul işareti ve kesme noktası özeti.
+  "review.section.deferred": "Ertelenen bölümler",
+  "note.deferred.wellbeing": "İyilik hâli taraması",
+  "note.deferred.marker": "eksik: ortam uygun değildi",
+  "review.hpi.staleCondition": "koşul değişti",
+  "review.eksik.title": "Eksik kalanlar",
+  "review.eksik.intro": "Bu sorular henüz yanıtlanmadı:",
+  "review.resume": "Kaldığınız yerden devam edin",
+  "review.checkpointInfo":
+    "Sıranız geldiği için ara verildi. Not bu haliyle hazır; dilerseniz sonra devam edebilirsiniz.",
 
   "visit.prepare": "Muayeneye hazırlanın",
   "visit.reviewNote": "Notu kontrol edin",
@@ -187,8 +593,269 @@ export const tr = {
   "consent.voice": "Sesli görüşme",
   "consent.wellbeing": "İyilik hâli taraması",
   "consent.documents": "Belge yükleme",
+  "consent.health": "Sağlık verisi okuma",
+  "consent.health.hint":
+    "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez. Bir veri, notunuza ancak siz eklerseniz girer.",
   "consent.on": "Açık",
   "consent.off": "Kapalı",
+
+  // INT-132 — İzinleriniz. Bu anahtarlar yalnızca arayüz metnidir; onay
+  // metinlerinin kendisi docs/legal'den, sürüm ve damgasıyla gelir
+  // (invariant 18) ve hiçbir zaman bu kataloğa yazılmaz.
+  "consent.entry.sub": "Hangi izni ne için verdiğinizi görün ve yönetin.",
+  "consent.firstRun.body":
+    "Vizite'de her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
+  "consent.firstRun.continue": "Devam edin",
+  "consent.group.core": "Hizmet",
+  "consent.group.voice": "Sesli görüşme",
+  "consent.group.voice.hint":
+    "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi ses kaydına değil, yazıya bakar; ayrı bir izindir.",
+  "consent.group.purposes": "Diğer amaçlar",
+  "consent.group.learning": "Öğrenme",
+  "consent.group.learning.hint":
+    "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
+  "consent.lane.affect": "Ses tonundan duygu ipuçları",
+  "consent.lane.linguistic": "Yazıdan dil ipuçları",
+  "consent.learning.personal": "Sizin için öğrenme",
+  "consent.learning.service": "Hizmeti iyileştirme",
+  "consent.satisfaction": "Memnuniyet soruları",
+  "consent.research": "Araştırma",
+  "consent.who.core": "Anlattıklarınızı yalnızca siz ve onay verdiğiniz hekim görür.",
+  "consent.who.voice":
+    "Sesiniz yalnızca görüşme sırasında işlenir; kayıt saklanmaz. Veriler Türkiye'deki sunucularda kalır.",
+  "consent.who.laneAffect":
+    "Ses tonunuzdan çıkan ipuçlarını yalnızca hekiminiz görür; size bir etiket konmaz.",
+  "consent.who.laneLinguistic":
+    "Yazıya dökülen metinden çıkan ipuçlarını yalnızca hekiminiz görür.",
+  "consent.who.wellbeing":
+    "Yanıtlarınızı yalnızca siz görürsünüz; hekiminizle paylaşım her seferinde ayrıca sorulur.",
+  "consent.who.documents":
+    "Yüklediğiniz belgeler sizin dosyanızda kalır; hekiminizle paylaşım sizin onayınızla olur.",
+  "consent.who.learningPersonal":
+    "Öğrenilen her bilgi 'Hakkımda öğrendikleri' listesinde görünür ve dilediğinizde silinir.",
+  "consent.who.learningService":
+    "Kimliğinizden ayrılmış toplu veriler kullanılır; size ait tek bir kayıt paylaşılmaz.",
+  "consent.who.satisfaction":
+    "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
+  "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
+  "consent.basis.service":
+    "Bu, hizmetin kendisidir; ayrı bir düğmesi yoktur. Vizite'yi kullanmayı bırakırsanız sona erer.",
+  "consent.basis.explicit":
+    "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
+  "consent.basis.learningPersonal":
+    "Ayarladığınız hizmetin çalışması için kullanılır; bu yüzden açık gelir. Kapatırsanız kişisel öğrenme durur.",
+  "consent.basis.learningService":
+    "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
+  "consent.state.pending": "Metin hazırlanıyor",
+  "consent.state.stale": "Yeniden onay gerekli",
+  "consent.state.service": "Hizmetin temeli",
+  "consent.pending.body":
+    "Bu iznin metni hazırlanıyor. Metin yayımlanmadan izin açılamaz; hazır olduğunda burada görünür.",
+  "consent.stale.body":
+    "Bu iznin metni güncellendi. Devam etmesini isterseniz yeni metni okuyup yeniden onaylayın; onaylayana kadar izin kullanılmaz.",
+  "consent.detail.who": "Kim neyi görür",
+  "consent.detail.version": "Metin sürümü",
+  "consent.detail.binding": "Metin damgası",
+  "consent.detail.grant": "Okudum, kabul ediyorum",
+  "consent.detail.withdraw": "İzni geri çekin",
+  "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
+  "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
+  "consent.queue.note":
+    "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
+
+  "me.health": "Sağlık verileri",
+  "health.guide.devBuild.kicker": "Deneme sürümü",
+  "health.guide.devBuild.title": "Bu sürümde kullanılamıyor",
+  "health.guide.devBuild.body":
+    "Telefonunuzdaki sağlık verilerini okumak için uygulamanın tam sürümü gerekir. Bu deneme sürümü sağlık verilerine erişemez; verileriniz olduğu yerde durur.",
+  "health.unsupported": "Bu cihazda sağlık verisi okunamıyor.",
+  "health.permissionDenied":
+    "Sağlık verilerine erişim izni verilmemiş. İzni telefonunuzun ayarlarından verebilirsiniz.",
+  "health.loading": "Sağlık verileri okunuyor…",
+  "health.readFailed": "Veriler şu an okunamadı. Daha sonra yeniden deneyin.",
+  "health.noData": "Son 7 günde okunacak veri bulunamadı.",
+  "health.steps.label": "Adımlar (son 7 gün)",
+  "health.rhr.label": "Dinlenme nabzı",
+  "health.sleep.label": "Uyku (gecelik ortalama)",
+  "health.unit.steps": "adım",
+  "health.unit.bpm": "atım/dk",
+  "health.unit.hours": "saat",
+  "health.attach.cta": "Vizite ekleyin",
+  "health.attach.confirm": "Bu özet, vizit notunuzun taslağına eklensin mi?",
+  "health.attach.yes": "Evet, ekleyin",
+  "health.attach.no": "Vazgeçin",
+  "health.attach.done": "Özet, vizit notunuzun taslağına eklendi.",
+  "health.attach.noVisit": "Eklemek için önce bir vizit oluşturun.",
+  "review.section.health": "Cihaz sağlık verisi",
+  // [REVIEW] fixed provenance line on the attached device-health block
+  "review.healthProvenance": "Cihaz sağlık verisi — hasta onayıyla eklendi.",
+  // ── INT-144 · screen-reader strings ──────────────────────────────────
+  // Never rendered visually: these are what VoiceOver and TalkBack speak.
+  // Same rules as everything else — B1, `siz`, no clinical interpretation
+  // (a name or a hint may only re-say what is already on the screen), and
+  // no ALL-CAPS. The `…Hint` keys describe what activation does; they never
+  // replace a control's visible words (SC 2.5.3).
+  "a11y.error": "Hata",
+  "a11y.openHint": "Ayrıntıları açmak için iki kez dokunun.",
+  "a11y.backHint": "Önceki ekrana dönmek için iki kez dokunun.",
+  "a11y.closeHint": "Kapatmak için iki kez dokunun.",
+  "a11y.selectHint": "Seçmek için iki kez dokunun.",
+  "a11y.confirmHint": "Onaylamak için iki kez dokunun.",
+  "a11y.shareHint": "Bu bölümün paylaşımını açıp kapatmak için iki kez dokunun.",
+  "a11y.typedHint": "Konuşmak yerine yazarak devam etmek için iki kez dokunun.",
+  "a11y.otp.digit": "Doğrulama kodu hanesi",
+  "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açmak için iki kez dokunun.",
+  "a11y.consent.switchHint": "Bu izni açıp kapatmak için iki kez dokunun.",
+  "a11y.ladder.reached": "tamamlandı",
+  "a11y.ladder.pending": "henüz tamamlanmadı",
+  // The two voices of the conversation. The agent is named with the product
+  // name, never a human first name (02 §5: no persona presented as a
+  // person); "Siz" keeps the app-wide register.
+  "a11y.speaker.agent": "Vizite",
+  "a11y.speaker.patient": "Siz",
+  "a11y.dialogue.transcript": "Konuşma dökümü",
+  "a11y.dialogue.speaking": "Vizite konuşuyor",
+  "a11y.dialogue.preparing": "Soru hazırlanıyor",
+  "a11y.dialogue.transcribing": "Söyledikleriniz yazıya dökülüyor",
+  "a11y.dialogue.settling": "Notunuz hazırlanıyor",
+  "a11y.dialogue.bargeInHint": "Sözü kesip konuşmaya başlamak için iki kez dokunun.",
+  "a11y.dialogue.stopHint": "Konuşmanızı bitirmek için iki kez dokunun.",
+  "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
+  "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
+  "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
+  // ── INT-141 · Bildirimler ────────────────────────────────────────────
+  // The patient's own opt-out and quiet window. Two rules the copy has to
+  // carry honestly: a bildirim never says anything about health (the bodies
+  // are constants in the server catalogue — nothing about the visit reaches
+  // a lock screen), and there is NO default quiet window, because no file
+  // names an hour and inventing one would choose it for everybody.
+  "me.notifications": "Bildirimler",
+  "notifications.title": "Bildirimler",
+  "notifications.entry.sub": "Hatırlatmalar ve sessiz saatler",
+  "notifications.guide.kicker": "Bildirimler",
+  "notifications.guide.title": "Yalnızca hatırlatma",
+  "notifications.guide.body":
+    "Size yalnızca vizitinizden önce kısa bir hatırlatma göndeririz. Ne zaman sessiz kalacağımızı siz seçersiniz; istediğiniz zaman tamamen kapatabilirsiniz.",
+  "notifications.contentFree":
+    "Hatırlatmalarda sağlık bilgileriniz, bölüm adı, hekim adı veya belge adı yer almaz. Telefonunuz kilitliyken yalnızca uygulamanın adı görünür.",
+  "notifications.transactionalOnly":
+    "Yalnızca vizitinizle ilgili hatırlatma göndeririz. Tanıtım iletisi göndermiyoruz.",
+  "notifications.switchLabel": "Hatırlatmalar",
+  "notifications.on": "Açık",
+  "notifications.off": "Kapalı",
+  "notifications.optOutHint":
+    "Kapattığınızda hiçbir hatırlatma göndermeyiz. İstediğiniz zaman yeniden açabilirsiniz.",
+  "notifications.quiet": "Sessiz saatler",
+  "notifications.quietHint":
+    "Seçtiğiniz aralıkta hatırlatma göndermeyiz. Hazır bir aralık seçili değildir; seçim sizindir.",
+  "notifications.quietNone": "Seçilmedi",
+  "notifications.pending":
+    "Değişikliğiniz henüz kaydedilmedi. Bağlantınızı kontrol edip yeniden deneyin.",
+  "a11y.notifications.switchHint": "Hatırlatmaları açıp kapatmak için iki kez dokunun.",
+  "a11y.notifications.quietHint": "Bu sessiz saat aralığını seçmek için iki kez dokunun.",
+
+  // ---------------------------------------------------------------------
+  // INT-133 — profiles, companions, guardian flows, proxy acknowledgement
+  // (02 §3 attribution values, 06 §6 minors & companions, 13 §13 third
+  // party). Register is `siz` throughout; `-in` on the short in-flow
+  // choices, `-iniz` on the instructional prose.
+  // ---------------------------------------------------------------------
+  "me.companion": "Yakınınız adına",
+  "companion.title": "Yakınınız adına",
+  "companion.entry.sub": "Görüşmeyi kimin yaptığını ve nota nasıl yazıldığını ayarlayın.",
+  "companion.guide.kicker": "Kim anlatıyor",
+  "companion.guide.title": "Anlatanın kim olduğu nota yazılır",
+  "companion.guide.body":
+    "Bir yakınınız adına anlatırsanız bunu nota not düşeriz. Hekim, bilgiyi kimin verdiğini görür. Böylece hastanın kendi sözleriyle sizin anlattıklarınız birbirine karışmaz.",
+  "companion.role.kicker": "Bu görüşme kimin için",
+  "companion.role.self": "Kendim için",
+  "companion.role.companion": "Yakınım adına",
+  "companion.speaker.kicker": "Soruları kim yanıtlıyor",
+  "companion.speaker.companion": "Ben anlatıyorum",
+  "companion.speaker.patient": "Hasta kendisi anlatıyor",
+  "companion.speaker.footer":
+    "Telefon sizde olsa bile hasta kendi anlatıyorsa bunu seçin; nota hastanın kendi sözleri yazılır.",
+  "companion.thirdParty.kicker": "Yanınızda biri var mı",
+  "companion.thirdParty.label": "Yanımda başka biri var",
+  "companion.thirdParty.footer":
+    "Yanınızda biri varken bazı sorular sesli sorulmaz. Bu, mahremiyetiniz içindir.",
+  "companion.ack.kicker": "Onayınız",
+  "companion.ack.label": "Hastanın adına konuştuğumu onaylıyorum",
+  "companion.ack.notProof":
+    "Bu onay yalnızca kimin anlattığını belirtir. Hasta adına karar verme hakkınız olduğu anlamına gelmez.",
+  "companion.effect.kicker": "Bu görüşmede neler değişir",
+  "companion.effect.none": "Bir değişiklik yok. Sorular her zamanki gibi sorulur.",
+  "companion.effect.proxy": "Notta bilgiyi yakınının verdiği yazar.",
+  "companion.effect.assisted":
+    "Notta hastanın kendi sözleri yer alır; yanında biri olduğu da yazılır.",
+  "companion.effect.textOnly": "Özel konular sesli sorulmaz, yazıyla sorulur.",
+  "companion.effect.noSafeguarding": "Bazı çok özel sorular bu görüşmede hiç sorulmaz.",
+  "companion.selected": "Seçili",
+  "companion.notSelected": "Seçili değil",
+  "companion.guardian.kicker": "On sekiz yaşından küçükler",
+  "companion.guardian.label": "Veli hesabıyla görüşme",
+  "companion.guardian.unavailable": "Henüz açık değil",
+  "companion.guardian.body":
+    "On sekiz yaşından küçük biri için görüşme, veli hesabından ve velinin izniyle yapılır. Bu akışı henüz açmadık; hukuki çerçevesi netleşene kadar kapalı kalacak.",
+  "companion.private.kicker": "On iki-on yedi yaş",
+  "companion.private.body":
+    "On iki ile on yedi yaş arasındaki bir hastanın özel bölümü hekime iletilir. Velinin bu bölümü görüp göremeyeceğini hastanenin yazılı politikası belirler. Kayıtlı bir politika yoksa veliye gösterilmez.",
+  "companion.refusal.guardian":
+    "Bu görüşme veli hesabından ve velinin izniyle yapılmalı. Şu an bu akışı açamıyoruz.",
+  "companion.refusal.dobUnverified": "Doğum tarihiniz doğrulanmadan devam edemiyoruz.",
+  "companion.refusal.jurisdiction": "Şu an yalnızca Türkiye'de hizmet veriyoruz.",
+  "companion.refusal.ack": "Devam etmek için hastanın adına konuştuğunuzu onaylayın.",
+  "a11y.companion.roleHint": "Bu seçeneği seçmek için iki kez dokunun.",
+  "a11y.companion.speakerHint": "Soruları kimin yanıtladığını seçmek için iki kez dokunun.",
+  "a11y.companion.ackHint": "Onayı verip geri almak için iki kez dokunun.",
+  "a11y.companion.thirdPartyHint": "Yanınızda biri olduğunu belirtmek için iki kez dokunun.",
+
+  // ---------------------------------------------------------------------
+  // INT-246 — the `__DEV__` voice-lane banner. These strings never reach a
+  // patient: `voiceDiagnostic` returns null unless __DEV__ and the only
+  // component that renders them returns null on that null. They live in the
+  // catalogue anyway because invariant 5 has no dev exemption — a string
+  // outside the catalogue is a string nobody can find or translate later.
+  // ---------------------------------------------------------------------
+  "devVoice.title": "Geliştirici notu: ses hattı yanıt vermedi",
+  "devVoice.body": "Yazılı adımlarla devam ediliyor. Denenen adresler:",
+  "devVoice.hint": "Ana makinede kontrol edin: make voice-doctor",
+  "devVoice.noCandidates": "Denenecek adres yapılandırılmamış",
+  "devVoice.reason.timeout": "zaman aşımı",
+  "devVoice.reason.refused": "bağlantı reddedildi",
+  "devVoice.reason.status": "yanıt kodu",
+  // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
+  // Patient copy for the confirm / changed / stopped step and the
+  // transparency ledger, plus the markers the note carries. The note markers
+  // say who said what — never what stopping a medication means.
+  "carried.kicker": "Önceki ziyaretten",
+  "carried.title": "Bunlar hâlâ geçerli mi?",
+  "carried.body":
+    "Aşağıdaki bilgiler önceki ziyaretlerinizde kaydedilmişti. Siz yanıtlamadan hiçbiri bu ziyaretin notuna güncel bilgi olarak yazılmaz.",
+  "carried.action.confirm": "Devam ediyorum",
+  "carried.action.changed": "Değişti",
+  "carried.action.stopped": "Bıraktım",
+  "carried.action.undo": "Yanıtı geri alın",
+  "carried.state.unconfirmed": "Henüz yanıtlamadınız",
+  "carried.state.confirmed": "Devam ediyor",
+  "carried.state.changed": "Değişti",
+  "carried.state.stopped": "Bıraktım",
+  "carried.recordedOn": "Kayıt tarihi",
+  "carried.source.confirmed_intake_extraction": "Önceki görüşmenizde kendiniz söylemiştiniz",
+  "carried.source.clinician_accepted_note": "Hekiminizin onayladığı notta yer alıyor",
+  "carried.source.confirmed_imported_record": "Onayladığınız bir belgeden geldi",
+  "carried.empty": "Önceki ziyaretlerden taşınan bir bilgi yok.",
+  "carried.ledger.body":
+    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin bugün de geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
+  "note.fact.previousRecord": "önceki kayıt",
+  "note.fact.unconfirmed": "bu ziyarette onaylanmadı",
+  "note.fact.confirmed.patient": "hasta bu ziyarette devam ettiğini söyledi",
+  "note.fact.confirmed.clinician": "hekim bu ziyarette devam ettiğini kaydetti",
+  "note.fact.changed.patient": "hasta değiştiğini söyledi; yeni bilgi alınmadı",
+  "note.fact.changed.clinician": "hekim değiştiğini kaydetti; yeni bilgi alınmadı",
+  "note.fact.stopped.patient": "hasta bıraktığını söyledi",
+  "note.fact.stopped.clinician": "hekim bırakıldığını kaydetti",
+  "a11y.carried.hint": "Bu bilginin bugün de geçerli olup olmadığını seçmek için iki kez dokunun.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

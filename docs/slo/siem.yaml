@@ -1,0 +1,70 @@
+# docs/slo/siem.yaml — SLO for the Wazuh + Falco detection tier
+# (INT-205; CLAUDE.md invariant 15; files/10 §6, §7).
+#
+# Schema: intake_platform.slo.SLOFile, same conventions as docs/slo/api.yaml
+# and docs/slo/langfuse.yaml (which likewise declares a single objective over
+# a boundary rather than over a vendor container).
+#
+# One SLO, and it is not the one a SIEM vendor's dashboard would suggest.
+# Whether the manager, the indexer and the Falco agent are up is a probe, not
+# an error budget — three rows in observability/registry.yaml carry that, with
+# budgets in milliseconds. What WE own is the scrub boundary in
+# intake_platform.siem.normalise, and it is the one place in this tier where a
+# failure is a privacy failure rather than an availability one:
+#
+#   alert_scrub      alerts admitted to the console feed against admitted plus
+#                    refused. A refusal means a detector emitted a shape the
+#                    boundary cannot reduce to ids — an unknown Falco priority,
+#                    a Wazuh level off the 0-15 scale, a payload with no rule
+#                    block. Each one is an alert the Security module never
+#                    shows, so a rising refusal rate is a **detection gap**:
+#                    the monitor is watching and we are not reading it.
+#                    That is why both burn alerts page rather than ticket.
+#
+# Two things are deliberately NOT SLOs here.
+#
+# `siem_alert_fields_dropped_total` has no denominator worth writing. Dropping
+# a field is the boundary working, not failing — a container name that is not
+# an identifier SHOULD be dropped — so a ratio over it would burn budget when
+# the control is doing its job. The right instrument is an alert on a change in
+# the raw rate: a service that suddenly starts putting narrative where an id
+# belongs is a code regression, and it joins
+# infra/observability/prometheus-rules.yaml with the alerting issue.
+#
+# Detection *coverage* — is the manager still receiving events at all — is
+# genuinely the most important question about a SIEM, and it is not answerable
+# from this side. It needs a synthetic event injected on a schedule and
+# observed coming out (files/10 §6 "synthetic probes"), which needs the tier
+# running; HB-I1 and HB-I2 block that here. The probe rows carry liveness in
+# the meantime, and the gap is written down in docs/evidence/INT-205.md rather
+# than papered over with an objective nothing measures.
+service: siem
+owner: platform
+slos:
+  - name: alert_scrub
+    sli: >-
+      sum(rate(siem_alerts_ingested_total[5m]))
+      /
+      (sum(rate(siem_alerts_ingested_total[5m]))
+       + sum(rate(siem_alerts_refused_total[5m])))
+    objective: 99.9
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket

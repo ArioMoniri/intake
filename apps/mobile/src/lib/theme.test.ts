@@ -39,6 +39,33 @@ describe("palette", () => {
     expect(contrast(c.emergency, c.emergencySoft)).toBeGreaterThanOrEqual(4.5);
     // Kickers, sent chips and scope pills set primary text on the soft wash.
     expect(contrast(c.primary, c.primarySoft)).toBeGreaterThanOrEqual(4.5);
+    // Design pass 5: tonal chips/pills and icon wells put soft ink on the
+    // raised tone (draft chip, consent-off pill, record icon well).
+    expect(contrast(c.inkSoft, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(c.ink, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+    // Design pass 6 (ADDED tokens): the neutral CTA pill — bone-on-dark /
+    // ink-on-paper — must clear AA for its label, and stay legible against
+    // both grounds it floats over.
+    expect(contrast(c.onCta, c.cta)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(c.cta, c.background)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // INT-144 measured the whole palette, not only the pinned pairs, and found
+  // two that do NOT reach 4.5:1. They are recorded here at the floor they DO
+  // reach so a future hex change cannot quietly make them worse — and so the
+  // gap is a fact in the suite rather than a note in a document. Both are
+  // listed as non-conformant in docs/compliance/accessibility-conformance.md
+  // (SC 1.4.3); closing them needs a palette change this issue is not
+  // permitted to make.
+  it.each(["light", "dark"] as const)("%s: the known sub-AA pairs hold their measured floor", (scheme) => {
+    const c = palette[scheme];
+    // inkFaint carries captions (13 pt — NOT "large text"), so 3:1 is a
+    // floor, not a pass. Light measures 3.43 / 3.64 / 3.11.
+    expect(contrast(c.inkFaint, c.background)).toBeGreaterThanOrEqual(3);
+    expect(contrast(c.inkFaint, c.surface)).toBeGreaterThanOrEqual(3);
+    expect(contrast(c.inkFaint, c.surfaceRaised)).toBeGreaterThanOrEqual(3);
+    // The filed chip: light measures 4.35 (found by design pass 5, unfixed).
+    expect(contrast(c.success, c.successSoft)).toBeGreaterThanOrEqual(4.3);
   });
 });
 
@@ -60,8 +87,9 @@ describe("dynamic type", () => {
   it("line height: display roles sit tight (1.2×), reading roles keep diacritic room (1.4×)", () => {
     // Design pass 3: the serif display collapses at book leading; body text
     // keeps 1.4 so Turkish diacritics (ğ, ş, İ) never clip at reading sizes.
+    // Pass 5 adds `display` (big numerals) to the tight set.
     for (const role of Object.keys(typeScale) as (keyof typeof typeScale)[]) {
-      const factor = role === "hero" || role === "title" ? 1.2 : 1.4;
+      const factor = role === "display" || role === "hero" || role === "title" ? 1.2 : 1.4;
       expect(lineHeight(role, 1.0)).toBe(Math.round(typeScale[role] * factor));
     }
   });

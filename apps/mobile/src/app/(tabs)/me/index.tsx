@@ -1,96 +1,90 @@
 /**
  * Profilim (02 §4): identity, consents, language, and the "what it learned
- * about me" ledger entry point. Consent chips toggle SESSION-LOCAL state on
- * the synthetic accounts so the consent gate is demonstrable (flip wellbeing
- * and watch the tab appear/disappear); the real product mutates consents
- * only through the versioned consent ledger (invariant 4, INT-060s).
+ * about me" ledger entry point. Consents live on their own layered
+ * İzinleriniz screen (INT-132) — this screen carries the permanent
+ * one-tap-away entry row; only the device-local health toggle (INT-208)
+ * stays inline, because it never leaves the phone and mirrors no server
+ * purpose.
+ *
+ * Design pass 5: the Oura settings anatomy — group headers OUTSIDE the
+ * groups, squarer ListGroups of 56 pt rows with hairlines between, "›" on
+ * the one row that navigates, and sign-out as a quiet pill instead of the
+ * screen's loudest element (the saturated accent belongs to forward
+ * actions, never to leaving).
  */
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
-import {
-  AppText,
-  Card,
-  Hairline,
-  PrimaryButton,
-  RAIL_EDGES,
-  Screen,
-  useTheme,
-} from "@/components/Themed";
+import { ListGroup, ListRow } from "@/components/ListRow";
+import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
+import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
-function ConsentRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
+/**
+ * Tonal state pill (Oura tag register: filled, borderless; the label always
+ * carries the state — colour never alone, 02 §8.2).
+ */
+function StatePill({
+  label,
+  context,
+  active,
+  activeColor,
+  onPress,
+  accessibilityRole = "button",
+  checked,
+  hint,
+}: {
+  label: string;
+  /**
+   * What the pill governs (INT-144). Its visible word is a state — "Açık",
+   * "Türkçe" — which alone names nothing; the row supplies the subject to
+   * the eye, and this supplies it to a screen reader.
+   */
+  context?: string;
+  active: boolean;
+  activeColor: "success" | "primary";
+  onPress: () => void;
+  accessibilityRole?: "button" | "switch";
+  checked?: boolean;
+  hint?: string;
+}) {
   const theme = useTheme();
+  const bg = active
+    ? activeColor === "success"
+      ? theme.successSoft
+      : theme.primarySoft
+    : theme.surfaceRaised;
+  const fg = active ? (activeColor === "success" ? theme.success : theme.primary) : theme.inkSoft;
   return (
-    <View style={styles.consentRow}>
-      <AppText role="body">{label}</AppText>
-      <Pressable
-        accessibilityRole="switch"
-        accessibilityLabel={label}
-        accessibilityState={{ checked: on }}
-        onPress={onToggle}
-        style={[
-          styles.consentPill,
-          {
-            backgroundColor: on ? theme.successSoft : theme.background,
-            borderColor: on ? theme.success : theme.border,
-          },
-        ]}
-      >
-        <AppText
-          role="caption"
-          style={{ color: on ? theme.success : theme.inkSoft, fontWeight: "600" }}
-        >
-          {on ? t("consent.on") : t("consent.off")}
-        </AppText>
-      </Pressable>
-    </View>
-  );
-}
-
-function LanguageRow() {
-  const theme = useTheme();
-  const { locale, switchLocale } = useSession();
-  return (
-    <View style={styles.consentRow}>
-      <AppText role="body">{t("me.language")}</AppText>
-      <View style={styles.langGroup}>
-        {(["tr", "en"] as const).map((code) => {
-          const active = locale === code;
-          return (
-            <Pressable
-              key={code}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              onPress={() => switchLocale(code)}
-              style={[
-                styles.consentPill,
-                {
-                  backgroundColor: active ? theme.primarySoft : theme.background,
-                  borderColor: active ? theme.primary : theme.border,
-                },
-              ]}
-            >
-              <AppText
-                role="caption"
-                style={{ color: active ? theme.primary : theme.inkSoft, fontWeight: "600" }}
-              >
-                {code === "tr" ? t("lang.tr") : t("lang.en")}
-              </AppText>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
+    <Pressable
+      accessibilityRole={accessibilityRole}
+      // Visible word first (SC 2.5.3), subject after.
+      accessibilityLabel={withContext(label, context)}
+      accessibilityHint={hint}
+      accessibilityState={accessibilityRole === "switch" ? { checked } : { selected: active }}
+      // 30 pt by design (Oura tag register). Slop lifts the TARGET to the
+      // SC 2.5.8 floor without disturbing the 56 pt row it sits in; vertical
+      // only, so the tr and en pills never swallow each other.
+      hitSlop={verticalSlop(30)}
+      onPress={onPress}
+      style={[styles.statePill, { backgroundColor: bg }]}
+    >
+      <AppText role="caption" style={{ color: fg, fontWeight: "600" }}>
+        {label}
+      </AppText>
+    </Pressable>
   );
 }
 
 export default function Me() {
-  const { account, consents, setConsent, signOut } = useSession();
+  const router = useRouter();
+  const { account, consents, setConsent, signOut, locale, switchLocale } = useSession();
   if (account === null || consents === null) {
     // The tabs layout has already redirected to welcome by the time this
     // renders without a session; render nothing during that frame.
@@ -99,52 +93,105 @@ export default function Me() {
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("me.title")}
         </AppText>
-        <Card>
-          <AppText role="title">{account.name}</AppText>
-          <AppText role="caption" color="inkFaint">
-            {t("me.syntheticBadge")}
-          </AppText>
-        </Card>
-        <Card style={styles.consentCard}>
+        <ListGroup>
+          <ListRow
+            icon="person.crop.circle"
+            label={account.name}
+            sublabel={t("me.syntheticBadge")}
+          />
+        </ListGroup>
+        {/* İzinleriniz (INT-132): the per-purpose record moved to its own
+            layered screen — every 06 §2 purpose, versioned texts, one-tap
+            withdrawal. This row is the permanent one-tap-away entry. */}
+        <View style={styles.section}>
           <Kicker label={t("me.consents")} />
-          <ConsentRow
-            label={t("consent.core")}
-            on={consents.core}
-            onToggle={() => setConsent("core", !consents.core)}
+          <ListGroup>
+            <ListRow
+              icon="checkmark.shield"
+              label={t("me.consents")}
+              sublabel={t("consent.entry.sub")}
+              chevron
+              hint={t("a11y.openHint")}
+              onPress={() => router.push("/(tabs)/me/consents")}
+            />
+          </ListGroup>
+        </View>
+        {/* Sağlık verileri (INT-208): device-local reads behind their own
+            consent. The hint states the scope honestly — read on this phone
+            only, nothing sent, nothing enters a note unless the patient adds
+            it. Content renders only while the consent is ON; the hint is the
+            group's quiet footer (Oura's under-group explanations). */}
+        <View style={styles.section}>
+          <Kicker label={t("me.health")} />
+          <ListGroup footer={t("consent.health.hint")}>
+            <ListRow
+              label={t("consent.health")}
+              trailing={
+                <StatePill
+                  label={consents.health ? t("consent.on") : t("consent.off")}
+                  context={t("consent.health")}
+                  hint={t("a11y.consent.switchHint")}
+                  active={consents.health}
+                  activeColor="success"
+                  accessibilityRole="switch"
+                  checked={consents.health}
+                  onPress={() => setConsent("health", !consents.health)}
+                />
+              }
+            />
+          </ListGroup>
+          {consents.health ? <HealthSection /> : null}
+        </View>
+        <ListGroup>
+          <ListRow
+            label={t("me.language")}
+            trailing={
+              <View style={styles.langGroup}>
+                {(["tr", "en"] as const).map((code) => (
+                  <StatePill
+                    key={code}
+                    label={code === "tr" ? t("lang.tr") : t("lang.en")}
+                    context={t("me.language")}
+                    active={locale === code}
+                    activeColor="primary"
+                    onPress={() => switchLocale(code)}
+                  />
+                ))}
+              </View>
+            }
           />
-          <Hairline />
-          <ConsentRow
-            label={t("consent.voice")}
-            on={consents.voice}
-            onToggle={() => setConsent("voice", !consents.voice)}
+          {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
+              because the quiet-window choices do not fit a settings row —
+              and because the honest explanation of what a reminder never
+              says belongs beside the switch that governs it. */}
+          <ListRow
+            label={t("me.notifications")}
+            sublabel={t("notifications.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/notifications")}
           />
-          <Hairline />
-          <ConsentRow
-            label={t("consent.wellbeing")}
-            on={consents.wellbeing}
-            onToggle={() => setConsent("wellbeing", !consents.wellbeing)}
+          {/* Yakınınız adına (INT-133): who is doing this sitting, and what
+              that does to the note (06 §6, 13 §13). The under-18 door lives
+              on that screen too, closed with its reason on it. */}
+          <ListRow
+            label={t("me.companion")}
+            sublabel={t("companion.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/companion")}
           />
-          <Hairline />
-          <ConsentRow
-            label={t("consent.documents")}
-            on={consents.documents}
-            onToggle={() => setConsent("documents", !consents.documents)}
+          <ListRow
+            label={t("me.learned")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/learned")}
           />
-        </Card>
-        <Card>
-          <LanguageRow />
-        </Card>
-        <Link href="/(tabs)/me/learned" asChild>
-          <Pressable accessibilityRole="button">
-            <Card>
-              <AppText role="body">{t("me.learned")}</AppText>
-            </Card>
-          </Pressable>
-        </Link>
-        <PrimaryButton label={t("me.signOut")} onPress={signOut} />
+        </ListGroup>
+        <SecondaryButton label={t("me.signOut")} onPress={signOut} />
       </ScrollView>
     </Screen>
   );
@@ -153,13 +200,11 @@ export default function Me() {
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
   heroLine: { marginTop: spacing.xl, marginBottom: spacing.sm },
-  consentCard: { gap: spacing.sm + 2 },
-  consentRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  consentPill: {
+  section: { gap: spacing.sm, marginTop: spacing.sm },
+  statePill: {
     borderRadius: radius.chip,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs + 2,
   },
   langGroup: { flexDirection: "row", gap: spacing.xs },
 });

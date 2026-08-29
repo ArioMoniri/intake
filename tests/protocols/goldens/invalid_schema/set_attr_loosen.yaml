@@ -1,0 +1,20 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: set_attr moving allow_paraphrase in the LOOSENING
+# direction. The closed table (files/12 §3.2) permits only tightening moves:
+# required false→true, must_ask false→true, allow_paraphrase true→false,
+# confirm_required false→true, min_confidence increase only, notify_clinic
+# false→true. The valid overlay golden performs the same op with value false.
+kind: pack
+id: overlay.synthetic_gevsek
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik gevşetme paketi"
+ops:
+  - op: set_attr
+    pointer: /sections/ornek_bolum/slots/renk_tercihi
+    attr: allow_paraphrase
+    value: true

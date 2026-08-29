@@ -22,6 +22,10 @@ export const palette = {
   light: {
     background: "#FAF8F4", // warm paper (Pi/Tiimo-class calm, not clinical white)
     surface: "#FFFFFF",
+    // One tonal step ABOVE surface (design pass 5): leading icon wells,
+    // tonal chips and off-state pills — the Oura "raised" grey that replaces
+    // outlines in the tag register.
+    surfaceRaised: "#F1EDE4",
     ink: "#1C1B18",
     inkSoft: "#5C594F",
     inkFaint: "#8A867A",
@@ -29,6 +33,13 @@ export const palette = {
     primary: "#0F7B6C", // şifa teal — the single accent
     primarySoft: "#EAF5F2", // light enough that primary text on it clears AA (4.6:1)
     onPrimary: "#FFFFFF",
+    // Design pass 6: the focal CTA is a NEUTRAL pill (Oura's forward action
+    // is bone-on-dark in every Mobbin capture; a saturated slab is the one
+    // register Oura never uses). Light mode carries the inverse: ink pill on
+    // the paper ground. ADDED tokens — no existing hex changed; the teal
+    // accent lives on in selection, progress and status moments.
+    cta: "#1C1B18",
+    onCta: "#FAF8F4",
     amber: "#9A5B00", // YELLOW status pill only
     amberSoft: "#FBF1DF",
     success: "#1B7F4B",
@@ -39,6 +50,8 @@ export const palette = {
   dark: {
     background: "#0F0E0C", // Oura-register near-black with warmth
     surface: "#211F1B", // a full step lighter than ground — cards must separate
+    surfaceRaised: "#2B2823", // one more tonal step for chips/icon wells
+
     ink: "#F2F0EA",
     inkSoft: "#B7B3A7",
     inkFaint: "#8A867A",
@@ -52,6 +65,10 @@ export const palette = {
     successSoft: "#1E2E25",
     emergency: "#E5756D",
     emergencySoft: "#392320",
+    // Design pass 6: bone pill on near-black — the measured Oura CTA
+    // (warm cream ≈6 % saturation vs the 36 % teal slab it replaces).
+    cta: "#F3EDE3",
+    onCta: "#1C1B18",
   },
 } as const;
 
@@ -65,7 +82,12 @@ export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 20 } as c
  * against Mobbin Oura captures): cards 24, hero surfaces 32 — Oura's dark
  * cards are visibly rounder than our pass-3 20/28.
  */
-export const radius = { card: 24, control: 999, hero: 32, chip: 999 } as const;
+/**
+ * `group` (design pass 5): grouped list containers — Oura's settings and
+ * contributor groups sit visibly squarer (~16) than its content cards; one
+ * radius for every ListGroup so rows read as a table, not a card stack.
+ */
+export const radius = { card: 24, control: 999, hero: 32, chip: 999, group: 16 } as const;
 
 /** Motion budget (02 §5.2a): fades only, and only this long. */
 export const motion = { fadeMs: 120 } as const;
@@ -77,7 +99,12 @@ export const motion = { fadeMs: 120 } as const;
  * serif names remain as the pre-load fallback chain.
  */
 export const fonts = {
-  display: "Newsreader_600SemiBold",
+  /**
+   * Design pass 5: 600 read one register heavier than the Oura headline
+   * serif (a bookish regular-to-medium); 500 at display sizes matches the
+   * reference weight without thinning small titles.
+   */
+  display: "Newsreader_500Medium",
   displayFallback: { ios: "Georgia", android: "serif", default: "serif" },
   /**
    * Body sans: Inter (OFL 1.1 — commercially usable; loaded via
@@ -126,13 +153,21 @@ export function glassFallback(scheme: ColorScheme): {
  */
 export const tracking = { kicker: 0.8 } as const;
 
-/** Base sizes at fontScale 1.0. Body 17 matches the platform default. */
+/**
+ * Base sizes at fontScale 1.0. Body 17 matches the platform default.
+ * `display` (design pass 5): the one big-numeral moment a screen may have —
+ * Oura's score numerals sit around 64 pt; 56 keeps the register while
+ * surviving fontScale 2.0. `micro` is chrome-only (tab rail captions): Oura
+ * rail labels measure ~11; never use it for reading text.
+ */
 export const typeScale = {
+  display: 56,
   hero: 34,
   title: 24,
   body: 17,
   label: 15,
   caption: 13,
+  micro: 11,
 } as const;
 
 export type TypeRole = keyof typeof typeScale;
@@ -155,6 +190,6 @@ export function scaledSize(role: TypeRole, fontScale: number): number {
  * still clears the diacritics at display sizes because the glyphs are large.
  */
 export function lineHeight(role: TypeRole, fontScale: number): number {
-  const factor = role === "hero" || role === "title" ? 1.2 : 1.4;
+  const factor = role === "display" || role === "hero" || role === "title" ? 1.2 : 1.4;
   return Math.round(scaledSize(role, fontScale) * factor);
 }

@@ -1,0 +1,15 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: base.life_threat is a sibling set outside the
+# inheritance chain and NOTHING may extend it (files/12 §1; CLAUDE.md
+# invariant 7). The pack is otherwise well-formed — the extends line is the
+# single attribute under test.
+kind: pack
+id: specialty.synthetic_kacak
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik kaçak paket"
+extends: base.life_threat

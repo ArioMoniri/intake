@@ -1,0 +1,25 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: an instrument item with allow_paraphrase: true.
+# Validated instruments are always allow_paraphrase: false (files/04 §1;
+# files/04 header "instrument fidelity"; CLAUDE.md invariant 10). Identical
+# to the valid instruments golden except this one flag.
+kind: pack
+id: specialty.synthetic_serbest_olcek
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik serbest ölçek paketi"
+extends: base.synthetic
+instruments:
+  - id: SYN-SCALE
+    items:
+      - id: syn_madde_bir
+        text_tr: "Örnek ölçek maddesi bir."
+        allow_paraphrase: true
+sections:
+  olcek_bolumu:
+    delivery: text_only
+    questionnaires: [SYN-SCALE]

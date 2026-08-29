@@ -1,0 +1,18 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: op pointer ends in /when. The deny-list (files/12
+# §3.2 DENY_SUFFIXES: /ek4, /level, /disposition, /when, /must_ask) means no
+# pack op can rewrite an inherited predicate — inherited rules are immutable
+# (files/12 §4 layer 1).
+kind: pack
+id: overlay.synthetic_yeniden
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik yeniden yazım paketi"
+ops:
+  - op: override_text
+    pointer: /red_flags/rf.synthetic_kirmizi/when
+    text_tr: "ornek_bulgu == true"

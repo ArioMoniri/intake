@@ -17,10 +17,22 @@ const statusKey = {
   filed: "status.filed",
 } as const;
 
+/**
+ * The catalog key for a note status (INT-144). Exported so a card that
+ * WRAPS this chip in a Pressable can put the same word in its accessible
+ * name: a merged subtree is one element, and the status must survive the
+ * merge rather than being the one thing that only the eye receives.
+ */
+export function statusLabelKey(status: NoteStatus): (typeof statusKey)[NoteStatus] {
+  return statusKey[status];
+}
+
 export function StatusChip({ status }: { status: NoteStatus }) {
   const theme = useTheme();
   const colors = {
-    draft: { bg: theme.background, fg: theme.inkSoft, border: theme.border },
+    // Draft is a filled tonal chip (design pass 5): Oura's tag register is
+    // borderless — one raised step above the card carries the separation.
+    draft: { bg: theme.surfaceRaised, fg: theme.inkSoft, border: theme.surfaceRaised },
     sent: { bg: theme.primarySoft, fg: theme.primary, border: theme.primarySoft },
     viewed: { bg: theme.primarySoft, fg: theme.primary, border: theme.primary },
     filed: { bg: theme.successSoft, fg: theme.success, border: theme.successSoft },

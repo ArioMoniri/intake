@@ -15,8 +15,11 @@
 import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 
+import { BiometricGate } from "@/components/BiometricGate";
 import { FloatingTabBar } from "@/components/FloatingTabBar";
 import { useTheme } from "@/components/Themed";
+import { motionMs, screenAnimation } from "@/lib/a11y/motion";
+import { useReducedMotion } from "@/lib/a11y/prefs";
 import { motion } from "@/lib/theme";
 import { useSession, visibleTabs } from "@/lib/session";
 
@@ -28,15 +31,37 @@ export default function TabsLayout() {
   }
   const tabs = visibleTabs(consents);
   return (
+    // Biometric gate on app open (10 §2, INT-131): the signed-in shell
+    // renders only after the device factor passes; capability-detected, so
+    // devices without a factor pass through instead of dead-ending.
+    <BiometricGate>
+      <TabsShell tabs={tabs} themeBackground={theme.background} />
+    </BiometricGate>
+  );
+}
+
+function TabsShell({
+  tabs,
+  themeBackground,
+}: {
+  tabs: ReturnType<typeof visibleTabs>;
+  themeBackground: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  return (
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: true,
-        // Motion budget (02 §5.2a): fades only, 120 ms.
-        animation: "fade",
-        transitionSpec: { animation: "timing", config: { duration: motion.fadeMs } },
-        sceneStyle: { backgroundColor: theme.background },
+        // Motion budget (02 §5.2a): fades only, 120 ms — and nothing at all
+        // when the OS asks for reduced motion (INT-144, SC 2.2.2).
+        animation: screenAnimation(reduceMotion),
+        transitionSpec: {
+          animation: "timing",
+          config: { duration: motionMs(reduceMotion, motion.fadeMs) },
+        },
+        sceneStyle: { backgroundColor: themeBackground },
       }}
     >
       <Tabs.Screen name="today" />
@@ -47,6 +72,10 @@ export default function TabsLayout() {
       </Tabs.Protected>
       <Tabs.Screen name="me/index" />
       <Tabs.Screen name="me/learned" />
+      <Tabs.Screen name="me/notifications" />
+      <Tabs.Screen name="me/companion" />
+      <Tabs.Screen name="me/consents/index" />
+      <Tabs.Screen name="me/consents/[purpose]" />
     </Tabs>
   );
 }

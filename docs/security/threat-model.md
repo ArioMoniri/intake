@@ -216,8 +216,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [Nc] restores never exercised, discovered during the incident.
 - **Controls (files/10):** §3 backups & DR — encrypted PITR to a second in-country location,
   immutable copies, RPO 15 min / RTO 4 h, quarterly restore drills with console evidence.
-- **Signals:** backup freshness and last-drill age (§9 row) land with INT-202.
-- **Tests:** automated restore drill lands with INT-202.
+  INT-202 lands the repository configuration (`infra/backup/pgbackrest.conf`,
+  `repo1-cipher-type=aes-256-cbc`, passphrase from OpenBao and never from a file), the
+  replication plan (`infra/backup/minio-replication.yaml` — object-lock preserved on the
+  audit replica, deletions never propagated, which is the ransomware defence) and the drill
+  itself. The **second location is not named anywhere in files/**, so
+  `INTAKE_DR_S3_ENDPOINT` has no default and the DR object store has no registry row —
+  HB-I8(b), and HB-I5 for why no in-country provider is contracted.
+- **Signals:** backup freshness (`services/probes` `backup_freshness` over
+  `INTAKE_BACKUP_DIR`, bounded at `INTAKE_BACKUP_MAX_AGE_S=900` — the 15-min RPO) and
+  last-drill age. `sec.backup_age_min` and `sec.restore_drill_age_days` stay `planned` in
+  the catalogue: nothing emits them yet, and a `live` entry nothing emits is the dishonest
+  direction the INT-025 gate exists to catch.
+- **Tests:** `tests/infra/test_restore_drill.py` (INT-202) — the repository is encrypted,
+  no credential literal is committed, replication keeps object-lock and propagates no
+  deletion, the drill refuses a restore target inside the workspace, and its evidence record
+  has no field an identifier could occupy. The **execution** half (`make backup-drill`) is
+  scripted, wired and unexercised on the recorded host: HB-I1 (disk) and HB-I2 (container
+  memory) block it, and the retention window the expire step needs is HB-I8(a). The drill
+  refuses rather than shrinking to fit.
 
 ## `resilience` — degradation without harm
 
@@ -323,8 +340,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §4 (b) — every export serialiser fuzzed for formula,
   control-character and CRLF payloads, text-typed cells; §3 — crypto-shredding with 30-day
   grace; the SLA tracker (backlog INT-037).
-- **Signals:** deletion SLA and export volumes (§9 share row) land with INT-037.
-- **Tests:** `export_injection_guard` (inv. 47) and deletion-proof tests land with INT-037.
+- **Signals:** `admin.dsar_delete_total{subject_count}`, emitted once per erasure run by
+  `intake_api.dsar.shred.execute_due_shreds` (INT-037). The tenant-wide queue over the
+  same rows, and the alerting on a subject count above one, are the compliance console's
+  (INT-189).
+- **Tests:** `tests/legal/test_dsar_flows.py` — `export_injection_guard` (inv. 47: formula
+  leads neutralised, control characters and CRLF collapsed), the export failing closed
+  while `docs/legal/strings.yaml` is unauthored, share cancellation on erasure, the
+  30-day grace, and the crypto-shred proof (a shredded field can never be decrypted
+  again). `tests/security/test_crypto_shred.py` pins the envelope operation itself.
 
 ## `retention` — retention and destruction automation
 
@@ -686,8 +710,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   İYS consent record (CLAUDE.md invariant 18); [D] reminder volume driving opt-outs.
 - **Controls (files/10):** §9 notifications row — content-free pushes, quiet hours, opt-out;
   §4 mobile — no PHI in push or deep links; transactional-only default.
-- **Signals:** delivery and opt-out rates (§9) land with INT-141.
-- **Tests:** content tests (no clinical terms in payloads) land with INT-141.
+- **Signals:** `notification_dispatch_total{channel,message_class,status}` carries both
+  the delivery rate and the opt-out rate off one status label, and
+  `notification_preference_changed_total{change}` the opt-out flow (INT-141; both
+  catalogued in `observability/metrics_catalog.yaml` — files/08 §4 names no id for this
+  row, so they enter the catalogue without one).
+- **Tests:** `tests/legal/test_notifications.py` — content-freedom as vocabulary closure
+  (every token of a payload must already be in the committed template corpus, so any
+  interpolation at all fails) plus an adversarial patient whose branch label shares a
+  word with the generic copy; the four İYS locks (no commercial template; an abstract
+  `IysConsentRecord` with no concrete subclass in the tree; a registry that refuses; the
+  `commercial_messaging` safety flag); quiet hours with no invented default; opt-out.
+  `tests/api/test_notification_prefs.py` — the persisted register, its route declaration
+  and its survival across a restart. `apps/mobile/e2e/notifications.spec.ts` — the app
+  never assembles a body and grows no marketing switch.
 
 ## `mobile` — the patient app (MASVS)
 
@@ -714,11 +750,63 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   free-text feedback ↔ analytics pipelines (PHI can arrive uninvited).
 - **Threats (STRIDE/LINDDUN):** [L] linking satisfaction data to clinical content beyond
   need; [I] patient-typed free text carrying identifiers into analytics; [U] respondents
-  unaware of how feedback is used.
+  unaware of how feedback is used; **[U/E] an unsolicited survey invitation reaching a
+  patient as a consent-free "service message"** — 6563 gives marketing-class messages a
+  consent requirement, and a survey routed through the transactional dispatcher would
+  bypass it (INT-242).
 - **Controls (files/10):** invariant 6 (ids only in analytics); k-anonymity floor on
-  aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion.
-- **Signals:** land with INT-240 (events and rollups).
-- **Tests:** land with INT-240.
+  aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion;
+  **invitations classified commercial and gated on İYS** (invariant 18) with the
+  `satisfaction_prompts` safety flag shut, opt-out and quiet hours decided by INT-141's own
+  evaluation, and no survey member in `ReminderKind` or template in the catalogue.
+- **Signals:** `csat.score`, `csat.reason`, `nps.monthly`, `clinician.pulse` — catalogued
+  `live` and emitted by `intake_metrics.metrics`, published only for a named cohort over a
+  stated window and only at or above the k ≥ 10 floor. No tenant, clinic or clinician label
+  on any of them, so no dashboard can re-slice a satisfaction series down to one person.
+  Wait times (INT-241, files/08 §4 group G) join them on the same terms: `wait.records_processing_s`
+  is `live` because both of its instants exist in this repo, its only label is the closed ingest
+  content-type enumeration, and it is published from a rollup rather than observed raw — a
+  histogram scraped after one observation would expose that patient's exact wait through `_sum`
+  over `_count`. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`,
+  `wait.doctor_link_first_open_h` and `wait.checkin_to_seen_min` stay `planned`: each is missing
+  one of its two instants, and `intake_platform.wait_times.WAIT_SOURCES` records which, so the
+  catalogue status and the writer cannot drift from the truth (invariant 13).
+- **Controls added by INT-241:** the aggregate excludes patients who refused
+  `learning:service_improvement` (files/06 §2 — the de-identified-aggregate purpose), decided by
+  the same platform evaluator the route guard uses; a per-`document_type` breakdown is suppressed
+  **whole** when any cell falls below the floor, because a total plus all-but-one cell hands the
+  reader the missing cell; the rollup type carries no minimum and no maximum at any cohort size;
+  the SDS-01 style export (`GET /v1/admin/experience/wait-times.csv`) has no clinic, branch,
+  clinician or patient column, carries the window bounds and measurement instant on every row,
+  and runs every cell through the one committed injection guard,
+  `intake_platform.export_safety.sanitise_cell` (invariant 47; files/08 §0c F13). Tenant scope on
+  both admin reads comes from the principal — there is no `?tenant=` parameter to pass
+  (files/08 §8, §0c F9).
+  `survey_invitation_total{kind,channel,message_class,status}` (INT-242) is the scheduling
+  side: closed enumerations only, and its `status` label is the standing record of why no
+  invitation is sent — `blocked_iys_consent_absent` for the 6563 gate,
+  `refused_schedule_unset` for the first-prompt value nobody has supplied.
+- **Tests:** `tests/experience/test_csat_flow.py` (the split: scores to `events`, the sentence
+  to the envelope-encrypted `csat_texts`; the §3 redaction baseline on ingestion; the response,
+  the audit entry and the event payload all free of the patient's words; both FK cascades, so
+  a DSAR erasure and the files/06 §3 `satisfaction` clock each reach the text) ·
+  `tests/experience/test_rollups.py` (`test_a_rollup_of_adversarial_responses_exposes_none_of_it`
+  — a symptom sentence, a phone number and a clinician's name forced into the very rows the
+  rollup reads, exposed nowhere in the rollup or the exposition; k ≥ 10 suppression) ·
+  `tests/experience/test_metrics_service.py` (invariant 15 for `services/metrics`; invariant 20:
+  no CSAT/NPS figure in docs/regulatory/ or docs/legal/) ·
+  `tests/experience/test_wait_metrics.py` (catalogue status held against the source registry in
+  both directions; recording an unmeasurable kind fails closed; complementary breakdown
+  suppression; no minimum or maximum on the rollup type; the opt-out honoured end to end; the
+  export's column set, its suppressed-row marking and a formula lead neutralised in a registry
+  note; the admin routes' declared scope, admin-only access and absent tenant parameter).
+  `tests/experience/test_survey_cadence.py` (INT-242: the İYS gate blocks a patient NPS
+  invitation and opening the safety flag does not unblock it; a stub registry that *does*
+  answer clears it, so the gate is a real check and not a constant; no survey `ReminderKind`
+  and no survey template; opt-out and quiet hours agree with `ReminderDispatcher` on a
+  48-case grid; the only numeric literals in `intake_platform.surveys` are 1, 3 and 12,
+  with a near-miss control module carrying a sampling rate, a 90-day cool-off and an
+  invented send hour to prove the scan bites).
 
 ---
 
@@ -783,10 +871,24 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §9 learning row — proposal-only with evidence bundles, k ≥ 10,
   sandboxed agent with read-only credentials, PR bot least privilege, canary and rollback;
   PatientOverlay facts require patient or clinician confirmation at type level.
-- **Signals:** proposals, rejections, k-anonymity refusals, rollbacks (§9) land with
-  INT-172/INT-173.
-- **Tests:** `proposal_scope` and `k_anonymity` land with INT-172/INT-171; overlay
-  monotonicity property test with INT-056.
+- **Signals:** k-anonymity refusals landed with INT-171 —
+  `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
+  whose labels carry a view name and a reason class only, because a refusal labelled with
+  the branch or the week it withheld would publish that cell to Prometheus. Proposals,
+  rejections and rollbacks land with INT-172/INT-173.
+- **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
+  `tests/learning/test_analytics_views.py` and its integration lane, which proves the
+  `svc_learning_reader` grant reaches the `analytics` views and no base table);
+  `proposal_scope` lands with INT-172; overlay monotonicity property test with INT-056.
+- **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
+  and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
+  sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no
+  pseudonym survives the `GROUP BY`. Turkish clinical free text is not de-identifiable to a
+  standard this repo will assert (files/10 §3 on realistic Turkish recall; HB-L6 on the
+  claim itself), so narrative is **excluded rather than scrubbed**. The grant is the
+  narrative boundary; the k ≥ 10 gate at the query layer is the small-cell boundary; and
+  the gate refuses the whole artefact rather than suppressing a cell, because a reader
+  holding every cell but one recovers it by subtraction.
 
 ## `incident-response` — detect, contain, notify, learn
 

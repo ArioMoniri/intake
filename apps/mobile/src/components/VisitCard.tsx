@@ -6,11 +6,19 @@ import { SymbolView } from "expo-symbols";
 import { StatusChip } from "@/components/StatusChip";
 import { AppText, Card, useTheme } from "@/components/Themed";
 import type { VisitFixture } from "@/lib/dev/accounts";
-import { getLocale } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 import { radius, spacing, tracking } from "@/lib/theme";
 
-/** tr-formatted, no truncation (Turkish hospital names are long — 00 §2). */
-export function formatVisitDate(iso: string, locale: string): string {
+/**
+ * tr-formatted, no truncation (Turkish hospital names are long — 00 §2).
+ * A visit with no date says so (INT-134): the patient may have added it
+ * before booking, and inventing a day would be a lie that the reminders,
+ * the Doctor Link expiry and the note-staleness clock all trust (02 §2b).
+ */
+export function formatVisitDate(iso: string | null, locale: string): string {
+  if (iso === null) {
+    return t("visits.noDate", locale === "tr" ? "tr" : "en");
+  }
   const date = new Date(`${iso}T00:00:00`);
   return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", {
     day: "numeric",
@@ -69,11 +77,11 @@ export function VisitCard({
           style={styles.chevron}
         />
       ) : null}
-      <AppText
-        role="caption"
-        color={hero ? "primary" : "inkSoft"}
-        style={hero ? styles.heroDate : undefined}
-      >
+      {/* Design pass 5: the hero date is tracked but INK — Oura spends the
+          accent once per screen, and here that moment is the CTA below.
+          Pass 6: dates carry tabular figures so day numbers hold a steady
+          column in stacked lists (Oura microtypography). */}
+      <AppText role="caption" color="inkSoft" style={[styles.date, hero ? styles.heroDate : null]}>
         {formatVisitDate(visit.date, getLocale())}
       </AppText>
       <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>
@@ -99,5 +107,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     gap: spacing.sm,
   },
+  date: { fontVariant: ["tabular-nums"] },
   heroDate: { fontWeight: "600", letterSpacing: tracking.kicker },
 });

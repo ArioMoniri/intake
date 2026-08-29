@@ -1,0 +1,15 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: extends names a pack that is not in the registry.
+# The resolution chain (files/03 §6; files/12 §1) cannot be built, so the
+# monotonicity guarantees cannot be checked — an unresolvable parent is a
+# defect, never a silent skip.
+kind: pack
+id: specialty.synthetic_yetim
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik yetim paket"
+extends: base.synthetic_yok_boyle_paket

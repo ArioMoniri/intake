@@ -1,0 +1,41 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: a KIRMIZI rule whose action omits the UNKNOWN branch.
+# A RED action must resolve for all three locations — REMOTE, ON_SITE,
+# UNKNOWN — with no default (CLAUDE.md invariant 21; files/04 §8.1 rule 7).
+kind: pack
+id: base.synthetic_konumsuz
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik konumsuz paket"
+red_flags:
+  - id: rf.synthetic_konumsuz
+    label_tr: "Sentetik kural — konum eksik"
+    when: "ornek_bulgu == true"
+    tense: now
+    tense_anchor: olay_zamani
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin ve bekleyin."
