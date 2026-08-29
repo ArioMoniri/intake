@@ -9,8 +9,27 @@
  * So: VoxCPM2 serves on 8805, Freya keeps serving on 8803, and this module is
  * the seam between them. The order and the ports come from app.json
  * `extra.ttsLanes`; the built-in order is the default, not a hardcode you
- * have to edit code to change. First tier whose /health answers wins, and a
- * dead VoxCPM2 costs nothing but one failed probe.
+ * have to edit code to change.
+ *
+ * INT-249 — a lane must prove it can SPEAK, not merely answer. INT-243
+ * selected the first tier whose /health answered, which is fine when a dead
+ * tier is dead and wrong when it is alive and unusable. Measured on the host,
+ * both lanes tunnelled and both /health-green: 8805 timed out at 8.0 s with
+ * 0 bytes, 8803 returned 200 with 276,524 bytes in 1.21 s. VoxCPM2 runs on
+ * CPU because the GPU is a nearly-full MIG slice (INT-243 recorded RTF ~4.06
+ * there and rightly did not force it), so it passes every health probe and
+ * cannot finish a turn. Health-only selection therefore picked the lane the
+ * patient waits on.
+ *
+ * Three things change and nothing else does:
+ *   - selection times a real short synthesis against files/03 §4.4's stated
+ *     turn round-trip for `residency_tr` (`TURN_ROUND_TRIP_BUDGET_MS` in
+ *     tts.ts, which records why that figure and not §4.5's TTS-stage row)
+ *     and skips a lane that cannot make it, healthy or not;
+ *   - the choice is cached for the session and re-probed on failure, so one
+ *     lane wedging mid-visit costs a worse voice rather than the visit;
+ *   - every synthesis is capped and falls through to the next tier.
+ * The ladder's intent is untouched: VoxCPM2 still wins whenever it is fast.
  *
  * Deliberately NOT here: how a clip is chunked, shaped or assembled. That is
  * INT-237's `speechShaping.ts` on branch int-237-tts-quality, still unmerged.
@@ -24,7 +43,12 @@
  * its daemon rejects digits too (files/03 §4.9.6) — this is the third of the
  * three guards, not the only one.
  */
-import { assertSpeakableTr, type SynthesizeOptions } from "./tts";
+import {
+  SYNTHESIZE_TIMEOUT_MS,
+  TURN_ROUND_TRIP_BUDGET_MS,
+  assertSpeakableTr,
+  type SynthesizeOptions,
+} from "./tts";
 
 export interface TtsLaneSpec {
   /** Stable id for logs and health output — "voxcpm2", "freya". */
@@ -105,39 +129,261 @@ export function laneCandidates(
   );
 }
 
+/**
+ * The utterance every lane is asked to speak before it is trusted with a
+ * turn: one short Turkish word, numeral-free like everything else that
+ * crosses this boundary (invariant 22), and nothing a patient ever hears —
+ * the bytes are measured and dropped, never cached and never written
+ * (invariant 3's posture applies to agent audio here by construction: there
+ * is no path from a probe to the filesystem).
+ *
+ * Short on purpose: a long probe measures the utterance, a one-word probe
+ * measures the lane. Measured on the host, this word costs 1.03 s on Freya
+ * and 3.99 s on the CPU-bound VoxCPM2 — the two tiers separate on it by
+ * almost 4×, with the budget cleanly between them.
+ */
+export const LANE_PROBE_TEXT = "Merhaba";
+
+/** Why a lane was or was not admitted to the session. */
+export type LaneVerdict =
+  /** Answered /health and spoke inside the budget. */
+  | "ok"
+  /** /health did not answer 2xx, or the socket refused. */
+  | "unhealthy"
+  /** Healthy, but could not produce audio inside the budget. THE defect. */
+  | "over_budget"
+  /** Healthy and prompt, and answered with nothing. */
+  | "silent"
+  /** Healthy, and /synthesize answered non-2xx. */
+  | "error";
+
+export interface LaneMeasurement {
+  readonly id: string;
+  readonly base: string;
+  /** Measured probe milliseconds, or null when it never got that far. */
+  readonly ms: number | null;
+  readonly verdict: LaneVerdict;
+}
+
 export interface LaneProbeOptions {
+  /** Cap on the /health leg. */
   timeoutMs?: number;
+  /** Cap on the probe synthesis — the blueprint's turn round-trip. */
+  budgetMs?: number;
   fetchImpl?: typeof fetch;
+  now?: () => number;
 }
 
 /**
- * First candidate whose /health answers 2xx wins; null when the whole ladder
- * is down. A transport error is "down", not a crash — the point of the ladder
- * is that the next tier gets its turn.
+ * Ask one lane to SPEAK, and time it.
+ *
+ * This is the whole of INT-249 in one function. Selection used to end at
+ * /health, and /health is the one thing a wedged VoxCPM2 does well: measured
+ * on the host with both lanes tunnelled, 8805 answered its probe in
+ * milliseconds and then took 8.0 s over a synthesis and returned 0 bytes,
+ * while 8803 answered in 1.21 s. Health-only selection preferred the lane
+ * that cannot finish a turn, and the patient watched a spinner.
+ *
+ * So: /health first, because it is cheap and it tells a refused socket from
+ * a slow model; then a real short synthesis under a hard abort at the
+ * budget. A lane that trips that abort is `over_budget` — not an error, not
+ * down, just not usable for speech — and the ladder moves on.
  */
-export async function resolveTtsLane(
+export async function measureLane(
+  candidate: TtsLaneBase,
+  {
+    timeoutMs = 1500,
+    budgetMs = TURN_ROUND_TRIP_BUDGET_MS,
+    fetchImpl = fetch,
+    now = Date.now,
+  }: LaneProbeOptions = {},
+): Promise<LaneMeasurement> {
+  const measured = (verdict: LaneVerdict, ms: number | null): LaneMeasurement => ({
+    id: candidate.id,
+    base: candidate.base,
+    ms,
+    verdict,
+  });
+
+  const healthController = new AbortController();
+  const healthTimer = setTimeout(() => healthController.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(`${candidate.base}/health`, { signal: healthController.signal });
+    if (!res.ok) {
+      return measured("unhealthy", null);
+    }
+  } catch {
+    // refused, DNS, or slower than the health cap — all "not there"
+    return measured("unhealthy", null);
+  } finally {
+    clearTimeout(healthTimer);
+  }
+
+  const started = now();
+  try {
+    const bytes = await synthesizeOnLane(candidate, LANE_PROBE_TEXT, {
+      fetchImpl,
+      timeoutMs: budgetMs,
+    });
+    const ms = now() - started;
+    if (bytes.length === 0) {
+      return measured("silent", ms);
+    }
+    return measured(ms > budgetMs ? "over_budget" : "ok", ms);
+  } catch (error) {
+    const ms = now() - started;
+    if (error instanceof Error && error.message === "tts_empty_clip") {
+      return measured("silent", ms);
+    }
+    // An abort is the budget expiring; anything else is the daemon saying no.
+    const aborted = error instanceof Error && error.name === "AbortError";
+    return measured(aborted || ms >= budgetMs ? "over_budget" : "error", ms);
+  }
+}
+
+export interface LaneSelection {
+  readonly lane: TtsLaneBase;
+  /** What the winning lane measured. */
+  readonly ms: number;
+  /** Every lane probed, in ladder order — the winner is the last. */
+  readonly measurements: readonly LaneMeasurement[];
+}
+
+/**
+ * The first lane in ladder order that can actually speak inside the budget.
+ *
+ * Ladder order IS the quality order (files/03 §4.9.1: rows 10-11 VoxCPM2,
+ * row 12 the low-footprint fallback), so taking the first admissible lane is
+ * exactly "prefer quality when both are within budget" — INT-243's intent
+ * survives untouched whenever VoxCPM2 is genuinely fast, and is overridden
+ * only by measurement. Probing stops at the winner: a healthy fast VoxCPM2
+ * costs one health call and one short synthesis, and Freya is never woken.
+ */
+export async function selectTtsLane(
   candidates: readonly TtsLaneBase[],
-  { timeoutMs = 1500, fetchImpl = fetch }: LaneProbeOptions = {},
-): Promise<TtsLaneBase | null> {
+  options: LaneProbeOptions = {},
+): Promise<LaneSelection | null> {
+  const measurements: LaneMeasurement[] = [];
   for (const candidate of candidates) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetchImpl(`${candidate.base}/health`, { signal: controller.signal });
-      if (res.ok) {
-        return candidate;
-      }
-    } catch {
-      // unreachable tier — fall through to the next
-    } finally {
-      clearTimeout(timer);
+    const measured = await measureLane(candidate, options);
+    measurements.push(measured);
+    if (measured.verdict === "ok" && measured.ms !== null) {
+      return { lane: candidate, ms: measured.ms, measurements };
     }
   }
   return null;
 }
 
-/** Default cap for one synthesis; both daemons answer in seconds. */
-const SYNTHESIZE_TIMEOUT_MS = 30_000;
+/**
+ * The session's lane, chosen once and re-chosen on failure.
+ *
+ * Probing costs a synthesis, so it happens at session start and not per
+ * turn; but a choice cached forever is how a lane that dies at turn nine
+ * takes the rest of the visit with it. `invalidate()` is the seam:
+ * `synthesizeWithFallback` calls it the moment a synthesis fails, the next
+ * `current()` re-probes the whole ladder, and the wedged tier demotes itself
+ * because its own probe now trips the budget.
+ */
+export interface TtsLaneSelector {
+  /** The session's lane; throws `tts_unreachable` when none can speak. */
+  current(): Promise<TtsLaneBase>;
+  /** Drop the cached choice; the next `current()` re-probes. */
+  invalidate(): void;
+  /** What the last selection measured — for the dev diagnostic. */
+  lastMeasurements(): readonly LaneMeasurement[];
+  /** How many (tier, host) pairs the ladder can offer. */
+  candidateCount(): number;
+}
+
+export function createTtsLaneSelector(
+  candidatesFor: () => readonly TtsLaneBase[],
+  options: LaneProbeOptions = {},
+): TtsLaneSelector {
+  let inFlight: Promise<TtsLaneBase> | null = null;
+  let measurements: readonly LaneMeasurement[] = [];
+  return {
+    current() {
+      // Concurrent callers share one probe: the session pre-warm fires every
+      // question at mount and would otherwise probe the ladder N times.
+      if (inFlight === null) {
+        const probe: Promise<TtsLaneBase> = (async () => {
+          const chosen = await selectTtsLane(candidatesFor(), options);
+          if (chosen === null) {
+            measurements = [];
+            throw new Error("tts_unreachable");
+          }
+          measurements = chosen.measurements;
+          return chosen.lane;
+        })().catch((error: unknown) => {
+          // A failed probe is retried, never cached — but only clear the
+          // slot if it is still ours. An invalidate() and a fresh probe can
+          // both land while this one is still unwinding, and evicting that
+          // newer probe would cost the session an extra ladder walk.
+          if (inFlight === probe) {
+            inFlight = null;
+          }
+          throw error;
+        });
+        inFlight = probe;
+      }
+      return inFlight;
+    },
+    invalidate() {
+      inFlight = null;
+    },
+    lastMeasurements() {
+      return measurements;
+    },
+    candidateCount() {
+      return candidatesFor().length;
+    },
+  };
+}
+
+/**
+ * Verdicts on the TEXT rather than on the lane. Retrying these elsewhere
+ * would turn invariant 22's guard into a lane-shaped loophole — files/03
+ * §4.9.6 disables the daemons' own normalisers precisely so that this guard
+ * is the one that matters, and a fallback must not be a second opinion on it.
+ */
+const TEXT_SIDE_FAILURES = new Set(["tts_numeral_blocked", "tts_empty_text"]);
+
+/**
+ * Synthesize on the session's lane, degrading to the next tier rather than
+ * to a spinner.
+ *
+ * One slow lane must cost a worse voice, not a dead turn. On any lane-side
+ * failure — the request cap tripping, a non-2xx, an empty body — the
+ * selection is invalidated and the next `current()` re-probes, which is what
+ * moves the session onto Freya. Text-side failures are rethrown at once.
+ */
+export async function synthesizeWithFallback(
+  selector: TtsLaneSelector,
+  text: string,
+  options: SynthesizeOptions = {},
+): Promise<Uint8Array> {
+  assertSpeakableTr(text); // before any lane is even asked for
+  const tried = new Set<string>();
+  let lastError: unknown;
+  const attempts = Math.max(1, selector.candidateCount());
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const lane = await selector.current();
+    if (tried.has(lane.base)) {
+      break; // the re-probe handed back a lane this call already failed on
+    }
+    tried.add(lane.base);
+    try {
+      return await synthesizeOnLane(lane, text, options);
+    } catch (error) {
+      if (error instanceof Error && TEXT_SIDE_FAILURES.has(error.message)) {
+        throw error;
+      }
+      lastError = error;
+      selector.invalidate();
+    }
+  }
+  throw lastError ?? new Error("tts_unavailable");
+}
 
 /**
  * POST /synthesize on a resolved lane. Identical wire contract on both tiers

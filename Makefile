@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
+.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -14,7 +14,16 @@ setup:
 	uv run pre-commit install --install-hooks
 	uv run pre-commit install --hook-type commit-msg
 
-check: check-py check-ts
+check: check-py check-ts check-i18n
+
+# INT-253: the localization completeness gate — tr/en parity, no orphan key, no
+# user-visible string outside the catalogue, the clinical [REVIEW] marks, and
+# the recorded register/readability findings. check-py collects it too (it is
+# under `tests/`); it is named here because a copy change should be clearable
+# in under a second without the full Python fan-out, and because a gate nobody
+# can see in the Makefile is a gate nobody runs.
+check-i18n:
+	uv run pytest tests/release -q -o addopts=""
 
 check-integration:
 	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav hapi
@@ -24,13 +33,14 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src services/api/src services/voice-runtime/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src services/api/src services/voice-runtime/src services/metrics/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run pytest tests/voice --cov=packages/voice-clips/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/voice --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
@@ -118,6 +128,16 @@ backlog-sync:
 backlog-render:
 	uv run python scripts/backlog/render_backlog.py
 
+# INT-246: "is voice up?" answered in one command from THIS machine, instead
+# of by reading app logs. Probes every lane the dev voice profile uses (ASR,
+# extract, the whole TTS ladder) on every host in apps/mobile/app.json, one
+# line per lane. Exits 1 when a REQUIRED lane is down — ASR, or the whole TTS
+# ladder; the extract daemon is reported as degraded, because the dialogue
+# runs without it. HOST=<addr> adds the Metro LAN address, which only exists
+# inside a running Metro and so cannot be read from config.
+voice-doctor:
+	uv run python scripts/dev/voice_doctor.py $(if $(HOST),--host $(HOST),)
+
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache
 
@@ -144,6 +164,39 @@ obs:
 
 obs-down:
 	$(OBS_COMPOSE) down
+
+# INT-175: self-hosted Langfuse — its own compose file (six containers,
+# including a ClickHouse of its own), profile `langfuse`. Secrets come from
+# OpenBao via scripts/observability/langfuse_secrets.sh; nothing is defaulted
+# in the compose file and nothing is added to env.example (invariant 14).
+# CI never boots it; tests/observability/test_langfuse_gate.py validates the
+# file statically. HB-I1/HB-I2 block booting it on the owner's laptop.
+#
+# What reaches this stack is ids, enums and counts and nothing else — the
+# boundary is intake_platform.observability.spans, and HB-L6 is why.
+LANGFUSE_COMPOSE := docker compose -f infra/docker-compose.langfuse.yml --profile langfuse
+
+.PHONY: langfuse langfuse-down langfuse-seed langfuse-experiment
+
+langfuse-seed:
+	scripts/observability/langfuse_secrets.sh --seed
+
+langfuse:
+	eval "$$(scripts/observability/langfuse_secrets.sh --export)" && $(LANGFUSE_COMPOSE) up -d --wait
+
+langfuse-down:
+	$(LANGFUSE_COMPOSE) down
+
+# The recorded-experiment gate (acceptance: "CI job runs recorded simulator
+# experiment and gates on scores"). No model is called: the run file is
+# recorded structural output and the gate is arithmetic over it, so this is
+# safe in CI, which never calls a live API. The fixture's provenance —
+# hand-authored in the simulator's shape, because packages/llm-evals does not
+# exist yet — is recorded in docs/evidence/INT-175.md, not glossed.
+langfuse-experiment:
+	uv run python scripts/observability/langfuse_experiment.py \
+	  --run tests/fixtures/experiments/extraction_recorded_run.jsonl \
+	  --thresholds observability/experiment_thresholds.yaml
 
 # INT-024: chaos harness (intake_platform.chaos). One first-class experiment
 # today: vendor_kill — kill the mock vendor adapter, assert the typed
@@ -185,3 +238,29 @@ backup-drill:
 
 backup-drill-ci: backup-config-check
 	scripts/backup/restore_drill.sh --run
+
+# INT-205: the detection tier — Wazuh (SIEM/XDR) + Falco (runtime), files/10 §7.
+# `siem-config-check` is the half that runs anywhere: the rulesets, ossec.conf,
+# the compose tier and the scrub boundary, validated without booting anything.
+#
+# Only `siem-dry` and `siem-config-check` run on this host. The tier is a
+# manager, an indexer with a JVM heap and an agent that needs a host kernel —
+# more disk and more container memory than HB-I1/HB-I2 record as available, and
+# files/05 sizes Wazuh alone at "12 GB + a part-time SRE". The script refuses
+# rather than shrinking the tier to fit.
+.PHONY: siem siem-down siem-dry siem-seed siem-config-check
+
+siem-config-check:
+	uv run pytest tests/infra -q -o addopts=""
+
+siem-dry:
+	scripts/security/siem_up.sh --dry-run
+
+siem-seed:
+	scripts/security/siem_secrets.sh --seed
+
+siem:
+	scripts/security/siem_up.sh --run
+
+siem-down:
+	scripts/security/siem_up.sh --down

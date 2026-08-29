@@ -22,10 +22,15 @@ import {
 } from "@expo-google-fonts/newsreader";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
 import { screenAnimation } from "@/lib/a11y/motion";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { SessionProvider, useSession } from "@/lib/session";
+import { clientTelemetry, installCrashHandler } from "@/lib/telemetry/expoTelemetry";
+
+/** Evaluated when the root module loads — the earliest clock this app has. */
+const APP_START_MS = Date.now();
 
 function LocalizedStack() {
   const { locale } = useSession();
@@ -50,6 +55,17 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
   });
+  // INT-145: one launch is one session, and cold start ends at the first
+  // frame the patient could actually read — after the faces resolve, since
+  // until then this component returns null. Inert unless a GlitchTip DSN is
+  // configured (app.json `extra.glitchtipDsn`, empty by default).
+  useEffect(() => {
+    if (!fontsLoaded) {
+      return;
+    }
+    installCrashHandler();
+    clientTelemetry().noteColdStart(Date.now() - APP_START_MS);
+  }, [fontsLoaded]);
   if (!fontsLoaded) {
     return null;
   }

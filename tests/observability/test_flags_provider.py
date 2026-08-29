@@ -2,10 +2,11 @@
 
 Pinned here:
 - the in-memory provider is the DEFAULT and needs no environment at all;
-- the five safety flags (``device_functions``, ``s2s``, ``learning_apply``,
-  ``satisfaction_prompts``, ``guardian_link``) exist with False defaults, cannot be defaulted
-  open by a careless caller, and cannot be flipped by the Unleash provider
-  unless the payload explicitly carries ``enabled: true``;
+- the six safety flags (``device_functions``, ``s2s``, ``learning_apply``,
+  ``satisfaction_prompts``, ``guardian_link``, ``commercial_messaging``) exist with False
+  defaults, cannot be defaulted open by a careless caller, and cannot be
+  flipped by the Unleash provider unless the payload explicitly carries
+  ``enabled: true``;
 - the Unleash provider is constructed only when ``INTAKE_UNLEASH_URL`` is
   set, talks the client API within a 200 ms budget, and falls CLOSED to the
   in-memory defaults on every failure mode — a flag backend outage must
@@ -35,6 +36,8 @@ SAFETY_FLAGS = (
     "learning_apply",
     "satisfaction_prompts",
     "guardian_link",
+    # INT-141: the İYS flag lock on marketing-class messages (inv. 18).
+    "commercial_messaging",
 )
 CTX_SENTINEL = "Ahmet Yilmaz 05321234567"  # must never appear in a log line
 FLAGS_LOGGER = "intake_platform.flags"
@@ -71,7 +74,7 @@ class TestDefaultProvider:
 
 
 class TestSafetyFlags:
-    def test_all_four_declared_false(self) -> None:
+    def test_all_declared_false(self) -> None:
         assert set(SAFETY_FLAGS) == set(SAFETY_FLAG_DEFAULTS)
         for name in SAFETY_FLAGS:
             assert SAFETY_FLAG_DEFAULTS[name] is False

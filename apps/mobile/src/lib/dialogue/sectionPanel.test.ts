@@ -8,17 +8,30 @@
  * confirmable (the panel-row confirm), the current turn's candidate shows
  * as suggested but is confirmed in the turn itself, never twice.
  *
- * The meds line mirrors buildNote exactly: profile-derived, display-only,
- * outside the pack counts. No clinical content is invented here.
+ * The meds line mirrors buildNote exactly: carried from earlier visits,
+ * display-only, outside the pack counts, and marked `carried` rather than
+ * `answered` (INT-247). No clinical content is invented here.
  */
 import { describe, expect, it } from "vitest";
 
+import type { CarriedFact } from "../intake/carriedFacts";
 import { applicableQuestions, intakeQuestions, packForDepartment } from "../intake/questions";
 import { sectionLabelKey, sectionPanelModel } from "./sectionPanel";
 import type { DialogueStreamState } from "./stream";
 
 const cardio = packForDepartment("Kardiyoloji");
 const general = intakeQuestions;
+
+/** Synthetic carried facts (INT-247) — recorded at an earlier visit. */
+const CARRIED: CarriedFact[] = ["Metoprolol", "Aspirin"].map((text, index) => ({
+  id: `cf-${index}`,
+  kind: "medication",
+  text,
+  source: "clinician_accepted_note",
+  assertedBy: { role: "clinician" },
+  assertedAt: "2026-05-12",
+  sourceVisitId: "v-0",
+}));
 
 function idle(overrides: Partial<DialogueStreamState> = {}): DialogueStreamState {
   return {
@@ -165,15 +178,16 @@ describe("sectionPanelModel — rows fill in realtime", () => {
     expect(model.filled).toBe(0);
   });
 
-  it("appends the profile-derived meds line exactly as buildNote does — outside the counts", () => {
-    const meds = ["Metoprolol", "Aspirin"];
-    const model = sectionPanelModel(general, idle(), meds);
+  it("appends the carried meds line exactly as buildNote does — outside the counts", () => {
+    const model = sectionPanelModel(general, idle(), CARRIED);
     const last = model.rows[model.rows.length - 1];
     expect(last).toEqual({
       questionId: "medications",
       labelKey: "review.section.medications",
-      status: "answered",
-      values: meds,
+      // INT-247: carried, NOT answered — the panel may not show an earlier
+      // visit's record as something the patient told us in this one.
+      status: "carried",
+      values: ["Metoprolol", "Aspirin"],
       quote: "",
       confirmable: false,
     });

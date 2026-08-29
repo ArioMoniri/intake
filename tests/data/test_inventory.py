@@ -30,6 +30,12 @@ EXPECTED_TABLES = {
     # INT-037 — data-subject rights
     "dsar_requests",
     "dsar_rectifications",
+    # INT-240 — the satisfaction free text, split out of events.payload so
+    # that column's "id-shaped values only, no PHI" declaration stays true
+    # (invariant 6)
+    "csat_texts",
+    # INT-141 — notification opt-out and quiet hours
+    "notification_preferences",
 }
 
 
