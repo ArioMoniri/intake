@@ -43,6 +43,7 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
 import { VoiceNote } from "@/components/VoiceNote";
@@ -50,6 +51,7 @@ import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { joinParts } from "@/lib/a11y/labels";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import {
   applicableQuestions,
@@ -102,6 +104,11 @@ export default function TypedIntake() {
     voiceEligible,
     initialVoiceIntakeState,
   );
+  // INT-246: the probe's detail, held here because the gate unmounts the
+  // moment the fallback fires. `setVoiceProbe` is a stable setter, so the
+  // gate's effect does not re-run and the dead host is probed once. The
+  // banner it feeds renders only under __DEV__ (lib/dev/voiceDiagnostic).
+  const [voiceProbe, setVoiceProbe] = useState<ReachabilityReport | null>(null);
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
@@ -128,6 +135,7 @@ export default function TypedIntake() {
           </AppText>
         </View>
       ) : null}
+      <DevVoiceBanner report={voiceProbe} />
       <View style={styles.body}>
         {voiceState.phase === "steps" ? (
           <StepFlow
@@ -152,7 +160,7 @@ export default function TypedIntake() {
             onHandoff={(prefill) => dispatchVoice({ type: "candidates", prefill })}
           />
         ) : (
-          <DialogueGate dispatch={dispatchVoice} />
+          <DialogueGate dispatch={dispatchVoice} onProbe={setVoiceProbe} />
         )}
       </View>
     </Screen>

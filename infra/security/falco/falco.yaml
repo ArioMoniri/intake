@@ -1,0 +1,70 @@
+# INT-205 — Falco configuration for the SIEM tier (files/10 §7; CLAUDE.md
+# inv. 6, 13, 14, 15, 19).
+#
+# Falco is the container-runtime half of files/10 §7's detection stack. It
+# watches syscalls on the host, which means it sees every file name and every
+# command line on the PHI path — the single most privileged reader in the
+# system. Three consequences are configured here and one is deliberately not.
+#
+#  * `json_output` is on, because the manager ingests this file as json and a
+#    json field is decoded rather than regex-scraped out of a line.
+#  * `http_output` and `grpc_output` are off. Falco can post alerts to a
+#    webhook; there is no egress allow-list entry for one (infra/security/
+#    egress-allowlist.yaml) and an alert stream leaving over http is a PHI
+#    egress path that no consent text covers.
+#  * the embedded webserver is on **only** for /healthz and Prometheus, which
+#    is what invariant 15's probe reaches (the `falco` row of
+#    observability/registry.yaml, probe http_health).
+#
+# What is NOT configured here: any redaction of alert content. Falco's own
+# output fields carry `proc.cmdline` and file names by design, and a control
+# that lives in a vendor config file is a control the vendor's next upgrade
+# resets. The scrub is on our side, in intake_platform.siem.normalise, which
+# reads a closed key set and never the `output` string.
+rules_files:
+  # Order matters: the stock rules first, ours last, so ours can override.
+  - /etc/falco/falco_rules.yaml
+  - /etc/falco/rules.d
+
+json_output: true
+json_include_output_property: true
+json_include_tags_property: true
+
+# The manager's logcollector reads this file. A shared volume rather than a
+# socket or a port: two containers, one file, no forwarder image to license.
+file_output:
+  enabled: true
+  keep_alive: true
+  filename: /var/log/falco/events.json
+
+stdout_output:
+  enabled: false
+
+syslog_output:
+  enabled: false
+
+http_output:
+  enabled: false
+
+grpc_output:
+  enabled: false
+
+grpc:
+  enabled: false
+
+webserver:
+  enabled: true
+  listen_port: 8765
+  k8s_healthz_endpoint: /healthz
+  prometheus_metrics_enabled: true
+  ssl_enabled: false
+
+# No buffering: an alert held in a buffer during a compromise is an alert that
+# never arrives. files/10 §7 targets MTTD under 15 minutes for P1 signals.
+buffered_outputs: false
+
+priority: notice
+
+log_level: info
+log_stderr: true
+log_syslog: false
