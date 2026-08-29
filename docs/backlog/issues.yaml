@@ -624,7 +624,7 @@
   title: "Triage golden suite >=200 + mutation tests"
   depends_on: [INT-080]
   labels: [area:protocols, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "goldens across base+clusters+deep; a deliberately broken RED rule fails the suite (proved, reverted)"
   tests: [tests/safety/test_triage_goldens.py]
@@ -1299,7 +1299,7 @@
   title: "Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types"
   depends_on: [INT-130, INT-042]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "branch list from taxonomy; unknown branch -> cluster with notice; OCR path behind documents consent"
   tests: [apps/mobile/e2e/visits.spec.ts]
@@ -2401,7 +2401,7 @@
   title: "Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code"
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "age from verified DOB; under-18 requires guardian account+consent; adolescent private-section share policy per 06 §6; tests for each age band"
   tests: [tests/legal/test_minor_rules.py]
@@ -2602,3 +2602,30 @@
     questions fall to prefilled text steps'
   tests:
   - apps/mobile/src/lib/dialogue/stream.test.ts
+- id: INT-238
+  epic: E02-data
+  phase: P0
+  title: 'Kaynaklar ingest defect: the virus scanner slot was never wired, so every
+    upload stuck in quarantine'
+  depends_on:
+  - INT-120
+  - INT-034
+  labels:
+  - area:data
+  sec_row: identifiers
+  status: done
+  acceptance:
+  - 'owner bug report - documents could not be added: app.py built its Scanner slot
+    from the dev stub alone, which is unconstructible without an opt-in env var, so
+    on any normal stack the slot was None and DocumentStore fell back to
+    no-scan-configured while a healthy ClamAV sat unused and INT-120s tested
+    ClamAvScanner sat unreferenced; scanner precedence becomes strongest-first
+    (real scanner, then the opt-in dev stub, then None) so the stub can never
+    shadow a live clamd, a scanner that cannot produce a verdict returns a typed
+    503 instead of an uncaught 500 with the row left quarantined, the client maps
+    it to the existing unavailable kind, make dev carries the clamav profile, and
+    the whole path is proved end to end on the live stack including an EICAR
+    rejection; the api harness injected a clean scanner into every case which is
+    why no test caught the slot the service actually builds at boot'
+  tests:
+  - tests/api/test_document_scan_wiring.py

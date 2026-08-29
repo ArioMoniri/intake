@@ -12,6 +12,8 @@
  * tab-visibility rule (wellbeing hidden until consent — 02 §4).
  */
 
+import type { VisitTypeId } from "../taxonomy/branches";
+
 export type NoteStatus = "draft" | "sent" | "viewed" | "filed";
 
 export interface ConsentState {
@@ -31,9 +33,14 @@ export interface ConsentState {
 export interface VisitFixture {
   id: string;
   hospital: string;
+  /** The branch's tr name as the taxonomy prints it (invariant 5). */
   department: string;
-  /** ISO date, always in the fixture's frame — synthetic. */
-  date: string;
+  /** Taxonomy branch id (INT-134) — the visit's source of truth. */
+  branchId: string | null;
+  /** files/09 §1 visit type, carried into pack selection. */
+  visitType: VisitTypeId | null;
+  /** ISO date — null when the appointment is not booked yet (02 §2b). */
+  date: string | null;
   noteStatus: NoteStatus | null;
 }
 
@@ -69,6 +76,8 @@ export const testAccounts: readonly TestAccount[] = [
         id: "v-ayse-1",
         hospital: "Ankara Şehir Hastanesi",
         department: "İç Hastalıkları",
+        branchId: "ic_hastaliklari",
+        visitType: "chronic_review",
         date: "2026-09-03",
         noteStatus: "draft",
       },
@@ -76,6 +85,8 @@ export const testAccounts: readonly TestAccount[] = [
         id: "v-ayse-0",
         hospital: "Ankara Şehir Hastanesi",
         department: "İç Hastalıkları",
+        branchId: "ic_hastaliklari",
+        visitType: "first",
         date: "2026-05-12",
         noteStatus: "filed",
       },
@@ -97,7 +108,10 @@ export const testAccounts: readonly TestAccount[] = [
       {
         id: "v-mehmet-1",
         hospital: "İstanbul Eğitim ve Araştırma Hastanesi",
-        department: "Kulak Burun Boğaz",
+        // the taxonomy's own name_tr, not the colloquial short form
+        department: "Kulak Burun Boğaz Hastalıkları",
+        branchId: "kulak_burun_bogaz_hastaliklari",
+        visitType: "first",
         date: "2026-09-10",
         noteStatus: null,
       },

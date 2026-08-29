@@ -12,6 +12,7 @@ import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
+import { splitVisits } from "@/lib/visits";
 
 const TODAY_FIXTURE = "2026-08-27";
 
@@ -19,8 +20,8 @@ export default function Visits() {
   const router = useRouter();
   const { visits } = useSession();
 
-  const upcoming = visits.filter((v) => v.date >= TODAY_FIXTURE);
-  const past = visits.filter((v) => v.date < TODAY_FIXTURE);
+  // a dateless visit is upcoming, not past (INT-134) — see splitVisits
+  const { upcoming, past } = splitVisits(visits, TODAY_FIXTURE);
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>

@@ -358,3 +358,24 @@
 ## 2026-08-28 — INT-057 merged (PR #293)
 - Protocol Authoring Agent landed: generate-l0 scaffolds guideline-cited L0 draft packs for all 91 intake branches (excluded cluster refused), citation placeholders carry the blueprint's named guidance categories with all eight cluster-specific titles marked awaiting-human, pack_compilable refuses every stub, import-boundary AST scan proves zero patient-data access, regeneration idempotent. The department-question content chain now has its scaffold tier for every branch.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-223 merged (PR #295)
+- Minor & guardian rules landed fail-closed: age/actor resolution enforced inside ensure_consent (single enforcement point), typed 403 leaking neither DOB nor band, no DOB collected or persisted, every non-adult path guardian-gated, non-TR subjects refused rather than judged against TR thresholds, guardian_links behind a shut flag with awaiting-human basis/retention. Nine contested legal values refused and filed as HB-L20 for Turkish health-law counsel.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-059 merged (PR #299)
+- Triage golden suite: 206 goldens / 272 tests with the derivation held as data and asserted, 18/18 mutations detected, and the acceptance's broken-RED run proved on disk then reverted (16 failed / 20 errors → clean 255 after checkout). Adds the `make safety` target CLAUDE.md names, which did not exist.
+- Three findings recorded: base-RED edits are caught at build time by tighten_rule's verbatim parent pin (invariant 7 by construction); the rules file's own LT-01-N negative control cannot catch a gate loosening because its three-day anchor is masked by the tense guard (same-day near misses added); the route axis was nearly left unpinned — the first draft documented an assertion it did not make.
+- Honest headroom: no cluster or deep pack exists yet, so "clusters+deep" waits on INT-044..052/INT-061+.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-134 merged (PR #297)
+- The demo department list is gone: GET /v1/taxonomy/branches projects branches.yaml (9 clusters, 92 branches, name_tr verbatim) with version = sha256 of the served bytes, 503 rather than an empty picker, and a device fallback chain of server feed → cached last-good → bundled seed pinned field-for-field to the YAML. A third scan marker, reference_data, is caged to /v1/taxonomy by the same segment-boundary rule as pre_auth and consent_management; unguarded_data_routes() stays empty. Merged cleanly with INT-223's age gate and re-verified.
+- MHRS SMS paste-parse ships whole (raw SMS never persisted — cleared in the same reducer action that parses it); image OCR is wired fail-closed behind documents consent AND an honestly-false licence flag per 03 §4.9.2(f). Visit date is optional per 02 §2b.
+- Gate defect corrected: nav.spec.ts matched filler tokens case-insensitively while the canonical no_placeholders.sh is case-sensitive, so the real branch name "Ortodonti" tripped it.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-238 merged (PR #301)
+- Owner bug "kaynaklar cant be added" root-caused and fixed: app.py built its Scanner slot from the dev stub alone, unconstructible without an opt-in env var, so on any normal stack the slot was None and DocumentStore fell back to no-scan-configured — while a healthy ClamAV sat on 3310 and INT-120's tested ClamAvScanner sat unreferenced. Every upload stuck in quarantine forever. Scanner precedence is now strongest-first so the stub can never shadow a live clamd; a scanner that cannot produce a verdict returns a typed 503 with the row left quarantined instead of an uncaught 500. Proved end to end on the live stack including an EICAR rejection. The api harness injecting a clean scanner into every case is exactly why no test caught the slot the service builds at boot.
+- SECOND HARD STOP, surfaced not worked around: docs/legal/ does not exist, so the consent catalogue is empty and no scope can be granted through the app at all (INT-210, owner + counsel). On a real device this independently disables documents, records and sharing.
+- LOOP_STATUS: CONTINUE
