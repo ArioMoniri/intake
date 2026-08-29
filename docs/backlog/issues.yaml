@@ -2911,19 +2911,6 @@
     selection is cached per session and re-probed on failure'
   tests:
   - apps/mobile/src/lib/dialogue/ttsLane.test.ts
-<<<<<<< HEAD
-- id: INT-257
-  epic: E14-legal
-  phase: P1
-  title: "Marketing claims-control gate: landing page, decks, tender responses through the invariant-20 scanner"
-  depends_on: [INT-224]
-  labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
-  acceptance:
-    - "every committed external-facing string tree is a declared tree of intake_platform.legal.claims and scans green; the device-function lexicon runs over it too; a near-miss control proves the permitted fixed copy survives; the trees that are not committed to this repo are named with the human who owns them"
-  tests: [tests/legal/test_marketing_claims_gate.py]
-  legal: "TCY-R11,STORE"
-=======
 - id: INT-256
   epic: E04-engines
   phase: P1
@@ -2940,4 +2927,3 @@
     - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
   tests: [apps/mobile/src/lib/intake/history.test.ts]
   sec_row: "intake-typed"
->>>>>>> origin/main
