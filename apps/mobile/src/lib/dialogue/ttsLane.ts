@@ -1,9 +1,9 @@
 /**
- * INT-240 — the dev TTS lane as an ordered ladder, behind config.
+ * INT-243 — the dev TTS lane as an ordered ladder, behind config.
  *
  * files/03 §4.9.1 rows 10-11 pin `openbmb/VoxCPM2` as the TTS for both the
  * cached-clip and the dynamic path; row 12, `freyavoice/Freya-TTS`, is the
- * low-footprint fallback selected at session start. Until INT-240 the client
+ * low-footprint fallback selected at session start. Until INT-243 the client
  * hardcoded one port (8803, Freya) and had nowhere to put a second tier.
  *
  * So: VoxCPM2 serves on 8805, Freya keeps serving on 8803, and this module is

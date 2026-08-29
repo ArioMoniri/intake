@@ -76,7 +76,7 @@ def _registry(*entries: dict[str, object]) -> Registry:
     return Registry.model_validate({"components": list(entries)})
 
 
-# A complete, well-formed model-provenance block (INT-240). Tests delete one
+# A complete, well-formed model-provenance block (INT-243). Tests delete one
 # key at a time from it to prove each half of the pin is load-bearing.
 _MODEL_PROVENANCE: dict[str, object] = {
     "model_id": "openbmb/VoxCPM2",
@@ -127,7 +127,7 @@ def test_shipped_registry_has_exactly_the_acceptance_schema() -> None:
         "fallback",
         "phi_path",
     }
-    # INT-240 extends the row with an OPTIONAL model-provenance block, so an
+    # INT-243 extends the row with an OPTIONAL model-provenance block, so an
     # auditor can see the pin and the exact licence blob that was read rather
     # than a prose claim inside `host` (files/03 §4.9.0 rule 3, invariant 19).
     optional = {
@@ -175,7 +175,7 @@ def test_model_rows_mirror_the_03_491_pins() -> None:
     freya = by_name["freya-tts"]
     assert "d124e07" in freya.host
     assert "Apache-2.0" in freya.license
-    # INT-240 closed the open finding this row used to carry ("VoxCPM2 VAE
+    # INT-243 closed the open finding this row used to carry ("VoxCPM2 VAE
     # weights @32279eff have NO licence blob"): VoxCPM2 has its own row now,
     # with the blob url and sha it was verified from. Freya's licence line
     # must no longer speak for another model.
@@ -186,7 +186,7 @@ def test_model_rows_mirror_the_03_491_pins() -> None:
     assert "MIT" in deid.license and "CC-BY-4.0" in deid.license
 
 
-# --- INT-240: VoxCPM2 (files/03 §4.9.1 rows 10-11) ---------------------------------
+# --- INT-243: VoxCPM2 (files/03 §4.9.1 rows 10-11) ---------------------------------
 
 
 def test_voxcpm2_row_pins_the_model_and_falls_back_to_freya() -> None:

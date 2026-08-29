@@ -3,7 +3,7 @@
  * (same dev-lane candidate walk as whisper/extract) and the filesystem the
  * pure ClipStore writes through.
  *
- * INT-240: that probe now walks a LADDER rather than one port — VoxCPM2 on
+ * INT-243: that probe now walks a LADDER rather than one port — VoxCPM2 on
  * 8805 first (files/03 §4.9.1 rows 10-11), FreyaTTS on 8803 as the automatic
  * fallback (row 12). Order and ports come from app.json `extra.ttsLanes`,
  * not from a constant in this file; see ttsLane.ts.

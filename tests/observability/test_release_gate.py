@@ -235,7 +235,7 @@ def test_shipped_registry_blocks_today_even_with_every_probe_healthy(tmp_path: P
     served models declare no self-hosted fallback. That is the gate working,
     not a defect — the listing is pinned so it shrinks consciously.
 
-    INT-240 moved one row in each direction, which is what a real fallback
+    INT-243 moved one row in each direction, which is what a real fallback
     looks like. `voxcpm2-tts` is enabled and on the PHI path yet does NOT
     appear here: it names `component:freya-tts`, which is enabled and healthy,
     so the ladder satisfies the gate. `freya-tts` appears here for the first

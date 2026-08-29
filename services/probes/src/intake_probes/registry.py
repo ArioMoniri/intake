@@ -4,7 +4,7 @@ The acceptance schema is nine keys per row:
   {component, self_hostable, self_hosted_now, host, license, probe,
    budget_ms, fallback, phi_path}
 
-INT-240 adds an OPTIONAL model-provenance block on top of those nine:
+INT-243 adds an OPTIONAL model-provenance block on top of those nine:
   {model_id, revision, weights_sha256, licence_verified_at,
    licence_blob_url, licence_blob_sha256, licence_note}
 
@@ -90,7 +90,7 @@ class RegistryEntry(BaseModel):
     fallback: str = Field(pattern=_FALLBACK_RE.pattern)
     phi_path: bool
 
-    # --- optional model-provenance block (INT-240) --------------------------
+    # --- optional model-provenance block (INT-243) --------------------------
     #: HF repo id, e.g. "openbmb/VoxCPM2". Declaring it opts the row into the
     #: full pin below.
     model_id: str | None = Field(default=None, min_length=1)

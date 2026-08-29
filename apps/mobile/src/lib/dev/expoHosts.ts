@@ -4,7 +4,7 @@
  * candidate bases for a given port. Kept apart from hosts.ts so the pure
  * helpers stay node-testable without an expo import.
  *
- * INT-240 adds the TTS ladder, which is a list of (tier, port) pairs rather
+ * INT-243 adds the TTS ladder, which is a list of (tier, port) pairs rather
  * than a single port: `extra.ttsLanes`, defaulting to VoxCPM2 8805 then
  * Freya 8803. Same hosts, same probe, one more dimension.
  */
