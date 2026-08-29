@@ -49,6 +49,24 @@ describe("palette", () => {
     expect(contrast(c.onCta, c.cta)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(c.cta, c.background)).toBeGreaterThanOrEqual(4.5);
   });
+
+  // INT-144 measured the whole palette, not only the pinned pairs, and found
+  // two that do NOT reach 4.5:1. They are recorded here at the floor they DO
+  // reach so a future hex change cannot quietly make them worse — and so the
+  // gap is a fact in the suite rather than a note in a document. Both are
+  // listed as non-conformant in docs/compliance/accessibility-conformance.md
+  // (SC 1.4.3); closing them needs a palette change this issue is not
+  // permitted to make.
+  it.each(["light", "dark"] as const)("%s: the known sub-AA pairs hold their measured floor", (scheme) => {
+    const c = palette[scheme];
+    // inkFaint carries captions (13 pt — NOT "large text"), so 3:1 is a
+    // floor, not a pass. Light measures 3.43 / 3.64 / 3.11.
+    expect(contrast(c.inkFaint, c.background)).toBeGreaterThanOrEqual(3);
+    expect(contrast(c.inkFaint, c.surface)).toBeGreaterThanOrEqual(3);
+    expect(contrast(c.inkFaint, c.surfaceRaised)).toBeGreaterThanOrEqual(3);
+    // The filed chip: light measures 4.35 (found by design pass 5, unfixed).
+    expect(contrast(c.success, c.successSoft)).toBeGreaterThanOrEqual(4.3);
+  });
 });
 
 describe("dynamic type", () => {

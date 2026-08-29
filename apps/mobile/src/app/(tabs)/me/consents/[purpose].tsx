@@ -38,6 +38,7 @@ import {
   useConsentLedger,
   withdrawLocal,
 } from "@/lib/consent/store";
+import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
@@ -85,6 +86,8 @@ export default function ConsentDetail() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("me.consents")}
+          accessibilityHint={t("a11y.backHint")}
+          hitSlop={verticalSlop(21)}
           onPress={() => router.back()}
           style={styles.backRow}
         >
@@ -93,7 +96,9 @@ export default function ConsentDetail() {
             {t("me.consents")}
           </AppText>
         </Pressable>
-        <AppText role="hero">{t(def.labelKey)}</AppText>
+        <AppText role="hero" heading>
+          {t(def.labelKey)}
+        </AppText>
 
         {view.display === "stale" ? (
           <Card>

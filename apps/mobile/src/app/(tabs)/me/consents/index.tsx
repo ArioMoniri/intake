@@ -69,7 +69,7 @@ export default function Consents() {
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" style={styles.heroLine}>
+        <AppText role="hero" heading style={styles.heroLine}>
           {t("me.consents")}
         </AppText>
         <AppText role="body" color="inkSoft">

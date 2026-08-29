@@ -24,6 +24,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, useTheme } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
+import { MIN_TAP } from "@/lib/a11y/target";
 import type { PurposeView } from "@/lib/consent/ledger";
 import type { PurposeId } from "@/lib/consent/purposes";
 import { t } from "@/lib/i18n";
@@ -37,6 +39,20 @@ interface ConsentListProps {
   onToggle: (id: PurposeId) => void;
 }
 
+/** The pill's visible word — also the name of the row's secondary action. */
+function pillLabel(view: PurposeView): string {
+  if (view.display === "info") {
+    return t("consent.state.service");
+  }
+  return view.display === "on"
+    ? t("consent.on")
+    : view.display === "stale"
+      ? t("consent.state.stale")
+      : view.display === "pending_text"
+        ? t("consent.state.pending")
+        : t("consent.off");
+}
+
 function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }) {
   const theme = useTheme();
   if (view.display === "info") {
@@ -48,14 +64,7 @@ function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }
       </View>
     );
   }
-  const label =
-    view.display === "on"
-      ? t("consent.on")
-      : view.display === "stale"
-        ? t("consent.state.stale")
-        : view.display === "pending_text"
-          ? t("consent.state.pending")
-          : t("consent.off");
+  const label = pillLabel(view);
   const background =
     view.display === "on"
       ? theme.successSoft
@@ -68,8 +77,19 @@ function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }
   return (
     <Pressable
       accessibilityRole="switch"
-      accessibilityLabel={t(view.labelKey)}
+      // INT-144: the row and this pill used to carry the SAME name (the
+      // purpose), so a screen-reader user met two controls called "Ses
+      // kaydı" that did different things. The pill's own visible word comes
+      // first (SC 2.5.3 — "Açık" is what a voice-control user says) and the
+      // purpose follows as the context the eye takes from the row.
+      accessibilityLabel={withContext(label, t(view.labelKey))}
+      accessibilityHint={t("a11y.consent.switchHint")}
       accessibilityState={{ checked: view.display === "on", disabled: pendingText }}
+      // SC 2.5.8 by growing the BOX, not by slop. Slop was tried and
+      // reverted: this pill sits INSIDE a 56 pt pressable row, so 7 pt of
+      // invisible slop turned taps meant for "open the consent text" into
+      // taps that withdraw the consent. A visible 44 pt pill has no such
+      // ambiguity — its target is exactly what the eye sees.
       onPress={onPress}
       style={[styles.pill, { backgroundColor: background }]}
     >
@@ -94,6 +114,19 @@ export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps)
         sublabel={options?.sublabel}
         inset={options?.inset}
         chevron
+        hint={t("a11y.consent.rowHint")}
+        // The row merges its subtree, so the switch below is not a separate
+        // accessibility element. Without this action a screen-reader user
+        // could read a consent but not withdraw it (SC 4.1.2, and withdrawal
+        // must be at least as easy as grant).
+        secondaryAction={
+          view.display === "info"
+            ? undefined
+            : {
+                label: withContext(pillLabel(view), t(view.labelKey)),
+                onPress: () => onToggle(id),
+              }
+        }
         onPress={() => onOpenDetail(id)}
         trailing={<StatePill view={view} onPress={() => onToggle(id)} />}
       />
@@ -142,5 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.chip,
     paddingHorizontal: spacing.sm + 4,
     paddingVertical: spacing.xs + 2,
+    minHeight: MIN_TAP,
+    justifyContent: "center",
   },
 });

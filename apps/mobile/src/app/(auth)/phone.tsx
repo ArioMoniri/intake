@@ -21,6 +21,9 @@ import {
 import { AuthApiError, requestOtp } from "@/lib/auth/api";
 import { setPendingPhone } from "@/lib/auth/flow";
 import { normaliseTrPhone } from "@/lib/auth/phone";
+import { labelled } from "@/lib/a11y/labels";
+import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { MIN_TAP } from "@/lib/a11y/target";
 import { t, type MessageKey } from "@/lib/i18n";
 import { radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -50,6 +53,10 @@ export default function PhoneEntry() {
   const [raw, setRaw] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<MessageKey | null>(null);
+  // `live="assertive"` below is Android-only (RN declares
+  // accessibilityLiveRegion @platform android, and iOS has no alert trait
+  // that substitutes). This is the half that reaches VoiceOver.
+  useLiveAnnouncement(problem === null ? null : labelled(t("a11y.error"), t(problem)));
 
   const submit = async () => {
     const phone = normaliseTrPhone(raw);
@@ -83,6 +90,13 @@ export default function PhoneEntry() {
           </AppText>
           <TextInput
             accessibilityLabel={t("auth.phone.label")}
+            // The visible format line is guidance about the field, so it
+            // belongs to the field for a screen reader too (SC 3.3.2) —
+            // a caption underneath is only guidance to the eye.
+            accessibilityHint={t("auth.phone.hint")}
+            // The field applies scaledSize itself; the OS multiplier must be
+            // off or a 200 % setting becomes 400 % (SC 1.4.4).
+            allowFontScaling={false}
             value={raw}
             onChangeText={(next) => {
               setRaw(next);
@@ -106,7 +120,11 @@ export default function PhoneEntry() {
           </AppText>
         </Card>
         {problem !== null ? (
-          <AppText role="body" color="amber">
+          // SC 3.3.1. The VISIBLE copy is unchanged — the word "Hata" is
+          // added only to what is spoken (see useLiveAnnouncement above),
+          // because a screen reader meets the line with no colour and no
+          // position to tell it apart from the field's own hint.
+          <AppText role="body" color="amber" live="assertive">
             {t(problem)}
           </AppText>
         ) : null}
@@ -123,5 +141,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+    // SC 2.5.8: the field measured ~56 only because its padding happened to
+    // sum there — pinned to the floor so it cannot drift under.
+    minHeight: MIN_TAP,
   },
 });

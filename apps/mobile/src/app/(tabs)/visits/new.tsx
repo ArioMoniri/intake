@@ -29,6 +29,9 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { joinParts, labelled } from "@/lib/a11y/labels";
+import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { branchById, intakeBranches, visibleBranches } from "@/lib/taxonomy/branches";
@@ -77,6 +80,16 @@ export default function NewVisit() {
       live = false;
     };
   }, []);
+
+  // One string, used for the visible line and (prefixed) for the spoken one.
+  const problemText =
+    form.problem === null
+      ? null
+      : form.problem === "missing_fields"
+        ? t("visits.new.missingFields")
+        : t("visits.new.badDate");
+  // Android hears the live region on the line; this is the iOS half.
+  useLiveAnnouncement(problemText === null ? null : labelled(t("a11y.error"), problemText));
 
   const bookable = useMemo(() => intakeBranches(taxonomy.branches, taxonomy.clusters), [taxonomy]);
   const shown = useMemo(() => visibleBranches(bookable, query, BROWSE_LIMIT), [bookable, query]);
@@ -129,6 +142,8 @@ export default function NewVisit() {
           </AppText>
           <TextInput
             accessibilityLabel={t("visits.new.smsTitle")}
+            accessibilityHint={t("visits.new.smsHint")}
+            allowFontScaling={false}
             value={form.sms}
             onChangeText={(value) => dispatch({ type: "set_sms", value })}
             multiline
@@ -140,7 +155,14 @@ export default function NewVisit() {
             disabled={form.sms.trim().length === 0}
           />
           {form.smsNotice !== null ? (
-            <AppText role="body" color={form.smsNotice === "filled" ? "inkSoft" : "amber"}>
+            <AppText
+              role="body"
+              color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
+              // The paste either filled the form or did not; either way the
+              // result appears above the fields the patient is looking at
+              // (SC 3.3.1).
+              live="assertive"
+            >
               {t(NOTICE_KEYS[form.smsNotice])}
             </AppText>
           ) : null}
@@ -158,6 +180,7 @@ export default function NewVisit() {
           </AppText>
           <TextInput
             accessibilityLabel={t("visits.new.hospital")}
+            allowFontScaling={false}
             value={form.hospital}
             onChangeText={(value) => dispatch({ type: "set_hospital", value })}
             style={fieldStyle}
@@ -172,6 +195,7 @@ export default function NewVisit() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t("visits.new.branchChange")}
+                hitSlop={verticalSlop(18)}
                 onPress={() => setPicking(true)}
               >
                 <AppText role="caption" color="primary">
@@ -189,6 +213,7 @@ export default function NewVisit() {
               </AppText>
               <TextInput
                 accessibilityLabel={t("visits.new.branchSearch")}
+                allowFontScaling={false}
                 value={query}
                 onChangeText={setQuery}
                 style={fieldStyle}
@@ -197,9 +222,14 @@ export default function NewVisit() {
                 {shown.map((branch) => (
                   <Pressable
                     key={branch.id}
-                    accessibilityRole="button"
+                    // One branch per visit: the wash marks the chosen one
+                    // and a radio is what says so out loud (SC 1.4.1).
+                    accessibilityRole="radio"
                     accessibilityLabel={branch.nameTr}
-                    accessibilityState={{ selected: branch.id === form.branchId }}
+                    accessibilityState={{
+                      selected: branch.id === form.branchId,
+                      checked: branch.id === form.branchId,
+                    }}
                     onPress={() => {
                       dispatch({ type: "pick_branch", branch });
                       setPicking(false);
@@ -235,9 +265,12 @@ export default function NewVisit() {
                 {chosen.visitTypes.map((visitType: VisitTypeId) => (
                   <Pressable
                     key={visitType}
-                    accessibilityRole="button"
+                    accessibilityRole="radio"
                     accessibilityLabel={t(visitTypeLabelKey(visitType))}
-                    accessibilityState={{ selected: visitType === form.visitType }}
+                    accessibilityState={{
+                      selected: visitType === form.visitType,
+                      checked: visitType === form.visitType,
+                    }}
                     onPress={() => dispatch({ type: "pick_visit_type", visitType })}
                     style={[
                       styles.typeChip,
@@ -260,6 +293,11 @@ export default function NewVisit() {
           </AppText>
           <TextInput
             accessibilityLabel={t("visits.new.date")}
+            // The format line and the "optional" line are instructions ABOUT
+            // this field; a sighted patient reads them under it, a screen
+            // reader gets them here (SC 3.3.2).
+            accessibilityHint={joinParts(t("visits.new.dateHint"), t("visits.new.dateOptional"))}
+            allowFontScaling={false}
             value={form.date ?? ""}
             onChangeText={(value) => dispatch({ type: "set_date", value })}
             keyboardType="numbers-and-punctuation"
@@ -274,10 +312,9 @@ export default function NewVisit() {
         </Card>
 
         {form.problem !== null ? (
-          <AppText role="body" color="amber">
-            {form.problem === "missing_fields"
-              ? t("visits.new.missingFields")
-              : t("visits.new.badDate")}
+          // Visible copy unchanged; the spoken form carries "Hata".
+          <AppText role="body" color="amber" live="assertive">
+            {problemText}
           </AppText>
         ) : null}
         <PrimaryButton label={t("visits.new.save")} onPress={save} />

@@ -22,6 +22,8 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
+import { verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import { buildNote } from "@/lib/intake/note";
@@ -90,7 +92,12 @@ function ReviewAndSend() {
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
         <ScrollView contentContainerStyle={[styles.content, sent ? null : styles.contentUnderBar]}>
-          <AppText role="hero">{t("review.title")}</AppText>
+          {/* The top bar is deliberately untitled (design pass 6), so this
+              serif line is the screen's only title — and therefore the one
+              that has to carry the heading semantic (SC 1.3.1, SC 2.4.2). */}
+          <AppText role="hero" heading>
+            {t("review.title")}
+          </AppText>
           <AppText role="body" color="inkSoft">
             {t("review.intro")}
           </AppText>
@@ -118,6 +125,8 @@ function ReviewAndSend() {
               ) : null}
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={t("review.resume")}
+                hitSlop={verticalSlop(18)}
                 onPress={() => {
                   if (visitId) {
                     updateNote(visitId, { type: "resume" });
@@ -149,7 +158,11 @@ function ReviewAndSend() {
                     {!sent && editTarget ? (
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`${t("review.edit")}: ${t(section.titleKey)}`}
+                        // Visible word first (SC 2.5.3): a voice-control
+                        // user says "Düzenleyin", and the section name is
+                        // the context the eye gets from the card header.
+                        accessibilityLabel={withContext(t("review.edit"), t(section.titleKey))}
+                        hitSlop={verticalSlop(26)}
                         onPress={() =>
                           visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
                         }
@@ -164,7 +177,17 @@ function ReviewAndSend() {
                     ) : null}
                     <Pressable
                       accessibilityRole="switch"
-                      accessibilityState={{ checked: shared }}
+                      // Before INT-144 this control's whole name was
+                      // "Paylaşılıyor" — the same three controls, one per
+                      // section, indistinguishable in the rotor. The
+                      // section it governs is now part of the name.
+                      accessibilityLabel={withContext(
+                        shared ? t("review.shared") : t("review.notShared"),
+                        t(section.titleKey),
+                      )}
+                      accessibilityHint={t("a11y.shareHint")}
+                      accessibilityState={{ checked: shared, disabled: sent }}
+                      hitSlop={verticalSlop(26)}
                       disabled={sent}
                       onPress={() =>
                         visitId &&
@@ -200,6 +223,11 @@ function ReviewAndSend() {
                 {section.id === "hpi" && !sent ? (
                   <Pressable
                     accessibilityRole="button"
+                    accessibilityLabel={withContext(
+                      t("review.edit"),
+                      t("review.hpi.patientNote"),
+                    )}
+                    hitSlop={verticalSlop(18)}
                     onPress={() =>
                       visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=extra`)
                     }

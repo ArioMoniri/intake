@@ -1415,7 +1415,7 @@
   title: "Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report"
   depends_on: [INT-130]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: awaiting-human
   acceptance:
     - "axe/a11y CI checks; VoiceOver/TalkBack scripts; docs/legal/accessibility-statement.md (EN 301 549 mapping)"
   tests: [apps/mobile/e2e/a11y.spec.ts]
