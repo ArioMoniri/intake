@@ -187,6 +187,13 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
             env.get("INTAKE_LANGFUSE_CLICKHOUSE_URL", "http://127.0.0.1:8123/ping"),
         )
 
+    # INT-032: the openEHR CDR sits behind the compose `export` profile and no
+    # deployment runs it (registry row self_hosted_now: false), so it is wired
+    # on the same terms as Langfuse — only where a target has been named, and
+    # SKIPPED rather than FAILED everywhere else.
+    ehrbase_health_url = env.get("INTAKE_EHRBASE_HEALTH_URL", "")
+    if ehrbase_health_url:
+        wiring["ehrbase"] = partial(probes.http_health, http_client, ehrbase_health_url)
     # INT-205: the same shape for the SIEM tier. Falco's embedded webserver is
     # the only endpoint in that tier that answers without a credential — the
     # Wazuh manager API returns 401 and the indexer wants TLS plus a password —
