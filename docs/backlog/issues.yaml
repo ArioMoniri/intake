@@ -1557,7 +1557,7 @@
   title: "De-identified analytics views + k-anonymity helper + rollups"
   depends_on: [INT-015, INT-030]
   labels: [area:learning, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "k>=10 enforced at query layer; refusals metered; no free-text outside review UI"
   tests: [tests/learning/test_k_anonymity.py]
@@ -2202,7 +2202,7 @@
   title: "Wazuh + Falco deployment + rules + console feed"
   depends_on: [INT-023]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "auth anomalies, k8s audit, container runtime alerts wired to Security module"
   tests: [tests/infra/test_siem_feed.py]

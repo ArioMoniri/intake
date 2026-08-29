@@ -847,10 +847,24 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §9 learning row — proposal-only with evidence bundles, k ≥ 10,
   sandboxed agent with read-only credentials, PR bot least privilege, canary and rollback;
   PatientOverlay facts require patient or clinician confirmation at type level.
-- **Signals:** proposals, rejections, k-anonymity refusals, rollbacks (§9) land with
-  INT-172/INT-173.
-- **Tests:** `proposal_scope` and `k_anonymity` land with INT-172/INT-171; overlay
-  monotonicity property test with INT-056.
+- **Signals:** k-anonymity refusals landed with INT-171 —
+  `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
+  whose labels carry a view name and a reason class only, because a refusal labelled with
+  the branch or the week it withheld would publish that cell to Prometheus. Proposals,
+  rejections and rollbacks land with INT-172/INT-173.
+- **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
+  `tests/learning/test_analytics_views.py` and its integration lane, which proves the
+  `svc_learning_reader` grant reaches the `analytics` views and no base table);
+  `proposal_scope` lands with INT-172; overlay monotonicity property test with INT-056.
+- **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
+  and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
+  sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no
+  pseudonym survives the `GROUP BY`. Turkish clinical free text is not de-identifiable to a
+  standard this repo will assert (files/10 §3 on realistic Turkish recall; HB-L6 on the
+  claim itself), so narrative is **excluded rather than scrubbed**. The grant is the
+  narrative boundary; the k ≥ 10 gate at the query layer is the small-cell boundary; and
+  the gate refuses the whole artefact rather than suppressing a cell, because a reader
+  holding every cell but one recovers it by subtraction.
 
 ## `incident-response` — detect, contain, notify, learn
 
