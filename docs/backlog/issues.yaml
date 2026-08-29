@@ -635,7 +635,7 @@
   title: "Clip cache builder per voice + MinIO + coverage test"
   depends_on: [INT-041, INT-034]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "all scripted text pre-synthesised per voice at compile keyed sha256(text_tr,voice_id); mock TTS in CI; coverage report per pack"
   tests: [tests/voice/test_clip_manifest.py]

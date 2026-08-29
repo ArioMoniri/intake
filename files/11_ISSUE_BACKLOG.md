@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 1 · doing 6 · done 60 · todo 131 · withdrawn 1.
+**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 1 · doing 6 · done 61 · todo 130 · withdrawn 1.
 
 ## P0
 
@@ -59,7 +59,7 @@
 | INT-057 | Protocol Authoring Agent: L0 drafts for every branch + no-serve guard | E03-protocols | INT-042 | area:protocols | done |
 | INT-058 | Signed protocol bundles: cosign sign + runtime verification + per-session hash pin | E03-protocols | INT-041, INT-019 | area:protocols, risk:security | todo |
 | INT-059 | Triage golden suite >=200 + mutation tests | E03-protocols | INT-080 | area:protocols, risk:clinical | done |
-| INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | todo |
+| INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | done |
 | INT-080 | Deterministic triage engine (levels, monotonic merge, action scripts) | E04-engines | INT-040 | area:safety, risk:clinical | done |
 | INT-081 | IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays | E04-engines | INT-080, INT-056 | area:engine | todo |
 | INT-082 | Patient simulator: personas + scenarios IM-01..IM-14 headless | E04-engines | INT-081 | area:engine | todo |
