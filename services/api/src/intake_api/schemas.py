@@ -16,23 +16,38 @@ import datetime as dt
 import re
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
+from intake_platform.profiles import (
+    AttributionDecision,
+    ProxyAcknowledgement,
+    Speaker,
+    SubjectRole,
+    resolve_attribution,
+)
 from protocols.taxonomy import Taxonomy, UnknownBranchError
 from protocols.types import VisitType
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
-from intake_api.errors import taxonomy_unconfigured, visit_invalid
+from intake_api.errors import (
+    proxy_acknowledgement_required,
+    taxonomy_unconfigured,
+    visit_invalid,
+)
 
 __all__ = [
+    "AttributionIn",
     "NewVisitData",
     "NoteBody",
     "NoteOut",
     "NotePut",
     "NoteSection",
+    "ProfileOut",
     "SectionId",
     "VisitCreate",
     "VisitOut",
+    "resolved_attribution",
     "validated_new_visit",
 ]
 
@@ -82,6 +97,28 @@ class NoteOut(BaseModel):
     sections: list[NoteSection]
     scopes: dict[SectionId, bool]
     status: Literal["draft", "sent"]
+    # INT-133 / files/06 §6 — projected from the session that produced the
+    # note. A clinician must be able to tell an observed symptom from a
+    # reported one before they read a word of it.
+    proxy_reported: bool = False
+    third_party_present: bool = False
+
+
+class AttributionIn(BaseModel):
+    """INT-133 — the companion declaration a session may carry.
+
+    The client declares only the two FACTS it can know (who holds the
+    device, who is answering) plus the acknowledgement. It never sends
+    ``proxy_reported``: files/06 §6 makes that flag a consequence, and a
+    client-settable flag is a client-clearable one.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: Literal["self", "companion"] = "self"
+    speaker: Literal["patient", "companion"] = "patient"
+    acknowledged: bool = False
+    third_party_present: bool = False
 
 
 class VisitCreate(BaseModel):
@@ -96,6 +133,8 @@ class VisitCreate(BaseModel):
     # Optional since INT-134: a planned visit may not be booked yet, and an
     # invented date would be a lie the whole timing model then trusts (02 §2b).
     date: str | None = Field(default=None, max_length=40)
+    # INT-133: absent means the default self-report session.
+    attribution: AttributionIn | None = None
 
 
 class VisitOut(BaseModel):
@@ -106,6 +145,25 @@ class VisitOut(BaseModel):
     visit_type: str | None
     date: str | None
     note_status: Literal["draft", "sent"] | None
+    # INT-133 / files/06 §6 — on EVERY record, not only the ones a companion
+    # created: an absent flag reads as "unknown", and a clinician must be
+    # able to tell "self-reported" from "not recorded".
+    proxy_reported: bool = False
+    third_party_present: bool = False
+
+
+class ProfileOut(BaseModel):
+    """INT-133 — what the companion/profile screen may offer.
+
+    Facts about the SYSTEM, never about the subject: an age band or a policy
+    row id here would disclose the subject's minority (invariant 6). A
+    subject the age gate refuses never reaches this body at all — the route
+    401/403s through the one enforcement point first.
+    """
+
+    attributions: list[str]
+    proxy_acknowledgement_required: bool
+    guardian_flow_available: bool
 
 
 @dataclass(frozen=True)
@@ -120,6 +178,37 @@ class NewVisitData:
 
 
 _VISIT_TYPE_IDS = frozenset(member.value for member in VisitType)
+
+
+def resolved_attribution(declared: AttributionIn | None) -> AttributionDecision:
+    """Turn a client declaration into the derived session facts.
+
+    The derivation is the platform rules engine's
+    (``intake_platform.profiles``); this function only translates the wire
+    literals and turns its refusal into the api's typed 422. Nothing here
+    re-implements the rules — the same call answers for the voice runtime
+    and any other producer.
+    """
+    if declared is None:
+        return resolve_attribution(role=SubjectRole.SELF, speaker=Speaker.PATIENT)
+    role = SubjectRole(declared.role)
+    speaker = Speaker(declared.speaker)
+    if role is SubjectRole.SELF and speaker is not Speaker.PATIENT:
+        raise visit_invalid("attribution_incoherent")
+    acknowledgement = (
+        ProxyAcknowledgement(acknowledged=True, at=datetime.now(UTC))
+        if declared.acknowledged
+        else ProxyAcknowledgement(acknowledged=False)
+    )
+    decision = resolve_attribution(
+        role=role,
+        speaker=speaker,
+        acknowledgement=acknowledgement,
+        third_party_present=declared.third_party_present,
+    )
+    if not decision.permitted:
+        raise proxy_acknowledgement_required()
+    return decision
 
 
 def _validated_date(raw: str | None) -> str | None:

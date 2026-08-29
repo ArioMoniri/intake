@@ -26,7 +26,7 @@ Shape notes:
   every tenant-scoped table carries in 0001 — an unset GUC reads as NULL and
   therefore selects no rows (fail closed).
 
-Revision ID: 0005_int141
+Revision ID: 0007_int141
 Revises: 0004_int037
 """
 
@@ -35,8 +35,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0005_int141"
-down_revision = "0004_int037"
+revision = "0007_int141"
+down_revision = "0006_int240"
 branch_labels = None
 depends_on = None
 

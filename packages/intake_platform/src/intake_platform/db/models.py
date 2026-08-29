@@ -87,6 +87,7 @@ __all__ = [
     "NotificationPreference",
     "Note",
     "Patient",
+    "SessionAttribution",
     "SessionStatus",
     "Share",
     "Slot",
@@ -121,6 +122,22 @@ class SessionStatus(enum.StrEnum):
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+
+class SessionAttribution(enum.StrEnum):
+    """INT-133 — who produced the answers in this session (files/02 §3).
+
+    Three values, not two: ``assisted_self_report`` is the patient's own
+    words on a family member's device, which the other two both misdescribe.
+    This column is the SOURCE of files/06 §6's "companion/proxy answers are
+    always flagged ``proxy_reported`` on the record" — every record derived
+    from a session reads the flag from here rather than carrying an
+    independently settable copy that could drift out of step.
+    """
+
+    SELF_REPORT = "self_report"
+    PROXY_REPORT = "proxy_report"
+    ASSISTED_SELF_REPORT = "assisted_self_report"
 
 
 class DsarKind(enum.StrEnum):
@@ -325,6 +342,60 @@ class IntakeSession(Base):
         info=inv(
             CAT_OPERATIONAL,
             "when the intake finished (SLO + retention inputs)",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    # --- INT-133: session attribution (files/02 §3; files/06 §6; files/13 §13) ---
+    # No new personal-data CATEGORY: these are the same three provenance
+    # facts the clinician note already carries and already sends to FHIR
+    # (clinical_schemas.note.ScreeningProvenance), lifted to the session so
+    # every record derived from it reads ONE flag. Nothing here identifies
+    # the companion — no name, no account ref, no relationship. A persisted
+    # person↔person link is the separate, gated guardian_links table.
+    attribution: Mapped[SessionAttribution] = mapped_column(
+        Enum(
+            SessionAttribution,
+            name="session_attribution",
+            native_enum=False,
+            length=24,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        default=SessionAttribution.SELF_REPORT,
+        server_default=SessionAttribution.SELF_REPORT.value,
+        info=inv(
+            CAT_HEALTH,
+            "who produced the answers (self / proxy / assisted): a clinician reading the "
+            "note must know whether the symptoms are reported or observed",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_CLINICIAN,
+        ),
+    )
+    third_party_present: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+        info=inv(
+            CAT_HEALTH,
+            "a second person was present or answering (files/13 §13): the disclosure "
+            "confound that forces sensitive sections to text and stops safeguarding",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_CLINICIAN,
+        ),
+    )
+    proxy_ack_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "instant the companion acknowledged answering on the patient's behalf; an "
+            "acknowledgement of ROLE only — never evidence of legal representation "
+            "(policy row guardian_relationship_proof is awaiting-human)",
             BASIS_CONTRACT,
             RET_RECORD,
             REC_INTERNAL,

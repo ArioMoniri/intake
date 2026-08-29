@@ -174,6 +174,16 @@ export default function Me() {
             hint={t("a11y.openHint")}
             onPress={() => router.push("/(tabs)/me/notifications")}
           />
+          {/* Yakınınız adına (INT-133): who is doing this sitting, and what
+              that does to the note (06 §6, 13 §13). The under-18 door lives
+              on that screen too, closed with its reason on it. */}
+          <ListRow
+            label={t("me.companion")}
+            sublabel={t("companion.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/companion")}
+          />
           <ListRow
             label={t("me.learned")}
             chevron

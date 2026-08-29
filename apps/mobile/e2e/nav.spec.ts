@@ -39,6 +39,8 @@ const NAV_MAP = [
   "(tabs)/me/learned.tsx",
   // INT-141 — Bildirimler: opt-out and quiet hours
   "(tabs)/me/notifications.tsx",
+  // INT-133 — companions & the under-18 door (02 §4 me/companions)
+  "(tabs)/me/companion.tsx",
   "(tabs)/me/consents/index.tsx",
   "(tabs)/me/consents/[purpose].tsx",
 ];
