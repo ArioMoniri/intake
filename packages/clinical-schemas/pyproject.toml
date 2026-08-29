@@ -1,0 +1,15 @@
+[project]
+name = "intake-clinical-schemas"
+version = "0.1.0"
+description = "Canonical clinical object + event schemas (INT-031): pydantic v2 models, JSON Schema/OpenAPI exports, deterministic TS codegen"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clinical_schemas"]

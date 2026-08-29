@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "CsatReason": {
+      "description": "The CSAT reason distribution of files/08 §4 group F: too long /\ndidn't understand me / felt rushed / helpful / felt heard.",
+      "enum": [
+        "too_long",
+        "didnt_understand_me",
+        "felt_rushed",
+        "helpful",
+        "felt_heard"
+      ],
+      "title": "CsatReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Session satisfaction (INT-240 acceptance: \"csat.v1 (1-5 + reason enum\n+ optional text)\"; emitted via POST /sessions/{id}/csat, files/03 §6).",
+  "properties": {
+    "reason": {
+      "$ref": "#/$defs/CsatReason",
+      "description": "Reason category (INT-240 reason enum; files/08 §4 group F csat.reason distribution)."
+    },
+    "schema_id": {
+      "const": "intake.clinical.csat.v1",
+      "default": "intake.clinical.csat.v1",
+      "description": "Versioned event id per the TS schemaId convention.",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "score": {
+      "description": "CSAT 1-5 (files/08 §4 group F: csat.score, target >= 4.3).",
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Score",
+      "type": "integer"
+    },
+    "session_id": {
+      "description": "Session the rating refers to (INT-030 events.session_id; POST /sessions/{id}/csat, files/03 §6).",
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "description": "Owning tenant (INT-030 events.tenant_id).",
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "text": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional free text (INT-240). Patient-authored: treat as sensitive content — rendered to service owners only, never into logs or traces (invariant 6).",
+      "title": "Text"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "session_id",
+    "score",
+    "reason"
+  ],
+  "title": "CsatV1",
+  "type": "object"
+}

@@ -1,0 +1,141 @@
+<!--
+  INT-205 - INTAKE's Wazuh ruleset (files/10 §7; CLAUDE.md inv. 6, 13).
+
+  Licence note (invariant 19): the Wazuh LICENSE says its GPL-2.0-only grant
+  covers "decoders rules and any other data file included with Wazuh". Nothing
+  in this file is copied from the Wazuh ruleset - every rule is written against
+  our own json fields - and every id is inside the documented user range
+  100000-119999 so no vendor rule is silently replaced.
+
+  Three authoring rules hold this file:
+
+  1. **No correlation directive.** files/10 §7 names the signals - failed
+     logins and OTP anomalies per phone/IP/ASN impossible travel new-device
+     logins token reuse - and states a number for none of them. A frequency and
+     timeframe pair here would be a detection threshold nobody supplied
+     (CLAUDE.md: never invent a value to unblock yourself). Rate detection
+     belongs to the metric alerts in files/08 §5 where the numbers that DO
+     exist are written down.
+
+  2. **No field interpolation in a description.** Wazuh expands a dollar-paren
+     field reference inside a description at alert time which would put decoded
+     event data into what looks like a rule name. intake_platform.siem.normalise
+     therefore resolves names from THIS file by id and never from the alert -
+     and the loader refuses the whole file if it ever grows one. The literal
+     two-character sequence is deliberately not written anywhere here so the
+     check can be a plain substring scan.
+
+  3. **Every rule declares exactly one signal group** - intake_auth_anomaly
+     intake_k8s_audit or intake_container_runtime - because that is what the
+     console's Security module groups by.
+
+  Levels are Wazuh's own published scale (15 severe attack / 12-14 high
+  importance security event / 7-11 warning / 0-6 notification). The join onto
+  the runbook's SEV ladder lives in intake_platform.siem.rules so the console
+  and the pager cannot disagree.
+-->
+
+<!-- ==== auth anomalies: our own services' security events ================ -->
+<group name="intake,intake_auth_anomaly">
+
+  <rule id="100100" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="event">^sec\.auth_failure$</field>
+    <description>intake: authentication failure recorded by an intake service</description>
+    <group>intake_auth_anomaly,</group>
+  </rule>
+
+  <rule id="100101" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="event">^sec\.otp_abuse_block$</field>
+    <description>intake: an OTP request was blocked by the abuse limiter</description>
+    <group>intake_auth_anomaly,</group>
+  </rule>
+
+  <rule id="100102" level="14">
+    <decoded_as>json</decoded_as>
+    <field name="event">^sec\.token_reuse_detected$</field>
+    <description>intake: a rotating refresh token was presented twice</description>
+    <group>intake_auth_anomaly,</group>
+  </rule>
+
+  <rule id="100103" level="7">
+    <decoded_as>json</decoded_as>
+    <field name="event">^sec\.new_device_login$</field>
+    <description>intake: a principal signed in from a device not seen before</description>
+    <group>intake_auth_anomaly,</group>
+  </rule>
+
+  <rule id="100104" level="14">
+    <decoded_as>json</decoded_as>
+    <field name="event">^sec\.attestation_failure$</field>
+    <description>intake: device attestation failed for a patient session</description>
+    <group>intake_auth_anomaly,</group>
+  </rule>
+
+</group>
+
+<!-- ==== kubernetes audit (INT-201 stands the cluster up) ================= -->
+<group name="intake,intake_k8s_audit">
+
+  <rule id="100200" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="objectRef.resource">^pods$</field>
+    <field name="objectRef.subresource">^exec$</field>
+    <description>k8s audit: exec into a running pod</description>
+    <group>intake_k8s_audit,</group>
+  </rule>
+
+  <rule id="100201" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="objectRef.resource">^secrets$</field>
+    <field name="verb">^(get|list|watch)$</field>
+    <description>k8s audit: a secret was read</description>
+    <group>intake_k8s_audit,</group>
+  </rule>
+
+  <rule id="100202" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="objectRef.resource">^(roles|rolebindings|clusterroles|clusterrolebindings)$</field>
+    <field name="verb">^(create|update|patch|delete)$</field>
+    <description>k8s audit: an RBAC binding or role was changed</description>
+    <group>intake_k8s_audit,</group>
+  </rule>
+
+  <rule id="100203" level="7">
+    <decoded_as>json</decoded_as>
+    <field name="annotations.authorization.k8s.io/decision">^forbid$</field>
+    <description>k8s audit: an API request was refused by authorization</description>
+    <group>intake_k8s_audit,</group>
+  </rule>
+
+</group>
+
+<!-- ==== container runtime: Falco events over the shared volume =========== -->
+<group name="intake,intake_container_runtime">
+
+  <rule id="100300" level="14">
+    <decoded_as>json</decoded_as>
+    <field name="priority">^(Critical|Alert|Emergency)$</field>
+    <field name="source">^syscall$</field>
+    <description>falco: a critical container runtime detection</description>
+    <group>intake_container_runtime,</group>
+  </rule>
+
+  <rule id="100301" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="priority">^Error$</field>
+    <field name="source">^syscall$</field>
+    <description>falco: a container runtime error-level detection</description>
+    <group>intake_container_runtime,</group>
+  </rule>
+
+  <rule id="100302" level="7">
+    <decoded_as>json</decoded_as>
+    <field name="priority">^(Warning|Notice)$</field>
+    <field name="source">^syscall$</field>
+    <description>falco: a container runtime warning</description>
+    <group>intake_container_runtime,</group>
+  </rule>
+
+</group>

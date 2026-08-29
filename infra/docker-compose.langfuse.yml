@@ -1,0 +1,212 @@
+# INT-175 — the self-hosted Langfuse tier (files/08 §0b F1, §3, §6, §7;
+# files/09 §4; CLAUDE.md inv. 6/13/14/15/19; ADR-016).
+#
+#   docker compose -f infra/docker-compose.langfuse.yml --profile langfuse up -d
+#   (or `make langfuse`, which sources the secrets from OpenBao first)
+#
+# ── Its own file, on purpose ────────────────────────────────────────────────
+# infra/docker-compose.dev.yml is the hottest shared file in the repo and this
+# stack is six containers with its own Postgres and its own ClickHouse.
+# INT-202's backup tier set the precedent and a test asserts the dev tier
+# stays untouched. Every service here is gated behind the `langfuse` profile,
+# so composing this file in changes nothing about `make dev`.
+#
+# ── What must never end up in here ──────────────────────────────────────────
+# files/HUMAN_BLOCKERS.md **HB-L6**: Langfuse spans are one of four unmanaged
+# staff read paths into patient content, and counsel has not ruled. Langfuse
+# stores prompts and completions verbatim — files/08 §6 calls it "a transcript
+# store with its own login page" — so the control is NOT a setting in this
+# file. It is upstream, in intake_platform.observability.spans: the emission
+# boundary has no field a transcript can occupy, and no configuration that
+# could grow one. This tier therefore receives ids, enums and counts, and
+# there is no "raw-content project" to enable.
+#
+# Two consequences visible here:
+#   * only langfuse-web publishes a port, and it binds loopback. Every backing
+#     store is reachable on the project network only — a second published door
+#     into trace storage is exactly files/08 §0b F1.
+#   * the deployed posture (not this dev file) puts Grafana, Langfuse, Loki,
+#     Tempo and Unleash out of browser reach entirely; panels are
+#     server-rendered by services/api/admin (inv. 48).
+#
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# invariant 14: no credential literal and no `${X:-default}` on a secret. A
+# dev default in a compose file is how a dev default reaches a deployed stack.
+# Every secret below is interpolated from the caller's environment, which
+# scripts/observability/langfuse_secrets.sh fills from OpenBao. env.example
+# stays the OpenBao pointer it is (tests/security/test_openbao_wiring.py).
+#
+# ── Licences (invariant 19; verified from raw LICENSE blobs, 2026-08-29) ─────
+#   langfuse 4.24.0        MIT Expat core, with an ee/ carve-out that is NOT
+#                          MIT and is not licensed in here — see the
+#                          `langfuse` row of observability/registry.yaml for
+#                          both blob urls and both sha256s.
+#   clickhouse 25.12.11.4  Apache-2.0, stock, 203 lines, no rider.
+#   pgvector:pg16 / redis:7.4-alpine / minio  already registered by INT-001.
+#
+# ── Booting it ──────────────────────────────────────────────────────────────
+# CI never boots this file; tests/observability/test_langfuse_gate.py
+# validates it statically. On the owner's laptop HB-I1 (disk) and HB-I2
+# (container memory) block it — this is six containers including ClickHouse.
+name: intake-langfuse
+
+x-langfuse-env: &langfuse-env
+  DATABASE_URL: postgresql://langfuse:${LANGFUSE_POSTGRES_PASSWORD}@langfuse-postgres:5432/langfuse
+  SALT: ${LANGFUSE_SALT}
+  ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
+  CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+  CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+  CLICKHOUSE_USER: langfuse
+  CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  REDIS_HOST: langfuse-redis
+  REDIS_PORT: "6379"
+  REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD}
+  REDIS_TLS_ENABLED: "false"
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_ACCESS_KEY_ID}
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_ACCESS_KEY}
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_ACCESS_KEY_ID}
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_ACCESS_KEY}
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+  # files/08 §9: "no vendor network". Langfuse phones home by default.
+  TELEMETRY_ENABLED: "false"
+  LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+  # The in-app agent calls an LLM of its own. Off: there is no egress
+  # allow-list entry for it and it would sit beside trace data.
+  LANGFUSE_IN_APP_AGENT_ENABLED: "false"
+  # No mail relay in this tier — an invite mail is an egress path.
+  EMAIL_FROM_ADDRESS: ""
+  SMTP_CONNECTION_URL: ""
+
+services:
+  langfuse-web:
+    # MIT Expat core. The published image also contains ee/, which is NOT MIT;
+    # no enterprise licence key is set anywhere in this repo, so those paths
+    # stay inert. Setting one would be an unlicensed commercial use (inv. 19).
+    image: langfuse/langfuse:4.24.0
+    profiles: ["langfuse"]
+    depends_on: &langfuse-backing
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      NEXTAUTH_URL: http://127.0.0.1:3030
+    ports:
+      # host 3030: 3000 is commonly taken on dev machines, the same reason the
+      # dev tier moved HAPI to 8091. In-container stays 3000.
+      - "127.0.0.1:3030:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:3000/api/public/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:4.24.0
+    profiles: ["langfuse"]
+    depends_on: *langfuse-backing
+    environment: *langfuse-env
+    # no published port: the worker's 3030 is its own health port and nothing
+    # outside the project network has business reaching it
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:3030/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  langfuse-postgres:
+    # Langfuse's own metadata store. Deliberately NOT the dev `postgres`:
+    # sharing it would put trace metadata in the patient database and couple
+    # this tier to the shared file it is kept out of.
+    image: pgvector/pgvector:pg16
+    profiles: ["langfuse"]
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD}
+      POSTGRES_DB: langfuse
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - langfuse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:25.12.11.4
+    profiles: ["langfuse"]
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  langfuse-redis:
+    image: redis:7.4-alpine
+    profiles: ["langfuse"]
+    command: ["redis-server", "--requirepass", "${LANGFUSE_REDIS_PASSWORD}", "--maxmemory-policy", "noeviction"]
+    environment:
+      # redis-cli reads REDISCLI_AUTH, so the healthcheck needs no argv secret
+      REDISCLI_AUTH: ${LANGFUSE_REDIS_PASSWORD}
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  langfuse-minio:
+    # The same pinned image the dev tier uses (AGPL-3.0-only, already in the
+    # self-hosting registry) rather than upstream's untagged Chainguard one —
+    # an unpinned image is not auditable.
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    profiles: ["langfuse"]
+    entrypoint: ["sh"]
+    command: ["-c", "mkdir -p /data/langfuse && minio server --address ':9000' /data"]
+    environment:
+      MINIO_ROOT_USER: ${LANGFUSE_S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_S3_SECRET_ACCESS_KEY}
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  langfuse_pgdata:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
+  langfuse_minio_data:
+  langfuse_redis_data:

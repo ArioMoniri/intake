@@ -1,0 +1,17 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: suppress_slot pointed at a must_ask slot.
+# `suppress_slot` on a must_ask slot is a hard compile error regardless of
+# ADR (files/12 §3.2); overlays never remove questions clinicians marked
+# must_ask (files/04 §2.3). renk_tercihi is must_ask in base.synthetic.
+kind: pack
+id: overlay.synthetic_susturucu
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik susturucu paket"
+ops:
+  - op: suppress_slot
+    pointer: /sections/ornek_bolum/slots/renk_tercihi

@@ -1,0 +1,214 @@
+# intake_platform/retention/retention_policy.yaml — the files/06 §3 retention
+# matrix as code (INT-036; KVKK-7 + DEST-2017; sec_row: retention).
+#
+# Sourcing discipline: every duration below is quoted VERBATIM from
+# files/06_COMPLIANCE_TR.md §3 ("Retention matrix (enforced by INT-036; policy
+# doc INT-212)") or from the files/06 §1 obligation row
+#   "KVKK-7 + DEST-2017 | m.7 + Kişisel Verilerin Silinmesi, Yok Edilmesi veya
+#    Anonim Hale Getirilmesi Hk. Yönetmelik (RG 30224, 28.10.2017) | Written
+#    retention/destruction policy; periodic destruction at intervals
+#    ≤ 6 months; destruction records kept ≥ 3 years; crypto-shredding is our
+#    destruction method."
+# Where 06 §3 leaves a class without a duration, the class is
+# status: draft_needs_source and the engine refuses to destroy it (fail
+# closed) — a duration is never invented here (CLAUDE.md: never invent a
+# value; retention questions are stop-and-ask territory).
+#
+# Deliberately ABSENT rows, recorded so their absence reads as a decision:
+# - There is NO audio retention class of any kind. 06 §3: "Raw audio: never
+#   written" — production keeps "no audio persisted" as an unqualified
+#   statement. Nothing to retain is the strongest guard, and the loader
+#   refuses any classes entry whose name matches an audio pattern
+#   (audio_no_write_guard's policy half, files/10 §9.1 inv. 27).
+# - Clinical-investigation audio (the "one exception, resolved rather than
+#   hedged" in 06 §3) lives ONLY in the segregated research store "with its
+#   own key, its own retention clock and its own access log", ceiling
+#   ≤ 12 months, destruction automated there with DEST-2017 records
+#   (files/10 §9 research-store row; files/08 F18). That store is a separately
+#   audited exception OUTSIDE this engine, so it has no row here — adding one
+#   would weaken the global invariant this file exists to keep provable.
+# - The audit chain and this engine's own destruction log are NOT destroyable
+#   by this engine: they appear under `protected`, and DestroyableClass
+#   cannot name them (type-level).
+
+schema_version: 1
+source_document: "files/06_COMPLIANCE_TR.md"
+source_section: "§3 Retention matrix (enforced by INT-036; policy doc INT-212)"
+
+periodic_destruction:
+  # 06 §3: "Destruction runs ≤ every 6 months with logged reports."
+  # 06 §1 (DEST-2017, RG 30224 28.10.2017): "periodic destruction at
+  # intervals ≤ 6 months". The engine records every run on the audit chain
+  # and refuses a periodic run younger than this floor; only the targeted
+  # DSAR single-subject path bypasses it (and is itself logged).
+  interval_months: 6
+  legal: ["KVKK-7", "DEST-2017"]
+
+destruction_log:
+  # 06 §1 (DEST-2017): "destruction records kept ≥ 3 years". The log rides
+  # the INT-016 hash chain (retention.* entries) whose WORM copy carries the
+  # 10-year hospital-tenant retention of 06 §3 — comfortably ≥ 3 years, and
+  # append-only, so destruction evidence outlives the data by design.
+  min_retention_years: 3
+  carrier: audit_chain
+  legal: ["DEST-2017"]
+
+# 06 §3 rows with nothing to retain — mirrored so the matrix stays complete
+# and the runtime guards have a machine-readable contract.
+non_persisted:
+  - data_class: raw_audio
+    storage: never_written
+    source: >-
+      06 §3: "Raw audio: never written (guard test — audio_no_write_guard,
+      which proves that and only that; the crash-artefact properties are
+      inv. 16–19 and 28 under their own names, 10 §3)."
+  - data_class: lane_windows
+    storage: memory_only
+    # The six triggers, verbatim from 06 §3: "zeroed after scoring and on
+    # gate rejection, lane disable, consent withdrawal, session end and
+    # signal shutdown".
+    zeroing_triggers:
+      - after_scoring
+      - gate_rejection
+      - lane_disable
+      - consent_withdrawal
+      - session_end
+      - signal_shutdown
+    source: >-
+      06 §3: "Lane windows: memory-only, zeroed after scoring and on gate
+      rejection, lane disable, consent withdrawal, session end and signal
+      shutdown."
+
+# 06 §3 rows the engine can act on. `protected` classes are refused by the
+# loader; audio classes are refused by the loader; the set of names below is
+# checked one-to-one against DestroyableClass so policy and type cannot drift.
+classes:
+  - data_class: clinical_record
+    basis: "KVKK m.6 — special-category health data under açık rıza per consent scope"
+    retention: { kind: life_of_record }
+    action: crypto_shred
+    destruction_path: dsar_only
+    dsar_erasable: true
+    status: sourced
+    source: >-
+      06 §3: "Transcript-derived structured data & notes: life of the record,
+      patient-deletable (30-day grace, then crypto-shred)." Covers the
+      INT-030 session tree (sessions, slots, notes, shares rows, document
+      rows) and the INT-034 document objects; the 30-day grace window and the
+      key-shred itself are INT-037's DSAR flow, which drives this engine's
+      dsar path once the grace has run.
+
+  - data_class: doctor_link_tokens
+    basis: "KVKK m.6 — special-category health data under açık rıza per consent scope"
+    retention: { kind: expiry, max_hours: 72 }
+    action: destroy
+    destruction_path: periodic
+    dsar_erasable: true
+    status: sourced
+    source: >-
+      06 §3: "Doctor Link tokens: expiry ≤ 72 h default." The token material
+      expires and is purged; the Share grant row itself is retained with the
+      record for audit (INT-030 inventory annotation RET_SHARE) and follows
+      clinical_record.
+
+  - data_class: consent_records_hospital_tenant
+    basis: "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
+    retention: { kind: years, years: 10 }
+    action: destroy
+    destruction_path: periodic
+    # Not erasable on a DSAR: consent records are the m.7 legal-obligation
+    # exception — they are the proof the processing was lawful.
+    dsar_erasable: false
+    status: sourced
+    source: >-
+      06 §3: "Consent & audit records: 10 years (hospital tenants) — audit is
+      WORM." The consent half is destroyable at 10 years; the audit half is
+      protected below.
+
+  - data_class: consent_records_consumer_tenant
+    basis: "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
+    # 06 §3 scopes the 10-year figure to "(hospital tenants)" and gives no
+    # duration for the consumer (INTAKE-as-controller) deployment. That gap
+    # is a human decision (files/06 owner + counsel), not a default to guess:
+    # this class never purges until a sourced duration replaces this row.
+    retention: { kind: unspecified }
+    action: destroy
+    destruction_path: periodic
+    dsar_erasable: false
+    status: draft_needs_source
+    source: >-
+      06 §3: "Consent & audit records: 10 years (hospital tenants)" — the
+      parenthetical scopes the figure to hospital tenants; the consumer-tenant
+      duration is unspecified in 06 §3, so this row is draft_needs_source and
+      the engine fails closed.
+
+  - data_class: telemetry
+    basis: "KVKK m.5/2-c — processing necessary for the service contract"
+    # Destruction acts at the cold ceiling (1 y). The 30-day hot→cold move is
+    # storage tiering inside the observability stack, not destruction, so it
+    # is not an engine action.
+    retention: { kind: years, years: 1 }
+    action: destroy
+    destruction_path: periodic
+    # PHI-free by construction and not subject-linked, so a DSAR has nothing
+    # to reach here.
+    dsar_erasable: false
+    status: sourced
+    source: >-
+      06 §3: "Telemetry: 30 d hot / 1 y cold, PHI-free by construction."
+
+  - data_class: traffic_logs_5651
+    basis: "5651 sayılı Kanun — statutory traffic-log duty (yer sağlayıcı)"
+    retention: { kind: years, years: 1, hard_ceiling_years: 2 }
+    action: destroy
+    destruction_path: periodic
+    # A statutory duty is not erasable on request (KVKK m.7 exception).
+    dsar_erasable: false
+    status: sourced
+    source: >-
+      06 §3: "5651 traffic logs: 1 y (max 2), segregated." Default
+      destruction at 1 year; 2 years is the statutory ceiling, never a
+      default.
+
+  - data_class: satisfaction
+    basis: "KVKK m.5/2-c — processing necessary for the service contract"
+    retention: { kind: with_account }
+    action: destroy
+    destruction_path: periodic
+    dsar_erasable: true
+    status: sourced
+    source: >-
+      06 §3: "Satisfaction: with account." Event-based retention: rows become
+      due the moment the account is deleted, and not before.
+
+  - data_class: research_extracts
+    basis: "KVKK m.6 + KSVY-16 — research under ethics approval"
+    # "Per ethics protocol" is a pointer, not a duration: the registered
+    # study's protocol (site: HB-L1, files/HUMAN_BLOCKERS.md) supplies the
+    # figure, and no protocol exists yet. Fail closed until it does.
+    retention: { kind: unspecified }
+    action: destroy
+    destruction_path: periodic
+    dsar_erasable: false
+    status: draft_needs_source
+    source: >-
+      06 §3: "Research extracts: per ethics protocol." The ethics protocol
+      that would supply the duration does not exist in this repository, so
+      this row is draft_needs_source and the engine fails closed.
+
+# Not destroyable by this engine — the loader refuses a `classes` entry with
+# any of these names, and DestroyableClass cannot express them (type-level).
+protected:
+  - data_class: audit_records
+    retention_years: 10
+    reason: >-
+      06 §3: "Consent & audit records: 10 years (hospital tenants) — audit is
+      WORM." The WORM object-lock (COMPLIANCE mode, INT-034) owns the audit
+      copy's lifecycle; an engine that could delete its own evidence would
+      not be evidence.
+  - data_class: destruction_log
+    min_retention_years: 3
+    reason: >-
+      06 §1 (DEST-2017): "destruction records kept ≥ 3 years." The log rides
+      the audit chain, so destroying it is refused for the same reason and by
+      the same types as audit_records.

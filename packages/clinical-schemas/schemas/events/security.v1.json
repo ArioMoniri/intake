@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "SecurityEventCategory": {
+      "description": "Security signal families, one per named signal in files/10 §5.",
+      "enum": [
+        "failed_login",
+        "otp_anomaly",
+        "impossible_travel",
+        "new_device_login",
+        "token_reuse",
+        "waf_block",
+        "admin_action",
+        "break_glass",
+        "consent_scope_denial",
+        "egress_denial",
+        "injection_suspected",
+        "policyguard_spike",
+        "integrity_failure"
+      ],
+      "title": "SecurityEventCategory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One security event, separated from application logs (files/10 §2).\nEvery value is id-shaped — structured JSON with ids only (files/10 §2,\n§5 Logging; invariant 6): narrative has no carrier here.",
+  "properties": {
+    "actor_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Acting principal id when one exists (files/10 §5: admin actions, break-glass per actor); None for e.g. integrity failures.",
+      "title": "Actor Ref"
+    },
+    "attributes": {
+      "additionalProperties": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+        "type": "string"
+      },
+      "description": "Additional context as id-shaped values only — the value type enforces the ids-only logging rule (files/10 §2; invariant 6).",
+      "title": "Attributes",
+      "type": "object"
+    },
+    "category": {
+      "$ref": "#/$defs/SecurityEventCategory",
+      "description": "Signal family (files/10 §5 signals list)."
+    },
+    "correlation_id": {
+      "description": "Correlation id linking the event to its trace/log context (files/10 §5 Logging: correlation ids; files/08 §8 SafeError {error_code, correlation_id}).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "resource_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Affected resource id when one exists (files/10 §5).",
+      "title": "Resource Ref"
+    },
+    "schema_id": {
+      "const": "intake.clinical.security.v1",
+      "default": "intake.clinical.security.v1",
+      "description": "Versioned event id per the TS schemaId convention.",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Owning tenant when tenant-scoped; None for platform-level events (files/10 §6 tenant_id propagation).",
+      "title": "Tenant Id"
+    }
+  },
+  "required": [
+    "category",
+    "correlation_id"
+  ],
+  "title": "SecurityV1",
+  "type": "object"
+}

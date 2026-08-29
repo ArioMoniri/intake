@@ -1,0 +1,139 @@
+# INT-202 — the backup tier. Its own file on purpose: infra/docker-compose.dev.yml
+# is the hottest shared file in the repo and nothing here belongs in it.
+#
+#   docker compose -f infra/docker-compose.dev.yml \
+#                  -f infra/docker-compose.backup.yml --profile backup up -d
+#
+# Every service is gated behind the `backup` profile, so composing this file
+# in changes nothing about `make dev`. Ports bind loopback only, images are
+# tag-pinned, and no credential literal appears anywhere — the three
+# pgBackRest secrets and both object-store key pairs are interpolated from
+# the caller's environment, which the drill script fills from OpenBao
+# (CLAUDE.md invariant 14).
+#
+# `postgres-pitr` is a WAL-archiving cluster of its own rather than an
+# override of the dev `postgres`: turning archiving on for the shared dev
+# cluster means editing the shared file and stalling everyone's Postgres when
+# the repository is unreachable. In production the same infra/backup/
+# pgbackrest.conf is mounted on the real primary (INT-201); here it is the
+# drill's primary, and the drill exercises the full backup → WAL → PITR
+# restore → verify cycle against it.
+name: intake-backup
+
+services:
+  postgres-pitr:
+    # pgvector/pgvector:pg16 matches the dev tier's server version; pgBackRest
+    # is layered on because archive_command runs inside the server container.
+    build:
+      dockerfile_inline: |
+        FROM pgvector/pgvector:pg16
+        RUN apt-get update \
+         && apt-get install -y --no-install-recommends pgbackrest \
+         && rm -rf /var/lib/apt/lists/* \
+         && install -d -o postgres -g postgres /var/spool/pgbackrest /var/log/pgbackrest
+    profiles: ["backup"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-intake}
+      # No inline default for any credential in this tier — see the header.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-intake}
+      PGBACKREST_REPO1_CIPHER_PASS: ${PGBACKREST_REPO1_CIPHER_PASS}
+      PGBACKREST_REPO1_S3_KEY: ${PGBACKREST_REPO1_S3_KEY}
+      PGBACKREST_REPO1_S3_KEY_SECRET: ${PGBACKREST_REPO1_S3_KEY_SECRET}
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=pgbackrest --stanza=intake archive-push %p
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=3
+    ports:
+      # 5432 belongs to the dev tier's own cluster
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ./backup/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - pitrdata:/var/lib/postgresql/data
+      - pgbackrestspool:/var/spool/pgbackrest
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-intake} -d $${POSTGRES_DB:-intake}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  pgbackrest:
+    # The CLI side: stanza-create, backup, expire, restore. One-shot by
+    # design — invoked through `docker compose run --rm pgbackrest ...` by
+    # scripts/backup/restore_drill.sh, never left running.
+    build:
+      dockerfile_inline: |
+        FROM pgvector/pgvector:pg16
+        RUN apt-get update \
+         && apt-get install -y --no-install-recommends pgbackrest \
+         && rm -rf /var/lib/apt/lists/* \
+         && install -d -o postgres -g postgres /var/spool/pgbackrest /var/log/pgbackrest
+    profiles: ["backup"]
+    restart: "no"
+    user: postgres
+    entrypoint: ["pgbackrest"]
+    environment:
+      PGBACKREST_REPO1_CIPHER_PASS: ${PGBACKREST_REPO1_CIPHER_PASS}
+      PGBACKREST_REPO1_S3_KEY: ${PGBACKREST_REPO1_S3_KEY}
+      PGBACKREST_REPO1_S3_KEY_SECRET: ${PGBACKREST_REPO1_S3_KEY_SECRET}
+      PGBACKREST_REPO1_RETENTION_FULL: ${PGBACKREST_REPO1_RETENTION_FULL}
+    volumes:
+      - ./backup/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - pitrdata:/var/lib/postgresql/data
+      - pgbackrestspool:/var/spool/pgbackrest
+      # The restore target is a named volume, never a host path: a restored
+      # cluster is PHI on disk and must not be reachable from the workspace
+      # (CLAUDE.md invariants 3 and 6).
+      - restoredata:/restore
+
+  minio-dr:
+    # The second location, stood up locally so the replication configuration
+    # is exercisable. The real site is not named anywhere in files/ — see
+    # infra/backup/minio-replication.yaml and HB-I5.
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    profiles: ["backup"]
+    command: server /data --console-address ":9011"
+    environment:
+      # No default: an unset variable stops the DR site from starting, which
+      # is the correct outcome. Fill both from OpenBao.
+      MINIO_ROOT_USER: ${INTAKE_DR_S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${INTAKE_DR_S3_SECRET_KEY}
+    ports:
+      - "127.0.0.1:9010:9000"
+      - "127.0.0.1:9011:9011"
+    volumes:
+      - drdata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mc:
+    # The object-store toolbox. One-shot: the replication commands are
+    # rendered from infra/backup/minio-replication.yaml by
+    # intake_platform.backup.replication_commands and piped in, so the plan
+    # has exactly one source of truth.
+    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    profiles: ["backup"]
+    restart: "no"
+    entrypoint: ["/bin/sh"]
+    environment:
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      INTAKE_DR_S3_ENDPOINT: ${INTAKE_DR_S3_ENDPOINT}
+      INTAKE_DR_S3_ACCESS_KEY: ${INTAKE_DR_S3_ACCESS_KEY}
+      INTAKE_DR_S3_SECRET_KEY: ${INTAKE_DR_S3_SECRET_KEY}
+
+volumes:
+  pitrdata:
+  pgbackrestspool:
+  restoredata:
+  drdata:

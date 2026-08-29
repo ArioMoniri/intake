@@ -1,9 +1,13 @@
 /**
- * Clinical schema identifiers. The Pydantic/TS clinical models, event schemas
- * (csat.v1, nps.v1, audit.v1, admin_audit.v1) and the FHIR mappers arrive with
- * INT-031; the metrics catalogue with INT-025. This module owns the one thing
- * every one of those shares: the versioned schema-id convention.
+ * Clinical schemas, TS side (INT-031). This module owns the versioned
+ * schema-id convention; the generated types in ./generated/models are emitted
+ * from the pydantic models via the OpenAPI bundle (clinical_schemas.codegen)
+ * and re-exported here — regenerate with `make schemas-codegen`, never edit
+ * by hand. The FHIR mappers arrive with INT-033; the metrics catalogue with
+ * INT-025.
  */
+
+export type * from "./generated/models";
 
 export const SCHEMA_NAMESPACE = "intake.clinical" as const;
 

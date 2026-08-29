@@ -1,0 +1,55 @@
+# OTel collector — obs-profile OVERLAY (INT-023). Loaded AFTER the INT-011
+# base file (docker-compose.obs.yml passes --config twice; confmap merges
+# maps and REPLACES lists), so the base transform/redact processor stays the
+# single chokepoint and this file only rebinds endpoints for container
+# networking and fans out to the local Loki/Tempo/Prometheus backends.
+# tests/observability/test_obs_compose.py asserts every pipeline restates
+# transform/redact — dropping it here would drop redaction (inv. 6).
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        # 0.0.0.0 is container-internal; the HOST bind stays loopback via the
+        # compose port mapping (127.0.0.1:4317/4318), matching dev style.
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlphttp/loki:
+    # Loki 3.x native OTLP ingestion — logs arrive already redacted.
+    endpoint: http://loki:3100/otlp
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true # compose-internal hop on the loopback-only dev network
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0 # scraped by the prometheus container (:8888)
+                port: 8888
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [transform/redact]
+      exporters: [debug, otlphttp/loki]
+    traces:
+      receivers: [otlp]
+      processors: [transform/redact]
+      exporters: [debug, otlp/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [transform/redact]
+      exporters: [debug, prometheus]

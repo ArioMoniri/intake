@@ -1,0 +1,6 @@
+{
+  "recorded_for": "INT-141 test lane — the port's own receipt shape, not a vendor's wire format: no push/SMS vendor is contracted (docs/evidence/INT-141.md). A real vendor's recorded responses replace this file unchanged.",
+  "delivery_id": "recorded-push-intake_resume-tr",
+  "accepted": true,
+  "vendor_status": "accepted"
+}

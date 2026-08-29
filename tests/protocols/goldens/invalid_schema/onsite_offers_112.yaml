@@ -1,0 +1,48 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: ON_SITE action with show_112: true. Under ON_SITE the
+# 112 affordance is absent, not de-emphasised (CLAUDE.md invariant 21;
+# files/04 §8.2 `on_site_action_never_offers_112` — enforced at the schema so
+# an author cannot set the flag true at all, per the schema_reconciliation
+# notes in files/protocols/base.life_threat.yaml).
+kind: pack
+id: base.synthetic_ambulansli
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik paket — yerinde ambulans önerisi"
+red_flags:
+  - id: rf.synthetic_ambulansli
+    label_tr: "Sentetik kural — yerinde ambulans"
+    when: "ornek_bulgu == true"
+    tense: now
+    tense_anchor: olay_zamani
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: true
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin ve bekleyin."
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE

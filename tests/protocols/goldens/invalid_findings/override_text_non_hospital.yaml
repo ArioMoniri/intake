@@ -1,0 +1,18 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: override_text used by a non-hospital layer. The
+# capability matrix gives override_text to HOSPITAL — the "copy changes"
+# case that had no syntax (files/12 §3.1). The same op is valid in the
+# hospital golden; only the layer differs here.
+kind: pack
+id: overlay.synthetic_metinci
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik metin değiştiren katman"
+ops:
+  - op: override_text
+    pointer: /sections/ornek_bolum/slots/renk_tercihi/ask_tr
+    text_tr: "Örnek soru, izinsiz sürüm: hangi rengi seçersiniz?"

@@ -1,0 +1,73 @@
+{
+  "additionalProperties": false,
+  "description": "One hash-chain audit entry as an event — field for field the INT-016\n``AuditEntry`` (packages/intake_platform/src/intake_platform/audit.py),\nwhich is the source of truth for this shape (invariant 4: every read/\nshare audited; the chain makes editing detectable).",
+  "properties": {
+    "action": {
+      "description": "Dotted action name, e.g. note.read (INT-016 AuditEntry.action).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+      "title": "Action",
+      "type": "string"
+    },
+    "actor": {
+      "description": "Acting principal id (INT-016 AuditEntry.actor).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+      "title": "Actor",
+      "type": "string"
+    },
+    "consent_scope_ref": {
+      "description": "Consent scope that authorised the action (INT-016 AuditEntry.consent_scope_ref; invariant 4).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+      "title": "Consent Scope Ref",
+      "type": "string"
+    },
+    "entry_hash": {
+      "description": "SHA-256 of this entry (INT-016 AuditEntry.entry_hash).",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Entry Hash",
+      "type": "string"
+    },
+    "prev_hash": {
+      "description": "SHA-256 of the predecessor entry (INT-016 AuditEntry.prev_hash).",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prev Hash",
+      "type": "string"
+    },
+    "resource_ref": {
+      "description": "Resource acted on, as an id (INT-016 AuditEntry.resource_ref).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+      "title": "Resource Ref",
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "intake.clinical.audit.v1",
+      "default": "intake.clinical.audit.v1",
+      "description": "Versioned event id per the TS schemaId convention.",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "seq": {
+      "description": "Chain position (INT-016 AuditEntry.seq).",
+      "minimum": 1,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "timestamp_utc": {
+      "description": "ISO-8601 UTC instant exactly as hashed (INT-016 AuditEntry.timestamp_utc — part of the hashed material, so it travels verbatim, never reformatted).",
+      "minLength": 1,
+      "title": "Timestamp Utc",
+      "type": "string"
+    }
+  },
+  "required": [
+    "seq",
+    "timestamp_utc",
+    "actor",
+    "action",
+    "resource_ref",
+    "consent_scope_ref",
+    "prev_hash",
+    "entry_hash"
+  ],
+  "title": "AuditV1",
+  "type": "object"
+}

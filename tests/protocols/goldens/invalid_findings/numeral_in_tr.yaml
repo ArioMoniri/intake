@@ -1,0 +1,24 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: "iki gün" written with a digit. Numbers never cross
+# a representation boundary unguarded — no numeral reaches any TTS model,
+# and the DSL layer refuses digits in patient-facing Turkish outright
+# (CLAUDE.md invariant 22; files/03 §4.9.6). The valid twin is
+# valid/near_miss_numeral.yaml, identical but spelled out.
+kind: pack
+id: base.synthetic_rakamli
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik rakamlı paket"
+sections:
+  ornek_bolum:
+    slots:
+      sure_sorusu:
+        type: quantity
+        unit: gun
+        required: true
+        ask_tr: "Örnek soru: yaklaşık 2 gün mü sürdü?"
+        follow_up_tr: "Örneğin iki gün gibi, yazıyla söyleyebilir misiniz?"

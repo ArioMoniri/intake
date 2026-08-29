@@ -1,0 +1,86 @@
+# SENTETİK TEST VERİSİ — INT-041 compiler fixture for the universal
+# life-threat sibling set (files/12 §1). Every id, gate, threshold and
+# Turkish string is invented for tests and carries NO clinical meaning; the
+# sign-off block below names a fictional reviewer so the compiler's HB-C1
+# interlock can be exercised in both directions. Nothing here is ever served.
+#
+# On-disk spelling: this document uses `gate:` and `evidence:` as specified
+# for the life-threat set; the loader normalises them to the chain-pack
+# names `when:` / `source:` (ADR-024 schema reconciliation).
+kind: life_threat_set
+pack_id: base.life_threat
+version: 0.1.0-sentetik
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+created: 2026-08-29
+supersedes: []
+served: true
+clinical_signoff:
+  reviewer_name: "Sentetik Hekim"
+  reviewer_licence_no: "SYN-0001"
+  reviewer_specialty: "Sentetik uzmanlık"
+  signed_commit: "0000000000000000000000000000000000000000"
+  signed_on: 2026-08-29
+  paediatric_reviewer_name: null
+rules:
+  - id: rf.sentetik_yasamsal
+    label_tr: "Sentetik yaşamsal tehdit kuralı"
+    age_band: adult
+    gate: "ziyaret.basvuru_nedeni == 'sentetik_yasamsal'"
+    tense: now
+    tense_anchor: sure_dakika
+    level: KIRMIZI_K1
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    evidence:
+      guideline_id: SYN-GUIDE-B
+      guideline_title: "Sentetik kılavuz B"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-b"
+      retrieved_on: 2026-08-28
+      quote: "sentetik yaşamsal alıntı"
+      quote_snapshot: packages/protocols/sources/SYN-GUIDE-B.txt
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+        do_nots_tr:
+          - "Yalnız kalmayın."
+        why_tr: "Bu bir sentetik test metnidir."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin."
+        why_tr: "Bu bir sentetik test metnidir."
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+    excluded_criteria:
+      - criterion: "sentetik ölçüm"
+        reason: >-
+          files/04 §8.1 rule 1 — a layperson cannot report a measurement they
+          have not taken; recorded here so the exclusion is part of the
+          clinical evaluation rather than an omission.
+    inference_disclosure: >-
+      The synthetic disjunction above is this fixture's own operationalisation
+      and belongs to no guideline (files/04 §8.1 rule 2).
+    golden_positive:
+      id: SYN-LT-01-P
+      case: "Sentetik olumlu senaryo."
+      expect: {fires: true, level: KIRMIZI_K1, register: ALERT, location: REMOTE, show_112: true}
+    golden_negative:
+      id: SYN-LT-01-N
+      case: "Sentetik kıl payı olumsuz senaryo."
+      expect: {fires: false}
+      why_it_is_a_near_miss: >-
+        Same slot, same wording, one differing conjunct — the case that starts
+        firing if the gate is ever loosened.

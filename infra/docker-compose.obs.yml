@@ -1,0 +1,314 @@
+# INT-023 — local observability stack, compose profile `obs` (files/10 §5-6;
+# CLAUDE.md inv. 6/14/15). Dev tier ONLY: every published port binds
+# loopback, every image is tag-pinned, every long-running service carries a
+# healthcheck (dev-compose style); backing stores (unleash-db,
+# glitchtip-postgres, glitchtip-redis) publish no ports at all. All
+# credentials in this file are laptop-tier dev defaults, overridable via
+# env; real deployments take secrets from OpenBao (inv. 14), never from
+# here. CI never boots this file — tests/observability/test_obs_compose.py
+# validates it statically.
+#
+# Log shipping: NO promtail and NO Loki docker driver. App logs already
+# reach the collector over OTLP and pass its transform/redact processor;
+# the collector exports them to Loki's native OTLP endpoint. A container-
+# stdout scraper would create a second, UNREDACTED path into Loki (and
+# promtail needs the docker socket mounted — an escalation surface files/10
+# forbids for a telemetry sidecar). One chokepoint, already tested.
+name: intake-obs
+
+x-glitchtip-env: &glitchtip-env
+  DATABASE_URL: postgres://glitchtip:glitchtip-dev-only@glitchtip-postgres:5432/glitchtip
+  REDIS_URL: redis://glitchtip-redis:6379/0
+  # dev fixture value; a deployed GlitchTip takes SECRET_KEY from OpenBao
+  SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-glitchtip-dev-only-not-a-secret}
+  EMAIL_URL: consolemail://
+  GLITCHTIP_DOMAIN: http://localhost:8010
+  ENABLE_OPEN_USER_REGISTRATION: "true" # dev only: first user on a laptop
+  CELERY_WORKER_AUTOSCALE: "1,2"
+
+services:
+  otel-collector:
+    # The upstream contrib image is distroless (no shell, no HTTP client), so
+    # — like the HAPI probe in the dev compose — the binary is repacked onto
+    # pinned alpine purely to make a real healthcheck possible. The collector
+    # itself is byte-identical to the upstream release.
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM otel/opentelemetry-collector-contrib:0.121.0 AS dist
+        FROM alpine:3.21.3
+        COPY --from=dist /otelcol-contrib /otelcol-contrib
+        ENTRYPOINT ["/otelcol-contrib"]
+    profiles: ["obs"]
+    # base config (INT-011, carries transform/redact) + obs overlay; confmap
+    # merges maps and replaces lists — the overlay restates the processor
+    # chain and the compose test asserts it.
+    command:
+      - --config=/etc/otelcol/otel-collector.yaml
+      - --config=/etc/otelcol/otel-collector.obs.yaml
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol/otel-collector.yaml:ro
+      - ./observability/otel-collector.obs.yaml:/etc/otelcol/otel-collector.obs.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    depends_on:
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:13133/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    profiles: ["obs"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus-rules.yaml:/etc/prometheus/rules/prometheus-rules.yaml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    profiles: ["obs"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # dev default, clearly dev-only; set GRAFANA_ADMIN_PASSWORD anywhere
+      # that is not a laptop (real deploys pull from OpenBao)
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-grafana-dev-only}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/api-slo-dashboard.json:/var/lib/grafana/dashboards/api-slo-dashboard.json:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3005:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  loki:
+    image: grafana/loki:3.4.2
+    profiles: ["obs"]
+    command:
+      - -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3100/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    profiles: ["obs"]
+    command:
+      - -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3200/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  unleash-db:
+    # Unleash's OWN database — not the app postgres; no host port.
+    image: postgres:16.8-alpine
+    profiles: ["obs"]
+    environment:
+      POSTGRES_USER: unleash
+      POSTGRES_PASSWORD: ${UNLEASH_DB_PASSWORD:-unleash-dev-only}
+      POSTGRES_DB: unleash
+    volumes:
+      - unleash-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unleash -d unleash"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  unleash:
+    image: unleashorg/unleash-server:6.5.0
+    profiles: ["obs"]
+    environment:
+      DATABASE_HOST: unleash-db
+      DATABASE_NAME: unleash
+      DATABASE_USERNAME: unleash
+      DATABASE_PASSWORD: ${UNLEASH_DB_PASSWORD:-unleash-dev-only}
+      DATABASE_SSL: "false"
+      # dev tokens for a loopback-only laptop instance. The four safety
+      # flags are NOT Unleash's to open regardless (inv. 34/48 — see
+      # intake_platform.flags: fail-closed, explicit payload only).
+      INIT_CLIENT_API_TOKENS: "default:development.unleash-insecure-client-token"
+      INIT_ADMIN_API_TOKENS: "*:*.unleash-insecure-admin-token"
+    ports:
+      - "127.0.0.1:4242:4242"
+    depends_on:
+      unleash-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4242/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.4
+    profiles: ["obs"]
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-keycloak-dev-only}
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
+    ports:
+      - "127.0.0.1:8085:8080"
+    healthcheck:
+      # the image ships bash but no curl/wget; pure-builtin HTTP probe of
+      # the management port (9000) readiness endpoint
+      test:
+        [
+          "CMD",
+          "/bin/bash",
+          "-c",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: 127.0.0.1:9000\\r\\nConnection: close\\r\\n\\r\\n' >&3 && read -r line <&3 && [[ \"$$line\" == *'200'* ]]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+
+  glitchtip-postgres:
+    # GlitchTip's OWN database — scoped to it; no host port.
+    image: postgres:16.8-alpine
+    profiles: ["obs"]
+    environment:
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: glitchtip-dev-only
+      POSTGRES_DB: glitchtip
+    volumes:
+      - glitchtip-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip -d glitchtip"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  glitchtip-redis:
+    image: redis:7.4-alpine
+    profiles: ["obs"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  glitchtip-migrate:
+    # one-shot: runs migrations and exits (hence restart "no", the single
+    # healthcheck exemption in the compose test)
+    image: glitchtip/glitchtip:v4.2.0
+    profiles: ["obs"]
+    command: ["./bin/run-migrations.sh"]
+    restart: "no"
+    environment: *glitchtip-env
+    depends_on:
+      glitchtip-postgres:
+        condition: service_healthy
+      glitchtip-redis:
+        condition: service_healthy
+
+  glitchtip-web:
+    # services send events here only when INTAKE_GLITCHTIP_DSN is set AND
+    # the error_reporting flag is on; every event passes the scrub hook in
+    # intake_platform.errors first (files/10 §3).
+    image: glitchtip/glitchtip:v4.2.0
+    profiles: ["obs"]
+    environment: *glitchtip-env
+    ports:
+      - "127.0.0.1:8010:8080"
+    depends_on:
+      glitchtip-migrate:
+        condition: service_completed_successfully
+      glitchtip-postgres:
+        condition: service_healthy
+      glitchtip-redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/_health/', timeout=5).status == 200 else 1)",
+        ]
+      interval: 10s
+      timeout: 8s
+      retries: 24
+      start_period: 60s
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:v4.2.0
+    profiles: ["obs"]
+    command: ["./bin/run-celery-with-beat.sh"]
+    environment: *glitchtip-env
+    depends_on:
+      glitchtip-migrate:
+        condition: service_completed_successfully
+      glitchtip-postgres:
+        condition: service_healthy
+      glitchtip-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A glitchtip inspect ping --timeout 10"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  tempo-data:
+  unleash-db-data:
+  glitchtip-pg-data:
