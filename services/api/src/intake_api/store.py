@@ -20,6 +20,7 @@ from intake_platform.db.models import (
     Document,
     IntakeSession,
     Note,
+    Patient,
     SessionStatus,
     Share,
     Slot,
@@ -39,6 +40,7 @@ __all__ = [
     "create_visit",
     "get_document_row",
     "get_note_row",
+    "get_patient_pseudonym",
     "get_visit",
     "list_document_rows",
     "list_visits",
@@ -335,6 +337,17 @@ async def live_share(
 
 
 # --- documents (INT-034 refs; the bytes live in the object store) -----------------------
+
+
+async def get_patient_pseudonym(
+    session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID
+) -> str | None:
+    """The patients row's own Tokenizer pseudonym (``kid.hex``) — what
+    addresses a patient outside this database (invariant 14). ``None`` means
+    the row is absent, which callers must treat as a refusal: the row id is
+    not a substitute (INT-228)."""
+    stmt = select(Patient.pseudonym).where(Patient.tenant_id == tenant_id, Patient.id == patient_id)
+    return (await session.scalars(stmt)).first()
 
 
 async def create_document_row(
