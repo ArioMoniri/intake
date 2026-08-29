@@ -181,6 +181,28 @@ export const en: Record<MessageKey, string> = {
   "learned.guide.title": "Nothing is learned silently",
   "learned.guide.body":
     "Vizite keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
+  // INT-260 — Appearance: text size, theme, on-screen motion and how a visit
+  // starts. The settings stay on this device; nothing is sent to a server.
+  "appearance.title": "Appearance",
+  "appearance.preview": "Preview",
+  "appearance.textSize": "Text size",
+  "appearance.textSize.phone": "Use the phone setting",
+  "appearance.size.s": "Small",
+  "appearance.size.m": "Medium",
+  "appearance.size.l": "Large",
+  "appearance.size.xl": "Larger",
+  "appearance.size.xxl": "Largest",
+  "appearance.overrideNote": "The size you choose replaces the phone setting.",
+  "appearance.theme": "Theme",
+  "appearance.theme.system": "System",
+  "appearance.theme.light": "Light",
+  "appearance.theme.dark": "Dark",
+  "appearance.motion": "Reduce on-screen motion",
+  "appearance.motionNote": "If your phone reduces motion, this stays on as well.",
+  "appearance.start": "When a visit starts",
+  "appearance.start.voice": "By speaking",
+  "appearance.start.typed": "By typing",
+  "appearance.deviceOnly": "These settings are kept on this phone only.",
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
@@ -730,6 +752,14 @@ export const en: Record<MessageKey, string> = {
   "notifications.quietNone": "Not chosen",
   "notifications.pending": "Your change is not saved yet. Check your connection and try again.",
   "a11y.notifications.switchHint": "Double tap to turn reminders on or off.",
+  // INT-260 — what the appearance screen tells a screen reader.
+  "a11y.appearance.entry": "Opens the text size, theme and motion settings.",
+  "a11y.appearance.preview": "Text size preview",
+  "a11y.appearance.size": "You can choose the text size here.",
+  "a11y.appearance.phone": "When on, the text size comes from your phone setting.",
+  "a11y.appearance.theme": "Sets whether the app looks light or dark.",
+  "a11y.appearance.motion": "When on, on-screen transitions and movement stop.",
+  "a11y.appearance.start": "Sets whether a new visit starts by speaking or by typing.",
   "a11y.notifications.quietHint": "Double tap to choose this quiet-hours range.",
   // ---------------------------------------------------------------------
   // INT-133 — profiles, companions, guardian flows, proxy acknowledgement.

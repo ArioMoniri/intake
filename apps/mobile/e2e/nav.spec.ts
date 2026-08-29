@@ -36,6 +36,8 @@ const NAV_MAP = [
   "(tabs)/records.tsx",
   "(tabs)/wellbeing.tsx",
   "(tabs)/me/index.tsx",
+  // INT-260 — Görünüm: text size, theme, motion, start mode
+  "(tabs)/me/appearance.tsx",
   "(tabs)/me/learned.tsx",
   // INT-141 — Bildirimler: opt-out and quiet hours
   "(tabs)/me/notifications.tsx",

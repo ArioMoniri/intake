@@ -1590,7 +1590,7 @@
   title: "services/learning Inspector->Architect + proposal schema + evidence bundles + PR bot (open-not-merge)"
   depends_on: [INT-171, INT-004]
   labels: [area:learning, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "proposal_scope CI test blocks forbidden paths (red-flag levels, instruments, consent texts, Talker tools, PolicyGuard, residency routing); sandboxed job read-only creds no egress; signed proposals"
   tests: [tests/learning/test_proposal_scope.py]
@@ -2481,7 +2481,23 @@
   title: "Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies"
   depends_on: [INT-015, INT-038]
   labels: [area:research, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-230.md
+  # NOTE 29 Aug 2026 — one deviation, stated rather than papered over. The
+  # acceptance says "anonymisation validated on corpus". Anonymisation is not
+  # what this pipeline can produce: the subject key is a keyed HMAC pseudonym,
+  # re-derivable by whoever holds the tokenization key, so it is personal data
+  # under KVKK and KSVY m.16(1)'s anonymisation route is unavailable. What is
+  # delivered instead, and validated on the INT-015 corpus, is an EXCLUSION
+  # rule — no corpus sentence and no bare corpus identifier can become an
+  # export value — with the artefact named PseudonymisedExtract throughout and
+  # a test forbidding the word "anonym" in any public name. The pipeline rides
+  # files/06 §75's other route ("All research consented (`research`) or
+  # anonymised per KSVY-16"): consent plus a recorded ethics id. Which limb of
+  # m.16 that actually is, is HB-L21 (counsel).
+  # The gate is shipped, tested and FAILING CLOSED: study_registry.yaml holds
+  # zero studies (HB-R1, site HB-L1) and research_extracts retention is
+  # draft_needs_source (HB-I8), so every export refuses today.
   acceptance:
     - "exports only with research consent + ethics id; anonymisation validated on corpus; register of research extracts"
   tests: [tests/research/test_export_gates.py]
@@ -2498,6 +2514,29 @@
     - "pre-registered analysis scripts; blinded exports; reproducible notebooks under tests"
   tests: [tests/research/test_notebooks_run.py]
   legal: "ETİK"
+- id: INT-262
+  epic: E15-research
+  phase: P2
+  title: "Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies)"
+  depends_on: [INT-230]
+  labels: [area:research, risk:legal, approval:human-legal]
+  status: todo
+  # Raised by INT-230, which states the gap in its own evidence rather than
+  # leaving it unrecorded. INT-230's k gate holds for ONE extract: every
+  # quasi-identifier combination carries at least k subjects. It does not
+  # compare a new request against the extracts already in the register, so an
+  # investigator who takes the same spec over 2026-W01..W12 and then over
+  # 2026-W01..W11 differences the two and recovers the twelfth week's cells —
+  # at any k. The register already holds what a gate would need (study, spec,
+  # window, subjects, k, content hash); what it does not hold is the POLICY,
+  # and the honest reason this is a separate issue is that the policy has a
+  # parameter no agent may pick: how much window overlap, and how many
+  # requests, a study may make. That is an ethics-committee decision.
+  acceptance:
+    - "the export gate reads the register for prior extracts of the same study+spec and refuses an overlapping window unless the study's registry row states an explicit query budget; the budget has no default and an absent one fails closed; golden test differences two extracts and proves the second is refused"
+  tests: [tests/research/test_differencing_gate.py]
+  legal: "KVKK-16,KSVY-16,ETİK"
+  sec_row: "learning-loops"
 - id: INT-240
   epic: E16-experience
   phase: P0
@@ -2988,3 +3027,26 @@
     - "NO clinical content: fixture overlays only, under tests/fixtures/, with synthetic names and values. The eight authored patient overlays of 04 section 2.3 stay with INT-056 and stay blocked on a licensed physician (HUMAN_BLOCKERS HB-C1, HB-C5, HB-C6)"
   tests: [tests/protocols/test_overlay_monotonicity.py, tests/protocols/test_overlay_activation.py]
   sec_row: "learning-loops"
+- id: INT-260
+  epic: E08-mobile
+  phase: P0
+  # Owner directive 2026-08-30: "make the chat page and voice page more sleek and
+  # minimalistic ... and also make text size and other settings adjustable".
+  # This issue is the settings half; the surface redesign is its own chain.
+  title: "Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something"
+  depends_on: [INT-144, INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "text size, theme, on-screen motion and visit start mode are adjustable in-app and persist device-locally; each control has a real consumer on the day it ships, and a fifth (spoken reading) is deliberately absent because its only consumer is a surface this issue does not touch"
+    - "useFontScale is redefined IN PLACE so a chosen step REPLACES the OS value rather than composing with it: no sibling hook, scaledSize/lineHeight/the clamp/AppText untouched, and the discriminating case (smallest step at OS 2.0 renders 0.9, which no composing build can produce) is asserted rather than described"
+    - "the ladder is five discrete steps [0.9, 1.0, 1.3, 1.6, 2.0] and never a slider - typeScale is seven fixed integers and scaledSize rounds - and the top step equals the clamp ceiling so the control can never shrink a patient already at OS 2.0"
+    - "two gaps the control makes reachable are closed in the same change: useStackHeader stopped hardcoding 17 pt with react-navigation's own multiplier left on, and FloatingTabBar implements the collapse theme.ts has claimed since INT-130 - icons only at MIN_TAP with a filled well, because the dropped caption was half the focus signal"
+    - "theme and reduced motion get a mechanism rather than a dead switch: useScheme resolves the stored override and every scheme consumer but one recorded exception takes it, and useReducedMotion ORs the app switch with the OS signal so it can add reduced motion and never remove it"
+    - "the controls are exemplary rather than adequate: radiogroup/radio with accessibilityState.selected, switch with its checked state, every target at MIN_TAP by box and never by slop, selection never carried by hue alone, and the screen proved on the simulator at both ends of its own ladder"
+    - "persistence is device-local and provably so - this device's keychain slot, excluded from backups, no network and no session reachable from the provider - carries the invariant 18 inventory annotation, and the stop-and-ask is FILED with its named owner rather than answered by the agent"
+  tests:
+    - apps/mobile/src/lib/prefs/appearance.test.ts
+    - apps/mobile/e2e/appearance.spec.ts
+  sec_row: "mobile"
+  evidence: docs/evidence/INT-260.md

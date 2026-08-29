@@ -605,6 +605,75 @@ def test_no_short_in_flow_control_uses_the_doubled_polite_form(tr: dict[str, str
     )
 
 
+# --- mid-word truncation (00 §2, INT-260) ------------------------------------------------
+
+#: The negation and privative suffixes files/00_STATE.md §2 names, verbatim:
+#: "Never truncate mid-word in Turkish. Compile-time negation/privative
+#: no-truncate list: -m(ı|i|u|ü)yor, -maz/-mez, -sız/-siz/-suz/-süz,
+#: -madan/-meden. `word-break: break-all` banned app-wide."
+#:
+#: The hazard is not cosmetic and the row states it: `ağrımıyor` truncated to
+#: `ağrım…` turns "it doesn't hurt" into "my pain" — the negation is carried by
+#: the SUFFIX, so cutting the tail of a Turkish word can inverse a clinical
+#: fact. The row also says the scan found exactly one such token, "which is
+#: precisely why review will miss it and it must be a build gate". This is that
+#: gate; it did not exist before INT-260.
+_NO_TRUNCATE_SUFFIX = re.compile(
+    r"(?:m[ıiuü]yor|maz|mez|s[ıiuü]z|madan|meden)\b",
+    re.IGNORECASE,
+)
+
+#: Every prop or style that can cut a rendered string short. React Native has
+#: no CSS, so `word-break` is not reachable at all; what IS reachable is
+#: `numberOfLines` (with its implicit tail ellipsis), an explicit
+#: `ellipsizeMode`/`lineBreakMode`, and `adjustsFontSizeToFit`, which shrinks
+#: rather than cuts but is the same "make it fit by changing the words'
+#: appearance" move and is banned by 02 §8.2's no-harder-clamping rule.
+_TRUNCATION_AFFORDANCES = (
+    "numberOfLines",
+    "ellipsizeMode",
+    "lineBreakMode",
+    "adjustsFontSizeToFit",
+    "word-break",
+    "break-all",
+)
+
+
+def test_no_turkish_string_can_be_truncated_mid_word() -> None:
+    """files/00 §2's ruling, enforced by ABSENCE.
+
+    The app truncates nowhere, so no Turkish word can lose its negation suffix
+    — and that is a much stronger guarantee than auditing each render site,
+    because it cannot drift. A future screen that genuinely needs to shorten a
+    string has to come past this test and say why in review; there is no
+    correct way to ellipsize a Turkish clinical sentence, so the honest answers
+    are a shorter string or more room."""
+    offenders: dict[str, list[str]] = {}
+    for path in _shipped_sources():
+        code = _strip_comments(path.read_text(encoding="utf-8"))
+        hits = [token for token in _TRUNCATION_AFFORDANCES if token in code]
+        if hits:
+            offenders[path.relative_to(MOBILE).as_posix()] = hits
+    assert not offenders, (
+        f"truncation affordances reached: {offenders}. files/00 §2: 'Never "
+        "truncate mid-word in Turkish' — `ağrımıyor` cut to `ağrım…` inverts "
+        "the clinical fact. Give the string room or shorten the copy."
+    )
+
+
+def test_the_truncation_hazard_class_is_not_empty(tr: dict[str, str]) -> None:
+    """The gate above is only worth anything while the catalogue actually holds
+    words whose meaning lives in a suffix. This asserts the hazard is real, so
+    a future refactor cannot quietly empty the class and make the ban vacuous —
+    the same discipline `test_scripted_protocol_text_is_never_measured...`
+    applies to its own exclusion."""
+    at_risk = {key for key, value in tr.items() if _NO_TRUNCATE_SUFFIX.search(value)}
+    assert at_risk, (
+        "no negation or privative suffix appears anywhere in the catalogue; "
+        "either the copy changed shape or the pattern stopped matching Turkish"
+    )
+
+
 # --- readability -------------------------------------------------------------------------
 
 
