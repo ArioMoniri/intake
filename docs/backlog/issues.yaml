@@ -2213,8 +2213,8 @@
   phase: P1
   title: "GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy"
   depends_on: [INT-002]
-  labels: [area:infra]
-  status: todo
+  labels: [area:infra, approval:human-infra, blocked:contract]
+  status: awaiting-human
   acceptance:
     - "runner heartbeats probed; CI uses synthetic fixtures only (scan)"
   tests: [tests/infra/test_ci_no_phi.py]

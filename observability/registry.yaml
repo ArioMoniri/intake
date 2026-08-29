@@ -138,6 +138,33 @@ components:
     fallback: "none"
     phi_path: true
 
+  # --- INT-206: continuous integration ---------------------------------------
+
+  - component: ci-runners
+    self_hostable: true
+    # files/08 §6's CI row wants self-hosted runners in the TR DC. None exist —
+    # and the reason is a decision, not capacity. HB-I7 (the spend) sits with the
+    # owner and HB-L11 (physical residency is not legal residency; the Istanbul
+    # Local Zone's operator is AWS EMEA SARL) sits with counsel. HB-I5 looks like
+    # it applies and does not: that row is GPU supply, and a CI runner needs CPU,
+    # which files/00_STATE.md §2 records as GA in-country since May 2026.
+    # infra/ci/runners.yaml therefore declares zero pools and the probe reports
+    # those rows rather than a result. Flips true when a pool is declared and beats.
+    self_hosted_now: false
+    host: "infra/ci/runners.yaml — zero pools declared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). CI runs on GitHub-hosted runners meanwhile, which files/08 §6 records as the fallback precisely because no PHI is ever in CI"
+    license: "GitHub Actions Runner — MIT (the runner agent); the hosted service is a vendor product, which is why the self-hosted pool is the target state"
+    probe: runner_heartbeat
+    budget_ms: 2000
+    # files/08 §6 names the fallback in full: "GitHub-hosted runners (no PHI in
+    # CI ever)". It is not a registry component — there is nothing of ours to
+    # probe on it — so the row records it in `host` and carries `none` here.
+    fallback: "none"
+    # That parenthesis is the whole reason the fallback is acceptable, and it is
+    # enforced rather than asserted: intake_platform.ci checks fixtures, env,
+    # logs, artefacts, cache and runners, and tests/infra/test_ci_no_phi.py
+    # fails the build when any of them carries a patient-shaped value.
+    phi_path: false
+
   # --- INT-175: the self-hosted LLM-trace tier -------------------------------
 
   - component: langfuse

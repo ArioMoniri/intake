@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**203 issues.** By phase: P0 117 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 75 · todo 118 · withdrawn 1.
+**203 issues.** By phase: P0 117 · P1 46 · P2 36 · P3 4. By status: awaiting-human 3 · doing 7 · done 75 · todo 117 · withdrawn 1.
 
 ## P0
 
@@ -167,7 +167,7 @@
 | INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
 | INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security | todo |
 | INT-205 | Wazuh + Falco deployment + rules + console feed | E13-infra | INT-023 | area:infra, risk:security | done |
-| INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra | todo |
+| INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra, approval:human-infra, blocked:contract | awaiting-human |
 | INT-213 | DPIA v1 + vendor transfer register + SCC set + Board notification workflow (5 business days) + hospital DPA template | E14-legal | INT-018, INT-210 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-214 | Breach machinery: KVKK 72h Board form automation + data-subject notices + USOM report (7545) + hospital notices | E14-legal | INT-020 | area:legal, risk:legal | todo |
 | INT-215 | Special-category adequate measures (Board 2018/10) mapping + evidence export | E14-legal | INT-019, INT-023 | area:legal, risk:legal | todo |

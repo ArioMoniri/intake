@@ -22,6 +22,7 @@ from os import environ
 from pathlib import Path
 
 import httpx
+from intake_platform.ci import CiPolicyError, RunnerPools, load_runner_pools
 
 from intake_probes import probes
 from intake_probes.probes import Failed, Outcome, Skipped, SupportsPing
@@ -40,6 +41,7 @@ __all__ = [
 ProbeFn = Callable[[], Outcome]
 
 _DEFAULT_REGISTRY = Path("observability") / "registry.yaml"
+_DEFAULT_RUNNER_POOLS = Path("infra") / "ci" / "runners.yaml"
 _HTTP_TIMEOUT_S = 5.0
 
 
@@ -169,6 +171,16 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
             None,
         ),
         "voice-runtime": probes.livekit_room_join,
+        # INT-206: the CI row. The pool file is committed and always readable;
+        # with zero pools declared this reports HB-I7/HB-I5 as a typed Skipped,
+        # which is the honest state and never counts healthy. Heartbeats arrive
+        # from the runners themselves once a pool exists, so the sweep passes an
+        # empty map until there is a collector to read.
+        "ci-runners": partial(
+            probes.runner_heartbeat,
+            _runner_pools(env),
+            {},
+        ),
     }
 
     llm_health_url = env.get("INTAKE_LLM_HEALTH_URL", "")
@@ -208,6 +220,20 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
 
     known = {entry.component for entry in registry}
     return {component: fn for component, fn in wiring.items() if component in known}
+
+
+def _runner_pools(env: Mapping[str, str]) -> RunnerPools:
+    """The declared self-hosted CI runner pools (INT-206).
+
+    An unreadable or absent pool file is reported as "no pools", not raised:
+    a probe reports. The policy gate (`make ci-policy`) is where a malformed
+    pool file fails the build.
+    """
+    path = Path(env.get("INTAKE_CI_RUNNERS_FILE", str(_DEFAULT_RUNNER_POOLS)))
+    try:
+        return load_runner_pools(path)
+    except CiPolicyError:
+        return RunnerPools()
 
 
 def _redis_client(env: Mapping[str, str]) -> SupportsPing:
