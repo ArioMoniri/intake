@@ -146,6 +146,10 @@ PROSE_REGISTER_FINDINGS = frozenset(
     {
         "a11y.backHint",
         "a11y.closeHint",
+        # INT-247: same class as the 34 above — short imperative in
+        # instructional prose, consistent with the catalogue while the -iniz
+        # question is one decision for the copy owner.
+        "a11y.carried.hint",
         "a11y.companion.ackHint",
         "a11y.companion.roleHint",
         "a11y.companion.speakerHint",
@@ -208,6 +212,12 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 POLICYGUARD_FINDINGS = frozenset(
     {
         ("diagnosis", "app.disclaimer"),
+        # INT-247 — guard false positive, and a clean illustration of the
+        # morphology defect INT-248 is verifying: "Yanıtı geri alın" is an UNDO
+        # button ("take the answer back"), but the treatment pattern reads the
+        # verb `alın` as "take" in the sense of taking a medicine. No treatment
+        # is offered, advised or implied anywhere in this string.
+        ("treatment", "carried.action.undo"),
         ("jargon", "welcome.body"),
         ("multi_question", "health.attach.confirm"),
         ("register", "app.tagline"),
