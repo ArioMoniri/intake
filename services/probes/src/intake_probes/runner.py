@@ -187,6 +187,14 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
             env.get("INTAKE_LANGFUSE_CLICKHOUSE_URL", "http://127.0.0.1:8123/ping"),
         )
 
+    # INT-032: the openEHR CDR sits behind the compose `export` profile and no
+    # deployment runs it (registry row self_hosted_now: false), so it is wired
+    # on the same terms as Langfuse — only where a target has been named, and
+    # SKIPPED rather than FAILED everywhere else.
+    ehrbase_health_url = env.get("INTAKE_EHRBASE_HEALTH_URL", "")
+    if ehrbase_health_url:
+        wiring["ehrbase"] = partial(probes.http_health, http_client, ehrbase_health_url)
+
     tls_target = env.get("INTAKE_TLS_PROBE_TARGET", "")
     if tls_target:
         host, _, port = tls_target.partition(":")

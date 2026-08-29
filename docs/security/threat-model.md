@@ -514,8 +514,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   as enforced).
 - **Controls (files/10):** typed schemas with the mapper coverage floor (CLAUDE.md invariant
   8); roundtrip tests; magnitude-outranks-unit with a flag on disagreement (§9.2 rule 1).
-- **Signals:** land with INT-032.
-- **Tests:** OPT template roundtrip lands with INT-032.
+- **Signals:** INT-032 landed the export tier and it emits **no metric**, because nothing runs
+  it: the `ehrbase` registry row is `self_hosted_now: false` behind the compose `export`
+  profile, and no service imports the client yet. What exists today is the `ehrbase` synthetic
+  probe — wired only when `INTAKE_EHRBASE_HEALTH_URL` names a target, so an unrun tier reports
+  SKIPPED rather than a false green — and the client's typed refusals:
+  `EhrbaseTemplateRejectedError` for an OPT the CDR will not parse, `OpenEhrExportBlocked` for
+  an answer with no leaf binding. A counter for [I] over-broad export lands with the issue that
+  wires the tier into a service, not before.
+- **Tests:** `tests/integration/test_ehrbase_roundtrip.py` (INT-032) — OPT upload → fetch →
+  parse → archetype-root identity against the committed template; composition envelope write →
+  read → identity; the CONTRIBUTION audit. `tests/schemas/test_openehr_export.py` holds [T]
+  shut from the other side: an answered slot with no leaf binding is refused, never dropped and
+  never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
+  `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an
+  exception message.
 
 ## `protocol-registry` — signed bundles and the clip cache
 

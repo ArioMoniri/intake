@@ -122,8 +122,19 @@ def test_compose_dev_services() -> None:
         assert "healthcheck" in services[name], f"{name} has no healthcheck"
         assert ":" in services[name]["image"], f"{name} image is not tag-pinned"
     assert services["postgres"]["image"].startswith("pgvector/pgvector:pg16")
-    # 00 §3 D8: openEHR/EHRbase is a P3 export — it must NOT be in the dev tier.
-    assert "ehrbase" not in services, "EHRbase in P0 compose contradicts 00 §3 D8"
+    # 00 §3 D8: openEHR/EHRbase is a P3 *export*. INT-032 built that tier, so
+    # the services exist — but the default `make dev` tier must not start them,
+    # or every P0 developer pays for a second JVM and a second Postgres for a
+    # CDR no P0/P1 feature queries (HB-I1, HB-I2). The profile is the boundary.
+    for name in ("ehrbase", "ehrbase-db"):
+        assert name in services, f"missing service {name} (INT-032)"
+        assert "healthcheck" in services[name], f"{name} has no healthcheck"
+        assert ":" in services[name]["image"], f"{name} image is not tag-pinned"
+        assert services[name].get("profiles") == ["export"], (
+            f"{name} must sit behind the `export` profile — an EHRbase in the "
+            "default P0 dev tier contradicts 00 §3 D8"
+        )
+    assert services["ehrbase"]["image"] == "ehrbase/ehrbase:2.35.1"
 
 
 # --- acceptance 4: pre-commit + commitlint --------------------------------------
