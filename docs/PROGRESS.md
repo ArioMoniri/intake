@@ -552,3 +552,7 @@
 - The merge itself would have shipped a bug: git auto-merged INT-247's unfiltered review block back in ALONGSIDE the per-kind one, so the medications section would have rendered twice and a carried ALLERGY would have appeared inside the medication list. factStateKey/factNoteMarkerKey stay kind-aware for the same reason — the medication-only wording prints "hasta bıraktığını söyledi" against a penicillin allergy, a false clinical statement rather than an awkward one.
 - Filed under the wrong id at first: INT-250 is the blueprint's tenant-onboarding issue. Renumbered every reference the branch added; main's INT-250 untouched. Checking main alone is not enough to pick a free id — PR #329's branch already carried INT-254 and INT-255 in its own issues.yaml.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-254 merged (PR #329)
+- DSL/life-threat reconciliation: tense_anchor is a slot reference, and validate_packs stops raising.
+- LOOP_STATUS: CONTINUE
