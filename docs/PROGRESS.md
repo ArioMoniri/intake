@@ -556,3 +556,9 @@
 ## 2026-08-29 — INT-254 merged (PR #329)
 - DSL/life-threat reconciliation: tense_anchor is a slot reference, and validate_packs stops raising.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-30 — INT-032 merged (PR #362)
+- openEHR export tier against a live ehrbase 2.35.1: ensure_template (idempotent, byte-for-byte, 409 = present), write/read composition, contribution audit. Both acceptance lines met; 35 unit + 8 integration tests.
+- THE EXPORT CARRIES NO CLINICAL CONTENT, and that is the finding rather than a shortcut. previsit_intake.v1.opt holds archetype ROOTS only; a root path addresses an ENTRY, not a datum, and no committed source states a leaf path. session_composition refuses every answered slot — the intended fail-closed state. A grep test proves no atNNNN is invented anywhere, and a second test reads packages/protocols/base/intake.yaml directly so the premise cannot rot silently. HB-C12 needs a clinical-informatics author plus the physician of record.
+- SECOND FINDING, filed as INT-257: the committed template cannot be uploaded to a real CDR at all — no root carries <occurrences> and EHRbase answers 500. The roundtrip is green only because the test patches the bytes first. Choosing a tighter cardinality is a modelling decision nobody has taken.
+- LOOP_STATUS: CONTINUE

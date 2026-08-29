@@ -309,7 +309,7 @@
   title: "EHRbase export tier: OPT templates + client + roundtrip (P3 export per D8)"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "intake composition template (OPT) uploaded on boot; write/read composition per session; contribution audit"
     - "integration test writes and reads a composition against EHRbase container"
