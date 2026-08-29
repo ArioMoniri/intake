@@ -808,11 +808,18 @@
   tests: [tests/safety/test_triage_engine.py]
   legal: "1219-8,TCY-R11"
   sec_row: "triage"
+# INT-056 -> INT-258 re-point, made by the PR for INT-258 ("Overlay composition
+# mechanism + monotonicity property test"). INT-081's acceptance needs the
+# overlay *machinery* - "delta mode driven by PatientOverlay" is activation plus
+# composition, and INT-258 delivers both against synthetic fixtures - not the
+# eight authored overlays of 04 section 2.3, which are clinical content. INT-056
+# stays open and keeps that content; it still blocks anything that needs a real
+# overlay to exist. Only this one dependency moved.
 - id: INT-081
   epic: E04-engines
   phase: P0
   title: "IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays"
-  depends_on: [INT-080, INT-056]
+  depends_on: [INT-080, INT-258]
   labels: [area:engine]
   status: todo
   acceptance:
@@ -2914,3 +2921,18 @@
     - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
   tests: [apps/mobile/src/lib/intake/history.test.ts]
   sec_row: "intake-typed"
+- id: INT-258
+  epic: E03-protocols
+  phase: P0
+  title: "Overlay composition mechanism + monotonicity property test (content stays with INT-056)"
+  depends_on: [INT-041]
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "the overlay type, load path and compose step exist in packages/protocols: activate_overlays resolves the files/03 section 6 `overlays: [{id, when}]` declarations against confirmed PatientOverlay facts with the closed when grammar and three-valued evaluation, so a missing or stale fact reads Unknown and never activates; compose_overlay_rules applies overlay packs to a chain-resolved rule set add-and-tighten only"
+    - "a tighten_rule op in an overlay resolves its parent in the pack the overlay is applied TO, not in the overlay's own extends chain - without this an overlay is pinned to one branch and `overlay.oncology_patient` cannot reach a dermatology session, which 04 section 2.2/2.3 requires"
+    - "the compiler REFUSES, never warns: a pack applied as an overlay from another layer; an overlay that redeclares an inherited rule; a tighten that downgrades acuity, rewrites the parent predicate instead of disjoining it, or mints an id outside rf.X.<qualifier>; two overlays contributing one rule id with different bodies; an overlay claiming a base.life_threat rule id; an overlay suppressing a slot a surviving red flag reads"
+    - "tests/protocols/test_overlay_monotonicity.py asserts four properties over randomly generated compositions (hypothesis, already a dev dependency): every base rule survives byte-identical; a minted rule never lowers its parent's acuity and the parent stays live; any permutation of the same overlay set composes to the same rules and the same refusals; and generated relaxing overlays are refused - seven relaxation vectors, each asserted, so the test fails if the compiler silently accepts one"
+    - "NO clinical content: fixture overlays only, under tests/fixtures/, with synthetic names and values. The eight authored patient overlays of 04 section 2.3 stay with INT-056 and stay blocked on a licensed physician (HUMAN_BLOCKERS HB-C1, HB-C5, HB-C6)"
+  tests: [tests/protocols/test_overlay_monotonicity.py, tests/protocols/test_overlay_activation.py]
+  sec_row: "learning-loops"
