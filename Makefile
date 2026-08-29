@@ -149,3 +149,25 @@ chaos:
 load:
 	@command -v k6 >/dev/null || { echo "k6 is not installed (brew install k6)"; exit 2; }
 	k6 run -e BASE_URL=$${BASE_URL:-http://127.0.0.1:8000} scripts/load/k6-smoke.js
+
+# INT-202: backups — pgBackRest PITR (encrypted repository), MinIO replication
+# to the second location, and the restore drill. files/10 §8 schedules the
+# drill quarterly; `backup-drill-ci` is what that scheduled job calls.
+#
+# Only `backup-drill-dry` runs on this host. The real drill stands up a second
+# Postgres, a second object store and a restore target, which needs more disk
+# and more container memory than HB-I1/HB-I2 record as available — the script
+# refuses rather than shrinking the drill to fit.
+.PHONY: backup-config-check backup-drill-dry backup-drill backup-drill-ci
+
+backup-config-check:
+	uv run pytest tests/infra -q -o addopts=""
+
+backup-drill-dry:
+	scripts/backup/restore_drill.sh --dry-run
+
+backup-drill:
+	scripts/backup/restore_drill.sh --run
+
+backup-drill-ci: backup-config-check
+	scripts/backup/restore_drill.sh --run

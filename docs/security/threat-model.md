@@ -216,8 +216,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [Nc] restores never exercised, discovered during the incident.
 - **Controls (files/10):** §3 backups & DR — encrypted PITR to a second in-country location,
   immutable copies, RPO 15 min / RTO 4 h, quarterly restore drills with console evidence.
-- **Signals:** backup freshness and last-drill age (§9 row) land with INT-202.
-- **Tests:** automated restore drill lands with INT-202.
+  INT-202 lands the repository configuration (`infra/backup/pgbackrest.conf`,
+  `repo1-cipher-type=aes-256-cbc`, passphrase from OpenBao and never from a file), the
+  replication plan (`infra/backup/minio-replication.yaml` — object-lock preserved on the
+  audit replica, deletions never propagated, which is the ransomware defence) and the drill
+  itself. The **second location is not named anywhere in files/**, so
+  `INTAKE_DR_S3_ENDPOINT` has no default and the DR object store has no registry row —
+  HB-I8(b), and HB-I5 for why no in-country provider is contracted.
+- **Signals:** backup freshness (`services/probes` `backup_freshness` over
+  `INTAKE_BACKUP_DIR`, bounded at `INTAKE_BACKUP_MAX_AGE_S=900` — the 15-min RPO) and
+  last-drill age. `sec.backup_age_min` and `sec.restore_drill_age_days` stay `planned` in
+  the catalogue: nothing emits them yet, and a `live` entry nothing emits is the dishonest
+  direction the INT-025 gate exists to catch.
+- **Tests:** `tests/infra/test_restore_drill.py` (INT-202) — the repository is encrypted,
+  no credential literal is committed, replication keeps object-lock and propagates no
+  deletion, the drill refuses a restore target inside the workspace, and its evidence record
+  has no field an identifier could occupy. The **execution** half (`make backup-drill`) is
+  scripted, wired and unexercised on the recorded host: HB-I1 (disk) and HB-I2 (container
+  memory) block it, and the retention window the expire step needs is HB-I8(a). The drill
+  refuses rather than shrinking to fit.
 
 ## `resilience` — degradation without harm
 
