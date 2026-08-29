@@ -62,6 +62,7 @@ class ProbeId(StrEnum):
     CERT_EXPIRY_DAYS = "cert_expiry_days"
     BACKUP_FRESHNESS = "backup_freshness"
     LIVEKIT_ROOM_JOIN = "livekit_room_join"
+    RUNNER_HEARTBEAT = "runner_heartbeat"
 
 
 class FallbackKind(StrEnum):

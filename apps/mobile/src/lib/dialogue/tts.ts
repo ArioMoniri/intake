@@ -76,6 +76,54 @@ export const TURN_ROUND_TRIP_BUDGET_MS = 1684;
 export const SYNTHESIZE_TIMEOUT_MS = 2364;
 
 /**
+ * The longest a patient may be left looking at "Soru hazırlanıyor…" for one
+ * clip (INT-261).
+ *
+ * Both caps above bound ONE request. Nothing bounded the WHOLE clip, and the
+ * layers between them multiply: `selectTtsLane` walks every (tier, host)
+ * pair in sequence, each costing a health timeout plus a full probe
+ * synthesis; `synthesizeWithFallback` may invalidate and re-walk that ladder
+ * once per candidate; and `synthesizeClipWith` runs all of it once per
+ * SENTENCE. Reported from the simulator with all five dev lanes answering
+ * /health in milliseconds: a spinner, pixel-identical a minute apart. Every
+ * layer was behaving exactly as designed.
+ *
+ * So this is the patient's bound rather than a lane's: ONE lane admission
+ * plus ONE synthesis per sentence — the ladder's own two committed figures,
+ * multiplied by the work the clip actually contains. No new duration is
+ * invented here, and a clip that exceeds it is not slow, it is thrashing.
+ * Past it the turn continues without a voice (stream.ts `speech_unavailable`),
+ * which is the same trade INT-249 already made one level down.
+ */
+export function clipDeadlineMs(text: string): number {
+  const sentences = Math.max(1, shapeForSpeech(text).length);
+  return TURN_ROUND_TRIP_BUDGET_MS + sentences * SYNTHESIZE_TIMEOUT_MS;
+}
+
+/**
+ * `work`, or `tts_deadline` — whichever comes first.
+ *
+ * The abandoned work is NOT cancelled, deliberately: it is a clip synthesis
+ * the clip store is already deduplicating by name, so letting it finish
+ * lands the file in the cache for a later turn. What it may not do is hold
+ * the turn. A rejection passes through untouched so the deadline never
+ * masks the real reason a lane said no.
+ */
+export async function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("tts_deadline")), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Throws unless the text is safe to hand to the TTS: non-empty and free of
  * every Unicode decimal digit (invariant 22 — numbers never cross a
  * representation boundary unguarded).

@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -25,8 +25,21 @@ check: check-py check-ts check-i18n
 check-i18n:
 	uv run pytest tests/release -q -o addopts=""
 
+# INT-206: the no-PHI-in-CI policy over the six surfaces a patient-shaped value
+# can reach CI through — fixtures, env, logs, artefacts, cache and runners
+# (CLAUDE.md invariant 6; files/06 §5 "CI: no PHI, synthetic fixtures, TR-DC
+# runners"). check-py collects the same policy through tests/infra; this target
+# is the form the CI job calls, and `--scan-environment` adds the one surface a
+# test cannot see from here — the runner's own environment.
+#
+# It is deliberately NOT part of `make security`: the full gate set (gitleaks,
+# Semgrep, Trivy, cosign, SBOM) is INT-019, which calls this rather than
+# reimplementing it.
+ci-policy:
+	uv run python -m intake_platform.ci --scan-environment
+
 check-integration:
-	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav hapi
+	docker compose -f infra/docker-compose.dev.yml --profile clamav --profile export up -d --wait postgres openbao minio clamav hapi ehrbase-db ehrbase
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
 	OPENBAO_TOKEN=$${OPENBAO_TOKEN:-intake-dev-root} uv run pytest -m integration --no-header -q -p no:cacheprovider -o addopts=""
 

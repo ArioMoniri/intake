@@ -29,9 +29,13 @@
  *   PATIENT recordings keep lib/voice.ts's delete-after-upload posture
  *   (invariant 3 governs those, and it is untouched here).
  * - Any hard service failure lands in the existing manual steps via the
- *   outer machine, committed answers intact; a settled dialogue with
- *   questions left hands ONLY those to the manual steps, suggestions
- *   riding along as prefill.
+ *   outer machine, committed answers intact AND the unconfirmed suggestions
+ *   riding as prefill (INT-261 — the same thing a hand-over carries, since
+ *   both exits go to the same place); a settled dialogue with questions left
+ *   hands ONLY those to the manual steps, suggestions riding along.
+ * - A TTS outage is NOT such a failure (INT-261). The agent goes silent for
+ *   the session, the transcript says so once, and every turn continues:
+ *   the question text was never waiting on audio in the first place.
  *
  * DEV-TIER: this is the honest in-app dev dialogue over the HTTP bridges;
  * the production path is the LiveKit Talker (files/03 §4.9, files/13).
@@ -67,6 +71,7 @@ import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
+import { questionAsideTr } from "@/lib/dialogue/speech";
 import type { StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
@@ -84,11 +89,23 @@ interface DialogueIntakeProps {
   /** The pack label the extract daemon receives (the visit's department). */
   packName: string;
   /** Hard service failure — the manual steps show the honest notice.
-   * Prior answers are already committed per confirm. */
-  onFailed: () => void;
+   * Prior answers are already committed per confirm; the unconfirmed
+   * suggestions ride along as prefill exactly as in a hand-over (INT-261). */
+  onFailed: (prefill: PrefillMap) => void;
   /** Dialogue over with questions left (or left by choice): the manual
    * steps take ONLY those, unconfirmed suggestions riding as prefill. */
   onHandoff: (prefill: PrefillMap) => void;
+}
+
+/** Candidate map → the prefill shape the typed steps take. Both dialogue
+ * exits — the tidy hand-over and a hard failure — hand over the same thing
+ * (INT-261), so they build it the same way. */
+function toPrefill(leftovers: Record<string, { values: readonly string[]; quote: string }>) {
+  const prefill: PrefillMap = {};
+  for (const [questionId, candidate] of Object.entries(leftovers)) {
+    prefill[questionId] = { values: [...candidate.values], quote: candidate.quote };
+  }
+  return prefill;
 }
 
 /** Option ids → catalog labels; free text passes through verbatim. */
@@ -154,15 +171,11 @@ export function DialogueIntake({
     questions,
     packName,
     onDone: () => router.replace(`/(tabs)/visits/${visitId}/review`),
-    onFailed,
+    onFailed: (leftovers) => onFailed(toPrefill(leftovers)),
     onHandoff: (leftovers) => {
       // Confirmed answers are already in the note; the rest of the pack
       // goes to the manual steps with the suggestions as prefill.
-      const prefill: PrefillMap = {};
-      for (const [questionId, candidate] of Object.entries(leftovers)) {
-        prefill[questionId] = { values: [...candidate.values], quote: candidate.quote };
-      }
-      onHandoff(prefill);
+      onHandoff(toPrefill(leftovers));
     },
   });
   const { state } = session;
@@ -271,11 +284,7 @@ export function DialogueIntake({
   const exitToSteps = async () => {
     const leftovers = state.pending;
     await session.leave();
-    const prefill: PrefillMap = {};
-    for (const [questionId, candidate] of Object.entries(leftovers)) {
-      prefill[questionId] = { values: [...candidate.values], quote: candidate.quote };
-    }
-    onHandoff(prefill);
+    onHandoff(toPrefill(leftovers));
   };
 
   if (turn.phase === "done" || turn.phase === "failed" || turn.phase === "handoff") {
@@ -303,13 +312,21 @@ export function DialogueIntake({
       if (q === undefined) {
         return null;
       }
-      said = [t(q.titleKey), q.hintKey ? t(q.hintKey) : ""];
+      // The bubble shows what the agent SAYS — the question and its aside
+      // (speech.ts). It used to show the pack's `hintKey` instead, which is
+      // the TYPED lane's control copy: "Birden fazla seçebilirsiniz" under a
+      // spoken question with no chips on screen was the reported defect
+      // (INT-261). One composition now feeds the clip and the bubble, so
+      // they cannot say different things — which is what makes a silenced
+      // session readable rather than lossy.
+      const aside = questionAsideTr(q);
+      said = [t(q.titleKey), aside ?? ""];
       body = (
         <>
           <AppText role="body">{t(q.titleKey)}</AppText>
-          {q.hintKey ? (
+          {aside !== null ? (
             <AppText role="caption" color="inkSoft">
-              {t(q.hintKey)}
+              {aside}
             </AppText>
           ) : null}
         </>
@@ -443,6 +460,26 @@ export function DialogueIntake({
         keyboardDismissMode="on-drag"
       >
         <Kicker label={t("dialogue.kicker")} tone="accent" />
+
+        {state.voiceMuted ? (
+          // INT-261: the agent lost its voice and the conversation carried
+          // on. Saying so once is the whole apology — the patient can see
+          // the questions and answer them; what they cannot see is WHY the
+          // sound stopped, and silence with no explanation reads as broken.
+          //
+          // NOT a live region, deliberately. This screen announces exactly
+          // one thing through useLiveAnnouncement (the turn state), and the
+          // a11y suite pins that there is no second channel. It also does
+          // not need one here: a screen-reader user never heard the agent
+          // clip in the first place — VoiceOver was already reading them
+          // the bubble — so the mute changes nothing for them. It stands at
+          // the head of the transcript as a condition of the session.
+          <View accessible>
+            <AppText role="caption" color="inkFaint">
+              {t("dialogue.voiceMuted")}
+            </AppText>
+          </View>
+        ) : null}
 
         {state.stream.map(renderEntry)}
 

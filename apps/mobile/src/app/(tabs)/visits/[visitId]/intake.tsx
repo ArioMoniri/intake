@@ -156,7 +156,7 @@ export default function TypedIntake() {
             visitId={visitId}
             questions={intakeQuestions}
             packName={visit?.department ?? "general"}
-            onFailed={() => dispatchVoice({ type: "failure" })}
+            onFailed={(prefill) => dispatchVoice({ type: "failure", prefill })}
             onHandoff={(prefill) => dispatchVoice({ type: "candidates", prefill })}
           />
         ) : (
