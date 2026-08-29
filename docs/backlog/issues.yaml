@@ -2639,7 +2639,7 @@
   - INT-236
   labels:
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'owner directive that it should only be karsilikli konusma and that the same
     fixed nine questions must stop being asked regardless of answers: the offer
