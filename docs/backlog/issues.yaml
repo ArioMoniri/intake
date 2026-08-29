@@ -2602,6 +2602,33 @@
     questions fall to prefilled text steps'
   tests:
   - apps/mobile/src/lib/dialogue/stream.test.ts
+- id: INT-237
+  epic: E08-mobile
+  phase: P0
+  title: 'TTS delivery shaping: sentence splitting, boundary gaps, silence trim -
+    and the measurement that identified the voice model as the dominant cause'
+  depends_on:
+  - INT-233
+  labels:
+  - area:mobile
+  status: todo
+  acceptance:
+  - 'owner complaint that the spoken voice is awkward, answered with measurement
+    before change: sixteen probes on the dev lane established that the pinned
+    fallback voice is telephony-band with no energy above about three and a half
+    kilohertz so Turkish fricatives are absent, that its duration head allocates
+    erratically, that sentence boundaries were indistinguishable from commas and
+    that clip edges were ragged; the client-side seam fixes what it can - split at
+    sentence boundaries only with verbatim preservation test-pinned, guaranteed
+    terminal punctuation for interrogative prosody, one sentence per request,
+    trimmed heads and tails with a short raised-cosine fade, consistent inter
+    sentence gaps - and the three red-flag imperatives that had been run together
+    at more than twice normal speaking rate are separated; the regression case
+    where splitting made one composed question worse is kept in the evidence
+    rather than dropped, and the honest verdict is recorded that the remaining
+    gap belongs to the model tier and not to any client seam'
+  tests:
+  - apps/mobile/src/lib/dialogue/speechShaping.test.ts
 - id: INT-238
   epic: E02-data
   phase: P0
