@@ -631,6 +631,7 @@ def test_event_schema_ids_follow_the_ts_convention() -> None:
         "intake.clinical.csat.v1",
         "intake.clinical.nps.v1",
         "intake.clinical.clinician_pulse.v1",
+        "intake.clinical.wait.v1",
         "intake.clinical.audit.v1",
         "intake.clinical.security.v1",
     }

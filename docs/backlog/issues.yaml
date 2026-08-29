@@ -2508,7 +2508,7 @@
   title: "Wait-time metrics end-to-end + SDS-01 style exports"
   depends_on: [INT-240, INT-025]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "time_to_first_question, note_ready_after_wrapup, doctor_link_first_open, checkin_to_seen (connector), records_processing emitted and dashboarded"
   tests: [tests/experience/test_wait_metrics.py]
@@ -2830,3 +2830,19 @@
     selection is cached per session and re-probed on failure'
   tests:
   - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+- id: INT-256
+  epic: E04-engines
+  phase: P1
+  # The universal history block only. Guideline-grounded, department-specific clinical
+  # content stays with INT-043 -> INT-044..051, which is awaiting-human (HB-C1).
+  title: "Universal history sections (allergy, medication, PMH, family) composed onto every department pack"
+  depends_on: [INT-247]
+  labels: [area:engine]
+  status: todo
+  acceptance:
+    - "historyQuestions authored once in 04 section 1 order and COMPOSED onto every department pack by packForVisit(department, profile), never duplicated per department"
+    - "18 steps across allergies/medications/pmh/family_social; the pmh and family blocks are Detayli-only and the mode gating is asserted, not assumed"
+    - "carried facts render per kind: a carried allergy never appears in the medication list and never takes medication-shaped wording"
+    - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
+  tests: [apps/mobile/src/lib/intake/history.test.ts]
+  sec_row: "intake-typed"
