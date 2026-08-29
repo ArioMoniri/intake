@@ -1197,6 +1197,7 @@ class NotificationPreference(Base):
         ),
     )
 
+
 class CsatText(Base):
     """INT-240 — the optional free text on a ``csat.v1`` response.
 
