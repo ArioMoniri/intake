@@ -1,0 +1,964 @@
+# =====================================================================================
+#  base.intake — the universal pre-visit protocol every session inherits
+#  Spec: 04 §1 (sections, slots, voice fields, turn budget) · 04 §3 (the universal
+#  red-flag families) · 13 §4 (ordering) · 13 §13 (delivery) · 12 §1 (directory layout)
+#  Issue: INT-043. Unblocks 78 of 175.
+# =====================================================================================
+#
+#  ⛔ STOP. NOTHING IN THIS FILE MAY BE SERVED TO A PATIENT.
+#
+#  maturity: L0 · status: awaiting-clinical-review · every red-flag family is
+#  `draft_needs_source`. Per 09 §2 that means agent-drafted and unreviewed, review
+#  queue only. The compiler refuses to emit a bundle for it, and the refusal list is
+#  the point of this file rather than a defect in it.
+#
+#  WHAT IS AUTHORED HERE, AND WHAT IS NOT — the line is drawn in one place.
+#
+#  Authored in full: the eight sections of 04 §1, their slots, and the patient-facing
+#  question copy (`ask_tr`, `confirm_tr`, `follow_up_tr`, `choices_tr[]`). Question
+#  wording is product copy, constrained by PolicyGuard and by the B1/`siz` rules in
+#  the 04 header — it is not a clinical determination, so an agent may write it.
+#
+#  NOT authored, and deliberately empty: every clinical value. Which symptoms
+#  constitute a red flag, the EK-4 acuity each family carries, its route, its delivery
+#  register and its three location action scripts are all clinical determinations that
+#  a named licensed physician must make under CODEOWNERS (HUMAN_BLOCKERS HB-C1).
+#  Each family therefore carries the ONE sanctioned pending form permitted by
+#  CLAUDE.md invariant 17 in its `when`, and a `source_gap` naming exactly what is
+#  owed. No threshold in this file was guessed. There is no plausible number anywhere
+#  in it, because a plausible invented number is worse than a missing one: there is no
+#  diff that makes it look wrong.
+#
+#  ⚠️ ON THE EK-4 LEVEL, because it is the least obvious of those refusals.
+#  04 §3's table states RED or YELLOW per family. The colour-semantics correction
+#  immediately below that table replaced the three-level scheme with EK-4's five, and
+#  says in terms that **"a naïve three-to-three colour map systematically
+#  under-triages"**. Reading §3's RED as KIRMIZI_K1 or as KIRMIZI_K2 is therefore the
+#  named failure mode and not a transcription: K1 is *immediate* and K2 carries the
+#  ten-minute target, and choosing wrongly in either direction is a patient-safety
+#  defect. Every family below consequently sits at `YESIL` / `EXPEDITE` /
+#  `notify_clinic: never` — the schema's floor, which asserts nothing, and the same
+#  form INT-057's generator uses for the same reason. These are not the levels these
+#  rules will carry. They are the absence of a level, written in the only way the
+#  enum can express it, on a rule the compiler already refuses to serve.
+#
+#  ⚠️ ON `register` AND `location` (CLAUDE.md invariant 21). Both are required on a
+#  RED rule with no permitted default, and no family here declares them — because no
+#  family here is RED yet, and a register chosen by an engineer before the acuity
+#  exists is exactly the default invariant 21 forbids (the paediatric-airway case in
+#  02 §5.3 is where an ALERT default causes the deterioration). The gate is wired and
+#  fails closed ahead of the content it will govern: the moment a family's level
+#  becomes KIRMIZI the compiler demands a register and an action resolving for
+#  REMOTE, ON_SITE and UNKNOWN. That is asserted against this pack in
+#  tests/protocols/test_base_intake_pack.py::
+#  test_a_family_promoted_to_red_must_declare_register_and_all_three_locations.
+#
+#  ⚠️ NO COMMITTED GUIDELINE SNAPSHOT EXISTS FOR ANY FAMILY. 04 §8.1 rule 3 requires
+#  the `source.quote` to appear verbatim in a snapshot under
+#  packages/protocols/sources/. That directory does not exist in this repository —
+#  not for EK-4, not for NICE, not for anything — so no family here can carry a
+#  source block, and every one is `draft_needs_source` with the gap written out.
+#  This is rule 3 working, not an oversight.
+#
+#  ⚠️ THE FAST-MODE TURN BUDGET IS OVER-SUBSCRIBED AND AN AGENT MAY NOT FIX IT.
+#  04 §1 sets fast mode at ≤ 18 turns. 02 §2 already records the same content list at
+#  16–21 turns in the clean case with zero clarifications, and five of the six HB-C6
+#  additions below cost a turn unconditionally as authored. Cutting content, raising
+#  the budget or compounding questions is a clinical decision (HB-C5; 00 §5 Q8, owner
+#  ClinicalAuthor). The arithmetic is in docs/evidence/INT-043.md and the collision is
+#  measured in CI rather than asserted in prose, so it cannot be closed quietly.
+# =====================================================================================
+
+kind: pack
+id: base.intake
+layer: base                    # 03 §6 resolution order: base → cluster → specialty →
+                               # visit_type → overlay → hospital. This is the root.
+version: 0.1.0-draft
+schema_version: 2
+maturity: L0                   # 09 §2 — never served. INT-043 closes on HB-C1.
+status: awaiting-clinical-review
+language: tr                   # invariant 5: the tr key is the source of truth. The
+                               # English mirror is base/intake.en.yaml, keyed by these
+                               # keys, because the DSL has no English field.
+title_tr: "Ön görüşme temel protokolü"
+
+voice:
+  # Nothing in the base pack is paraphrasable by default. 04 §1 allows paraphrase per
+  # protocol/section; invariant 10 makes scripted text verbatim. Opening the default
+  # would be a decision taken once, by an engineer, for every question written later.
+  allow_paraphrase: false
+  backchannel_ok: true         # 13 §4: 82.9 % of interruptions are cooperative, and
+                               # backchannels mask processing latency.
+  ack_style: warm
+  pace: normal
+
+sections:
+
+  # ===================================================================================
+  # 04 §1 row 1 — identity_check. Who is speaking, and on whose behalf.
+  # The consent RECAP is a turn this section owns but whose TEXT it does not: consent
+  # copy renders only from docs/legal/ with hash binding (invariant 18), so the slot
+  # confirms the recap and carries none of its wording.
+  # ===================================================================================
+  identity_check:
+    delivery: voice
+    slots:
+      subject_role:
+        type: code
+        valueset: vs.subject_role
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          subject role is a session fact, not a clinical entry; 03 §7 names no
+          archetype that hosts it and the committed template carries roots only, so a
+          binding here would resolve against a fabrication (12 §8.1).
+        ask_tr: "Bu görüşmeyi kendiniz için mi yapıyorsunuz, yoksa bir yakınınız adına mı?"
+        choices_tr: ["kendim için", "yakınım adına"]
+        follow_up_tr: "Kendiniz için mi, yoksa başka biri adına mı konuşuyorsunuz?"
+      proxy_reported:
+        type: boolean
+        required: false
+        must_ask: false
+        ask_if: "subject_role != 'kendim'"
+        openehr_deferred_reason: >-
+          proxy provenance travels on the note (04 §5 PreVisitNote.screening.provenance),
+          not as an openEHR entry; no archetype in 03 §7 hosts it.
+        ask_tr: "Hastanın adına konuştuğunuzu not ediyorum. Doğru mu?"
+        follow_up_tr: "Hastanın kendisi mi konuşuyor, yoksa siz mi anlatıyorsunuz?"
+      consent_recap_confirmed:
+        type: boolean
+        required: true
+        must_ask: true
+        delivery: text_first
+        openehr_deferred_reason: >-
+          consent records live in the consent service with their own hash-bound legal
+          text (invariant 18); the pack records only that the recap was shown.
+        ask_tr: "Ekranda gösterdiğim onam özetini onaylıyor musunuz?"
+        follow_up_tr: "Onaylıyorsanız evet, onaylamıyorsanız hayır diyebilirsiniz."
+
+  # ===================================================================================
+  # 04 §1 row 2 — reason_for_visit. 13 §4: open with a genuine uninterrupted turn.
+  # Langewitz 2002 measures mean spontaneous talking time at ninety-two seconds and
+  # 78 % finishing inside two minutes. The justification is agenda completeness and
+  # step retirement (Marvel 1999), NOT symptom yield — Bent 2006 shows an open
+  # question elicits far fewer items than a checklist, and claiming otherwise will
+  # not survive a clinician's first challenge.
+  # ===================================================================================
+  reason_for_visit:
+    delivery: voice
+    slots:
+      chief_complaint_text:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]"
+        ask_tr: "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim."
+        follow_up_tr: "Sizi en çok rahatsız eden şeyi kısaca anlatabilirsiniz."
+      patient_goals:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]"
+        ask_tr: "Bu ziyaretten en çok ne bekliyorsunuz?"
+        follow_up_tr: "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
+
+  # ===================================================================================
+  # 04 §1 row 3 — hpi. OLDCARTS/SOCRATES as a COVERAGE SCHEMA, never a sequence:
+  # 13 §4 records that the mnemonics return zero validation studies between them, and
+  # that the open turn above retires whichever of these steps it has already answered.
+  # `aggravating` and `relieving` are two slots rather than one because "ne artırıyor,
+  # ne azaltıyor" is two questions in one turn (invariant 2).
+  # ===================================================================================
+  hpi:
+    delivery: voice
+    slots:
+      onset_date:
+        type: date
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Bu şikâyetiniz ne zaman başladı?"
+        follow_up_tr: "Gün, hafta ya da ay olarak yaklaşık söyleyebilirsiniz."
+      location_text:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetinizi vücudunuzun neresinde hissediyorsunuz?"
+        follow_up_tr: "Elinizle gösterebileceğiniz bir yer varsa tarif edebilirsiniz."
+      duration:
+        type: duration
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetiniz başladığından beri ne kadar sürüyor?"
+        follow_up_tr: "Sürekli mi, yoksa arada bir mi oluyor? Süresini yaklaşık söylemeniz yeterli."
+      character_text:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Bu şikâyetiniz nasıl bir his veriyor?"
+        follow_up_tr: "Örneğin baskı, yanma, zonklama ya da batma gibi tarif edebilirsiniz."
+      aggravating_factors:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetinizi ne artırıyor?"
+        follow_up_tr: "Hareket, yemek ya da nefes almak artırıyor mu?"
+      relieving_factors:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetinizi ne rahatlatıyor?"
+        follow_up_tr: "Dinlenmek ya da pozisyon değiştirmek işe yarıyor mu?"
+      radiation_text:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetiniz başka bir yere yayılıyor mu?"
+        follow_up_tr: "Yayıldığı bir yer varsa neresi olduğunu söyleyebilirsiniz."
+      timing_pattern:
+        type: code
+        valueset: vs.timing_pattern
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetiniz günün belli bir saatinde mi artıyor?"
+        choices_tr: ["sabahları", "akşamları", "geceleri", "belli bir saati yok"]
+        follow_up_tr: "Belli bir saatte artmıyorsa belli bir saati yok diyebilirsiniz."
+      severity_nrs:
+        type: integer
+        required: true
+        must_ask: true
+        # 13 §5.1: spoken rating scales show PRIMACY, so reading the low end first
+        # biases toward it. 13 §5.3: verbally anchoring the midpoint recovers 66 % of
+        # the item nonresponse a long spoken numeric scale produces. Both anchors and
+        # the midpoint are therefore in the follow-up, in words — invariant 22 keeps
+        # every numeral out of anything a TTS model will ever see.
+        confirm_required: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Şikâyetinizin şiddetini sıfır ile on arasında bir sayıyla söyler misiniz?"
+        confirm_tr: "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?"
+        follow_up_tr: "Sıfır hiç yok, beş orta, on dayanılmaz demek. Aradan bir sayı söyleyebilirsiniz."
+      trajectory:
+        type: code
+        valueset: vs.trajectory
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "Başladığından beri şikâyetiniz nasıl gidiyor?"
+        choices_tr: ["daha kötü", "aynı", "daha iyi"]
+        follow_up_tr: "Daha kötü, aynı ya da daha iyi diyebilirsiniz."
+      prior_similar_episode:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
+        ask_tr: "Daha önce buna benzer bir şikâyetiniz oldu mu?"
+        follow_up_tr: "Benzer bir durum yaşadıysanız evet diyebilirsiniz."
+      treatments_tried:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
+        ask_tr: "Bu şikâyet için şimdiye kadar ne denediniz?"
+        follow_up_tr: "İlaç, dinlenme ya da başka bir yöntem denediyseniz söyleyebilirsiniz."
+      time_last_known_well:
+        # HB-C6 addition 6 of 6. Without it rf.stroke_fast has no tense_anchor and,
+        # per 12 §2.4, cannot fire on an undated symptom.
+        # ⚠️ FINDING for the DSL owner, not a defect of this pack: SlotType v2 has no
+        # `datetime` and no `time`. A stroke window is measured in hours, so `date`
+        # would lose the hour; `duration` ("ne kadar süre önce") is the only member
+        # that keeps it, and it is what a patient answers with anyway. If the served
+        # rule needs a wall-clock instant, the DSL needs a member first.
+        type: duration
+        required: false
+        must_ask: false
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr: "En son ne zaman kendinizi tamamen normal hissettiniz?"
+        follow_up_tr: "Saat ya da gün olarak yaklaşık söylemeniz yeterli."
+
+  # ===================================================================================
+  # 04 §1 row 4 — red_flags. One layperson-answerable probe per family of 04 §3.
+  #
+  # ⚠️ EVERY PROBE IS DELIBERATELY UNASKABLE TODAY: no `ask_tr`, no `choices_tr`.
+  # The wording of a red-flag probe IS the trigger — "sudden face droop / arm weakness
+  # / speech difficulty" is the rule, phrased for a patient — so writing it is the
+  # clinical determination HB-C1 is waiting on, and 04 §8.1 rule 1 additionally binds
+  # every trigger to be answerable by a layperson about themselves or a person in
+  # front of them. The slots exist so the families have declared subjects
+  # (`no_rule_references_an_undeclared_slot`) and so the shape is ready; they carry no
+  # content, and an engine cannot fill them. That is HUMAN_BLOCKERS Rule 2 applied:
+  # build the mechanism, wire the gate, make it fail closed, leave the content empty.
+  #
+  # The two suicidality probes are `text_only` (13 §13): safeguarding content is never
+  # spoken, and 13 §13's finding is that a voice agent which cannot respond may
+  # SUPPRESS the disclosure it is trying to elicit.
+  # ===================================================================================
+  red_flags:
+    delivery: voice
+    slots:
+      rf_chest_pain_acute:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_stroke_fast:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_dyspnoea_rest:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_anaphylaxis:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_severe_bleeding:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_suicidal_intent:
+        type: boolean
+        required: false
+        must_ask: false
+        delivery: text_only
+        openehr_deferred_reason: >-
+          safeguarding content is text_only with no extraction attempted (13 §13) and
+          the escalation policy of 04 §4.2 does not exist yet (HB-C8); nothing about
+          its storage shape is settled.
+      rf_sepsis_like:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_thunderclap_headache:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_pregnancy_bleeding_pain:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1) and the pregnancy rule set does not exist at
+          all (HB-C4); no binding can be chosen ahead of the rule.
+      rf_fever_high_persistent:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_weight_loss_unintentional:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_new_neuro_deficit_subacute:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
+          yet determinable; a binding chosen now would have to be re-chosen.
+      rf_suicidal_ideation_passive:
+        type: boolean
+        required: false
+        must_ask: false
+        delivery: text_only
+        openehr_deferred_reason: >-
+          safeguarding content is text_only with no extraction attempted (13 §13) and
+          the escalation policy of 04 §4.2 does not exist yet (HB-C8); nothing about
+          its storage shape is settled.
+
+  # ===================================================================================
+  # 04 §1 row 5 — meds_allergies. `anticoagulant_use` is HB-C6 addition 4 of 6, and it
+  # lives here rather than in an overlay on purpose: `overlay.anticoagulated` exists,
+  # but overlays may only add or tighten (04 §2.3), so the BASE slot must exist or the
+  # bleeding and head-injury rules have nothing universal to gate on.
+  # ===================================================================================
+  meds_allergies:
+    delivery: voice
+    slots:
+      meds_confirmed:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
+        ask_tr: "İlaç listenizi ekranda gösteriyorum. Liste doğru mu?"
+        follow_up_tr: "Listede eksik ya da fazla bir şey varsa söyleyebilirsiniz."
+      meds_new_or_stopped:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
+        ask_tr: "Bu listede olmayan ya da bıraktığınız bir ilaç var mı?"
+        follow_up_tr: "Yeni başladığınız veya bıraktığınız ilaçların adını söyleyebilirsiniz."
+      otc_herbal:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
+        ask_tr: "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?"
+        follow_up_tr: "Vitamin, bitki çayı ve takviyeler de bu gruba girer."
+      anticoagulant_use:
+        type: code
+        valueset: vs.anticoagulant_use
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
+        ask_tr: "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
+        choices_tr: ["evet", "hayır", "bilmiyorum"]
+        follow_up_tr: "İlaç kutusundaki adı okuyabilirseniz çok yardımcı olur."
+      allergies:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-EVALUATION.adverse_reaction_risk.v1]"
+        ask_tr: "Bilinen bir ilaç ya da madde alerjiniz var mı?"
+        follow_up_tr: "Bilinen bir alerjiniz yoksa yok diyebilirsiniz."
+      allergy_reaction:
+        type: string
+        required: false
+        must_ask: false
+        openehr_path: "/content[openEHR-EHR-EVALUATION.adverse_reaction_risk.v1]"
+        ask_tr: "Alerjiniz olduğunda neler oluyor?"
+        follow_up_tr: "Döküntü, şişme ya da nefes darlığı gibi tarif edebilirsiniz."
+
+  # ===================================================================================
+  # 04 §1 row 6 — pmh_fh_sh (delta). Four of the six HB-C6 additions live here.
+  #
+  # ⚠️ ORDERING FINDING, for the DSL owner. 13 §4 asks for pregnancy/LMP and
+  # immunosuppression EARLY and UNIVERSALLY — ruptured ectopic classically presents in
+  # a woman who does not know she is pregnant, NG255 scopes sepsis to pregnant or
+  # recently pregnant people of any age, and neutropenic sepsis is a one-hour
+  # emergency that must not depend on an overlay which may not exist. 13 §14 item 13
+  # goes further and promotes both to class-1 GATEKEEPERS with a compiler assertion
+  # that each precedes every step whose gate references it. **The INT-040 DSL has no
+  # priority-class field**, so section order is the only ordering this pack can
+  # express, and 04 §1's own table puts these in row 6. The gatekeeper promotion needs
+  # a DSL change, not a pack edit; it is recorded here rather than silently dropped.
+  # ===================================================================================
+  pmh_fh_sh:
+    delivery: voice
+    slots:
+      new_diagnoses_since_last_visit:
+        type: string
+        required: true
+        must_ask: true
+        openehr_path: "/content[openEHR-EHR-EVALUATION.problem_diagnosis.v1]"
+        ask_tr: "Son görüşmenizden bu yana sağlığınızda yeni bir gelişme oldu mu?"
+        follow_up_tr: "Yeni bir tanı aldıysanız ya da hastaneye yattıysanız söyleyebilirsiniz."
+      pregnancy_status:
+        # HB-C6 addition 1 of 6. Gates every pregnancy rule and the sepsis routing of
+        # NG255. text_first per 13 §13 (pregnancy/LMP are named there explicitly).
+        type: code
+        valueset: vs.pregnancy_status
+        required: true
+        must_ask: true
+        delivery: text_first
+        openehr_deferred_reason: >-
+          03 §7 names no archetype for pregnancy status, and EVALUATION.problem_diagnosis
+          would file a physiological state as a problem; deferred to INT-032 rather
+          than bound to the nearest-looking root.
+        ask_tr: "Şu anda gebe olma ihtimaliniz var mı?"
+        choices_tr: ["evet", "hayır", "emin değilim"]
+        follow_up_tr: "Emin değilseniz emin değilim diyebilirsiniz."
+      lmp_date:
+        # HB-C6 addition 2 of 6, and the ONLY one of the six the DSL can gate today.
+        type: date
+        required: false
+        must_ask: false
+        delivery: text_first
+        ask_if: "pregnancy_status != 'hayir'"
+        openehr_deferred_reason: >-
+          03 §7 names no archetype for menstrual history; deferred to INT-032.
+        ask_tr: "Son âdet kanamanız ne zaman başladı?"
+        follow_up_tr: "Gün ve ay olarak yaklaşık söylemeniz yeterli."
+      immunosuppression:
+        # HB-C6 addition 3 of 6. Gates neutropenic fever and the sepsis-like family.
+        type: code
+        valueset: vs.immunosuppression
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          the concept spans a treatment, a diagnosis and a transplant history; 03 §7
+          names no single root that carries all three, and splitting it across roots
+          is a modelling decision for INT-032.
+        ask_tr: "Bağışıklığınızı baskılayan bir tedavi görüyor musunuz?"
+        choices_tr: ["evet", "hayır", "bilmiyorum"]
+        follow_up_tr: "Kemoterapi, biyolojik ilaç, kortizon tedavisi ya da organ nakli bu gruba girer."
+      weight_kg:
+        # HB-C6 addition 5 of 6. `confirm_required` is not decoration: invariant 22
+        # says no numeric slot value is spoken without a matching inline render on the
+        # same work_id, and 00 §2 records a TTS normaliser that can mis-verbalise a
+        # weight or dose by ten times. The confirm step is where that is caught.
+        type: quantity
+        unit: kg
+        required: false
+        must_ask: false
+        confirm_required: true
+        openehr_deferred_reason: >-
+          body weight belongs to an OBSERVATION.body_weight archetype that 03 §7 does
+          not name and the committed template does not carry; inventing the root would
+          resolve the binding against a fabrication (12 §8.1).
+        ask_tr: "Kilonuzu biliyorsanız söyler misiniz?"
+        confirm_tr: "Söylediğiniz kiloyu ekranda gösteriyorum; doğru mu?"
+        follow_up_tr: "Yaklaşık bir değer de yeterli olur."
+      smoking_status:
+        type: code
+        valueset: vs.smoking_status
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          social history has no root in 03 §7's list; deferred to INT-032.
+        ask_tr: "Sigara kullanıyor musunuz?"
+        choices_tr: ["evet", "bıraktım", "hiç kullanmadım"]
+        follow_up_tr: "Bıraktıysanız bıraktım diyebilirsiniz."
+      alcohol_use:
+        type: code
+        valueset: vs.alcohol_use
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          social history has no root in 03 §7's list; deferred to INT-032.
+        ask_tr: "Alkol kullanıyor musunuz?"
+        choices_tr: ["hiç", "ara sıra", "düzenli"]
+        follow_up_tr: "Hiç, ara sıra ya da düzenli diyebilirsiniz."
+      occupation:
+        type: string
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          social history has no root in 03 §7's list; deferred to INT-032.
+        ask_tr: "Ne iş yapıyorsunuz?"
+        follow_up_tr: "Çalışmıyorsanız bunu da söyleyebilirsiniz."
+      living_situation:
+        type: string
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          social history has no root in 03 §7's list; deferred to INT-032.
+        ask_tr: "Evde kiminle yaşıyorsunuz?"
+        follow_up_tr: "Yalnız yaşıyorsanız yalnız diyebilirsiniz."
+      caregiver_present:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          social history has no root in 03 §7's list; deferred to INT-032.
+        ask_tr: "Günlük işlerinizde size yardım eden biri var mı?"
+        follow_up_tr: "Yardım eden biri varsa evet diyebilirsiniz."
+
+  # ===================================================================================
+  # 04 §1 row 7 — screening. `text_only` per 13 §13, and that is load-bearing:
+  # "text_only must mean text only: no clip, no speech_tr, ever", enforced by the
+  # compiler, so nothing here can be accidentally spoken. 02 §2 (corrected) also moves
+  # PHQ-2/GAD-2 OUT of the spoken flow entirely — they are offered after the note is
+  # assembled, so declining costs the patient nothing and the note is complete either
+  # way. Neither costs a fast-mode turn, which is why the turn arithmetic below cannot
+  # be balanced by dropping them: that lever is already spent.
+  #
+  # ⛔ C-SSRS IS NOT REFERENCED. 04 §1 lists a `cssrs_screen` slot, so the slot exists
+  # and the cascade has somewhere to land — but the instrument is licence-BLOCKED
+  # (HB-L2: Clario holds the exclusive RFMH electronic licence, and the only Turkish
+  # validation is adolescents twelve to eighteen). A pack referencing a non-GO
+  # instrument must fail the build, so the reference is absent, the slot is unaskable,
+  # and the gate fails closed. WHO-5 is likewise absent (HB-L3).
+  # Instrument ITEM text is not authored here: the verbatim Turkish items belong to
+  # the instrument engine (INT-116), and an item reworded by anyone is no longer the
+  # instrument its validation refers to (04 header, instrument fidelity).
+  # ===================================================================================
+  screening:
+    delivery: text_only
+    questionnaires: ["PHQ-2", "GAD-2", "PHQ-9", "GAD-7"]
+    voice:
+      allow_paraphrase: false
+    slots:
+      phq2:
+        type: integer
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          PHQ-2 is the first two PHQ-9 items but is not the PHQ-9; filing its score
+          under OBSERVATION.phq9 would misreport the instrument administered.
+      gad2:
+        type: integer
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          GAD-2 is not GAD-7; filing its score under OBSERVATION.gad7 would misreport
+          the instrument administered.
+      phq9:
+        type: integer
+        required: false
+        must_ask: false
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.phq9.v1]"
+      gad7:
+        type: integer
+        required: false
+        must_ask: false
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.gad7.v1]"
+      cssrs_screen:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          C-SSRS is licence-BLOCKED (HB-L2) and 04 §4.2's escalation policy does not
+          exist (HB-C8); nothing may be stored because nothing may be administered.
+
+  # ===================================================================================
+  # 04 §1 row 8 — expectations_wrapup.
+  # ⚠️ ONE EVIDENCE CAVEAT, stated rather than quietly inherited. 13 §4's cheapest
+  # verified win is the English wording contrast "is there SOMETHING else" versus
+  # "anything else" (Heritage 2007: OR 0.154, p = .001). Turkish renders both as
+  # "başka bir şey", so the contrast has no Turkish form and the finding does not
+  # transfer. The wording below claims none of that effect; whether an equivalent
+  # Turkish lever exists is an open question for the clinician, not something to
+  # assert by translating an English result.
+  # ===================================================================================
+  expectations_wrapup:
+    delivery: voice
+    slots:
+      open_questions:
+        type: string
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          patient questions travel on the PatientSummary (04 §5), not as an openEHR
+          entry; 03 §7 names no root for them.
+        ask_tr: "Doktorunuza sormak istediğiniz bir şey var mı?"
+        follow_up_tr: "Aklınıza gelen soruları şimdi söyleyebilirsiniz."
+      anything_else:
+        type: string
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          a free wrap-up turn has no archetype; whatever it elicits is filed under the
+          entry its content belongs to, which is a runtime decision.
+        ask_tr: "Eklemek istediğiniz başka bir şey var mı?"
+        follow_up_tr: "Küçük gibi görünen bir ayrıntı da önemli olabilir."
+      summary_confirmed:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          patient confirmation of a section is note metadata (04 §5
+          patient_confirmed_sections), not a clinical entry.
+        ask_tr: "Özeti ekranda gösteriyorum. Her şey doğru mu?"
+        follow_up_tr: "Düzeltmek istediğiniz bir yer varsa söyleyebilirsiniz."
+      bring_list_ack:
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_deferred_reason: >-
+          the bring list is PatientSummary content (04 §5), not a clinical entry.
+        ask_tr: "Randevunuza getirmeniz gerekenleri ekranda gösteriyorum. Gördünüz mü?"
+        follow_up_tr: "Listeyi görmediyseniz tekrar gösterebilirim."
+
+# =====================================================================================
+#  THE UNIVERSAL RED-FLAG FAMILIES — 04 §3, all thirteen, none added, none dropped.
+#
+#  Read the header before editing one of these. Every field below that could carry a
+#  clinical determination carries the absence of one instead:
+#
+#    when:          the sole sanctioned pending form (invariant 17). NOT a predicate.
+#    level:         YESIL — the floor. NOT the acuity this family will carry.
+#    route:         EXPEDITE — the floor. NOT the route this family will carry.
+#    notify_clinic: never — the floor. Every RED is `always`, unconditionally and
+#                   time-bound (04 §4.2 defect 1), the moment one of these becomes RED.
+#    register:      absent, because the family is not RED yet and a register chosen
+#                   before the acuity is the default invariant 21 forbids.
+#    action:        absent, for the same reason. All three locations become mandatory
+#                   at KIRMIZI and the compiler enforces it.
+#    source:        absent. packages/protocols/sources/ does not exist, so there is no
+#                   committed snapshot any quote could be checked against — for EK-4
+#                   or for anything else. 04 §8.1 rule 3: never an invented citation.
+#    tense:         ever — the widest tense, under which acuity is lowest (04 §8.1
+#                   rule 4 makes acuity non-increasing as the tense recedes).
+#    tense_anchor:  the dated slot the family would key off. Structural, not clinical;
+#                   the physician may replace it with a family-specific dated slot.
+#
+#  The goldens are in tests/protocols/goldens/base/red_flag_families.yaml — a true
+#  positive and a NEAR-MISS negative for each family, carried and not executed while
+#  the trigger is unsigned. The negative is the more important of the two: a positive
+#  can only detect under-triggering and keeps passing under every loosening of a gate,
+#  while over-triggering is invisible to it and surfaces months later as clinicians
+#  who have learned to ignore the alert.
+# =====================================================================================
+red_flags:
+
+  - id: rf.chest_pain_acute
+    label_tr: "Akut göğüs ağrısı"
+    when: 'TODO: the rf.chest_pain_acute trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "chest pain/pressure now or under twenty-four
+      hours with dyspnoea/sweating/radiation", and 04 §4 records that EK-4 splits chest
+      pain across THREE levels, so a single chest-pain token is the wrong shape and the
+      split must be authored before an acuity is chosen. No committed snapshot exists
+      under packages/protocols/sources/ — the directory is absent — so the EK-4 text
+      cannot be quoted from this repository even though it is binding law.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.stroke_fast
+    label_tr: "İnme düşündüren ani nörolojik bulgu"
+    when: 'TODO: the rf.stroke_fast trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: time_last_known_well
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "sudden face droop / arm weakness / speech
+      difficulty / vision loss". The tense_anchor is the HB-C6 slot time_last_known_well,
+      which now exists — but see the DSL finding on that slot: the window this family
+      turns on is measured in hours and SlotType v2 has no datetime member. No committed
+      snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.dyspnoea_rest
+    label_tr: "İstirahatte nefes darlığı"
+    when: 'TODO: the rf.dyspnoea_rest trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "breathlessness at rest or speaking in short
+      sentences". 04 §8.1 rule 1 forbids a respiratory-rate count as a trigger, so the
+      layperson-answerable form has to be authored rather than derived. No committed
+      snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.anaphylaxis
+    label_tr: "Anafilaksi düşündüren tablo"
+    when: 'TODO: the rf.anaphylaxis trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "lip/tongue swelling + breathing difficulty
+      after exposure". 04 §8.1 rule 6 makes the do-not list part of the action script,
+      and it is unwritten. No committed snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.severe_bleeding
+    label_tr: "Ağır kanama"
+    when: 'TODO: the rf.severe_bleeding trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "large-volume bleeding, melena with dizziness".
+      The base slot anticoagulant_use now exists to gate it (HB-C6), but what counts as
+      large-volume for a patient reporting it is exactly the judgment that cannot be
+      guessed. No committed snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.suicidal_intent
+    label_tr: "İntihar planı veya niyeti"
+    when: 'TODO: the rf.suicidal_intent trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN — and
+      this family is additionally blocked twice over. 04 §3 states the trigger in terms
+      of C-SSRS, which is licence-BLOCKED (HB-L2), so the trigger cannot be written in
+      those terms at all; and 04 §4.2 requires the escalation policy — responder,
+      abandonment handler, consent-independent path, means restriction and safety
+      planning — to exist BEFORE this pathway runs near a real person (HB-C8). The
+      crisis numbers are fixed in docs/legal/strings.yaml under PolicyGuard and no
+      model or learning-loop proposal may ever populate one (04 §4.1).
+      Owner: physician of record plus counsel (HB-C1, HB-C8, HB-L2).
+
+  - id: rf.sepsis_like
+    label_tr: "Sepsis benzeri tablo"
+    when: 'TODO: the rf.sepsis_like trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "fever + confusion/very low BP symptoms/rigors
+      in immunosuppressed". The base slots pregnancy_status and immunosuppression now
+      exist (HB-C6) so the gate has something to read, but 04 §8.2's
+      sepsis_guideline_routes_on_age_and_pregnancy needs the routing itself, and the
+      pregnancy rule set does not exist (HB-C4). 04 §8.2 also retires NG51 in favour of
+      NG253/NG254/NG255, all three of which carry updates in progress (04 §8.4), and no
+      committed snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C4, HB-C7).
+
+  - id: rf.thunderclap_headache
+    label_tr: "Ani başlayan çok şiddetli baş ağrısı"
+    when: 'TODO: the rf.thunderclap_headache trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "worst-ever sudden headache". 04 §8.3 lists a
+      sibling, rf.sah_ottawa, among the three families exempt from any false-positive
+      ceiling, so how this family relates to that one is part of the same decision. No
+      committed snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.pregnancy_bleeding_pain
+    label_tr: "Gebelikte kanama veya şiddetli ağrı"
+    when: 'TODO: the rf.pregnancy_bleeding_pain trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN. The
+      whole pregnancy rule set is absent (HB-C4) and needs obstetric input, not a
+      general physician's signature. The base slots pregnancy_status and lmp_date now
+      exist to gate it (HB-C6). No committed snapshot exists under
+      packages/protocols/sources/.
+      Owner: clinician with obstetric input, then physician of record (HB-C1, HB-C4).
+
+  - id: rf.fever_high_persistent
+    label_tr: "Yüksek veya uzayan ateş"
+    when: 'TODO: the rf.fever_high_persistent trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN. This is
+      the family whose 04 §3 row is stated entirely in thresholds — a temperature, a
+      duration, and a different pair of both on chemotherapy or a biologic — and every
+      one of those numbers is precisely what HB-C7 says must come from a physician
+      rather than from a plausible guess. 04 §3 also marks it YELLOW/RED per overlay,
+      so it is two rules or one conditional rule and that too is undecided. No
+      committed snapshot exists under packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.weight_loss_unintentional
+    label_tr: "İstemsiz kilo kaybı"
+    when: 'TODO: the rf.weight_loss_unintentional trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3 states the condition as a percentage over a period, and both figures are
+      HB-C7 values. The base slot weight_kg now exists (HB-C6), which is what makes the
+      family expressible at all. No committed snapshot exists under
+      packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.new_neuro_deficit_subacute
+    label_tr: "Günler içinde ilerleyen nörolojik bulgu"
+    when: 'TODO: the rf.new_neuro_deficit_subacute trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3's plain-language condition is "progressive weakness/numbness over days", and
+      how it is separated from rf.stroke_fast is part of the same judgment — the
+      separation is a tense boundary, and 04 §8.1 rule 4 requires a genuinely different
+      action script per tense. No committed snapshot exists under
+      packages/protocols/sources/.
+      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+
+  - id: rf.suicidal_ideation_passive
+    label_tr: "Pasif intihar düşüncesi"
+    when: 'TODO: the rf.suicidal_ideation_passive trigger requires clinical sign-off'
+    tense: ever
+    tense_anchor: onset_date
+    level: YESIL
+    route: EXPEDITE
+    notify_clinic: never
+    status: draft_needs_source
+    source_gap: >-
+      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
+      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
+      04 §3 states the trigger as a PHQ-9 item-nine score with C-SSRS negative for plan,
+      and C-SSRS is licence-BLOCKED (HB-L2), so the trigger cannot be written in those
+      terms. 04 §4.2 records the structural problem underneath it: the cascade puts the
+      suicide gate behind two thresholds, so passive ideation in someone scoring low on
+      PHQ-2 is never asked about — which is a design question for the clinician, not a
+      wording one. The escalation policy is still missing (HB-C8). No committed snapshot
+      exists under packages/protocols/sources/.
+      Owner: physician of record plus counsel (HB-C1, HB-C8, HB-L2).

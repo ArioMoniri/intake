@@ -79,6 +79,10 @@
     },
     "extra": {
       "asrHosts": ["127.0.0.1", "172.20.10.3"],
+      "ttsLanes": [
+        { "id": "voxcpm2", "port": 8805 },
+        { "id": "freya", "port": 8803 }
+      ],
       "certificatePins": []
     }
   }

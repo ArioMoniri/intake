@@ -340,8 +340,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §4 (b) — every export serialiser fuzzed for formula,
   control-character and CRLF payloads, text-typed cells; §3 — crypto-shredding with 30-day
   grace; the SLA tracker (backlog INT-037).
-- **Signals:** deletion SLA and export volumes (§9 share row) land with INT-037.
-- **Tests:** `export_injection_guard` (inv. 47) and deletion-proof tests land with INT-037.
+- **Signals:** `admin.dsar_delete_total{subject_count}`, emitted once per erasure run by
+  `intake_api.dsar.shred.execute_due_shreds` (INT-037). The tenant-wide queue over the
+  same rows, and the alerting on a subject count above one, are the compliance console's
+  (INT-189).
+- **Tests:** `tests/legal/test_dsar_flows.py` — `export_injection_guard` (inv. 47: formula
+  leads neutralised, control characters and CRLF collapsed), the export failing closed
+  while `docs/legal/strings.yaml` is unauthored, share cancellation on erasure, the
+  30-day grace, and the crypto-shred proof (a shredded field can never be decrypted
+  again). `tests/security/test_crypto_shred.py` pins the envelope operation itself.
 
 ## `retention` — retention and destruction automation
 
