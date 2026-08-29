@@ -1427,7 +1427,7 @@
   title: "Client telemetry: GlitchTip crash (PHI-scrubbed), perf, RUM web"
   depends_on: [INT-023, INT-130]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "crash-free metric wired; scrub tests; cold-start p95 tracked"
   tests: [tests/mobile/test_crash_scrub.py]
