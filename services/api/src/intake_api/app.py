@@ -39,6 +39,7 @@ from intake_api import (
     dsar,
     notes,
     otp_routes,
+    profile_routes,
     taxonomy_routes,
     visits,
 )
@@ -284,6 +285,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(documents.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
+    app.include_router(profile_routes.router)
     app.include_router(taxonomy_routes.router)
     app.include_router(dsar.router)
     return app

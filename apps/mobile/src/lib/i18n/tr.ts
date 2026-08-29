@@ -730,6 +730,54 @@ export const tr = {
   "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
   "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
   "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
+
+  // ---------------------------------------------------------------------
+  // INT-133 — profiles, companions, guardian flows, proxy acknowledgement
+  // (02 §3 attribution values, 06 §6 minors & companions, 13 §13 third
+  // party). Register is `siz` throughout; `-in` on the short in-flow
+  // choices, `-iniz` on the instructional prose.
+  // ---------------------------------------------------------------------
+  "me.companion": "Yakınınız adına",
+  "companion.title": "Yakınınız adına",
+  "companion.entry.sub": "Görüşmeyi kimin yaptığını ve nota nasıl yazıldığını ayarlayın.",
+  "companion.guide.kicker": "Kim anlatıyor",
+  "companion.guide.title": "Anlatanın kim olduğu nota yazılır",
+  "companion.guide.body": "Bir yakınınız adına anlatırsanız bunu nota not düşeriz. Hekim, bilgiyi kimin verdiğini görür. Böylece hastanın kendi sözleriyle sizin anlattıklarınız birbirine karışmaz.",
+  "companion.role.kicker": "Bu görüşme kimin için",
+  "companion.role.self": "Kendim için",
+  "companion.role.companion": "Yakınım adına",
+  "companion.speaker.kicker": "Soruları kim yanıtlıyor",
+  "companion.speaker.companion": "Ben anlatıyorum",
+  "companion.speaker.patient": "Hasta kendisi anlatıyor",
+  "companion.speaker.footer": "Telefon sizde olsa bile hasta kendi anlatıyorsa bunu seçin; nota hastanın kendi sözleri yazılır.",
+  "companion.thirdParty.kicker": "Yanınızda biri var mı",
+  "companion.thirdParty.label": "Yanımda başka biri var",
+  "companion.thirdParty.footer": "Yanınızda biri varken bazı sorular sesli sorulmaz. Bu, mahremiyetiniz içindir.",
+  "companion.ack.kicker": "Onayınız",
+  "companion.ack.label": "Hastanın adına konuştuğumu onaylıyorum",
+  "companion.ack.notProof": "Bu onay yalnızca kimin anlattığını belirtir. Hasta adına karar verme hakkınız olduğu anlamına gelmez.",
+  "companion.effect.kicker": "Bu görüşmede neler değişir",
+  "companion.effect.none": "Bir değişiklik yok. Sorular her zamanki gibi sorulur.",
+  "companion.effect.proxy": "Notta bilgiyi yakınının verdiği yazar.",
+  "companion.effect.assisted": "Notta hastanın kendi sözleri yer alır; yanında biri olduğu da yazılır.",
+  "companion.effect.textOnly": "Özel konular sesli sorulmaz, yazıyla sorulur.",
+  "companion.effect.noSafeguarding": "Bazı çok özel sorular bu görüşmede hiç sorulmaz.",
+  "companion.selected": "Seçili",
+  "companion.notSelected": "Seçili değil",
+  "companion.guardian.kicker": "On sekiz yaşından küçükler",
+  "companion.guardian.label": "Veli hesabıyla görüşme",
+  "companion.guardian.unavailable": "Henüz açık değil",
+  "companion.guardian.body": "On sekiz yaşından küçük biri için görüşme, veli hesabından ve velinin izniyle yapılır. Bu akışı henüz açmadık; hukuki çerçevesi netleşene kadar kapalı kalacak.",
+  "companion.private.kicker": "On iki-on yedi yaş",
+  "companion.private.body": "On iki ile on yedi yaş arasındaki bir hastanın özel bölümü hekime iletilir. Velinin bu bölümü görüp göremeyeceğini hastanenin yazılı politikası belirler. Kayıtlı bir politika yoksa veliye gösterilmez.",
+  "companion.refusal.guardian": "Bu görüşme veli hesabından ve velinin izniyle yapılmalı. Şu an bu akışı açamıyoruz.",
+  "companion.refusal.dobUnverified": "Doğum tarihiniz doğrulanmadan devam edemiyoruz.",
+  "companion.refusal.jurisdiction": "Şu an yalnızca Türkiye'de hizmet veriyoruz.",
+  "companion.refusal.ack": "Devam etmek için hastanın adına konuştuğunuzu onaylayın.",
+  "a11y.companion.roleHint": "Bu seçeneği seçmek için iki kez dokunun.",
+  "a11y.companion.speakerHint": "Soruları kimin yanıtladığını seçmek için iki kez dokunun.",
+  "a11y.companion.ackHint": "Onayı verip geri almak için iki kez dokunun.",
+  "a11y.companion.thirdPartyHint": "Yanınızda biri olduğunu belirtmek için iki kez dokunun.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Annotated, cast
 from fastapi import Depends, Request
 from intake_platform.consent import ConsentTextCatalog
 from intake_platform.envelope import EnvelopeCipher
+from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -44,6 +45,12 @@ class ApiState:
     # that reads a verified DOB replaces it when onboarding has one, and
     # every guarded route inherits the change with no route edit.
     age_context: AgeContextSource = field(default_factory=NoAgeRecordSource)
+    # INT-133: the INT-023 flag facade, so a route can read a safety gate
+    # (guardian_link) without reaching for the environment. The default
+    # provider is in-memory unless INTAKE_UNLEASH_URL is set, and the safety
+    # flags are pre-declared False in BOTH providers — a call-site default
+    # cannot open one.
+    flags: FlagProvider = field(default_factory=default_provider)
     # INT-038: the docs/legal consent-text catalog the guard binds against;
     # defaults from settings.legal_root in __post_init__ so every state has
     # one (an absent legal tree is an EMPTY catalog — grants fail closed).
