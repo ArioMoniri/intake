@@ -173,33 +173,36 @@ export function useDialogueSession({
     }
   };
 
-  // Pre-warm the WHOLE session's scripted clips in parallel at mount
-  // (ask-ahead: "soru hazırlanıyor" must be the exception). Failures stay
-  // silent here — the speaking driver re-ensures per turn and surfaces a
-  // real store failure honestly there.
+  // Pre-warm the session's scripted clips at mount, FIRST QUESTION FIRST
+  // (INT-239): the opening turn is the one the patient waits on, so its
+  // clip is ensured on its own before the rest go out in parallel — the
+  // speaking driver then hits a warm cache and "soru hazırlanıyor" stays
+  // the exception. Every question is warmed, gated or not: a gate can open
+  // mid-conversation and a cold clip there is the same stall.
+  // Failures stay silent here — the speaking driver re-ensures per turn and
+  // surfaces a real store failure honestly there.
   useEffect(() => {
     let stale = false;
     (async () => {
+      const warm = (store: ClipStore, question: IntakeQuestion): Promise<unknown>[] => {
+        const clips = [store.ensure(clipName("question", question.id), questionSpeechTr(question))];
+        if (question.kind === "text") {
+          // The generic confirm line is scripted too — free text never
+          // names a clip and patient words are never synthesized.
+          clips.push(store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, [])));
+        }
+        return clips;
+      };
       try {
         const store = await clipStore();
+        if (stale || questions.length === 0) {
+          return;
+        }
+        await Promise.allSettled(warm(store, questions[0]));
         if (stale) {
           return;
         }
-        await Promise.allSettled(
-          questions.flatMap((question) => {
-            const clips = [
-              store.ensure(clipName("question", question.id), questionSpeechTr(question)),
-            ];
-            if (question.kind === "text") {
-              // The generic confirm line is scripted too — free text never
-              // names a clip and patient words are never synthesized.
-              clips.push(
-                store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, [])),
-              );
-            }
-            return clips;
-          }),
-        );
+        await Promise.allSettled(questions.slice(1).flatMap((q) => warm(store, q)));
       } catch {
         // surfaced by the speaking driver on its own ensure
       }
