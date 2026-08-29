@@ -48,16 +48,13 @@ class ApiState:
     # defaults from settings.legal_root in __post_init__ so every state has
     # one (an absent legal tree is an EMPTY catalog — grants fail closed).
     consent_catalog: ConsentTextCatalog = field(init=False)
-<<<<<<< HEAD
     # INT-037: the files/06 §7 fixed strings the DSAR export document renders
     # from. An absent file is a fail-closed export, never a default string.
     legal_strings: LegalStringsCatalog = field(init=False)
-=======
     # INT-134: the loaded branch taxonomy, lazy so the load failure surfaces
     # as a per-request 503 (taxonomy_unconfigured), never a startup crash.
     _taxonomy: LoadedTaxonomy | None = field(init=False, default=None)
     _taxonomy_loaded: bool = field(init=False, default=False)
->>>>>>> origin/main
 
     def __post_init__(self) -> None:
         self.consent_catalog = _catalog_from_settings(self.settings)

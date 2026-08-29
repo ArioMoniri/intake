@@ -498,6 +498,47 @@ def _shredded_like(field: Any) -> Any:
     return shred_field(field)
 
 
+def test_the_erasure_delinks_telemetry_instead_of_orphaning_the_foreign_key(
+    dsar: ApiHarness,
+) -> None:
+    """``events.session_id`` is a FK to ``sessions.id`` with no ON DELETE
+    clause, so deleting a session that has events is a constraint violation in
+    postgres — and the SQLite unit lane does not enforce FKs, which is exactly
+    how a bug like this reaches production green.
+
+    De-linking beats deleting here: files/06 §3 puts telemetry on its own
+    30 d hot / 1 y cold clock and it is PHI-free by construction, so the row
+    survives under its own retention while losing the link to the erased
+    session.
+    """
+    from intake_platform.db.models import Event
+
+    visit_id, _ = seed_visit_with_sent_note(dsar)
+
+    async def _seed_event() -> None:
+        async with AsyncSession(dsar.engine) as session, session.begin():
+            session.add(
+                Event(
+                    tenant_id=DEV_TENANT_ID,
+                    session_id=uuid.UUID(visit_id),
+                    event_type="csat.v1",
+                    payload={"score": 5},
+                )
+            )
+
+    run(_seed_event())
+    assert [event.session_id for event in rows(dsar, Event)] == [uuid.UUID(visit_id)]
+
+    dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient())
+    report = run(_execute(dsar, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert report.shredded_requests == 1
+    assert rows(dsar, IntakeSession) == []
+    surviving = rows(dsar, Event)
+    assert len(surviving) == 1, "telemetry has its own clock; erasure does not sweep it"
+    assert surviving[0].session_id is None, "the link to the erased session must be cut"
+
+
 def test_the_erasure_keeps_the_records_statute_says_to_keep(dsar: ApiHarness) -> None:
     """files/06 §3 keeps consent and audit records for 10 years and
     DEST-2017 keeps destruction records for ≥ 3 years — and the DSAR request

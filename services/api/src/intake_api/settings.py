@@ -58,19 +58,16 @@ class ApiSettings:
     # legal tree; until INT-210 authors the texts the directory is absent and
     # the consent service fails closed on every new grant.
     legal_root: Path = field(default_factory=lambda: Path("docs/legal/consents"))
-<<<<<<< HEAD
     # Where the files/06 §7 fixed strings live (INT-037 renders the DSAR
     # export document from them, hash-bound). Absent until INT-210 authors
     # them, which is why every renderer of these strings fails closed.
     legal_strings_path: Path = field(default_factory=lambda: Path("docs/legal/strings.yaml"))
-=======
     # The branch taxonomy the /v1/taxonomy feed serves (INT-134; files/09 §1
     # names this file the source of truth). Absent or invalid → the feed and
     # the branch-backed visit path answer 503, never an empty list.
     taxonomy_path: Path = field(
         default_factory=lambda: Path("packages/protocols/taxonomy/branches.yaml")
     )
->>>>>>> origin/main
 
     @property
     def dev_auth_configured(self) -> bool:
