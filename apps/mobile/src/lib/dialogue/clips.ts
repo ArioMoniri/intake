@@ -19,22 +19,23 @@
 import * as FileSystem from "expo-file-system/legacy";
 
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
-import { createClipStore, synthesizeClip, type ClipFs, type ClipStore } from "./tts";
-import { resolveTtsLane, type TtsLaneBase } from "./ttsLane";
+import { createClipStore, synthesizeClipWith, type ClipFs, type ClipStore } from "./tts";
+import { createTtsLaneSelector, synthesizeWithFallback, type TtsLaneSelector } from "./ttsLane";
 
 /**
- * First lane in the ladder whose /health answers — VoxCPM2 (8805) before
- * Freya (8803); null when the whole ladder is down. INT-243 chose the lane;
- * INT-237's synthesizeClip shapes what is sent to whichever lane answers, so
- * the two compose rather than compete.
+ * The session's lane picker: probes the ladder once, keeps the answer, and
+ * re-probes whenever a synthesis fails (INT-249). One of these per dialogue
+ * session — it is the thing that owns "which model is this visit's voice".
+ *
+ * It replaces `reachableTtsLane` / `reachableTtsBaseUrl`, which resolved a
+ * base on /health alone and returned it as a bare string. Both are deleted
+ * rather than left as thin wrappers: a base is a decision taken once with no
+ * way back, and keeping a function that hands one out is keeping the defect
+ * within reach. Anything that needs a one-shot answer can call `selectTtsLane`
+ * in ttsLane.ts, which measures.
  */
-export async function reachableTtsLane(): Promise<TtsLaneBase | null> {
-  return resolveTtsLane(configuredTtsLaneCandidates());
-}
-
-/** First TTS base whose /health answers; null when the lane is down. */
-export async function reachableTtsBaseUrl(): Promise<string | null> {
-  return (await reachableTtsLane())?.base ?? null;
+export function createDialogueTtsLaneSelector(): TtsLaneSelector {
+  return createTtsLaneSelector(configuredTtsLaneCandidates);
 }
 
 export function dialogueClipDir(): string {
@@ -59,11 +60,22 @@ const expoClipFs: ClipFs = {
   },
 };
 
-/** Session clip store bound to the probed base and the app cache dir. */
-export function dialogueClipStore(base: string): ClipStore {
-  // INT-237: synthesizeClip, not synthesizeWav — one request per sentence,
-  // trimmed, faded and joined with a real sentence gap.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) => synthesizeClip(base, text));
+/**
+ * Session clip store bound to the lane SELECTOR and the app cache dir.
+ *
+ * INT-243 bound the store to one resolved base for the whole session, so a
+ * lane that wedged after selection had no way back — every clip queued
+ * behind it until the request cap fired and the dialogue failed. Binding to
+ * the selector instead means each sentence asks "which lane can speak right
+ * now", and a mid-session wedge degrades to the fallback voice.
+ */
+export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
+  // INT-237 shaping is unchanged: one request per SENTENCE, trimmed, faded
+  // and joined with a real sentence gap. INT-249 only changes where each of
+  // those requests lands.
+  return createClipStore(dialogueClipDir(), expoClipFs, (text) =>
+    synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text),
+  );
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */

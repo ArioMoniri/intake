@@ -594,3 +594,46 @@ describe("dialogueStreamReducer — turn micro-transitions and terminals", () =>
     }
   });
 });
+
+// INT-249. The speaking driver in useDialogueSession keys its effect on the
+// turn OBJECT (`useEffect(..., [speaking])` where `speaking = state.turn`),
+// so a reconcile that rebuilt an equal-but-new turn would re-enter the
+// effect, re-run `store.ensure` and restart the clip from the top. With a
+// lane that takes seconds to answer, that is a question the patient hears
+// twice — or a turn that never lands at all, because every late ASR or
+// extract result restarts the wait. `toEqual` cannot see this; only `toBe`
+// can, which is why these assertions are identity and not equality.
+describe("dialogueStreamReducer — late work cannot re-block a live turn (INT-249)", () => {
+  const live = () =>
+    state({
+      turn: { phase: "speaking", step: 1, intent: "question" },
+      asked: ["complaint"],
+      inflight: [1],
+    });
+
+  it("keeps the very same turn object when a transcript lands behind", () => {
+    const before = live();
+    const after = runCardio(before, { type: "transcript_ready", workId: 1, text: "göğsüm ağrıyor" });
+    expect(after.turn).toBe(before.turn);
+  });
+
+  it("keeps the very same turn object when an extract settles behind", () => {
+    const before = live();
+    const after = runCardio(before, {
+      type: "extract_settled",
+      workId: 1,
+      candidates: { complaint: painCandidate },
+    });
+    expect(after.turn).toBe(before.turn);
+  });
+
+  it("keeps it across a whole reconcile sequence, not just one action", () => {
+    const before = live();
+    const after = runCardio(
+      before,
+      { type: "transcript_ready", workId: 1, text: "göğsüm ağrıyor" },
+      { type: "extract_settled", workId: 1, candidates: { complaint: painCandidate } },
+    );
+    expect(after.turn).toBe(before.turn);
+  });
+});

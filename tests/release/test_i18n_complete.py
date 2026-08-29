@@ -209,39 +209,24 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 #:               diagnosis.
 #:   multi_question — one question whose subject is set off by a comma.
 #:   jargon    — the length arm of the same check; see B1_LENGTH_FINDINGS.
-POLICYGUARD_FINDINGS = frozenset(
+POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset(
     {
-        ("diagnosis", "app.disclaimer"),
-        # INT-247 — guard false positive, and a clean illustration of the
-        # morphology defect INT-248 is verifying: "Yanıtı geri alın" is an UNDO
-        # button ("take the answer back"), but the treatment pattern reads the
-        # verb `alın` as "take" in the sense of taking a medicine. No treatment
-        # is offered, advised or implied anywhere in this string.
-        ("treatment", "carried.action.undo"),
+        # The ONLY survivor of INT-248, and the one entry that may be a real
+        # copy finding rather than a guard artefact: INT-253's B1 audit
+        # independently flagged this same string as the catalogue's single
+        # over-length sentence (17 words against a 15-word bound). Two
+        # different checks disliking one string is a signal, not noise.
+        # Left recorded for the copy owner; not rewritten here, because
+        # welcome copy is product voice and this issue is guard precision.
         ("jargon", "welcome.body"),
-        ("multi_question", "health.attach.confirm"),
-        ("register", "app.tagline"),
-        ("register", "auth.error.code"),
-        ("register", "auth.error.network"),
-        ("register", "auth.phone.invalid"),
-        ("register", "consent.firstRun.continue"),
-        ("register", "health.attach.confirm"),
-        ("register", "intake.next"),
-        ("register", "records.consent.cta"),
-        ("register", "review.intro"),
-        ("register", "review.resume"),
-        ("register", "today.continueCta"),
-        ("register", "visit.reviewNote"),
-        ("register", "visits.new.smsFilled"),
-        ("register", "voice.transport.needsDevBuild"),
-        ("register", "voiceFirst.typeInstead"),
-        ("register", "wellbeing.intro"),
-        ("register", "welcome.phoneCta"),
-        ("treatment", "consent.basis.service"),
-        ("treatment", "visits.new.dateOptional"),
-        ("treatment", "voice.transport.needsDevBuild"),
     }
 )
+# INT-248 emptied this. All 22 recorded pairs were guard false positives, and
+# fixing the guard's Turkish morphology resolved every one — including
+# ("diagnosis", "app.disclaimer"), which was the sentence that exists to
+# SATISFY invariant 2 being reported as a diagnosis claim. The set may only
+# shrink, so a new pair now means clinical language really did enter patient
+# copy.
 
 # --- parsing -------------------------------------------------------------------------
 
