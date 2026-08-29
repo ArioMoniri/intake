@@ -49,14 +49,21 @@ __all__ = [
 ]
 
 # The dev-tier visit container: an honest label for "manually created
-# pre-visit session", replaced by real protocol resolution (INT-134 branch
-# picker + compiled packs). Not a protocol pack id and never resolved as one.
+# pre-visit session". Since INT-134 the row also carries the booked taxonomy
+# branch and visit type as slots; live pack resolution over compiled packs
+# stays with the runtime (INT-042 resolve_branch). Not a protocol pack id
+# and never resolved as one.
 VISIT_PROTOCOL_ID = "previsit.dev.visit"
 VISIT_PROTOCOL_VERSION = "int197-dev"
 
 _SLOT_HOSPITAL = "visit.hospital"
 _SLOT_DEPARTMENT = "visit.department"
 _SLOT_DATE = "visit.date"
+# INT-134: written only when known — all in the already-inventoried ``slots``
+# table (INT-030), so no new tables, no new columns (invariant 18); a
+# pre-INT-134 row simply lacks them and reads back as None.
+_SLOT_BRANCH = "visit.branch"
+_SLOT_VISIT_TYPE = "visit.visit_type"
 
 # 06 §3: share tokens expire, 72 h default ceiling.
 SHARE_TTL = timedelta(hours=72)
@@ -70,7 +77,9 @@ class VisitRecord:
     patient_id: uuid.UUID
     hospital: str
     department: str
-    date: str
+    branch_id: str | None
+    visit_type: str | None
+    date: str | None
     note_status: NoteStatus | None
 
 
@@ -98,7 +107,9 @@ async def create_visit(
     patient_id: uuid.UUID,
     hospital: str,
     department: str,
-    date: str,
+    date: str | None,
+    branch_id: str | None = None,
+    visit_type: str | None = None,
 ) -> uuid.UUID:
     visit = IntakeSession(
         tenant_id=tenant_id,
@@ -109,11 +120,18 @@ async def create_visit(
     )
     session.add(visit)
     await session.flush()
-    for slot_id, value in (
+    values: list[tuple[str, dict[str, object]]] = [
         (_SLOT_HOSPITAL, {"text": hospital}),
         (_SLOT_DEPARTMENT, {"text": department}),
-        (_SLOT_DATE, {"date": date}),
-    ):
+    ]
+    # optional facts are absent slots, never invented values (INT-134)
+    if date is not None:
+        values.append((_SLOT_DATE, {"date": date}))
+    if branch_id is not None:
+        values.append((_SLOT_BRANCH, {"text": branch_id}))
+    if visit_type is not None:
+        values.append((_SLOT_VISIT_TYPE, {"text": visit_type}))
+    for slot_id, value in values:
         session.add(
             Slot(
                 tenant_id=tenant_id,
@@ -164,18 +182,23 @@ async def _visit_records(
     records: list[VisitRecord] = []
     for visit in visits:
         visit_slots = slots.get(visit.id, {})
-        # a previsit.dev.visit row always carries its three slots; a row that
-        # does not is corrupt and must fail loudly, not render half a visit
+        # a previsit.dev.visit row always carries hospital+department; a row
+        # that does not is corrupt and must fail loudly, not render half a
+        # visit. date/branch/visit_type are honestly optional (INT-134).
         hospital = str(visit_slots[_SLOT_HOSPITAL]["text"])
         department = str(visit_slots[_SLOT_DEPARTMENT]["text"])
-        date = str(visit_slots[_SLOT_DATE]["date"])
+        date_slot = visit_slots.get(_SLOT_DATE)
+        branch_slot = visit_slots.get(_SLOT_BRANCH)
+        type_slot = visit_slots.get(_SLOT_VISIT_TYPE)
         records.append(
             VisitRecord(
                 id=visit.id,
                 patient_id=visit.patient_id,
                 hospital=hospital,
                 department=department,
-                date=date,
+                branch_id=str(branch_slot["text"]) if branch_slot is not None else None,
+                visit_type=str(type_slot["text"]) if type_slot is not None else None,
+                date=str(date_slot["date"]) if date_slot is not None else None,
                 note_status=statuses.get(visit.id),
             )
         )

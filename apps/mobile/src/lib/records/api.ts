@@ -43,7 +43,8 @@ export interface ServerVisit {
   id: string;
   hospital: string;
   department: string;
-  date: string;
+  /** null when the appointment is not booked yet (INT-134, 02 §2b). */
+  date: string | null;
 }
 
 export type RecordsErrorKind =
@@ -126,7 +127,13 @@ function mapError(status: number, body: Record<string, unknown>): RecordsApiErro
   if (code === "bad_sha256" || code === "digest_mismatch") {
     return new RecordsApiError("digest");
   }
-  if (code === "scan_not_configured" || code === "documents_unconfigured") {
+  if (
+    code === "scan_not_configured" ||
+    code === "scan_failed" ||
+    code === "documents_unconfigured"
+  ) {
+    // no verdict, for any reason: the same honest "we could not check this
+    // file yet" to the patient — the distinction is the operator's, not theirs
     return new RecordsApiError("scan_unavailable");
   }
   if (status === 401 || code === "session") {
@@ -175,7 +182,7 @@ function parseVisits(raw: unknown): ServerVisit[] {
       typeof entry.id === "string" &&
       typeof entry.hospital === "string" &&
       typeof entry.department === "string" &&
-      typeof entry.date === "string"
+      (typeof entry.date === "string" || entry.date === null)
     ) {
       visits.push({
         id: entry.id,
@@ -199,30 +206,33 @@ export async function listServerVisits(): Promise<ServerVisit[]> {
 export interface VisitIdentity {
   hospital: string;
   department: string;
-  date: string;
+  date: string | null;
+  /** Taxonomy branch id (INT-134); absent only on a pre-taxonomy visit. */
+  branchId?: string | null;
+  visitType?: string | null;
 }
 
 /**
  * Resolve the server visit a local (session) visit corresponds to, matching
  * on hospital+department+date. With `create`, a missing visit is created via
- * POST /v1/visits (the same data the patient typed); without it the lookup
- * is read-only and resolves to null — listing must never write.
+ * POST /v1/visits; without it the lookup is read-only and resolves to null —
+ * listing must never write.
+ *
+ * A visit that carries a branch is created on the server's TAXONOMY path
+ * (branch_id + visit_type, department derived server-side from name_tr); one
+ * that does not falls back to the INT-197 free-text department body, which
+ * the server still accepts for exactly this case.
  */
 export async function ensureServerVisit(
   visit: VisitIdentity,
   { create }: { create: boolean },
 ): Promise<string | null> {
-  const wanted = {
-    hospital: visit.hospital.trim(),
-    department: visit.department.trim(),
-    date: visit.date.trim(),
-  };
+  const hospital = visit.hospital.trim();
+  const department = visit.department.trim();
+  const date = visit.date === null ? null : visit.date.trim();
   const existing = await listServerVisits();
   const match = existing.find(
-    (v) =>
-      v.hospital === wanted.hospital &&
-      v.department === wanted.department &&
-      v.date === wanted.date,
+    (v) => v.hospital === hospital && v.department === department && v.date === date,
   );
   if (match !== undefined) {
     return match.id;
@@ -230,10 +240,15 @@ export async function ensureServerVisit(
   if (!create) {
     return null;
   }
+  const branchId = visit.branchId ?? null;
+  const payload =
+    branchId !== null
+      ? { hospital, branch_id: branchId, visit_type: visit.visitType ?? null, date }
+      : { hospital, department, date };
   const response = await call("/v1/visits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(wanted),
+    body: JSON.stringify(payload),
   });
   const body = await parseBody(response);
   if (!response.ok) {
@@ -246,18 +261,19 @@ export async function ensureServerVisit(
 }
 
 /** The "exactly one upcoming visit auto-selects" rule — pure and testable. */
-export function pickUploadVisit<V extends { date: string }>(
+export function pickUploadVisit<V extends { date: string | null }>(
   visits: readonly V[],
   todayIso: string,
 ): { kind: "one"; visit: V } | { kind: "choose"; visits: V[] } | { kind: "none" } {
   if (visits.length === 0) {
     return { kind: "none" };
   }
-  const upcoming = visits.filter((v) => v.date >= todayIso);
+  // a dateless visit is upcoming: the patient still intends to attend it
+  const upcoming = visits.filter((v) => v.date === null || v.date >= todayIso);
   if (upcoming.length === 1) {
     return { kind: "one", visit: upcoming[0] };
   }
-  const past = visits.filter((v) => v.date < todayIso);
+  const past = visits.filter((v) => v.date !== null && v.date < todayIso);
   return { kind: "choose", visits: [...upcoming, ...past] };
 }
 

@@ -46,6 +46,7 @@ from intake_platform.documents import (
     PresignedUpload,
     Scanner,
 )
+from intake_platform.uploads import ScanFailedError
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -354,6 +355,12 @@ async def ingest_content(
             raise HTTPException(status_code=422, detail={"error": "digest_mismatch"}) from None
         except NoScanConfiguredError:
             raise HTTPException(status_code=503, detail={"error": "scan_not_configured"}) from None
+        except ScanFailedError:
+            # A scanner IS wired but produced no verdict — clamd unreachable,
+            # timed out, ERROR reply, stream cut. That is a scan failure, not
+            # a server fault: the row stays quarantined (never promoted, never
+            # fetchable) and the client gets a code it can word honestly.
+            raise HTTPException(status_code=503, detail={"error": "scan_failed"}) from None
         except DocumentRejectedError:
             # the rejected state must COMMIT (raising here would roll it
             # back); the HTTP refusal is raised after the session closes.

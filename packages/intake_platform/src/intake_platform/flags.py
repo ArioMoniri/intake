@@ -53,13 +53,17 @@ UNLEASH_TIMEOUT_SECONDS: Final[float] = 0.2
 #:   clinical-investigation approval id (gate test INT-117);
 #: - s2s — inv. 19: the profile does not exist; the flag exists to assert it;
 #: - learning_apply — inv. 12: learning is proposal-only, never auto-apply;
-#: - satisfaction_prompts — İYS posture (inv. 18): no prompt without consent.
+#: - satisfaction_prompts — İYS posture (inv. 18): no prompt without consent;
+#: - guardian_link — INT-223: persisting a guardian↔minor relationship is a
+#:   new personal-data category (CLAUDE.md stop-and-ask), so the linkage
+#:   store stays unwritable AND unreadable until counsel assigns a basis.
 SAFETY_FLAG_DEFAULTS: Final[Mapping[str, bool]] = MappingProxyType(
     {
         "device_functions": False,
         "s2s": False,
         "learning_apply": False,
         "satisfaction_prompts": False,
+        "guardian_link": False,
     }
 )
 

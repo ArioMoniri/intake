@@ -21,6 +21,7 @@ import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { effectiveStatus } from "@/lib/intake/note";
 import { useSession } from "@/lib/session";
+import { visitTypeLabelKey } from "@/lib/taxonomy/labels";
 import { spacing } from "@/lib/theme";
 
 /** Pushed screens keep left/right only: the header owns the top inset. */
@@ -53,6 +54,13 @@ export default function VisitDetail() {
       <Stack.Screen options={headerOptions(visit.department)} />
       <ScrollView contentContainerStyle={styles.content}>
         <VisitCard visit={visit} statusOverride={status} />
+        {visit.visitType !== null ? (
+          <Card style={styles.ladderCard}>
+            <Kicker label={t("visits.new.visitType")} />
+            <Hairline />
+            <AppText role="body">{t(visitTypeLabelKey(visit.visitType))}</AppText>
+          </Card>
+        ) : null}
         <Card style={styles.ladderCard}>
           <Kicker label={t("visits.detail.noteStatus")} />
           <Hairline />

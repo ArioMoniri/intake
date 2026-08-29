@@ -23,6 +23,7 @@ from pathlib import Path
 from api_harness import (
     ApiHarness,
     InfectedScanner,
+    UnreachableScanner,
     build_harness,
     run,
 )
@@ -180,6 +181,39 @@ def test_ingest_without_scanner_fails_closed(tmp_path: Path) -> None:
         )
         assert response.status_code == 503
         assert response.json() == {"error": "scan_not_configured"}
+    finally:
+        gen.close()
+
+
+def test_ingest_with_an_unreachable_scanner_is_a_typed_refusal(tmp_path: Path) -> None:
+    """INT-238 — a scanner that cannot produce a verdict (clamd down, timed
+    out, garbage reply) is a SCAN FAILURE, not a server crash: the client
+    must get a typed 503 it can word honestly, and the document must stay
+    quarantined rather than leaking as clean."""
+    gen = build_harness(
+        tmp_path,
+        token_patient="unit-lane-patient-token",
+        token_admin="unit-lane-admin-token",
+        scanner=UnreachableScanner(),
+    )
+    harness = next(gen)
+    try:
+        visit_id = _visit(harness)
+        doc_id = str(_mint(harness, visit_id)["id"])
+        response = harness.client.put(
+            f"/v1/visits/{visit_id}/documents/{doc_id}/content",
+            content=PDF_BYTES,
+            headers={**harness.patient(), "Content-Type": "application/pdf"},
+        )
+        assert response.status_code == 503
+        assert response.json() == {"error": "scan_failed"}
+
+        listed = harness.client.get(f"/v1/visits/{visit_id}/documents", headers=harness.patient())
+        assert [row["state"] for row in listed.json()] == ["quarantined"]
+        url = harness.client.get(
+            f"/v1/visits/{visit_id}/documents/{doc_id}/url", headers=harness.patient()
+        )
+        assert url.status_code == 409
     finally:
         gen.close()
 
