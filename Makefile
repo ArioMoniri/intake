@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
+.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -14,7 +14,16 @@ setup:
 	uv run pre-commit install --install-hooks
 	uv run pre-commit install --hook-type commit-msg
 
-check: check-py check-ts
+check: check-py check-ts check-i18n
+
+# INT-253: the localization completeness gate — tr/en parity, no orphan key, no
+# user-visible string outside the catalogue, the clinical [REVIEW] marks, and
+# the recorded register/readability findings. check-py collects it too (it is
+# under `tests/`); it is named here because a copy change should be clearable
+# in under a second without the full Python fan-out, and because a gate nobody
+# can see in the Makefile is a gate nobody runs.
+check-i18n:
+	uv run pytest tests/release -q -o addopts=""
 
 check-integration:
 	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav hapi
