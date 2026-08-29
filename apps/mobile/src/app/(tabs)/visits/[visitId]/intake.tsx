@@ -8,20 +8,21 @@
  * chrome) and the question body scrolls under it; single-select steps have
  * no CTA and no bar.
  *
- * Voice-first entry (INT-199): a FRESH intake (not edit mode, no answers)
- * with dev-lane voice available opens with the "Sesli anlatın" step — the
- * patient speaks freely, the transcript becomes per-question ANSWER
- * SUGGESTIONS (extract daemon), and the same steps run as a confirm flow:
- * suggested answers pre-selected with the patient's verbatim words as
- * provenance, still one question per turn. Skipping or any failure lands in
- * this exact manual flow — never a dead end. Suggestions are never triage
- * or a diagnosis (invariant 1); the transcript renders only as quotes.
+ * Voice entry (INT-199 → INT-239): a FRESH intake (not edit mode, no
+ * answers) with dev-lane voice available goes STRAIGHT into the spoken
+ * dialogue after one probe beat — karşılıklı konuşma is the entry, not one
+ * of two offered paths, and the old one-shot "record it all at once" route
+ * is gone. Typed intake stays reachable as the quiet second door from the
+ * gate, from inside the dialogue, and as the landing place for any failure
+ * — never a dead end. Suggestions are never triage or a diagnosis
+ * (invariant 1); the transcript renders only as quotes.
  *
- * Adaptive flow + modes (INT-236): the steps run over the pack's
- * APPLICABLE questions only — `askIf` gates mirror the DSL's ask_if
- * (packages/protocols dsl.py), evaluated against committed answers and
- * re-evaluated on every change, so the compiled packs (INT-096) slot in
- * without UX change. The mode context lives on the note state: Hızlı by
+ * Adaptive flow + modes (INT-236, deepened in INT-239): the steps run over
+ * the pack's APPLICABLE questions only — `askIf` gates mirror the DSL's
+ * ask_if (packages/protocols dsl.py), evaluated against committed answers
+ * and re-evaluated on every change, so the flow's LENGTH is decided by the
+ * answers and the progress row says so instead of printing a fixed total.
+ * The mode context lives on the note state: Hızlı by
  * default; the quiet "Hastanedeyim" switch sets Detaylı, which (a) asks the
  * one calm environment question (02 §33) and defers sensitive sections when
  * privacy is not established, and (b) keeps a persistent "Sıranız geldi"
@@ -42,8 +43,8 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
-import { VoiceFirstIntake } from "@/components/VoiceFirstIntake";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
@@ -120,12 +121,12 @@ export default function TypedIntake() {
             voiceFailed={voiceState.failed}
           />
         ) : voiceState.phase === "dialogue" ? (
-          // Voice chat mode (INT-233/235): ask-ahead conversation over the
-          // same pack. Answers commit per confirm, so a service failure
-          // resumes these exact manual steps at the first unanswered
-          // question with the honest notice; a settled dialogue (or a
-          // chosen exit) hands over ONLY the unanswered questions, any
-          // unconfirmed suggestions riding along as prefill.
+          // The intake (INT-233/235/239): an ask-ahead conversation over
+          // the same pack, entered directly. Answers commit per confirm, so
+          // a service failure resumes these exact manual steps at the first
+          // unanswered question with the honest notice; a settled dialogue
+          // (or a chosen exit) hands over ONLY the unanswered questions,
+          // any unconfirmed suggestions riding along as prefill.
           <DialogueIntake
             visitId={visitId}
             questions={intakeQuestions}
@@ -134,12 +135,7 @@ export default function TypedIntake() {
             onHandoff={(prefill) => dispatchVoice({ type: "candidates", prefill })}
           />
         ) : (
-          <VoiceFirstIntake
-            state={voiceState}
-            dispatch={dispatchVoice}
-            questions={intakeQuestions}
-            packName={visit?.department ?? "general"}
-          />
+          <DialogueGate dispatch={dispatchVoice} />
         )}
       </View>
     </Screen>
@@ -197,6 +193,12 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     applicable.findIndex((x) => x.id === question.id),
     0,
   );
+  // Progress is honest about a flow whose length is not fixed (INT-239):
+  // the count is what has been ANSWERED — never "x / 9" against a total
+  // that the next answer can change — and when a gate could still open we
+  // say so in one line rather than letting the dots imply a finish line.
+  const answeredCount = applicable.filter((item) => answeredIds.has(item.id)).length;
+  const flowCanGrow = applicable.length < intakeQuestions.length;
   // The suggestion for THIS question (saved answers always win over it).
   const suggestion = answers.some((a) => a.questionId === question.id)
     ? undefined
@@ -313,14 +315,22 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
               key={item.id}
               style={[
                 styles.progressDot,
-                { backgroundColor: i <= stepIndex ? theme.primary : theme.border },
+                {
+                  backgroundColor:
+                    answeredIds.has(item.id) || i === stepIndex ? theme.primary : theme.border,
+                },
               ]}
             />
           ))}
           <AppText role="caption" color="inkFaint" style={styles.progressCount}>
-            {stepIndex + 1} / {applicable.length}
+            {answeredCount} {t("intake.progress.answered")}
           </AppText>
         </View>
+        {flowCanGrow ? (
+          <AppText role="caption" color="inkFaint">
+            {t("intake.progress.grows")}
+          </AppText>
+        ) : null}
         {voiceFailed && question.id === initialQuestion.id ? (
           <AppText role="caption" color="inkFaint">
             {t("voiceFirst.failed")}

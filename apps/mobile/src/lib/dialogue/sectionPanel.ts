@@ -17,10 +17,16 @@
  * `filled` counts answered rows with content — the strip's "x/y bölüm".
  * The profile-derived meds line is appended exactly as buildNote appends
  * its medications section: display-only, outside the pack counts.
+ *
+ * INT-239: rows are the APPLICABLE questions, not the whole pack — the
+ * same `askIf` gate the dialogue engine and the typed steps use — so the
+ * strip's denominator is the flow the patient is actually in, and it grows
+ * honestly as an answer opens a gate. A section the flow does not ask
+ * never appears, suggestion or not.
  */
 import type { MessageKey } from "../i18n";
-import type { IntakeQuestion } from "../intake/questions";
-import type { DialogueStreamState } from "./stream";
+import { applicableQuestions, type IntakeQuestion } from "../intake/questions";
+import { committedAnswers, type DialogueStreamState } from "./stream";
 import type { DialogueCandidate } from "./turn";
 
 export type SectionRowStatus = "empty" | "suggested" | "answered";
@@ -40,7 +46,8 @@ export interface SectionPanelModel {
   rows: SectionRow[];
   /** Answered rows with content — the strip's numerator. */
   filled: number;
-  /** Pack sections — the strip's denominator (meds line excluded). */
+  /** Applicable sections — the strip's denominator, which GROWS as an
+   * answer opens a gate (meds line excluded; never a fixed pack length). */
   total: number;
 }
 
@@ -59,14 +66,16 @@ export function sectionLabelKey(question: IntakeQuestion): MessageKey {
 }
 
 /** The candidate the CURRENT turn is holding, if any (shown as suggested
- * in the panel, but confirmed in the turn itself — never from the row). */
-function turnCandidate(state: DialogueStreamState): {
-  questionIndex: number;
-  candidate: DialogueCandidate;
-} | null {
+ * in the panel, but confirmed in the turn itself — never from the row).
+ * Addressed by question id, because the rows are the applicable subset
+ * while `turn.step` indexes the whole pack. */
+function turnCandidate(
+  pack: readonly IntakeQuestion[],
+  state: DialogueStreamState,
+): { questionId: string | undefined; candidate: DialogueCandidate } | null {
   const { turn } = state;
   if (turn.phase === "confirming" || (turn.phase === "speaking" && turn.intent === "confirm")) {
-    return { questionIndex: turn.step, candidate: turn.candidate };
+    return { questionId: pack[turn.step]?.id, candidate: turn.candidate };
   }
   return null;
 }
@@ -76,9 +85,10 @@ export function sectionPanelModel(
   state: DialogueStreamState,
   medications: readonly string[],
 ): SectionPanelModel {
-  const current = turnCandidate(state);
+  const current = turnCandidate(pack, state);
+  const applicable = applicableQuestions(pack, committedAnswers(state));
   let filled = 0;
-  const rows: SectionRow[] = pack.map((question, index) => {
+  const rows: SectionRow[] = applicable.map((question) => {
     const labelKey = sectionLabelKey(question);
     const answer = state.answers[question.id];
     if (answer !== undefined) {
@@ -94,7 +104,7 @@ export function sectionPanelModel(
         confirmable: false,
       };
     }
-    if (current !== null && current.questionIndex === index) {
+    if (current !== null && current.questionId === question.id) {
       return {
         questionId: question.id,
         labelKey,
@@ -134,5 +144,5 @@ export function sectionPanelModel(
       confirmable: false,
     });
   }
-  return { rows, filled, total: pack.length };
+  return { rows, filled, total: applicable.length };
 }
