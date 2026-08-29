@@ -1557,7 +1557,7 @@
   title: "De-identified analytics views + k-anonymity helper + rollups"
   depends_on: [INT-015, INT-030]
   labels: [area:learning, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "k>=10 enforced at query layer; refusals metered; no free-text outside review UI"
   tests: [tests/learning/test_k_anonymity.py]
