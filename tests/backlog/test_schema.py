@@ -36,8 +36,10 @@ def test_ids_unique_and_well_formed() -> None:
     ids = [i["id"] for i in issues]
     assert len(ids) == len(set(ids))
     # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
-    # owner directive 2026-08-27). Grow this count only with a stated reason.
-    assert len(ids) == 203
+    # owner directive 2026-08-27) + INT-258 (INT-230 raised the differencing
+    # gap in its own evidence rather than leaving it unrecorded).
+    # Grow this count only with a stated reason.
+    assert len(ids) == 204
     import re
 
     for i in ids:
