@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 62 · todo 127 · withdrawn 1.
+**199 issues.** By phase: P0 113 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 63 · todo 126 · withdrawn 1.
 
 ## P0
 
@@ -144,7 +144,7 @@
 | INT-142 | Offline drafts + sync + resilience | E08-mobile | INT-136 | area:mobile | todo |
 | INT-143 | Kiosk mode: MDM lockdown, clinic PIN, 60s auto-wipe, privacy layout | E08-mobile | INT-136 | area:mobile, risk:security | todo |
 | INT-144 | Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report | E08-mobile | INT-130 | area:mobile, risk:legal | awaiting-human |
-| INT-145 | Client telemetry: GlitchTip crash (PHI-scrubbed), perf, RUM web | E08-mobile | INT-023, INT-130 | area:mobile | todo |
+| INT-145 | Client telemetry: GlitchTip crash (PHI-scrubbed), perf, RUM web | E08-mobile | INT-023, INT-130 | area:mobile | done |
 | INT-146 | EAS builds + OTA code signing + MobSF gate + store listings/privacy labels | E08-mobile | INT-131, INT-224 | area:mobile, risk:legal, approval:human-legal | todo |
 | INT-152 | Clinic console: today list, statuses, read receipts, tenant isolation, SSO | E09-clinician | INT-151, INT-030 | area:clinician | todo |
 | INT-153 | Clinician feedback -> Langfuse annotation queues + acceptance metrics | E09-clinician | INT-151, INT-175 | area:clinician | todo |
