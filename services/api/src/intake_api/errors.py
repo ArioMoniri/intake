@@ -26,6 +26,7 @@ __all__ = [
     "phone_invalid",
     "purpose_unknown",
     "refresh_reused",
+    "taxonomy_unconfigured",
     "unauthorized",
     "visit_invalid",
 ]
@@ -84,6 +85,13 @@ def not_found() -> HTTPException:
 
 def visit_invalid(reason: str) -> HTTPException:
     return HTTPException(status_code=422, detail={"error": reason})
+
+
+def taxonomy_unconfigured() -> HTTPException:
+    """The branch taxonomy failed to load (INT-134): the feed and the
+    branch-backed visit path fail CLOSED — an empty branch list rendered by
+    a picker would be a lie about coverage; a 503 is the truth."""
+    return HTTPException(status_code=503, detail={"error": "taxonomy_unconfigured"})
 
 
 def dev_auth_unconfigured() -> HTTPException:
