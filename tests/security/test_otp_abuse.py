@@ -20,12 +20,15 @@ What this file proves:
   dev-bearer accounts keep working and stay tagged dev (load-bearing tier).
 
 fakeredis + an injected clock keep every window deterministic (docs/TDD.md
-rule 6); SQLite carries the INT-030 schema exactly as tests/api does.
+rule 6); SQLite carries the INT-030 schema exactly as tests/api does. The
+clock is seeded from the rate-limit window and never from the wall clock, so
+no assertion here depends on the minute the suite runs (INT-262).
 """
 
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import json
 import logging
@@ -63,6 +66,7 @@ from intake_api.auth_store import (  # noqa: E402
     IP_LIMIT_PER_HOUR,
     OTP_MAX_ATTEMPTS,
     OTP_TTL_S,
+    OTP_WINDOW_S,
     PHONE_LIMIT_PER_HOUR,
     RESEND_COOLDOWN_S,
 )
@@ -153,9 +157,34 @@ def hashes_sha256() -> Any:
 # --- harness ----------------------------------------------------------------------
 
 
+# Where inside a rate-limit window the harness clock starts. Far enough past
+# the boundary not to be testing the boundary instant by accident, and far
+# enough before the next one for every sequence below (LONGEST_WINDOW_SEQUENCE_S)
+# — both pinned by the INT-262 tests.
+WINDOW_START_OFFSET_S = 60.0
+
+# The longest run of clock advances in this module that one window has to
+# contain: the phone budget spent a resend cooldown at a time, then the refusal
+# that proves it is spent. Derived from the limits rather than written as a
+# number, so it follows if either constant moves.
+LONGEST_WINDOW_SEQUENCE_S = PHONE_LIMIT_PER_HOUR * (RESEND_COOLDOWN_S + 1)
+
+
 class Clock:
-    def __init__(self) -> None:
-        self.now = float(int(time.time()))
+    """The suite's only clock (docs/TDD.md rule 6 — nothing here sleeps).
+
+    Seeded from the START of a rate-limit window, never from the wall clock:
+    ``auth_store`` counts in FIXED windows keyed on
+    ``floor(now / OTP_WINDOW_S)``, so a sequence that steps across a boundary
+    sees the counters reset, and a wall-clock seed made every refusal assertion
+    below depend on the minute CI happened to start. Absolute time still tracks
+    the real epoch — the DPoP ``iat`` skew check reads this same clock, and a
+    synthetic epoch would hide a real-clock leak instead of proving there is
+    none.
+    """
+
+    def __init__(self, offset_s: float = WINDOW_START_OFFSET_S) -> None:
+        self.now = float(int(time.time()) // OTP_WINDOW_S * OTP_WINDOW_S) + offset_s
 
     def advance(self, seconds: float) -> None:
         self.now += seconds
@@ -261,6 +290,7 @@ def _build(
     attested_dev: bool = True,
     token_patient: str | None = "unit-patient-token",  # noqa: S107 — unit fixture
     token_admin: str | None = "unit-admin-token",  # noqa: S107 — unit fixture
+    clock_offset_s: float = WINDOW_START_OFFSET_S,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -274,7 +304,7 @@ def _build(
     sqlite_ddl_clone().create_all(audit_engine)
 
     engine = create_async_engine(f"sqlite+aiosqlite:///{app_db}", poolclass=NullPool)
-    clock = Clock()
+    clock = Clock(clock_offset_s)
     wiring = ApiWiring(
         settings=ApiSettings(
             token_patient=token_patient,
@@ -323,6 +353,96 @@ def otp_locked_down(tmp_path: Path) -> Iterator[OtpHarness]:
     yield from _build(tmp_path, peek=False, attested_dev=False)
 
 
+# --- the harness clock (INT-262) ---------------------------------------------------
+#
+# `auth_store` counts requests in FIXED windows: the counter key carries
+# `floor(now / OTP_WINDOW_S)`. A sequence that steps across a boundary
+# therefore sees every counter reset, so while `Clock` was seeded from
+# `time.time()` the refusals below held or did not hold according to the
+# minute CI happened to start — 183 s of every 3600, about 5 % of runs, and
+# one of them reddened an unrelated INT-016 gate run. The clock is the defect;
+# the limiter is not changed here (INT-263 owns that, and the last test in this
+# section is what makes its statement of the current bound falsifiable).
+
+
+def _window_floor() -> float:
+    """The start of the window the wall clock is currently in."""
+    return float(int(time.time()) // OTP_WINDOW_S * OTP_WINDOW_S)
+
+
+@contextlib.contextmanager
+def _harness(home: Path, clock_offset_s: float = WINDOW_START_OFFSET_S) -> Iterator[OtpHarness]:
+    """`_build` outside the fixture, for the tests that choose their own clock."""
+    home.mkdir(parents=True, exist_ok=True)
+    built = _build(home, clock_offset_s=clock_offset_s)
+    try:
+        yield next(built)
+    finally:
+        next(built, None)  # resume past the yield so both engines are disposed
+
+
+@pytest.mark.parametrize("phase", [0.0, 1.0, 1234.0, OTP_WINDOW_S - 1.0])
+def test_the_clock_starts_at_the_same_point_whatever_the_wall_clock_says(
+    phase: float, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = _window_floor()
+    monkeypatch.setattr(time, "time", lambda: base + phase)
+    assert Clock().now == base + WINDOW_START_OFFSET_S
+
+
+def test_the_clock_leaves_the_longest_window_sequence_room_inside_one_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Headroom asserted against the sequence, not against a number: the phone
+    budget is spent one resend cooldown at a time and the refusal is the step
+    after it, so LONGEST_WINDOW_SEQUENCE_S has to fit inside the window the
+    sequence starts in — from the worst phase of the hour as much as any."""
+    base = _window_floor()
+    monkeypatch.setattr(time, "time", lambda: base + OTP_WINDOW_S - 1.0)
+    headroom = OTP_WINDOW_S - (Clock().now % OTP_WINDOW_S)
+    assert headroom > LONGEST_WINDOW_SEQUENCE_S
+
+
+@pytest.mark.parametrize(
+    "phase", [0.0, float(OTP_WINDOW_S - LONGEST_WINDOW_SEQUENCE_S), OTP_WINDOW_S - 1.0]
+)
+def test_the_per_phone_refusal_does_not_move_with_the_wall_clock(
+    phase: float, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """test_per_phone_limit_three_per_hour, run at the phases of the hour that
+    used to decide whether it passed: the same three admitted requests a
+    cooldown apart, then the same refusal."""
+    base = _window_floor()
+    monkeypatch.setattr(time, "time", lambda: base + phase)
+    with _harness(tmp_path / f"phase-{int(phase)}") as harness:
+        for _ in range(PHONE_LIMIT_PER_HOUR):
+            assert harness.request_otp().status_code == 202
+            harness.clock.advance(RESEND_COOLDOWN_S + 1)
+        assert harness.request_otp().status_code == 429
+
+
+def test_a_fixed_window_hands_the_budget_back_at_the_boundary(tmp_path: Path) -> None:
+    """The near-miss control for the three tests above: they must pin the
+    CLOCK, not paper over the limiter. Started so that the third request lands
+    one second before a boundary, the same phone is admitted
+    2 x PHONE_LIMIT_PER_HOUR times inside a span far shorter than a rolling
+    hour — which is what a fixed window buys, and what the comment in
+    auth_store.py says. INT-263 owns narrowing it; if that lands, this test
+    inverts rather than disappears."""
+    offset = float(OTP_WINDOW_S - (PHONE_LIMIT_PER_HOUR - 1) * (RESEND_COOLDOWN_S + 1) - 1)
+    with _harness(tmp_path / "boundary", clock_offset_s=offset) as harness:
+        started = harness.clock()
+        for _ in range(2 * PHONE_LIMIT_PER_HOUR):
+            assert harness.request_otp().status_code == 202
+            harness.clock.advance(RESEND_COOLDOWN_S + 1)
+        assert harness.request_otp().status_code == 429
+        elapsed = harness.clock() - started
+        assert elapsed < OTP_WINDOW_S, "twice the budget, inside one rolling hour"
+        assert elapsed >= 2 * PHONE_LIMIT_PER_HOUR * RESEND_COOLDOWN_S, (
+            "the resend cooldown is what stops it being a burst"
+        )
+
+
 # --- limits (files/10 §2) ----------------------------------------------------------
 
 
@@ -343,13 +463,16 @@ def test_phone_formatting_does_not_fork_the_bucket(otp: OtpHarness) -> None:
 
 
 def test_per_phone_limit_three_per_hour(otp: OtpHarness) -> None:
+    # LONGEST_WINDOW_SEQUENCE_S: the loop plus the refusal must land inside the
+    # window the clock starts in, which is the whole reason that clock is not
+    # seeded from time.time() (INT-262).
     for _ in range(PHONE_LIMIT_PER_HOUR):
         assert otp.request_otp().status_code == 202
         otp.clock.advance(RESEND_COOLDOWN_S + 1)
     refused = otp.request_otp()
     assert refused.status_code == 429
     assert refused.json()["error"] == "otp_limited"
-    otp.clock.advance(3600)
+    otp.clock.advance(OTP_WINDOW_S)  # deliberately the next window: budget back
     assert otp.request_otp().status_code == 202
 
 
