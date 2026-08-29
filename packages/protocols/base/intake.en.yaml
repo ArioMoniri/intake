@@ -1,0 +1,167 @@
+# =====================================================================================
+#  base.intake — English mirror of the Turkish resource keys
+#  Issue: INT-043 acceptance ("all base sections/slots/red-flag families/action
+#  scripts in B1 Turkish + English").
+# =====================================================================================
+#
+#  WHY THIS IS A SEPARATE DOCUMENT, rather than an `ask_en` beside every `ask_tr`.
+#
+#  CLAUDE.md invariant 5: **`tr` resource keys are the source of truth; lint fails on
+#  missing `tr`.** The Protocol DSL v2 encodes that literally — `ProtocolPack.language`
+#  is `Literal["tr"]` and no model in protocols.dsl carries an English field, so there
+#  is nowhere in a pack to put this. Adding one would make the English a peer of the
+#  Turkish, which is exactly what invariant 5 refuses: the Turkish is what a patient
+#  hears, and the English is a reading aid for a reviewer who does not read Turkish.
+#
+#  So the mirror is keyed BY the tr resource key and lives beside the pack. The key
+#  set must match the pack's exactly in both directions — a missing key is a missing
+#  translation, an extra key is a string that no longer exists in the pack and would
+#  otherwise rot silently. tests/protocols/test_base_intake_pack.py::
+#  test_the_english_mirror_covers_every_tr_key_and_invents_none is that lint.
+#
+#  `kind` is deliberately not `pack`, so the registry loader passes over this file the
+#  way it passes over the `life_threat_set` and `ek4_mapping` documents that share the
+#  same layer directories (12 §1; protocols.cli.load_registry).
+#
+#  ⚠️ THIS IS A GLOSS, NOT A LOCALE. Nothing here is ever spoken, rendered or scored.
+#  Turkish register and reading level are properties of the Turkish (≤ B1, `siz`,
+#  `-iniz` for instructional prose); the English below does not carry them and must
+#  never be back-translated into the pack.
+# =====================================================================================
+
+kind: text_mirror
+pack_id: base.intake
+language_source: tr
+language_mirror: en
+
+entries:
+  "title_tr": "Pre-visit base protocol"
+
+  # --- identity_check ---------------------------------------------------------------
+  "identity_check.subject_role.ask_tr": "Is this conversation for yourself, or are you speaking on behalf of someone close to you?"
+  "identity_check.subject_role.follow_up_tr": "Are you speaking for yourself, or for someone else?"
+  "identity_check.subject_role.choices_tr[0]": "for myself"
+  "identity_check.subject_role.choices_tr[1]": "for a relative"
+  "identity_check.proxy_reported.ask_tr": "I am noting that you are speaking on the patient's behalf. Is that right?"
+  "identity_check.proxy_reported.follow_up_tr": "Is the patient speaking themselves, or are you describing it for them?"
+  "identity_check.consent_recap_confirmed.ask_tr": "Do you confirm the consent summary I am showing on the screen?"
+  "identity_check.consent_recap_confirmed.follow_up_tr": "If you confirm it say yes, and if you do not say no."
+
+  # --- reason_for_visit -------------------------------------------------------------
+  "reason_for_visit.chief_complaint_text.ask_tr": "Could you tell me in your own words what has brought you to the doctor today? I will listen without interrupting."
+  "reason_for_visit.chief_complaint_text.follow_up_tr": "You can briefly describe whatever is troubling you most."
+  "reason_for_visit.patient_goals.ask_tr": "What do you most hope to get from this visit?"
+  "reason_for_visit.patient_goals.follow_up_tr": "When you leave here today, what would you most like to have been sorted out?"
+
+  # --- hpi --------------------------------------------------------------------------
+  "hpi.onset_date.ask_tr": "When did this problem start?"
+  "hpi.onset_date.follow_up_tr": "You can give it roughly, in days, weeks or months."
+  "hpi.location_text.ask_tr": "Where in your body do you feel it?"
+  "hpi.location_text.follow_up_tr": "If there is a spot you could point to, you can describe it."
+  "hpi.duration.ask_tr": "How long has it lasted since it started?"
+  "hpi.duration.follow_up_tr": "Is it constant, or does it come and go? A rough length is enough."
+  "hpi.character_text.ask_tr": "What does it feel like?"
+  "hpi.character_text.follow_up_tr": "For example you could describe it as pressure, burning, throbbing or stabbing."
+  "hpi.aggravating_factors.ask_tr": "What makes it worse?"
+  "hpi.aggravating_factors.follow_up_tr": "Does moving, eating or breathing make it worse?"
+  "hpi.relieving_factors.ask_tr": "What makes it better?"
+  "hpi.relieving_factors.follow_up_tr": "Does resting or changing position help?"
+  "hpi.radiation_text.ask_tr": "Does it spread anywhere else?"
+  "hpi.radiation_text.follow_up_tr": "If it spreads somewhere, you can say where."
+  "hpi.timing_pattern.ask_tr": "Does it get worse at a particular time of day?"
+  "hpi.timing_pattern.follow_up_tr": "If it does not get worse at a particular time, you can say there is no particular time."
+  "hpi.timing_pattern.choices_tr[0]": "in the mornings"
+  "hpi.timing_pattern.choices_tr[1]": "in the evenings"
+  "hpi.timing_pattern.choices_tr[2]": "at night"
+  "hpi.timing_pattern.choices_tr[3]": "no particular time"
+  "hpi.severity_nrs.ask_tr": "Could you give me how severe it is, as a number between zero and ten?"
+  "hpi.severity_nrs.confirm_tr": "I am showing the severity you gave on the screen; is it right?"
+  "hpi.severity_nrs.follow_up_tr": "Zero means none at all, five means moderate, ten means unbearable. You can say a number in between."
+  "hpi.trajectory.ask_tr": "How has it been going since it started?"
+  "hpi.trajectory.follow_up_tr": "You can say worse, the same, or better."
+  "hpi.trajectory.choices_tr[0]": "worse"
+  "hpi.trajectory.choices_tr[1]": "the same"
+  "hpi.trajectory.choices_tr[2]": "better"
+  "hpi.prior_similar_episode.ask_tr": "Have you had anything like this before?"
+  "hpi.prior_similar_episode.follow_up_tr": "If you have had something similar, you can say yes."
+  "hpi.treatments_tried.ask_tr": "What have you tried for it so far?"
+  "hpi.treatments_tried.follow_up_tr": "If you have tried medicine, rest or anything else, you can tell me."
+  "hpi.time_last_known_well.ask_tr": "When did you last feel completely normal?"
+  "hpi.time_last_known_well.follow_up_tr": "Roughly, in hours or days, is enough."
+
+  # --- meds_allergies ---------------------------------------------------------------
+  "meds_allergies.meds_confirmed.ask_tr": "I am showing your medicine list on the screen. Is the list correct?"
+  "meds_allergies.meds_confirmed.follow_up_tr": "If anything is missing from the list or should not be there, you can tell me."
+  "meds_allergies.meds_new_or_stopped.ask_tr": "Is there any medicine you take that is not on this list, or any you have stopped?"
+  "meds_allergies.meds_new_or_stopped.follow_up_tr": "You can give the names of medicines you have started or stopped."
+  "meds_allergies.otc_herbal.ask_tr": "Do you use anything over the counter or herbal?"
+  "meds_allergies.otc_herbal.follow_up_tr": "Vitamins, herbal teas and supplements count too."
+  "meds_allergies.anticoagulant_use.ask_tr": "Do you take a blood-thinning medicine?"
+  "meds_allergies.anticoagulant_use.follow_up_tr": "If you can read the name off the box, that helps a great deal."
+  "meds_allergies.anticoagulant_use.choices_tr[0]": "yes"
+  "meds_allergies.anticoagulant_use.choices_tr[1]": "no"
+  "meds_allergies.anticoagulant_use.choices_tr[2]": "I do not know"
+  "meds_allergies.allergies.ask_tr": "Do you have any known allergy to a medicine or a substance?"
+  "meds_allergies.allergies.follow_up_tr": "If you have no known allergy, you can say none."
+  "meds_allergies.allergy_reaction.ask_tr": "What happens when you have the allergy?"
+  "meds_allergies.allergy_reaction.follow_up_tr": "You can describe it as a rash, swelling or difficulty breathing."
+
+  # --- pmh_fh_sh --------------------------------------------------------------------
+  "pmh_fh_sh.new_diagnoses_since_last_visit.ask_tr": "Has anything new happened with your health since your last visit?"
+  "pmh_fh_sh.new_diagnoses_since_last_visit.follow_up_tr": "If you have had a new diagnosis or been admitted to hospital, you can tell me."
+  "pmh_fh_sh.pregnancy_status.ask_tr": "Is there any chance that you are pregnant at the moment?"
+  "pmh_fh_sh.pregnancy_status.follow_up_tr": "If you are not sure, you can say you are not sure."
+  "pmh_fh_sh.pregnancy_status.choices_tr[0]": "yes"
+  "pmh_fh_sh.pregnancy_status.choices_tr[1]": "no"
+  "pmh_fh_sh.pregnancy_status.choices_tr[2]": "I am not sure"
+  "pmh_fh_sh.lmp_date.ask_tr": "When did your last menstrual period start?"
+  "pmh_fh_sh.lmp_date.follow_up_tr": "The day and month, roughly, is enough."
+  "pmh_fh_sh.immunosuppression.ask_tr": "Are you having any treatment that suppresses your immune system?"
+  "pmh_fh_sh.immunosuppression.follow_up_tr": "Chemotherapy, a biologic medicine, steroid treatment or an organ transplant all count."
+  "pmh_fh_sh.immunosuppression.choices_tr[0]": "yes"
+  "pmh_fh_sh.immunosuppression.choices_tr[1]": "no"
+  "pmh_fh_sh.immunosuppression.choices_tr[2]": "I do not know"
+  "pmh_fh_sh.weight_kg.ask_tr": "If you know your weight, could you tell me?"
+  "pmh_fh_sh.weight_kg.confirm_tr": "I am showing the weight you gave on the screen; is it right?"
+  "pmh_fh_sh.weight_kg.follow_up_tr": "An approximate figure is enough."
+  "pmh_fh_sh.smoking_status.ask_tr": "Do you smoke?"
+  "pmh_fh_sh.smoking_status.follow_up_tr": "If you have given up, you can say you have given up."
+  "pmh_fh_sh.smoking_status.choices_tr[0]": "yes"
+  "pmh_fh_sh.smoking_status.choices_tr[1]": "I gave up"
+  "pmh_fh_sh.smoking_status.choices_tr[2]": "never smoked"
+  "pmh_fh_sh.alcohol_use.ask_tr": "Do you drink alcohol?"
+  "pmh_fh_sh.alcohol_use.follow_up_tr": "You can say never, now and then, or regularly."
+  "pmh_fh_sh.alcohol_use.choices_tr[0]": "never"
+  "pmh_fh_sh.alcohol_use.choices_tr[1]": "now and then"
+  "pmh_fh_sh.alcohol_use.choices_tr[2]": "regularly"
+  "pmh_fh_sh.occupation.ask_tr": "What work do you do?"
+  "pmh_fh_sh.occupation.follow_up_tr": "If you are not working, you can say that too."
+  "pmh_fh_sh.living_situation.ask_tr": "Who do you live with at home?"
+  "pmh_fh_sh.living_situation.follow_up_tr": "If you live alone, you can say alone."
+  "pmh_fh_sh.caregiver_present.ask_tr": "Is there anyone who helps you with day-to-day things?"
+  "pmh_fh_sh.caregiver_present.follow_up_tr": "If someone helps you, you can say yes."
+
+  # --- expectations_wrapup ----------------------------------------------------------
+  "expectations_wrapup.open_questions.ask_tr": "Is there anything you would like to ask your doctor?"
+  "expectations_wrapup.open_questions.follow_up_tr": "You can say now whatever questions come to mind."
+  "expectations_wrapup.anything_else.ask_tr": "Is there anything else you would like to add?"
+  "expectations_wrapup.anything_else.follow_up_tr": "A detail that seems small can still matter."
+  "expectations_wrapup.summary_confirmed.ask_tr": "I am showing the summary on the screen. Is everything right?"
+  "expectations_wrapup.summary_confirmed.follow_up_tr": "If there is anything you would like to correct, you can tell me."
+  "expectations_wrapup.bring_list_ack.ask_tr": "I am showing on the screen what you need to bring to your appointment. Have you seen it?"
+  "expectations_wrapup.bring_list_ack.follow_up_tr": "If you did not see the list, I can show it again."
+
+  # --- red-flag family labels (clinician-facing; never shown to a patient) -----------
+  "rf.chest_pain_acute.label_tr": "Acute chest pain"
+  "rf.stroke_fast.label_tr": "Sudden neurological sign suggesting stroke"
+  "rf.dyspnoea_rest.label_tr": "Breathlessness at rest"
+  "rf.anaphylaxis.label_tr": "Picture suggesting anaphylaxis"
+  "rf.severe_bleeding.label_tr": "Severe bleeding"
+  "rf.suicidal_intent.label_tr": "Suicidal plan or intent"
+  "rf.sepsis_like.label_tr": "Sepsis-like picture"
+  "rf.thunderclap_headache.label_tr": "Sudden very severe headache"
+  "rf.pregnancy_bleeding_pain.label_tr": "Bleeding or severe pain in pregnancy"
+  "rf.fever_high_persistent.label_tr": "High or persistent fever"
+  "rf.weight_loss_unintentional.label_tr": "Unintentional weight loss"
+  "rf.new_neuro_deficit_subacute.label_tr": "Neurological sign progressing over days"
+  "rf.suicidal_ideation_passive.label_tr": "Passive suicidal ideation"
