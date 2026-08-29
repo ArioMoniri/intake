@@ -624,7 +624,7 @@
   title: "Triage golden suite >=200 + mutation tests"
   depends_on: [INT-080]
   labels: [area:protocols, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "goldens across base+clusters+deep; a deliberately broken RED rule fails the suite (proved, reverted)"
   tests: [tests/safety/test_triage_goldens.py]
