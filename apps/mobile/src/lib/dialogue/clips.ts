@@ -15,7 +15,7 @@ import * as FileSystem from "expo-file-system/legacy";
 
 import { configuredServiceCandidates } from "../dev/expoHosts";
 import { reachableBaseUrl } from "../dev/hosts";
-import { createClipStore, synthesizeWav, TTS_PORT, type ClipFs, type ClipStore } from "./tts";
+import { createClipStore, synthesizeClip, TTS_PORT, type ClipFs, type ClipStore } from "./tts";
 
 /** First TTS base whose /health answers; null when the lane is down. */
 export async function reachableTtsBaseUrl(): Promise<string | null> {
@@ -46,7 +46,9 @@ const expoClipFs: ClipFs = {
 
 /** Session clip store bound to the probed base and the app cache dir. */
 export function dialogueClipStore(base: string): ClipStore {
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) => synthesizeWav(base, text));
+  // INT-237: synthesizeClip, not synthesizeWav — one request per sentence,
+  // trimmed, faded and joined with a real sentence gap.
+  return createClipStore(dialogueClipDir(), expoClipFs, (text) => synthesizeClip(base, text));
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */
