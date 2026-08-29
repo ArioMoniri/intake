@@ -1425,6 +1425,34 @@ metrics:
     description: >-
       Patient notification-preference changes by what changed (opt_out,
       opt_in, quiet_window_set, quiet_window_cleared).
+  # --- INT-171: the k-anonymity gate on the de-identified analytics views.
+  # files/10 §9 learning row names "k-anonymity refusals" as a console signal
+  # and files/08 §4 group L repeats it as a prose KPI with no id; these are
+  # the ids. Both label sets are deliberately minimal: a refusal labelled with
+  # the branch or the week it withheld would publish that cell to Prometheus,
+  # which retains it (inv. 6).
+  - name: analytics_view_refused_total
+    type: counter
+    labels: [view, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      De-identified analytics views that refused to materialise, by view name
+      and reason class (below_k, dimension_not_id_shaped,
+      dimension_set_mismatch, measure_not_a_count). Emitted by
+      intake_platform.analytics.k_anonymity; a below_k refusal covers both a
+      cohort under the floor and an empty result, which the gate declines to
+      tell apart.
+  - name: analytics_view_materialised_total
+    type: counter
+    labels: [view]
+    owner: learning
+    unit: "count"
+    description: >-
+      De-identified analytics views that cleared their k-anonymity threshold
+      and were served, by view name. Read against
+      analytics_view_refused_total it is the refusal rate the learning loop is
+      operating at.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
@@ -1442,5 +1470,7 @@ metrics:
 #   due/overdue, DSAR SLA, residency attestation per tenant, retention job
 #   success (sec_audit_chain_ok covers the daily integrity check).
 # - group L, learning loops: proposals opened/approved/rejected, canary
-#   outcomes, rollback count, evidence-bundle completeness, k-anonymity
-#   rejections, GEPA experiment deltas on held-out sets.
+#   outcomes, rollback count, evidence-bundle completeness, GEPA experiment
+#   deltas on held-out sets. ("k-anonymity rejections" left this list with
+#   INT-171: analytics_view_refused_total above is that KPI, catalogued under
+#   a name of ours because 08 §4 states the row without an id.)
