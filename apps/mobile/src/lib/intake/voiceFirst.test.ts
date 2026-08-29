@@ -38,7 +38,7 @@ describe("voiceIntakeReducer — the dialogue is the only voice entry (INT-239)"
       { type: "voice_ready" },
       { type: "voice_unavailable" },
       { type: "candidates", prefill: {} },
-      { type: "failure" },
+      { type: "failure", prefill: {} },
       { type: "skip" },
     ];
     const seen = new Set<string>();
@@ -70,9 +70,24 @@ describe("voiceIntakeReducer — the dialogue is the only voice entry (INT-239)"
   });
 
   it("a dialogue failure lands in the manual steps WITH the notice — answers are already committed", () => {
-    expect(run({ phase: "dialogue" }, { type: "failure" })).toEqual({
+    expect(run({ phase: "dialogue" }, { type: "failure", prefill: {} })).toEqual({
       phase: "steps",
       prefill: {},
+      failed: true,
+    });
+  });
+
+  // INT-261. A failure and a hand-over land the patient in the SAME typed
+  // steps, so they must arrive carrying the same thing. Before this issue the
+  // failure branch hard-coded `prefill: {}`, which meant a suggestion the
+  // dialogue had already extracted from the patient's own words survived a
+  // tidy exit and was thrown away by an unlucky one — the patient then
+  // answered, in text, a question they had already answered out loud.
+  it("a failure carries the leftover suggestions too — nothing said is lost", () => {
+    const prefill = { complaint: { values: ["pain"], quote: "göğsümde baskı var" } };
+    expect(run({ phase: "dialogue" }, { type: "failure", prefill })).toEqual({
+      phase: "steps",
+      prefill,
       failed: true,
     });
   });
@@ -93,7 +108,7 @@ describe("voiceIntakeReducer — the dialogue is the only voice entry (INT-239)"
     expect(
       run(STEPS, { type: "candidates", prefill: { a: { values: ["x"], quote: "q" } } }),
     ).toEqual(STEPS);
-    expect(run(STEPS, { type: "failure" })).toEqual(STEPS);
+    expect(run(STEPS, { type: "failure", prefill: {} })).toEqual(STEPS);
     expect(run(STEPS, { type: "voice_ready" })).toEqual(STEPS);
   });
 
@@ -145,6 +160,7 @@ describe("intake entry copy (tr source of truth + en mirror, invariant 5)", () =
     "voiceFirst.saidLabel",
     "voiceFirst.suggested",
     "voiceFirst.failed",
+    "dialogue.voiceMuted",
     "intake.progress.answered",
     "intake.progress.grows",
   ] as const satisfies readonly MessageKey[];

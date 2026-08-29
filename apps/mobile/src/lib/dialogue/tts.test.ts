@@ -15,9 +15,13 @@ import { encodeWav, parseWav, SENTENCE_GAP_MS } from "./speechShaping";
 import {
   assertSpeakableTr,
   bytesToBase64,
+  clipDeadlineMs,
   clipName,
   createClipStore,
   synthesizeClip,
+  SYNTHESIZE_TIMEOUT_MS,
+  TURN_ROUND_TRIP_BUDGET_MS,
+  withDeadline,
   synthesizeWav,
   TTS_PORT,
   type ClipFs,
@@ -282,5 +286,62 @@ describe("createClipStore (one synthesis per clip per session)", () => {
     await expect(store.ensure("q_bad.wav", "5 dakika bekleyin")).rejects.toThrow();
     expect(synth).not.toHaveBeenCalled();
     expect(fs.files.size).toBe(0);
+  });
+});
+
+// INT-261 — the patient's turn has a deadline; the TTS ladder does not.
+//
+// Reported from the simulator with all five dev lanes healthy and reachable:
+// "Soru hazırlanıyor…" and a spinner, pixel-identical a minute apart. Not
+// unreachable — unbounded. `selectTtsLane` walks every (tier, host) pair in
+// sequence, and each pair costs up to a health timeout plus a full probe
+// synthesis; `synthesizeWithFallback` may then invalidate and re-walk that
+// ladder once per candidate; and `synthesizeClipWith` runs that whole thing
+// once per SENTENCE. Multiply it out and a clip can legitimately take
+// minutes while every /health returns two hundred.
+//
+// Every one of those layers is defensible on its own, which is why the fix
+// does not live in any of them: it lives where the patient is waiting. A
+// clip gets one lane admission plus one synthesis per sentence — both
+// numbers already committed and sourced (files/03 §4.4) — and past that the
+// turn goes on without a voice. Nothing here invents a duration.
+describe("clipDeadlineMs / withDeadline — a turn cannot wait forever (INT-261)", () => {
+  it("allows one lane admission plus one synthesis per sentence", () => {
+    const one = "Sizi bugün hekime getiren nedir?";
+    expect(clipDeadlineMs(one)).toBe(TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS);
+    const three = "Ağrınız ne kadar sürdü? Nerede başladı? Şimdi nasıl?";
+    expect(clipDeadlineMs(three)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 3 * SYNTHESIZE_TIMEOUT_MS);
+  });
+
+  it("never returns less than a single-sentence budget", () => {
+    expect(clipDeadlineMs("Merhaba")).toBeGreaterThanOrEqual(
+      TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS,
+    );
+  });
+
+  it("passes a result that arrives in time straight through", async () => {
+    await expect(withDeadline(Promise.resolve("clip.wav"), 50)).resolves.toBe("clip.wav");
+  });
+
+  it("passes a rejection through unchanged — the deadline never masks a real error", async () => {
+    await expect(withDeadline(Promise.reject(new Error("tts_unavailable")), 50)).rejects.toThrow(
+      "tts_unavailable",
+    );
+  });
+
+  it("rejects with tts_deadline when the work never settles", async () => {
+    // The hang exactly as reported: a promise that simply never resolves.
+    await expect(withDeadline(new Promise<string>(() => {}), 10)).rejects.toThrow("tts_deadline");
+  });
+
+  it("does not keep the process alive waiting on a timer it no longer needs", async () => {
+    vi.useFakeTimers();
+    try {
+      const cleared = vi.spyOn(globalThis, "clearTimeout");
+      await withDeadline(Promise.resolve("done"), 60_000);
+      expect(cleared).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
