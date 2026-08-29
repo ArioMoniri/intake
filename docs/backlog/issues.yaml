@@ -2712,6 +2712,30 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+- id: INT-246
+  epic: E08-mobile
+  phase: P0
+  title: 'Make a dead voice lane announce itself in development, and add a host
+    probe that measures rather than pings'
+  depends_on:
+  - INT-239
+  labels:
+  - area:mobile
+  status: todo
+  acceptance:
+  - 'an incident where the owner reported the voice interface missing for hours
+    while it was built, merged and running - the cause being a dead tunnel to the
+    speech server and a fallback that is silent by design, correct for a patient
+    and invisible to a developer: in development only, the fallback states which
+    candidate addresses were tried and how each failed, while production behaviour
+    is unchanged and pinned so the diagnostic returns nothing for every report
+    shape rather than being a hidden element; a host-side probe reports one line
+    per lane and exits non-zero when a required lane is down, with every verdict in
+    its suite taken against a real local socket rather than a mocked error; and no
+    retry loop hammers a dead host, pinned by tests that the walk stops at the
+    first answer and probes each dead candidate exactly once'
+  tests:
+  - tests/mobile/test_voice_doctor.py
 - id: INT-247
   epic: E11-learning
   phase: P0

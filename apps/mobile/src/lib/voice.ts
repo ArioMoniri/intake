@@ -15,7 +15,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 
 import { configuredServiceCandidates } from "./dev/expoHosts";
-import { reachableBaseUrl, serviceCandidates } from "./dev/hosts";
+import { probeReachability, serviceCandidates, type ReachabilityReport } from "./dev/hosts";
 
 export const ASR_PORT = 8802;
 
@@ -24,8 +24,18 @@ export function asrCandidates(hostUri: string | undefined, extraHosts: string[])
   return serviceCandidates(hostUri, extraHosts, ASR_PORT);
 }
 
+/**
+ * The ASR walk with its detail intact (INT-246): which bases were tried and
+ * how each one failed. One probe pass, same as before — this is the same
+ * walk `reachableAsrBaseUrl` takes, reported instead of discarded.
+ */
+export async function probeAsrReachability(): Promise<ReachabilityReport> {
+  return probeReachability(configuredServiceCandidates(ASR_PORT));
+}
+
+/** Unchanged signature for every existing caller: a base, or null. */
 export async function reachableAsrBaseUrl(): Promise<string | null> {
-  return reachableBaseUrl(configuredServiceCandidates(ASR_PORT));
+  return (await probeAsrReachability()).base;
 }
 
 /** Invariant-3 posture even in the dev lane: no audio lingers on disk. */

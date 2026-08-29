@@ -784,6 +784,17 @@ export const en: Record<MessageKey, string> = {
   "a11y.companion.speakerHint": "Double tap to choose who answers the questions.",
   "a11y.companion.ackHint": "Double tap to give or take back the acknowledgement.",
   "a11y.companion.thirdPartyHint": "Double tap to say someone is with you.",
+
+  // ---------------------------------------------------------------------
+  // INT-246 — the `__DEV__` voice-lane banner (tr block of the same name).
+  // ---------------------------------------------------------------------
+  "devVoice.title": "Dev note: the voice lane did not answer",
+  "devVoice.body": "Falling through to the typed steps. Bases tried:",
+  "devVoice.hint": "Check from the host: make voice-doctor",
+  "devVoice.noCandidates": "No base is configured to try",
+  "devVoice.reason.timeout": "timed out",
+  "devVoice.reason.refused": "connection refused",
+  "devVoice.reason.status": "response code",
   // ---- INT-247: facts carried from earlier visits -------------------------
   // Mirrors the tr block key-for-key (invariant 5; tr is the source of
   // truth). The note markers report who said what, nothing more.

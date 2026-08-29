@@ -809,6 +809,21 @@ export const tr = {
   "a11y.companion.speakerHint": "Soruları kimin yanıtladığını seçmek için iki kez dokunun.",
   "a11y.companion.ackHint": "Onayı verip geri almak için iki kez dokunun.",
   "a11y.companion.thirdPartyHint": "Yanınızda biri olduğunu belirtmek için iki kez dokunun.",
+
+  // ---------------------------------------------------------------------
+  // INT-246 — the `__DEV__` voice-lane banner. These strings never reach a
+  // patient: `voiceDiagnostic` returns null unless __DEV__ and the only
+  // component that renders them returns null on that null. They live in the
+  // catalogue anyway because invariant 5 has no dev exemption — a string
+  // outside the catalogue is a string nobody can find or translate later.
+  // ---------------------------------------------------------------------
+  "devVoice.title": "Geliştirici notu: ses hattı yanıt vermedi",
+  "devVoice.body": "Yazılı adımlarla devam ediliyor. Denenen adresler:",
+  "devVoice.hint": "Ana makinede kontrol edin: make voice-doctor",
+  "devVoice.noCandidates": "Denenecek adres yapılandırılmamış",
+  "devVoice.reason.timeout": "zaman aşımı",
+  "devVoice.reason.refused": "bağlantı reddedildi",
+  "devVoice.reason.status": "yanıt kodu",
   // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
   // Patient copy for the confirm / changed / stopped step and the
   // transparency ledger, plus the markers the note carries. The note markers

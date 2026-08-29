@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
+.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -127,6 +127,16 @@ backlog-sync:
 
 backlog-render:
 	uv run python scripts/backlog/render_backlog.py
+
+# INT-246: "is voice up?" answered in one command from THIS machine, instead
+# of by reading app logs. Probes every lane the dev voice profile uses (ASR,
+# extract, the whole TTS ladder) on every host in apps/mobile/app.json, one
+# line per lane. Exits 1 when a REQUIRED lane is down — ASR, or the whole TTS
+# ladder; the extract daemon is reported as degraded, because the dialogue
+# runs without it. HOST=<addr> adds the Metro LAN address, which only exists
+# inside a running Metro and so cannot be read from config.
+voice-doctor:
+	uv run python scripts/dev/voice_doctor.py $(if $(HOST),--host $(HOST),)
 
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache

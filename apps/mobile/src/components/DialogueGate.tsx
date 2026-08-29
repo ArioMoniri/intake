@@ -13,6 +13,12 @@
  * An unreachable voice lane falls to the typed steps quietly, without a
  * failure notice: nothing was attempted yet, so there is nothing to
  * apologise for (the notice belongs to a voice run that actually broke).
+ *
+ * INT-246 keeps that argument intact for patients and adds nothing to this
+ * screen. The probe now reports its DETAIL (which bases, how each failed)
+ * through `onProbe`; the intake screen hands that to DevVoiceBanner, which
+ * renders only under `__DEV__`. It could not live here in any case — this
+ * component unmounts the instant the fallback fires.
  */
 import { useEffect } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
@@ -21,29 +27,37 @@ import { GLASS_BAR_CLEARANCE } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import { AppText, useTheme } from "@/components/Themed";
 import { verticalSlop } from "@/lib/a11y/target";
+import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import type { VoiceIntakeAction } from "@/lib/intake/voiceFirst";
-import { reachableAsrBaseUrl } from "@/lib/voice";
+import { probeAsrReachability } from "@/lib/voice";
 import { spacing } from "@/lib/theme";
 
 interface DialogueGateProps {
   dispatch: (action: VoiceIntakeAction) => void;
+  /**
+   * Diagnostic sink for the probe result (INT-246). Must be a stable
+   * reference — a fresh closure on every render would re-run the effect and
+   * re-probe a host already known to be dead.
+   */
+  onProbe?: (report: ReachabilityReport) => void;
 }
 
-export function DialogueGate({ dispatch }: DialogueGateProps) {
+export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
   const theme = useTheme();
 
   useEffect(() => {
     let stale = false;
-    void reachableAsrBaseUrl().then((base) => {
+    void probeAsrReachability().then((report) => {
       if (!stale) {
-        dispatch(base !== null ? { type: "voice_ready" } : { type: "voice_unavailable" });
+        onProbe?.(report);
+        dispatch(report.base !== null ? { type: "voice_ready" } : { type: "voice_unavailable" });
       }
     });
     return () => {
       stale = true;
     };
-  }, [dispatch]);
+  }, [dispatch, onProbe]);
 
   return (
     <View style={styles.content}>

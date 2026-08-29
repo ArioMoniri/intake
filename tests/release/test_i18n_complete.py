@@ -144,6 +144,11 @@ HARDCODED_EXEMPT = {
 #: leave the app switching register between screens.
 PROSE_REGISTER_FINDINGS = frozenset(
     {
+        # INT-246: __DEV__-only diagnostic copy, never patient-facing.
+        # Same short-imperative class as the entries below — INT-248 fixed
+        # the PolicyGuard patterns, not the separate -iniz prose rule, so
+        # this one legitimately still stands.
+        "devVoice.hint",
         "a11y.backHint",
         "a11y.closeHint",
         # INT-247: same class as the 34 above — short imperative in
