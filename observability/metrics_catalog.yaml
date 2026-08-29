@@ -828,8 +828,15 @@ metrics:
     labels: [document_type]
     owner: experience
     unit: "s"
-    status: planned
-    description: Uploaded-record processing time by document type.
+    status: live
+    description: >-
+      Uploaded-record processing time by ingest document type (INT-241).
+      Emitted by intake_metrics.metrics.publish_wait from a rollup that has
+      cleared the k >= 10 floor and whose every document-type cell has cleared
+      it too — never observed raw, because a histogram scraped after one
+      observation exposes that patient's exact wait. The other five group G
+      ids stay planned: intake_platform.wait_times.WAIT_SOURCES records which
+      of their two instants this repo does not yet write.
   # --- files/08 §4 I. Operations — the two ids 08 §4 names (LiveKit worker exporter :8081)
   - name: worker_load
     type: gauge

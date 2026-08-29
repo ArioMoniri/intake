@@ -72,6 +72,8 @@ export interface CsatV1 {
   "text"?: string | null;
 }
 
+export type DocumentKind = "pdf" | "jpeg" | "png";
+
 export interface EvidenceBundle {
   "stats": EvidenceStats;
   "exemplars_deid": string[];
@@ -385,3 +387,13 @@ export type TriageLevel = "GREEN" | "YELLOW" | "RED";
 export type TriageResult = RulesTriageResult | LlmCandidateTriage;
 
 export type VerificationStatus = "unconfirmed" | "confirmed";
+
+export type WaitKind = "time_to_first_question" | "note_ready_after_wrapup" | "doctor_link_first_open" | "checkin_to_seen" | "records_processing";
+
+export interface WaitV1 {
+  "schema_id"?: "intake.clinical.wait.v1";
+  "tenant_id": string;
+  "kind": WaitKind;
+  "duration_ms": number;
+  "document_type"?: DocumentKind | null;
+}
