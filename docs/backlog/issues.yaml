@@ -2166,7 +2166,7 @@
   title: "Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence"
   depends_on: [INT-030, INT-034]
   labels: [area:infra, risk:security]
-  status: todo
+  status: doing
   acceptance:
     - "RPO 15min/RTO 4h demonstrated in a drill script whose output is stored as evidence; quarterly schedule"
   tests: [tests/infra/test_restore_drill.py]

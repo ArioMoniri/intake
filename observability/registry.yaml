@@ -119,7 +119,7 @@ components:
   - component: backups
     self_hostable: true
     self_hosted_now: false
-    host: "INTAKE_BACKUP_DIR (default .cache/backups) — no backup job wired yet; until one runs, every fallback pointing here fails the release gate, by design"
+    host: "INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design"
     license: "n/a — our own artefacts"
     probe: backup_freshness
     budget_ms: 200
