@@ -2914,3 +2914,39 @@
     - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
   tests: [apps/mobile/src/lib/intake/history.test.ts]
   sec_row: "intake-typed"
+- id: INT-257
+  epic: E08-mobile
+  phase: P0
+  # A flaky gate is a broken gate: this one reddened an unrelated INT-016 run.
+  # docs/TDD.md rule 6 (fake clocks) and rule 7 (48 h to fix a flake).
+  title: "The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts"
+  depends_on: [INT-131]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-257.md
+  acceptance:
+    - "the flake is reproduced before it is fixed rather than asserted: test_per_phone_limit_three_per_hour advances 183 s across three admitted requests and then asserts a refusal, while auth_store counts in FIXED windows keyed on floor(now / OTP_WINDOW_S), so the evidence records the module failing at every wall-clock phase >= OTP_WINDOW_S - 183 s and passing below it - 183 s of every 3600, about 5 % of runs"
+    - "the harness clock is seeded from the window and not from time.time(): Clock starts a fixed offset past a window boundary, so every window-relative assertion in the module is independent of when CI runs, and the headroom is asserted against a constant computed from PHONE_LIMIT_PER_HOUR and RESEND_COOLDOWN_S rather than written as a number"
+    - "the whole module is checked and not only the failing test: every clock advance in the file is enumerated in the evidence against the window or TTL it lives in, the per-IP and per-device sequences are shown to advance the clock not at all, and the repo is swept for any other wall-clock-seeded test clock with the result recorded"
+    - "the fixed-window semantics are documented where they are implemented and pinned rather than left implicit: a near-miss control admits 2 x PHONE_LIMIT_PER_HOUR requests across a boundary within a span shorter than a rolling hour, which makes the comment in auth_store.py falsifiable. The limiter's behaviour is NOT changed here - INT-258 owns that"
+    - "no test is skipped, quarantined or deleted (docs/TDD.md rule 7); make check is green"
+  tests: [tests/security/test_otp_abuse.py]
+  sec_row: "onboarding"
+- id: INT-258
+  epic: E08-mobile
+  phase: P0
+  # Found while fixing INT-257. Filed, not fixed: changing a rate limiter is a
+  # semantics change on the abuse path, and CLAUDE.md forbids doing that in
+  # passing inside another issue's PR.
+  title: "OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
+  depends_on: [INT-131, INT-257]
+  labels: [area:api, risk:security]
+  status: todo
+  acceptance:
+    - "the deviation is stated first: auth_store._window_key buckets on floor(now / OTP_WINDOW_S), so a caller who spends its budget just before a boundary is given a fresh budget just after it. INT-257 pinned the worst case as 2 x PHONE_LIMIT_PER_HOUR codes to one phone inside about six minutes, against the files/10 §2 wording '3 requests/hour/phone'"
+    - "the budgets are counted so that no more than PHONE_LIMIT_PER_HOUR requests per phone, IP_LIMIT_PER_HOUR per IP and DEVICE_LIMIT_PER_HOUR per device are admitted in ANY OTP_WINDOW_S span rather than in each fixed window; the retry-after the caller is told is the true one for that bound, not the time to the next boundary"
+    - "the INT-257 near-miss control is inverted rather than deleted: the boundary sequence that admits 2 x the limit today must refuse, and the tests that pin the ordinary limits keep passing unchanged"
+    - "the implementation stays clock-injectable so tests advance time instead of sleeping (docs/TDD.md rule 6) and stays O(1) per request against Redis with a bounded key set - a per-request timestamp list that grows with traffic is not acceptable on an abuse path"
+    - "whatever bound is implemented is the bound written down: the docs/security/threat-model.md onboarding row states it, and any wording in files/10 §2 that the implementation cannot honour is corrected there rather than left as an aspiration"
+  tests: [tests/security/test_otp_abuse.py]
+  sec_row: "onboarding"
