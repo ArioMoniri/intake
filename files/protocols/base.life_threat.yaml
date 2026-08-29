@@ -93,7 +93,11 @@ clinical_signoff:
 #                      which renders as "Sorulmadı" — never as an elicited negative.
 #
 #  tense:              now | today | within_7d | within_30d | ever   (04 §8.1 rule 4)
-#  tense_anchor:       slot carrying the event timestamp. A tense-qualified rule cannot
+#  tense_anchor:       slot carrying the event timestamp, written as a REFERENCE in the
+#                      same namespace `gate:` reads — section-qualified where the pack has
+#                      sections (`chest_pain.onset_at`), bare where it does not. The engine
+#                      unions the anchor into the predicate's reference set (12 §2.4), so
+#                      the two spellings must be one. A tense-qualified rule cannot
 #                      fire on an undated symptom, which forces the anchor to be asked.
 #                      Acuity must be non-increasing as the tense recedes, and reusing
 #                      one action_tr across tenses is a lint failure.
@@ -137,6 +141,8 @@ clinical_signoff:
 #                      sound off (02 §5.3) — audio is an enhancement, never the only
 #                      carrier. `[acil_location_tr]` is the per-tenant location string;
 #                      where unset the segment is DROPPED, never defaulted to a floor.
+#    secondary:        OPTIONAL second action code, carried ALONGSIDE `primary`, never
+#                      instead of it (exemplar 1: CALL_112 + NEAREST_ACIL_ADDRESS_AS_TEXT).
 #    do_nots_tr:       explicit "lütfen yapmayın" list (04 §8.1 rule 6). Load-bearing.
 #    why_tr:           the explanation. Never a diagnosis.
 #
@@ -144,6 +150,15 @@ clinical_signoff:
 #                      and time-bound, regardless of connector presence (04 §4.2 defect 1).
 #  notify_staff_immediate: true under ON_SITE — the inbox entry is the PRIMARY channel
 #                      there, not the fallback, because there is a human fifty metres away.
+#
+#  status:             REQUIRED. NO DEFAULT. active | draft_needs_source (04 §8.1 rule 3).
+#                      `active` needs an `evidence:` block; `draft_needs_source` needs a
+#                      non-empty `source_gap` and NO evidence block, and is not compiled
+#                      into a served pack. Write it on every rule — a default would make a
+#                      FORGOTTEN status read `active`, which is the unsafe direction, and
+#                      it would be chosen once by an engineer for all ~34 rules. Rule
+#                      status is not pack status: `served: false` / `maturity: L0` above
+#                      keep every rule here away from every patient regardless.
 #
 #  evidence:           REQUIRED at KIRMIZI or SARI (04 §8.1 rule 3, 12 §2.5).
 #                      ⚠️ NAMING CONFLICT, OPEN: `04 §8.1` rule 3 and `12 §2.5` both call
@@ -233,6 +248,14 @@ rules:
         on_no_answer: REMOTE     # the safe default IF AND ONLY IF the question was asked
                                  # and went unanswered. Never a silent assumption.
 
+    status: active               # NOT a default. `status` is required with no default in the
+                                 # DSL, because a default is chosen once, by an engineer, for
+                                 # every future rule — and a forgotten `status` reading
+                                 # `active` is the unsafe direction (17). This rule is sourced
+                                 # below, so it is active; exemplars 3 and 4 are not, and say
+                                 # so. Rule status is not pack status: `served: false` and
+                                 # `maturity: L0` above still keep every rule here off every
+                                 # patient.
     evidence:
       guideline_id: TR-EK4-2022
       guideline_title: >-
@@ -338,6 +361,8 @@ rules:
         on_no: REMOTE
         on_no_answer: REMOTE
 
+    status: active               # sourced below, so active. Written, not defaulted — see
+                                 # exemplar 1 and the `status:` entry in the schema block.
     evidence:
       guideline_id: TR-EK4-2022
       guideline_title: >-
@@ -754,7 +779,27 @@ TODO:
       - {slot: time_last_known_well, note: "stroke. Without it rf.stroke_fast has no tense_anchor and, per 12 §2.4, cannot fire on an undated symptom."}
 
   schema_reconciliation:
-    status: OPEN — decide before the compiler is written
+    status: PARTLY RESOLVED — items 1, 2 and 4 decided; item 3 still open
+    resolved:
+      - "Items 1 and 2 (`evidence`/`source`, `gate`/`when`) — ADR-024, INT-041. `when` and
+         `source` are canonical in code, in the deny-list and in every gate name; THIS FILE
+         keeps `gate:` and `evidence:` and the loader normalises them, so the exemplars stay
+         as the clinician will read them. The risk the item named is closed: one RedFlagRule
+         type serves both documents, so `every_red_rule_has_a_source_block` sees these rules
+         too rather than silently finding nothing to check."
+      - "Item 4 (`show_112` under ON_SITE) — INT-040/INT-254. It is now BOTH: still a
+         per-action flag on disk, and a model validator on RedFlagAction that refuses
+         `show_112: true` under ON_SITE outright, plus a compiler refusal
+         (RefusalCode.ON_SITE_OFFERS_112). An author cannot set it true. NOT closed by
+         that: `primary`/`secondary` are open SCREAMING_SNAKE codes, so a 112-bearing
+         action CODE under ON_SITE is not structurally excluded — closing that needs an
+         enumerated action-code set, which no blueprint writes down."
+      - "Not on the original list, found by pointing the compiler at this file (INT-254):
+         `tense_anchor` is a REFERENCE in the `gate:` namespace, not a bare slot key —
+         the engine unions the two — and rule `status` is required with no default, so the
+         two sourced exemplars now carry `status: active` explicitly. `evidence.note:` and
+         `action.<LOC>.secondary:` are optional DSL fields. Eleven annotations this file
+         carries are still unmodelled and still refused: see docs/evidence/INT-254.md."
     items:
       - "`evidence:` (this file) vs `source:` (04 §8.1 rule 3, 12 §2.5). Same field, two
          names. The CI gate is literally called `every_red_rule_has_a_source_block`, so if

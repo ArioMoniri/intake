@@ -18,6 +18,8 @@ from datetime import timedelta
 from clinical_schemas.triage import RedLocation, RedRegister
 
 __all__ = [
+    "SLOT_KEY_PATTERN",
+    "SLOT_REF_PATTERN",
     "AckStyle",
     "Delivery",
     "EK4Level",
@@ -33,6 +35,24 @@ __all__ = [
     "Tense",
     "VisitType",
 ]
+
+# The two key shapes, unanchored so both the pydantic constraints in
+# :mod:`protocols.dsl` and the ``when`` tokenizer in
+# :mod:`protocols.triage.expr` can be built from them. They live here, in the
+# leaf module both sides already import, because a slot REFERENCE is what a
+# red-flag predicate reads (files/03 §6 atoms, e.g. ``hpi.single_hot_swollen_
+# joint``, ``vitals.temp_c``) and ``tense_anchor`` is unioned into exactly
+# that reference set by :func:`protocols.triage.engine` — files/12 §2.4. Two
+# patterns would let the anchor and the predicate drift into two namespaces,
+# which is how an anchor silently stops resolving and its rule silently stops
+# firing.
+SLOT_KEY_PATTERN = r"[a-z][a-z0-9_]*"
+"""A bare slot or section key, snake_case (files/03 §6 examples)."""
+
+SLOT_REF_PATTERN = rf"{SLOT_KEY_PATTERN}(?:\.{SLOT_KEY_PATTERN})*"
+"""A slot reference: one or more dot-joined keys. Section-qualified
+(``chest_pain.onset_at``) or bare (``sikayet_suresi``) — files/03 §6 atoms;
+files/protocols/base.life_threat.yaml writes the qualified form throughout."""
 
 
 class PackLayer(enum.StrEnum):

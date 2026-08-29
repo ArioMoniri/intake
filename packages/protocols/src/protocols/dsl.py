@@ -27,6 +27,8 @@ from clinical_schemas.common import FrozenModel, Ref, Sha256
 from pydantic import Field, StringConstraints, model_validator
 
 from protocols.types import (
+    SLOT_KEY_PATTERN,
+    SLOT_REF_PATTERN,
     AckStyle,
     Delivery,
     EK4Level,
@@ -58,10 +60,21 @@ __all__ = [
 # Key shapes. Slot/section keys are snake_case (files/03 §6 examples);
 # instrument ids are the registry spellings (files/04 header table, e.g.
 # PHQ-9); rule ids are rf.<snake_case>, with dotted qualifiers minted only
-# by tighten_rule (files/12 §4 layer 2).
-SlotKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]*$")]
+# by tighten_rule (files/12 §4 layer 2). Both key patterns come from
+# protocols.types so the DSL and the ``when`` tokenizer cannot drift.
+SlotKey = Annotated[str, StringConstraints(pattern=rf"^{SLOT_KEY_PATTERN}$")]
+# A slot REFERENCE, as a red-flag predicate spells it: section-qualified
+# (files/03 §6 ``hpi.single_hot_swollen_joint``; every exemplar in
+# files/protocols/base.life_threat.yaml) or bare where the pack declares one
+# flat namespace. Distinct from SlotKey, which names a slot inside its own
+# section and therefore never carries a dot.
+SlotRef = Annotated[str, StringConstraints(pattern=rf"^{SLOT_REF_PATTERN}$")]
 InstrumentId = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Za-z0-9-]*$")]
 RuleId = Annotated[str, StringConstraints(pattern=r"^rf\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$")]
+# Action codes are SCREAMING_SNAKE (files/protocols/base.life_threat.yaml:
+# CALL_112, GO_TO_IN_HOUSE_ACIL, SAME_DAY_ACIL_TODAY, CRISIS_SIGNPOST,
+# NEAREST_ACIL_ADDRESS_AS_TEXT). The set is open — no blueprint enumerates it.
+ActionCode = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]*$")]
 TrText = Annotated[str, StringConstraints(min_length=1)]
 
 
@@ -242,15 +255,34 @@ class SourceBlock(FrozenModel):
         description="Committed snapshot path under packages/protocols/sources/ "
         "(files/12 §2.5; files/protocols/base.life_threat.yaml exemplar 1).",
     )
+    note: str | None = Field(
+        default=None,
+        description="Provenance commentary about the citation itself — why the "
+        "guideline is read as it is, or which sibling rules its split produced "
+        "(files/protocols/base.life_threat.yaml exemplar 1, whose note records "
+        "the EK-4 three-way chest-pain split and names the gate asserting the "
+        "third arm). Never patient-facing and never a substitute for the quote: "
+        "the invariant-17 pending-value scan in protocols.validator walks it "
+        "with every other rule string.",
+    )
 
 
 class LocationAction(FrozenModel):
     """The action for one resolved location (REMOTE or ON_SITE), per the rule
     schema in files/protocols/base.life_threat.yaml and files/04 §8.1 rule 7."""
 
-    primary: Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]*$")] = Field(
+    primary: ActionCode = Field(
         description="Primary action code (files/protocols/base.life_threat.yaml, "
         "e.g. CALL_112, GO_TO_IN_HOUSE_ACIL)."
+    )
+    secondary: ActionCode | None = Field(
+        default=None,
+        description="A second action code carried ALONGSIDE the primary, never "
+        "instead of it (files/protocols/base.life_threat.yaml exemplar 1: "
+        "``primary: CALL_112`` with ``secondary: "
+        "NEAREST_ACIL_ADDRESS_AS_TEXT``). Folding it into ``primary`` would "
+        "make one field mean two actions and put the ordering — which one the "
+        "patient does first — beyond the schema's reach.",
     )
     show_112: bool = Field(
         description="Whether the 112 affordance is shown; never under ON_SITE "
@@ -364,9 +396,13 @@ class RedFlagRule(FrozenModel):
         "files/12 §1.1 — deny-suffixed against overlay edits, files/12 §3.2)."
     )
     tense: Tense = Field(description="Event tense (files/12 §2.4; files/04 §8.1 rule 4).")
-    tense_anchor: SlotKey = Field(
+    tense_anchor: SlotRef = Field(
         description="Slot carrying the event timestamp; a tense-qualified rule "
-        "cannot fire on an undated symptom (files/12 §2.4)."
+        "cannot fire on an undated symptom (files/12 §2.4). A REFERENCE, in the "
+        "same namespace the ``when`` predicate reads — protocols.triage.engine "
+        "unions it into ``referenced_slots(when)`` and TriageContext keys "
+        "answers by that spelling — so it is section-qualified "
+        "(``chest_pain.onset_at``) wherever the pack's sections are."
     )
     level: EK4Level = Field(description="EK-4 acuity, five-valued (files/12 §2.1).")
     route: RedFlagRoute = Field(description="Patient route axis (files/02 §5.3 Axis 1).")
