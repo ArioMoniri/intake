@@ -1,13 +1,21 @@
 /**
- * Ask-ahead conversation engine (INT-235; owner feedback pass). Dev-tier
+ * Ask-ahead conversation engine (INT-235; deepened by INT-239). Dev-tier
  * mirror of the blueprint IntakeEngine's ask-ahead/reconcile-behind
- * pattern (02/INT-081): the next scripted question comes from the pack
- * and does NOT depend on the previous answer's extraction — so the turn
- * advances the instant an utterance is taken, and transcribe→extract
- * reconcile BEHIND, addressed by work id. The dev packs carry no
- * answer-gated questions (no askIf), so nothing mid-flow ever blocks;
- * the one honest wait is `settling` at the END while in-flight work
- * drains.
+ * pattern (02/INT-081): the next scripted question does NOT depend on the
+ * previous answer's EXTRACTION — so the turn advances the instant an
+ * utterance is taken, and transcribe→extract reconcile BEHIND, addressed
+ * by work id. The one honest wait is `settling` at the END while
+ * in-flight work drains.
+ *
+ * ANSWER-DRIVEN (INT-239): which questions exist at all IS decided by the
+ * answers. `advance` walks only the APPLICABLE questions — `askIf`
+ * evaluated against the CONFIRMED answers, exactly as the typed StepFlow
+ * and the section panel do, so all three surfaces ask the same set. This
+ * is the Kleene rule from files/13 §9.2 at dev tier: an unanswered gating
+ * question is UNKNOWN and UNKNOWN does not open a gate, and a suggestion
+ * is not an answer, so only a confirm can open one. A suggestion that
+ * lands for a still-closed gate is kept, not dropped: it becomes that
+ * question's quick confirm turn the moment the gate opens.
  *
  * Rules the tests pin:
  * - The chat log is stateful by workId: the patient bubble exists from
@@ -34,7 +42,7 @@
  * reference for the blocking per-turn machine; this module supersedes it
  * on the app surface and reuses its candidate/turn vocabulary.
  */
-import type { IntakeQuestion } from "../intake/questions";
+import { askIfMet, type AnsweredValues, type IntakeQuestion } from "../intake/questions";
 import type { DialogueCandidate } from "./turn";
 
 export interface CommittedAnswer {
@@ -115,7 +123,22 @@ function currentQuestionId(pack: readonly IntakeQuestion[], turn: StreamTurn): s
 }
 
 /**
- * Ask-ahead advance: in pack order — answered questions are skipped, a
+ * The confirmed answers as the gate evaluator wants them — the single
+ * bridge between the conversation state and the pack's `askIf` layer.
+ * Only CONFIRMED answers count: a pending suggestion is not an answer, so
+ * it can never open a gate on its own (invariant 1 posture).
+ */
+export function committedAnswers(state: Pick<DialogueStreamState, "answers">): AnsweredValues[] {
+  return Object.entries(state.answers).map(([questionId, answer]) => ({
+    questionId,
+    values: answer.values,
+  }));
+}
+
+/**
+ * Ask-ahead advance: in pack order over the APPLICABLE questions —
+ * answered questions are skipped, a question whose gate the answers do not
+ * meet is skipped entirely (never asked, never counted as left over), a
  * landed suggestion opens as its quick confirm turn (consumed from
  * pending), an asked-awaiting question is skipped (its result reconciles
  * behind), and the first untouched question is asked. Nothing left:
@@ -126,11 +149,15 @@ function advance(
   state: Omit<DialogueStreamState, "turn">,
 ): DialogueStreamState {
   const { pending, answers, asked, inflight, seq, stream } = state;
+  const committed = committedAnswers({ answers });
   let unansweredLeft = false;
   for (let step = 0; step < pack.length; step += 1) {
     const question = pack[step];
     if (answers[question.id] !== undefined) {
       continue;
+    }
+    if (!askIfMet(question.askIf, committed)) {
+      continue; // the answers do not ask for this question at all
     }
     unansweredLeft = true;
     const candidate = pending[question.id];
@@ -310,10 +337,15 @@ export function dialogueStreamReducer(
     }
     case "confirm_pending": {
       const candidate = state.pending[action.questionId];
+      const question = pack.find((q) => q.id === action.questionId);
       if (
         candidate === undefined ||
+        question === undefined ||
         action.questionId === currentQuestionId(pack, turn) ||
-        state.answers[action.questionId] !== undefined
+        state.answers[action.questionId] !== undefined ||
+        // A question the answers do not ask for is not confirmable: the
+        // note never gains an answer the flow never asked (INT-239).
+        !askIfMet(question.askIf, committedAnswers(state))
       ) {
         return state;
       }

@@ -94,9 +94,9 @@ describe("everything speakable across every pack (invariant 22 mirror)", () => {
 
 describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
   const newKeys = [
-    "dialogue.start",
     "dialogue.kicker",
-    "dialogue.offerHint",
+    "dialogue.entryTitle",
+    "dialogue.entryBody",
     "dialogue.preparing",
     "dialogue.speakingHint",
     "dialogue.listeningHint",
@@ -133,7 +133,11 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
     }
   });
 
-  it("the entry offer is the dialogue path in the owner's sense", () => {
-    expect(tr["dialogue.start"]).toBe("Karşılıklı konuşarak ilerleyin");
+  it("the entry IS the conversation — no chooser copy survives (INT-239)", () => {
+    expect(tr["dialogue.kicker"]).toBe("Karşılıklı konuşma");
+    expect(tr["dialogue.entryTitle"]).toBe("Sizinle konuşarak ilerleyelim");
+    // Typing is named inside the entry body as the second door, so the
+    // patient never has to pick a mode before the conversation starts.
+    expect(tr["dialogue.entryBody"].toLocaleLowerCase("tr-TR")).toContain("yazarak");
   });
 });

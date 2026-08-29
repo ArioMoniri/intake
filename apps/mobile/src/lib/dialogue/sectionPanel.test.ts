@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { intakeQuestions, packForDepartment } from "../intake/questions";
+import { applicableQuestions, intakeQuestions, packForDepartment } from "../intake/questions";
 import { sectionLabelKey, sectionPanelModel } from "./sectionPanel";
 import type { DialogueStreamState } from "./stream";
 
@@ -41,8 +41,12 @@ describe("sectionLabelKey — pack-driven labels, buildNote's mapping", () => {
       "intake.hpi.onset",
       "intake.hpi.character",
       "intake.hpi.radiation",
+      "intake.hpi.radiationSide",
+      "intake.hpi.breathTiming",
+      "intake.hpi.breathLying",
       "intake.hpi.trigger",
       "intake.hpi.associated",
+      "intake.hpi.palpitation",
       "intake.hpi.severity",
       "review.hpi.patientNote", // extra — the free note line
     ]);
@@ -50,15 +54,40 @@ describe("sectionLabelKey — pack-driven labels, buildNote's mapping", () => {
 });
 
 describe("sectionPanelModel — rows fill in realtime", () => {
-  it("empty dialogue: every row empty, nothing filled, total is the pack size", () => {
+  const cardioBase = applicableQuestions(cardio, []);
+
+  it("empty dialogue: every row empty, nothing filled, total is the APPLICABLE set", () => {
     const model = sectionPanelModel(cardio, idle(), []);
-    expect(model.total).toBe(cardio.length);
+    expect(model.total).toBe(cardioBase.length);
+    expect(model.total).toBeLessThan(cardio.length); // gated sections stay out
     expect(model.filled).toBe(0);
-    expect(model.rows).toHaveLength(cardio.length);
+    expect(model.rows).toHaveLength(cardioBase.length);
     for (const row of model.rows) {
       expect(row.status).toBe("empty");
       expect(row.confirmable).toBe(false);
     }
+  });
+
+  it("the denominator GROWS when an answer opens a gate — the note has no fixed length", () => {
+    const opened = sectionPanelModel(
+      cardio,
+      idle({ answers: { complaint: { values: ["pain"], quote: "göğsümde baskı var" } } }),
+      [],
+    );
+    expect(opened.total).toBe(cardioBase.length + 2); // pain_character + radiation
+    expect(opened.rows.map((row) => row.questionId)).toContain("pain_character");
+  });
+
+  it("a section the flow does not ask never appears, suggestion or not", () => {
+    const model = sectionPanelModel(
+      cardio,
+      idle({
+        answers: { complaint: { values: ["fever"], quote: "ateşim var" } },
+        pending: { radiation: { values: ["arm"], quote: "koluma vuruyor" } },
+      }),
+      [],
+    );
+    expect(model.rows.map((row) => row.questionId)).not.toContain("radiation");
   });
 
   it("answered rows carry the committed values and the quote as provenance", () => {

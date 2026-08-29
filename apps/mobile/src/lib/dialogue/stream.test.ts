@@ -401,6 +401,132 @@ describe("dialogueStreamReducer — the honest wait exists only at the end", () 
   });
 });
 
+// ---- INT-239: the conversation follows the answers, not the file order ----
+
+describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
+  /** cardio: pain_character and radiation are gated on complaint ⊇ pain. */
+  it("a question whose gate is unmet is never spoken", () => {
+    const before = state({
+      turn: { phase: "confirming", step: 0, candidate: { values: ["fever"], quote: "ateşim var" } },
+      answers: {
+        duration: { values: ["days"], quote: "" },
+        onset: { values: ["sudden"], quote: "" },
+      },
+    });
+    const after = runCardio(before, { type: "confirm", values: ["fever"] });
+    // trigger is next: both pain dimensions are skipped, not asked-and-empty
+    expect(after.turn).toEqual({ phase: "speaking", step: 8, intent: "question" });
+    expect(after.stream[after.stream.length - 1]).toEqual({
+      kind: "agent_question",
+      questionId: "trigger",
+    });
+  });
+
+  it("the same confirm with a different answer opens the gated questions", () => {
+    const before = state({
+      turn: {
+        phase: "confirming",
+        step: 0,
+        candidate: { values: ["pain"], quote: "göğsümde baskı var" },
+      },
+      answers: {
+        onset: { values: ["sudden"], quote: "" },
+        duration: { values: ["days"], quote: "" },
+      },
+    });
+    const after = runCardio(before, { type: "confirm", values: ["pain"] });
+    expect(after.turn).toEqual({ phase: "speaking", step: 3, intent: "question" });
+    expect(after.stream[after.stream.length - 1]).toEqual({
+      kind: "agent_question",
+      questionId: "pain_character",
+    });
+  });
+
+  it("a gate that opens two levels deep is asked once its parent answer lands", () => {
+    const before = state({
+      turn: {
+        phase: "confirming",
+        step: 4,
+        candidate: { values: ["arm"], quote: "koluma vuruyor" },
+      },
+      answers: {
+        complaint: { values: ["pain"], quote: "" },
+        duration: { values: ["days"], quote: "" },
+        onset: { values: ["sudden"], quote: "" },
+        pain_character: { values: ["pressure"], quote: "" },
+      },
+    });
+    const after = runCardio(before, { type: "confirm", values: ["arm"] });
+    expect(after.stream[after.stream.length - 1]).toEqual({
+      kind: "agent_question",
+      questionId: "radiation_side",
+    });
+  });
+
+  it("completion ignores questions whose gate is unmet — a fever intake finishes", () => {
+    const answered = (ids: string[]) =>
+      Object.fromEntries(ids.map((id) => [id, { values: ["x"], quote: "" }]));
+    const before = state({
+      turn: { phase: "settling" },
+      answers: answered(["duration", "onset", "trigger", "associated", "severity", "extra"]),
+      asked: ["complaint", "duration", "onset", "trigger", "associated", "severity", "extra"],
+      inflight: [1],
+      pending: { complaint: { values: ["fever"], quote: "ateşim var" } },
+    });
+    // The complaint's suggestion confirms → nothing gated is open → done.
+    const withConfirm = runCardio(before, { type: "extract_settled", workId: 1, candidates: {} });
+    expect(withConfirm.turn).toEqual({
+      phase: "speaking",
+      step: 0,
+      intent: "confirm",
+      candidate: { values: ["fever"], quote: "ateşim var" },
+    });
+    const done = runCardio(
+      {
+        ...withConfirm,
+        turn: {
+          phase: "confirming",
+          step: 0,
+          candidate: { values: ["fever"], quote: "ateşim var" },
+        },
+      },
+      { type: "confirm", values: ["fever"] },
+    );
+    expect(done.turn).toEqual({ phase: "done" });
+  });
+
+  it("a suggestion for a still-closed gate waits, then gets its confirm turn when the gate opens", () => {
+    // The patient volunteers the radiation while answering the complaint.
+    const before = state({
+      turn: { phase: "confirming", step: 0, candidate: { values: ["pain"], quote: "göğsüm" } },
+      pending: { radiation: { values: ["arm"], quote: "koluma vuruyor" } },
+      seq: { radiation: 1 },
+      answers: {
+        duration: { values: ["days"], quote: "" },
+        onset: { values: ["sudden"], quote: "" },
+        pain_character: { values: ["pressure"], quote: "" },
+      },
+    });
+    const after = runCardio(before, { type: "confirm", values: ["pain"] });
+    expect(after.turn).toEqual({
+      phase: "speaking",
+      step: 4,
+      intent: "confirm",
+      candidate: { values: ["arm"], quote: "koluma vuruyor" },
+    });
+  });
+
+  it("a panel confirm cannot commit an answer to a question the flow does not ask", () => {
+    const before = state({
+      turn: { phase: "speaking", step: 1, intent: "question" },
+      answers: { complaint: { values: ["fever"], quote: "" } },
+      pending: { radiation: { values: ["arm"], quote: "koluma vuruyor" } },
+      seq: { radiation: 1 },
+    });
+    expect(runCardio(before, { type: "confirm_pending", questionId: "radiation" })).toEqual(before);
+  });
+});
+
 describe("dialogueStreamReducer — turn micro-transitions and terminals", () => {
   it("speech_done: a question opens the mic, a confirm opens the confirming card", () => {
     const question = state({ turn: { phase: "speaking", step: 1, intent: "question" } });

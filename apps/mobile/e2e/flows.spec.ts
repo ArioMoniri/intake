@@ -48,14 +48,20 @@ describe("typed intake fixtures (one question per screen)", () => {
 describe("department packs (INT-194): the intake is branch-aware", () => {
   it("cardiology/internal medicine gets onset, character, radiation, trigger, associated, severity", () => {
     const ids = packForDepartment("Kardiyoloji").map((q) => q.id);
+    // INT-239: the answer-gated follow-ups live in the same pack; which of
+    // them a patient meets is decided by their answers, not by this list.
     expect(ids).toEqual([
       "complaint",
       "duration",
       "onset",
       "pain_character",
       "radiation",
+      "radiation_side",
+      "breath_timing",
+      "breath_lying",
       "trigger",
       "associated",
+      "cardio_palpitation",
       "severity",
       "extra",
     ]);
