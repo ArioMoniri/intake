@@ -2611,7 +2611,7 @@
   - INT-233
   labels:
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'owner complaint that the spoken voice is awkward, answered with measurement
     before change: sixteen probes on the dev lane established that the pinned
