@@ -1273,8 +1273,12 @@ metrics:
     labels: [subject_count]
     owner: admin
     unit: "count"
-    status: planned
-    description: DSAR deletions; a subject count above one pages.
+    status: live
+    description: >-
+      DSAR deletions; a subject count above one pages. Emitted by
+      intake_api.dsar.shred.execute_due_shreds, once per erasure run, after
+      the files/06 §3 grace has elapsed and the crypto-shred has landed
+      (INT-037). The console that alerts on it is INT-189.
   - name: admin_four_eyes_self_approval_attempt_total
     id: admin.four_eyes_self_approval_attempt_total
     type: counter
