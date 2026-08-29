@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**204 issues.** By phase: P0 117 · P1 47 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 76 · todo 118 · withdrawn 1.
+**206 issues.** By phase: P0 119 · P1 47 · P2 36 · P3 4. By status: awaiting-human 2 · doing 8 · done 76 · todo 119 · withdrawn 1.
 
 ## P0
 
@@ -124,6 +124,8 @@
 | INT-238 | Kaynaklar ingest defect: the virus scanner slot was never wired, so every upload stuck in quarantine | E02-data | INT-120, INT-034 | area:data | done |
 | INT-239 | Dialogue-only intake with answer-driven dev packs: delete the two-button chooser, branch every department on prior answers | E08-mobile | INT-235, INT-236 | area:mobile | done |
 | INT-243 | Serve the intended production TTS tier (VoxCPM2) behind a licence-verified registry row, with the fallback voice kept | E05-voice | INT-237 | area:voice | done |
+| INT-254 | DSL/life-threat reconciliation: tense_anchor is a slot reference, explicit rule status, source note, secondary action — and the validator AttributeError INT-041 routed around | E03-protocols | INT-040, INT-041 | area:protocols | doing |
+| INT-255 | Model the eleven life-threat delivery annotations the DSL still refuses (audio/register, the crisis path, paediatric proxy, document-level blocks) | E03-protocols | INT-254 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-246 | Make a dead voice lane announce itself in development, and add a host probe that measures rather than pings | E08-mobile | INT-239 | area:mobile | done |
 | INT-247 | Carried-forward facts must be confirmable before they read as current (the client half of INT-170) | E11-learning | INT-133 | area:mobile | done |
 | INT-248 | PolicyGuard precision: Turkish morphology, and the disclaimer the guard was rejecting | E05-voice | INT-091 | area:voice | done |

@@ -37,6 +37,8 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from decimal import Decimal
 
+from protocols.types import SLOT_REF_PATTERN
+
 __all__ = [
     "Lookup",
     "Truth",
@@ -159,13 +161,17 @@ WhenNode = BoolRef | Compare | InSet | Not | And | Or
 # Tokenizer.
 # ---------------------------------------------------------------------------
 
+# The ``ident`` group is built from protocols.types.SLOT_REF_PATTERN, not
+# spelled again here: ``tense_anchor`` is unioned into this tokenizer's
+# reference set (files/12 §2.4; protocols.triage.engine) and the DSL types
+# the anchor with the same pattern, so a second copy is a second namespace.
 _TOKEN_RE = re.compile(
-    r"""
+    rf"""
     (?P<ws>\s+)
-  | (?P<ident>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)
+  | (?P<ident>{SLOT_REF_PATTERN})
   | (?P<number>\d+(?:\.\d+)?)
   | (?P<string>'[^'\\]*'|"[^"\\]*")
-  | (?P<op>\|\||&&|==|!=|<=|>=|[!<>(){},])
+  | (?P<op>\|\||&&|==|!=|<=|>=|[!<>(){{}},])
     """,
     re.VERBOSE,
 )

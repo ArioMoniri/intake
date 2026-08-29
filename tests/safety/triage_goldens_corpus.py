@@ -14,15 +14,16 @@ docs/evidence/INT-059.md):
   must be REFUSED by the engine (invariant 17 defence in depth).
 
 Life-threat translation, stated openly: that file spells the predicate
-``gate:`` and the provenance block ``evidence:`` (its own
-``schema_reconciliation`` block records the naming conflict with the DSL's
-``when:``/``source:``), and its ``tense_anchor`` values are dotted while the
-DSL ``SlotKey`` admits no dot. :func:`translate_life_threat_rule` maps the
-key names, projects onto the DSL field set, and rewrites ``.`` → ``__`` in
-the anchor name ONLY (the predicate text itself is carried verbatim; dotted
-references are part of the ``when`` grammar). No level, threshold, register,
-tense, predicate or Turkish string is altered — a mutation test in
-tests/safety/test_triage_goldens.py proves edits flow through.
+``gate:`` and the provenance block ``evidence:`` (ADR-024 keeps that on-disk
+spelling and makes ``when:``/``source:`` canonical in code).
+:func:`translate_life_threat_rule` maps those two key names and projects onto
+the DSL field set. It rewrites NOTHING else: since INT-254 the DSL types
+``tense_anchor`` as a slot REFERENCE, so the document's dotted anchors are
+carried verbatim like the predicate, and rule ``status`` is read with no
+default because the document now states it on every rule. No level,
+threshold, register, tense, predicate or Turkish string is altered — a
+mutation test in tests/safety/test_triage_goldens.py proves edits flow
+through.
 
 The checker (:func:`run_case`) is deliberately shared between the golden
 test and the mutation harness: a mutation "fails the suite" exactly when
@@ -80,11 +81,11 @@ C2 = "rf.chest_pain_no_cardiac_history"
 D3 = "rf.paediatric_airway_obstruction"
 D4 = "rf.crisis_disclosure_signposting"
 
-# Slot names as the rules spell them; the life-threat anchors after the
-# documented ``.`` → ``__`` rewrite.
+# Slot names exactly as the rules spell them — the life-threat anchors are
+# section-qualified references in the `gate:` namespace (INT-254).
 ANCHOR = "olay_zamani"
-CP_ANCHOR = "chest_pain__onset_at"
-AW_ANCHOR = "airway__onset_at"
+CP_ANCHOR = "chest_pain.onset_at"
+AW_ANCHOR = "airway.onset_at"
 
 ASK_ONE_TR = "Şu anda hastanede misiniz?"
 
@@ -144,6 +145,7 @@ _RULE_KEYS = (
     "id",
     "label_tr",
     "tense",
+    "tense_anchor",
     "level",
     "route",
     "register",
@@ -159,9 +161,11 @@ _SOURCE_KEYS = (
     "retrieved_on",
     "quote",
     "quote_snapshot",
+    "note",
 )
 _LOCATION_KEYS = (
     "primary",
+    "secondary",
     "show_112",
     "action_tr",
     "action_tr_ref",
@@ -180,16 +184,15 @@ def _project(raw: Mapping[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
 def translate_life_threat_rule(raw: Mapping[str, Any]) -> RedFlagRule:
     """One life-threat rule → :class:`RedFlagRule`, content verbatim.
 
-    ``gate`` becomes ``when`` unchanged; ``evidence`` becomes ``source``
-    (minus its free-text ``note``); the dotted ``tense_anchor`` becomes the
-    ``__``-joined SlotKey spelling; rules without a ``status`` key are the
-    file's sourced exemplars and read ``active`` (the draft exemplars carry
-    ``status: draft_needs_source`` explicitly).
+    ``gate`` becomes ``when`` unchanged and ``evidence`` becomes ``source``;
+    every other field, ``tense_anchor`` and ``status`` included, is read
+    straight off the document. ``status`` deliberately has NO default here:
+    the DSL requires it with none, and a translator that supplied one would
+    hide exactly the omission INT-254 fixed.
     """
     payload: dict[str, Any] = _project(raw, _RULE_KEYS)
     payload["when"] = raw["gate"]
-    payload["tense_anchor"] = str(raw["tense_anchor"]).replace(".", "__")
-    payload["status"] = raw.get("status", "active")
+    payload["status"] = raw["status"]
     evidence = raw.get("evidence")
     if evidence is not None:
         payload["source"] = _project(evidence, _SOURCE_KEYS)
