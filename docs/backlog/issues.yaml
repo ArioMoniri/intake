@@ -1047,7 +1047,7 @@
   title: "Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background"
   depends_on: [INT-130, INT-090]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "mic permission copy per store rules; RTT/jitter/loss attached to turns; reconnect resumes session; background pauses safely"
   tests: [apps/mobile/e2e/voice.spec.ts]
