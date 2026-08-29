@@ -388,6 +388,28 @@ export const en: Record<MessageKey, string> = {
   "voice.processing": "Transcribing…",
   "voice.unreachable": "The voice server cannot be reached right now.",
   "voice.permission": "Microphone permission is needed.",
+
+  // INT-103 — live voice session client (LiveKit). Mirrors the tr keys.
+  "voice.mic.why":
+    "A live voice visit needs microphone access. Your voice is processed only during the visit; no recording is kept.",
+  "voice.mic.cta": "Allow the microphone",
+  "voice.mic.settingsHint": "You can also grant this later in your phone's settings.",
+  "voice.transport.ok": "Voice visits are available on this device.",
+  "voice.transport.needsDevBuild":
+    "Voice visits cannot start in this build of the app. Use the full build, or continue by typing.",
+  "voice.transport.unsupported":
+    "Voice visits are not supported on this device. You can continue by typing.",
+  "voice.transport.micDenied":
+    "Microphone permission was not granted. You can grant it in your phone's settings.",
+  "voice.session.connecting": "Connecting…",
+  "voice.session.reconnecting": "Reconnecting…",
+  "voice.session.paused":
+    "The visit is paused. It continues where you left off when you return to the app.",
+  "voice.session.interrupted": "The visit is paused. You can continue when your phone call ends.",
+  "voice.session.weakLink":
+    "Your connection is weak. If your voice cuts out, you can continue by typing.",
+  "voice.session.ended": "The voice visit has ended. You can continue by typing.",
+
   "voiceFirst.kicker": "Tell it by voice",
   "voiceFirst.title": "Describe your complaint in your own words",
   "voiceFirst.body":

@@ -395,6 +395,30 @@ export const tr = {
   "voice.processing": "Yazıya dökülüyor…",
   "voice.unreachable": "Ses sunucusuna şu an ulaşılamıyor.",
   "voice.permission": "Mikrofon izni gerekli.",
+
+  // INT-103 — canlı sesli görüşme istemcisi (LiveKit). Mikrofon izni metni
+  // mağaza kurallarına göre: önce nedenini söyleyen bir satır, sonra sistem
+  // izni. Kayıt saklanmadığı için hiçbir metin "kayıt" demez (invariant 3).
+  "voice.mic.why":
+    "Sesli görüşme için mikrofon izni gerekir. Sesiniz yalnızca görüşme sırasında işlenir; kaydı saklanmaz.",
+  "voice.mic.cta": "Mikrofona izin verin",
+  "voice.mic.settingsHint": "İzni daha sonra telefonunuzun ayarlarından da verebilirsiniz.",
+  "voice.transport.ok": "Sesli görüşme bu cihazda kullanılabilir.",
+  "voice.transport.needsDevBuild":
+    "Sesli görüşme bu uygulama sürümünde açılamıyor. Tam sürümü kullanın ya da yazarak devam edin.",
+  "voice.transport.unsupported":
+    "Sesli görüşme bu cihazda desteklenmiyor. Yazarak devam edebilirsiniz.",
+  "voice.transport.micDenied":
+    "Mikrofon izni verilmedi. İzni telefonunuzun ayarlarından verebilirsiniz.",
+  "voice.session.connecting": "Bağlanılıyor…",
+  "voice.session.reconnecting": "Bağlantı yeniden kuruluyor…",
+  "voice.session.paused":
+    "Görüşme duraklatıldı. Uygulamaya döndüğünüzde kaldığınız yerden devam edersiniz.",
+  "voice.session.interrupted":
+    "Görüşme duraklatıldı. Telefon görüşmeniz bittiğinde devam edebilirsiniz.",
+  "voice.session.weakLink": "Bağlantınız zayıf. Sesiniz kesilirse yazarak devam edebilirsiniz.",
+  "voice.session.ended": "Sesli görüşme sonlandı. Yazarak devam edebilirsiniz.",
+
   "voiceFirst.kicker": "Sesli anlatın",
   "voiceFirst.title": "Şikâyetinizi kendi cümlelerinizle anlatın",
   "voiceFirst.body":
