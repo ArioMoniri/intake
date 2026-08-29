@@ -13,13 +13,13 @@ up. The registry row says ``self_hosted_now: false`` for the same reason.
 
 Invariant 20 gets its own gate here: the four satisfaction series carry
 measurements, so no CSAT/NPS figure may appear in docs/regulatory/ or
-docs/legal/ — the scan below is that rule made executable for this issue's
-own vocabulary.
+docs/legal/. INT-224 moved the vocabulary into intake_platform.legal.claims —
+one pattern set for the whole invariant — and the scan below now reads its
+``satisfaction`` group from there rather than keeping a private copy.
 """
 
 from __future__ import annotations
 
-import re
 import tomllib
 from pathlib import Path
 
@@ -27,6 +27,7 @@ import pytest
 from fastapi.testclient import TestClient
 from intake_metrics.app import create_app
 from intake_platform.health import discover_services, verify_service_declarations
+from intake_platform.legal import claims
 from intake_platform.slo import load_metrics_catalog, load_slo_file
 from intake_probes.registry import ProbeId, load_registry
 
@@ -141,26 +142,25 @@ def test_no_label_on_a_satisfaction_series_can_carry_free_text() -> None:
 
 # --- invariant 20: a figure is never a property of the product -----------------------
 
-#: An NPS/CSAT figure claimed as a property rather than reported as a
-#: measurement: "NPS 62", "CSAT of 4.6", "%92 memnuniyet".
-_CLAIM_PATTERNS = (
-    re.compile(r"\b(?:NPS|CSAT)\b[^.\n]{0,20}?\b\d+(?:[.,]\d+)?", re.IGNORECASE),
-    re.compile(r"[%\d][\d.,]*\s*(?:memnuniyet|satisfaction)", re.IGNORECASE),
-)
+#: The patterns moved to intake_platform.legal.claims with INT-224, where the
+#: whole of invariant 20's vocabulary now lives — an NPS/CSAT figure claimed as
+#: a property rather than reported as a measurement ("NPS 62", "CSAT of 4.6",
+#: "%92 memnuniyet") is the ``satisfaction`` group there. A private copy here
+#: would drift from the copy the security and store suites scan with.
 
 
 @pytest.mark.parametrize("tree", ["regulatory", "legal"])
 def test_no_satisfaction_figure_appears_in_the_regulatory_or_legal_trees(tree: str) -> None:
-    root = REPO / "docs" / tree
-    if not root.is_dir():
-        return
-    offenders: list[str] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in {".md", ".yaml", ".yml", ".txt"}:
-            continue
-        body = path.read_text(encoding="utf-8", errors="ignore")
-        for pattern in _CLAIM_PATTERNS:
-            offenders.extend(
-                f"{path.relative_to(REPO)}: {match.group(0)!r}" for match in pattern.finditer(body)
-            )
-    assert offenders == [], f"invariant 20 — satisfaction figures in docs/{tree}: {offenders}"
+    hits = claims.scan_tree(REPO / "docs" / tree, ("satisfaction",), relative_to=REPO)
+    assert hits == (), f"invariant 20 — satisfaction figures in docs/{tree}: " + "; ".join(
+        f"{hit.path}:{hit.line_no} {hit.line!r}" for hit in hits
+    )
+
+
+def test_the_satisfaction_patterns_still_catch_a_figure_claimed_as_a_property() -> None:
+    """The near-miss pair: a claimed figure is caught, a described measurement
+    with no number is not. Without this the delegation above could pass because
+    the group had quietly emptied."""
+    assert claims.scan_text("NPS 62 memnuniyet", groups=("satisfaction",))
+    assert claims.scan_text("%92 memnuniyet", groups=("satisfaction",))
+    assert claims.scan_text("satisfaction is measured quarterly", groups=("satisfaction",)) == ()

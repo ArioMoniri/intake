@@ -73,6 +73,14 @@ CAT_GUARDIANSHIP = "guardianship_link"
 BASIS_CONTRACT = "KVKK m.5/2-c — processing necessary for the service contract"
 BASIS_HEALTH_CONSENT = "KVKK m.6 — special-category health data under açık rıza per consent scope"
 BASIS_LEGAL_OBLIGATION = "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
+# INT-224: crash and error diagnostics are the one off-schema flow whose KVKK
+# ground no file in this repo states. The reporter ships inert (no default DSN)
+# and the basis is refused rather than assumed — counsel names it before the
+# flow may be declared active (HUMAN_BLOCKERS.md HB-L21).
+BASIS_AWAITING_HUMAN_DIAGNOSTICS = (
+    "awaiting-human — no file states the KVKK m.5 ground for crash and error "
+    "diagnostics; counsel names it (HB-L21) before the reporter is given an endpoint"
+)
 # INT-223: persisting a guardian↔minor link is a new personal-data category,
 # which CLAUDE.md makes a stop-and-ask. No ground is asserted here — the table
 # ships behind the closed guardian_link gate until counsel names one
@@ -124,6 +132,13 @@ REC_INTERNAL = "internal services only; never leaves the PHI boundary"
 REC_CLINICIAN = "tenant clinicians via a consented share (Doctor Link / clinic console)"
 REC_PATIENT_CLINICIAN = "the patient (own record) and tenant clinicians via consented share"
 REC_AUDITOR = "supervisory authority or auditor on lawful request; WORM export"
+# INT-224: the health-platform reads (HealthKit / Health Connect) never leave
+# the handset. There is no recipient at all until the patient chooses to add a
+# summary to the note, at which point notes.payload's own row applies.
+REC_ON_DEVICE = (
+    "nobody: the data stays on the patient's own device until the patient adds a "
+    "summary to the note, from which point the notes.payload row governs"
+)
 REC_GUARDIAN_INTERNAL = (
     "internal services only while the guardian_link gate is shut; no recipient is defined "
     "beyond the PHI boundary until counsel answers"
