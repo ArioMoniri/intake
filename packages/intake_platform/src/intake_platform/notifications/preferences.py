@@ -20,10 +20,19 @@ so the offset is a fixed +03 constant rather than a per-patient timezone
 column, which also keeps a location signal out of the row. A second
 jurisdiction is a data-model change with a real timezone database behind it,
 not a second constant.
+
+:func:`quiet_verdict` is the one place the union is evaluated (INT-242). It
+was extracted from ``ReminderDispatcher`` when the survey scheduler needed the
+same answer: two implementations of "is it quiet now?" drift apart on the
+first edit, and the person who finds out is the one being woken. It answers
+only the hours question — opt-out is a plain attribute the callers read
+directly, because they read it at different points in their own order of
+refusal.
 """
 
 from __future__ import annotations
 
+import enum
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -33,8 +42,10 @@ __all__ = [
     "MINUTES_PER_DAY",
     "SCHEDULING_OFFSET",
     "NotificationPreferences",
+    "QuietVerdict",
     "QuietWindow",
     "local_minute_of_day",
+    "quiet_verdict",
 ]
 
 MINUTES_PER_DAY: Final = 24 * 60
@@ -96,6 +107,41 @@ class NotificationPreferences:
 
     opted_out: bool
     quiet: QuietWindow | None
+
+
+class QuietVerdict(enum.StrEnum):
+    """What the hours say about one instant.
+
+    ``UNSET`` is not ``CLEAR``: no file in the tree names a baseline window,
+    and the absence of a window is a missing decision rather than permission
+    to send at any hour. Each caller maps it onto its own refusal status.
+    """
+
+    CLEAR = "clear"
+    QUIET = "quiet"
+    UNSET = "unset"
+
+
+def quiet_verdict(
+    preferences: NotificationPreferences,
+    *,
+    baseline: QuietWindow | None,
+    at: datetime,
+) -> QuietVerdict:
+    """Baseline ∪ the recipient's own, on the Türkiye clock.
+
+    Union, never intersection: a recipient who adds a quiet afternoon gets it,
+    and a recipient whose window says nothing about the night does not thereby
+    unlock the night.
+    """
+    if baseline is None:
+        return QuietVerdict.UNSET
+    minute = local_minute_of_day(at)
+    if baseline.covers(minute) or (
+        preferences.quiet is not None and preferences.quiet.covers(minute)
+    ):
+        return QuietVerdict.QUIET
+    return QuietVerdict.CLEAR
 
 
 def _minute_of(value: str) -> int:

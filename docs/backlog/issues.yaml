@@ -1557,7 +1557,7 @@
   title: "De-identified analytics views + k-anonymity helper + rollups"
   depends_on: [INT-015, INT-030]
   labels: [area:learning, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "k>=10 enforced at query layer; refusals metered; no free-text outside review UI"
   tests: [tests/learning/test_k_anonymity.py]
@@ -2202,7 +2202,7 @@
   title: "Wazuh + Falco deployment + rules + console feed"
   depends_on: [INT-023]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
   acceptance:
     - "auth anomalies, k8s audit, container runtime alerts wired to Security module"
   tests: [tests/infra/test_siem_feed.py]
@@ -2506,7 +2506,7 @@
   title: "NPS scheduling + clinician pulse survey cadence"
   depends_on: [INT-240]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "monthly NPS prompt honoring quiet hours; quarterly pulse; opt-outs respected"
   tests: [tests/experience/test_survey_cadence.py]
@@ -2553,7 +2553,7 @@
   title: "Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit"
   depends_on: [INT-130]
   labels: [area:release]
-  status: todo
+  status: done
   acceptance:
     - "i18n lint fails on missing keys; clinical tr reviewed flag enforced"
   tests: [tests/release/test_i18n_complete.py]
@@ -2712,3 +2712,108 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+- id: INT-246
+  epic: E08-mobile
+  phase: P0
+  title: 'Make a dead voice lane announce itself in development, and add a host
+    probe that measures rather than pings'
+  depends_on:
+  - INT-239
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'an incident where the owner reported the voice interface missing for hours
+    while it was built, merged and running - the cause being a dead tunnel to the
+    speech server and a fallback that is silent by design, correct for a patient
+    and invisible to a developer: in development only, the fallback states which
+    candidate addresses were tried and how each failed, while production behaviour
+    is unchanged and pinned so the diagnostic returns nothing for every report
+    shape rather than being a hidden element; a host-side probe reports one line
+    per lane and exits non-zero when a required lane is down, with every verdict in
+    its suite taken against a real local socket rather than a mocked error; and no
+    retry loop hammers a dead host, pinned by tests that the walk stops at the
+    first answer and probes each dead candidate exactly once'
+  tests:
+  - tests/mobile/test_voice_doctor.py
+- id: INT-247
+  epic: E11-learning
+  phase: P0
+  title: 'Carried-forward facts must be confirmable before they read as current
+    (the client half of INT-170)'
+  depends_on:
+  - INT-133
+  labels:
+  - area:mobile
+  status: done
+  acceptance:
+  - 'owner bug report that a medication carried from a previous visit was shown as
+    current with no way to say it had stopped, which a clinician reading the note
+    would believe: the demo seed is proved unable to reach a real account and that
+    proof is pinned rather than merely true, and a carried fact arrives
+    unconfirmed with confirmation enforced in the type rather than the interface -
+    the carried type has no field readable as current, the reconciled type
+    requires a decision, and undecided facts sit in a different type the renderer
+    cannot accept; stopped is rendered distinguishably from absent because they
+    mean different things to a clinician, provenance consumes the existing
+    attribution rather than a parallel notion, and everything requiring clinical
+    judgement is refused - what stopping a drug means is not inferred, no
+    structured dose editor is added because a dose is numeric and free numeric
+    entry is barred on the clinical path, and the undefined reconciliation value is
+    left to the pack owners'
+  tests:
+  - apps/mobile/src/lib/intake/note.test.ts
+- id: INT-248
+  epic: E05-voice
+  phase: P0
+  title: 'PolicyGuard precision: Turkish morphology, and the disclaimer the guard
+    was rejecting'
+  depends_on:
+  - INT-091
+  labels:
+  - area:voice
+  sec_row: intake-voice
+  status: done
+  acceptance:
+  - 'a localization audit reported the guard rejecting legitimate copy, and every
+    claim was verified before a pattern was touched by reproducing the count
+    exactly: the informal-address detector was a list of final syllables so the
+    polite imperative matched a past-tense pattern and the product could not say
+    its commonest imperative, a diagnosis pattern matched inside a negated verb so
+    the disclaimer written to satisfy the invariant was reported as a diagnosis
+    claim, two red-flag action scripts were affected through the same syllable, and
+    a fronted subject before a comma counted as a second question; the guard is
+    made precise rather than permissive by anchoring on the morphology that the
+    past-tense suffix surfaces voiceless only after a voiceless obstruent, with
+    near-miss controls proving genuine informal address, real diagnosis claims and
+    real treatment instructions are still caught and coverage strictly increases;
+    the catalogue goes to zero findings behind a standing gate, and the two real
+    copy defects found on the way are reported rather than fixed because clinical
+    lexicon growth is a clinical review'
+  tests:
+  - tests/release/test_i18n_complete.py
+- id: INT-249
+  epic: E05-voice
+  phase: P0
+  title: 'Latency-aware voice lane selection: a health check that answers is not a
+    lane that can speak'
+  depends_on:
+  - INT-243
+  labels:
+  - area:voice
+  status: done
+  acceptance:
+  - 'measured on live daemons, the preferred voice answered its health probe in a
+    seventh of a second and then took four to six seconds to synthesise a sentence
+    while the fallback took about one, and selection on health alone chose the slow
+    one so the patient watched a spinner: selection becomes latency-aware against
+    the round-trip figure the blueprint states for the production profile rather
+    than the streaming stage figure, which measurement showed would have rejected
+    both lanes and left no voice at all; every synthesis call gains a hard cap with
+    fallback, because the previous cap applied per sentence in sequence and a two
+    sentence clip could hold for a minute before failing terminally into the manual
+    steps; the question text is proved to render without waiting on audio and a late
+    result is proved unable to rebuild the turn and restart the clip; and the
+    selection is cached per session and re-probed on failure'
+  tests:
+  - apps/mobile/src/lib/dialogue/ttsLane.test.ts

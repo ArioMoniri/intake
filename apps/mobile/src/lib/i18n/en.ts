@@ -1,10 +1,18 @@
 import type { MessageKey } from "./tr";
 
 /** English mirrors — every key must exist in tr first (tr is the source of
- * truth; the i18n test enforces key parity). */
+ * truth; the i18n test enforces key parity, and tests/release/
+ * test_i18n_complete.py additionally holds the order, the reference set and
+ * the review marks).
+ *
+ * The `[REVIEW]` marks are carried here as well as in tr.ts: they name the
+ * patient-facing clinical/legal sentences that ship only from
+ * docs/legal/strings.yaml with sign-off (invariant 18), and a reviewer reading
+ * the English catalogue has to see the same three lines called out. */
 export const en: Record<MessageKey, string> = {
   "app.name": "Vizite",
   "app.tagline": "What you tell us reaches your doctor before the visit.",
+  // [REVIEW] fixed non-diagnosis line, 06 §7 family
   "app.disclaimer":
     "Vizite does not diagnose. What you share never replaces your doctor's assessment.",
 
@@ -14,7 +22,6 @@ export const en: Record<MessageKey, string> = {
   "tabs.wellbeing": "Wellbeing",
   "tabs.me": "Profile",
 
-  "welcome.title": "Welcome",
   "welcome.body":
     "Vizite collects your complaints by voice or text before the visit and hands your doctor a structured pre-visit note.",
   "welcome.devSignIn": "Sign in with a test account",
@@ -55,7 +62,6 @@ export const en: Record<MessageKey, string> = {
   "today.continueCta": "Continue",
   "today.noVisit": "No visit scheduled.",
   "today.addVisit": "Add a visit",
-  "today.uploadQuick": "Upload a record",
 
   "status.draft": "Draft",
   "status.sent": "Sent",
@@ -68,7 +74,6 @@ export const en: Record<MessageKey, string> = {
   "visits.empty": "You have not added a visit yet.",
   "visits.noDate": "No date added",
   "visits.new.title": "New visit",
-  "visits.new.manual": "Add manually",
   "visits.new.hint": "Paste your appointment message, or enter the details yourself.",
   "visits.new.hospital": "Hospital",
   "visits.new.branch": "Clinic",
@@ -90,7 +95,6 @@ export const en: Record<MessageKey, string> = {
   "visits.new.smsUnknownBranch": "We could not recognise the clinic name. Please pick it yourself.",
   "visits.new.smsNoDate": "We found no date in the message. Please add the date yourself.",
   "visits.new.smsUnreadable": "We could not read this message. You can enter the details yourself.",
-  "visits.new.ocrTitle": "Add from a screenshot",
   "visits.new.ocrUnavailable":
     "Reading from an image is not available yet. Please paste the message as text.",
   "visits.type.first": "First visit",
@@ -103,12 +107,10 @@ export const en: Record<MessageKey, string> = {
   "visits.type.screening": "Screening",
   "visits.type.second_opinion": "Second opinion",
   "visits.type.teleconsult": "Remote consultation",
-  "visits.detail.summary": "Summary",
   "visits.detail.noteStatus": "Note status",
   "visits.detail.notStarted": "The conversation has not started yet.",
 
   "records.title": "My records",
-  "records.empty": "No records yet. You can add lab results and reports before your visit.",
   "records.synthetic": "Sample data — synthetic",
   "records.guide.kicker": "Your documents",
   "records.guide.title": "Your reports in one place",
@@ -154,7 +156,6 @@ export const en: Record<MessageKey, string> = {
 
   "wellbeing.title": "Wellbeing",
   "wellbeing.intro": "Track how you feel; sharing stays under your control.",
-  "wellbeing.empty": "No entries yet.",
   "wellbeing.guide.how.kicker": "How it will work",
   "wellbeing.guide.how.title": "This space is being prepared for you",
   "wellbeing.guide.how.body":
@@ -183,7 +184,6 @@ export const en: Record<MessageKey, string> = {
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
-  "intake.title": "Prepare for the visit",
   "intake.q.complaint": "What brings you to the doctor today?",
   "intake.q.complaint.hint": "You can pick more than one.",
   "intake.opt.pain": "Pain",
@@ -499,9 +499,6 @@ export const en: Record<MessageKey, string> = {
     "Your connection is weak. If your voice cuts out, you can continue by typing.",
   "voice.session.ended": "The voice visit has ended. You can continue by typing.",
 
-  "voiceFirst.kicker": "Tell it by voice",
-  "voiceFirst.body":
-    "Speak, and we will turn it into text. What you say becomes suggestions for the questions ahead; you confirm each one yourself.",
   "voiceFirst.checking": "Getting the voice feature ready…",
   "voiceFirst.listening": "We are listening.",
   "voiceFirst.stop": "I am done",
@@ -515,7 +512,6 @@ export const en: Record<MessageKey, string> = {
   "dialogue.entryBody":
     "We will ask the questions aloud and you can answer by speaking. You can switch to typing at any moment.",
   "dialogue.preparing": "Preparing the question…",
-  "dialogue.speaking": "Reading the question aloud…",
   "dialogue.speakingHint": "Tap to interrupt",
   "dialogue.listeningHint": "Tap when you are done",
   "dialogue.optionsIntro": "The options are:",
@@ -538,7 +534,6 @@ export const en: Record<MessageKey, string> = {
   "dialogue.send": "Send",
   "intake.next": "Continue",
   "intake.finish": "See the summary",
-  "intake.skip": "Skip",
 
   // INT-236 — Hızlı/Detaylı mode (02 §2), environment check (02 §33) and
   // the "your turn" checkpoint (02 §34).
@@ -559,6 +554,7 @@ export const en: Record<MessageKey, string> = {
   "review.section.hpi": "History of the complaint",
   "review.hpi.duration": "Duration",
   "review.hpi.patientNote": "Patient note",
+  // [REVIEW] provenance line on the clinician-bound note, 06 §7 family
   "review.provenance": "This note is based on the patient's own account; it contains no diagnosis.",
   "review.section.medications": "Medications — as reported",
   "review.medsNote": "Registered medications from your profile",
@@ -681,6 +677,7 @@ export const en: Record<MessageKey, string> = {
   "health.attach.done": "The summary was added to your visit note draft.",
   "health.attach.noVisit": "Create a visit first to add it.",
   "review.section.health": "Device health data",
+  // [REVIEW] fixed provenance line on the attached device-health block
   "review.healthProvenance": "Device health data — added with the patient's approval.",
   // ── INT-144 · screen-reader strings (mirror of the tr source) ────────
   "a11y.error": "Error",
@@ -742,35 +739,44 @@ export const en: Record<MessageKey, string> = {
   "companion.entry.sub": "Set who is doing this session and how the note records it.",
   "companion.guide.kicker": "Who is speaking",
   "companion.guide.title": "The note records who did the telling",
-  "companion.guide.body": "If you answer for a relative, we note that. The doctor sees who gave the information, so the patient's own words and yours never get mixed up.",
+  "companion.guide.body":
+    "If you answer for a relative, we note that. The doctor sees who gave the information, so the patient's own words and yours never get mixed up.",
   "companion.role.kicker": "Who is this session for",
   "companion.role.self": "For myself",
   "companion.role.companion": "For a relative",
   "companion.speaker.kicker": "Who answers the questions",
   "companion.speaker.companion": "I answer",
   "companion.speaker.patient": "The patient answers",
-  "companion.speaker.footer": "Choose this when the phone is yours but the patient speaks; the note then carries the patient's own words.",
+  "companion.speaker.footer":
+    "Choose this when the phone is yours but the patient speaks; the note then carries the patient's own words.",
   "companion.thirdParty.kicker": "Is anyone with you",
   "companion.thirdParty.label": "Someone else is with me",
-  "companion.thirdParty.footer": "With someone else present, some questions are not asked aloud. That is for your privacy.",
+  "companion.thirdParty.footer":
+    "With someone else present, some questions are not asked aloud. That is for your privacy.",
   "companion.ack.kicker": "Your acknowledgement",
   "companion.ack.label": "I confirm I am speaking on the patient's behalf",
-  "companion.ack.notProof": "This only records who is speaking. It does not mean you may decide on the patient's behalf.",
+  "companion.ack.notProof":
+    "This only records who is speaking. It does not mean you may decide on the patient's behalf.",
   "companion.effect.kicker": "What changes in this session",
   "companion.effect.none": "Nothing changes. The questions are asked as usual.",
   "companion.effect.proxy": "The note records that a relative gave the information.",
-  "companion.effect.assisted": "The note carries the patient's own words, and that someone was with them.",
+  "companion.effect.assisted":
+    "The note carries the patient's own words, and that someone was with them.",
   "companion.effect.textOnly": "Private topics are not asked aloud; they are asked in writing.",
-  "companion.effect.noSafeguarding": "Some very private questions are not asked at all in this session.",
+  "companion.effect.noSafeguarding":
+    "Some very private questions are not asked at all in this session.",
   "companion.selected": "Selected",
   "companion.notSelected": "Not selected",
   "companion.guardian.kicker": "Under eighteen",
   "companion.guardian.label": "Session through a guardian account",
   "companion.guardian.unavailable": "Not open yet",
-  "companion.guardian.body": "A session for someone under eighteen runs through a guardian account, with the guardian's consent. We have not opened that flow yet; it stays closed until its legal footing is settled.",
+  "companion.guardian.body":
+    "A session for someone under eighteen runs through a guardian account, with the guardian's consent. We have not opened that flow yet; it stays closed until its legal footing is settled.",
   "companion.private.kicker": "Twelve to seventeen",
-  "companion.private.body": "A patient aged twelve to seventeen has a private section that goes to the doctor. Whether the guardian may see it follows the hospital's written policy. With no recorded policy, it is not shown to the guardian.",
-  "companion.refusal.guardian": "This session must run through a guardian account with the guardian's consent. We cannot open that flow right now.",
+  "companion.private.body":
+    "A patient aged twelve to seventeen has a private section that goes to the doctor. Whether the guardian may see it follows the hospital's written policy. With no recorded policy, it is not shown to the guardian.",
+  "companion.refusal.guardian":
+    "This session must run through a guardian account with the guardian's consent. We cannot open that flow right now.",
   "companion.refusal.dobUnverified": "We cannot continue until your date of birth is verified.",
   "companion.refusal.jurisdiction": "We currently serve Türkiye only.",
   "companion.refusal.ack": "To continue, confirm you are speaking on the patient's behalf.",
@@ -778,4 +784,46 @@ export const en: Record<MessageKey, string> = {
   "a11y.companion.speakerHint": "Double tap to choose who answers the questions.",
   "a11y.companion.ackHint": "Double tap to give or take back the acknowledgement.",
   "a11y.companion.thirdPartyHint": "Double tap to say someone is with you.",
+
+  // ---------------------------------------------------------------------
+  // INT-246 — the `__DEV__` voice-lane banner (tr block of the same name).
+  // ---------------------------------------------------------------------
+  "devVoice.title": "Dev note: the voice lane did not answer",
+  "devVoice.body": "Falling through to the typed steps. Bases tried:",
+  "devVoice.hint": "Check from the host: make voice-doctor",
+  "devVoice.noCandidates": "No base is configured to try",
+  "devVoice.reason.timeout": "timed out",
+  "devVoice.reason.refused": "connection refused",
+  "devVoice.reason.status": "response code",
+  // ---- INT-247: facts carried from earlier visits -------------------------
+  // Mirrors the tr block key-for-key (invariant 5; tr is the source of
+  // truth). The note markers report who said what, nothing more.
+  "carried.kicker": "From an earlier visit",
+  "carried.title": "Is this still true?",
+  "carried.body":
+    "The items below were recorded at your earlier visits. None of them goes into this visit's note as current until you answer.",
+  "carried.action.confirm": "Still taking it",
+  "carried.action.changed": "It changed",
+  "carried.action.stopped": "I stopped it",
+  "carried.action.undo": "Take the answer back",
+  "carried.state.unconfirmed": "You have not answered yet",
+  "carried.state.confirmed": "Still taking it",
+  "carried.state.changed": "Changed",
+  "carried.state.stopped": "Stopped",
+  "carried.recordedOn": "Recorded on",
+  "carried.source.confirmed_intake_extraction": "You said so yourself at an earlier session",
+  "carried.source.clinician_accepted_note": "It is in a note your doctor accepted",
+  "carried.source.confirmed_imported_record": "It came from a document you confirmed",
+  "carried.empty": "Nothing has been carried over from earlier visits.",
+  "carried.ledger.body":
+    "Here you can see what has been carried over from your earlier visits and where each item came from. Which of them still holds today is asked at each visit's review step.",
+  "note.fact.previousRecord": "previously recorded",
+  "note.fact.unconfirmed": "not confirmed at this visit",
+  "note.fact.confirmed.patient": "the patient says they are still taking it",
+  "note.fact.confirmed.clinician": "the clinician recorded it as continuing",
+  "note.fact.changed.patient": "the patient says it changed; no new detail taken",
+  "note.fact.changed.clinician": "the clinician recorded a change; no new detail taken",
+  "note.fact.stopped.patient": "the patient says they stopped it",
+  "note.fact.stopped.clinician": "the clinician recorded it as stopped",
+  "a11y.carried.hint": "Double tap to say whether this still holds today.",
 };

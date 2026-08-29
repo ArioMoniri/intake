@@ -258,6 +258,46 @@ metrics:
       files/10 §7: chaos results are tracked as metrics. Emitted by
       intake_platform.chaos.run_vendor_kill via `make chaos
       EXPERIMENT=<id>` (INT-024).
+  # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
+  # Wazuh's and Falco's own liveness are probes, not error budgets (the
+  # `wazuh-manager`, `wazuh-indexer` and `falco` rows of
+  # observability/registry.yaml). What we own — and what a patient's privacy
+  # rests on — is the boundary that turns a vendor alert into a SecurityAlert,
+  # so that is what is instrumented. docs/slo/siem.yaml reads the first two.
+  - name: siem_alerts_ingested_total
+    type: counter
+    labels: [source, signal, severity]
+    owner: platform
+    unit: "count"
+    description: >-
+      Detector alerts admitted to the console feed after scrubbing, by source
+      (falco/wazuh), console signal (auth_anomaly/k8s_audit/container_runtime/
+      unclassified) and runbook severity (SEV1-SEV4). Emitted by
+      intake_platform.siem.normalise (INT-205). Every label is a closed
+      enumeration; none carries a rule name, a host name or a path.
+  - name: siem_alerts_refused_total
+    type: counter
+    labels: [source, reason]
+    owner: platform
+    unit: "count"
+    description: >-
+      Detector alerts refused at the scrub boundary, by source and a closed
+      reason vocabulary (unknown_priority/unknown_level/no_rule/no_timestamp).
+      Emitted by intake_platform.siem.normalise (INT-205). A rising rate means
+      a detector is emitting a shape we cannot reduce safely, which is a
+      detection gap rather than a nuisance.
+  - name: siem_alert_fields_dropped_total
+    type: counter
+    labels: [source, field]
+    owner: platform
+    unit: "count"
+    description: >-
+      Fields dropped from a detector alert because they were not identifiers,
+      by source and the vendor field name (hostname, container.id, fd.name,
+      agent.id, agent.name, syscheck.path, time, timestamp, id). Emitted by
+      intake_platform.siem.normalise (INT-205) — the visible edge of
+      invariant 6 on the detection path: a spike means something started
+      putting narrative where an id belongs.
   # --- files/08 §4 A. Availability & SLOs — planned until the SLO attainment pipeline lands
   - name: slo_api_availability
     id: slo.api_availability
@@ -1432,6 +1472,51 @@ metrics:
     description: >-
       Patient notification-preference changes by what changed (opt_out,
       opt_in, quiet_window_set, quiet_window_cleared).
+  # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
+  # series (nps.monthly, clinician.pulse) but no id for the scheduling of
+  # them, so this entry carries no `id` — the same posture as the INT-141 rows
+  # above. Every label is a closed enumeration. The status label is the honest
+  # record of why nothing is sent today: blocked_iys_consent_absent is the
+  # 6563 gate, refused_schedule_unset the missing first-prompt value.
+  - name: survey_invitation_total
+    type: counter
+    labels: [kind, channel, message_class, status]
+    owner: experience
+    unit: "count"
+    description: >-
+      Survey invitation decisions by kind (nps, clinician_pulse), channel
+      (in_product, electronic_message), 6563 message class and outcome
+      (issued, not_yet_due, suppressed_opt_out, blocked_iys_consent_absent,
+      blocked_prompts_disabled, refused_schedule_unset, deferred_quiet_hours,
+      refused_quiet_hours_unset).
+  # --- INT-171: the k-anonymity gate on the de-identified analytics views.
+  # files/10 §9 learning row names "k-anonymity refusals" as a console signal
+  # and files/08 §4 group L repeats it as a prose KPI with no id; these are
+  # the ids. Both label sets are deliberately minimal: a refusal labelled with
+  # the branch or the week it withheld would publish that cell to Prometheus,
+  # which retains it (inv. 6).
+  - name: analytics_view_refused_total
+    type: counter
+    labels: [view, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      De-identified analytics views that refused to materialise, by view name
+      and reason class (below_k, dimension_not_id_shaped,
+      dimension_set_mismatch, measure_not_a_count). Emitted by
+      intake_platform.analytics.k_anonymity; a below_k refusal covers both a
+      cohort under the floor and an empty result, which the gate declines to
+      tell apart.
+  - name: analytics_view_materialised_total
+    type: counter
+    labels: [view]
+    owner: learning
+    unit: "count"
+    description: >-
+      De-identified analytics views that cleared their k-anonymity threshold
+      and were served, by view name. Read against
+      analytics_view_refused_total it is the refusal rate the learning loop is
+      operating at.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
@@ -1449,5 +1534,7 @@ metrics:
 #   due/overdue, DSAR SLA, residency attestation per tenant, retention job
 #   success (sec_audit_chain_ok covers the daily integrity check).
 # - group L, learning loops: proposals opened/approved/rejected, canary
-#   outcomes, rollback count, evidence-bundle completeness, k-anonymity
-#   rejections, GEPA experiment deltas on held-out sets.
+#   outcomes, rollback count, evidence-bundle completeness, GEPA experiment
+#   deltas on held-out sets. ("k-anonymity rejections" left this list with
+#   INT-171: analytics_view_refused_total above is that KPI, catalogued under
+#   a name of ours because 08 §4 states the row without an id.)
