@@ -768,6 +768,7 @@ source = { editable = "services/api" }
 dependencies = [
     { name = "fastapi" },
     { name = "intake-platform" },
+    { name = "intake-protocols" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -777,6 +778,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "intake-protocols", editable = "packages/protocols" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },

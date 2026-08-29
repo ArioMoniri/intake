@@ -197,6 +197,7 @@ def build_harness(
     token_admin: str | None,
     scanner: Any = _DEFAULT_SCANNER,
     legal_root: Path | None = None,
+    taxonomy_path: Path | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -219,6 +220,15 @@ def build_harness(
         # default: the pre-INT-210 state — no consent texts on disk, so the
         # catalog is empty and only the seeded (unbound) dev grants stand
         legal_root=legal_root if legal_root is not None else tmp_path / "legal-not-authored",
+        # default: the REAL committed taxonomy (INT-134) — tests that need
+        # the fail-closed path point this at a missing/broken file instead
+        taxonomy_path=taxonomy_path
+        if taxonomy_path is not None
+        else Path(__file__).resolve().parents[2]
+        / "packages"
+        / "protocols"
+        / "taxonomy"
+        / "branches.yaml",
     )
     cipher = EnvelopeCipher(FileKekProvider())
     audit_store = SqlAlchemyAuditStore(audit_engine)
