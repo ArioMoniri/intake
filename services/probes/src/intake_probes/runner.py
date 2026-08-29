@@ -187,6 +187,15 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
             env.get("INTAKE_LANGFUSE_CLICKHOUSE_URL", "http://127.0.0.1:8123/ping"),
         )
 
+    # INT-205: the same shape for the SIEM tier. Falco's embedded webserver is
+    # the only endpoint in that tier that answers without a credential — the
+    # Wazuh manager API returns 401 and the indexer wants TLS plus a password —
+    # so it is the only one wired here. The two Wazuh rows carry `tcp_connect`
+    # and stay SKIPPED until a sweep runs somewhere the tier is up.
+    falco_health_url = env.get("INTAKE_FALCO_HEALTH_URL", "")
+    if falco_health_url:
+        wiring["falco"] = partial(probes.http_health, http_client, falco_health_url)
+
     tls_target = env.get("INTAKE_TLS_PROBE_TARGET", "")
     if tls_target:
         host, _, port = tls_target.partition(":")

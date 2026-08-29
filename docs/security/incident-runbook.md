@@ -16,9 +16,15 @@ will live.
 
 Where an incident announces itself (files/10 §7):
 
-- **SIEM/XDR:** Wazuh (lands with INT-205) — failed logins and OTP anomalies per
-  phone/IP/ASN, impossible travel, new-device logins, token reuse detections.
-- **Runtime:** Falco alerts, k8s audit anomalies (INT-205, INT-201).
+- **SIEM/XDR:** Wazuh — failed logins and OTP anomalies per phone/IP/ASN, impossible
+  travel, new-device logins, token reuse detections. The tier is
+  `infra/docker-compose.siem.yml` (profile `siem`, `make siem`), the rules are
+  `infra/security/wazuh/rules/intake_rules.xml`, and what reaches a screen is the
+  scrubbed feed in `intake_platform.siem` — **ids, a truncated path and a rule name
+  resolved from a committed file, never a log line** (INT-205). It has not been booted:
+  HB-I1 and HB-I2 are open, so treat Wazuh as unavailable until they close.
+- **Runtime:** Falco alerts (`infra/security/falco/rules/intake_rules.yaml`) and k8s
+  audit anomalies (INT-205; the cluster and its audit policy land with INT-201).
 - **Edge:** WAF/Coraza and CrowdSec blocks; **egress denials — attempted calls to
   non-allow-listed hosts are a hard alert** (INT-018, INT-203).
 - **Application security events:** consent-scope denials (`consent_guard` refusals),
