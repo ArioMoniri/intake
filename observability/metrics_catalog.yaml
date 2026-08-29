@@ -1425,6 +1425,23 @@ metrics:
     description: >-
       Patient notification-preference changes by what changed (opt_out,
       opt_in, quiet_window_set, quiet_window_cleared).
+  # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
+  # series (nps.monthly, clinician.pulse) but no id for the scheduling of
+  # them, so this entry carries no `id` — the same posture as the INT-141 rows
+  # above. Every label is a closed enumeration. The status label is the honest
+  # record of why nothing is sent today: blocked_iys_consent_absent is the
+  # 6563 gate, refused_schedule_unset the missing first-prompt value.
+  - name: survey_invitation_total
+    type: counter
+    labels: [kind, channel, message_class, status]
+    owner: experience
+    unit: "count"
+    description: >-
+      Survey invitation decisions by kind (nps, clinician_pulse), channel
+      (in_product, electronic_message), 6563 message class and outcome
+      (issued, not_yet_due, suppressed_opt_out, blocked_iys_consent_absent,
+      blocked_prompts_disabled, refused_schedule_unset, deferred_quiet_hours,
+      refused_quiet_hours_unset).
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):

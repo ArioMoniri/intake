@@ -48,8 +48,9 @@ from intake_platform.notifications.ports import (
 )
 from intake_platform.notifications.preferences import (
     NotificationPreferences,
+    QuietVerdict,
     QuietWindow,
-    local_minute_of_day,
+    quiet_verdict,
 )
 
 __all__ = ["DispatchOutcome", "DispatchStatus", "ReminderDispatcher"]
@@ -119,13 +120,15 @@ class ReminderDispatcher:
     ) -> tuple[DispatchStatus, DeliveryReceipt | None]:
         if preferences.opted_out:
             return DispatchStatus.SUPPRESSED_OPT_OUT, None
-        if self._baseline_quiet is None:
-            return DispatchStatus.REFUSED_QUIET_HOURS_UNSET, None
-        minute = local_minute_of_day(at)
-        if self._baseline_quiet.covers(minute) or (
-            preferences.quiet is not None and preferences.quiet.covers(minute)
-        ):
-            return DispatchStatus.DEFERRED_QUIET_HOURS, None
+        # One evaluation of the hours, shared with the INT-242 survey
+        # scheduler; a second copy would drift on the first edit.
+        match quiet_verdict(preferences, baseline=self._baseline_quiet, at=at):
+            case QuietVerdict.UNSET:
+                return DispatchStatus.REFUSED_QUIET_HOURS_UNSET, None
+            case QuietVerdict.QUIET:
+                return DispatchStatus.DEFERRED_QUIET_HOURS, None
+            case QuietVerdict.CLEAR:
+                pass
         sealed = seal_transactional(
             kind, locale, channel=self._transport.channel, recipient_ref=recipient_ref
         )
