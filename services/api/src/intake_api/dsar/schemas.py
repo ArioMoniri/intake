@@ -26,8 +26,14 @@ __all__ = [
 ]
 
 #: ``note:<uuid>`` / ``visit:<uuid>`` / ``document:<uuid>`` — the record kinds
-#: a data subject can ask to have corrected in this slice.
-TARGET_REF_SHAPE = re.compile(r"^(note|visit|document):[0-9a-fA-F-]{36}$")
+#: a data subject can ask to have corrected in this slice. The UUID half is
+#: the real 8-4-4-4-12 shape, not a loose 36-character hex-and-dash class: the
+#: route parses it with ``uuid.UUID`` straight afterwards, so anything this
+#: pattern admits and the parser rejects turns a 422 into an unhandled 500.
+TARGET_REF_SHAPE = re.compile(
+    r"^(note|visit|document):"
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 Correction = Annotated[str, StringConstraints(min_length=1, max_length=4000)]
 

@@ -8,14 +8,29 @@ thirty more days would be exactly the orphan the patient asked us to cut.
 
 Order inside a run, and the reason for it:
 
-1. **Crypto-shred first.** Every envelope-bearing field belonging to the
-   subject has its wrapped DEK destroyed (``intake_platform.envelope``): the
-   ciphertext survives and the only key that opens it does not. Doing this
-   before the row delete means a run that dies halfway leaves rows that are
-   already unreadable rather than readable rows behind a lost index — the
+1. **Object bytes first, OUTSIDE the row transaction.** This is the INT-036
+   executor's choice and its reasoning transfers exactly: if a run dies
+   between the two steps, rows point at objects that are already gone — the
    failure direction that favours erasure, which is the right bias for a KVKK
-   m.7/m.11 destruction (the INT-036 executor makes the same choice).
-2. **Then the object store**, then the rows, in dependency order.
+   m.7/m.11 destruction. Doing it *inside* the transaction would invert that,
+   because one failed ``remove_object`` would roll back the shred and the row
+   deletes while the objects it had already removed stayed removed, leaving
+   readable rows pointing at absent bytes.
+2. **Then, in one transaction, crypto-shred and delete.** Every
+   envelope-bearing field belonging to the subject has its wrapped DEK
+   destroyed (``intake_platform.envelope``) before the rows go, so even a
+   transaction that never commits leaves nothing readable behind. Rows are
+   deleted in dependency order.
+3. **Telemetry is de-linked, not deleted.** ``events.session_id`` is a FK to
+   ``sessions.id`` with no ON DELETE clause, so the sessions cannot be dropped
+   while events reference them. Telemetry has its own files/06 §3 clock
+   (30 d hot / 1 y cold) and is PHI-free by construction, so the row survives
+   under that clock with the link to the erased session cut.
+
+Every statement carries an explicit ``tenant_id`` predicate even though
+postgres enforces the same boundary with RLS — most of all the DELETEs, which
+are the destructive half and which the SQLite unit lane does not police
+(the ``intake_api.dsar.store`` convention).
 
 Granularity, stated plainly because it is the design's one real limit:
 ``EnvelopeCipher``'s KEK is per TENANT, so destroying a KEK would erase every
@@ -44,6 +59,7 @@ from intake_platform.db.models import (
     DsarRectification,
     DsarRequest,
     DsarStatus,
+    Event,
     IntakeSession,
     Note,
     Share,
@@ -52,7 +68,7 @@ from intake_platform.db.models import (
 )
 from intake_platform.envelope import shred_field
 from prometheus_client import Counter
-from sqlalchemy import Delete, delete, select
+from sqlalchemy import Delete, delete, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
@@ -110,6 +126,40 @@ async def execute_due_shreds(
     Idempotent by construction: a request leaves ``OPEN_STATUSES`` as soon as
     it runs, so a re-run finds nothing to do rather than shredding twice.
     """
+    # Step 1: the object bytes, in their own read, before any write
+    # transaction opens — see the module docstring for the failure direction.
+    async with tenant_session(engine, tenant_id) as session:
+        due_ids = [
+            row.patient_id
+            for row in (
+                await session.scalars(
+                    select(DsarRequest).where(
+                        DsarRequest.tenant_id == tenant_id,
+                        DsarRequest.kind == DsarKind.DELETE,
+                        DsarRequest.status.in_(OPEN_STATUSES),
+                    )
+                )
+            ).all()
+            if (ends := _aware(row.grace_ends_at)) is not None and ends <= now
+        ]
+        object_refs = (
+            list(
+                (
+                    await session.scalars(
+                        select(Document.object_ref).where(
+                            Document.tenant_id == tenant_id,
+                            Document.patient_id.in_(due_ids),
+                        )
+                    )
+                ).all()
+            )
+            if due_ids
+            else []
+        )
+    for object_ref in object_refs:
+        remove_object(object_ref)
+
+    # Step 2: shred and delete, in one transaction.
     async with tenant_session(engine, tenant_id) as session:
         due = [
             row
@@ -134,10 +184,7 @@ async def execute_due_shreds(
         answered: list[tuple[uuid.UUID, uuid.UUID]] = []
         for request in due:
             fields, rows = await _erase_subject(
-                session,
-                tenant_id=tenant_id,
-                patient_id=request.patient_id,
-                remove_object=remove_object,
+                session, tenant_id=tenant_id, patient_id=request.patient_id
             )
             shredded_fields += fields
             removed_rows += rows
@@ -163,7 +210,6 @@ async def _erase_subject(
     *,
     tenant_id: uuid.UUID,
     patient_id: uuid.UUID,
-    remove_object: Callable[[str], None],
 ) -> tuple[int, int]:
     record = await subject_record(session, tenant_id=tenant_id, patient_id=patient_id)
 
@@ -184,22 +230,48 @@ async def _erase_subject(
         shredded += 1
     await session.flush()
 
-    for document in record.documents:
-        remove_object(document.object_ref)
-
     session_ids = [row.id for row in record.sessions]
     note_ids = [row.id for row in record.notes]
     removed = 0
     if note_ids:
-        removed += await _delete(session, delete(Share).where(Share.note_id.in_(note_ids)))
-    removed += await _delete(session, delete(Document).where(Document.patient_id == patient_id))
-    removed += await _delete(
-        session, delete(DsarRectification).where(DsarRectification.patient_id == patient_id)
-    )
-    removed += await _delete(session, delete(Note).where(Note.patient_id == patient_id))
-    if session_ids:
-        removed += await _delete(session, delete(Slot).where(Slot.session_id.in_(session_ids)))
         removed += await _delete(
-            session, delete(IntakeSession).where(IntakeSession.id.in_(session_ids))
+            session,
+            delete(Share).where(Share.tenant_id == tenant_id, Share.note_id.in_(note_ids)),
+        )
+    removed += await _delete(
+        session,
+        delete(Document).where(Document.tenant_id == tenant_id, Document.patient_id == patient_id),
+    )
+    removed += await _delete(
+        session,
+        delete(DsarRectification).where(
+            DsarRectification.tenant_id == tenant_id,
+            DsarRectification.patient_id == patient_id,
+        ),
+    )
+    removed += await _delete(
+        session, delete(Note).where(Note.tenant_id == tenant_id, Note.patient_id == patient_id)
+    )
+    if session_ids:
+        removed += await _delete(
+            session,
+            delete(Slot).where(Slot.tenant_id == tenant_id, Slot.session_id.in_(session_ids)),
+        )
+        # Telemetry is de-linked, never swept: events.session_id is a FK with
+        # no ON DELETE clause (so the sessions cannot go while it points at
+        # them), and a live pointer from a surviving row to an erased session
+        # is a re-identification path the erasure exists to close. The row
+        # itself keeps its own files/06 §3 clock and is PHI-free by
+        # construction.
+        await session.execute(
+            update(Event)
+            .where(Event.tenant_id == tenant_id, Event.session_id.in_(session_ids))
+            .values(session_id=None)
+        )
+        removed += await _delete(
+            session,
+            delete(IntakeSession).where(
+                IntakeSession.tenant_id == tenant_id, IntakeSession.id.in_(session_ids)
+            ),
         )
     return shredded, removed

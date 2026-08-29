@@ -452,7 +452,7 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
             continue
-        if _is_pre_auth(route) and path.startswith(PRE_AUTH_PREFIX):
+        if _is_pre_auth(route) and _under_prefix(path, PRE_AUTH_PREFIX):
             continue
         if _is_consent_management(route) and _under_consent_management_prefix(path):
             continue

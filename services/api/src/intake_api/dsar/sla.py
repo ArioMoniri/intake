@@ -61,10 +61,21 @@ def grace_ends_at(received_at: datetime) -> datetime:
 
 
 def is_overdue(request: DsarRequest, *, now: datetime) -> bool:
-    """A request is overdue only while it is still open: answering late is a
-    breach that ends when the answer lands, and a completed row that stayed
-    'overdue' for ever would drown the queue it exists to prioritise."""
-    if request.status not in OPEN_STATUSES:
+    """Past the m.13 deadline with the request still UNANSWERED.
+
+    Two exclusions, both load-bearing:
+
+    - a request that is no longer open has been answered, and a completed row
+      that stayed "overdue" for ever would drown the queue it exists to
+      prioritise;
+    - a SCHEDULED erasure has already been answered too. The m.13 response to
+      "delete my data" is the scheduling confirmation the subject received;
+      what remains is the files/06 §3 grace, which is a promise to the patient
+      rather than a debt to the regulator. Without this exclusion the two
+      equal 30-day windows would mark EVERY erasure breached the moment its
+      grace ended, and a queue showing 100 % breach reports nothing at all.
+    """
+    if request.status is not DsarStatus.RECEIVED:
         return False
     return _aware(request.due_at) < now
 

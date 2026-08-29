@@ -14,12 +14,21 @@ Design constraints, in the order that decided the code:
    Type1-font machinery are not needed to lay out text lines; the format's own
    primitives are enough.
 2. **Turkish must survive intact.** The six Turkish-specific letters
-   (ğĞşŞıİ) are absent from WinAnsi, and WinAnsi has exactly six unused code
-   points — so they ride a ``/Differences`` array under their standard Adobe
-   glyph names. Everything else maps straight through Latin-1.
+   (ğĞşŞıİ) are absent from WinAnsi, so they ride a ``/Differences`` array
+   under their standard Adobe glyph names. WinAnsi leaves exactly **five**
+   codes undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D), so the sixth slot re-points
+   0x8E, which WinAnsi assigns to ``Zcaron``. That is safe rather than lucky:
+   ``/Differences`` overrides the base encoding at that code, and ``Ž`` is
+   itself unencodable here, so no collision can arise. The consequence worth
+   knowing is that a text extractor which ignores ``/Differences`` for a
+   standard-14 font will read ``ı`` back as ``Ž`` — and that **0x9E is not
+   free either** (``zcaron``), so a seventh letter needs a real answer, not
+   another borrowed code.
 3. **Never silently transliterate.** A character this encoding cannot carry
-   raises :class:`UnsupportedGlyphError`. A legal document that quietly turns
-   "ğ" into "g" is a document that misstates what the patient wrote.
+   either raises :class:`UnsupportedGlyphError` or, for a caller that must
+   produce a document anyway, renders as ``[U+<codepoint>]``. A legal document that
+   quietly turns "ğ" into "g" is a document that misstates what the patient
+   wrote; one that names what it could not draw does not.
 4. **Deterministic bytes.** No creation date, no object ids that depend on
    iteration order, no randomness: the same content renders the same bytes, so
    an export's SHA-256 is a stable receipt.
@@ -54,8 +63,9 @@ _BODY_SIZE_PT = 10
 _LEADING_PT = 14
 _LINES_PER_PAGE = (PAGE_HEIGHT_PT - 2 * _MARGIN_PT) // _LEADING_PT - 2
 
-#: The six Turkish letters WinAnsi lacks, parked in WinAnsi's six unused code
-#: points and named by their Adobe glyph names in the font's /Differences.
+#: The six Turkish letters WinAnsi lacks. Five ride WinAnsi's undefined codes
+#: (0x81, 0x8D, 0x8F, 0x90, 0x9D); 0x8E re-points ``Zcaron`` — see the module
+#: docstring for why that is safe. Named by Adobe glyph name in /Differences.
 _TURKISH_SLOTS: tuple[tuple[str, int, str], ...] = (
     ("ğ", 0x81, "gbreve"),
     ("Ğ", 0x8D, "Gbreve"),
@@ -91,8 +101,17 @@ _ENCODING: dict[str, int] = {
 }
 
 
-def encode_text(text: str) -> bytes:
-    """Text → the page's single-byte encoding, or a typed refusal."""
+def encode_text(text: str, *, escape_unencodable: bool = False) -> bytes:
+    """Text → the page's single-byte encoding.
+
+    Two behaviours, because two callers need different things and neither may
+    transliterate. The default REFUSES an unencodable character — right for a
+    caller that can go back and ask. ``escape_unencodable`` instead writes
+    ``[U+<codepoint>]``, naming the codepoint — right for a caller under a statutory
+    duty to produce the document, where refusing for ever discharges nothing.
+    Neither substitutes a lookalike: ``250 ₺`` must not become ``250 ?`` or
+    ``250 TL``.
+    """
     out = bytearray()
     for char in text:
         code = _ENCODING.get(char)
@@ -100,19 +119,22 @@ def encode_text(text: str) -> bytes:
             point = ord(char)
             if 0x20 <= point <= 0x7E or 0xA0 <= point <= 0xFF:
                 code = point
+            elif escape_unencodable:
+                out.extend(f"[U+{point:04X}]".encode("ascii"))
+                continue
             else:
                 raise UnsupportedGlyphError(
                     f"U+{point:04X} is outside the export encoding (WinAnsi plus the "
-                    "six Turkish slots); the exporter refuses rather than substituting "
-                    "a lookalike"
+                    "Turkish slots); the exporter refuses rather than substituting a "
+                    "lookalike. Pass escape_unencodable=True to name it instead."
                 )
         out.append(code)
     return bytes(out)
 
 
-def _pdf_string(text: str) -> bytes:
+def _pdf_string(text: str, *, escape_unencodable: bool = False) -> bytes:
     escaped = bytearray()
-    for byte in encode_text(text):
+    for byte in encode_text(text, escape_unencodable=escape_unencodable):
         if byte in (0x28, 0x29, 0x5C):  # ( ) \
             escaped.append(0x5C)
         escaped.append(byte)
@@ -125,18 +147,18 @@ class _Page:
     title: str | None
 
 
-def _content_stream(page: _Page) -> bytes:
+def _content_stream(page: _Page, *, escape_unencodable: bool) -> bytes:
     parts = [b"BT\n"]
     y = PAGE_HEIGHT_PT - _MARGIN_PT
     if page.title is not None:
         parts.append(f"/F1 {_TITLE_SIZE_PT} Tf\n".encode("ascii"))
         parts.append(f"1 0 0 1 {_MARGIN_PT} {y} Tm\n".encode("ascii"))
-        parts.append(_pdf_string(page.title) + b" Tj\n")
+        parts.append(_pdf_string(page.title, escape_unencodable=escape_unencodable) + b" Tj\n")
         y -= _LEADING_PT * 2
     parts.append(f"/F1 {_BODY_SIZE_PT} Tf\n".encode("ascii"))
     for line in page.lines:
         parts.append(f"1 0 0 1 {_MARGIN_PT} {y} Tm\n".encode("ascii"))
-        parts.append(_pdf_string(line) + b" Tj\n")
+        parts.append(_pdf_string(line, escape_unencodable=escape_unencodable) + b" Tj\n")
         y -= _LEADING_PT
     parts.append(b"ET\n")
     return b"".join(parts)
@@ -147,8 +169,12 @@ def _differences() -> bytes:
     return f"[ {items} ]".encode("ascii")
 
 
-def render_text_pdf(*, title: str, lines: Sequence[str]) -> bytes:
-    """Render ``lines`` as a paginated PDF. Deterministic for equal inputs."""
+def render_text_pdf(*, title: str, lines: Sequence[str], escape_unencodable: bool = False) -> bytes:
+    """Render ``lines`` as a paginated PDF. Deterministic for equal inputs.
+
+    ``escape_unencodable`` passes through to :func:`encode_text`: off, an
+    undrawable character raises; on, it renders as ``[U+<codepoint>]``.
+    """
     chunks: list[_Page] = []
     remaining = list(lines)
     first = True
@@ -182,7 +208,7 @@ def render_text_pdf(*, title: str, lines: Sequence[str]) -> bytes:
                 f"/Resources << /Font << /F1 3 0 R >> >>\n/Contents {content_id} 0 R >>"
             ).encode("ascii")
         )
-        stream = _content_stream(page)
+        stream = _content_stream(page, escape_unencodable=escape_unencodable)
         objects.append(
             f"<< /Length {len(stream)} >>\nstream\n".encode("ascii") + stream + b"endstream"
         )

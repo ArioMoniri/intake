@@ -32,8 +32,6 @@ down_revision = "0003_int223"
 branch_labels = None
 depends_on = None
 
-_TABLES = ("dsar_requests", "dsar_rectifications")
-
 _GRANTS = (
     "REVOKE ALL ON dsar_requests FROM PUBLIC",
     "REVOKE ALL ON dsar_rectifications FROM PUBLIC",
@@ -126,5 +124,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Policies, grants and indexes fall with their tables (0001 precedent).
-    for table_name in _TABLES:
+    # CHILD FIRST: dsar_rectifications.request_id references dsar_requests, so
+    # dropping the parent first fails with "other objects depend on it" — the
+    # same ordering 0001's downgrade uses.
+    for table_name in ("dsar_rectifications", "dsar_requests"):
         op.drop_table(table_name)

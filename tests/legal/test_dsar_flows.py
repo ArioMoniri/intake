@@ -369,6 +369,35 @@ def test_export_injection_guard_neutralises_every_formula_lead(dsar: ApiHarness)
     assert "'=HYPERLINK" in json.dumps(payload["fhir_bundle"], ensure_ascii=False)
 
 
+def test_a_character_the_pdf_cannot_encode_still_produces_the_export(
+    dsar: ApiHarness,
+) -> None:
+    """A patient who typed a lira sign, an emoji or a zero-width space must not
+    become permanently un-exportable. KVKK m.13 is a duty to produce the
+    document; a renderer that refuses for ever cannot discharge it. The PDF
+    names the codepoint it cannot draw (never a lookalike) and the FHIR half
+    keeps the character exactly as stored."""
+    seed_visit_with_sent_note(
+        dsar,
+        note={
+            "sections": [
+                {"id": "hpi", "title": "Öykü", "lines": ["İlaç 250 ₺ tuttu 😀", "normal satır"]}
+            ],
+            "scopes": {"hpi": True},
+        },
+    )
+    request_id = request_export(dsar)
+    response = dsar.client.get(f"/v1/me/dsar/export/{request_id}", headers=dsar.patient())
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    # FHIR keeps the exact characters the patient typed
+    assert "₺" in json.dumps(payload["fhir_bundle"], ensure_ascii=False)
+    # the PDF names what it cannot draw, and stays a valid PDF
+    raw = base64.b64decode(payload["pdf"]["base64"])
+    assert raw.startswith(b"%PDF-")
+    assert b"[U+20BA]" in raw
+
+
 def test_export_injection_guard_strips_control_characters_and_crlf(dsar: ApiHarness) -> None:
     seed_visit_with_sent_note(
         dsar,
@@ -634,7 +663,19 @@ def test_the_addendum_is_encrypted_at_rest(dsar: ApiHarness) -> None:
 
 @pytest.mark.parametrize(
     "target_ref",
-    ["Ağrı hakkında", "note:not-a-uuid", "secret:" + "x" * 200, "", "patients name"],
+    [
+        "Ağrı hakkında",
+        "note:not-a-uuid",
+        "secret:" + "x" * 200,
+        "",
+        "patients name",
+        # 36 characters that a loose [0-9a-fA-F-]{36} class accepts and
+        # uuid.UUID() rejects: the boundary must refuse them, not hand a
+        # ValueError to the route and turn a 422 into a 500
+        "note:" + "a" * 36,
+        "note:" + "-" * 36,
+        "visit:" + "f" * 36,
+    ],
 )
 def test_rectification_refuses_a_target_that_is_not_id_shaped(
     dsar: ApiHarness, target_ref: str
@@ -707,6 +748,31 @@ def test_the_tracker_lists_requests_past_the_thirty_day_window(dsar: ApiHarness)
     listed = dsar.client.get("/v1/me/dsar/requests", headers=dsar.patient()).json()
     assert listed[0]["due_at"] is not None
     assert listed[0]["overdue"] is False
+
+
+def test_a_scheduled_erasure_is_not_an_overdue_m13_request(dsar: ApiHarness) -> None:
+    """The two 30-day windows are equal, so a naive clock marks every erasure
+    breached the instant its grace ends — a queue showing 100 % breach on
+    erasures reports nothing at all.
+
+    The m.13 obligation for an erasure is discharged when we ANSWER it, and the
+    answer is the scheduling confirmation the subject already received; what
+    remains is the files/06 §3 grace, which is a promise to the patient, not a
+    debt to the regulator."""
+    seed_visit_with_sent_note(dsar)
+    dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient())
+
+    async def _overdue(at: datetime) -> list[uuid.UUID]:
+        async with tenant_session(dsar.engine, DEV_TENANT_ID) as session:
+            return [
+                row.id for row in await overdue_requests(session, tenant_id=DEV_TENANT_ID, now=at)
+            ]
+
+    assert run(_overdue(datetime.now(UTC) + SHRED_GRACE + timedelta(days=1))) == []
+    # an unanswered ACCESS request past the window is still overdue
+    request_export(dsar)
+    late = run(_overdue(datetime.now(UTC) + KVKK_RESPONSE_WINDOW + timedelta(minutes=1)))
+    assert len(late) == 1
 
 
 def test_a_completed_request_is_never_overdue(dsar: ApiHarness) -> None:

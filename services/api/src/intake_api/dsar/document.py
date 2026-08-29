@@ -51,7 +51,16 @@ def render_export_document(view: ExportView, *, strings: LegalStrings) -> Export
         lines.append("")
     lines.append(strings.values["dsar_export.footer"])
     return ExportDocument(
-        pdf=render_text_pdf(title=strings.values["dsar_export.title"], lines=lines),
+        # escape_unencodable, not the strict refusal: KVKK m.13 is a duty to
+        # PRODUCE this document, so a patient who typed a lira sign or an
+        # emoji must not become permanently un-exportable. The character is
+        # named as [U+<codepoint>] rather than transliterated, and the FHIR half of
+        # the same export carries it exactly as stored.
+        pdf=render_text_pdf(
+            title=strings.values["dsar_export.title"],
+            lines=lines,
+            escape_unencodable=True,
+        ),
         legal_strings_version=strings.version,
         legal_strings_hash=strings.text_hash,
     )

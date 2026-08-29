@@ -64,6 +64,20 @@ def test_control_characters_are_refused() -> None:
         _render(["bir\x00iki"])
 
 
+def test_escaping_names_the_character_instead_of_refusing_or_transliterating() -> None:
+    """The strict refusal is right for a caller that can re-ask, and wrong for
+    one under a statutory duty to produce a document. The escape names the
+    codepoint so nothing is silently lost and nothing becomes a lookalike —
+    ``250 ₺`` must never render as ``250 ?`` or ``250 TL``."""
+    data = render_text_pdf(title="Test", lines=["250 ₺ ve 中"], escape_unencodable=True)
+    assert b"250 [U+20BA] ve [U+4E2D]" in data
+
+
+def test_escaping_leaves_encodable_turkish_untouched() -> None:
+    data = render_text_pdf(title="Test", lines=[TURKISH], escape_unencodable=True)
+    assert b"[U+" not in data
+
+
 def test_rendering_is_deterministic() -> None:
     assert _render([TURKISH, "iki"]) == _render([TURKISH, "iki"])
 
