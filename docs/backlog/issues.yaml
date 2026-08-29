@@ -2694,7 +2694,7 @@
   labels:
   - area:voice
   sec_row: self-hosting
-  status: todo
+  status: done
   acceptance:
   - 'the measurement pass having shown the dev voice band-limited with absent
     Turkish fricative energy, and a licence audit having read the Apache-2.0 blob
