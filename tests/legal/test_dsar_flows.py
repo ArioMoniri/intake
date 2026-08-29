@@ -498,6 +498,24 @@ def _shredded_like(field: Any) -> Any:
     return shred_field(field)
 
 
+def test_the_erasure_keeps_the_records_statute_says_to_keep(dsar: ApiHarness) -> None:
+    """files/06 §3 keeps consent and audit records for 10 years and
+    DEST-2017 keeps destruction records for ≥ 3 years — and the DSAR request
+    row IS that destruction record. Statutory retention outranks erasure, and
+    a tracker that erased its own evidence of having erased would fail the
+    audit it exists for. All three hold ids and clocks only."""
+    from intake_platform.db.models import Consent, Patient
+
+    seed_visit_with_sent_note(dsar)
+    dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient())
+    run(_execute(dsar, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert rows(dsar, Consent), "consent records are 10-year audit evidence (06 §3)"
+    assert rows(dsar, DsarRequest), "the request row is the DEST-2017 destruction record"
+    assert rows(dsar, Patient), "the pseudonym row anchors the retained evidence"
+    assert rows(dsar, Note) == [] and rows(dsar, Slot) == []
+
+
 def test_the_shred_run_closes_the_request_and_lands_in_the_audit_chain(
     dsar: ApiHarness,
 ) -> None:
