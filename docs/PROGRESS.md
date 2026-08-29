@@ -362,3 +362,9 @@
 ## 2026-08-29 — INT-223 merged (PR #295)
 - Minor & guardian rules landed fail-closed: age/actor resolution enforced inside ensure_consent (single enforcement point), typed 403 leaking neither DOB nor band, no DOB collected or persisted, every non-adult path guardian-gated, non-TR subjects refused rather than judged against TR thresholds, guardian_links behind a shut flag with awaiting-human basis/retention. Nine contested legal values refused and filed as HB-L20 for Turkish health-law counsel.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-059 merged (PR #299)
+- Triage golden suite: 206 goldens / 272 tests with the derivation held as data and asserted, 18/18 mutations detected, and the acceptance's broken-RED run proved on disk then reverted (16 failed / 20 errors → clean 255 after checkout). Adds the `make safety` target CLAUDE.md names, which did not exist.
+- Three findings recorded: base-RED edits are caught at build time by tighten_rule's verbatim parent pin (invariant 7 by construction); the rules file's own LT-01-N negative control cannot catch a gate loosening because its three-day anchor is masked by the tense guard (same-day near misses added); the route axis was nearly left unpinned — the first draft documented an assertion it did not make.
+- Honest headroom: no cluster or deep pack exists yet, so "clusters+deep" waits on INT-044..052/INT-061+.
+- LOOP_STATUS: CONTINUE
