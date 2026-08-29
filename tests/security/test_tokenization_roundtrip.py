@@ -13,7 +13,16 @@ import re
 from pathlib import Path
 
 import pytest
-from intake_platform.tokenization import Tokenizer
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from intake_platform.tokenization import (
+    DIGEST_HEX_LEN,
+    KEY_ID_SHAPE,
+    MAX_KEY_ID_LEN,
+    PSEUDONYM_MAX_LEN,
+    InvalidKeyIdError,
+    Tokenizer,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -74,6 +83,49 @@ def test_unknown_key_id_is_refused() -> None:
     tok = Tokenizer(keys=KEYS_V1, active_key_id="v1")
     with pytest.raises(KeyError):
         tok.pseudonym("12345678901", key_id="v9")
+
+
+# --- INT-228: the pseudonym's shape is a contract, not an observation -------------
+
+
+@pytest.mark.parametrize(
+    "bad_key_id",
+    ["", "has/slash", "has space", "-leading", "anahtarı", "v" * (MAX_KEY_ID_LEN + 1)],
+)
+def test_a_misshapen_key_id_is_refused_at_construction(bad_key_id: str) -> None:
+    """A key id rides inside every pseudonym derived under it, so an unbounded
+    one makes PSEUDONYM_MAX_LEN a lie and every downstream module that sized
+    itself against it wrong. Refused where the key set is assembled, not where
+    the pseudonym is used — the value is not echoed (invariant 6)."""
+    with pytest.raises(InvalidKeyIdError) as excinfo:
+        Tokenizer(keys={bad_key_id: b"unit-test-key"}, active_key_id=bad_key_id)
+    if bad_key_id:
+        assert bad_key_id not in str(excinfo.value)
+
+
+@settings(max_examples=50, deadline=None)
+@given(
+    key_id=st.from_regex(KEY_ID_SHAPE, fullmatch=True),
+    # synthetic identifiers only — digits and the punctuation _normalise strips
+    identifier=st.text(alphabet="0123456789 +-().", min_size=1, max_size=32),
+)
+def test_every_pseudonym_is_inside_the_published_bound(key_id: str, identifier: str) -> None:
+    """What downstream code is entitled to assume: whatever key id is
+    configured and whatever identifier arrives, the pseudonym is
+    ``<key_id>.<64 hex>`` and no longer than PSEUDONYM_MAX_LEN. The document
+    store sizes its object keys against exactly this."""
+    pseudonym = Tokenizer(keys={key_id: b"unit-test-key"}, active_key_id=key_id).pseudonym(
+        identifier
+    )
+    assert len(pseudonym) <= PSEUDONYM_MAX_LEN
+    assert re.fullmatch(rf"[A-Za-z0-9][A-Za-z0-9._-]*\.[0-9a-f]{{{DIGEST_HEX_LEN}}}", pseudonym)
+
+
+def test_the_bound_is_reachable_so_it_is_not_slack() -> None:
+    tok = Tokenizer(
+        keys={"v" * MAX_KEY_ID_LEN: b"unit-test-key"}, active_key_id="v" * MAX_KEY_ID_LEN
+    )
+    assert len(tok.pseudonym("12345678901")) == PSEUDONYM_MAX_LEN
 
 
 # --- the grep gate: no app table stores raw TCKN/phone ----------------------------
