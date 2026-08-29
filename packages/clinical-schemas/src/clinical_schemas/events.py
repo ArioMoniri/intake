@@ -1,5 +1,5 @@
 """Versioned event schemas (INT-031): csat.v1, nps.v1, clinician_pulse.v1,
-audit.v1, security.v1.
+wait.v1, audit.v1, security.v1.
 
 Satisfaction events are first-class events on Redis streams with a schema in
 ``packages/clinical-schemas/events`` (files/08 §8 observability pipeline);
@@ -91,6 +91,71 @@ class ClinicianPulseV1(FrozenModel):
     )
     score: int = Field(
         ge=1, le=5, description="Pulse score 1-5 (files/08 §4 group F clinician.pulse)."
+    )
+
+
+class WaitKind(enum.StrEnum):
+    """The wait intervals files/08 §4 group G names and INT-241's acceptance
+    enumerates. A closed set: a kind outside group G has no catalogue row, so
+    it has no honest way to be emitted (invariant 13)."""
+
+    TIME_TO_FIRST_QUESTION = "time_to_first_question"
+    NOTE_READY_AFTER_WRAPUP = "note_ready_after_wrapup"
+    DOCTOR_LINK_FIRST_OPEN = "doctor_link_first_open"
+    CHECKIN_TO_SEEN = "checkin_to_seen"
+    RECORDS_PROCESSING = "records_processing"
+
+
+class DocumentKind(enum.StrEnum):
+    """The ``document_type`` breakdown files/08 §4 G asks of
+    ``wait.records_processing_s``.
+
+    These are the THREE content types the ingest allow-list already accepts
+    (``intake_platform.documents.ALLOWED_CONTENT_TYPES``), renamed to a label
+    value. It is deliberately not a clinical document taxonomy — lab report,
+    discharge summary, prescription — because this repo has none and inventing
+    one here would be a value chosen once by an engineer for every future
+    reader. ``intake_platform.wait_times`` holds the mapping and a test fails
+    the build if the allow-list gains a type this enum does not cover.
+    """
+
+    PDF = "pdf"
+    JPEG = "jpeg"
+    PNG = "png"
+
+
+class WaitV1(FrozenModel):
+    """One completed wait interval (INT-241; files/08 §4 group G).
+
+    **A duration, not two instants.** The interval is reduced to a scalar
+    before it is written: instants plus a session id are a queue position that
+    correlates to a person, a duration is not. The row's own ``created_at``
+    still owns event time (the module convention above), which is what puts
+    the observation inside a rollup window.
+
+    **No free text and no minimum unit of one.** ``kind`` and
+    ``document_type`` are closed enumerations; ``duration_ms`` is a count of
+    milliseconds. There is nowhere for an identifier or a sentence to ride
+    (invariant 6), which is what lets the rollups read the payload directly.
+    """
+
+    schema_id: Literal["intake.clinical.wait.v1"] = Field(
+        default="intake.clinical.wait.v1",
+        description="Versioned event id per the TS schemaId convention.",
+    )
+    tenant_id: uuid.UUID = Field(description="Owning tenant (INT-030 events.tenant_id).")
+    kind: WaitKind = Field(
+        description="Which files/08 §4 group G interval this measures (closed set)."
+    )
+    duration_ms: int = Field(
+        ge=0,
+        description="Elapsed milliseconds between the interval's two instants, measured "
+        "on a monotonic clock. A count, never a wall-clock pair.",
+    )
+    document_type: DocumentKind | None = Field(
+        default=None,
+        description="Ingest content kind, for wait.records_processing_s only "
+        "(files/08 §4 G: 'by document type'). None for every other kind.",
     )
 
 
@@ -186,6 +251,7 @@ EVENT_MODELS: dict[str, type[FrozenModel]] = {
     "intake.clinical.csat.v1": CsatV1,
     "intake.clinical.nps.v1": NpsV1,
     "intake.clinical.clinician_pulse.v1": ClinicianPulseV1,
+    "intake.clinical.wait.v1": WaitV1,
     "intake.clinical.audit.v1": AuditV1,
     "intake.clinical.security.v1": SecurityV1,
 }

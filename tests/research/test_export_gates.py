@@ -28,6 +28,7 @@ text is not a claim this repo makes at all.
 
 from __future__ import annotations
 
+import ast
 import json
 import uuid
 from datetime import UTC, date, datetime, timedelta
@@ -893,13 +894,137 @@ def test_a_refused_export_is_audited_with_a_reason_class_and_nothing_else(
 # --- narrative is excluded, not scrubbed ------------------------------------------
 
 
-def test_the_research_package_reads_no_narrative_relation() -> None:
-    """The INT-171 boundary, restated for this package: notes, slots,
-    documents and transcripts are absent, and so is the query layer that
-    could reach them."""
-    sources = "\n".join(
-        path.read_text(encoding="utf-8") for path in sorted(RESEARCH_SRC.glob("*.py"))
+# The AST gates below replace an earlier substring scan, and the upgrade is
+# INT-172's (tests/learning/test_proposal_scope.py on int-172-learning, not yet
+# merged): a scan that greps source text misses `from x import Note as N`, an
+# aliased module, and a name that only ever appears as an attribute. Parsing is
+# not optional rigour here — the whole claim of this package is about what it
+# CANNOT reach.
+#
+# What is deliberately NOT copied is INT-172's transitive closure. That gate
+# suits a package that must never touch the ORM at all; this one must, because
+# evaluating the `research` consent scope means reading the consents table
+# through `consent_state`, whose own closure legitimately reaches
+# `intake_platform.db.models` — where `Note` and `Slot` also live. A transitive
+# ban would therefore be either false or vacuous. The honest boundary for this
+# package is narrower and is stated as three separate gates: a declared
+# first-party allow-list, no narrative NAME bound or touched anywhere, and no
+# query composed at all. The grant remains the real narrative boundary, exactly
+# as INT-171 recorded it.
+
+#: Every first-party module the research package may import. A new entry is a
+#: deliberate widening of what this code can reach, reviewable as one line.
+RESEARCH_IMPORT_ALLOW_LIST = frozenset(
+    {
+        "intake_platform.analytics",
+        "intake_platform.consent",
+        "intake_platform.consent.service",
+        "intake_platform.deid",
+        "intake_platform.research.artefact",
+        "intake_platform.research.extract",
+        "intake_platform.research.register",
+        "intake_platform.research.studies",
+        "intake_platform.research.values",
+        "intake_platform.retention",
+        "intake_platform.retention.policy",
+        "intake_platform.tokenization",
+    }
+)
+
+#: Names that would mean narrative had entered this package. `Note` and `Slot`
+#: are ORM models whose columns carry the patient's own words; `Document` and
+#: `CsatText` likewise. `cells_query` / `read_cells` are INT-171's ungated
+#: projection — the gated `materialise_view` is the only sanctioned read.
+FORBIDDEN_NAMES = frozenset(
+    {
+        "Note",
+        "Slot",
+        "Document",
+        "CsatText",
+        "Transcript",
+        "cells_query",
+        "read_cells",
+    }
+)
+
+#: Anything that composes or runs a query. This package holds its rows already.
+QUERY_CALLS = frozenset({"select", "text", "execute", "scalars", "scalar", "stream"})
+
+
+def research_modules() -> list[tuple[Path, ast.Module]]:
+    return [
+        (path, ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))
+        for path in sorted(RESEARCH_SRC.glob("*.py"))
+    ]
+
+
+def imported_modules(tree: ast.Module) -> set[str]:
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            found.add(node.module)
+    return found
+
+
+def test_the_scan_walks_a_real_corpus() -> None:
+    """A gate over an empty corpus passes vacuously. Pin that it is not."""
+    modules = research_modules()
+    assert len(modules) >= 5, "the research package lost modules — the AST gates below are vacuous"
+
+
+def test_the_research_package_imports_nothing_outside_its_allow_list() -> None:
+    for path, tree in research_modules():
+        first_party = {m for m in imported_modules(tree) if m.split(".")[0].startswith("intake_")}
+        unexpected = sorted(first_party - RESEARCH_IMPORT_ALLOW_LIST)
+        assert unexpected == [], f"{path.name} reaches an undeclared module: {unexpected}"
+
+
+def test_the_research_package_binds_or_touches_no_narrative_name() -> None:
+    """Not a substring scan: an aliased import (`import Note as N`) and a name
+    used only as an attribute both fail a grep and are caught here."""
+    for path, tree in research_modules():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    assert alias.name not in FORBIDDEN_NAMES, f"{path.name} imports {alias.name!r}"
+            elif isinstance(node, ast.Attribute):
+                assert node.attr not in FORBIDDEN_NAMES, (
+                    f"{path.name} touches attribute {node.attr!r}"
+                )
+            elif isinstance(node, ast.Name):
+                assert node.id not in FORBIDDEN_NAMES, f"{path.name} names {node.id!r}"
+
+
+def test_the_research_package_composes_no_query_of_its_own() -> None:
+    """The one database read this package performs goes through
+    `consent_state`, which owns its own statement. Anything else would be a
+    second read path with no consent check in front of it (invariant 4)."""
+    for path, tree in research_modules():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+            assert name not in QUERY_CALLS, f"{path.name} composes a query: {name}()"
+
+
+def test_the_gate_would_catch_a_narrative_import(tmp_path: Path) -> None:
+    """Near-miss negative control: the gates above pass on the real package, so
+    prove they can fail. An aliased import is the case a grep would miss."""
+    planted = tmp_path / "leaky.py"
+    planted.write_text(
+        "from intake_platform.db.models import Note as _N\n\n\ndef f() -> object:\n    return _N\n",
+        encoding="utf-8",
     )
-    for forbidden in ("cells_query", "read_cells", "Note", "Slot", "Document", "csat_texts"):
-        assert f"import {forbidden}" not in sources
-    assert "select(" not in sources, "the research package builds no query of its own"
+    tree = ast.parse(planted.read_text(encoding="utf-8"))
+    bound = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    assert bound & FORBIDDEN_NAMES == {"Note"}
+    first_party = {m for m in imported_modules(tree) if m.split(".")[0].startswith("intake_")}
+    assert sorted(first_party - RESEARCH_IMPORT_ALLOW_LIST) == ["intake_platform.db.models"]
