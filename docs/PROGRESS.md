@@ -428,3 +428,18 @@
 - Deviation endorsed: no family declares a register or action block. Invariant 21 binds RED rules; no family is RED yet, and a register chosen by an engineer before the acuity exists is exactly the default the invariant forbids. The gate is proved by a test that promotes a family to KIRMIZI_K2 and asserts the compiler then demands the register and all three locations.
 - Four DSL gaps reported: no English field, no priority-class field (13 §14.13's gatekeeper promotion is inexpressible), no fast/detailed mode marker, and no datetime type — so a stroke window has no exact representation.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-060 merged (PR #319)
+- Clip cache builder: make clips VOICE=<id> walks the compiled manifest, synthesises each scripted string and stores Opus in MinIO under the manifest's own key. 151 tests at 100% line and branch; verified live against compose MinIO (13 rows → 13 objects, keys identical, objects start OggS).
+- Key parity is structural rather than asserted: the builder carries no hasher at all, and two AST scans prove no hashlib, no sha* attribute and no tr-orthography helper is reachable from the package. A builder that re-derived the key with different normalisation would miss the cache at runtime; now it cannot.
+- Silence trimmed at build time, where invariant 21 says it belongs: bounds asserted on the DECODED STORED clip because encoder priming adds samples an intermediate buffer would not show. INT-243's 3000 ms RED shape becomes 659.6 ms at 19.9 / 24.5 ms.
+- LICENCE FINDING: PyAV rejected — its wheel's libavcodec link-edits GPL libx264/libx265 while avcodec_license() self-reports LGPL, via a packaging patch upstream configure refuses to produce, and it ships no licence blob for any bundled binary. Switched to soundfile (BSD-3 + LGPL-2.1, blobs shipped and sha256'd) and recorded so it is not re-proposed.
+- Two guards were hit and NEITHER weakened: the protocols package is I/O-free and audio-free by construction, so the code moved to a new packages/voice-clips workspace package (git diff on packages/protocols is empty). The INT-090 audio ban list was then STRENGTHENED — six more libraries banned, one enumerated per-file grant, and the allow-list test became an equality pin so a second grant cannot slip in.
+- Unblocks INT-091, the Talker.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-202 merged (PR #321), status stays doing
+- Encrypted PITR, replication and the drill land as a standalone profile-gated overlay; infra/docker-compose.dev.yml diff vs main is zero lines and a test asserts it.
+- The drill itself did NOT run: make backup-drill exits 3 — 11 GiB free against 80 needed, 0 GiB container memory against 22. Blocked against HB-I1/HB-I2, no RTO figure produced, the drill was not shrunk to fit, acceptance box unchecked, issue stays doing.
+- HB-I8 raised, and it reaches beyond this issue: a backup OUTLIVES the crypto-shredding it is subject to, so a restore can resurrect an erased subject — KVKK-7 / DEST-2017, not an ops preference. files/10 §3 states RPO and RTO but no retention, and 06 §3's matrix has no row for backup copies at all. Meanwhile the repository expires nothing (loses nothing) and the drill refuses to run without an explicit retention value rather than choosing one. Second question in the row: "a second location in Türkiye" names no site, provider or region, so the DR endpoint has no default and minio-dr is labelled a stand-in.
+- LOOP_STATUS: CONTINUE

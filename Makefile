@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile chaos load safety
+.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -24,11 +24,12 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src services/api/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src services/api/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
+	uv run pytest tests/voice --cov=packages/voice-clips/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
@@ -66,6 +67,17 @@ coverage-matrix:
 protocols-compile:
 	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
 	uv run protocols compile --pack $(PACK) --voice $(VOICE)
+
+# INT-060: pre-synthesise the compiled clip manifests for one voice into the
+# MinIO clip cache (files/03 §4.9.1 row 10, keyed sha256(text_tr, voice_id)).
+# VOICE is required and has no default, like protocols-compile: the key is
+# per-voice, so a default would silently build somebody else's cache. The TTS
+# source is also never guessed — set exactly one of INTAKE_TTS_ENDPOINT (a
+# self-hosted lane) or INTAKE_TTS_RECORDED_DIR (recorded responses; the CI and
+# no-GPU dev path). Refuses on today's tree: no pack compiles yet (HB-C1).
+clips:
+	@test -n "$(VOICE)" || { echo "usage: make clips VOICE=<voice_id>"; exit 2; }
+	uv run intake-clips --voice $(VOICE)
 
 # INT-238: the clamav profile belongs to `dev`, not only to
 # check-integration. Document ingest fails closed without a scanner, so a dev

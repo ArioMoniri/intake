@@ -8,9 +8,22 @@ policy loader refuses one). This file guards the layers below the policy:
   services/ (the INT-025 metrics-gate house style). No source may import an
   audio-file library, carry a string literal ending in an audio file
   extension (a filename or object key someone could write to), or carry an
-  ``audio/*`` content-type literal (an object-store put). The allow-list
-  below is empty; extending it requires an invariant-3 justification in the
-  PR and CODEOWNER review.
+  ``audio/*`` content-type literal (an object-store put). The two allow-lists
+  below are enumerated per file; extending either requires an invariant-3
+  justification in the PR and CODEOWNER review.
+
+  INT-060 is the exception this file's original text anticipated — "the clip
+  cache (agent-voice TTS output, files/03 §4.2) is the only anticipated
+  candidate". It is granted narrowly and the gate got *stronger* in the same
+  change: ``av``, ``opuslib``, ``pyogg``, ``miniaudio`` and ``ffmpeg`` joined
+  the banned list, so the one module allowed to encode agent speech is allowed
+  exactly one encoder and every other route stays shut. The grant is sound
+  because a protocol clip is not patient audio: it is the agent reading a
+  scripted Turkish string that is already committed to this repository in
+  plain text, synthesised at build time with no session and no microphone
+  anywhere in the process (files/03 §4.6 invariant 9). Invariant 3 governs the
+  patient's voice, and nothing under ``packages/voice-clips`` can reach it —
+  there is no capture path there to reach it with.
 - **livekit config**: infra/livekit/livekit-dev.yaml keeps recording
   structurally impossible, not merely off — no redis block (egress/ingress
   workers register over the redis bus; without it a recording request has
@@ -76,14 +89,30 @@ AUDIO_IO_MODULES = frozenset(
         "pyaudio",
         "sounddevice",
         "scipy.io.wavfile",
+        # INT-060 additions. Each is a codec or capture route that would let a
+        # future module write audio without tripping any name above.
+        "av",
+        "opuslib",
+        "pyogg",
+        "miniaudio",
+        "ffmpeg",
+        "imageio_ffmpeg",
     }
 )
 
-#: repo-relative path -> literals it is allowed to carry. Empty by design;
-#: any entry needs an invariant-3 justification and CODEOWNER review, and the
-#: clip cache (agent-voice TTS output, files/03 §4.2) is the only anticipated
-#: candidate.
-ALLOWED_AUDIO_LITERALS: dict[str, frozenset[str]] = {}
+#: The one module allowed to encode agent speech, and the encoder it may use.
+CLIP_ENCODER = "packages/voice-clips/src/voice_clips/audio.py"
+
+#: The one module allowed to name the clip content type on an object-store put.
+CLIP_STORE = "packages/voice-clips/src/voice_clips/cache.py"
+
+#: repo-relative path -> audio I/O modules it may import (INT-060).
+ALLOWED_AUDIO_IMPORTS: dict[str, frozenset[str]] = {CLIP_ENCODER: frozenset({"soundfile"})}
+
+#: repo-relative path -> literals it is allowed to carry (INT-060). The clip
+#: bucket stores Ogg/Opus and the put must declare it; every other file in the
+#: tree still carries none.
+ALLOWED_AUDIO_LITERALS: dict[str, frozenset[str]] = {CLIP_STORE: frozenset({"audio/ogg"})}
 
 
 def _module_names(node: ast.Import | ast.ImportFrom) -> list[str]:
@@ -106,10 +135,13 @@ def audio_findings(label: str, source: str) -> list[str]:
     """Every audio write/read path a Python source exposes, as strings."""
     findings: list[str] = []
     allowed = ALLOWED_AUDIO_LITERALS.get(label, frozenset())
+    allowed_imports = ALLOWED_AUDIO_IMPORTS.get(label, frozenset())
     tree = ast.parse(source, filename=label)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import | ast.ImportFrom):
             for name in _module_names(node):
+                if name in allowed_imports:
+                    continue
                 if _is_forbidden_module(name):
                     findings.append(f"{label}:{node.lineno}: audio I/O import {name!r}")
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -162,9 +194,32 @@ class TestNoAudioWritePathInCode:
         ]
         assert offenders == []
 
-    def test_the_allow_list_is_empty(self) -> None:
-        """Growing it is a reviewed decision, never a drive-by."""
-        assert ALLOWED_AUDIO_LITERALS == {}
+    def test_the_allow_lists_hold_exactly_the_clip_cache_grant(self) -> None:
+        """Growing either is a reviewed decision, never a drive-by.
+
+        Was ``ALLOWED_AUDIO_LITERALS == {}`` until INT-060, which is the entry
+        this file's own text named in advance. Pinned by equality rather than
+        by size so a second file, a second literal or a second encoder cannot
+        be added without editing this assertion and explaining why.
+        """
+        assert ALLOWED_AUDIO_IMPORTS == {CLIP_ENCODER: frozenset({"soundfile"})}
+        assert ALLOWED_AUDIO_LITERALS == {CLIP_STORE: frozenset({"audio/ogg"})}
+
+    def test_the_granted_files_exist_and_are_the_clip_cache(self) -> None:
+        """A grant to a path that no longer exists is a grant nobody notices."""
+        for label in (CLIP_ENCODER, CLIP_STORE):
+            path = REPO / label
+            assert path.is_file(), f"{label} is allow-listed but absent"
+            assert "voice_clips" in path.parts
+
+    def test_the_grant_does_not_leak_to_the_rest_of_the_clip_package(self) -> None:
+        """Only the encoder may import one, and only the store may name one."""
+        package = REPO / "packages" / "voice-clips" / "src" / "voice_clips"
+        for path in sorted(package.rglob("*.py")):
+            label = str(path.relative_to(REPO))
+            if label in {CLIP_ENCODER, CLIP_STORE}:
+                continue
+            assert audio_findings(label, path.read_text(encoding="utf-8")) == []
 
     # --- near-miss negative controls: the scanner itself is under test -------------
 
@@ -203,6 +258,19 @@ class TestNoAudioWritePathInCode:
             assert audio_findings("packages/y/other.py", source) != []
         finally:
             del ALLOWED_AUDIO_LITERALS["packages/x/clips.py"]
+
+    def test_the_import_allow_list_is_honoured_per_file_and_per_module(self) -> None:
+        source = "import soundfile\nimport pydub\n"
+        assert audio_findings(CLIP_ENCODER, source) == [
+            f"{CLIP_ENCODER}:2: audio I/O import 'pydub'"
+        ]
+        assert len(audio_findings("packages/y/other.py", source)) == 2
+
+    def test_the_new_encoders_are_caught_everywhere_else(self) -> None:
+        source = "import av\nimport opuslib\nfrom pyogg import OpusEncoder\n"
+        findings = audio_findings("packages/y/other.py", source)
+        for name in ("'av'", "'opuslib'", "'pyogg'"):
+            assert any(name in finding for finding in findings), name
 
 
 def _config() -> dict[str, Any]:
