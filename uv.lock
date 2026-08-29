@@ -19,6 +19,7 @@ members = [
     "intake-probes",
     "intake-protocols",
     "intake-voice-clips",
+    "intake-voice-runtime",
 ]
 
 [[package]]
@@ -792,6 +793,7 @@ dependencies = [
     { name = "intake-probes" },
     { name = "intake-protocols" },
     { name = "intake-voice-clips" },
+    { name = "intake-voice-runtime" },
 ]
 
 [package.dev-dependencies]
@@ -819,6 +821,7 @@ requires-dist = [
     { name = "intake-probes", editable = "services/probes" },
     { name = "intake-protocols", editable = "packages/protocols" },
     { name = "intake-voice-clips", editable = "packages/voice-clips" },
+    { name = "intake-voice-runtime", editable = "services/voice-runtime" },
 ]
 
 [package.metadata.requires-dev]
@@ -990,6 +993,29 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "soundfile", specifier = ">=0.13" },
+]
+
+[[package]]
+name = "intake-voice-runtime"
+version = "0.1.0"
+source = { editable = "services/voice-runtime" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "intake-clinical-schemas" },
+    { name = "intake-platform" },
+    { name = "intake-protocols" },
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "intake-protocols", editable = "packages/protocols" },
+    { name = "prometheus-client", specifier = ">=0.20" },
+    { name = "pydantic", specifier = ">=2.8" },
 ]
 
 [[package]]

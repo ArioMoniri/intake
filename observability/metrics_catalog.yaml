@@ -450,8 +450,10 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "p50 <= 2 s"
-    status: planned
-    description: Wait until a safe insertion window delivers Backend speech.
+    status: live
+    description: >-
+      Wait until a safe insertion window delivered Backend speech. Emitted by
+      intake_voice_runtime.talker.insertion (INT-091).
   - name: delivery_retries
     id: delivery.retries
     type: counter
@@ -485,8 +487,11 @@ metrics:
     owner: voice-runtime
     unit: "count"
     target: "only the six Talker tool names (any other name alerts)"
-    status: planned
-    description: Talker tool calls by tool name (inv. 9).
+    status: live
+    description: >-
+      Talker tool calls by tool name (inv. 9). Emitted by
+      intake_voice_runtime.talker.registry (INT-091); the registry is sealed at
+      six, so a seventh label can only appear if the surface grew.
   # --- files/08 §4 D. Clinical quality
   - name: note_acceptance_rate
     id: note.acceptance_rate
@@ -605,8 +610,12 @@ metrics:
     labels: [class, profile]
     owner: safety
     unit: "count"
-    status: planned
-    description: PolicyGuard blocks by violation class and profile.
+    status: live
+    description: >-
+      PolicyGuard blocks by violation class and voice profile. Emitted by
+      intake_voice_runtime.talker.policy_guard (INT-091); scripted text is
+      reported, never blocked (files/03 §4.6 invariant 7), so it never
+      increments this counter.
   - name: policyguard_retractions_total
     id: policyguard.retractions_total
     type: counter

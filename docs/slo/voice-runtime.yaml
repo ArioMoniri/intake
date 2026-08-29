@@ -1,0 +1,50 @@
+# docs/slo/voice-runtime.yaml — SLOs for services/voice-runtime (INT-091;
+# CLAUDE.md invariant 15; files/10 §6).
+#
+# Same conventions as docs/slo/api.yaml (schema: intake_platform.slo.SLOFile):
+# the SLI is the error ratio over a [5m] rate, and the burn-rate policy is the
+# one files/10 §6 pins — page at 14.4x/1h and 6x/6h, ticket at 1x/3d.
+#
+# One SLO today, deliberately. The service's *interesting* objectives are
+# per-turn — voice.round_trip_ms, preempt.red_latency_ms, delivery.duplicates
+# (files/08 §4 group B) — and every one of them needs the agent worker to be
+# running a real session against a real LiveKit tier. INT-091 lands Layer A
+# behind ports whose production bindings do not exist yet (the clip byte store
+# is INT-060, the self-hosted TTS adapter INT-095, the room-token route
+# INT-103), so those series carry no data and an objective written against
+# them would be an objective nobody could breach. They join this file with the
+# issue that makes them measurable — INT-094 for the latency harness and
+# INT-095 for the on-hardware turn. What *is* measurable today is the HTTP
+# surface this service already exposes, which is what availability covers.
+#
+# files/08 §4 A names slo.voice_session_success at 99.5 %; that is a session
+# objective, not an HTTP one, and it arrives with the session metrics.
+service: voice-runtime
+owner: voice-runtime
+slos:
+  - name: availability
+    sli: >-
+      sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[5m]))
+      /
+      sum(rate(http_requests_total{service="voice-runtime"}[5m]))
+    objective: 99.5
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket
