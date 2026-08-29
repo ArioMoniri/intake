@@ -365,9 +365,13 @@ def test_the_text_row_cascades_away_with_its_session_and_with_its_event(
         )
         conn.execute(
             text(
+                # attribution is NOT NULL as of INT-133 and this is a RAW
+                # insert, so the ORM-side default never runs — supply it.
                 "INSERT INTO sessions (id, tenant_id, patient_id, protocol_id,"
-                " protocol_version, status, started_at)"
-                " VALUES (:i, :t, :p, 'x', 'y', 'created', CURRENT_TIMESTAMP)"
+                " protocol_version, status, started_at, attribution,"
+                " third_party_present)"
+                " VALUES (:i, :t, :p, 'x', 'y', 'created', CURRENT_TIMESTAMP,"
+                " 'self_report', 0)"
             ),
             {"i": session_id.hex, "t": tenant_id.hex, "p": patient_id.hex},
         )
