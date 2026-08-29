@@ -116,6 +116,11 @@ async def read_note(visit_id: uuid.UUID, principal: Principal, state: State) -> 
             sections=list(sections),
             scopes=scopes,
             status="sent" if share is not None else "draft",
+            # INT-133 / files/06 §6 — projected from the session, so the
+            # clinician reading a shared note sees the same flag the visit
+            # carries. Never stored a second time (it cannot drift).
+            proxy_reported=record.proxy_reported,
+            third_party_present=record.third_party_present,
         )
 
 
@@ -129,7 +134,7 @@ async def write_note(
 ) -> NoteOut:
     patient, patient_id = require_patient(principal)
     async with tenant_session(state.engine, patient.tenant_id) as session:
-        await _own_visit(session, patient, visit_id)
+        record = await _own_visit(session, patient, visit_id)
 
         note = await store.upsert_note(
             session,
@@ -177,6 +182,8 @@ async def write_note(
             sections=payload.sections,
             scopes=payload.scopes,
             status="sent" if sent else "draft",
+            proxy_reported=record.proxy_reported,
+            third_party_present=record.third_party_present,
         )
 
 
