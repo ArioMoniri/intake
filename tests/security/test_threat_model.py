@@ -21,12 +21,12 @@ Three groups:
 
 from __future__ import annotations
 
-import re
 import subprocess
 import sys
 from pathlib import Path
 
 import yaml
+from intake_platform.legal import claims
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts" / "ci" / "check_sec_row_linkage.py"
@@ -201,24 +201,29 @@ def test_runbook_bans_phi_in_incident_communications() -> None:
 
 
 # --- no performance-claim language in docs/security/ ---------------------------
+#
+# INT-224 moved the vocabulary into intake_platform.legal.claims. It used to be
+# a private tuple here; a store listing is the artefact invariant 20 names last,
+# so the gate had to become one pattern set in one place rather than a habit
+# repeated per tree. The groups this tree scans with are unchanged — the named
+# metrics, the satisfaction figures, and INT-020's bare-percentage heuristic,
+# which stays scoped to docs/security for the reason claims.py records.
 
-CLAIM_PATTERNS: tuple[str, ...] = (
-    r"\d\s*%",
-    r"(?i)\bsensitivit",
-    r"(?i)\bspecificit",
-    r"(?i)\bAUROC\b",
-    r"(?i)\bAUC\b",
-    r"(?i)\bWER\b",
-    r"(?i)\baccurac",
-    r"(?i)\bF1[- ]score\b",
+CLAIM_GROUPS: tuple[str, ...] = next(
+    tree.groups for tree in claims.SCANNED_TREES if tree.path == "docs/security"
 )
 
 
 def test_security_docs_carry_no_performance_claims() -> None:
     for doc in (MODEL, RUNBOOK):
         assert doc.is_file(), f"{doc} is missing"
-        for n, line in enumerate(doc.read_text(encoding="utf-8").splitlines(), 1):
-            for pattern in CLAIM_PATTERNS:
-                assert not re.search(pattern, line), (
-                    f"{doc.name}:{n} matches claim pattern {pattern!r}: {line!r}"
-                )
+        hits = claims.scan_file(doc, CLAIM_GROUPS, relative_to=REPO)
+        assert hits == (), "\n".join(
+            f"{hit.path}:{hit.line_no} matches claim pattern {hit.pattern!r}: {hit.line!r}"
+            for hit in hits
+        )
+
+
+def test_the_whole_security_tree_is_scanned_not_only_the_two_named_documents() -> None:
+    hits = claims.scan_tree(REPO / "docs" / "security", CLAIM_GROUPS, relative_to=REPO)
+    assert hits == (), "\n".join(f"{hit.path}:{hit.line_no} [{hit.pattern}]" for hit in hits)
