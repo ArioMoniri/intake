@@ -210,14 +210,6 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 #:   jargon    — the length arm of the same check; see B1_LENGTH_FINDINGS.
 POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset(
     {
-<<<<<<< HEAD
-        ("diagnosis", "app.disclaimer"),
-        # INT-246 — a LIVE demonstration of the sen-detector defect INT-248 is
-        # verifying: "Ana makinede kontrol edin" is the POLITE imperative, and
-        # the pattern matches its `edin` ending as second-person-singular
-        # address. The string is also __DEV__-only and never reaches a patient.
-        ("register", "devVoice.hint"),
-=======
         # The ONLY survivor of INT-248, and the one entry that may be a real
         # copy finding rather than a guard artefact: INT-253's B1 audit
         # independently flagged this same string as the catalogue's single
@@ -225,7 +217,6 @@ POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset(
         # different checks disliking one string is a signal, not noise.
         # Left recorded for the copy owner; not rewritten here, because
         # welcome copy is product voice and this issue is guard precision.
->>>>>>> origin/main
         ("jargon", "welcome.body"),
     }
 )
