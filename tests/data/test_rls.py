@@ -50,6 +50,7 @@ TENANT_SCOPED = (
     "slots",
     "notes",
     "consents",
+    "guardian_links",
     "shares",
     "documents",
     "events",

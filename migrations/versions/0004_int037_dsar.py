@@ -17,7 +17,7 @@ No clinician read policy on either: a rights request is between the data
 subject and the controller. ``clinician_ro`` gets no grant at all, which is
 the difference between "not selected" and "not selectable".
 
-Revision ID: 0003_int037
+Revision ID: 0004_int037
 Revises: 0002_int038
 """
 
@@ -27,8 +27,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
-revision = "0003_int037"
-down_revision = "0002_int038"
+revision = "0004_int037"
+down_revision = "0003_int223"
 branch_labels = None
 depends_on = None
 

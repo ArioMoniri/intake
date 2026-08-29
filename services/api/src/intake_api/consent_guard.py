@@ -21,6 +21,15 @@ Refusals are a typed 403 naming the missing purpose id and NOTHING else
 given — is treated as absent and audited as ``consent.stale`` (re-prompt on
 change); a plain absence is not audited, because a refused read is not a
 read (tests/api/test_visits.py pins that).
+
+**INT-223 — the age/guardian gate runs here too**, not beside it. Before the
+ledger is consulted, ``ensure_consent`` resolves the subject's age context
+(``intake_api.age_context``) and asks the rules engine
+(``intake_platform.consent.minors``) which actor must hold the consent. A
+minor's own grant therefore cannot unlock a scope the guardian has to hold,
+and there is no second refusal path to keep in step with this one
+(invariant 4). The refusal is the engine's own code in a 403 carrying
+``{error, scope}`` and nothing derived from the date of birth (invariant 6).
 """
 
 from __future__ import annotations
@@ -28,16 +37,18 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from fastapi import Depends, FastAPI, params
 from fastapi.routing import APIRoute
 from intake_platform.consent import consent_state, resolve_scope
+from intake_platform.consent.minors import resolve_consent_actor
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from intake_api.auth import Principal
 from intake_api.db import tenant_session
-from intake_api.errors import consent_required
+from intake_api.errors import age_gate_refused, consent_required
 from intake_api.state import State
 
 if TYPE_CHECKING:
@@ -48,15 +59,22 @@ __all__ = [
     "DATA_SUBJECT_RIGHT_PREFIX",
     "META_ROUTES",
     "PRE_AUTH_PREFIX",
+    "REFERENCE_DATA_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
     "consent_management",
     "consent_management_routes",
+<<<<<<< HEAD
     "data_subject_right",
     "data_subject_right_routes",
+=======
+    "ensure_age_actor",
+>>>>>>> origin/main
     "ensure_consent",
     "pre_auth",
     "pre_auth_routes",
+    "reference_data",
+    "reference_data_routes",
     "require_scopes",
     "route_policies",
     "unguarded_data_routes",
@@ -92,6 +110,30 @@ class ConsentPolicy:
             resolve_scope(scope)  # typos and de-listed purposes fail at import
 
 
+async def ensure_age_actor(
+    session: AsyncSession,
+    *,
+    state: ApiState,
+    tenant_id: uuid.UUID,
+    patient_id: uuid.UUID,
+    scope: str,
+) -> None:
+    """INT-223 — the age axis of the same enforcement point.
+
+    Refuses when the rules engine says this subject may not be served on the
+    age axis at all: an under-18 whose guardian must hold the consent, a date
+    of birth that is not verified, a jurisdiction we do not encode. Runs
+    BEFORE the ledger so a minor's own grant cannot answer for the guardian's.
+    """
+    context = await state.age_context.resolve(session, tenant_id=tenant_id, patient_id=patient_id)
+    decision = resolve_consent_actor(context, scope=scope, on=datetime.now(UTC).date())
+    if decision.permitted:
+        return
+    # refusal_code is always present on a refusal (the engine sets both
+    # together); the fallback keeps the refusal total rather than optional.
+    raise age_gate_refused(decision.refusal_code or "guardian_consent_required", scope)
+
+
 async def ensure_consent(
     session: AsyncSession,
     *,
@@ -102,7 +144,11 @@ async def ensure_consent(
     actor: str,
 ) -> None:
     """The one enforcement point (invariant 4): route code and the guard
-    both come through here, so staleness handling cannot fork."""
+    both come through here, so staleness handling — and, since INT-223, the
+    age/guardian gate — cannot fork."""
+    await ensure_age_actor(
+        session, state=state, tenant_id=tenant_id, patient_id=patient_id, scope=scope
+    )
     decision = await consent_state(
         session,
         tenant_id=tenant_id,
@@ -201,6 +247,7 @@ def consent_management() -> params.Depends:
     return dependency
 
 
+<<<<<<< HEAD
 class DataSubjectRightDeclaration:
     """Explicit declaration that a route IS the exercise of a statutory
     data-subject right (INT-037: KVKK m.11 access/rectify/erasure, answered
@@ -219,11 +266,25 @@ class DataSubjectRightDeclaration:
     patient-only (``require_patient``), act on the requesting subject's own
     rows, and audit every action against the ``basis:KVKK-11/13`` reference.
     """
+=======
+class ReferenceDataDeclaration:
+    """Explicit declaration that a route serves REFERENCE DATA only
+    (INT-134): a versioned projection of a committed artefact — the branch
+    taxonomy — that contains no patient data at all. Consent scopes attach
+    to a data subject's clinical data; demanding one here would over-claim
+    (and would block the picker before the patient has granted anything).
+    Same class as pre_auth and consent_management: the route cannot enforce
+    a scope, but it may not stay silent either — the scan accepts this
+    marker ONLY under REFERENCE_DATA_PREFIX (as a path segment, not a
+    substring), so a data route elsewhere cannot borrow it. Authentication
+    is unchanged: the route still requires a principal."""
+>>>>>>> origin/main
 
     async def __call__(self) -> None:
         return
 
 
+<<<<<<< HEAD
 #: The only prefix where a data-subject-right declaration is accepted.
 DATA_SUBJECT_RIGHT_PREFIX = "/v1/me/dsar"
 
@@ -232,6 +293,15 @@ def data_subject_right() -> params.Depends:
     """Declare a route as a statutory data-subject right (see
     DataSubjectRightDeclaration)."""
     dependency: params.Depends = Depends(DataSubjectRightDeclaration())
+=======
+#: The only prefix where a reference-data declaration is accepted.
+REFERENCE_DATA_PREFIX = "/v1/taxonomy"
+
+
+def reference_data() -> params.Depends:
+    """Declare a route as reference data (see ReferenceDataDeclaration)."""
+    dependency: params.Depends = Depends(ReferenceDataDeclaration())
+>>>>>>> origin/main
     return dependency
 
 
@@ -287,21 +357,35 @@ def _is_consent_management(route: APIRoute) -> bool:
     )
 
 
+<<<<<<< HEAD
 def _is_data_subject_right(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, DataSubjectRightDeclaration)
+=======
+def _is_reference_data(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, ReferenceDataDeclaration)
+>>>>>>> origin/main
         for dependency in route.dependencies
     )
 
 
+<<<<<<< HEAD
 def _under_prefix(path: str, prefix: str) -> bool:
     """Segment-boundary match: the prefix itself and ``<prefix>/...`` qualify;
     a lookalike like ``/v1/consentsish`` does not."""
     return path == prefix or path.startswith(prefix + "/")
 
 
+=======
+>>>>>>> origin/main
 def _under_consent_management_prefix(path: str) -> bool:
     return _under_prefix(path, CONSENT_MANAGEMENT_PREFIX)
+
+
+def _under_reference_data_prefix(path: str) -> bool:
+    """Segment-boundary match, same rule as the consent-management cage."""
+    return path == REFERENCE_DATA_PREFIX or path.startswith(REFERENCE_DATA_PREFIX + "/")
 
 
 def pre_auth_routes(app: FastAPI) -> list[str]:
@@ -326,6 +410,7 @@ def consent_management_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+<<<<<<< HEAD
 def data_subject_right_routes(app: FastAPI) -> list[str]:
     """Every route carrying the statutory-right declaration, for the pin test
     (INT-037) — reported wherever it appears; whether the scan ACCEPTS it is
@@ -333,6 +418,15 @@ def data_subject_right_routes(app: FastAPI) -> list[str]:
     marked: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if _is_data_subject_right(route):
+=======
+def reference_data_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the reference-data declaration, for the pin
+    test (INT-134) — reported wherever it appears; whether the scan ACCEPTS
+    it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_reference_data(route):
+>>>>>>> origin/main
             for method in sorted(route.methods or ()):
                 marked.append(f"{method} {path}")
     return sorted(marked)
@@ -341,6 +435,7 @@ def data_subject_right_routes(app: FastAPI) -> list[str]:
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
+<<<<<<< HEAD
     land undeclared (silence always fails). Three markers exist, each caged to
     its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
     principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
@@ -348,6 +443,15 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     DATA_SUBJECT_RIGHT_PREFIX (INT-037, the statutory rights whose basis is
     legal obligation rather than consent). A marker outside its prefix does
     NOT count as a declaration (the route is reported here instead)."""
+=======
+    land undeclared (silence always fails). Three markers exist, each caged
+    to its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
+    principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
+    (INT-232, the routes ABOUT consent) and reference_data under
+    REFERENCE_DATA_PREFIX (INT-134, versioned artefact projections holding
+    no patient data). Any marker outside its prefix does NOT count as a
+    declaration (the route is reported here instead)."""
+>>>>>>> origin/main
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -356,7 +460,11 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
             continue
         if _is_consent_management(route) and _under_consent_management_prefix(path):
             continue
+<<<<<<< HEAD
         if _is_data_subject_right(route) and _under_prefix(path, DATA_SUBJECT_RIGHT_PREFIX):
+=======
+        if _is_reference_data(route) and _under_reference_data_prefix(path):
+>>>>>>> origin/main
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

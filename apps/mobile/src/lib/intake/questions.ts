@@ -19,17 +19,33 @@
  * repeats that order globally, so the note builder's HPI lines always
  * follow the interview (questions.test.ts pins this).
  *
- * Adaptive flow (INT-236): `askIf` MIRRORS the DSL's `ask_if` gate on
- * packages/protocols/src/protocols/dsl.py `Slot` — a serializable DATA
- * predicate, never a function — so the compiled packs (INT-096) slot into
- * the same flow machinery without any UX change. The dev tier carries only
- * the structurally-obvious gates (a question that literally asks about the
- * pain is gated on the complaint including pain); every gate that needs
- * clinical judgment belongs to the physician-gated protocol chain, not
- * here. `applicableQuestions` / `nextApplicableQuestion` /
- * `missingQuestions` are the shared flow layer: StepFlow, the voice-first
- * prefill and any dialogue engine consuming `packForDepartment` all gate
- * through them.
+ * Adaptive flow (INT-236, deepened in INT-239): `askIf` MIRRORS the DSL's
+ * `ask_if` gate on packages/protocols/src/protocols/dsl.py `Slot` — a
+ * serializable DATA predicate, never a function — so the compiled packs
+ * slot into the same flow machinery without any UX change.
+ *
+ * THE ONE RULE FOR ADDING A GATE HERE: a gated question may only ask for a
+ * further detail of something the patient has ALREADY named — the
+ * character of the pain they reported, which side the spreading they
+ * reported goes to, what happens when they swallow given they placed the
+ * pain in the throat. No gate in this file encodes danger, severity, a
+ * threshold or a differential; deciding that a question must be asked
+ * *because a symptom might be dangerous* is clinical judgment and belongs
+ * to the sourced chain — the L0 scaffolds and the protocol compiler
+ * (INT-057/INT-041), reviewed by a CODEOWNER against a guideline snapshot.
+ * These packs ASK; they never triage (invariant 1). What was deliberately
+ * NOT invented here is listed for pack owners in docs/evidence/INT-239.md.
+ *
+ * Gates chain: a level-two follow-up is gated on a question that is itself
+ * gated (complaint ⊇ pain → radiation → radiation_side). The compiler's
+ * stratified-acyclicity rule (files/13 §9.5) is mirrored at the dev tier by
+ * questions.test.ts: a gate may only reference a question EARLIER in the
+ * same pack.
+ *
+ * `applicableQuestions` / `nextApplicableQuestion` / `missingQuestions` are
+ * the shared flow layer: the typed StepFlow, the spoken dialogue engine
+ * (lib/dialogue/stream.ts) and the realtime section panel all gate through
+ * them, so the flow length is decided by the answers in every surface.
  */
 import type { MessageKey } from "../i18n";
 
@@ -154,6 +170,57 @@ const extra: IntakeQuestion = {
   hintKey: "intake.q.extra.hint",
 };
 
+// ---- shared answer-gated dimensions (INT-239) -------------------------------
+// Two packs each ask these, so they live once: the breathing pair belongs to
+// whichever pack the patient reached with "nefes darlığı", the fever timing
+// to whichever pack they reached with "ateş".
+
+const breathTiming: IntakeQuestion = {
+  id: "breath_timing",
+  kind: "single",
+  titleKey: "intake.q.breathTiming",
+  hpiLabelKey: "intake.hpi.breathTiming",
+  // The patient named the shortness of breath; this asks when it happens.
+  askIf: { questionId: "complaint", includesAny: ["dyspnoea"] },
+  options: [
+    { id: "exertion", labelKey: "intake.opt.exertion" },
+    { id: "rest", labelKey: "intake.opt.rest" },
+    { id: "lying", labelKey: "intake.opt.whenLying" },
+    { id: "no_pattern", labelKey: "intake.opt.noPattern" },
+  ],
+};
+
+const breathLying: IntakeQuestion = {
+  id: "breath_lying",
+  kind: "single",
+  titleKey: "intake.q.breathLying",
+  hpiLabelKey: "intake.hpi.breathLying",
+  // Level two: they placed it in lying down, so ask what they do about it.
+  askIf: { questionId: "breath_timing", includesAny: ["lying"] },
+  options: [
+    { id: "pillow", labelKey: "intake.opt.raisePillow" },
+    { id: "sit_up", labelKey: "intake.opt.sitUp" },
+    { id: "nothing", labelKey: "intake.opt.nothingSpecial" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const feverPattern: IntakeQuestion = {
+  id: "fever_pattern",
+  kind: "single",
+  titleKey: "intake.q.feverPattern",
+  hpiLabelKey: "intake.hpi.feverPattern",
+  // The patient named the fever; this asks when it rises. No number is
+  // asked and none is offered (invariant 22 — words, never a reading).
+  askIf: { questionId: "complaint", includesAny: ["fever"] },
+  options: [
+    { id: "night", labelKey: "intake.opt.atNight" },
+    { id: "morning", labelKey: "intake.opt.inMorning" },
+    { id: "all_day", labelKey: "intake.opt.allDay" },
+    { id: "varies", labelKey: "intake.opt.varies" },
+  ],
+};
+
 // ---- Kardiyoloji / İç Hastalıkları ----------------------------------------
 
 const painCharacter: IntakeQuestion = {
@@ -188,6 +255,20 @@ const radiation: IntakeQuestion = {
   ],
 };
 
+const radiationSide: IntakeQuestion = {
+  id: "radiation_side",
+  kind: "single",
+  titleKey: "intake.q.radiationSide",
+  hpiLabelKey: "intake.hpi.radiationSide",
+  // Level two: they said it spreads somewhere, so ask which side.
+  askIf: { questionId: "radiation", includesAny: ["arm", "jaw_neck", "back"] },
+  options: [
+    { id: "right", labelKey: "intake.opt.right" },
+    { id: "left", labelKey: "intake.opt.left" },
+    { id: "both", labelKey: "intake.opt.both" },
+  ],
+};
+
 const cardioTrigger: IntakeQuestion = {
   id: "trigger",
   kind: "single",
@@ -218,19 +299,67 @@ const cardioAssoc: IntakeQuestion = {
   ],
 };
 
+const cardioPalpitation: IntakeQuestion = {
+  id: "cardio_palpitation",
+  kind: "single",
+  titleKey: "intake.q.palpitation",
+  hpiLabelKey: "intake.hpi.palpitation",
+  // They ticked the palpitations chip; this asks them to describe it.
+  askIf: { questionId: "associated", includesAny: ["palpitations"] },
+  options: [
+    { id: "fast_regular", labelKey: "intake.opt.fastRegular" },
+    { id: "irregular", labelKey: "intake.opt.irregularBeat" },
+    { id: "skipped", labelKey: "intake.opt.skippedBeats" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
 const cardioInternal: IntakeQuestion[] = [
   complaint,
   duration,
   onset,
   painCharacter,
   radiation,
+  radiationSide,
+  breathTiming,
+  breathLying,
   cardioTrigger,
   cardioAssoc,
+  cardioPalpitation,
   severity,
   extra,
 ];
 
 // ---- Nöroloji ---------------------------------------------------------------
+
+const neuroHeadSide: IntakeQuestion = {
+  id: "neuro_head_side",
+  kind: "single",
+  titleKey: "intake.q.headWhere",
+  hpiLabelKey: "intake.hpi.region",
+  // They named the headache; this asks where on the head it sits.
+  askIf: { questionId: "complaint", includesAny: ["headache"] },
+  options: [
+    { id: "one_side", labelKey: "intake.opt.oneSide" },
+    { id: "both_sides", labelKey: "intake.opt.bothSides" },
+    { id: "forehead_eye", labelKey: "intake.opt.foreheadEye" },
+    { id: "from_neck", labelKey: "intake.opt.fromNeck" },
+  ],
+};
+
+const neuroHeadSame: IntakeQuestion = {
+  id: "neuro_head_same",
+  kind: "single",
+  titleKey: "intake.q.headSameSide",
+  hpiLabelKey: "intake.hpi.headSameSide",
+  // Level two: they placed it on one side, so ask whether it stays there.
+  askIf: { questionId: "neuro_head_side", includesAny: ["one_side"] },
+  options: [
+    { id: "always_same", labelKey: "intake.opt.alwaysSameSide" },
+    { id: "changes", labelKey: "intake.opt.sideChanges" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
 
 const neuroCharacter: IntakeQuestion = {
   id: "neuro_character",
@@ -238,6 +367,9 @@ const neuroCharacter: IntakeQuestion = {
   titleKey: "intake.q.character",
   hintKey: "intake.q.complaint.hint",
   hpiLabelKey: "intake.hpi.character",
+  // The question literally asks how the PAIN feels, so it needs a pain or
+  // a headache to describe (the same reading as painCharacter).
+  askIf: { questionId: "complaint", includesAny: ["pain", "headache"] },
   options: [
     { id: "throbbing", labelKey: "intake.opt.throbbing" },
     { id: "pressure", labelKey: "intake.opt.pressure" },
@@ -289,19 +421,69 @@ const neuroAssoc: IntakeQuestion = {
   ],
 };
 
+const neuroNumbWhere: IntakeQuestion = {
+  id: "neuro_numb_where",
+  kind: "chips",
+  titleKey: "intake.q.numbWhere",
+  hintKey: "intake.q.complaint.hint",
+  hpiLabelKey: "intake.hpi.numbWhere",
+  // They ticked the numbness chip; this asks where they feel it.
+  askIf: { questionId: "neuro_assoc", includesAny: ["numbness"] },
+  options: [
+    { id: "face", labelKey: "intake.opt.face" },
+    { id: "arms", labelKey: "intake.opt.arms" },
+    { id: "legs", labelKey: "intake.opt.legs" },
+    { id: "trunk", labelKey: "intake.opt.trunk" },
+    { id: "several", labelKey: "intake.opt.severalPlaces" },
+  ],
+};
+
 const neuro: IntakeQuestion[] = [
   complaint,
   duration,
   onset,
+  neuroHeadSide,
+  neuroHeadSame,
   neuroCharacter,
   neuroTrigger,
   neuroCourse,
   neuroAssoc,
+  neuroNumbWhere,
   severity,
   extra,
 ];
 
 // ---- Kulak Burun Boğaz ------------------------------------------------------
+
+const entPainWhere: IntakeQuestion = {
+  id: "ent_pain_where",
+  kind: "single",
+  titleKey: "intake.q.painWhere",
+  hpiLabelKey: "intake.hpi.region",
+  // They named the pain; this asks where in the head and neck it sits.
+  askIf: { questionId: "complaint", includesAny: ["pain"] },
+  options: [
+    { id: "ear", labelKey: "intake.opt.inEar" },
+    { id: "throat", labelKey: "intake.opt.inThroat" },
+    { id: "face", labelKey: "intake.opt.faceForehead" },
+    { id: "jaw", labelKey: "intake.opt.inJaw" },
+  ],
+};
+
+const entSwallow: IntakeQuestion = {
+  id: "ent_swallow",
+  kind: "single",
+  titleKey: "intake.q.swallow",
+  hpiLabelKey: "intake.hpi.swallow",
+  // Level two: they placed the pain in the throat, so ask about swallowing.
+  askIf: { questionId: "ent_pain_where", includesAny: ["throat"] },
+  options: [
+    { id: "pain_more", labelKey: "intake.opt.painIncreases" },
+    { id: "stuck", labelKey: "intake.opt.stuckFeeling" },
+    { id: "voice", labelKey: "intake.opt.voiceChange" },
+    { id: "no_change", labelKey: "intake.opt.noChange" },
+  ],
+};
 
 const entTrigger: IntakeQuestion = {
   id: "ent_trigger",
@@ -335,13 +517,30 @@ const entAssoc: IntakeQuestion = {
   ],
 };
 
+const entHearSide: IntakeQuestion = {
+  id: "ent_hear_side",
+  kind: "single",
+  titleKey: "intake.q.hearSide",
+  hpiLabelKey: "intake.hpi.hearSide",
+  // They ticked the hearing chip; this asks which ear.
+  askIf: { questionId: "ent_assoc", includesAny: ["hearing"] },
+  options: [
+    { id: "right", labelKey: "intake.opt.right" },
+    { id: "left", labelKey: "intake.opt.left" },
+    { id: "both", labelKey: "intake.opt.both" },
+  ],
+};
+
 const ent: IntakeQuestion[] = [
   complaint,
   duration,
   onset,
+  entPainWhere,
+  entSwallow,
   side,
   entTrigger,
   entAssoc,
+  entHearSide,
   severity,
   extra,
 ];
@@ -360,6 +559,21 @@ const orthoMechanism: IntakeQuestion = {
   ],
 };
 
+const orthoFallHow: IntakeQuestion = {
+  id: "ortho_fall_how",
+  kind: "single",
+  titleKey: "intake.q.fallHow",
+  hpiLabelKey: "intake.hpi.fallHow",
+  // They said it began with a fall or a blow; this asks how it happened.
+  askIf: { questionId: "ortho_mechanism", includesAny: ["fall"] },
+  options: [
+    { id: "slipped", labelKey: "intake.opt.slipped" },
+    { id: "stairs", labelKey: "intake.opt.onStairs" },
+    { id: "height", labelKey: "intake.opt.fromHeight" },
+    { id: "sport", labelKey: "intake.opt.duringSport" },
+  ],
+};
+
 const orthoRegion: IntakeQuestion = {
   id: "ortho_region",
   kind: "chips",
@@ -375,6 +589,35 @@ const orthoRegion: IntakeQuestion = {
     { id: "hand_wrist", labelKey: "intake.opt.handWrist" },
     { id: "foot_ankle", labelKey: "intake.opt.footAnkle" },
     { id: "other", labelKey: "intake.opt.other" },
+  ],
+};
+
+const orthoSpread: IntakeQuestion = {
+  id: "ortho_spread",
+  kind: "single",
+  titleKey: "intake.q.spineSpread",
+  hpiLabelKey: "intake.hpi.spineSpread",
+  // They placed it in the back or the neck; this asks whether it travels.
+  askIf: { questionId: "ortho_region", includesAny: ["low_back", "neck"] },
+  options: [
+    { id: "arm", labelKey: "intake.opt.radArm" },
+    { id: "leg", labelKey: "intake.opt.radLeg" },
+    { id: "no_spread", labelKey: "intake.opt.radNone" },
+  ],
+};
+
+const orthoSpreadFeel: IntakeQuestion = {
+  id: "ortho_spread_feel",
+  kind: "single",
+  titleKey: "intake.q.spreadFeel",
+  hpiLabelKey: "intake.hpi.spreadFeel",
+  // Level two: it travels somewhere, so ask what that place feels like.
+  askIf: { questionId: "ortho_spread", includesAny: ["arm", "leg"] },
+  options: [
+    { id: "tingling", labelKey: "intake.opt.tingling" },
+    { id: "numb", labelKey: "intake.opt.numbFeeling" },
+    { id: "both", labelKey: "intake.opt.bothOfThem" },
+    { id: "none", labelKey: "intake.opt.none" },
   ],
 };
 
@@ -411,8 +654,12 @@ const ortho: IntakeQuestion[] = [
   complaint,
   duration,
   orthoMechanism,
+  orthoFallHow,
   orthoRegion,
+  orthoSpread,
+  orthoSpreadFeel,
   side,
+  painCharacter,
   orthoTrigger,
   orthoAssoc,
   severity,
@@ -450,6 +697,35 @@ const dermCharacter: IntakeQuestion = {
     { id: "flaking", labelKey: "intake.opt.flaking" },
     { id: "blisters", labelKey: "intake.opt.blisters" },
     { id: "raised", labelKey: "intake.opt.raised" },
+  ],
+};
+
+const dermItchWhen: IntakeQuestion = {
+  id: "derm_itch_when",
+  kind: "single",
+  titleKey: "intake.q.itchWhen",
+  hpiLabelKey: "intake.hpi.itchWhen",
+  // They ticked the itching chip; this asks when it gets worse.
+  askIf: { questionId: "derm_character", includesAny: ["itchy"] },
+  options: [
+    { id: "night", labelKey: "intake.opt.atNight" },
+    { id: "heat", labelKey: "intake.opt.inHeat" },
+    { id: "sweat", labelKey: "intake.opt.withSweat" },
+    { id: "no_pattern", labelKey: "intake.opt.noPattern" },
+  ],
+};
+
+const dermItchSleep: IntakeQuestion = {
+  id: "derm_itch_sleep",
+  kind: "single",
+  titleKey: "intake.q.itchSleep",
+  hpiLabelKey: "intake.hpi.itchSleep",
+  // Level two: they placed the itching at night, so ask about their sleep.
+  askIf: { questionId: "derm_itch_when", includesAny: ["night"] },
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "sometimes", labelKey: "intake.opt.sometimes" },
+    { id: "no", labelKey: "intake.opt.no" },
   ],
 };
 
@@ -493,14 +769,32 @@ const dermAssoc: IntakeQuestion = {
   ],
 };
 
+const dermFeverOrder: IntakeQuestion = {
+  id: "derm_fever_order",
+  kind: "single",
+  titleKey: "intake.q.feverSkinOrder",
+  hpiLabelKey: "intake.hpi.feverSkinOrder",
+  // They named a fever alongside the skin complaint; this asks the order.
+  askIf: { questionId: "complaint", includesAny: ["fever"] },
+  options: [
+    { id: "fever_first", labelKey: "intake.opt.feverFirst" },
+    { id: "skin_first", labelKey: "intake.opt.skinFirst" },
+    { id: "same_time", labelKey: "intake.opt.sameTime" },
+    { id: "dont_remember", labelKey: "intake.opt.dontRemember" },
+  ],
+};
+
 const derm: IntakeQuestion[] = [
   complaint,
   duration,
   dermLocation,
   dermCharacter,
+  dermItchWhen,
+  dermItchSleep,
   dermTrigger,
   dermCourse,
   dermAssoc,
+  dermFeverOrder,
   severity,
   extra,
 ];
@@ -555,14 +849,32 @@ const pulmo: IntakeQuestion[] = [
   duration,
   onset,
   pulmoCharacter,
+  breathTiming,
+  breathLying,
   pulmoTrigger,
   timeOfDay,
   pulmoAssoc,
+  feverPattern,
   severity,
   extra,
 ];
 
 // ---- Kadın Hastalıkları ve Doğum ---------------------------------------------
+
+const gynPainWhere: IntakeQuestion = {
+  id: "gyn_pain_where",
+  kind: "single",
+  titleKey: "intake.q.painWhere",
+  hpiLabelKey: "intake.hpi.region",
+  // They named the pain; this asks where they feel it most.
+  askIf: { questionId: "complaint", includesAny: ["pain"] },
+  options: [
+    { id: "lower_abdomen", labelKey: "intake.opt.lowerAbdomen" },
+    { id: "low_back", labelKey: "intake.opt.inLowerBack" },
+    { id: "groin", labelKey: "intake.opt.inGroin" },
+    { id: "widespread", labelKey: "intake.opt.widespread" },
+  ],
+};
 
 const gynCycle: IntakeQuestion = {
   id: "gyn_cycle",
@@ -596,6 +908,7 @@ const gyn: IntakeQuestion[] = [
   complaint,
   duration,
   onset,
+  gynPainWhere,
   painCharacter,
   gynCycle,
   gynAssoc,
@@ -636,6 +949,20 @@ const uroAssoc: IntakeQuestion = {
   ],
 };
 
+const uroFlankSide: IntakeQuestion = {
+  id: "uro_flank_side",
+  kind: "single",
+  titleKey: "intake.q.flankSide",
+  hpiLabelKey: "intake.hpi.flankSide",
+  // They ticked the flank-pain chip; this asks which side.
+  askIf: { questionId: "uro_assoc", includesAny: ["flank_pain"] },
+  options: [
+    { id: "right", labelKey: "intake.opt.right" },
+    { id: "left", labelKey: "intake.opt.left" },
+    { id: "both", labelKey: "intake.opt.both" },
+  ],
+};
+
 const uro: IntakeQuestion[] = [
   complaint,
   duration,
@@ -643,6 +970,8 @@ const uro: IntakeQuestion[] = [
   uroUrination,
   timeOfDay,
   uroAssoc,
+  uroFlankSide,
+  feverPattern,
   severity,
   extra,
 ];
@@ -661,6 +990,20 @@ const eyeCharacter: IntakeQuestion = {
     { id: "itchy", labelKey: "intake.opt.itchy" },
     { id: "watering", labelKey: "intake.opt.watering" },
     { id: "pain", labelKey: "intake.opt.pain" },
+  ],
+};
+
+const eyePainMove: IntakeQuestion = {
+  id: "eye_pain_move",
+  kind: "single",
+  titleKey: "intake.q.eyePainMove",
+  hpiLabelKey: "intake.hpi.eyePainMove",
+  // They ticked the pain chip; this asks whether moving the eye changes it.
+  askIf: { questionId: "eye_character", includesAny: ["pain"] },
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "sometimes", labelKey: "intake.opt.sometimes" },
+    { id: "no", labelKey: "intake.opt.no" },
   ],
 };
 
@@ -694,14 +1037,31 @@ const eyeAssoc: IntakeQuestion = {
   ],
 };
 
+const eyeHeadacheLink: IntakeQuestion = {
+  id: "eye_headache_link",
+  kind: "single",
+  titleKey: "intake.q.eyeHeadache",
+  hpiLabelKey: "intake.hpi.eyeHeadache",
+  // They named a headache alongside the eye complaint; this asks the order.
+  askIf: { questionId: "complaint", includesAny: ["headache"] },
+  options: [
+    { id: "together", labelKey: "intake.opt.together" },
+    { id: "headache_first", labelKey: "intake.opt.headacheFirst" },
+    { id: "eye_first", labelKey: "intake.opt.eyeFirst" },
+    { id: "separately", labelKey: "intake.opt.separately" },
+  ],
+};
+
 const eye: IntakeQuestion[] = [
   complaint,
   duration,
   onset,
   side,
   eyeCharacter,
+  eyePainMove,
   eyeVision,
   eyeAssoc,
+  eyeHeadacheLink,
   severity,
   extra,
 ];
@@ -769,6 +1129,25 @@ const gastroBowel: IntakeQuestion = {
   ],
 };
 
+const gastroBowelRelief: IntakeQuestion = {
+  id: "gastro_bowel_relief",
+  kind: "single",
+  titleKey: "intake.q.bowelRelief",
+  hpiLabelKey: "intake.hpi.bowelRelief",
+  // Level two: they named a change in bowel habit, so ask what going to the
+  // toilet does to the complaint they came with.
+  askIf: {
+    questionId: "gastro_bowel",
+    includesAny: ["constipation", "diarrhea", "alternating"],
+  },
+  options: [
+    { id: "eases", labelKey: "intake.opt.itEases" },
+    { id: "same", labelKey: "intake.opt.noChange" },
+    { id: "worse", labelKey: "intake.opt.itIncreases" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
 const gastroAssoc: IntakeQuestion = {
   id: "gastro_assoc",
   kind: "chips",
@@ -791,7 +1170,9 @@ const gastro: IntakeQuestion[] = [
   gastroCharacter,
   gastroMeal,
   gastroBowel,
+  gastroBowelRelief,
   gastroAssoc,
+  feverPattern,
   severity,
   extra,
 ];
@@ -851,20 +1232,38 @@ export const allQuestions: readonly IntakeQuestion[] = [
   complaint,
   duration,
   onset,
+  // location and side
   orthoMechanism,
+  orthoFallHow,
   orthoRegion,
+  orthoSpread,
+  orthoSpreadFeel,
+  neuroHeadSide,
+  neuroHeadSame,
+  entPainWhere,
+  entSwallow,
   dermLocation,
   gastroLocation,
+  gynPainWhere,
   side,
+  // character
   painCharacter,
   neuroCharacter,
   pulmoCharacter,
   dermCharacter,
+  dermItchWhen,
+  dermItchSleep,
   eyeCharacter,
+  eyePainMove,
   uroUrination,
   gastroCharacter,
+  // radiation and breathing
   radiation,
+  radiationSide,
   eyeVision,
+  breathTiming,
+  breathLying,
+  // triggers
   cardioTrigger,
   neuroTrigger,
   entTrigger,
@@ -873,20 +1272,30 @@ export const allQuestions: readonly IntakeQuestion[] = [
   pulmoTrigger,
   gynCycle,
   gastroMeal,
+  // timing and course
   neuroCourse,
   timeOfDay,
   dermCourse,
   gastroBowel,
+  gastroBowelRelief,
+  // associated
   cardioAssoc,
+  cardioPalpitation,
   neuroAssoc,
+  neuroNumbWhere,
   entAssoc,
+  entHearSide,
   orthoAssoc,
   dermAssoc,
+  dermFeverOrder,
   pulmoAssoc,
   gynAssoc,
   uroAssoc,
+  uroFlankSide,
   eyeAssoc,
+  eyeHeadacheLink,
   gastroAssoc,
+  feverPattern,
   severity,
   extra,
 ];

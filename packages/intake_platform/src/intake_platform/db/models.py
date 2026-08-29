@@ -45,17 +45,21 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import BigInteger, Uuid
 
 from intake_platform.db.inventory import (
+    BASIS_AWAITING_HUMAN_GUARDIAN,
     BASIS_CONTRACT,
     BASIS_HEALTH_CONSENT,
     BASIS_LEGAL_OBLIGATION,
     CAT_CONSENT,
+    CAT_GUARDIANSHIP,
     CAT_HEALTH,
     CAT_OPERATIONAL,
     CAT_PSEUDONYM,
     REC_AUDITOR,
     REC_CLINICIAN,
+    REC_GUARDIAN_INTERNAL,
     REC_INTERNAL,
     REC_PATIENT_CLINICIAN,
+    RET_AWAITING_HUMAN_GUARDIAN,
     RET_CONSENT_AUDIT,
     RET_DSAR,
     RET_EVENTS,
@@ -74,6 +78,7 @@ __all__ = [
     "DsarRequest",
     "DsarStatus",
     "Event",
+    "GuardianLink",
     "IntakeSession",
     "KvkkRole",
     "Note",
@@ -528,6 +533,120 @@ class Consent(Base):
             BASIS_LEGAL_OBLIGATION,
             RET_CONSENT_AUDIT,
             REC_AUDITOR,
+        ),
+    )
+
+
+class GuardianLink(Base):
+    """INT-223 — "this account is the legal representative of that minor".
+
+    Behind the closed ``guardian_link`` gate
+    (:mod:`intake_platform.consent.guardian`): persisting a guardian↔minor
+    relationship is a NEW personal-data category, which CLAUDE.md makes a
+    stop-and-ask, so **every** column carries an awaiting-human basis and an
+    awaiting-human retention rather than a ground somebody guessed. The
+    minor is a pseudonymised patient row and the guardian is an id-shaped
+    account ref — no name, no TCKN, no relationship narrative (invariant
+    14/6). ``verified_at`` stays NULL because no proof standard exists yet
+    (policy row ``guardian_relationship_proof``).
+    """
+
+    __tablename__ = "guardian_links"
+    __table_args__ = (UniqueConstraint("tenant_id", "minor_patient_id", "guardian_account_ref"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "guardian↔minor link key",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tenants.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "RLS boundary: the tenant this link belongs to",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    minor_patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "the pseudonymised minor the link is about",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    guardian_account_ref: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "id-shaped ref to the guardian's account; never a name or an identifier",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    relationship_ref: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "id of the relationship-evidence record (acknowledgement or desk check) — an id, "
+            "never the evidence and never the relationship in words",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "instant a proof standard was satisfied; NULL while no standard exists "
+            "(policy row guardian_relationship_proof)",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "instant the link ended (majority reached, representation changed); NULL while live",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
+        ),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        info=inv(
+            CAT_GUARDIANSHIP,
+            "row creation instant",
+            BASIS_AWAITING_HUMAN_GUARDIAN,
+            RET_AWAITING_HUMAN_GUARDIAN,
+            REC_GUARDIAN_INTERNAL,
         ),
     )
 

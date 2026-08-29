@@ -17,11 +17,13 @@ from pathlib import Path
 import pytest
 from api_harness import ApiHarness, run, sqlite_ddl_clone
 from fastapi.testclient import TestClient
-from intake_api.app import ApiWiring, create_app, wiring_from_env
+from intake_api.app import ApiWiring, _documents_from_env, create_app, wiring_from_env
 from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_TENANT_ID, ensure_dev_fixture
 from intake_api.settings import ApiSettings
 from intake_platform.audit import AuditEntry
 from intake_platform.db.models import Consent, Patient, Share, Tenant
+from intake_platform.documents import DevNullScanner
+from intake_platform.uploads import ClamAvScanner
 from sqlalchemy import create_engine, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
@@ -98,6 +100,52 @@ def test_wiring_from_env_builds_the_dev_stack(
     assert wiring.settings.dev_auth_configured
     run(wiring.engine.dispose())
     run(wiring.bootstrap_engine.dispose())
+
+
+def test_documents_wiring_uses_clamav_when_clamd_is_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """INT-238 — the compose dev tier runs clamd and INT-120 already built
+    the client, so a configured endpoint MUST produce the real scanner.
+    Leaving the slot empty is what made every upload answer 503
+    scan_not_configured while a healthy ClamAV sat on 3310."""
+    monkeypatch.setenv("INTAKE_CLAMD_HOST", "127.0.0.1")
+    monkeypatch.delenv("INTAKE_DEV_ALLOW_UNSCANNED", raising=False)
+    config = _documents_from_env()
+    assert isinstance(config.scanner, ClamAvScanner)
+
+
+def test_documents_wiring_prefers_clamav_over_the_dev_stub(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The dev "everything is clean" stub must never shadow a real scanner:
+    with both configured the AV verdict is the one that counts."""
+    monkeypatch.setenv("INTAKE_CLAMD_HOST", "127.0.0.1")
+    monkeypatch.setenv("INTAKE_DEV_ALLOW_UNSCANNED", "explicit-yes")
+    config = _documents_from_env()
+    assert isinstance(config.scanner, ClamAvScanner)
+
+
+def test_documents_wiring_falls_back_to_the_dev_stub_under_the_opt_in(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("INTAKE_CLAMD_HOST", raising=False)
+    monkeypatch.delenv("INTAKE_CLAMD_UNIX_SOCKET", raising=False)
+    monkeypatch.setenv("INTAKE_DEV_ALLOW_UNSCANNED", "explicit-yes")
+    config = _documents_from_env()
+    assert isinstance(config.scanner, DevNullScanner)
+
+
+def test_documents_wiring_stays_empty_with_nothing_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail closed: no clamd and no dev opt-in means no scanner at all, and
+    ingest refuses rather than serving unscanned bytes (INT-034 posture)."""
+    monkeypatch.delenv("INTAKE_CLAMD_HOST", raising=False)
+    monkeypatch.delenv("INTAKE_CLAMD_UNIX_SOCKET", raising=False)
+    monkeypatch.delenv("INTAKE_DEV_ALLOW_UNSCANNED", raising=False)
+    config = _documents_from_env()
+    assert config.scanner is None
 
 
 def test_env_app_lifespan_bootstraps_a_ready_service(

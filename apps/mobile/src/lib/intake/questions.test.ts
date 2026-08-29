@@ -63,12 +63,22 @@ describe("packForDepartment resolution", () => {
 describe("pack shape invariants", () => {
   const packs = branchPacks();
 
-  it("every branch pack has 6–9 steps, opens with the complaint, closes with the free note", () => {
+  it("every branch pack has 9–13 steps, opens with the complaint, closes with the free note", () => {
     for (const pack of packs) {
-      expect(pack.length).toBeGreaterThanOrEqual(6);
-      expect(pack.length).toBeLessThanOrEqual(9);
+      expect(pack.length).toBeGreaterThanOrEqual(9);
+      expect(pack.length).toBeLessThanOrEqual(13);
       expect(pack[0].id).toBe("complaint");
       expect(pack[pack.length - 1].id).toBe("extra");
+    }
+  });
+
+  it("no branch pack is a fixed-length flow — every one carries answer-gated depth", () => {
+    for (const pack of packs) {
+      const base = applicableQuestions(pack, []).length;
+      // Unanswered gates stay shut, so the opening flow is strictly shorter
+      // than the pack: the length is decided by the answers, not the file.
+      expect(base, pack.map((q) => q.id).join(",")).toBeLessThan(pack.length);
+      expect(base).toBeGreaterThanOrEqual(7);
     }
   });
 
@@ -152,25 +162,54 @@ describe("catalog coverage and invariant 22 (no numerals)", () => {
   });
 });
 
-// ---- INT-236: answer-dependent flow — askIf gates mirroring the DSL --------
+// ---- INT-236/239: answer-dependent flow — askIf gates mirroring the DSL ----
 
-describe("askIf gates (INT-236 — serializable data, mirroring dsl.py ask_if)", () => {
+describe("askIf gates (INT-236/239 — serializable data, mirroring dsl.py ask_if)", () => {
   /**
-   * Exactly the structurally-obvious gates, nothing else: a question that
-   * literally asks about the pain (its character, where it spreads) is
-   * gated on the complaint including pain; the gastro pack's meal/bowel
-   * dimensions on the complaint including the stomach chip. Any further
-   * gate needs clinical judgment and belongs to the physician-gated packs
-   * (INT-096), never here.
+   * Exactly the structurally-obvious gates, nothing else: every gate below
+   * asks for a further detail of something the patient has ALREADY named —
+   * the character of the pain they reported, the side the spreading they
+   * reported goes to, what happens when they swallow given they placed the
+   * pain in the throat. No gate encodes danger, severity or a threshold;
+   * those belong to the physician-gated compiled packs (INT-057/041/096).
    */
   const GATES: Record<string, AskIf> = {
+    // level one — gated on the opening complaint
     pain_character: { questionId: "complaint", includesAny: ["pain"] },
     radiation: { questionId: "complaint", includesAny: ["pain"] },
+    breath_timing: { questionId: "complaint", includesAny: ["dyspnoea"] },
+    neuro_head_side: { questionId: "complaint", includesAny: ["headache"] },
+    neuro_character: { questionId: "complaint", includesAny: ["pain", "headache"] },
+    ent_pain_where: { questionId: "complaint", includesAny: ["pain"] },
+    gyn_pain_where: { questionId: "complaint", includesAny: ["pain"] },
     gastro_meal: { questionId: "complaint", includesAny: ["stomach"] },
     gastro_bowel: { questionId: "complaint", includesAny: ["stomach"] },
+    derm_fever_order: { questionId: "complaint", includesAny: ["fever"] },
+    fever_pattern: { questionId: "complaint", includesAny: ["fever"] },
+    eye_headache_link: { questionId: "complaint", includesAny: ["headache"] },
+    // level one — gated on an ungated dimension the patient just described
+    ortho_fall_how: { questionId: "ortho_mechanism", includesAny: ["fall"] },
+    ortho_spread: { questionId: "ortho_region", includesAny: ["low_back", "neck"] },
+    derm_itch_when: { questionId: "derm_character", includesAny: ["itchy"] },
+    eye_pain_move: { questionId: "eye_character", includesAny: ["pain"] },
+    cardio_palpitation: { questionId: "associated", includesAny: ["palpitations"] },
+    neuro_numb_where: { questionId: "neuro_assoc", includesAny: ["numbness"] },
+    ent_hear_side: { questionId: "ent_assoc", includesAny: ["hearing"] },
+    uro_flank_side: { questionId: "uro_assoc", includesAny: ["flank_pain"] },
+    // level two — gated on a question that is itself gated
+    radiation_side: { questionId: "radiation", includesAny: ["arm", "jaw_neck", "back"] },
+    breath_lying: { questionId: "breath_timing", includesAny: ["lying"] },
+    neuro_head_same: { questionId: "neuro_head_side", includesAny: ["one_side"] },
+    ent_swallow: { questionId: "ent_pain_where", includesAny: ["throat"] },
+    ortho_spread_feel: { questionId: "ortho_spread", includesAny: ["arm", "leg"] },
+    derm_itch_sleep: { questionId: "derm_itch_when", includesAny: ["night"] },
+    gastro_bowel_relief: {
+      questionId: "gastro_bowel",
+      includesAny: ["constipation", "diarrhea", "alternating"],
+    },
   };
 
-  it("exactly the four structurally-obvious gates exist — no other question is gated", () => {
+  it("exactly the declared structurally-obvious gates exist — nothing else is gated", () => {
     for (const q of allQuestions) {
       if (q.id in GATES) {
         expect(q.askIf, q.id).toEqual(GATES[q.id]);
@@ -181,8 +220,177 @@ describe("askIf gates (INT-236 — serializable data, mirroring dsl.py ask_if)",
   });
 
   it("askIf is data, never a function — it survives a JSON round-trip (DSL parity)", () => {
-    const q = allQuestions.find((x) => x.id === "pain_character")!;
-    expect(JSON.parse(JSON.stringify(q.askIf))).toEqual(q.askIf);
+    for (const q of allQuestions.filter((x) => x.askIf !== undefined)) {
+      expect(JSON.parse(JSON.stringify(q.askIf)), q.id).toEqual(q.askIf);
+    }
+  });
+
+  it("every gate names a real question, a real option of it, and never itself", () => {
+    for (const q of allQuestions) {
+      if (q.askIf === undefined) {
+        continue;
+      }
+      expect(q.askIf.questionId, q.id).not.toBe(q.id);
+      const gating = allQuestions.find((x) => x.id === q.askIf!.questionId);
+      expect(gating, `${q.id} gates on ${q.askIf.questionId}`).toBeDefined();
+      const optionIds = (gating!.options ?? []).map((o) => o.id);
+      for (const value of q.askIf.includesAny) {
+        expect(optionIds, `${q.id} ← ${gating!.id}/${value}`).toContain(value);
+      }
+    }
+  });
+
+  it("gates are stratified: a gate only ever looks backwards inside its own pack", () => {
+    for (const pack of branchPacks()) {
+      pack.forEach((q, index) => {
+        if (q.askIf === undefined) {
+          return;
+        }
+        const gatingIndex = pack.findIndex((x) => x.id === q.askIf!.questionId);
+        expect(gatingIndex, `${q.id} in pack`).toBeGreaterThanOrEqual(0);
+        expect(gatingIndex, `${q.id} must follow ${q.askIf.questionId}`).toBeLessThan(index);
+      });
+    }
+  });
+});
+
+// ---- INT-239: the flow is answer-driven, not a fixed nine ------------------
+
+/** Gate-chain depth: 0 = ungated, 1 = gated on an ungated question, … */
+function gateDepth(questionId: string, seen: Set<string> = new Set()): number {
+  const question = allQuestions.find((q) => q.id === questionId);
+  if (question?.askIf === undefined || seen.has(questionId)) {
+    return 0;
+  }
+  seen.add(questionId);
+  return 1 + gateDepth(question.askIf.questionId, seen);
+}
+
+describe("branching depth (INT-239)", () => {
+  it("at least four branch packs carry a level-two follow-up (a gate on a gated question)", () => {
+    const deep = branchPacks().filter((pack) => pack.some((q) => gateDepth(q.id) >= 2));
+    expect(deep.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("the depth-two follow-ups are reachable: answering the chain opens them", () => {
+    const cardio = packForDepartment("Kardiyoloji");
+    const shallow = applicableQuestions(cardio, [
+      { questionId: "complaint", values: ["pain"] },
+    ]).map((q) => q.id);
+    expect(shallow).toContain("radiation");
+    expect(shallow).not.toContain("radiation_side");
+    const deep = applicableQuestions(cardio, [
+      { questionId: "complaint", values: ["pain"] },
+      { questionId: "radiation", values: ["arm"] },
+    ]).map((q) => q.id);
+    expect(deep).toContain("radiation_side");
+  });
+
+  it("a level-two follow-up closes again when its parent answer changes", () => {
+    const cardio = packForDepartment("Kardiyoloji");
+    const ids = applicableQuestions(cardio, [
+      { questionId: "complaint", values: ["pain"] },
+      { questionId: "radiation", values: ["no_radiation"] },
+    ]).map((q) => q.id);
+    expect(ids).not.toContain("radiation_side");
+  });
+});
+
+/**
+ * The owner-visible proof: inside ONE department, two different opening
+ * answers produce two different question sequences. `onlyA`/`onlyB` are the
+ * exact symmetric difference — a rename or a lost gate fails the row.
+ */
+const DIVERGENCE: {
+  department: string;
+  a: string[];
+  b: string[];
+  onlyA: string[];
+  onlyB: string[];
+}[] = [
+  {
+    department: "Kardiyoloji",
+    a: ["pain"],
+    b: ["dyspnoea"],
+    onlyA: ["pain_character", "radiation"],
+    onlyB: ["breath_timing"],
+  },
+  {
+    department: "Göğüs Hastalıkları",
+    a: ["dyspnoea"],
+    b: ["fever"],
+    onlyA: ["breath_timing"],
+    onlyB: ["fever_pattern"],
+  },
+  {
+    department: "Gastroenteroloji",
+    a: ["stomach"],
+    b: ["fever"],
+    onlyA: ["gastro_meal", "gastro_bowel"],
+    onlyB: ["fever_pattern"],
+  },
+  {
+    department: "Nöroloji",
+    a: ["headache"],
+    b: ["fatigue"],
+    onlyA: ["neuro_head_side", "neuro_character"],
+    onlyB: [],
+  },
+  {
+    department: "Kulak Burun Boğaz",
+    a: ["pain"],
+    b: ["cough"],
+    onlyA: ["ent_pain_where"],
+    onlyB: [],
+  },
+  {
+    department: "Ortopedi ve Travmatoloji",
+    a: ["pain"],
+    b: ["fatigue"],
+    onlyA: ["pain_character"],
+    onlyB: [],
+  },
+  { department: "Dermatoloji", a: ["fever"], b: ["other"], onlyA: ["derm_fever_order"], onlyB: [] },
+  { department: "Üroloji", a: ["fever"], b: ["pain"], onlyA: ["fever_pattern"], onlyB: [] },
+  {
+    department: "Göz Hastalıkları",
+    a: ["headache"],
+    b: ["pain"],
+    onlyA: ["eye_headache_link"],
+    onlyB: [],
+  },
+  {
+    department: "Kadın Hastalıkları ve Doğum",
+    a: ["pain"],
+    b: ["fever"],
+    onlyA: ["gyn_pain_where", "pain_character"],
+    onlyB: [],
+  },
+];
+
+describe("the asked set differs by first answer (INT-239 — the owner's complaint)", () => {
+  it("covers well over the four departments the acceptance asks for", () => {
+    expect(DIVERGENCE.length).toBeGreaterThanOrEqual(4);
+  });
+
+  for (const { department, a, b, onlyA, onlyB } of DIVERGENCE) {
+    it(`${department}: "${a.join("+")}" and "${b.join("+")}" ask different questions`, () => {
+      const pack = packForDepartment(department);
+      const seqA = applicableQuestions(pack, [{ questionId: "complaint", values: a }]).map(
+        (q) => q.id,
+      );
+      const seqB = applicableQuestions(pack, [{ questionId: "complaint", values: b }]).map(
+        (q) => q.id,
+      );
+      expect(seqA).not.toEqual(seqB);
+      expect(seqA.filter((id) => !seqB.includes(id))).toEqual(onlyA);
+      expect(seqB.filter((id) => !seqA.includes(id))).toEqual(onlyB);
+    });
+  }
+
+  it("three departments diverge in BOTH directions — neither flow is a prefix of the other", () => {
+    const both = DIVERGENCE.filter((row) => row.onlyA.length > 0 && row.onlyB.length > 0);
+    expect(both.length).toBeGreaterThanOrEqual(3);
   });
 });
 
