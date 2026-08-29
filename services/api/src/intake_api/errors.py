@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 __all__ = [
     "age_gate_refused",
+    "proxy_acknowledgement_required",
     "attestation_invalid",
     "attestation_required",
     "attestation_unverified",
@@ -19,6 +20,7 @@ __all__ = [
     "dev_auth_unconfigured",
     "dpop_invalid",
     "forbidden",
+    "invalid_window",
     "not_found",
     "otp_auth_unconfigured",
     "otp_invalid",
@@ -57,6 +59,22 @@ def age_gate_refused(code: str, scope: str) -> HTTPException:
     return HTTPException(status_code=403, detail={"error": code, "scope": scope})
 
 
+# --- INT-133 companion / proxy flow -------------------------------------------------------
+
+
+def proxy_acknowledgement_required() -> HTTPException:
+    """A companion declared the role but has not acknowledged answering on
+    the patient's behalf (files/06 §6). A bare code: the body says what is
+    missing and nothing about the subject or the companion (invariant 6).
+
+    This is NOT the guardian path. Acknowledging the role proves no legal
+    representation — the proof standard is the awaiting-human
+    ``guardian_relationship_proof`` policy row — and a minor subject is
+    refused by the age gate long before this code can be reached.
+    """
+    return HTTPException(status_code=422, detail={"error": "proxy_acknowledgement_required"})
+
+
 # --- INT-232 consent-management codes (scope is the id and nothing else, invariant 6) ----
 
 
@@ -85,6 +103,16 @@ def not_found() -> HTTPException:
 
 def visit_invalid(reason: str) -> HTTPException:
     return HTTPException(status_code=422, detail={"error": reason})
+
+
+def invalid_window(reason: str) -> HTTPException:
+    """INT-241: a measurement window that is not a forward instant range.
+
+    ``Cohort`` owns the rule (invariant 20 — a figure without a window is not
+    a measurement); this turns its refusal into a 422 carrying the reason
+    text, which names bounds and never data.
+    """
+    return HTTPException(status_code=422, detail={"error": "invalid_window", "reason": reason})
 
 
 def taxonomy_unconfigured() -> HTTPException:

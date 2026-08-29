@@ -37,6 +37,7 @@ __all__ = [
     "AUTH_TIER_OTP",
     "Principal",
     "get_settings",
+    "require_admin",
     "require_patient",
     "require_principal",
 ]
@@ -90,3 +91,17 @@ def require_patient(principal: DevAccount) -> tuple[DevAccount, uuid.UUID]:
     if principal.role != "patient" or principal.patient_id is None:
         raise forbidden()
     return principal, principal.patient_id
+
+
+def require_admin(principal: DevAccount) -> DevAccount:
+    """The console side of the same door (INT-241 admin aggregates).
+
+    Symmetric with :func:`require_patient` and, like it, the dev-tier stand-in
+    for the files/08 §2.1 role set — the console roles arrive with OIDC
+    (INT-131/INT-180). What matters already: the tenant a caller may read is
+    the tenant on their own principal, never one they name (files/08 §8), and
+    a patient token cannot reach a tenant-wide aggregate at all.
+    """
+    if principal.role != "clinic_admin":
+        raise forbidden()
+    return principal

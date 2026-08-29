@@ -14,7 +14,7 @@ Posture:
   (:func:`default_provider`), speaks the Unleash client API over httpx with a
   200 ms budget, and falls CLOSED to the in-memory defaults on *any* failure:
   a flag backend outage must never take a service down or open a gate.
-- The four safety flags are pre-declared False and outrank the call-site
+- The safety flags are pre-declared False and outrank the call-site
   default in both providers; only a payload that explicitly carries a boolean
   ``enabled`` can decide them. The authority for flipping them in production
   is the gated-capability service of files/10 §0b (inv. 34/48) — Unleash is
@@ -57,6 +57,11 @@ UNLEASH_TIMEOUT_SECONDS: Final[float] = 0.2
 #: - guardian_link — INT-223: persisting a guardian↔minor relationship is a
 #:   new personal-data category (CLAUDE.md stop-and-ask), so the linkage
 #:   store stays unwritable AND unreadable until counsel assigns a basis.
+#: - commercial_messaging — INT-141, inv. 18: reminders are transactional-only
+#:   unless an İYS consent record exists, and no İYS record shape is specified
+#:   anywhere in files/. This is the flag lock; the type lock (an abstract
+#:   IysConsentRecord with no concrete subclass) is what makes the send
+#:   unwritable rather than merely refused.
 SAFETY_FLAG_DEFAULTS: Final[Mapping[str, bool]] = MappingProxyType(
     {
         "device_functions": False,
@@ -64,6 +69,7 @@ SAFETY_FLAG_DEFAULTS: Final[Mapping[str, bool]] = MappingProxyType(
         "learning_apply": False,
         "satisfaction_prompts": False,
         "guardian_link": False,
+        "commercial_messaging": False,
     }
 )
 

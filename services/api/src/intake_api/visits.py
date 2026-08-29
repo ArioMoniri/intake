@@ -12,9 +12,12 @@ to consented patients and can write nothing.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from intake_platform.consent import is_scope_allowed
+from intake_platform.db.models import SessionAttribution
+from intake_platform.profiles import Attribution
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from intake_api import store
@@ -23,7 +26,12 @@ from intake_api.consent_guard import ensure_consent, require_scopes
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DevAccount
 from intake_api.errors import not_found
-from intake_api.schemas import VisitCreate, VisitOut, validated_new_visit
+from intake_api.schemas import (
+    VisitCreate,
+    VisitOut,
+    resolved_attribution,
+    validated_new_visit,
+)
 from intake_api.state import ApiState, State
 
 __all__ = ["router"]
@@ -42,6 +50,11 @@ def _to_out(record: store.VisitRecord) -> VisitOut:
         visit_type=record.visit_type,
         date=record.date,
         note_status=record.note_status,
+        # INT-133 / files/06 §6: on EVERY record read, not only the ones a
+        # companion created — the projection is one place, so no read path
+        # can forget the flag.
+        proxy_reported=record.proxy_reported,
+        third_party_present=record.third_party_present,
     )
 
 
@@ -103,6 +116,9 @@ async def create_visit(payload: VisitCreate, principal: Principal, state: State)
     patient, patient_id = require_patient(principal)
     loaded = state.taxonomy()
     visit = validated_new_visit(payload, loaded.taxonomy if loaded is not None else None)
+    # INT-133: derived by the platform rules engine, refused (422) when a
+    # companion has not acknowledged the role. Never asserted by the client.
+    attribution = resolved_attribution(payload.attribution)
     async with tenant_session(state.engine, patient.tenant_id) as session:
         visit_id = await store.create_visit(
             session,
@@ -113,6 +129,16 @@ async def create_visit(payload: VisitCreate, principal: Principal, state: State)
             date=visit.date,
             branch_id=visit.branch_id,
             visit_type=visit.visit_type,
+            attribution=SessionAttribution(attribution.attribution.value),
+            third_party_present=attribution.third_party_present,
+            # both companion attributions passed the acknowledgement gate to
+            # get here; a self-report session never took it, so it records no
+            # instant rather than a misleading one
+            proxy_ack_at=(
+                datetime.now(UTC)
+                if attribution.attribution is not Attribution.SELF_REPORT
+                else None
+            ),
         )
         await state.audit.record(
             actor=patient.account_id,
@@ -128,6 +154,8 @@ async def create_visit(payload: VisitCreate, principal: Principal, state: State)
         visit_type=visit.visit_type,
         date=visit.date,
         note_status=None,
+        proxy_reported=attribution.proxy_reported,
+        third_party_present=attribution.third_party_present,
     )
 
 
