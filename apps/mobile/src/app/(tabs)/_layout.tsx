@@ -71,6 +71,7 @@ function TabsShell({
         <Tabs.Screen name="wellbeing" />
       </Tabs.Protected>
       <Tabs.Screen name="me/index" />
+      <Tabs.Screen name="me/appearance" />
       <Tabs.Screen name="me/learned" />
       <Tabs.Screen name="me/notifications" />
       <Tabs.Screen name="me/companion" />

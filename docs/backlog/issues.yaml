@@ -2987,3 +2987,26 @@
     - "NO clinical content: fixture overlays only, under tests/fixtures/, with synthetic names and values. The eight authored patient overlays of 04 section 2.3 stay with INT-056 and stay blocked on a licensed physician (HUMAN_BLOCKERS HB-C1, HB-C5, HB-C6)"
   tests: [tests/protocols/test_overlay_monotonicity.py, tests/protocols/test_overlay_activation.py]
   sec_row: "learning-loops"
+- id: INT-260
+  epic: E08-mobile
+  phase: P0
+  # Owner directive 2026-08-30: "make the chat page and voice page more sleek and
+  # minimalistic ... and also make text size and other settings adjustable".
+  # This issue is the settings half; the surface redesign is its own chain.
+  title: "Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something"
+  depends_on: [INT-144, INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "text size, theme, on-screen motion and visit start mode are adjustable in-app and persist device-locally; each control has a real consumer on the day it ships, and a fifth (spoken reading) is deliberately absent because its only consumer is a surface this issue does not touch"
+    - "useFontScale is redefined IN PLACE so a chosen step REPLACES the OS value rather than composing with it: no sibling hook, scaledSize/lineHeight/the clamp/AppText untouched, and the discriminating case (smallest step at OS 2.0 renders 0.9, which no composing build can produce) is asserted rather than described"
+    - "the ladder is five discrete steps [0.9, 1.0, 1.3, 1.6, 2.0] and never a slider - typeScale is seven fixed integers and scaledSize rounds - and the top step equals the clamp ceiling so the control can never shrink a patient already at OS 2.0"
+    - "two gaps the control makes reachable are closed in the same change: useStackHeader stopped hardcoding 17 pt with react-navigation's own multiplier left on, and FloatingTabBar implements the collapse theme.ts has claimed since INT-130 - icons only at MIN_TAP with a filled well, because the dropped caption was half the focus signal"
+    - "theme and reduced motion get a mechanism rather than a dead switch: useScheme resolves the stored override and every scheme consumer but one recorded exception takes it, and useReducedMotion ORs the app switch with the OS signal so it can add reduced motion and never remove it"
+    - "the controls are exemplary rather than adequate: radiogroup/radio with accessibilityState.selected, switch with its checked state, every target at MIN_TAP by box and never by slop, selection never carried by hue alone, and the screen proved on the simulator at both ends of its own ladder"
+    - "persistence is device-local and provably so - this device's keychain slot, excluded from backups, no network and no session reachable from the provider - carries the invariant 18 inventory annotation, and the stop-and-ask is FILED with its named owner rather than answered by the agent"
+  tests:
+    - apps/mobile/src/lib/prefs/appearance.test.ts
+    - apps/mobile/e2e/appearance.spec.ts
+  sec_row: "mobile"
+  evidence: docs/evidence/INT-260.md

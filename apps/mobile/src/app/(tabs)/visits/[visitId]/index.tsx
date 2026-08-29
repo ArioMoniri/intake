@@ -6,7 +6,7 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { StatusLadder } from "@/components/StatusLadder";
 import {
@@ -32,6 +32,8 @@ export default function VisitDetail() {
   const headerOptions = useStackHeader();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { visits, notes } = useSession();
+  // Hoisted above the early return: hooks run in the same order every render.
+  const tabBarClearance = useTabBarClearance();
   const visit = visits.find((v) => v.id === visitId) ?? null;
   if (visit === null) {
     return (
@@ -52,7 +54,7 @@ export default function VisitDetail() {
           centred-title bar with the "‹" affordance — nothing before this
           pass offered a visible way back. */}
       <Stack.Screen options={headerOptions(visit.department)} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
         <VisitCard visit={visit} statusOverride={status} />
         {visit.visitType !== null ? (
           <Card style={styles.ladderCard}>
@@ -101,6 +103,6 @@ export default function VisitDetail() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.lg, paddingTop: spacing.md },
   ladderCard: { gap: spacing.md },
 });

@@ -17,7 +17,7 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -129,7 +129,7 @@ export default function NewVisit() {
   return (
     <Screen edges={["left", "right"]}>
       <Stack.Screen options={headerOptions(t("visits.new.title"))} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]} keyboardShouldPersistTaps="handled">
         <AppText role="caption" color="inkFaint">
           {t("visits.new.hint")}
         </AppText>
@@ -324,7 +324,7 @@ export default function NewVisit() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.md },
   field: {
     borderRadius: radius.control,
     borderWidth: 1,

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**209 issues.** By phase: P0 121 · P1 47 · P2 36 · P3 5. By status: awaiting-human 3 · doing 7 · done 79 · todo 119 · withdrawn 1.
+**210 issues.** By phase: P0 122 · P1 47 · P2 36 · P3 5. By status: awaiting-human 3 · doing 7 · done 80 · todo 119 · withdrawn 1.
 
 ## P0
 
@@ -132,6 +132,7 @@
 | INT-249 | Latency-aware voice lane selection: a health check that answers is not a lane that can speak | E05-voice | INT-243 | area:voice | done |
 | INT-261 | Voice intake mixes with the typed form: a clip that cannot be spoken ends the whole conversation, and the spoken turn reads the typed form's control copy | E08-mobile | INT-239, INT-249 | area:mobile, area:voice | todo |
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | todo |
+| INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
 
 ## P1
 

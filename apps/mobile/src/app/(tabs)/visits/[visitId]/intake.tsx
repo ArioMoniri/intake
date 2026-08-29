@@ -31,7 +31,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useReducer, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
 import {
@@ -40,6 +40,7 @@ import {
   PrimaryButton,
   Screen,
   useFontScale,
+  useScheme,
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
@@ -65,6 +66,7 @@ import {
   voiceIntakeReducer,
   type PrefillMap,
 } from "@/lib/intake/voiceFirst";
+import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -76,6 +78,11 @@ export default function TypedIntake() {
   const headerOptions = useStackHeader();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, consents, visits, integrity } = useSession();
+  // INT-260: "Ziyarete başlarken" — the patient's own answer to whether a
+  // fresh visit opens by speaking or by typing. It can only ever narrow the
+  // existing eligibility rule; typed intake was already reachable from the
+  // gate, from inside the dialogue, and from any failure.
+  const { prefs } = useAppearance();
   const note = notes[visitId ?? ""];
   const visit = visits.find((v) => v.id === visitId);
   // The pack a visit runs = the department's dimensions + the universal
@@ -95,6 +102,7 @@ export default function TypedIntake() {
   const integrityCompromised = !voiceAllowedForIntegrity(integrity);
   const voiceEligible =
     __DEV__ &&
+    prefs.startMode === "voice" &&
     consents?.voice === true &&
     !editing &&
     !integrityCompromised &&
@@ -180,7 +188,7 @@ interface StepFlowProps {
 function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }: StepFlowProps) {
   const router = useRouter();
   const theme = useTheme();
-  const dark = useColorScheme() === "dark";
+  const dark = useScheme() === "dark";
   const fontScale = useFontScale();
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];

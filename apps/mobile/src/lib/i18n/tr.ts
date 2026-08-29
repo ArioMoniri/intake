@@ -180,6 +180,28 @@ export const tr = {
   "learned.guide.title": "Hiçbir şey sessizce öğrenilmez",
   "learned.guide.body":
     "Vizite sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
+  // INT-260 — Görünüm: yazı boyutu, tema, ekran hareketi ve ziyaretin nasıl
+  // başlayacağı. Ayarlar yalnızca bu cihazda tutulur; sunucuya gitmez.
+  "appearance.title": "Görünüm",
+  "appearance.preview": "Önizleme",
+  "appearance.textSize": "Yazı boyutu",
+  "appearance.textSize.phone": "Telefon ayarını kullanın",
+  "appearance.size.s": "Küçük",
+  "appearance.size.m": "Orta",
+  "appearance.size.l": "Büyük",
+  "appearance.size.xl": "Daha büyük",
+  "appearance.size.xxl": "En büyük",
+  "appearance.overrideNote": "Seçtiğiniz boyut telefon ayarınızın yerine kullanılır.",
+  "appearance.theme": "Tema",
+  "appearance.theme.system": "Sistem",
+  "appearance.theme.light": "Açık",
+  "appearance.theme.dark": "Koyu",
+  "appearance.motion": "Ekran hareketini azaltın",
+  "appearance.motionNote": "Telefonunuzda hareket azaltma açıksa bu ayar da açık kalır.",
+  "appearance.start": "Ziyarete başlarken",
+  "appearance.start.voice": "Konuşarak",
+  "appearance.start.typed": "Yazarak",
+  "appearance.deviceOnly": "Bu ayarlar yalnızca bu telefonda saklanır.",
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
@@ -757,6 +779,14 @@ export const tr = {
   "notifications.pending":
     "Değişikliğiniz henüz kaydedilmedi. Bağlantınızı kontrol edip yeniden deneyin.",
   "a11y.notifications.switchHint": "Hatırlatmaları açıp kapatmak için iki kez dokunun.",
+  // INT-260 — Görünüm ekranının okuyucuya söyledikleri.
+  "a11y.appearance.entry": "Yazı boyutu, tema ve hareket ayarlarını açar.",
+  "a11y.appearance.preview": "Yazı boyutu önizlemesi",
+  "a11y.appearance.size": "Yazı boyutunu buradan seçebilirsiniz.",
+  "a11y.appearance.phone": "Açıkken yazı boyutu telefonunuzun ayarından gelir.",
+  "a11y.appearance.theme": "Uygulamanın açık ya da koyu görünmesini belirler.",
+  "a11y.appearance.motion": "Açıkken ekrandaki geçişler ve hareketler durur.",
+  "a11y.appearance.start": "Yeni ziyaretin konuşarak mı yazarak mı başlayacağını belirler.",
   "a11y.notifications.quietHint": "Bu sessiz saat aralığını seçmek için iki kez dokunun.",
 
   // ---------------------------------------------------------------------
