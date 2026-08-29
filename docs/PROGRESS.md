@@ -437,3 +437,9 @@
 - Two guards were hit and NEITHER weakened: the protocols package is I/O-free and audio-free by construction, so the code moved to a new packages/voice-clips workspace package (git diff on packages/protocols is empty). The INT-090 audio ban list was then STRENGTHENED — six more libraries banned, one enumerated per-file grant, and the allow-list test became an equality pin so a second grant cannot slip in.
 - Unblocks INT-091, the Talker.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-202 merged (PR #321), status stays doing
+- Encrypted PITR, replication and the drill land as a standalone profile-gated overlay; infra/docker-compose.dev.yml diff vs main is zero lines and a test asserts it.
+- The drill itself did NOT run: make backup-drill exits 3 — 11 GiB free against 80 needed, 0 GiB container memory against 22. Blocked against HB-I1/HB-I2, no RTO figure produced, the drill was not shrunk to fit, acceptance box unchecked, issue stays doing.
+- HB-I8 raised, and it reaches beyond this issue: a backup OUTLIVES the crypto-shredding it is subject to, so a restore can resurrect an erased subject — KVKK-7 / DEST-2017, not an ops preference. files/10 §3 states RPO and RTO but no retention, and 06 §3's matrix has no row for backup copies at all. Meanwhile the repository expires nothing (loses nothing) and the drill refuses to run without an explicit retention value rather than choosing one. Second question in the row: "a second location in Türkiye" names no site, provider or region, so the DR endpoint has no default and minio-dr is labelled a stand-in.
+- LOOP_STATUS: CONTINUE
