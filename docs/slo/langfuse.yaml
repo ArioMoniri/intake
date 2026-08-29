@@ -1,0 +1,67 @@
+# docs/slo/langfuse.yaml — SLO for the self-hosted LLM-trace tier
+# (INT-175; CLAUDE.md invariant 15; files/10 §6).
+#
+# Schema: intake_platform.slo.SLOFile, same conventions as docs/slo/api.yaml
+# and docs/slo/probes.yaml (which likewise declares a single objective).
+#
+# One SLO, deliberately, and it is not the one a vendor dashboard would
+# suggest. Langfuse itself is a third-party container whose liveness is a
+# probe, not an error budget — `http_health` against /api/public/health, the
+# `langfuse` row of observability/registry.yaml, budget 2000 ms. What WE own,
+# and what a patient's privacy actually rests on, is the emission boundary in
+# intake_platform.observability.spans. So that is what carries the objective:
+#
+#   trace_emission   spans that left the boundary against spans that left it
+#                    plus field values it refused. A refusal means a caller
+#                    handed the trace store something that is not an
+#                    identifier, which under HB-L6 is the failure that
+#                    matters. The alert is a page rather than a ticket because
+#                    a rising refusal rate is a caller pushing narrative at a
+#                    store files/08 §6 already calls a transcript store.
+#
+# Two things are deliberately NOT SLOs here.
+#
+# The content gate has no denominator. `annotation_content_reads_refused_total`
+# counts refusals and there is no granted counterpart to count, because
+# `authorize_content_read` returns `ContentReadRefused` and nothing else.
+# Writing `refused / clamp_min(refused, 1)` to satisfy the schema would give a
+# number that reads 0 on silence and 1 on activity — an error budget that
+# burns when nothing is happening. The right instrument for a wall is an alert
+# on the raw counter: standing demand for a read path that does not exist is
+# an intrusion signal, the same posture files/08 §2.5 puts on break-glass
+# rate. It joins infra/observability/prometheus-rules.yaml with the alerting
+# issue, not this file.
+#
+# Queue ingest has the same shape and the same answer: `enqueue` either
+# returns an item or raises, and the raise is a consent refusal that belongs
+# on the consent_guard signal (files/10 §7), not in an availability ratio.
+service: langfuse
+owner: platform
+slos:
+  - name: trace_emission
+    sli: >-
+      sum(rate(llm_trace_spans_emitted_total[5m]))
+      /
+      (sum(rate(llm_trace_spans_emitted_total[5m]))
+       + sum(rate(llm_trace_fields_refused_total[5m])))
+    objective: 99.9
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket

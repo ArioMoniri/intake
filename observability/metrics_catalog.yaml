@@ -138,6 +138,51 @@ metrics:
       promoted / rejected / already-processed / scan-unavailable; reason is
       the closed RejectReason code for rejections and "none" otherwise —
       enumerations only, never content (invariant 6).
+  - name: llm_trace_spans_emitted_total
+    type: counter
+    labels: [kind, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      LLM trace spans emitted to the self-hosted trace store, by SpanKind and
+      SpanOutcome (INT-175; files/08 §7). Emitted by
+      intake_platform.observability.spans.emit_llm_span. Both labels are
+      closed enumerations; the span payload itself is ids, enums and counts —
+      HB-L6 keeps content out of it entirely.
+  - name: llm_trace_fields_refused_total
+    type: counter
+    labels: [field]
+    owner: platform
+    unit: "count"
+    description: >-
+      Span fields refused at the emission boundary because the value was not
+      id-shaped (INT-175). The label is the FIELD NAME, never the value: a
+      refusal counter carrying the refused string would be the leak it exists
+      to prevent (invariant 6). A non-zero rate means a caller is trying to
+      put narrative on a trace and should be found.
+  - name: annotation_queue_enqueued_total
+    type: counter
+    labels: [queue]
+    owner: platform
+    unit: "count"
+    description: >-
+      Annotation-queue items enqueued, by queue (note_quality /
+      hallucination_audit / false_red_review; INT-175, files/08 §3). An item
+      is a pointer — ids, a span ref and a timestamp — so enqueueing carries
+      no clinical content. Emitted by
+      intake_platform.observability.annotation.enqueue.
+  - name: annotation_content_reads_refused_total
+    type: counter
+    labels: [queue, blocker]
+    owner: platform
+    unit: "count"
+    description: >-
+      Staff attempts to read the clinical content behind an annotation-queue
+      item, refused by an open blocker (INT-175; HB-L6). Today every attempt
+      is refused, so this is the honest measure of demand for a read path
+      that does not exist yet, and it feeds the same intrusion posture
+      files/08 §2.5 puts on break-glass rate. Every attempt is audited before
+      it is refused.
   - name: event_bus_consumer_lag
     type: gauge
     labels: [stream, group]
