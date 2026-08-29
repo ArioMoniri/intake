@@ -2968,7 +2968,7 @@
   labels:
   - area:mobile
   - area:voice
-  status: todo
+  status: done
   acceptance:
   - 'reported from the field as "voice and text based dynamic questions gets mixed
     up" and reproduced twice on the simulator with every dev lane answering its
@@ -3017,7 +3017,7 @@
   title: "Overlay composition mechanism + monotonicity property test (content stays with INT-056)"
   depends_on: [INT-041]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "the overlay type, load path and compose step exist in packages/protocols: activate_overlays resolves the files/03 section 6 `overlays: [{id, when}]` declarations against confirmed PatientOverlay facts with the closed when grammar and three-valued evaluation, so a missing or stale fact reads Unknown and never activates; compose_overlay_rules applies overlay packs to a chain-resolved rule set add-and-tighten only"
     - "a tighten_rule op in an overlay resolves its parent in the pack the overlay is applied TO, not in the overlay's own extends chain - without this an overlay is pinned to one branch and `overlay.oncology_patient` cannot reach a dermatology session, which 04 section 2.2/2.3 requires"
