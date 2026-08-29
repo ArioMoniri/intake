@@ -30,6 +30,8 @@ EXPECTED_TABLES = {
     # INT-037 — data-subject rights
     "dsar_requests",
     "dsar_rectifications",
+    # INT-141 — notification opt-out and quiet hours
+    "notification_preferences",
 }
 
 

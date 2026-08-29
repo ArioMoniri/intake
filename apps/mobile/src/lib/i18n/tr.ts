@@ -730,6 +730,36 @@ export const tr = {
   "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
   "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
   "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
+  // ── INT-141 · Bildirimler ────────────────────────────────────────────
+  // The patient's own opt-out and quiet window. Two rules the copy has to
+  // carry honestly: a bildirim never says anything about health (the bodies
+  // are constants in the server catalogue — nothing about the visit reaches
+  // a lock screen), and there is NO default quiet window, because no file
+  // names an hour and inventing one would choose it for everybody.
+  "me.notifications": "Bildirimler",
+  "notifications.title": "Bildirimler",
+  "notifications.entry.sub": "Hatırlatmalar ve sessiz saatler",
+  "notifications.guide.kicker": "Bildirimler",
+  "notifications.guide.title": "Yalnızca hatırlatma",
+  "notifications.guide.body":
+    "Size yalnızca vizitinizden önce kısa bir hatırlatma göndeririz. Ne zaman sessiz kalacağımızı siz seçersiniz; istediğiniz zaman tamamen kapatabilirsiniz.",
+  "notifications.contentFree":
+    "Hatırlatmalarda sağlık bilgileriniz, bölüm adı, hekim adı veya belge adı yer almaz. Telefonunuz kilitliyken yalnızca uygulamanın adı görünür.",
+  "notifications.transactionalOnly":
+    "Yalnızca vizitinizle ilgili hatırlatma göndeririz. Tanıtım iletisi göndermiyoruz.",
+  "notifications.switchLabel": "Hatırlatmalar",
+  "notifications.on": "Açık",
+  "notifications.off": "Kapalı",
+  "notifications.optOutHint":
+    "Kapattığınızda hiçbir hatırlatma göndermeyiz. İstediğiniz zaman yeniden açabilirsiniz.",
+  "notifications.quiet": "Sessiz saatler",
+  "notifications.quietHint":
+    "Seçtiğiniz aralıkta hatırlatma göndermeyiz. Hazır bir aralık seçili değildir; seçim sizindir.",
+  "notifications.quietNone": "Seçilmedi",
+  "notifications.pending":
+    "Değişikliğiniz henüz kaydedilmedi. Bağlantınızı kontrol edip yeniden deneyin.",
+  "a11y.notifications.switchHint": "Hatırlatmaları açıp kapatmak için iki kez dokunun.",
+  "a11y.notifications.quietHint": "Bu sessiz saat aralığını seçmek için iki kez dokunun.",
 
   // ---------------------------------------------------------------------
   // INT-133 — profiles, companions, guardian flows, proxy acknowledgement

@@ -58,6 +58,7 @@ __all__ = [
     "CONSENT_MANAGEMENT_PREFIX",
     "DATA_SUBJECT_RIGHT_PREFIX",
     "META_ROUTES",
+    "NOTIFICATION_PREFERENCE_PREFIX",
     "PRE_AUTH_PREFIX",
     "REFERENCE_DATA_PREFIX",
     "ConsentGuard",
@@ -68,6 +69,8 @@ __all__ = [
     "data_subject_right_routes",
     "ensure_age_actor",
     "ensure_consent",
+    "notification_preference",
+    "notification_preference_routes",
     "pre_auth",
     "pre_auth_routes",
     "reference_data",
@@ -283,11 +286,36 @@ class ReferenceDataDeclaration:
         return
 
 
+class NotificationPreferenceDeclaration:
+    """Explicit declaration that a route IS the patient's message-refusal
+    register (INT-141: opt-out and quiet hours).
+
+    Gate this surface on a consent scope and you build a state in which the
+    patient who withdrew ``core`` can no longer reach the switch that stops
+    the messages — the same trap the statutory-rights routes documented, and
+    the reason 6563's *ret hakkı* has to be exercisable at any time. A
+    refusal register that a refusal can lock is not a refusal register. So
+    the route cannot enforce a scope; it may not stay silent either, and the
+    scan accepts this marker ONLY under NOTIFICATION_PREFERENCE_PREFIX (as a
+    path segment, not a substring).
+
+    What does not disappear with the scope: the routes are patient-only
+    (``require_patient``), act on the requesting subject's own row, carry no
+    clinical data in either direction, and audit every change.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 #: The only prefix where a data-subject-right declaration is accepted.
 DATA_SUBJECT_RIGHT_PREFIX = "/v1/me/dsar"
 
 #: The only prefix where a reference-data declaration is accepted.
 REFERENCE_DATA_PREFIX = "/v1/taxonomy"
+
+#: The only prefix where a notification-preference declaration is accepted.
+NOTIFICATION_PREFERENCE_PREFIX = "/v1/me/notifications"
 
 
 def data_subject_right() -> params.Depends:
@@ -300,6 +328,13 @@ def data_subject_right() -> params.Depends:
 def reference_data() -> params.Depends:
     """Declare a route as reference data (see ReferenceDataDeclaration)."""
     dependency: params.Depends = Depends(ReferenceDataDeclaration())
+    return dependency
+
+
+def notification_preference() -> params.Depends:
+    """Declare a route as the notification-preference register (see
+    NotificationPreferenceDeclaration)."""
+    dependency: params.Depends = Depends(NotificationPreferenceDeclaration())
     return dependency
 
 
@@ -369,10 +404,17 @@ def _is_reference_data(route: APIRoute) -> bool:
     )
 
 
+def _is_notification_preference(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, NotificationPreferenceDeclaration)
+        for dependency in route.dependencies
+    )
+
+
 def _under_prefix(path: str, prefix: str) -> bool:
     """Segment-boundary match: the prefix itself and ``<prefix>/...`` qualify;
-    a lookalike like ``/v1/consentsish`` does not. Three cages share this rule
-    now, so it lives once rather than being re-derived per marker."""
+    a lookalike like ``/v1/consentsish`` does not. Every cage shares this rule,
+    so it lives once rather than being re-derived per marker."""
     return path == prefix or path.startswith(prefix + "/")
 
 
@@ -386,8 +428,13 @@ def _under_reference_data_prefix(path: str) -> bool:
 
 
 def _under_data_subject_right_prefix(path: str) -> bool:
-    """Segment-boundary match, same rule as the other two cages."""
+    """Segment-boundary match, same rule as the other cages."""
     return _under_prefix(path, DATA_SUBJECT_RIGHT_PREFIX)
+
+
+def _under_notification_preference_prefix(path: str) -> bool:
+    """Segment-boundary match, same rule as the other cages."""
+    return _under_prefix(path, NOTIFICATION_PREFERENCE_PREFIX)
 
 
 def pre_auth_routes(app: FastAPI) -> list[str]:
@@ -436,18 +483,32 @@ def reference_data_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def notification_preference_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the notification-preference declaration, for the
+    pin test (INT-141) — reported wherever it appears; whether the scan
+    ACCEPTS it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_notification_preference(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
-    land undeclared (silence always fails). Four markers exist, each caged to
+    land undeclared (silence always fails). Five markers exist, each caged to
     its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
     principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
     (INT-232, the routes ABOUT consent), reference_data under
     REFERENCE_DATA_PREFIX (INT-134, versioned artefact projections holding no
-    patient data) and data_subject_right under DATA_SUBJECT_RIGHT_PREFIX
+    patient data), data_subject_right under DATA_SUBJECT_RIGHT_PREFIX
     (INT-037, the statutory rights whose basis is legal obligation rather than
-    consent). Any marker outside its prefix does NOT count as a declaration
-    (the route is reported here instead)."""
+    consent) and notification_preference under NOTIFICATION_PREFERENCE_PREFIX
+    (INT-141, the message-refusal register a withdrawal must not lock). Any
+    marker outside its prefix does NOT count as a declaration (the route is
+    reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -459,6 +520,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_reference_data(route) and _under_reference_data_prefix(path):
             continue
         if _is_data_subject_right(route) and _under_data_subject_right_prefix(path):
+            continue
+        if _is_notification_preference(route) and _under_notification_preference_prefix(path):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):
