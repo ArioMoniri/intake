@@ -503,3 +503,10 @@
 - Licence ancestry mattered: wazuh-indexer forks OpenSearch, not Elasticsearch — the wrong ancestor would have put SSPL on the PHI path. Wazuh manager is GPL-2.0-only with an OpenSSL exception and a redistribution-scoped derivative-work reading, which is why the ruleset is written from scratch in the user id range. Falco's engine and its rules repo were read separately. All tags dereferenced first, because Wazuh's are annotated and an undereferenced ref 404s into a silent "no licence".
 - Not exercised and not shrunk to fit: the tier needs 80 GiB against 14 free, so the deploy exits 3 naming the blockers. No correlation window and no alert retention invented; the deploy exits 2 naming the retention ask.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-249 merged (PR #356): the voice no longer hangs
+- Measured on live daemons, both /health-green: the preferred lane answered its health probe in 0.14 s and took 3.99 s for one word and 6.12 s for a sentence, while the fallback took ~1 s. Selection on health alone chose the slow one, so the patient watched a spinner.
+- Worse than reported: the cap was 30 s applied PER SENTENCE SEQUENTIALLY with no synthesis-time fallback, so a two-sentence clip held ~60 s and then dispatched a TERMINAL failure into the manual steps.
+- The budget is the blueprint's, and the obvious number was wrong: §4.5's 520 ms is a time-to-first-token figure for a STREAMING path these daemons do not have — gating on it would have rejected the tier the blueprint itself designates as the acceptable fallback and left the app with NO VOICE AT ALL. Used §4.4's round-trip band for the only production profile instead: 1684 ms to admit, 2364 ms in flight. The reasoning is in the code because 520 ms is the obvious wrong answer.
+- Ask-ahead was already correct and is now PINNED — there are no RN render tests, so gating the body on `playing` would have passed the whole suite; three identity tests prove a late result cannot rebuild the turn and restart the clip.
+- LOOP_STATUS: CONTINUE

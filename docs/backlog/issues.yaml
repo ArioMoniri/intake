@@ -2712,6 +2712,7 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+<<<<<<< HEAD
 - id: INT-248
   epic: E05-voice
   phase: P0
@@ -2741,3 +2742,30 @@
     lexicon growth is a clinical review'
   tests:
   - tests/release/test_i18n_complete.py
+=======
+- id: INT-249
+  epic: E05-voice
+  phase: P0
+  title: 'Latency-aware voice lane selection: a health check that answers is not a
+    lane that can speak'
+  depends_on:
+  - INT-243
+  labels:
+  - area:voice
+  status: done
+  acceptance:
+  - 'measured on live daemons, the preferred voice answered its health probe in a
+    seventh of a second and then took four to six seconds to synthesise a sentence
+    while the fallback took about one, and selection on health alone chose the slow
+    one so the patient watched a spinner: selection becomes latency-aware against
+    the round-trip figure the blueprint states for the production profile rather
+    than the streaming stage figure, which measurement showed would have rejected
+    both lanes and left no voice at all; every synthesis call gains a hard cap with
+    fallback, because the previous cap applied per sentence in sequence and a two
+    sentence clip could hold for a minute before failing terminally into the manual
+    steps; the question text is proved to render without waiting on audio and a late
+    result is proved unable to rebuild the turn and restart the clip; and the
+    selection is cached per session and re-probed on failure'
+  tests:
+  - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+>>>>>>> origin/main
