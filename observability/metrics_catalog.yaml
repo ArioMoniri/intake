@@ -1354,6 +1354,28 @@ metrics:
     unit: "state"
     status: planned
     description: Instrument licence state by instrument; moving off GO tickets.
+  # --- INT-141 notifications (files/10 §9 row "Notifications / reminders":
+  # "delivery/opt-out rates"). files/08 §4 names no metric id for this row, so
+  # these carry no `id` — they are the §9 signals, catalogued here rather than
+  # dropped. Every label is a closed enumeration; nothing free-text (inv. 6).
+  - name: notification_dispatch_total
+    type: counter
+    labels: [channel, message_class, status]
+    owner: platform
+    unit: "count"
+    description: >-
+      Notification dispatch attempts by channel, message class and outcome
+      (delivered, suppressed_opt_out, deferred_quiet_hours,
+      refused_quiet_hours_unset, blocked_transport_unconfigured). The delivery
+      rate and the opt-out rate are both read off the status label.
+  - name: notification_preference_changed_total
+    type: counter
+    labels: [change]
+    owner: platform
+    unit: "count"
+    description: >-
+      Patient notification-preference changes by what changed (opt_out,
+      opt_in, quiet_window_set, quiet_window_cleared).
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):

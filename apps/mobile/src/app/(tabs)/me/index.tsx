@@ -163,6 +163,17 @@ export default function Me() {
               </View>
             }
           />
+          {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
+              because the quiet-window choices do not fit a settings row —
+              and because the honest explanation of what a reminder never
+              says belongs beside the switch that governs it. */}
+          <ListRow
+            label={t("me.notifications")}
+            sublabel={t("notifications.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/notifications")}
+          />
           <ListRow
             label={t("me.learned")}
             chevron

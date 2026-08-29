@@ -30,6 +30,8 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -42,7 +44,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import BigInteger, Uuid
+from sqlalchemy.types import BigInteger, Integer, Uuid
 
 from intake_platform.db.inventory import (
     BASIS_AWAITING_HUMAN_GUARDIAN,
@@ -63,6 +65,7 @@ from intake_platform.db.inventory import (
     RET_CONSENT_AUDIT,
     RET_DSAR,
     RET_EVENTS,
+    RET_NOTIFICATION_PREFERENCE,
     RET_RECORD,
     RET_SHARE,
     RET_TENANT,
@@ -81,6 +84,7 @@ __all__ = [
     "GuardianLink",
     "IntakeSession",
     "KvkkRole",
+    "NotificationPreference",
     "Note",
     "Patient",
     "SessionStatus",
@@ -1020,3 +1024,103 @@ class Event(Base):
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_EVENTS)
+
+
+class NotificationPreference(Base):
+    """INT-141 — the patient's own message-refusal register: one opt-out flag
+    and, optionally, a quiet window.
+
+    It is a table rather than a setting in a process because a quiet-hours
+    window that lives in memory is a quiet-hours window that stops working at
+    the next deploy — at 03:00, for everybody at once.
+
+    Shape notes:
+
+    - **Two integers and a flag.** Minutes since local midnight, evaluated on
+      the fixed Türkiye offset (``intake_platform.notifications.preferences``),
+      so no per-patient timezone column exists and no location signal is
+      collected to support one.
+    - **Both ends or neither** (``ck_notification_preferences_quiet_window``):
+      half a window is not a window, and accepting one end while defaulting
+      the other would be the invented value rule 1 forbids.
+    - **Nothing here is an identifier**: no device token, no push handle, no
+      phone number (invariant 14). Delivery addressing belongs to the
+      transport and its vendor contract, which does not exist yet.
+    - One row per patient per tenant; a change replaces it in place, because
+      the history of a preference is the audit chain's business, not this
+      table's.
+    """
+
+    __tablename__ = "notification_preferences"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "patient_id"),
+        CheckConstraint(
+            "(quiet_start_minute IS NULL) = (quiet_end_minute IS NULL)",
+            name="quiet_window",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk("notification preference row key", RET_NOTIFICATION_PREFERENCE)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_NOTIFICATION_PREFERENCE)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient whose delivery preference this is",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    opted_out: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        info=inv(
+            CAT_OPERATIONAL,
+            "the patient has asked to receive no messages; honoured for every "
+            "class this product sends (files/06 §1 row 6563-İYS)",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    quiet_start_minute: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "start of the patient's quiet window, minutes since local midnight; "
+            "NULL means she has said nothing about hours, never that she is "
+            "happy to be woken",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    quiet_end_minute: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "end of the patient's quiet window, minutes since local midnight; "
+            "NULL exactly when the start is NULL (check constraint)",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        info=inv(
+            CAT_OPERATIONAL,
+            "instant the patient last changed the setting",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )

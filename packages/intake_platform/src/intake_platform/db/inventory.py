@@ -89,6 +89,14 @@ RET_CONSENT_AUDIT = "10 years for hospital tenants; WORM copy; audit is append-o
 RET_SHARE = "share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)"
 RET_EVENTS = "telemetry window: 30 d hot / 1 y cold; PHI-free by construction (06 §3)"
 RET_TENANT = "life of the tenant contract plus statutory retention on the DPA (06 §3)"
+# INT-141: files/06 §3 has no row for a notification preference, and inventing
+# a clock would be inventing a retention. It rides the record clock the matrix
+# already defines, for a stated reason rather than by default.
+RET_NOTIFICATION_PREFERENCE = (
+    "life of the patient record, on the 06 §3 record clock: patient-deletable, "
+    "30-day grace, then crypto-shred — a delivery preference cannot outlive the "
+    "account it configures, and an account that is gone has nobody to message"
+)
 RET_DSAR = (
     "record of a KVKK m.11/m.13 rights exercise: kept with the consent & audit tier, "
     "10 years (06 §3), which also carries the DEST-2017 ≥ 3-year floor for the "

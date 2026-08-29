@@ -72,6 +72,7 @@ function TabsShell({
       </Tabs.Protected>
       <Tabs.Screen name="me/index" />
       <Tabs.Screen name="me/learned" />
+      <Tabs.Screen name="me/notifications" />
       <Tabs.Screen name="me/consents/index" />
       <Tabs.Screen name="me/consents/[purpose]" />
     </Tabs>

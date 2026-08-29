@@ -708,4 +708,29 @@ export const en: Record<MessageKey, string> = {
   "a11y.dialogue.composerHint": "You can type here instead of speaking.",
   "a11y.dialogue.sectionsHint": "Double tap to see the sections going into your note.",
   "a11y.dialogue.exitHint": "Double tap to leave the conversation and continue by typing.",
+  // ── INT-141 · Notifications ──────────────────────────────────────────────
+  // Mirror of the tr block; tr is the source of truth (invariant 5).
+  "me.notifications": "Notifications",
+  "notifications.title": "Notifications",
+  "notifications.entry.sub": "Reminders and quiet hours",
+  "notifications.guide.kicker": "Notifications",
+  "notifications.guide.title": "Reminders only",
+  "notifications.guide.body":
+    "We send one short reminder before your visit. You choose when we stay quiet, and you can turn reminders off completely at any time.",
+  "notifications.contentFree":
+    "A reminder never carries your health information, a department name, a clinician's name or a document title. On a locked phone only the app name is visible.",
+  "notifications.transactionalOnly":
+    "We only send reminders about your visit. We do not send promotional messages.",
+  "notifications.switchLabel": "Reminders",
+  "notifications.on": "On",
+  "notifications.off": "Off",
+  "notifications.optOutHint":
+    "With reminders off we send none at all. You can turn them back on at any time.",
+  "notifications.quiet": "Quiet hours",
+  "notifications.quietHint":
+    "We send nothing during the hours you choose. No range is chosen for you; the choice is yours.",
+  "notifications.quietNone": "Not chosen",
+  "notifications.pending": "Your change is not saved yet. Check your connection and try again.",
+  "a11y.notifications.switchHint": "Double tap to turn reminders on or off.",
+  "a11y.notifications.quietHint": "Double tap to choose this quiet-hours range.",
 };
