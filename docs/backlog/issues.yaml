@@ -2495,7 +2495,7 @@
   title: "Wait-time metrics end-to-end + SDS-01 style exports"
   depends_on: [INT-240, INT-025]
   labels: [area:experience]
-  status: todo
+  status: done
   acceptance:
     - "time_to_first_question, note_ready_after_wrapup, doctor_link_first_open, checkin_to_seen (connector), records_processing emitted and dashboarded"
   tests: [tests/experience/test_wait_metrics.py]
