@@ -30,7 +30,7 @@ patient and the service, and a clinician reading what a patient said about
 them is not a use anybody consented to. No grant at all is the difference
 between "not selected" and "not selectable".
 
-Revision ID: 0006_int240
+Revision ID: 0008_int240
 Revises: 0004_int037
 """
 
@@ -40,8 +40,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
-revision = "0006_int240"
-down_revision = "0005_int133"
+revision = "0008_int240"
+down_revision = "0007_int141"
 branch_labels = None
 depends_on = None
 
