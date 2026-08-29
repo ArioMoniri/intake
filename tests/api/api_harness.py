@@ -40,6 +40,7 @@ from intake_platform.db.models import (
 )
 from intake_platform.documents import ScanVerdict
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
+from intake_platform.uploads import ScanFailedError
 from minio.commonconfig import COMPLIANCE
 from sqlalchemy import (
     JSON,
@@ -152,6 +153,18 @@ class CleanScanner:
 class InfectedScanner:
     def scan(self, data: bytes) -> ScanVerdict:
         return ScanVerdict.INFECTED
+
+
+class UnreachableScanner:
+    """A wired scanner that cannot reach clamd — the INT-120 client raises
+    ScanFailedError for every no-verdict path (refused connection, timeout,
+    ERROR reply, mid-stream close)."""
+
+    def scan(self, data: bytes) -> ScanVerdict:
+        raise ScanFailedError(
+            "clamd is unreachable or the connection failed mid-scan; no verdict "
+            "was produced, so the document stays quarantined (fail closed)"
+        )
 
 
 _DEFAULT_SCANNER: Any = object()

@@ -126,7 +126,13 @@ function mapError(status: number, body: Record<string, unknown>): RecordsApiErro
   if (code === "bad_sha256" || code === "digest_mismatch") {
     return new RecordsApiError("digest");
   }
-  if (code === "scan_not_configured" || code === "documents_unconfigured") {
+  if (
+    code === "scan_not_configured" ||
+    code === "scan_failed" ||
+    code === "documents_unconfigured"
+  ) {
+    // no verdict, for any reason: the same honest "we could not check this
+    // file yet" to the patient — the distinction is the operator's, not theirs
     return new RecordsApiError("scan_unavailable");
   }
   if (status === 401 || code === "session") {

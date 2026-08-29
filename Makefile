@@ -49,11 +49,15 @@ schemas-codegen:
 coverage-matrix:
 	uv run protocols coverage
 
+# INT-238: the clamav profile belongs to `dev`, not only to
+# check-integration. Document ingest fails closed without a scanner, so a dev
+# stack without clamd cannot add a record at all; the API wires ClamAvScanner
+# whenever INTAKE_CLAMD_HOST is set (see env.example).
 dev:
-	$(COMPOSE) up -d --wait
+	$(COMPOSE) --profile clamav up -d --wait
 
 dev-down:
-	$(COMPOSE) down
+	$(COMPOSE) --profile clamav down
 
 # INT-015: the pinned NER de-id artefact (names/addresses tier). Fetched from
 # the repo's own release — no vendor — and verified against the pinned sha
