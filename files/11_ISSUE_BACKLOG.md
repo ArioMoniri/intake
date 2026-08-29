@@ -5,11 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-<<<<<<< HEAD
-**200 issues.** By phase: P0 114 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 70 · todo 120 · withdrawn 1.
-=======
-**200 issues.** By phase: P0 114 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 71 · todo 119 · withdrawn 1.
->>>>>>> origin/main
+**201 issues.** By phase: P0 115 · P1 46 · P2 36 · P3 4. By status: awaiting-human 2 · doing 7 · done 71 · todo 120 · withdrawn 1.
 
 ## P0
 
@@ -128,11 +124,8 @@
 | INT-238 | Kaynaklar ingest defect: the virus scanner slot was never wired, so every upload stuck in quarantine | E02-data | INT-120, INT-034 | area:data | done |
 | INT-239 | Dialogue-only intake with answer-driven dev packs: delete the two-button chooser, branch every department on prior answers | E08-mobile | INT-235, INT-236 | area:mobile | done |
 | INT-243 | Serve the intended production TTS tier (VoxCPM2) behind a licence-verified registry row, with the fallback voice kept | E05-voice | INT-237 | area:voice | done |
-<<<<<<< HEAD
 | INT-248 | PolicyGuard precision: Turkish morphology, and the disclaimer the guard was rejecting | E05-voice | INT-091 | area:voice | todo |
-=======
 | INT-249 | Latency-aware voice lane selection: a health check that answers is not a lane that can speak | E05-voice | INT-243 | area:voice | done |
->>>>>>> origin/main
 
 ## P1
 

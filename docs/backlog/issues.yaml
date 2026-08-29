@@ -2712,7 +2712,6 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
-<<<<<<< HEAD
 - id: INT-248
   epic: E05-voice
   phase: P0
@@ -2742,7 +2741,6 @@
     lexicon growth is a clinical review'
   tests:
   - tests/release/test_i18n_complete.py
-=======
 - id: INT-249
   epic: E05-voice
   phase: P0
@@ -2768,4 +2766,3 @@
     selection is cached per session and re-probed on failure'
   tests:
   - apps/mobile/src/lib/dialogue/ttsLane.test.ts
->>>>>>> origin/main
