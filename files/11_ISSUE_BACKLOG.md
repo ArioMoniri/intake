@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**195 issues.** By phase: P0 109 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 52 · todo 136 · withdrawn 1.
+**196 issues.** By phase: P0 110 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 52 · todo 137 · withdrawn 1.
 
 ## P0
 
@@ -120,6 +120,7 @@
 | INT-240 | CSAT/NPS/clinician-pulse events + endpoints + rollups | E16-experience | INT-035, INT-031 | area:experience | todo |
 | INT-236 | Adaptive dev packs (askIf, DSL-mirrored) + Hizli/Detayli modes with privacy deferral and instant checkpoint | E08-mobile | INT-198, INT-233 | area:mobile | done |
 | INT-235 | Voice chat surface: two-sided live transcript with ask-ahead dialogue and realtime section panel | E08-mobile | INT-233 | area:mobile | done |
+| INT-238 | Kaynaklar ingest defect: the virus scanner slot was never wired, so every upload stuck in quarantine | E02-data | INT-120, INT-034 | area:data | todo |
 
 ## P1
 

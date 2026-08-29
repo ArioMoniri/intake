@@ -2602,3 +2602,30 @@
     questions fall to prefilled text steps'
   tests:
   - apps/mobile/src/lib/dialogue/stream.test.ts
+- id: INT-238
+  epic: E02-data
+  phase: P0
+  title: 'Kaynaklar ingest defect: the virus scanner slot was never wired, so every
+    upload stuck in quarantine'
+  depends_on:
+  - INT-120
+  - INT-034
+  labels:
+  - area:data
+  sec_row: identifiers
+  status: todo
+  acceptance:
+  - 'owner bug report - documents could not be added: app.py built its Scanner slot
+    from the dev stub alone, which is unconstructible without an opt-in env var, so
+    on any normal stack the slot was None and DocumentStore fell back to
+    no-scan-configured while a healthy ClamAV sat unused and INT-120s tested
+    ClamAvScanner sat unreferenced; scanner precedence becomes strongest-first
+    (real scanner, then the opt-in dev stub, then None) so the stub can never
+    shadow a live clamd, a scanner that cannot produce a verdict returns a typed
+    503 instead of an uncaught 500 with the row left quarantined, the client maps
+    it to the existing unavailable kind, make dev carries the clamav profile, and
+    the whole path is proved end to end on the live stack including an EICAR
+    rejection; the api harness injected a clean scanner into every case which is
+    why no test caught the slot the service actually builds at boot'
+  tests:
+  - tests/api/test_document_scan_wiring.py
