@@ -164,6 +164,27 @@ describe("createClipStore (one synthesis per clip per session)", () => {
     expect(synth).toHaveBeenCalledTimes(2);
   });
 
+  it("concurrent ensures of one clip share a single synthesis (pre-warm race, INT-235)", async () => {
+    const fs = memoryFs();
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const synth = vi.fn(async () => {
+      await gate;
+      return wav;
+    });
+    const store = createClipStore("cache/dialogue/", fs, synth);
+    const race = Promise.all([
+      store.ensure("q_onset.wav", "Nasıl başladı?"),
+      store.ensure("q_onset.wav", "Nasıl başladı?"),
+    ]);
+    release!();
+    const [first, second] = await race;
+    expect(first).toBe(second);
+    expect(synth).toHaveBeenCalledTimes(1);
+  });
+
   it("refuses digit-bearing text before ever calling the synthesizer", async () => {
     const fs = memoryFs();
     const synth = vi.fn(async () => wav);

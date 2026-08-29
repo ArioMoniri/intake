@@ -502,3 +502,63 @@ Typecheck, eslint and all 281 vitest tests green; no route, handler or
 i18n key removed; zero i18n keys needed (icons carry no copy). No
 existing palette hex changed — `cta`/`onCta` are ADDED tokens with their
 AA pairs pinned.
+
+## Voice chat surface (INT-235, 2026-08-28)
+
+Owner rejection of the INT-233 dialogue screen: full-screen status copy
+("yazıya dökülüyor" as a takeover) instead of a conversation you can
+read. Fresh Mobbin pull, voice-assistant chat UIs:
+
+- **Tolan** `4801af9f-cf80-4877-870f-e561df2d8b50` — the two-sided voice
+  chat anatomy: agent turns left, patient turns right, mic in the bottom
+  chrome; the transcript IS the surface.
+- **Cleo AI** `21400f6b-b4b7-403a-89b7-827c944a0911` — warm paper ground,
+  tonal right-aligned user bubble, inline "Typing…" status with a small
+  glyph INSIDE the stream — the closest register to ours.
+- **Pi** `7f86354d-c06a-4c2f-8396-616c1ac2995c` — "Pi is listening.." as
+  a quiet in-flow line on cream; listening is a state, not a takeover.
+- **Mesh** `1cb80a8d-a3a2-48ce-bdb3-bbaa25276689` — shimmer progress line
+  directly under the user's bubble while backend work runs.
+- **ChatGPT voice** `0069ce94-7f48-4420-b6eb-594f6f5bbdbd` (inline
+  "Transcribing" pill with spinner), `bf77728c-9d31-4ed8-9c31-9cf155f96f8a`
+  (agent turn as quiet plain text, no chrome around it).
+- **Meta AI (WhatsApp)** `a13d716b-b9dc-4775-9934-b5c881b221a3` — spoken
+  reply rendered as readable text with a visible stop affordance.
+- **Tiimo** `9d162dab-2f4e-4479-ba8f-f3df763b5c46` — suggestion chips
+  stacked above the composer while the assistant listens.
+
+Translated into our tokens (never copied): agent bubbles are quiet
+`surface` cards at `radius.group` (16, the table register — squarer than
+content cards) with the chat bottom-corner tuck, hairline in light /
+borderless in dark; patient bubbles are tonal `surfaceRaised` fills,
+right-aligned; the open-mic turn is the one accent moment (`primarySoft`
+wash + pulsing dot — a fade, within the 02 §5.2a budget); the pending
+patient bubble carries the small "Yazıya dökülüyor…" shimmer inline
+(Cleo/ChatGPT register — the words survived, the takeover did not);
+extract work is a quiet in-stream caption row (Mesh). CTAs stay on the
+pass-6 bone `GlassBar` — the bar gains a non-floating mode so the
+"Not oluşuyor · x/y bölüm" section strip (tabular figures) sits on the
+same glass above the CTA, expanding to a ListGroup sheet of the pack's
+own muayene sections (labels from `hpiLabelKey` — buildNote's mapping,
+never a hardcoded list) with the patient's verbatim quote as provenance
+per row. Serif stays screen chrome; bubbles are body sans (02 §8.2 —
+reading text on solid surfaces only). Barge-in is unchanged: the tap
+target is now the speaking bubble itself.
+
+Ask-ahead pass (same day, owner feedback: the "soru hazırlanıyor" wait):
+the conversation never blocks on the previous answer's pipeline. The
+next question's bubble appears the moment the mic closes — TEXT first,
+audio catches up (the whole session's scripted clips pre-warm in
+parallel at mount, so the spinner is the exception, and the bubble is
+never a spinner without content). The patient bubble exists from the
+utterance on, carries the "Yazıya dökülüyor…" shimmer, and the ASR text
+replaces it IN PLACE (ChatGPT voice's transcribing register, Mesh's
+behind-the-bubble progress); extraction reconciles into the section
+strip BEHIND the conversation, ordered by work id. A question whose
+suggestion has landed gets the quick spoken confirm turn with the chips
+pre-selected instead of a re-ask. The bar gains the persistent composer
+— surface input pill + bone send circle, the ChatGPT composer anatomy on
+our tokens — so typing is always available without a mode switch: a
+typed message is the same utterance path minus the ASR hop. The one
+honest wait left is the end-of-dialogue settling row while the last
+extractions land.

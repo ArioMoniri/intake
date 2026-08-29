@@ -137,8 +137,26 @@ describe("voiceIntakeReducer — spoken dialogue entry (INT-233)", () => {
     const dialogue: VoiceIntakeState = { phase: "dialogue" };
     expect(run(dialogue, { type: "record" })).toEqual(dialogue);
     expect(run(dialogue, { type: "transcript" })).toEqual(dialogue);
-    expect(run(dialogue, { type: "candidates", prefill: {} })).toEqual(dialogue);
     expect(run(dialogue, { type: "voice_ready" })).toEqual(dialogue);
+  });
+
+  it("the ask-ahead hand-over (INT-235) lands in steps with the leftover suggestions as prefill", () => {
+    // The dialogue already committed every confirmed answer; what could not
+    // be confirmed in-conversation arrives as prefill for the manual steps.
+    const dialogue: VoiceIntakeState = { phase: "dialogue" };
+    const prefill = { duration: { values: ["days"], quote: "birkaç gündür böyle" } };
+    expect(run(dialogue, { type: "candidates", prefill })).toEqual({
+      phase: "steps",
+      prefill,
+      failed: false,
+    });
+    // Empty leftovers are NOT a failure here (unlike the one-shot extract):
+    // the patient simply answers the remaining questions fresh, quietly.
+    expect(run(dialogue, { type: "candidates", prefill: {} })).toEqual({
+      phase: "steps",
+      prefill: {},
+      failed: false,
+    });
   });
 });
 
@@ -366,5 +384,36 @@ describe("voice-first copy (tr source of truth + en mirror, invariant 5)", () =>
       expect(tr[key].toLocaleLowerCase("tr-TR"), key).not.toContain("tanı");
       expect(tr[key].toLocaleLowerCase("tr-TR"), key).not.toContain("teşhis");
     }
+  });
+});
+
+// ---- INT-236: prefill filtered by askIf (adaptive flow, DSL-mirrored) ------
+
+describe("prefillForPack askIf filtering (INT-236)", () => {
+  it("drops a gated suggestion when the suggested complaint does not meet its gate", () => {
+    const prefill = prefillForPack(cardio, {
+      complaint: { values: ["fever"], quote: "ateşim var" },
+      pain_character: { values: ["pressure"], quote: "baskı gibi" },
+    });
+    expect(Object.keys(prefill)).toEqual(["complaint"]);
+  });
+
+  it("keeps the gated suggestion when the suggested complaint meets the gate", () => {
+    const prefill = prefillForPack(cardio, {
+      complaint: { values: ["pain"], quote: "göğsümde ağrı var" },
+      pain_character: { values: ["pressure"], quote: "baskı gibi" },
+    });
+    expect(Object.keys(prefill)).toEqual(["complaint", "pain_character"]);
+  });
+
+  it("drops a gated suggestion when the gating question itself has no suggestion", () => {
+    // The gate cannot be established from the transcript alone: the
+    // question will surface (or not) once the patient answers the gating
+    // question in the confirm flow — an unprovable suggestion never shows.
+    const prefill = prefillForPack(cardio, {
+      pain_character: { values: ["pressure"], quote: "baskı gibi" },
+      duration: { values: ["days"], quote: "birkaç gündür" },
+    });
+    expect(Object.keys(prefill)).toEqual(["duration"]);
   });
 });

@@ -340,3 +340,25 @@
 ## 2026-08-28 — INT-024 merged (PR #284)
 - Chaos harness landed: `make chaos EXPERIMENT=<id>` runs staged fault experiments; the vendor-kill experiment proves the typed fallback engages in ~2 µs against the 2 s bound, recorded as a measurement in docs/evidence/ (invariant 20 wording respected). Re-merged after a .PHONY union conflict with the taxonomy PR.
 - LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-033 merged (PR #286)
+- FHIR R4 exchange landed: bidirectional mappers for all nine acceptance resources, seven hypothesis roundtrip properties over wire JSON, live HAPI $validate zero error/fatal in check-integration. Triage honesty pinned: LLM candidates can never enter a bundle; the RiskAssessment subset has no probability element (invariant 20 by construction). C-SSRS stays out of exchange (HB-L2); GAD-2 carries only a local coding — no verifiable LOINC total-score code exists.
+- CI note: check-py red was the known OTP rate-limit flake; gates red was the PR-title format (reruns keep the stale event payload — close/reopen refreshes it).
+- INT-041 (protocol compiler chain) is now unblocked.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-236 merged (PR #288)
+- Owner directive landed at the dev tier: askIf adaptive gates as serializable data mirroring the DSL (four structurally-obvious gates; clinical-judgment gates refused and listed for pack owners), dynamic applicable-question progress, Hızlı/Detaylı modes per 02 §22-34 — privacy self-check with the verbatim deferral marker, instant Sıranız geldi checkpoint to a v2-partial review with zero lost answers. Pack-layer helpers exported; the dialogue surface inherits gating through them.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-235 merged (PR #290)
+- The karşılıklı konuşma surface landed: two-sided live transcript with in-place ASR replacement and inline states, ask-ahead turn advance with reconcile-behind by work id (the "soru hazırlanıyor" wait eliminated), multi-question extract absorption with skip-of-answered, session clip pre-warm, persistent typed composer, realtime "Not oluşuyor" section sheet with quote provenance. Union with INT-236 proven: 456/456 mobile tests. Simulator visual pass deferred to the next design round.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-28 — INT-057 merged (PR #293)
+- Protocol Authoring Agent landed: generate-l0 scaffolds guideline-cited L0 draft packs for all 91 intake branches (excluded cluster refused), citation placeholders carry the blueprint's named guidance categories with all eight cluster-specific titles marked awaiting-human, pack_compilable refuses every stub, import-boundary AST scan proves zero patient-data access, regeneration idempotent. The department-question content chain now has its scaffold tier for every branch.
+- LOOP_STATUS: CONTINUE
+
+## 2026-08-29 — INT-223 merged (PR #295)
+- Minor & guardian rules landed fail-closed: age/actor resolution enforced inside ensure_consent (single enforcement point), typed 403 leaking neither DOB nor band, no DOB collected or persisted, every non-adult path guardian-gated, non-TR subjects refused rather than judged against TR thresholds, guardian_links behind a shut flag with awaiting-human basis/retention. Nine contested legal values refused and filed as HB-L20 for Turkish health-law counsel.
+- LOOP_STATUS: CONTINUE

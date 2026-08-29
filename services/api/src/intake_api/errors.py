@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 __all__ = [
+    "age_gate_refused",
     "attestation_invalid",
     "attestation_required",
     "attestation_unverified",
@@ -41,6 +42,19 @@ def forbidden() -> HTTPException:
 
 def consent_required(scope: str) -> HTTPException:
     return HTTPException(status_code=403, detail={"error": "consent_required", "scope": scope})
+
+
+# --- INT-223 minor & guardian gate -------------------------------------------------------
+
+
+def age_gate_refused(code: str, scope: str) -> HTTPException:
+    """The age/guardian gate refused the scope. ``code`` is the rules
+    engine's own refusal code — ``guardian_consent_required``,
+    ``dob_unverified`` or ``jurisdiction_unsupported`` — and the body carries
+    that plus the scope id and NOTHING else: no date of birth, no age, no
+    band, no narrative (invariant 6). The client maps the code to its own tr
+    copy (invariant 5)."""
+    return HTTPException(status_code=403, detail={"error": code, "scope": scope})
 
 
 # --- INT-232 consent-management codes (scope is the id and nothing else, invariant 6) ----
