@@ -405,7 +405,7 @@
   title: "Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic"
   depends_on: [INT-040, INT-033]
   labels: [area:protocols]
-  status: todo
+  status: done
   acceptance:
     - "two runs produce identical hashes; resolved-protocol hash pinned per session; compile artifacts under packages/protocols/dist"
   tests: [tests/protocols/test_compiler_determinism.py]
@@ -1047,7 +1047,7 @@
   title: "Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background"
   depends_on: [INT-130, INT-090]
   labels: [area:mobile]
-  status: todo
+  status: done
   acceptance:
     - "mic permission copy per store rules; RTT/jitter/loss attached to turns; reconnect resumes session; background pauses safely"
   tests: [apps/mobile/e2e/voice.spec.ts]
@@ -1867,7 +1867,7 @@
   - INT-034
   labels:
   - area:data
-  status: todo
+  status: done
   acceptance:
   - real Tokenizer pseudonyms (kid. + 64 hex, ~68 chars) fit the document-store
     key discipline end to end - either _SEGMENT_SHAPE widens with the audit-ref

@@ -28,6 +28,7 @@ from intake_platform.documents import (
     DocumentStore,
     PresignTtlError,
     ScanVerdict,
+    patient_segment,
 )
 
 DOCS_BUCKET = "intake-docs"
@@ -189,7 +190,8 @@ def test_each_issued_url_appends_one_share_entry_naming_key_not_url() -> None:
 def test_presigned_put_mints_an_upload_slot_in_quarantine() -> None:
     store, fake, chain = _store()
     upload = store.presigned_put("tenant-izmir", "psn-11aa", consent_scope_ref=UPLOAD_SCOPE)
-    assert upload.key.startswith("quarantine/tenant-izmir/psn-11aa/")
+    # the patient part of the key is derived, not the pseudonym itself (INT-228)
+    assert upload.key.startswith(f"quarantine/tenant-izmir/{patient_segment('psn-11aa')}/")
     verb, bucket, key, expires = fake.presigned[-1]
     assert (verb, bucket, key) == ("PUT", DOCS_BUCKET, upload.key)
     assert expires == DEFAULT_PRESIGN_TTL

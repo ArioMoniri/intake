@@ -226,6 +226,30 @@ def _gateway(state: ApiState) -> DocumentsGateway:
     return state.documents
 
 
+async def _patient_pseudonym(
+    session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID
+) -> str:
+    """What addresses this patient in object storage: the patients row's own
+    Tokenizer pseudonym (INT-228).
+
+    Until INT-228 this seam passed ``patient_id.hex`` instead, because a real
+    pseudonym (``kid.`` + 64 hex) did not fit the store's 40-character key
+    segment. It fits now — the store derives a fixed-width segment from
+    whatever token it is handed — so the workaround is gone and the row's own
+    pseudonym is what travels.
+
+    An absent row is a refusal, not a fallback. The alternative would be
+    reaching for the row id again, and a value invented to keep a request
+    moving is exactly what invariant 14 forbids.
+    """
+    pseudonym = await store.get_patient_pseudonym(
+        session, tenant_id=tenant_id, patient_id=patient_id
+    )
+    if pseudonym is None:
+        raise HTTPException(status_code=503, detail={"error": "patient_unresolved"})
+    return pseudonym
+
+
 # --- endpoints -------------------------------------------------------------------------------
 
 
@@ -250,7 +274,9 @@ async def mint_upload_slot(
         await _own_visit_or_404(session, patient, visit_id)
         slot = await gateway.presigned_upload(
             tenant_id=patient.tenant_id,
-            patient_ref=patient_id.hex,
+            patient_ref=await _patient_pseudonym(
+                session, tenant_id=patient.tenant_id, patient_id=patient_id
+            ),
             consent_scope_ref=f"scope:{DOCUMENTS_SCOPE}",
         )
         row = await store.create_document_row(
@@ -336,10 +362,13 @@ async def ingest_content(
         if content_type != row.media_type:
             raise HTTPException(status_code=422, detail={"error": "content_type_mismatch"})
 
+        pseudonym = await _patient_pseudonym(
+            session, tenant_id=patient.tenant_id, patient_id=patient_id
+        )
         try:
             ref = await gateway.ingest(
                 tenant_id=patient.tenant_id,
-                patient_ref=patient_id.hex,
+                patient_ref=pseudonym,
                 file_bytes=file_bytes,
                 content_type=content_type,
                 sha256=row.sha256,
@@ -418,11 +447,18 @@ async def download_url(
         if _doc_state(provenance) != "clean":
             raise HTTPException(status_code=409, detail={"error": "document_not_scanned"})
 
+        # The key is READ from the row, never recomputed. That is what keeps
+        # objects stored under an older key shape reachable: the derivation
+        # that produced a key belongs to the moment of writing, and the row is
+        # the record of it (pinned by
+        # test_a_document_written_under_the_old_key_shape_is_still_downloadable).
         bucket, _, key = row.object_ref.partition("/")
         size = provenance.get("size_bytes")
         ref = DocumentRef(
             tenant_id=str(patient.tenant_id),
-            patient_pseudonym=patient_id.hex,
+            patient_pseudonym=await _patient_pseudonym(
+                session, tenant_id=patient.tenant_id, patient_id=patient_id
+            ),
             document_id=str(provenance.get("clean_document_id", row.id.hex)),
             bucket=bucket,
             key=key,

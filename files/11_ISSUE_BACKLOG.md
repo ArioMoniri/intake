@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**197 issues.** By phase: P0 111 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 54 · todo 136 · withdrawn 1.
+**197 issues.** By phase: P0 111 · P1 46 · P2 36 · P3 4. By status: doing 6 · done 57 · todo 133 · withdrawn 1.
 
 ## P0
 
@@ -40,7 +40,7 @@
 | INT-037 | DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker | E02-data | INT-014, INT-033 | area:data, risk:legal | todo |
 | INT-038 | Consent service: versioned objects, consent_guard middleware, re-prompt on change | E02-data | INT-030 | area:data, risk:legal | done |
 | INT-040 | Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields) | E03-protocols | INT-031 | area:protocols | done |
-| INT-041 | Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic | E03-protocols | INT-040, INT-033 | area:protocols | todo |
+| INT-041 | Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic | E03-protocols | INT-040, INT-033 | area:protocols | done |
 | INT-042 | Taxonomy: all MHRS branches + clusters + visit types + coverage CLI | E03-protocols | INT-040 | area:protocols | done |
 | INT-043 | base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175 | E03-protocols | INT-041 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-044 | Cluster pack: medical | E03-protocols | INT-043 | area:protocols, risk:clinical, approval:human-clinical | todo |
@@ -131,7 +131,7 @@
 | INT-099 | Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI | E05-voice | INT-095 | area:voice | todo |
 | INT-100 | Vendor failover + circuit breakers + typed fallback <=2s + chaos test | E05-voice | INT-095, INT-024 | area:voice | todo |
 | INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | todo |
-| INT-103 | Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background | E05-voice | INT-130, INT-090 | area:mobile | todo |
+| INT-103 | Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background | E05-voice | INT-130, INT-090 | area:mobile | done |
 | INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | INT-110 | area:lanes, approval:human-clinical | todo |
 | INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | INT-110, INT-095 | area:lanes | todo |
 | INT-114 | engagement lane -> satisfaction proxies + pacing hints | E06-lanes | INT-110 | area:lanes | todo |
@@ -149,7 +149,7 @@
 | INT-160 | Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS | E10-connectors | INT-018, INT-035 | area:connectors, risk:security | todo |
 | INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | INT-160, INT-033 | area:connectors, approval:human-vendor, live-smoke | todo |
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | todo |
-| INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | todo |
+| INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |
 | INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | todo |
 | INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | todo |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin | todo |
