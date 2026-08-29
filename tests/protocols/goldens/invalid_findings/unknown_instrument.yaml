@@ -1,0 +1,26 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION with the production licence registry: SYN-UNLISTED is
+# not in the registry, and licensing fails CLOSED — an instrument whose
+# licence is not verifiably GO does not validate into a compilable pack
+# (CLAUDE.md clinical content rules; files/04 header licence table;
+# HUMAN_BLOCKERS HB-L2/HB-L3).
+kind: pack
+id: specialty.synthetic_lisanssiz
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik lisanssız ölçek paketi"
+extends: base.synthetic
+instruments:
+  - id: SYN-UNLISTED
+    items:
+      - id: syn_madde_bir
+        text_tr: "Örnek ölçek maddesi bir."
+        allow_paraphrase: false
+sections:
+  olcek_bolumu:
+    delivery: text_only
+    questionnaires: [SYN-UNLISTED]

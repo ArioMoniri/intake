@@ -22,6 +22,9 @@ const NAV_MAP = [
   "index.tsx",
   "(auth)/_layout.tsx",
   "(auth)/welcome.tsx",
+  "(auth)/phone.tsx",
+  "(auth)/otp.tsx",
+  "(auth)/consent.tsx",
   "(tabs)/_layout.tsx",
   "(tabs)/today.tsx",
   "(tabs)/visits/_layout.tsx",
@@ -34,6 +37,12 @@ const NAV_MAP = [
   "(tabs)/wellbeing.tsx",
   "(tabs)/me/index.tsx",
   "(tabs)/me/learned.tsx",
+  // INT-141 — Bildirimler: opt-out and quiet hours
+  "(tabs)/me/notifications.tsx",
+  // INT-133 — companions & the under-18 door (02 §4 me/companions)
+  "(tabs)/me/companion.tsx",
+  "(tabs)/me/consents/index.tsx",
+  "(tabs)/me/consents/[purpose].tsx",
 ];
 
 function walk(dir: string): string[] {
@@ -56,22 +65,38 @@ describe("route tree is exactly the 02 §4 nav map", () => {
   });
 });
 
-describe("tab rail (02 §4)", () => {
+describe("tab rail (02 §4; floating pill since design pass 4)", () => {
   const layout = read(APP, "(tabs)/_layout.tsx");
+  const rail = read(SRC, "components", "FloatingTabBar.tsx");
 
-  it.each(["today", "visits", "records", "wellbeing", "me"])("registers the %s trigger", (name) => {
-    expect(layout).toContain(`name="${name}"`);
-  });
+  it.each(["today", "visits", "records", "wellbeing", "me/index"])(
+    "registers the %s screen",
+    (name) => {
+      expect(layout).toContain(`name="${name}"`);
+    },
+  );
 
-  it("labels come from i18n, never literals", () => {
+  it("labels come from i18n, never literals (rail renders t(labelKey))", () => {
     for (const key of ["tabs.today", "tabs.visits", "tabs.records", "tabs.wellbeing", "tabs.me"]) {
-      expect(layout).toContain(`t("${key}")`);
+      expect(rail).toContain(`labelKey: "${key}"`);
     }
+    expect(rail).toContain("t(meta.labelKey)");
   });
 
   it("wellbeing is consent-gated through visibleTabs — the single rule", () => {
     expect(layout).toContain("visibleTabs(consents)");
     expect(layout).toMatch(/tabs\.includes\("wellbeing"\)/);
+  });
+
+  it("the gate UNREGISTERS the route (Tabs.Protected), never just hides it", () => {
+    expect(layout).toMatch(/Tabs\.Protected guard=\{tabs\.includes\("wellbeing"\)\}/);
+  });
+
+  it("native tabs stay superseded (owner decision 2026-08-28, pass 4)", () => {
+    // The Oura floating pill replaced NativeTabs for the dev tier; the
+    // native-tabs import creeping back in is a regression against that call.
+    expect(layout).not.toContain("unstable-native-tabs");
+    expect(layout).toContain("FloatingTabBar");
   });
 });
 
@@ -104,12 +129,18 @@ describe("design invariants as source facts", () => {
 
   it("no banned filler tokens in the app source (invariant 17)", () => {
     // Tokens assembled so this spec never trips the repo-wide gate itself.
-    const banned = new RegExp(
-      ["TO" + "DO", "FIX" + "ME", "lor" + "em", "place" + "holder"].join("|"),
-      "i",
-    );
+    // Case follows the repo-wide gate script, which is the authority: its
+    // grep -E is case-SENSITIVE, so the marker tokens are uppercase and the
+    // prose tokens lowercase. The "i" flag this spec used to carry made it
+    // stricter than that gate in a way that flagged DATA rather than filler
+    // — "Ortodonti", a Turkish dental branch in the INT-042 taxonomy,
+    // contains the letters of the lowercased marker token.
+    const markers = new RegExp(["TO" + "DO", "FIX" + "ME"].join("|"));
+    const prose = new RegExp(["lor" + "em", "place" + "holder"].join("|"), "i");
     for (const file of walk(SRC)) {
-      expect(read(file), file).not.toMatch(banned);
+      const source = read(file);
+      expect(source, file).not.toMatch(markers);
+      expect(source, file).not.toMatch(prose);
     }
   });
 });

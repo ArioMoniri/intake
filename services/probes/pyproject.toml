@@ -1,0 +1,33 @@
+[project]
+name = "intake-probes"
+version = "0.1.0"
+description = "Synthetic health probes + self-hosting registry + release gate (INT-022; CLAUDE.md invariants 13/15/19)"
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=43.0",
+    "fastapi>=0.115",
+    "httpx>=0.27",
+    "intake-platform",
+    "pydantic>=2.8",
+    "pyyaml>=6.0",
+    "redis>=5.0",
+]
+
+[project.optional-dependencies]
+# the dev runner's real SELECT 1 needs a driver; the unit lane injects a
+# callable instead and never depends on it
+runner = ["psycopg[binary]>=3.2"]
+
+[tool.uv.sources]
+intake-platform = { workspace = true }
+
+[tool.intake]
+health = "intake_probes.app:create_app"
+probe = "probes.http"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/intake_probes"]

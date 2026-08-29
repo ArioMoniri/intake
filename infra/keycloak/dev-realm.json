@@ -1,0 +1,87 @@
+{
+  "realm": "intake-dev",
+  "displayName": "INTAKE dev realm — COMMITTED DEV FIXTURE, laptop tier only. Synthetic users, dev-only-* passwords, .invalid mail. Never seed any deployed environment from this file.",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Platform administration (console; tiered actions per files/08 §2)"
+      },
+      {
+        "name": "clinician",
+        "description": "Clinician console access (notes, review queues)"
+      },
+      {
+        "name": "ops",
+        "description": "Operations: dashboards, probes, SLO review — no clinical reads"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "api",
+      "name": "INTAKE api (bearer-only resource server)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "admin-web",
+      "name": "INTAKE admin console (dev; PKCE public client)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*", "http://127.0.0.1:3000/*"],
+      "webOrigins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "dev-admin",
+      "enabled": true,
+      "firstName": "Synthetic",
+      "lastName": "Admin (Dev Fixture)",
+      "email": "dev-admin@intake-dev.invalid",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "dev-only-admin", "temporary": false }],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "dev-clinician",
+      "enabled": true,
+      "firstName": "Synthetic",
+      "lastName": "Clinician (Dev Fixture)",
+      "email": "dev-clinician@intake-dev.invalid",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "dev-only-clinician", "temporary": false }],
+      "realmRoles": ["clinician"]
+    },
+    {
+      "username": "dev-ops",
+      "enabled": true,
+      "firstName": "Synthetic",
+      "lastName": "Ops (Dev Fixture)",
+      "email": "dev-ops@intake-dev.invalid",
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "dev-only-ops", "temporary": false }],
+      "realmRoles": ["ops"]
+    }
+  ]
+}

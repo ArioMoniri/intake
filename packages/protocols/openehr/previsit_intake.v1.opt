@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  previsit_intake.v1 — hand-authored operational template (files/12 §1:
+  `openehr/previsit_intake.v1.opt`, "hand-authored, committed, sha-pinned").
+
+  WHY THIS FILE IS DELIBERATELY SHALLOW.
+  openEHR is a P3 export, not a P0 store (ADR-002 / 00 §3 D8). What P0 owes
+  the P3 migration is the archetype-path annotation on every slot (files/05
+  §2.1: "keep the archetype-path annotation on every slot: it costs nothing
+  and *is* the migration plan"). This template therefore pins exactly two
+  things and no more:
+
+    1. the composition and the archetype ROOTS the blueprint names, and
+    2. their RM types, so `protocols.bindings.openehr` can assert that every
+       declared `openehr_path` resolves with a matching rm_type (files/12
+       §8.1; runtime invariant 31).
+
+  It contains NO at-code (`atNNNN`) constraint nodes. Leaf-node binding is
+  archetype-internal content that no committed source in this repository
+  states, and inventing an at-code would produce a binding table that
+  resolves against a fabrication — the failure mode HUMAN_BLOCKERS Rule 1
+  exists to prevent. A slot whose leaf path is not yet authored therefore
+  carries `openehr_deferred_reason` instead, which the compiler requires and
+  files/12 §8 mirrors as a CHECK constraint. Absence is a recorded decision,
+  never an oversight.
+
+  ARCHETYPE ID PROVENANCE. The identifier set below is exactly the list
+  named in files/03 §7 ("compositions: intake_previsit (CKM archetypes:
+  EVALUATION.reason_for_encounter, OBSERVATION.story, OBSERVATION.symptom_sign,
+  EVALUATION.problem_diagnosis, ACTION.medication / EVALUATION.adverse_reaction_risk,
+  OBSERVATION.phq9 / gad7 ..., EVALUATION.triage_outcome custom)"), written in
+  the openEHR `openEHR-EHR-<CLASS>.<concept>.v1` id form. Nothing was added.
+  Two consequences are stated rather than left to inference:
+
+    - `COMPOSITION.intake_previsit` and `EVALUATION.triage_outcome` are LOCAL
+      archetypes; files/03 §7 marks the latter "custom" and names no CKM
+      composition archetype at all.
+    - The remaining ids are transcribed from files/03 §7 and have NOT been
+      reconciled against a CKM revision here; that reconciliation, and any
+      resulting `.vN` bump, belongs to INT-032 (EHRbase export tier, P3).
+      Re-authoring in Archetype Designer changes this file's sha256, which
+      forces a new questionnaire_definition version and makes the binding
+      table diff the review surface (files/12 §8.1).
+
+    - `CLUSTER.provenance` is named in files/03 §7 but is ABSENT here: a
+      CLUSTER is not a CONTENT_ITEM, so it cannot sit under `content`, and no
+      committed source states which structure hosts it. Adding it would
+      require an invented at-code path. Deferred to INT-032.
+-->
+<template xmlns="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <language>
+    <terminology_id>
+      <value>ISO_639-1</value>
+    </terminology_id>
+    <code_string>tr</code_string>
+  </language>
+  <description>
+    <original_author id="organisation">INTAKE</original_author>
+    <lifecycle_state>unmanaged</lifecycle_state>
+    <details>
+      <language>
+        <terminology_id>
+          <value>ISO_639-1</value>
+        </terminology_id>
+        <code_string>tr</code_string>
+      </language>
+      <purpose>Ön görüşme kayıt şablonu — arketip kökü bağlama katmanı.</purpose>
+    </details>
+  </description>
+  <template_id>
+    <value>previsit_intake.v1</value>
+  </template_id>
+  <concept>intake_previsit</concept>
+  <definition xsi:type="C_ARCHETYPE_ROOT">
+    <rm_type_name>COMPOSITION</rm_type_name>
+    <occurrences>
+      <lower_included>true</lower_included>
+      <lower_unbounded>false</lower_unbounded>
+      <upper_unbounded>false</upper_unbounded>
+      <lower>1</lower>
+      <upper>1</upper>
+    </occurrences>
+    <archetype_id>
+      <value>openEHR-EHR-COMPOSITION.intake_previsit.v1</value>
+    </archetype_id>
+    <template_id>
+      <value>previsit_intake.v1</value>
+    </template_id>
+    <attributes xsi:type="C_MULTIPLE_ATTRIBUTE">
+      <rm_attribute_name>content</rm_attribute_name>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>EVALUATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-EVALUATION.reason_for_encounter.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>OBSERVATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-OBSERVATION.story.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>OBSERVATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-OBSERVATION.symptom_sign.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>EVALUATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-EVALUATION.problem_diagnosis.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>ACTION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-ACTION.medication.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>EVALUATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-EVALUATION.adverse_reaction_risk.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>OBSERVATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-OBSERVATION.phq9.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>OBSERVATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-OBSERVATION.gad7.v1</value>
+        </archetype_id>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>EVALUATION</rm_type_name>
+        <archetype_id>
+          <value>openEHR-EHR-EVALUATION.triage_outcome.v1</value>
+        </archetype_id>
+      </children>
+    </attributes>
+  </definition>
+</template>

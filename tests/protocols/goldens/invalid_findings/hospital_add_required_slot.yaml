@@ -1,0 +1,22 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: a hospital-layer pack adding a REQUIRED slot. The
+# capability matrix restricts HOSPITAL's add_slot to required: false
+# (files/12 §3.1); hospital customisations are additive + copy changes only
+# (files/03 §6). One attribute away from the valid hospital golden.
+kind: pack
+id: hospital.synthetic_zorunlucu
+layer: hospital
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik zorunlu ekleyen hastane paketi"
+ops:
+  - op: add_slot
+    pointer: /sections/ornek_bolum/slots/hastane_zorunlu_soru
+    slot:
+      type: boolean
+      required: true
+      ask_tr: "Örnek hastane sorusu: ek bilgi vermek zorunda mısınız?"
+      follow_up_tr: "Evet ya da hayır diyebilir misiniz?"

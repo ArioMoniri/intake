@@ -46,9 +46,25 @@ describe("typed intake fixtures (one question per screen)", () => {
 });
 
 describe("department packs (INT-194): the intake is branch-aware", () => {
-  it("cardiology/internal medicine gets character, trigger and associated dimensions", () => {
+  it("cardiology/internal medicine gets onset, character, radiation, trigger, associated, severity", () => {
     const ids = packForDepartment("Kardiyoloji").map((q) => q.id);
-    expect(ids).toEqual(["complaint", "duration", "pain_character", "trigger", "associated", "extra"]);
+    // INT-239: the answer-gated follow-ups live in the same pack; which of
+    // them a patient meets is decided by their answers, not by this list.
+    expect(ids).toEqual([
+      "complaint",
+      "duration",
+      "onset",
+      "pain_character",
+      "radiation",
+      "radiation_side",
+      "breath_timing",
+      "breath_lying",
+      "trigger",
+      "associated",
+      "cardio_palpitation",
+      "severity",
+      "extra",
+    ]);
     expect(packForDepartment("İç Hastalıkları").map((q) => q.id)).toEqual(ids);
   });
 
@@ -64,8 +80,16 @@ describe("department packs (INT-194): the intake is branch-aware", () => {
 
   it("ENT gets the side dimension; unknown departments fall back to the core pack", () => {
     expect(packForDepartment("Kulak Burun Boğaz").map((q) => q.id)).toContain("side");
-    expect(packForDepartment("Ortopedi").map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
-    expect(packForDepartment(undefined).map((q) => q.id)).toEqual(["complaint", "duration", "extra"]);
+    expect(packForDepartment("Aile Hekimliği").map((q) => q.id)).toEqual([
+      "complaint",
+      "duration",
+      "extra",
+    ]);
+    expect(packForDepartment(undefined).map((q) => q.id)).toEqual([
+      "complaint",
+      "duration",
+      "extra",
+    ]);
   });
 
   it("every pack question and option resolves through the tr catalog", () => {
@@ -119,6 +143,9 @@ describe("note builder + reducer (pure)", () => {
     expect(hpi.lines[1]).toMatch(/^Hasta notu: Merdiven/);
     const meds = sections.find((s) => s.id === "medications")!;
     expect(meds.lines.join(" ")).toContain("Metoprolol");
+    // INT-247: carried out of the earlier visit and not answered for this
+    // one, so it prints as unconfirmed — never as a current medication.
+    expect(meds.lines.join(" ")).toContain("bu ziyarette onaylanmadı");
   });
 
   it("resume: saving answers keeps progress in state", () => {

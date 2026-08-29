@@ -1,0 +1,50 @@
+[project]
+name = "intake-voice-clips"
+version = "0.1.0"
+description = "Protocol clip cache (INT-060): compiled clip manifest -> Opus clips in MinIO, keyed by the compiler's own sha256(text_tr, voice_id)"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.8",
+    # The compiled manifest's row types and clip_text_hash. One-way: the
+    # protocols package stays pure (no I/O, no clients) and two import-boundary
+    # tests enforce that — tests/protocols/test_l0_guard.py and
+    # tests/safety/test_triage_engine.py — which is exactly why the clip cache
+    # is its own package instead of a subpackage there.
+    "intake-protocols",
+    # The clinical-schemas base models (FrozenModel, Sha256, Ref).
+    "intake-clinical-schemas",
+    # The TTS gateway's HTTP adapter. CI never dials it: the recorded-response
+    # adapter is the CI and no-GPU dev path (ADR-006).
+    "httpx>=0.27",
+    # The object store. Same client the INT-034 document store uses; the clip
+    # bucket is a separate, patient-free namespace.
+    "minio>=7.2.9",
+    "numpy>=1.26",
+    # The Opus encoder. soundfile's own code is BSD-3-Clause (dist-info LICENSE
+    # blob verified in docs/evidence/INT-060.md) and its wheel bundles
+    # libsndfile under LGPL-2.1 with libopus/libogg/libFLAC BSD-3-Clause and
+    # libmp3lame/libmpg123 LGPL — no GPL anywhere, and it ships the licence
+    # blobs for what it bundles (_soundfile_data/COPYING, licensing/
+    # license_notes.md). Build-time encoder for agent speech; never on the PHI
+    # path.
+    #
+    # Recorded so it is not re-proposed: PyAV was the first candidate and was
+    # rejected. Its own code is BSD-3-Clause, but its binary wheel's libavcodec
+    # is link-edited against libx264/libx265 (GPL-2.0-or-later) while
+    # self-reporting "LGPL version 3 or later", and it ships no licence blob
+    # for any bundled binary (docs/evidence/INT-060.md).
+    "soundfile>=0.13",
+]
+
+[project.scripts]
+# Behind `make clips VOICE=<voice_id>` (CLAUDE.md §Commands). Its own entry
+# point rather than a `protocols` subcommand: `protocols` must not import an
+# HTTP or object-store client.
+intake-clips = "voice_clips.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/voice_clips"]

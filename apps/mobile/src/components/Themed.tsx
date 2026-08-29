@@ -7,7 +7,7 @@
  * Oura/Tiimo signature); light-mode cards float on a soft wide shadow,
  * dark mode separates tonally.
  */
-import { type ReactNode } from "react";
+import { type ComponentProps, type ReactNode } from "react";
 import {
   Platform,
   Pressable,
@@ -20,8 +20,10 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Stack } from "expo-router";
+import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
+import { getLocale } from "@/lib/i18n";
 import {
   fonts,
   lineHeight,
@@ -34,7 +36,42 @@ import {
   type TypeRole,
 } from "@/lib/theme";
 
-const DISPLAY_FONT = Platform.select(fonts.display);
+/**
+ * BCP-47 tags for the two catalogs (INT-144; WCAG 2.2 SC 3.1.1, BK24).
+ *
+ * A Turkish sentence read by an English voice is not "accented" — "İzinleriniz"
+ * comes out unintelligible. iOS honours `accessibilityLanguage` per element,
+ * which matters here because the locale is an in-app switch and need not match
+ * the device's. Android has no per-node equivalent in React Native and picks
+ * the TTS locale itself: that half is a real gap, recorded as such in
+ * docs/compliance/accessibility-conformance.md rather than claimed.
+ */
+const SPEECH_LANGUAGE = { tr: "tr-TR", en: "en-GB" } as const;
+
+// The faces are guaranteed loaded before the tree renders (root layout gates
+// on useFonts); the platform serif remains only as a defensive fallback.
+const DISPLAY_FONT = fonts.display ?? Platform.select(fonts.displayFallback);
+
+/**
+ * Sans roles carry Inter (design pass 4, Oura register). Custom fonts on iOS
+ * do not synthesize weights, so the effective fontWeight in the flattened
+ * style picks the loaded family and the weight itself is dropped.
+ */
+function sansFamily(weight: TextStyle["fontWeight"]): string {
+  switch (weight) {
+    case "600":
+    case "700":
+    case "bold":
+    case 600:
+    case 700:
+      return fonts.sansSemiBold;
+    case "500":
+    case 500:
+      return fonts.sansMedium;
+    default:
+      return fonts.sans;
+  }
+}
 
 export function useTheme(): ThemeColors {
   const scheme = useColorScheme();
@@ -45,41 +82,114 @@ export function useFontScale(): number {
   return useWindowDimensions().fontScale;
 }
 
+type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
+
+/**
+ * Oura-register top bar for pushed screens (design pass 5): centred 17 pt
+ * semibold sans title, "‹" back with no label, ground-coloured and
+ * shadowless so it reads as part of the page, not chrome. Screens that use
+ * it drop the top safe edge — the header owns that inset.
+ */
+export function useStackHeader(): (title: string) => StackScreenOptions {
+  const theme = useTheme();
+  return (title: string) => ({
+    headerShown: true,
+    title,
+    headerTitleAlign: "center",
+    headerTitleStyle: { fontFamily: fonts.sansSemiBold, fontSize: 17, color: theme.ink },
+    headerStyle: { backgroundColor: theme.background },
+    headerShadowVisible: false,
+    headerTintColor: theme.ink,
+    headerBackButtonDisplayMode: "minimal",
+  });
+}
+
 interface AppTextProps {
   role?: TypeRole;
   color?: keyof ThemeColors;
   style?: StyleProp<TextStyle>;
+  /**
+   * Mark this line as a heading (INT-144; WCAG 2.2 SC 1.3.1, Ministry BK5).
+   *
+   * Type size is a sighted cue only — a 34 pt serif line and a 13 pt caption
+   * arrive at a screen reader identically unless the structure is declared.
+   * Setting `heading` puts the line in VoiceOver's and TalkBack's heading
+   * rotor, which is how a non-sighted patient skips a screen instead of
+   * reading every element of it. It lives on AppText rather than in each
+   * screen so a screen cannot spell the platform prop wrong.
+   */
+  heading?: boolean;
+  /**
+   * Announce this line when it appears or changes — errors and status lines
+   * that a sighted user notices by their position and colour. `assertive`
+   * interrupts (a validation error the patient must fix before continuing);
+   * `polite` waits for a gap (a background status).
+   */
+  live?: "polite" | "assertive";
   children: ReactNode;
 }
 
-export function AppText({ role = "body", color = "ink", style, children }: AppTextProps) {
+export function AppText({
+  role = "body",
+  color = "ink",
+  style,
+  heading = false,
+  live,
+  children,
+}: AppTextProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
-  const display = role === "hero" || role === "title";
+  const display = role === "display" || role === "hero" || role === "title";
+  const flat: TextStyle = StyleSheet.flatten([
+    {
+      color: theme[color],
+      fontSize: scaledSize(role, fontScale),
+      lineHeight: lineHeight(role, fontScale),
+    },
+    display ? { fontFamily: DISPLAY_FONT } : null,
+    style,
+  ]);
+  if (!display) {
+    flat.fontFamily = sansFamily(flat.fontWeight);
+    delete flat.fontWeight;
+  }
   return (
+    // Sizes come from scaledSize; RN's own multiplier is disabled so the
+    // 2.0 cap (layout-survival, 02 §8.2) is applied in exactly one place.
     <Text
-      // Sizes come from scaledSize; RN's own multiplier is disabled so the
-      // 2.0 cap (layout-survival, 02 §8.2) is applied in exactly one place.
       allowFontScaling={false}
-      style={[
-        {
-          color: theme[color],
-          fontSize: scaledSize(role, fontScale),
-          lineHeight: lineHeight(role, fontScale),
-        },
-        display ? { fontFamily: DISPLAY_FONT } : null,
-        style,
-      ]}
+      accessibilityRole={heading ? "header" : live !== undefined ? "alert" : undefined}
+      accessibilityLiveRegion={live}
+      accessibilityLanguage={SPEECH_LANGUAGE[getLocale()]}
+      style={flat}
     >
       {children}
     </Text>
   );
 }
 
-export function Screen({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+/**
+ * Screens under the floating tab rail (design pass 4) drop the bottom safe
+ * edge so content scrolls UNDER the pill to the physical edge (Oura chrome);
+ * they pad their scroll content with TAB_BAR_CLEARANCE instead.
+ */
+export const RAIL_EDGES: readonly Edge[] = ["top", "left", "right"];
+
+export function Screen({
+  children,
+  style,
+  edges,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  edges?: readonly Edge[];
+}) {
   const theme = useTheme();
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }, style]}>
+    <SafeAreaView
+      edges={edges as Edge[] | undefined}
+      style={[styles.screen, { backgroundColor: theme.background }, style]}
+    >
       {children}
     </SafeAreaView>
   );
@@ -102,7 +212,10 @@ export function Card({ children, style, wash = "none" }: CardProps) {
         styles.card,
         {
           backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface,
-          borderColor: theme.border,
+          // Dark cards are borderless — tonal surface against near-black
+          // ground carries the separation (Oura register, design pass 3);
+          // light keeps the hairline under its soft shadow.
+          borderColor: scheme === "dark" ? "transparent" : theme.border,
           shadowColor: depth.color,
           shadowOpacity: depth.opacity,
           shadowRadius: depth.radius,
@@ -116,26 +229,90 @@ export function Card({ children, style, wash = "none" }: CardProps) {
   );
 }
 
-interface PrimaryButtonProps {
+/**
+ * Hairline row divider INSIDE cards (Oura settings rhythm, design pass 3):
+ * quieter than the border token so it separates without boxing.
+ */
+export function Hairline({ style }: { style?: StyleProp<ViewStyle> }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[styles.hairline, { backgroundColor: theme.border }, style]}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+    />
+  );
+}
+
+interface ButtonProps {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /**
+   * What happens on activation, when the label alone does not say it.
+   * Spoken after the name and a pause; never a substitute for the label
+   * (SC 2.5.3 — the visible words stay the accessible name).
+   */
+  hint?: string;
 }
 
-export function PrimaryButton({ label, onPress, disabled = false }: PrimaryButtonProps) {
+/**
+ * The ONE focal CTA a screen gets — full-width pill on the NEUTRAL `cta`
+ * tone (design pass 6: Oura's forward action is a bone pill on dark in
+ * every Mobbin capture — d1c03e40, 19cf723a, 96fb49c7 — never a saturated
+ * slab; light mode carries the inverse ink pill). The teal accent (02 §5.2:
+ * single accent) now lives in selection, progress and status moments.
+ */
+export function PrimaryButton({ label, onPress, disabled = false, hint }: ButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityHint={hint}
+      // Declared rather than left to RN's implicit merge: a dimmed CTA the
+      // patient cannot use must SAY it is unavailable, not just look it
+      // (SC 1.4.1 — the 0.5 opacity is the sighted half of this signal).
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.primaryButton,
-        { backgroundColor: theme.primary, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+        { backgroundColor: theme.cta, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
       ]}
     >
-      <AppText role="label" color="onPrimary" style={styles.buttonLabel}>
+      <AppText role="body" color="onCta" style={styles.buttonLabel}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/**
+ * Oura-register quiet pill for secondary actions: a tonal FILL one step
+ * above the ground, borderless (design pass 6 measurement — Oura's quiet
+ * buttons and tag chips are filled, never outlined; the pass-5 hairline
+ * outline was our invention).
+ */
+export function SecondaryButton({ label, onPress, disabled = false, hint }: ButtonProps) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ disabled }}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.primaryButton,
+        {
+          backgroundColor: theme.surfaceRaised,
+          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <AppText role="body" color="ink" style={styles.buttonLabel}>
         {label}
       </AppText>
     </Pressable>
@@ -143,20 +320,28 @@ export function PrimaryButton({ label, onPress, disabled = false }: PrimaryButto
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: spacing.md },
+  screen: { flex: 1, padding: spacing.screen },
   card: {
     borderRadius: radius.card,
     borderWidth: 1,
-    padding: spacing.md,
+    // lg padding (design pass 4): Oura's card interiors breathe at ~24, and
+    // 16 read cramped once the radius went to 24.
+    padding: spacing.lg,
     gap: spacing.sm,
+  },
+  hairline: {
+    height: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    opacity: 0.9,
   },
   primaryButton: {
     borderRadius: radius.control,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     alignItems: "center",
-    // Touch target ≥48dp (02 §8.2) even at fontScale 1.0.
-    minHeight: 52,
+    // Touch target ≥48dp (02 §8.2); 56 with a body-size semibold label is
+    // the Oura CTA register (design pass 4).
+    minHeight: 56,
     justifyContent: "center",
   },
   buttonLabel: { fontWeight: "600", letterSpacing: 0.2 },

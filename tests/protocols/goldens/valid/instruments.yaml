@@ -1,0 +1,29 @@
+# SENTETİK TEST VERİSİ — INT-040 golden fixture (valid instrument pack).
+# SYN-SCALE is a made-up scale for mechanism tests only; the test injects a
+# licence registry marking it GO. Instrument items are allow_paraphrase:
+# false always (files/04 §1; CLAUDE.md invariant 10).
+kind: pack
+id: specialty.synthetic_olcek
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik ölçek paketi"
+extends: base.synthetic
+instruments:
+  - id: SYN-SCALE
+    voice:
+      allow_paraphrase: false
+    items:
+      - id: syn_madde_bir
+        text_tr: "Örnek ölçek maddesi bir."
+        allow_paraphrase: false
+      - id: syn_madde_iki
+        text_tr: "Örnek ölçek maddesi iki."
+        allow_paraphrase: false
+sections:
+  olcek_bolumu:
+    delivery: text_only
+    questionnaires: [SYN-SCALE]

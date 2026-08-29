@@ -1,4 +1,4 @@
 {
   "CFBundleDisplayName": "Vizite",
-  "NSMicrophoneUsageDescription": "Microphone access is needed to record what you describe during a voice session."
+  "NSMicrophoneUsageDescription": "Microphone access is needed so what you describe during a voice visit can reach your clinician. No audio recording is kept."
 }

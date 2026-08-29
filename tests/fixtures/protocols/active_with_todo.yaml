@@ -1,0 +1,35 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control (lives under
+# tests/fixtures/ because it exercises the sign-off literal; see
+# draft_ok.yaml).
+# MUST FAIL VALIDATION: a correctly-formed sign-off literal inside an ACTIVE
+# rule. The sole exception of invariant 17 exists only inside a rule whose
+# status is draft_needs_source — an active rule carrying it would let an
+# unfinished threshold into a served pack. Near miss: identical to
+# draft_ok.yaml except status and the source block.
+kind: pack
+id: base.synthetic_aktif_bekletme
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik aktif bekletme paketi"
+red_flags:
+  - id: rf.synthetic_aktif_bekletme
+    label_tr: "Sentetik aktif bekletme kuralı"
+    when: "olcum_degeri >= (TODO: sentetik eşik requires clinical sign-off)"
+    tense: today
+    tense_anchor: olay_zamani
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    register: CALM
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-A
+      guideline_title: "Sentetik kılavuz A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"

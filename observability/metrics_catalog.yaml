@@ -1,36 +1,50 @@
 # observability/metrics_catalog.yaml — the closed registry of Prometheus
-# series the platform emits (INT-021; CLAUDE.md inv. 13; files/03 §19).
+# series the platform emits or has committed to emit (INT-021, INT-025;
+# CLAUDE.md inv. 13; files/03 §19; files/08 §4).
 #
-# A series served on /metrics but absent here fails CI
-# (tests/observability/test_slo_files.py::test_every_emitted_metric_family_is_catalogued),
-# and every docs/slo/<service>.yaml SLI may reference only names listed here.
-# Label names are schema-checked against the PHI-risk denylist in
-# intake_platform.slo (inv. 6): identifiers and enumerations only, never free
-# text. Only series real code emits belong here — the two http_* families come
-# from intake_platform.metrics.mount_http_metrics, the rest from the
-# prometheus_client default collectors behind intake_platform.health's
-# /metrics endpoint.
+# A series served on /metrics — or constructed in code — but absent here
+# fails CI (tests/observability/test_slo_files.py and
+# tests/observability/test_metrics_catalog.py), and every docs/slo/<service>
+# SLI may reference only names listed here. Label names are schema-checked
+# against the PHI-risk denylist in intake_platform.slo (inv. 6): identifiers
+# and enumerations only, never free text.
+#
+# Two kinds of entry (status):
+# - live: real code emits it today. The two http_* families come from
+#   intake_platform.metrics.mount_http_metrics; the process_*/python_*
+#   families from the prometheus_client default collectors behind
+#   intake_platform.health's /metrics endpoint.
+# - planned: files/08 §4 names the id but the emitting service has not landed
+#   yet. `id` preserves the spec's OTel dotted id; `name` is its Prometheus
+#   form (dots become underscores). tests/observability/test_metrics_catalog.py
+#   holds this file complete against 08 §4 and keeps `status` honest in both
+#   directions: a live entry must be observably emitted, a planned entry must
+#   not be.
 metrics:
+  # --- live series (INT-021) ---------------------------------------------------
   - name: http_requests_total
     type: counter
     labels: [service, method, route, status]
     owner: platform
+    unit: "count"
     description: >-
       HTTP requests handled, by service, method, route template and status
-      code. Emitted by intake_platform.metrics.mount_http_metrics; the route
-      label is the template, never the raw path.
+      code. Emitted by intake_platform.metrics.mount_http_metrics; the
+      route label is the template, never the raw path.
   - name: http_request_duration_seconds
     type: histogram
     labels: [service, method, route]
     owner: platform
+    unit: "s"
     description: >-
-      HTTP request duration in seconds, by service, method and route template.
-      Emitted by intake_platform.metrics.mount_http_metrics; latency SLIs read
-      the bucket series.
+      HTTP request duration in seconds, by service, method and route
+      template. Emitted by intake_platform.metrics.mount_http_metrics;
+      latency SLIs read the bucket series.
   - name: process_cpu_seconds_total
     type: counter
     labels: []
     owner: platform
+    unit: "s"
     description: >-
       Total user and system CPU time spent by the process, in seconds
       (prometheus_client process collector).
@@ -38,16 +52,19 @@ metrics:
     type: gauge
     labels: []
     owner: platform
+    unit: "bytes"
     description: Resident memory size in bytes (prometheus_client process collector).
   - name: process_virtual_memory_bytes
     type: gauge
     labels: []
     owner: platform
+    unit: "bytes"
     description: Virtual memory size in bytes (prometheus_client process collector).
   - name: process_start_time_seconds
     type: gauge
     labels: []
     owner: platform
+    unit: "s"
     description: >-
       Start time of the process since the unix epoch, in seconds
       (prometheus_client process collector).
@@ -55,31 +72,1469 @@ metrics:
     type: gauge
     labels: []
     owner: platform
+    unit: "count"
     description: Number of open file descriptors (prometheus_client process collector).
   - name: process_max_fds
     type: gauge
     labels: []
     owner: platform
+    unit: "count"
     description: Maximum number of open file descriptors (prometheus_client process collector).
   - name: python_gc_objects_collected_total
     type: counter
     labels: [generation]
     owner: platform
+    unit: "count"
     description: Objects collected during garbage collection (prometheus_client gc collector).
   - name: python_gc_objects_uncollectable_total
     type: counter
     labels: [generation]
     owner: platform
+    unit: "count"
     description: >-
-      Uncollectable objects found during garbage collection (prometheus_client
-      gc collector).
+      Uncollectable objects found during garbage collection
+      (prometheus_client gc collector).
   - name: python_gc_collections_total
     type: counter
     labels: [generation]
     owner: platform
+    unit: "count"
     description: Number of times each garbage-collector generation was collected.
   - name: python_info
     type: gauge
     labels: [implementation, major, minor, patchlevel, version]
     owner: platform
+    unit: "info"
     description: Python interpreter build information (prometheus_client platform collector).
+  - name: retention_destruction_runs_total
+    type: counter
+    labels: [kind, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      Destruction runs by kind (periodic/dsar) and outcome
+      (completed/refused_floor). Emitted by
+      intake_platform.retention.engine.DestructionEngine — the sec_row
+      `retention` signal: a destruction job failing silently is the threat,
+      so completions and floor refusals are both counted (INT-036,
+      DEST-2017).
+  - name: retention_destroyed_items_total
+    type: counter
+    labels: [data_class]
+    owner: platform
+    unit: "count"
+    description: >-
+      Items destroyed by the retention engine, by files/06 §3 policy data
+      class (closed DestroyableClass enumeration, never free text). Emitted
+      by intake_platform.retention.engine.DestructionEngine (INT-036).
+  - name: document_upload_pipeline
+    type: counter
+    labels: [outcome, reason]
+    owner: records
+    unit: "count"
+    description: >-
+      Upload pipeline outcomes (INT-120; files/10 §9 records signals).
+      Emitted by intake_platform.uploads.UploadPipeline. outcome is one of
+      promoted / rejected / already-processed / scan-unavailable; reason is
+      the closed RejectReason code for rejections and "none" otherwise —
+      enumerations only, never content (invariant 6).
+  - name: llm_trace_spans_emitted_total
+    type: counter
+    labels: [kind, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      LLM trace spans emitted to the self-hosted trace store, by SpanKind and
+      SpanOutcome (INT-175; files/08 §7). Emitted by
+      intake_platform.observability.spans.emit_llm_span. Both labels are
+      closed enumerations; the span payload itself is ids, enums and counts —
+      HB-L6 keeps content out of it entirely.
+  - name: llm_trace_fields_refused_total
+    type: counter
+    labels: [field]
+    owner: platform
+    unit: "count"
+    description: >-
+      Span fields refused at the emission boundary because the value was not
+      id-shaped (INT-175). The label is the FIELD NAME, never the value: a
+      refusal counter carrying the refused string would be the leak it exists
+      to prevent (invariant 6). A non-zero rate means a caller is trying to
+      put narrative on a trace and should be found.
+  - name: annotation_queue_enqueued_total
+    type: counter
+    labels: [queue]
+    owner: platform
+    unit: "count"
+    description: >-
+      Annotation-queue items enqueued, by queue (note_quality /
+      hallucination_audit / false_red_review; INT-175, files/08 §3). An item
+      is a pointer — ids, a span ref and a timestamp — so enqueueing carries
+      no clinical content. Emitted by
+      intake_platform.observability.annotation.enqueue.
+  - name: annotation_content_reads_refused_total
+    type: counter
+    labels: [queue, blocker]
+    owner: platform
+    unit: "count"
+    description: >-
+      Staff attempts to read the clinical content behind an annotation-queue
+      item, refused by an open blocker (INT-175; HB-L6). Today every attempt
+      is refused, so this is the honest measure of demand for a read path
+      that does not exist yet, and it feeds the same intrusion posture
+      files/08 §2.5 puts on break-glass rate. Every attempt is audited before
+      it is refused.
+  - name: event_bus_consumer_lag
+    type: gauge
+    labels: [stream, group]
+    owner: platform
+    unit: "messages"
+    description: >-
+      Unprocessed messages for one consumer group on one Redis stream:
+      entries past last-delivered-id plus delivered-but-unacknowledged
+      entries, summed over the source stream and its group-local retry
+      stream. Set by intake_platform.event_bus.Consumer.record_lag
+      (INT-035); the alerting surface for a stalled or crash-looping
+      consumer.
+  - name: event_bus_retried_total
+    type: counter
+    labels: [stream, group]
+    owner: platform
+    unit: "count"
+    description: >-
+      Event deliveries requeued for retry after a handler failure, by source
+      stream and consumer group; the exponential-backoff bookkeeping travels
+      in the requeued message itself. Emitted by
+      intake_platform.event_bus.Consumer (INT-035).
+  - name: event_bus_dead_lettered_total
+    type: counter
+    labels: [stream, group, reason]
+    owner: platform
+    unit: "count"
+    description: >-
+      Events moved to the per-stream dead-letter stream after the retry cap
+      (handler_error) or on a payload failing its event schema
+      (schema_invalid). reason is the closed DeadLetterReason code — never
+      exception text, which could carry PHI (invariant 6). Emitted by
+      intake_platform.event_bus.Consumer (INT-035).
+  # --- live series (INT-024): chaos harness + vendor degradation router ------
+  - name: vendor_adapter_failures_total
+    type: counter
+    labels: [adapter]
+    owner: platform
+    unit: "count"
+    description: >-
+      Vendor adapter calls that failed, by adapter id. Emitted by
+      intake_platform.chaos.DegradationRouter at the provider-agnostic
+      adapter seam (AdapterProbe contract); the sec_row `resilience`
+      failure signal.
+  - name: vendor_adapter_fallbacks_total
+    type: counter
+    labels: [adapter, mode]
+    owner: platform
+    unit: "count"
+    description: >-
+      Fallback decisions handed to callers after a vendor adapter failure,
+      by adapter id and fallback mode. mode is the closed RouteMode
+      enumeration; `typed` is the degrade-to-text tier (ADR-010). Emitted
+      by intake_platform.chaos.DegradationRouter (INT-024).
+  - name: vendor_fallback_latency_seconds
+    type: histogram
+    labels: [adapter]
+    owner: platform
+    unit: "s"
+    target: "<= 2 s (INT-024 acceptance bound)"
+    description: >-
+      Seconds from the failing vendor call's start to the fallback decision
+      reaching the caller. Emitted by
+      intake_platform.chaos.DegradationRouter; the vendor_kill experiment
+      asserts the 2 s bound over this measurement.
+  - name: chaos_experiment_runs_total
+    type: counter
+    labels: [experiment, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      Chaos experiment executions, by experiment id and outcome (pass/fail).
+      files/10 §7: chaos results are tracked as metrics. Emitted by
+      intake_platform.chaos.run_vendor_kill via `make chaos
+      EXPERIMENT=<id>` (INT-024).
+  # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
+  # Wazuh's and Falco's own liveness are probes, not error budgets (the
+  # `wazuh-manager`, `wazuh-indexer` and `falco` rows of
+  # observability/registry.yaml). What we own — and what a patient's privacy
+  # rests on — is the boundary that turns a vendor alert into a SecurityAlert,
+  # so that is what is instrumented. docs/slo/siem.yaml reads the first two.
+  - name: siem_alerts_ingested_total
+    type: counter
+    labels: [source, signal, severity]
+    owner: platform
+    unit: "count"
+    description: >-
+      Detector alerts admitted to the console feed after scrubbing, by source
+      (falco/wazuh), console signal (auth_anomaly/k8s_audit/container_runtime/
+      unclassified) and runbook severity (SEV1-SEV4). Emitted by
+      intake_platform.siem.normalise (INT-205). Every label is a closed
+      enumeration; none carries a rule name, a host name or a path.
+  - name: siem_alerts_refused_total
+    type: counter
+    labels: [source, reason]
+    owner: platform
+    unit: "count"
+    description: >-
+      Detector alerts refused at the scrub boundary, by source and a closed
+      reason vocabulary (unknown_priority/unknown_level/no_rule/no_timestamp).
+      Emitted by intake_platform.siem.normalise (INT-205). A rising rate means
+      a detector is emitting a shape we cannot reduce safely, which is a
+      detection gap rather than a nuisance.
+  - name: siem_alert_fields_dropped_total
+    type: counter
+    labels: [source, field]
+    owner: platform
+    unit: "count"
+    description: >-
+      Fields dropped from a detector alert because they were not identifiers,
+      by source and the vendor field name (hostname, container.id, fd.name,
+      agent.id, agent.name, syscheck.path, time, timestamp, id). Emitted by
+      intake_platform.siem.normalise (INT-205) — the visible edge of
+      invariant 6 on the detection path: a spike means something started
+      putting narrative where an id belongs.
+  # --- files/08 §4 A. Availability & SLOs — planned until the SLO attainment pipeline lands
+  - name: slo_api_availability
+    id: slo.api_availability
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "ratio"
+    target: "99.9 %"
+    status: planned
+    description: API availability SLO attainment.
+  - name: slo_voice_session_success
+    id: slo.voice_session_success
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "ratio"
+    target: "99.5 %"
+    status: planned
+    description: Share of voice session starts that reach the first question.
+  - name: slo_note_ready_within_60s
+    id: slo.note_ready_within_60s
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "ratio"
+    target: "99 %"
+    status: planned
+    description: Share of notes ready within 60 seconds of wrap-up.
+  - name: slo_doctor_link_open_p95
+    id: slo.doctor_link_open_p95
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "s"
+    target: "< 2 s"
+    status: planned
+    description: p95 time for the doctor link to open.
+  # --- files/08 §4 B. Voice runtime — per turn; 08 §4 fixes labels profile/tenant/branch/vendor
+  - name: voice_eou_delay_ms
+    id: voice.eou_delay_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: End-of-utterance detection delay per turn (LiveKit EOUMetrics).
+  - name: voice_transcription_delay_ms
+    id: voice.transcription_delay_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: Transcription delay per turn (LiveKit EOUMetrics).
+  - name: voice_talker_ttft_ms
+    id: voice.talker_ttft_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: Talker LLM time to first token (LLMMetrics).
+  - name: voice_talker_tokens
+    id: voice.talker_tokens
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "tokens"
+    status: planned
+    description: Talker LLM tokens per turn (LLMMetrics).
+  - name: voice_prompt_cached_tokens
+    id: voice.prompt_cached_tokens
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "tokens"
+    status: planned
+    description: Prompt tokens served from cache per turn (LLMMetrics).
+  - name: voice_tts_ttfb_ms
+    id: voice.tts_ttfb_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: TTS time to first byte per turn (TTSMetrics).
+  - name: voice_tts_chars
+    id: voice.tts_chars
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "chars"
+    status: planned
+    description: Characters synthesised per turn (TTSMetrics).
+  - name: voice_stt_audio_s
+    id: voice.stt_audio_s
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "s"
+    status: planned
+    description: Audio seconds sent to STT per turn (STTMetrics).
+  - name: voice_stt_duration_ms
+    id: voice.stt_duration_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: STT processing duration per turn (STTMetrics).
+  - name: voice_round_trip_ms
+    id: voice.round_trip_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    target: "p50/p95 per files/02 §8"
+    status: planned
+    description: VAD end to first audio on the device, per turn.
+  - name: voice_barge_in_stop_ms
+    id: voice.barge_in_stop_ms
+    type: histogram
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ms"
+    target: "<= 150 ms"
+    status: planned
+    description: Time to stop playback after a barge-in.
+  - name: voice_interruption_rate
+    id: voice.interruption_rate
+    type: gauge
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ratio"
+    target: "< 15 %"
+    status: planned
+    description: Share of turns the patient interrupts.
+  - name: voice_silence_ratio
+    id: voice.silence_ratio
+    type: gauge
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ratio"
+    status: planned
+    description: Silence share of session audio time.
+  - name: voice_clip_cache_hit_ratio
+    id: voice.clip_cache_hit_ratio
+    type: gauge
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ratio"
+    target: ">= 0.6 in fast mode"
+    status: planned
+    description: Scripted-clip cache hit ratio.
+  - name: voice_backchannel_count
+    id: voice.backchannel_count
+    type: counter
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Backchannels produced.
+  - name: voice_asr_confidence_mean
+    id: voice.asr_confidence_mean
+    type: gauge
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ratio"
+    status: planned
+    description: Mean ASR confidence over sampled turns.
+  - name: voice_asr_wer_proxy
+    id: voice.asr_wer_proxy
+    type: gauge
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "ratio"
+    status: planned
+    description: >-
+      Disagreement between primary and shadow STT on sampled turns (word-
+      error proxy, an internal measurement).
+  - name: voice_profile_switches
+    id: voice.profile_switches
+    type: counter
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Voice profile switches during sessions.
+  - name: voice_typed_fallbacks
+    id: voice.typed_fallbacks
+    type: counter
+    labels: [tenant, profile, branch, vendor]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Falls back to the typed profile.
+  # --- files/08 §4 C. Two-layer runtime
+  - name: work_queue_depth
+    id: work.queue_depth
+    type: gauge
+    labels: [type]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Backend Work queue depth by work type.
+  - name: work_latency_ms
+    id: work.latency_ms
+    type: histogram
+    labels: [type]
+    owner: voice-runtime
+    unit: "ms"
+    target: "extract_slots p50 < 3 s"
+    status: planned
+    description: Backend Work latency by work type.
+  - name: work_failed_total
+    id: work.failed_total
+    type: counter
+    labels: [type]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Failed Backend Work items by work type.
+  - name: work_restart_failures
+    id: work.restart_failures
+    type: counter
+    labels: [type]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Backend Work restart failures by work type.
+  - name: delivery_insertion_wait_ms
+    id: delivery.insertion_wait_ms
+    type: histogram
+    labels: []
+    owner: voice-runtime
+    unit: "ms"
+    target: "p50 <= 2 s"
+    status: live
+    description: >-
+      Wait until a safe insertion window delivered Backend speech. Emitted by
+      intake_voice_runtime.talker.insertion (INT-091).
+  - name: delivery_retries
+    id: delivery.retries
+    type: counter
+    labels: []
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: Backend speech delivery retries.
+  - name: delivery_duplicates
+    id: delivery.duplicates
+    type: counter
+    labels: []
+    owner: voice-runtime
+    unit: "count"
+    target: "0"
+    status: planned
+    description: Duplicate Backend speech deliveries; must stay at zero.
+  - name: preempt_red_latency_ms
+    id: preempt.red_latency_ms
+    type: histogram
+    labels: []
+    owner: voice-runtime
+    unit: "ms"
+    target: "<= 300 ms (p99 pages)"
+    status: planned
+    description: Rules-engine RED preemption latency.
+  - name: talker_tool_calls_total
+    id: talker.tool_calls_total
+    type: counter
+    labels: [tool]
+    owner: voice-runtime
+    unit: "count"
+    target: "only the six Talker tool names (any other name alerts)"
+    status: live
+    description: >-
+      Talker tool calls by tool name (inv. 9). Emitted by
+      intake_voice_runtime.talker.registry (INT-091); the registry is sealed at
+      six, so a seventh label can only appear if the surface grew.
+  # --- files/08 §4 D. Clinical quality
+  - name: note_acceptance_rate
+    id: note.acceptance_rate
+    type: gauge
+    labels: []
+    owner: clinical
+    unit: "ratio"
+    target: ">= 70 %, rising to 85 %"
+    status: planned
+    description: Accepted-plus-edited notes over all notes delivered.
+  - name: note_edit_ratio_by_section
+    id: note.edit_ratio_by_section
+    type: gauge
+    labels: [section]
+    owner: clinical
+    unit: "ratio"
+    status: planned
+    description: Clinician edit ratio by note section.
+  - name: note_time_to_ready_s
+    id: note.time_to_ready_s
+    type: histogram
+    labels: []
+    owner: clinical
+    unit: "s"
+    status: planned
+    description: Time from wrap-up to note ready.
+  - name: note_clinician_time_to_open_s
+    id: note.clinician_time_to_open_s
+    type: histogram
+    labels: []
+    owner: clinical
+    unit: "s"
+    status: planned
+    description: Time until the clinician opens the note.
+  - name: protocol_must_ask_coverage
+    id: protocol.must_ask_coverage
+    type: gauge
+    labels: []
+    owner: clinical
+    unit: "ratio"
+    target: ">= 95 %"
+    status: planned
+    description: Coverage of must-ask protocol questions.
+  - name: protocol_clarification_rate
+    id: protocol.clarification_rate
+    type: gauge
+    labels: [step]
+    owner: clinical
+    unit: "ratio"
+    status: planned
+    description: Clarification requests by protocol step.
+  - name: protocol_follow_up_rate
+    id: protocol.follow_up_rate
+    type: gauge
+    labels: [step]
+    owner: clinical
+    unit: "ratio"
+    status: planned
+    description: Follow-up questions by protocol step.
+  - name: protocol_skip_rate
+    id: protocol.skip_rate
+    type: gauge
+    labels: [step]
+    owner: clinical
+    unit: "ratio"
+    status: planned
+    description: Skipped questions by protocol step.
+  - name: records_extraction_accuracy
+    id: records.extraction_accuracy
+    type: gauge
+    labels: []
+    owner: clinical
+    unit: "ratio"
+    status: planned
+    description: >-
+      Document-extraction agreement on an audited sample (an internal
+      measurement, never product copy — inv. 20).
+  - name: hallucination_audit_rate
+    id: hallucination.audit_rate
+    type: gauge
+    labels: []
+    owner: clinical
+    unit: "ratio"
+    target: "< 0.5 %"
+    status: planned
+    description: Hallucination findings rate in note audits.
+  # --- files/08 §4 E. Safety
+  - name: triage_events_total
+    id: triage.events_total
+    type: counter
+    labels: [level, rule]
+    owner: safety
+    unit: "count"
+    status: planned
+    description: Triage events by level and rule; counts REDs that fired.
+  - name: triage_false_red_rate
+    id: triage.false_red_rate
+    type: gauge
+    labels: []
+    owner: safety
+    unit: "ratio"
+    target: "<= 2 %"
+    status: planned
+    description: Share of RED events judged false on clinical review.
+  - name: triage_missed_flag_reports
+    id: triage.missed_flag_reports
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: planned
+    description: Reported missed red flags.
+  - name: policyguard_blocks_total
+    id: policyguard.blocks_total
+    type: counter
+    labels: [class, profile]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      PolicyGuard blocks by violation class and voice profile. Emitted by
+      intake_voice_runtime.talker.policy_guard (INT-091); scripted text is
+      reported, never blocked (files/03 §4.6 invariant 7), so it never
+      increments this counter.
+  - name: policyguard_retractions_total
+    id: policyguard.retractions_total
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: planned
+    description: PolicyGuard retractions on the s2s path.
+  - name: crisis_path_completion
+    id: crisis.path_completion
+    type: gauge
+    labels: []
+    owner: safety
+    unit: "ratio"
+    target: "100 %"
+    status: planned
+    description: Crisis path completion.
+  - name: s2s_eval_gate_status
+    id: s2s.eval_gate_status
+    type: gauge
+    labels: []
+    owner: safety
+    unit: "bool (0/1)"
+    status: planned
+    description: S2S eval gate status (1 = passing).
+  - name: clinic_red_ack_latency_min
+    id: clinic.red_ack_latency_min
+    type: histogram
+    labels: []
+    owner: safety
+    unit: "min"
+    target: "within tenant SLA (default 4 business hours, files/02 §8)"
+    status: planned
+    description: >-
+      RED inbox arrival to human acknowledgement; counts the answer, not
+      the alert (files/08 §0c F19).
+  - name: clinic_red_unacknowledged_total
+    id: clinic.red_unacknowledged_total
+    type: gauge
+    labels: [tenant, age_band]
+    owner: safety
+    unit: "count"
+    status: planned
+    description: >-
+      REDs nobody has acknowledged yet, by tenant and age band; pages past
+      the tenant SLA.
+  # --- files/08 §4 F. Experience & satisfaction
+  # INT-240 made these four live: intake_metrics.metrics constructs them and
+  # intake_metrics.rollups feeds them. Every value is published for a named
+  # cohort over a stated window and only at or above the k >= 10 floor — the
+  # series carry measurements, never a property of the product (invariant 20).
+  - name: csat_score
+    id: csat.score
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "score (1-5)"
+    target: ">= 4.3"
+    status: live
+    description: Patient CSAT score distribution.
+  - name: csat_reason
+    id: csat.reason
+    type: counter
+    labels: [reason]
+    owner: experience
+    unit: "count"
+    status: live
+    description: CSAT reason distribution (enumerated reasons only).
+  - name: nps_monthly
+    id: nps.monthly
+    type: gauge
+    labels: []
+    owner: experience
+    unit: "score"
+    status: live
+    description: Monthly NPS.
+  - name: clinician_pulse
+    id: clinician.pulse
+    type: gauge
+    labels: []
+    owner: experience
+    unit: "score (1-5)"
+    status: live
+    description: Quarterly clinician pulse survey score.
+  - name: session_completion_rate
+    id: session.completion_rate
+    type: gauge
+    labels: []
+    owner: experience
+    unit: "ratio"
+    target: ">= 80 %"
+    status: planned
+    description: Completed intake sessions over sessions started.
+  - name: session_duration_s
+    id: session.duration_s
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "s"
+    target: "fast-mode median <= 4 min"
+    status: planned
+    description: Intake session duration.
+  - name: session_abandon_step
+    id: session.abandon_step
+    type: counter
+    labels: [step]
+    owner: experience
+    unit: "count"
+    status: planned
+    description: Session abandonments by protocol step.
+  - name: session_repeat_requests
+    id: session.repeat_requests
+    type: counter
+    labels: []
+    owner: experience
+    unit: "count"
+    status: planned
+    description: Patient requests to repeat a question.
+  # --- files/08 §4 G. Wait times
+  - name: wait_time_to_first_question_s
+    id: wait.time_to_first_question_s
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "s"
+    target: "<= 3 s"
+    status: planned
+    description: Session start to first question.
+  - name: wait_answer_latency_s
+    id: wait.answer_latency_s
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "s"
+    status: planned
+    description: Patient think-time before answering (context for design).
+  - name: wait_note_ready_after_wrapup_s
+    id: wait.note_ready_after_wrapup_s
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "s"
+    target: "<= 60 s"
+    status: planned
+    description: Wrap-up to note ready.
+  - name: wait_doctor_link_first_open_h
+    id: wait.doctor_link_first_open_h
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "h"
+    status: planned
+    description: Note delivery to first doctor-link open.
+  - name: wait_checkin_to_seen_min
+    id: wait.checkin_to_seen_min
+    type: histogram
+    labels: []
+    owner: experience
+    unit: "min"
+    status: planned
+    description: Check-in to being seen (connector tenants).
+  - name: wait_records_processing_s
+    id: wait.records_processing_s
+    type: histogram
+    labels: [document_type]
+    owner: experience
+    unit: "s"
+    status: live
+    description: >-
+      Uploaded-record processing time by ingest document type (INT-241).
+      Emitted by intake_metrics.metrics.publish_wait from a rollup that has
+      cleared the k >= 10 floor and whose every document-type cell has cleared
+      it too — never observed raw, because a histogram scraped after one
+      observation exposes that patient's exact wait. The other five group G
+      ids stay planned: intake_platform.wait_times.WAIT_SOURCES records which
+      of their two instants this repo does not yet write.
+  # --- files/08 §4 I. Operations — the two ids 08 §4 names (LiveKit worker exporter :8081)
+  - name: worker_load
+    type: gauge
+    labels: []
+    owner: voice-runtime
+    unit: "ratio"
+    status: planned
+    description: LiveKit agent worker load.
+  - name: active_jobs
+    type: gauge
+    labels: []
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: LiveKit agent active jobs.
+  # --- files/08 §4 J. Cost
+  - name: cost_per_session
+    id: cost.per_session
+    type: gauge
+    labels: [component]
+    owner: platform
+    unit: "USD"
+    status: planned
+    description: Cost per session by component.
+  # --- files/08 §4 M. Security (files/10 §7)
+  - name: sec_auth_failures_total
+    id: sec.auth_failures_total
+    type: counter
+    labels: [reason, asn]
+    owner: security
+    unit: "count"
+    status: planned
+    description: Authentication failures by reason and ASN.
+  - name: sec_otp_requests_total
+    id: sec.otp_requests_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: OTP requests.
+  - name: sec_otp_abuse_blocks
+    id: sec.otp_abuse_blocks
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: OTP requests blocked as abuse.
+  - name: sec_attestation_failures
+    id: sec.attestation_failures
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Device attestation failures.
+  - name: sec_new_device_logins
+    id: sec.new_device_logins
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Logins from a device not seen before.
+  - name: sec_token_reuse_detected
+    id: sec.token_reuse_detected
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Refresh-token reuse detections.
+  - name: sec_waf_blocks_total
+    id: sec.waf_blocks_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Requests blocked by the WAF.
+  - name: sec_egress_denied_total
+    id: sec.egress_denied_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    target: "0 (any increase pages)"
+    status: planned
+    description: Denied egress attempts from the PHI path.
+  - name: sec_injection_suspected_total
+    id: sec.injection_suspected_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Suspected prompt-injection attempts.
+  - name: sec_policyguard_spike
+    id: sec.policyguard_spike
+    type: gauge
+    labels: []
+    owner: security
+    unit: "ratio"
+    status: planned
+    description: PolicyGuard block-rate spike signal.
+  - name: sec_audit_chain_ok
+    id: sec.audit_chain_ok
+    type: gauge
+    labels: []
+    owner: security
+    unit: "bool (0/1)"
+    status: planned
+    description: Daily audit hash-chain verification (1 = intact).
+  - name: sec_image_signature_failures
+    id: sec.image_signature_failures
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Container image signature verification failures.
+  - name: sec_pack_signature_failures
+    id: sec.pack_signature_failures
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Protocol pack signature verification failures.
+  - name: sec_vulns_open
+    id: sec.vulns_open
+    type: gauge
+    labels: [severity]
+    owner: security
+    unit: "count"
+    status: planned
+    description: Open vulnerabilities by severity.
+  - name: sec_vuln_age_days
+    id: sec.vuln_age_days
+    type: gauge
+    labels: [severity]
+    owner: security
+    unit: "days"
+    status: planned
+    description: Age of the oldest open vulnerability, tracked against the SLA.
+  - name: sec_secret_rotation_due_days
+    id: sec.secret_rotation_due_days
+    type: gauge
+    labels: []
+    owner: security
+    unit: "days"
+    status: planned
+    description: Days until the next secret rotation is due.
+  - name: sec_cert_expiry_days
+    id: sec.cert_expiry_days
+    type: gauge
+    labels: []
+    owner: security
+    unit: "days"
+    status: planned
+    description: Days until the nearest certificate expiry.
+  - name: sec_backup_age_min
+    id: sec.backup_age_min
+    type: gauge
+    labels: []
+    owner: security
+    unit: "min"
+    status: planned
+    description: Age of the newest backup.
+  - name: sec_restore_drill_age_days
+    id: sec.restore_drill_age_days
+    type: gauge
+    labels: []
+    owner: security
+    unit: "days"
+    status: planned
+    description: Days since the last restore drill.
+  - name: sec_break_glass_total
+    id: sec.break_glass_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Break-glass grants opened (group O attaches detection to this).
+  - name: sec_admin_actions_total
+    id: sec.admin_actions_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Admin actions executed (group O attaches detection to this).
+  - name: sec_mttd_min
+    id: sec.mttd_min
+    type: gauge
+    labels: []
+    owner: security
+    unit: "min"
+    status: planned
+    description: Mean time to detect.
+  - name: sec_mttr_min
+    id: sec.mttr_min
+    type: gauge
+    labels: []
+    owner: security
+    unit: "min"
+    status: planned
+    description: Mean time to respond.
+  - name: sec_pentest_findings_open
+    id: sec.pentest_findings_open
+    type: gauge
+    labels: []
+    owner: security
+    unit: "count"
+    status: planned
+    description: Open penetration-test findings.
+  # --- files/08 §4 N. Reliability & client (files/10 §6)
+  - name: slo_error_budget_remaining
+    id: slo.error_budget_remaining
+    type: gauge
+    labels: [slo]
+    owner: platform
+    unit: "ratio"
+    status: planned
+    description: Error budget remaining by SLO.
+  - name: slo_burn_rate
+    id: slo.burn_rate
+    type: gauge
+    labels: [slo, window]
+    owner: platform
+    unit: "factor"
+    status: planned
+    description: Error-budget burn-rate multiple by window.
+  - name: svc_latency_ms
+    id: svc.latency_ms
+    type: histogram
+    labels: [service]
+    owner: platform
+    unit: "ms"
+    status: planned
+    description: Golden-signal latency per service.
+  - name: svc_rps
+    id: svc.rps
+    type: gauge
+    labels: [service]
+    owner: platform
+    unit: "requests/s"
+    status: planned
+    description: Golden-signal request rate per service.
+  - name: svc_error_ratio
+    id: svc.error_ratio
+    type: gauge
+    labels: [service]
+    owner: platform
+    unit: "ratio"
+    status: planned
+    description: Golden-signal error ratio per service.
+  - name: svc_saturation
+    id: svc.saturation
+    type: gauge
+    labels: [service]
+    owner: platform
+    unit: "ratio"
+    status: planned
+    description: Golden-signal saturation per service.
+  - name: probe_status
+    id: probe.status
+    type: gauge
+    labels: [component]
+    owner: platform
+    unit: "bool (0/1)"
+    status: planned
+    description: Synthetic probe status by component (1 = healthy).
+  - name: probe_latency_ms
+    id: probe.latency_ms
+    type: histogram
+    labels: [component]
+    owner: platform
+    unit: "ms"
+    status: planned
+    description: Synthetic probe latency by component.
+  - name: deploy_frequency
+    id: deploy.frequency
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "deploys/day"
+    status: planned
+    description: Deployment frequency.
+  - name: deploy_change_failure_rate
+    id: deploy.change_failure_rate
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "ratio"
+    status: planned
+    description: Share of deployments causing a failure.
+  - name: deploy_rollbacks_total
+    id: deploy.rollbacks_total
+    type: counter
+    labels: []
+    owner: platform
+    unit: "count"
+    status: planned
+    description: Deployment rollbacks.
+  - name: chaos_last_result
+    id: chaos.last_result
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bool (0/1)"
+    status: planned
+    description: Result of the last chaos experiment (1 = passed).
+  - name: load_max_concurrent_sessions
+    id: load.max_concurrent_sessions
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "count"
+    status: planned
+    description: Maximum concurrent sessions sustained in the load smoke.
+  - name: client_crash_free_sessions
+    id: client.crash_free_sessions
+    type: gauge
+    labels: []
+    owner: client
+    unit: "ratio"
+    target: ">= 99.5 %"
+    status: planned
+    description: Crash-free session share in the mobile client.
+  - name: client_cold_start_p95_ms
+    id: client.cold_start_p95_ms
+    type: gauge
+    labels: []
+    owner: client
+    unit: "ms"
+    status: planned
+    description: p95 cold-start time of the mobile client.
+  - name: client_anr_rate
+    id: client.anr_rate
+    type: gauge
+    labels: []
+    owner: client
+    unit: "ratio"
+    status: planned
+    description: Application-not-responding rate in the mobile client.
+  - name: client_offline_sync_success
+    id: client.offline_sync_success
+    type: gauge
+    labels: []
+    owner: client
+    unit: "ratio"
+    status: planned
+    description: Offline sync success share in the mobile client.
+  - name: net_rtt_ms
+    id: net.rtt_ms
+    type: histogram
+    labels: []
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: Network round-trip time per turn.
+  - name: net_jitter_ms
+    id: net.jitter_ms
+    type: histogram
+    labels: []
+    owner: voice-runtime
+    unit: "ms"
+    status: planned
+    description: Network jitter per turn.
+  - name: net_packet_loss_ratio
+    id: net.packet_loss_ratio
+    type: histogram
+    labels: []
+    owner: voice-runtime
+    unit: "ratio"
+    status: planned
+    description: Packet loss ratio per turn.
+  - name: web_core_web_vitals
+    id: web.core_web_vitals
+    type: gauge
+    labels: [vital]
+    owner: client
+    unit: "per-vital (ms or score)"
+    status: planned
+    description: Core Web Vitals for the web apps, by vital.
+  # --- files/08 §4 O. Admin control, device boundary and study lifecycle
+  - name: admin_device_functions_changed_total
+    id: admin.device_functions_changed_total
+    type: counter
+    labels: [tenant, direction]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: >-
+      Device-functions boundary changes by tenant and direction; any
+      change pages, in either direction.
+  - name: admin_study_assertion_changed_total
+    id: admin.study_assertion_changed_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Study assertion registrations and amendments.
+  - name: acoustic_assertion_expiry_days
+    id: acoustic.assertion_expiry_days
+    type: gauge
+    labels: []
+    owner: admin
+    unit: "days"
+    status: planned
+    description: Days until the acoustic study assertion expires (ticket at 14, page below 3).
+  - name: admin_study_registry_probe_status
+    id: admin.study_registry_probe_status
+    type: gauge
+    labels: []
+    owner: admin
+    unit: "bool (0/1)"
+    status: planned
+    description: Daily study-registry probe; fails closed (1 = healthy).
+  - name: admin_break_glass_opened_total
+    id: admin.break_glass_opened_total
+    type: counter
+    labels: [actor, reason_class]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Break-glass grants opened by actor and reason class.
+  - name: admin_break_glass_patient_log_lag_h
+    id: admin.break_glass_patient_log_lag_h
+    type: gauge
+    labels: []
+    owner: admin
+    unit: "h"
+    status: planned
+    description: Lag until a break-glass access lands in the patient-visible log; must clear 24 h.
+  - name: admin_pack_promoted_total
+    id: admin.pack_promoted_total
+    type: counter
+    labels: [to]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Protocol pack promotions by destination level.
+  - name: admin_pack_quarantined_total
+    id: admin.pack_quarantined_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Protocol packs quarantined.
+  - name: admin_pack_quarantine_rto_s
+    id: admin.pack_quarantine_rto_s
+    type: gauge
+    labels: []
+    owner: admin
+    unit: "s"
+    status: planned
+    description: Pack-quarantine recovery-time drill result.
+  - name: admin_retriage_sweep_findings_total
+    id: admin.retriage_sweep_findings_total
+    type: counter
+    labels: [new_level]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Re-triage sweep findings by new level.
+  - name: admin_connector_endpoint_changed_total
+    id: admin.connector_endpoint_changed_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Connector endpoint changes; any change pages.
+  - name: admin_egress_allowlist_changed_total
+    id: admin.egress_allowlist_changed_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Egress allow-list changes; any change pages.
+  - name: admin_role_granted_total
+    id: admin.role_granted_total
+    type: counter
+    labels: [privileged]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Role grants; privileged grants page.
+  - name: admin_dsar_delete_total
+    id: admin.dsar_delete_total
+    type: counter
+    labels: [subject_count]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      DSAR deletions; a subject count above one pages. Emitted by
+      intake_api.dsar.shred.execute_due_shreds, once per erasure run, after
+      the files/06 §3 grace has elapsed and the crypto-shred has landed
+      (INT-037). The console that alerts on it is INT-189.
+  - name: admin_four_eyes_self_approval_attempt_total
+    id: admin.four_eyes_self_approval_attempt_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: >-
+      Attempts to approve one's own tier-3 action — an intrusion signal,
+      not a hygiene metric.
+  - name: admin_pending_action_expired_total
+    id: admin.pending_action_expired_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Pending dangerous actions that expired unapproved.
+  - name: admin_access_review_age_days
+    id: admin.access_review_age_days
+    type: gauge
+    labels: []
+    owner: admin
+    unit: "days"
+    status: planned
+    description: Age of the last access review (100-day read-only threshold, files/08 §2.7).
+  - name: admin_audit_seq_gaps_total
+    id: admin.audit_seq_gaps_total
+    type: counter
+    labels: []
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Detected gaps in the per-actor/per-tenant audit sequence.
+  - name: admin_audit_external_anchor_age_min
+    id: admin.audit_external_anchor_age_min
+    type: gauge
+    labels: []
+    owner: admin
+    unit: "min"
+    status: planned
+    description: Age of the audit chain's external anchor.
+  - name: admin_replay_invocations_total
+    id: admin.replay_invocations_total
+    type: counter
+    labels: [under_grant]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Session replays invoked, split by whether a break-glass grant was in force.
+  - name: instrument_administrations_total
+    id: instrument.administrations_total
+    type: counter
+    labels: [instrument]
+    owner: admin
+    unit: "count"
+    status: planned
+    description: Validated-instrument administrations by instrument.
+  - name: instrument_licence_status
+    id: instrument.licence_status
+    type: gauge
+    labels: [instrument]
+    owner: admin
+    unit: "state"
+    status: planned
+    description: Instrument licence state by instrument; moving off GO tickets.
+  # --- INT-141 notifications (files/10 §9 row "Notifications / reminders":
+  # "delivery/opt-out rates"). files/08 §4 names no metric id for this row, so
+  # these carry no `id` — they are the §9 signals, catalogued here rather than
+  # dropped. Every label is a closed enumeration; nothing free-text (inv. 6).
+  - name: notification_dispatch_total
+    type: counter
+    labels: [channel, message_class, status]
+    owner: platform
+    unit: "count"
+    description: >-
+      Notification dispatch attempts by channel, message class and outcome
+      (delivered, suppressed_opt_out, deferred_quiet_hours,
+      refused_quiet_hours_unset, blocked_transport_unconfigured). The delivery
+      rate and the opt-out rate are both read off the status label.
+  - name: notification_preference_changed_total
+    type: counter
+    labels: [change]
+    owner: platform
+    unit: "count"
+    description: >-
+      Patient notification-preference changes by what changed (opt_out,
+      opt_in, quiet_window_set, quiet_window_cleared).
+  # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
+  # series (nps.monthly, clinician.pulse) but no id for the scheduling of
+  # them, so this entry carries no `id` — the same posture as the INT-141 rows
+  # above. Every label is a closed enumeration. The status label is the honest
+  # record of why nothing is sent today: blocked_iys_consent_absent is the
+  # 6563 gate, refused_schedule_unset the missing first-prompt value.
+  - name: survey_invitation_total
+    type: counter
+    labels: [kind, channel, message_class, status]
+    owner: experience
+    unit: "count"
+    description: >-
+      Survey invitation decisions by kind (nps, clinician_pulse), channel
+      (in_product, electronic_message), 6563 message class and outcome
+      (issued, not_yet_due, suppressed_opt_out, blocked_iys_consent_absent,
+      blocked_prompts_disabled, refused_schedule_unset, deferred_quiet_hours,
+      refused_quiet_hours_unset).
+  # --- INT-171: the k-anonymity gate on the de-identified analytics views.
+  # files/10 §9 learning row names "k-anonymity refusals" as a console signal
+  # and files/08 §4 group L repeats it as a prose KPI with no id; these are
+  # the ids. Both label sets are deliberately minimal: a refusal labelled with
+  # the branch or the week it withheld would publish that cell to Prometheus,
+  # which retains it (inv. 6).
+  - name: analytics_view_refused_total
+    type: counter
+    labels: [view, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      De-identified analytics views that refused to materialise, by view name
+      and reason class (below_k, dimension_not_id_shaped,
+      dimension_set_mismatch, measure_not_a_count). Emitted by
+      intake_platform.analytics.k_anonymity; a below_k refusal covers both a
+      cohort under the floor and an empty result, which the gate declines to
+      tell apart.
+  - name: analytics_view_materialised_total
+    type: counter
+    labels: [view]
+    owner: learning
+    unit: "count"
+    description: >-
+      De-identified analytics views that cleared their k-anonymity threshold
+      and were served, by view name. Read against
+      analytics_view_refused_total it is the refusal rate the learning loop is
+      operating at.
+# files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
+# they are not silently dropped — each enters the catalogue as an entry the
+# moment the spec names its id):
+# - group H, adoption & business: activation (fast intake within 7 days),
+#   weekly intakes per clinic, notes delivered, branch coverage used,
+#   companion-profile share, consent opt-in by layer, revocations honoured
+#   under one minute.
+# - group I, operations: RED/USE per service beyond the svc_* golden signals,
+#   GPU utilisation and memory, Celery/Redis queue depth, DB replication lag,
+#   storage growth, certificate expiry (sec_cert_expiry_days covers the
+#   security view).
+# - group J, cost: tokens/chars/audio-seconds by vendor, GPU hours, forecast
+#   vs budget.
+# - group K, compliance: consent coverage by version, vendor notifications
+#   due/overdue, DSAR SLA, residency attestation per tenant, retention job
+#   success (sec_audit_chain_ok covers the daily integrity check).
+# - group L, learning loops: proposals opened/approved/rejected, canary
+#   outcomes, rollback count, evidence-bundle completeness, GEPA experiment
+#   deltas on held-out sets. ("k-anonymity rejections" left this list with
+#   INT-171: analytics_view_refused_total above is that KPI, catalogued under
+#   a name of ours because 08 §4 states the row without an id.)

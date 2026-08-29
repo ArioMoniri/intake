@@ -1,0 +1,53 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL VALIDATION: tighten_rule whose new rule id is NOT
+# `<parent_id>.<qualifier>`. files/12 §4 layer 2: tighten never replaces —
+# it creates rf.X.<qualifier> and leaves rf.X live. An unrelated id breaks
+# the audit trail from tightened rule back to parent.
+kind: pack
+id: specialty.synthetic_adsiz
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik adsız sıkılaştırma paketi"
+extends: base.synthetic
+ops:
+  - op: tighten_rule
+    parent_rule_id: rf.synthetic_kirmizi
+    rule:
+      id: rf.synthetic_bambaska
+      label_tr: "Sentetik kural — bambaşka ad"
+      when: >-
+        (renk_tercihi == 'kirmizi' || bekleme_suresi_asildi == true)
+        || ek_soru == true
+      tense: now
+      tense_anchor: olay_zamani
+      level: KIRMIZI_K2
+      route: EMERGENCY_NOW
+      register: ALERT
+      notify_clinic: always
+      status: active
+      source:
+        guideline_id: SYN-GUIDE-B
+        guideline_title: "Sentetik kılavuz B"
+        version_or_date: "sürüm iki"
+        url: "https://example.invalid/syn-guide-b"
+        retrieved_on: 2026-08-28
+        quote: "adsız sentetik alıntı"
+      action:
+        REMOTE:
+          primary: CALL_112
+          show_112: true
+          action_tr: "Hemen yardım isteyin."
+        ON_SITE:
+          primary: GO_TO_IN_HOUSE_ACIL
+          show_112: false
+          notify_staff_immediate: true
+          action_tr: "Görevlilere haber verin ve bekleyin."
+        UNKNOWN:
+          ask_one_tr: "Şu anda hastanede misiniz?"
+          on_yes: ON_SITE
+          on_no: REMOTE
+          on_no_answer: REMOTE
