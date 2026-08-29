@@ -282,7 +282,7 @@ export function DialogueIntake({
     return null; // terminal callbacks route away / hand over
   }
 
-  const model = sectionPanelModel(questions, state, account?.medications ?? []);
+  const model = sectionPanelModel(questions, state, account?.carriedFacts ?? []);
   const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
   // While the agent speaks, the LAST logged agent turn is the live bubble.
   const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;

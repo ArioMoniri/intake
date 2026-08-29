@@ -65,8 +65,10 @@ from intake_platform.notifications.preferences import (
     MINUTES_PER_DAY,
     SCHEDULING_OFFSET,
     NotificationPreferences,
+    QuietVerdict,
     QuietWindow,
     local_minute_of_day,
+    quiet_verdict,
 )
 from intake_platform.notifications.service import (
     DispatchOutcome,
@@ -96,6 +98,7 @@ __all__ = [
     "MessageClass",
     "NotificationPreferences",
     "NotificationTransport",
+    "QuietVerdict",
     "QuietWindow",
     "RecordedTransport",
     "ReminderDispatcher",
@@ -111,6 +114,7 @@ __all__ = [
     "leaked_terms",
     "local_minute_of_day",
     "outside_vocabulary",
+    "quiet_verdict",
     "render",
     "seal_commercial",
     "seal_transactional",

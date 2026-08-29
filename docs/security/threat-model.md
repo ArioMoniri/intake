@@ -763,13 +763,23 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   free-text feedback ↔ analytics pipelines (PHI can arrive uninvited).
 - **Threats (STRIDE/LINDDUN):** [L] linking satisfaction data to clinical content beyond
   need; [I] patient-typed free text carrying identifiers into analytics; [U] respondents
-  unaware of how feedback is used.
+  unaware of how feedback is used; **[U/E] an unsolicited survey invitation reaching a
+  patient as a consent-free "service message"** — 6563 gives marketing-class messages a
+  consent requirement, and a survey routed through the transactional dispatcher would
+  bypass it (INT-242).
 - **Controls (files/10):** invariant 6 (ids only in analytics); k-anonymity floor on
-  aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion.
+  aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion;
+  **invitations classified commercial and gated on İYS** (invariant 18) with the
+  `satisfaction_prompts` safety flag shut, opt-out and quiet hours decided by INT-141's own
+  evaluation, and no survey member in `ReminderKind` or template in the catalogue.
 - **Signals:** `csat.score`, `csat.reason`, `nps.monthly`, `clinician.pulse` — catalogued
   `live` and emitted by `intake_metrics.metrics`, published only for a named cohort over a
   stated window and only at or above the k ≥ 10 floor. No tenant, clinic or clinician label
   on any of them, so no dashboard can re-slice a satisfaction series down to one person.
+  `survey_invitation_total{kind,channel,message_class,status}` (INT-242) is the scheduling
+  side: closed enumerations only, and its `status` label is the standing record of why no
+  invitation is sent — `blocked_iys_consent_absent` for the 6563 gate,
+  `refused_schedule_unset` for the first-prompt value nobody has supplied.
 - **Tests:** `tests/experience/test_csat_flow.py` (the split: scores to `events`, the sentence
   to the envelope-encrypted `csat_texts`; the §3 redaction baseline on ingestion; the response,
   the audit entry and the event payload all free of the patient's words; both FK cascades, so
@@ -778,7 +788,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   — a symptom sentence, a phone number and a clinician's name forced into the very rows the
   rollup reads, exposed nowhere in the rollup or the exposition; k ≥ 10 suppression) ·
   `tests/experience/test_metrics_service.py` (invariant 15 for `services/metrics`; invariant 20:
-  no CSAT/NPS figure in docs/regulatory/ or docs/legal/).
+  no CSAT/NPS figure in docs/regulatory/ or docs/legal/) ·
+  `tests/experience/test_survey_cadence.py` (INT-242: the İYS gate blocks a patient NPS
+  invitation and opening the safety flag does not unblock it; a stub registry that *does*
+  answer clears it, so the gate is a real check and not a constant; no survey `ReminderKind`
+  and no survey template; opt-out and quiet hours agree with `ReminderDispatcher` on a
+  48-case grid; the only numeric literals in `intake_platform.surveys` are 1, 3 and 12,
+  with a near-miss control module carrying a sampling rate, a 90-day cool-off and an
+  invented send hour to prove the scan bites).
 
 ---
 
@@ -843,10 +860,24 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §9 learning row — proposal-only with evidence bundles, k ≥ 10,
   sandboxed agent with read-only credentials, PR bot least privilege, canary and rollback;
   PatientOverlay facts require patient or clinician confirmation at type level.
-- **Signals:** proposals, rejections, k-anonymity refusals, rollbacks (§9) land with
-  INT-172/INT-173.
-- **Tests:** `proposal_scope` and `k_anonymity` land with INT-172/INT-171; overlay
-  monotonicity property test with INT-056.
+- **Signals:** k-anonymity refusals landed with INT-171 —
+  `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
+  whose labels carry a view name and a reason class only, because a refusal labelled with
+  the branch or the week it withheld would publish that cell to Prometheus. Proposals,
+  rejections and rollbacks land with INT-172/INT-173.
+- **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
+  `tests/learning/test_analytics_views.py` and its integration lane, which proves the
+  `svc_learning_reader` grant reaches the `analytics` views and no base table);
+  `proposal_scope` lands with INT-172; overlay monotonicity property test with INT-056.
+- **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
+  and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
+  sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no
+  pseudonym survives the `GROUP BY`. Turkish clinical free text is not de-identifiable to a
+  standard this repo will assert (files/10 §3 on realistic Turkish recall; HB-L6 on the
+  claim itself), so narrative is **excluded rather than scrubbed**. The grant is the
+  narrative boundary; the k ≥ 10 gate at the query layer is the small-cell boundary; and
+  the gate refuses the whole artefact rather than suppressing a cell, because a reader
+  holding every cell but one recovers it by subtraction.
 
 ## `incident-response` — detect, contain, notify, learn
 

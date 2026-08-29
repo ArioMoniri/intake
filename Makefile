@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety
+.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -14,7 +14,16 @@ setup:
 	uv run pre-commit install --install-hooks
 	uv run pre-commit install --hook-type commit-msg
 
-check: check-py check-ts
+check: check-py check-ts check-i18n
+
+# INT-253: the localization completeness gate — tr/en parity, no orphan key, no
+# user-visible string outside the catalogue, the clinical [REVIEW] marks, and
+# the recorded register/readability findings. check-py collects it too (it is
+# under `tests/`); it is named here because a copy change should be clearable
+# in under a second without the full Python fan-out, and because a gate nobody
+# can see in the Makefile is a gate nobody runs.
+check-i18n:
+	uv run pytest tests/release -q -o addopts=""
 
 check-integration:
 	docker compose -f infra/docker-compose.dev.yml --profile clamav --profile export up -d --wait postgres openbao minio clamav hapi ehrbase-db ehrbase
@@ -119,6 +128,16 @@ backlog-sync:
 backlog-render:
 	uv run python scripts/backlog/render_backlog.py
 
+# INT-246: "is voice up?" answered in one command from THIS machine, instead
+# of by reading app logs. Probes every lane the dev voice profile uses (ASR,
+# extract, the whole TTS ladder) on every host in apps/mobile/app.json, one
+# line per lane. Exits 1 when a REQUIRED lane is down — ASR, or the whole TTS
+# ladder; the extract daemon is reported as degraded, because the dialogue
+# runs without it. HOST=<addr> adds the Metro LAN address, which only exists
+# inside a running Metro and so cannot be read from config.
+voice-doctor:
+	uv run python scripts/dev/voice_doctor.py $(if $(HOST),--host $(HOST),)
+
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache
 
@@ -219,3 +238,29 @@ backup-drill:
 
 backup-drill-ci: backup-config-check
 	scripts/backup/restore_drill.sh --run
+
+# INT-205: the detection tier — Wazuh (SIEM/XDR) + Falco (runtime), files/10 §7.
+# `siem-config-check` is the half that runs anywhere: the rulesets, ossec.conf,
+# the compose tier and the scrub boundary, validated without booting anything.
+#
+# Only `siem-dry` and `siem-config-check` run on this host. The tier is a
+# manager, an indexer with a JVM heap and an agent that needs a host kernel —
+# more disk and more container memory than HB-I1/HB-I2 record as available, and
+# files/05 sizes Wazuh alone at "12 GB + a part-time SRE". The script refuses
+# rather than shrinking the tier to fit.
+.PHONY: siem siem-down siem-dry siem-seed siem-config-check
+
+siem-config-check:
+	uv run pytest tests/infra -q -o addopts=""
+
+siem-dry:
+	scripts/security/siem_up.sh --dry-run
+
+siem-seed:
+	scripts/security/siem_secrets.sh --seed
+
+siem:
+	scripts/security/siem_up.sh --run
+
+siem-down:
+	scripts/security/siem_up.sh --down

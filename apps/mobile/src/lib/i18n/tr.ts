@@ -20,7 +20,6 @@ export const tr = {
   "tabs.wellbeing": "İyilik hâli",
   "tabs.me": "Profilim",
 
-  "welcome.title": "Hoş geldiniz",
   "welcome.body":
     "Vizite, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
   "welcome.devSignIn": "Deneme hesabıyla girin",
@@ -62,7 +61,6 @@ export const tr = {
   "today.continueCta": "Devam edin",
   "today.noVisit": "Planlanmış bir vizitiniz yok.",
   "today.addVisit": "Vizit ekleyin",
-  "today.uploadQuick": "Kayıt yükleyin",
 
   "status.draft": "Taslak",
   "status.sent": "Gönderildi",
@@ -75,7 +73,6 @@ export const tr = {
   "visits.empty": "Henüz vizit eklemediniz.",
   "visits.noDate": "Tarih eklenmedi",
   "visits.new.title": "Yeni vizit",
-  "visits.new.manual": "Elle ekleyin",
   "visits.new.hint": "Randevu mesajınızı yapıştırın ya da bilgileri elle girin.",
   "visits.new.hospital": "Hastane",
   "visits.new.branch": "Poliklinik",
@@ -97,7 +94,6 @@ export const tr = {
   "visits.new.smsUnknownBranch": "Poliklinik adını tanıyamadık. Listeden siz seçin.",
   "visits.new.smsNoDate": "Mesajda tarih bulamadık. Tarihi siz ekleyin.",
   "visits.new.smsUnreadable": "Bu mesajı okuyamadık. Bilgileri elle girebilirsiniz.",
-  "visits.new.ocrTitle": "Ekran görüntüsünden ekleyin",
   "visits.new.ocrUnavailable": "Görüntüden okuma henüz açık değil. Mesajı metin olarak yapıştırın.",
   // Vizit türleri — files/09 §1
   "visits.type.first": "İlk başvuru",
@@ -110,12 +106,10 @@ export const tr = {
   "visits.type.screening": "Tarama",
   "visits.type.second_opinion": "İkinci görüş",
   "visits.type.teleconsult": "Uzaktan görüşme",
-  "visits.detail.summary": "Özet",
   "visits.detail.noteStatus": "Not durumu",
   "visits.detail.notStarted": "Görüşme henüz başlamadı.",
 
   "records.title": "Kayıtlarım",
-  "records.empty": "Henüz kayıt yok. Tahlil ve raporlarınızı vizitten önce ekleyebilirsiniz.",
   "records.synthetic": "Örnek veri — sentetik",
   "records.guide.kicker": "Belgeleriniz",
   "records.guide.title": "Raporlarınız tek yerde",
@@ -162,7 +156,6 @@ export const tr = {
   "wellbeing.title": "İyilik hâli",
   "wellbeing.intro":
     "Kendinizi nasıl hissettiğinizi takip edin; paylaşım her zaman sizin kontrolünüzde.",
-  "wellbeing.empty": "Henüz bir kayıt yok.",
   "wellbeing.guide.how.kicker": "Nasıl işleyecek",
   "wellbeing.guide.how.title": "Bu alan sizin için hazırlanıyor",
   "wellbeing.guide.how.body":
@@ -190,7 +183,6 @@ export const tr = {
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
-  "intake.title": "Muayeneye hazırlık",
   "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
   "intake.q.complaint.hint": "Birden fazla seçebilirsiniz.",
   "intake.opt.pain": "Ağrı",
@@ -492,6 +484,12 @@ export const tr = {
   // INT-103 — canlı sesli görüşme istemcisi (LiveKit). Mikrofon izni metni
   // mağaza kurallarına göre: önce nedenini söyleyen bir satır, sonra sistem
   // izni. Kayıt saklanmadığı için hiçbir metin "kayıt" demez (invariant 3).
+  //
+  // INT-253: `voice.mic.*` ve `voice.session.*` INT-103'ün kabulüne bağlıdır
+  // (apps/mobile/e2e/voice.spec.ts) ama hiçbir ekran bunları göstermiyor —
+  // oturum makinesi connecting/reconnecting/backgrounded/interrupted
+  // aşamalarına gerçekten giriyor, hasta hiçbirini görmüyor. Kayıt
+  // tests/release/test_i18n_complete.py · UNWIRED_ACCEPTANCE_KEYS.
   "voice.mic.why":
     "Sesli görüşme için mikrofon izni gerekir. Sesiniz yalnızca görüşme sırasında işlenir; kaydı saklanmaz.",
   "voice.mic.cta": "Mikrofona izin verin",
@@ -512,9 +510,6 @@ export const tr = {
   "voice.session.weakLink": "Bağlantınız zayıf. Sesiniz kesilirse yazarak devam edebilirsiniz.",
   "voice.session.ended": "Sesli görüşme sonlandı. Yazarak devam edebilirsiniz.",
 
-  "voiceFirst.kicker": "Sesli anlatın",
-  "voiceFirst.body":
-    "Konuşun, biz yazıya dökelim. Anlattıklarınız sorulara öneri olarak eklenir; her öneriyi tek tek siz onaylarsınız.",
   "voiceFirst.checking": "Ses özelliği hazırlanıyor…",
   "voiceFirst.listening": "Sizi dinliyoruz.",
   "voiceFirst.stop": "Bitirdim",
@@ -528,7 +523,6 @@ export const tr = {
   "dialogue.entryBody":
     "Soruları sesli soracağız, siz de konuşarak yanıtlayın. İstediğiniz an yazarak da devam edebilirsiniz.",
   "dialogue.preparing": "Soru hazırlanıyor…",
-  "dialogue.speaking": "Soru sesli okunuyor…",
   "dialogue.speakingHint": "Araya girmek için dokunun",
   "dialogue.listeningHint": "Bitirince dokunun",
   "dialogue.optionsIntro": "Seçenekler:",
@@ -551,7 +545,6 @@ export const tr = {
   "dialogue.send": "Gönderin",
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
-  "intake.skip": "Atlayın",
 
   // INT-236 — Hızlı/Detaylı mod (02 §2), ortam kontrolü (02 §33) ve
   // "Sıranız geldi" kesme noktası (02 §34).
@@ -772,24 +765,29 @@ export const tr = {
   "companion.entry.sub": "Görüşmeyi kimin yaptığını ve nota nasıl yazıldığını ayarlayın.",
   "companion.guide.kicker": "Kim anlatıyor",
   "companion.guide.title": "Anlatanın kim olduğu nota yazılır",
-  "companion.guide.body": "Bir yakınınız adına anlatırsanız bunu nota not düşeriz. Hekim, bilgiyi kimin verdiğini görür. Böylece hastanın kendi sözleriyle sizin anlattıklarınız birbirine karışmaz.",
+  "companion.guide.body":
+    "Bir yakınınız adına anlatırsanız bunu nota not düşeriz. Hekim, bilgiyi kimin verdiğini görür. Böylece hastanın kendi sözleriyle sizin anlattıklarınız birbirine karışmaz.",
   "companion.role.kicker": "Bu görüşme kimin için",
   "companion.role.self": "Kendim için",
   "companion.role.companion": "Yakınım adına",
   "companion.speaker.kicker": "Soruları kim yanıtlıyor",
   "companion.speaker.companion": "Ben anlatıyorum",
   "companion.speaker.patient": "Hasta kendisi anlatıyor",
-  "companion.speaker.footer": "Telefon sizde olsa bile hasta kendi anlatıyorsa bunu seçin; nota hastanın kendi sözleri yazılır.",
+  "companion.speaker.footer":
+    "Telefon sizde olsa bile hasta kendi anlatıyorsa bunu seçin; nota hastanın kendi sözleri yazılır.",
   "companion.thirdParty.kicker": "Yanınızda biri var mı",
   "companion.thirdParty.label": "Yanımda başka biri var",
-  "companion.thirdParty.footer": "Yanınızda biri varken bazı sorular sesli sorulmaz. Bu, mahremiyetiniz içindir.",
+  "companion.thirdParty.footer":
+    "Yanınızda biri varken bazı sorular sesli sorulmaz. Bu, mahremiyetiniz içindir.",
   "companion.ack.kicker": "Onayınız",
   "companion.ack.label": "Hastanın adına konuştuğumu onaylıyorum",
-  "companion.ack.notProof": "Bu onay yalnızca kimin anlattığını belirtir. Hasta adına karar verme hakkınız olduğu anlamına gelmez.",
+  "companion.ack.notProof":
+    "Bu onay yalnızca kimin anlattığını belirtir. Hasta adına karar verme hakkınız olduğu anlamına gelmez.",
   "companion.effect.kicker": "Bu görüşmede neler değişir",
   "companion.effect.none": "Bir değişiklik yok. Sorular her zamanki gibi sorulur.",
   "companion.effect.proxy": "Notta bilgiyi yakınının verdiği yazar.",
-  "companion.effect.assisted": "Notta hastanın kendi sözleri yer alır; yanında biri olduğu da yazılır.",
+  "companion.effect.assisted":
+    "Notta hastanın kendi sözleri yer alır; yanında biri olduğu da yazılır.",
   "companion.effect.textOnly": "Özel konular sesli sorulmaz, yazıyla sorulur.",
   "companion.effect.noSafeguarding": "Bazı çok özel sorular bu görüşmede hiç sorulmaz.",
   "companion.selected": "Seçili",
@@ -797,10 +795,13 @@ export const tr = {
   "companion.guardian.kicker": "On sekiz yaşından küçükler",
   "companion.guardian.label": "Veli hesabıyla görüşme",
   "companion.guardian.unavailable": "Henüz açık değil",
-  "companion.guardian.body": "On sekiz yaşından küçük biri için görüşme, veli hesabından ve velinin izniyle yapılır. Bu akışı henüz açmadık; hukuki çerçevesi netleşene kadar kapalı kalacak.",
+  "companion.guardian.body":
+    "On sekiz yaşından küçük biri için görüşme, veli hesabından ve velinin izniyle yapılır. Bu akışı henüz açmadık; hukuki çerçevesi netleşene kadar kapalı kalacak.",
   "companion.private.kicker": "On iki-on yedi yaş",
-  "companion.private.body": "On iki ile on yedi yaş arasındaki bir hastanın özel bölümü hekime iletilir. Velinin bu bölümü görüp göremeyeceğini hastanenin yazılı politikası belirler. Kayıtlı bir politika yoksa veliye gösterilmez.",
-  "companion.refusal.guardian": "Bu görüşme veli hesabından ve velinin izniyle yapılmalı. Şu an bu akışı açamıyoruz.",
+  "companion.private.body":
+    "On iki ile on yedi yaş arasındaki bir hastanın özel bölümü hekime iletilir. Velinin bu bölümü görüp göremeyeceğini hastanenin yazılı politikası belirler. Kayıtlı bir politika yoksa veliye gösterilmez.",
+  "companion.refusal.guardian":
+    "Bu görüşme veli hesabından ve velinin izniyle yapılmalı. Şu an bu akışı açamıyoruz.",
   "companion.refusal.dobUnverified": "Doğum tarihiniz doğrulanmadan devam edemiyoruz.",
   "companion.refusal.jurisdiction": "Şu an yalnızca Türkiye'de hizmet veriyoruz.",
   "companion.refusal.ack": "Devam etmek için hastanın adına konuştuğunuzu onaylayın.",
@@ -808,6 +809,53 @@ export const tr = {
   "a11y.companion.speakerHint": "Soruları kimin yanıtladığını seçmek için iki kez dokunun.",
   "a11y.companion.ackHint": "Onayı verip geri almak için iki kez dokunun.",
   "a11y.companion.thirdPartyHint": "Yanınızda biri olduğunu belirtmek için iki kez dokunun.",
+
+  // ---------------------------------------------------------------------
+  // INT-246 — the `__DEV__` voice-lane banner. These strings never reach a
+  // patient: `voiceDiagnostic` returns null unless __DEV__ and the only
+  // component that renders them returns null on that null. They live in the
+  // catalogue anyway because invariant 5 has no dev exemption — a string
+  // outside the catalogue is a string nobody can find or translate later.
+  // ---------------------------------------------------------------------
+  "devVoice.title": "Geliştirici notu: ses hattı yanıt vermedi",
+  "devVoice.body": "Yazılı adımlarla devam ediliyor. Denenen adresler:",
+  "devVoice.hint": "Ana makinede kontrol edin: make voice-doctor",
+  "devVoice.noCandidates": "Denenecek adres yapılandırılmamış",
+  "devVoice.reason.timeout": "zaman aşımı",
+  "devVoice.reason.refused": "bağlantı reddedildi",
+  "devVoice.reason.status": "yanıt kodu",
+  // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
+  // Patient copy for the confirm / changed / stopped step and the
+  // transparency ledger, plus the markers the note carries. The note markers
+  // say who said what — never what stopping a medication means.
+  "carried.kicker": "Önceki ziyaretten",
+  "carried.title": "Bunlar hâlâ geçerli mi?",
+  "carried.body":
+    "Aşağıdaki bilgiler önceki ziyaretlerinizde kaydedilmişti. Siz yanıtlamadan hiçbiri bu ziyaretin notuna güncel bilgi olarak yazılmaz.",
+  "carried.action.confirm": "Devam ediyorum",
+  "carried.action.changed": "Değişti",
+  "carried.action.stopped": "Bıraktım",
+  "carried.action.undo": "Yanıtı geri alın",
+  "carried.state.unconfirmed": "Henüz yanıtlamadınız",
+  "carried.state.confirmed": "Devam ediyor",
+  "carried.state.changed": "Değişti",
+  "carried.state.stopped": "Bıraktım",
+  "carried.recordedOn": "Kayıt tarihi",
+  "carried.source.confirmed_intake_extraction": "Önceki görüşmenizde kendiniz söylemiştiniz",
+  "carried.source.clinician_accepted_note": "Hekiminizin onayladığı notta yer alıyor",
+  "carried.source.confirmed_imported_record": "Onayladığınız bir belgeden geldi",
+  "carried.empty": "Önceki ziyaretlerden taşınan bir bilgi yok.",
+  "carried.ledger.body":
+    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin bugün de geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
+  "note.fact.previousRecord": "önceki kayıt",
+  "note.fact.unconfirmed": "bu ziyarette onaylanmadı",
+  "note.fact.confirmed.patient": "hasta bu ziyarette devam ettiğini söyledi",
+  "note.fact.confirmed.clinician": "hekim bu ziyarette devam ettiğini kaydetti",
+  "note.fact.changed.patient": "hasta değiştiğini söyledi; yeni bilgi alınmadı",
+  "note.fact.changed.clinician": "hekim değiştiğini kaydetti; yeni bilgi alınmadı",
+  "note.fact.stopped.patient": "hasta bıraktığını söyledi",
+  "note.fact.stopped.clinician": "hekim bırakıldığını kaydetti",
+  "a11y.carried.hint": "Bu bilginin bugün de geçerli olup olmadığını seçmek için iki kez dokunun.",
 } as const;
 
 export type MessageKey = keyof typeof tr;
