@@ -515,7 +515,6 @@ export const en: Record<MessageKey, string> = {
   "dialogue.speakingHint": "Tap to interrupt",
   "dialogue.listeningHint": "Tap when you are done",
   "dialogue.optionsIntro": "The options are:",
-  "dialogue.optionsOnScreen": "You can see the options on the screen.",
   "dialogue.and": "and",
   "dialogue.or": "or",
   "dialogue.confirmIntro": "Here is what we understood:",
@@ -525,6 +524,8 @@ export const en: Record<MessageKey, string> = {
   "dialogue.speakCorrection": "Say the correction",
   "dialogue.typeThisStep": "Answer by typing",
   "dialogue.transcribing": "Transcribing…",
+  "dialogue.voiceMuted":
+    "Reading aloud is not working right now. You can read the questions on screen and answer by speaking or by typing.",
   "dialogue.noteForming": "Note taking shape",
   "dialogue.sectionsLabel": "sections",
   "dialogue.sectionsTitle": "Note sections",

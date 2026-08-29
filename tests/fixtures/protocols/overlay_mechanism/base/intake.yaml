@@ -1,0 +1,65 @@
+# SENTETİK TEST VERİSİ — INT-258 overlay-mechanism fixture.
+#
+# Mechanism only. Every id, slot, rule, threshold and Turkish string here is
+# invented for tests and carries NO clinical meaning; nothing in this tree is
+# ever served (files/04 §7). The eight authored patient overlays of files/04
+# §2.3 are INT-056 and stay blocked on a licensed physician (HB-C1/HB-C5/HB-C6).
+kind: pack
+id: base.sentetik_bindirme
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik bindirme temeli"
+voice:
+  allow_paraphrase: false
+  ack_style: brief
+  pace: normal
+# files/03 §6 `overlays: [{id, when}]` — the activation declarations the
+# load path reads. The predicates name synthetic PatientOverlay fact keys.
+overlays:
+  - id: overlay.sentetik_ekleme
+    when: "sentetik.durum_a"
+  - id: overlay.sentetik_sikilastirma
+    when: "sentetik.durum_b == 'evet'"
+  - id: overlay.sentetik_teslimat
+    when: "sentetik.durum_c"
+sections:
+  oyku:
+    delivery: voice
+    slots:
+      belirti_var:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic overlay-mechanism fixture; no archetype path is authored and
+          none is needed to exercise the compose step
+        ask_tr: "Sentetik bir belirtiniz var mı?"
+        follow_up_tr: "Sentetik takip sorusu."
+      sure_gun:
+        type: integer
+        required: false
+        openehr_deferred_reason: >-
+          synthetic overlay-mechanism fixture; no archetype path is authored and
+          none is needed to exercise the compose step
+        ask_tr: "Sentetik süre sorusu."
+red_flags:
+  - id: rf.sentetik_sari
+    label_tr: "Sentetik sarı kural"
+    when: "oyku.belirti_var"
+    tense: now
+    tense_anchor: sure_gun
+    level: SARI_K2
+    route: EXPEDITE
+    notify_clinic: never
+    status: active
+    source:
+      guideline_id: SYN-OVERLAY-A
+      guideline_title: "Sentetik bindirme kılavuzu A"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-overlay-a"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"

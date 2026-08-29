@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import enum
 import re
+from collections.abc import Mapping
 from decimal import Decimal
 
 from clinical_schemas.common import FrozenModel
@@ -218,13 +219,25 @@ def _declared_rules(pack: ProtocolPack) -> list[RedFlagRule]:
 
 
 def resolve_red_flags(
-    pack: ProtocolPack, registry: PackRegistry
+    pack: ProtocolPack,
+    registry: PackRegistry,
+    *,
+    tighten_parents: Mapping[str, RedFlagRule] | None = None,
 ) -> tuple[dict[str, RedFlagRule], tuple[Finding, ...]]:
     """Resolve the pack's red-flag set over its extends chain, reporting
     every monotonicity violation (files/12 §4; CLAUDE.md invariant 7).
 
     Children only ever ADD entries to the resolved mapping — removal has no
     representation, which is the layer-1 guarantee by construction.
+
+    ``tighten_parents`` supplies rules a ``tighten_rule`` op may name as its
+    parent that the pack does not inherit through ``extends``. A patient
+    overlay is applied *to* a resolved pack rather than inheriting from one
+    (files/04 §2.3), so without this its tighten ops could never resolve and
+    the one power the blueprint gives an overlay would be unreachable
+    (INT-258). Parents are read, never written: a minted rule still lands only
+    in this pack's own resolved set, so sibling overlays cannot tighten each
+    other and composition stays order-independent (files/12 §3.4).
     """
     chain, findings = _chain(pack, registry)
     if findings:
@@ -259,14 +272,17 @@ def resolve_red_flags(
                     continue
                 resolved[op.rule.id] = op.rule
             elif isinstance(op, TightenRuleOp):
-                findings.extend(_check_tighten(member.id, op, resolved))
+                findings.extend(_check_tighten(member.id, op, resolved, tighten_parents or {}))
     return resolved, tuple(findings)
 
 
 def _check_tighten(
-    pack_id: str, op: TightenRuleOp, resolved: dict[str, RedFlagRule]
+    pack_id: str,
+    op: TightenRuleOp,
+    resolved: dict[str, RedFlagRule],
+    inherited: Mapping[str, RedFlagRule],
 ) -> list[Finding]:
-    parent = resolved.get(op.parent_rule_id)
+    parent = resolved.get(op.parent_rule_id) or inherited.get(op.parent_rule_id)
     if parent is None:
         return [
             _finding(
@@ -632,16 +648,23 @@ def _op_findings(pack: ProtocolPack, registry: PackRegistry) -> list[Finding]:
 
 
 def validate_packs(
-    registry: PackRegistry, licences: LicenceTable | None = None
+    registry: PackRegistry,
+    licences: LicenceTable | None = None,
+    *,
+    tighten_parents: Mapping[str, RedFlagRule] | None = None,
 ) -> tuple[Finding, ...]:
     """Validate every pack in the registry; empty tuple means clean.
 
     ``licences`` overrides the production instrument-licence registry for
     tests with synthetic instruments; production callers omit it.
+
+    ``tighten_parents`` is forwarded to :func:`resolve_red_flags` so that a
+    registry containing patient overlays alongside the chain they are applied
+    to validates the same way the compiler composes it (INT-258).
     """
     findings: list[Finding] = []
     for pack in registry:
-        _, resolution_findings = resolve_red_flags(pack, registry)
+        _, resolution_findings = resolve_red_flags(pack, registry, tighten_parents=tighten_parents)
         findings.extend(resolution_findings)
         findings.extend(_red_action_findings(pack))
         findings.extend(_voice_findings(pack))
