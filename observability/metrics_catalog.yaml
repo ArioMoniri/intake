@@ -258,6 +258,46 @@ metrics:
       files/10 §7: chaos results are tracked as metrics. Emitted by
       intake_platform.chaos.run_vendor_kill via `make chaos
       EXPERIMENT=<id>` (INT-024).
+  # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
+  # Wazuh's and Falco's own liveness are probes, not error budgets (the
+  # `wazuh-manager`, `wazuh-indexer` and `falco` rows of
+  # observability/registry.yaml). What we own — and what a patient's privacy
+  # rests on — is the boundary that turns a vendor alert into a SecurityAlert,
+  # so that is what is instrumented. docs/slo/siem.yaml reads the first two.
+  - name: siem_alerts_ingested_total
+    type: counter
+    labels: [source, signal, severity]
+    owner: platform
+    unit: "count"
+    description: >-
+      Detector alerts admitted to the console feed after scrubbing, by source
+      (falco/wazuh), console signal (auth_anomaly/k8s_audit/container_runtime/
+      unclassified) and runbook severity (SEV1-SEV4). Emitted by
+      intake_platform.siem.normalise (INT-205). Every label is a closed
+      enumeration; none carries a rule name, a host name or a path.
+  - name: siem_alerts_refused_total
+    type: counter
+    labels: [source, reason]
+    owner: platform
+    unit: "count"
+    description: >-
+      Detector alerts refused at the scrub boundary, by source and a closed
+      reason vocabulary (unknown_priority/unknown_level/no_rule/no_timestamp).
+      Emitted by intake_platform.siem.normalise (INT-205). A rising rate means
+      a detector is emitting a shape we cannot reduce safely, which is a
+      detection gap rather than a nuisance.
+  - name: siem_alert_fields_dropped_total
+    type: counter
+    labels: [source, field]
+    owner: platform
+    unit: "count"
+    description: >-
+      Fields dropped from a detector alert because they were not identifiers,
+      by source and the vendor field name (hostname, container.id, fd.name,
+      agent.id, agent.name, syscheck.path, time, timestamp, id). Emitted by
+      intake_platform.siem.normalise (INT-205) — the visible edge of
+      invariant 6 on the detection path: a spike means something started
+      putting narrative where an id belongs.
   # --- files/08 §4 A. Availability & SLOs — planned until the SLO attainment pipeline lands
   - name: slo_api_availability
     id: slo.api_availability

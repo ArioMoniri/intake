@@ -228,3 +228,29 @@ backup-drill:
 
 backup-drill-ci: backup-config-check
 	scripts/backup/restore_drill.sh --run
+
+# INT-205: the detection tier — Wazuh (SIEM/XDR) + Falco (runtime), files/10 §7.
+# `siem-config-check` is the half that runs anywhere: the rulesets, ossec.conf,
+# the compose tier and the scrub boundary, validated without booting anything.
+#
+# Only `siem-dry` and `siem-config-check` run on this host. The tier is a
+# manager, an indexer with a JVM heap and an agent that needs a host kernel —
+# more disk and more container memory than HB-I1/HB-I2 record as available, and
+# files/05 sizes Wazuh alone at "12 GB + a part-time SRE". The script refuses
+# rather than shrinking the tier to fit.
+.PHONY: siem siem-down siem-dry siem-seed siem-config-check
+
+siem-config-check:
+	uv run pytest tests/infra -q -o addopts=""
+
+siem-dry:
+	scripts/security/siem_up.sh --dry-run
+
+siem-seed:
+	scripts/security/siem_secrets.sh --seed
+
+siem:
+	scripts/security/siem_up.sh --run
+
+siem-down:
+	scripts/security/siem_up.sh --down
