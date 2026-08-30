@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**211 issues.** By phase: P0 122 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 86 · todo 114 · withdrawn 1.
+**212 issues.** By phase: P0 123 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 86 · todo 115 · withdrawn 1.
 
 ## P0
 
@@ -133,6 +133,7 @@
 | INT-261 | Voice intake mixes with the typed form: a clip that cannot be spoken ends the whole conversation, and the spoken turn reads the typed form's control copy | E08-mobile | INT-239, INT-249 | area:mobile, area:voice | done |
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | done |
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
+| INT-263 | Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach | E08-mobile | INT-260 | area:mobile, area:a11y | todo |
 
 ## P1
 

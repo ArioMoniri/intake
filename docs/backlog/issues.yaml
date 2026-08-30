@@ -3050,3 +3050,27 @@
     - apps/mobile/e2e/appearance.spec.ts
   sec_row: "mobile"
   evidence: docs/evidence/INT-260.md
+- id: INT-263
+  epic: E08-mobile
+  phase: P0
+  # Found by driving the app after INT-260 landed, not by a user report: at the
+  # largest text step the welcome screen's title renders under the status bar and
+  # its footer is cut off, and because <Screen> is a bare SafeAreaView with no
+  # scroll container, swiping does nothing — the cut-off content is UNREACHABLE,
+  # including the line that explains what the screen is. INT-260 rewired 13
+  # screens; welcome was not among them, and neither were the rest.
+  title: "Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach"
+  depends_on: [INT-260]
+  labels: [area:mobile, area:a11y]
+  status: todo
+  acceptance:
+    - "every route under apps/mobile/src/app renders its content inside a scroll container, or declares in one line at its own definition why it is exempt (a full-bleed media surface, a list that scrolls itself); a test enumerates the routes from the filesystem so a NEW screen added without one fails, rather than a hand-kept list that silently stops covering the app"
+    - "the failure is asserted at the largest step of the INT-260 ladder (2.0) and not merely at default: the regression is a function of content height against viewport height, so a test that only runs at 1.0 would have passed on the welcome screen the day the defect shipped"
+    - "the fix is a scroll container, never a shrink: no screen closes the overflow by lowering a font size, clamping the scale, or truncating text, because that takes back the size the patient chose (INT-260's own ruling); contentContainerStyle carries the padding so the scroll region reaches the full viewport"
+    - "keyboard-bearing screens (phone, otp, any free-text entry) keep their input visible when the keyboard is up — the scroll container does not reintroduce the covered-field defect it is meant to prevent"
+    - "the sweep is proved screen by screen rather than asserted: docs/evidence/INT-263.md records, for each route, the state before and after at scale 2.0"
+  tests:
+    - apps/mobile/src/app/scroll-containers.test.ts
+    - apps/mobile/e2e/large-text-overflow.spec.ts
+  sec_row: "mobile"
+  evidence: docs/evidence/INT-263.md
