@@ -4,7 +4,7 @@
  * conversation/orb surface is INT-132+; this screen frames it.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
@@ -14,7 +14,7 @@ import {
   Card,
   Hairline,
   PrimaryButton,
-  Screen,
+  ScrollScreen,
   useStackHeader,
 } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
@@ -37,72 +37,75 @@ export default function VisitDetail() {
   const visit = visits.find((v) => v.id === visitId) ?? null;
   if (visit === null) {
     return (
-      <Screen>
+      <ScrollScreen>
         <Stack.Screen options={headerOptions(t("visits.title"))} />
         <AppText role="body" color="inkSoft">
           {t("visits.empty")}
         </AppText>
-      </Screen>
+      </ScrollScreen>
     );
   }
   const note = notes[visit.id];
   const status = effectiveStatus(visit.noteStatus, note);
   const hasAnswers = (note?.answers.length ?? 0) > 0;
   return (
-    <Screen edges={HEADER_EDGES}>
+    <ScrollScreen
+      edges={HEADER_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
+    >
       {/* Oura framing (design pass 5): every pushed screen carries the
           centred-title bar with the "‹" affordance — nothing before this
           pass offered a visible way back. */}
       <Stack.Screen options={headerOptions(visit.department)} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
-        <VisitCard visit={visit} statusOverride={status} />
-        {visit.visitType !== null ? (
-          <Card style={styles.ladderCard}>
-            <Kicker label={t("visits.new.visitType")} />
-            <Hairline />
-            <AppText role="body">{t(visitTypeLabelKey(visit.visitType))}</AppText>
-          </Card>
-        ) : null}
-        {/* SC 1.3.1: each rung names its own state (StatusLadder). A
-            wrapping accessibilityRole="list" was tried and removed — on a
-            View that is not `accessible` iOS exposes neither the role nor
-            the label, and making it accessible would swallow all four
-            rungs into one element. The Kicker above already names the
-            group for both eye and reader. */}
+      <VisitCard visit={visit} statusOverride={status} />
+      {visit.visitType !== null ? (
         <Card style={styles.ladderCard}>
-          <Kicker label={t("visits.detail.noteStatus")} />
+          <Kicker label={t("visits.new.visitType")} />
           <Hairline />
-          {status === null ? (
-            <AppText role="body" color="inkSoft">
-              {t("visits.detail.notStarted")}
-            </AppText>
-          ) : (
-            <StatusLadder current={status} />
-          )}
+          <AppText role="body">{t(visitTypeLabelKey(visit.visitType))}</AppText>
         </Card>
-        {status === "sent" ? (
-          <AppText role="caption" color="inkSoft">
-            {t("review.sentInfo")}
+      ) : null}
+      {/* SC 1.3.1: each rung names its own state (StatusLadder). A
+          wrapping accessibilityRole="list" was tried and removed — on a
+          View that is not `accessible` iOS exposes neither the role nor
+          the label, and making it accessible would swallow all four
+          rungs into one element. The Kicker above already names the
+          group for both eye and reader. */}
+      <Card style={styles.ladderCard}>
+        <Kicker label={t("visits.detail.noteStatus")} />
+        <Hairline />
+        {status === null ? (
+          <AppText role="body" color="inkSoft">
+            {t("visits.detail.notStarted")}
           </AppText>
-        ) : status === null || status === "draft" ? (
-          hasAnswers ? (
-            <PrimaryButton
-              label={t("visit.reviewNote")}
-              onPress={() => router.push(`/(tabs)/visits/${visit.id}/review`)}
-            />
-          ) : (
-            <PrimaryButton
-              label={t("visit.prepare")}
-              onPress={() => router.push(`/(tabs)/visits/${visit.id}/intake`)}
-            />
-          )
-        ) : null}
-      </ScrollView>
-    </Screen>
+        ) : (
+          <StatusLadder current={status} />
+        )}
+      </Card>
+      {status === "sent" ? (
+        <AppText role="caption" color="inkSoft">
+          {t("review.sentInfo")}
+        </AppText>
+      ) : status === null || status === "draft" ? (
+        hasAnswers ? (
+          <PrimaryButton
+            label={t("visit.reviewNote")}
+            onPress={() => router.push(`/(tabs)/visits/${visit.id}/review`)}
+          />
+        ) : (
+          <PrimaryButton
+            label={t("visit.prepare")}
+            onPress={() => router.push(`/(tabs)/visits/${visit.id}/intake`)}
+          />
+        )
+      ) : null}
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md },
+  // INT-263: the extra top inset is gone with the frame padding it used to
+  // sit on top of — the screen padding now comes from the scroll content, once.
+  content: { gap: spacing.lg },
   ladderCard: { gap: spacing.md },
 });

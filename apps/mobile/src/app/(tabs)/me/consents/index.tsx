@@ -14,11 +14,11 @@
  */
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { ConsentList } from "@/components/ConsentList";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
-import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, RAIL_EDGES, ScrollScreen } from "@/components/Themed";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
 import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
 import { viewOf } from "@/lib/consent/ledger";
@@ -69,22 +69,23 @@ export default function Consents() {
   };
 
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("me.consents")}
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("me.consents")}
+      </AppText>
+      <AppText role="body" color="inkSoft">
+        {t("consent.entry.sub")}
+      </AppText>
+      <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
+      {ledger.queue.length > 0 ? (
+        <AppText role="caption" color="inkFaint">
+          {t("consent.queue.note")}
         </AppText>
-        <AppText role="body" color="inkSoft">
-          {t("consent.entry.sub")}
-        </AppText>
-        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
-        {ledger.queue.length > 0 ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.queue.note")}
-          </AppText>
-        ) : null}
-      </ScrollView>
-    </Screen>
+      ) : null}
+    </ScrollScreen>
   );
 }
 

@@ -7,12 +7,12 @@
  * accent appears exactly once: the CTA.
  */
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { PrepGauge } from "@/components/PrepGauge";
-import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, Card, PrimaryButton, RAIL_EDGES, ScrollScreen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { packForVisit } from "@/lib/intake/questions";
@@ -38,36 +38,37 @@ export default function Today() {
   const fraction = pack.length > 0 ? answered / pack.length : 0;
 
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("tabs.today")}
-        </AppText>
-        {next ? (
-          <View style={styles.section}>
-            <PrepGauge fraction={fraction} label={t("today.prep")} />
-            <VisitCard visit={next} hero />
-            <PrimaryButton
-              label={next.noteStatus === "draft" ? t("today.continueCta") : t("today.prepareCta")}
-              onPress={() => router.push(`/(tabs)/visits/${next.id}`)}
-            />
-          </View>
-        ) : (
-          <View style={styles.section}>
-            <Kicker label={t("today.nextVisit")} />
-            <Card>
-              <AppText role="body" color="inkSoft">
-                {t("today.noVisit")}
-              </AppText>
-            </Card>
-            <PrimaryButton
-              label={t("today.addVisit")}
-              onPress={() => router.push("/(tabs)/visits/new")}
-            />
-          </View>
-        )}
-      </ScrollView>
-    </Screen>
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("tabs.today")}
+      </AppText>
+      {next ? (
+        <View style={styles.section}>
+          <PrepGauge fraction={fraction} label={t("today.prep")} />
+          <VisitCard visit={next} hero />
+          <PrimaryButton
+            label={next.noteStatus === "draft" ? t("today.continueCta") : t("today.prepareCta")}
+            onPress={() => router.push(`/(tabs)/visits/${next.id}`)}
+          />
+        </View>
+      ) : (
+        <View style={styles.section}>
+          <Kicker label={t("today.nextVisit")} />
+          <Card>
+            <AppText role="body" color="inkSoft">
+              {t("today.noVisit")}
+            </AppText>
+          </Card>
+          <PrimaryButton
+            label={t("today.addVisit")}
+            onPress={() => router.push("/(tabs)/visits/new")}
+          />
+        </View>
+      )}
+    </ScrollScreen>
   );
 }
 

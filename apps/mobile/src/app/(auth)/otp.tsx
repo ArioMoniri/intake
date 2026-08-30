@@ -8,13 +8,13 @@
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 
 import {
   AppText,
   Card,
   PrimaryButton,
-  Screen,
+  ScrollScreen,
   SecondaryButton,
   useFontScale,
   useStackHeader,
@@ -87,7 +87,7 @@ export default function OtpEntry() {
   useLiveAnnouncement(problem === null ? null : labelled(t("a11y.error"), t(problem)));
 
   if (phone === null) {
-    return <Screen>{null}</Screen>;
+    return <ScrollScreen>{null}</ScrollScreen>;
   }
 
   const setDigit = (index: number, value: string) => {
@@ -144,93 +144,97 @@ export default function OtpEntry() {
   const complete = isCompleteOtp(digits);
 
   return (
-    <Screen edges={["left", "right"]}>
+    <ScrollScreen
+      edges={["left", "right"]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen options={headerOptions(t("auth.otp.title"))} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <AppText role="body" color="inkSoft">
-          {t("auth.otp.body")}
+      <AppText role="body" color="inkSoft">
+        {t("auth.otp.body")}
+      </AppText>
+      <AppText role="label" color="inkFaint">
+        {maskPhone(phone)}
+      </AppText>
+      <Card>
+        <View style={styles.registers}>
+          {digits.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={(node) => {
+                inputs.current[index] = node;
+              }}
+              // "Doğrulama kodu hanesi: 3". The old form glued the
+              // position on with a slash, which screen readers speak as
+              // "bölü"; how many boxes there are is already in the body
+              // line ("altı haneli kodu girin").
+              accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
+              allowFontScaling={false}
+              value={digit}
+              onChangeText={(value) => setDigit(index, value)}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={1}
+              textContentType="oneTimeCode"
+              autoFocus={index === 0}
+              style={[
+                styles.register,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.ink,
+                  fontSize: scaledSize("title", fontScale),
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </Card>
+      {problem !== null ? (
+        // SC 3.3.1: a wrong code also clears every box and moves focus, so
+        // the reason must be announced or the patient only perceives the
+        // form emptying itself. Visible copy unchanged; the spoken form
+        // carries the "Hata" prefix (useLiveAnnouncement above).
+        <AppText role="body" color="amber" live="assertive">
+          {t(problem)}
         </AppText>
-        <AppText role="label" color="inkFaint">
-          {maskPhone(phone)}
+      ) : null}
+      <PrimaryButton
+        label={t("auth.otp.verifyCta")}
+        onPress={() => void submit(digits.join(""))}
+        disabled={busy || !complete}
+      />
+      {resendWait > 0 ? (
+        // SC 2.2.1 posture: this is a server rate limit, not a time limit
+        // on the patient's own input — nothing is lost or submitted when
+        // it runs out, so no extension mechanism is owed. It is
+        // deliberately NOT a live region: announcing a new number every
+        // second would itself be the interruption SC 2.2.2 warns about.
+        <AppText role="caption" color="inkFaint" style={styles.resendWait}>
+          {t("auth.otp.resendWait")} {resendWait}
         </AppText>
-        <Card>
-          <View style={styles.registers}>
-            {digits.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(node) => {
-                  inputs.current[index] = node;
-                }}
-                // "Doğrulama kodu hanesi: 3". The old form glued the
-                // position on with a slash, which screen readers speak as
-                // "bölü"; how many boxes there are is already in the body
-                // line ("altı haneli kodu girin").
-                accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
-                allowFontScaling={false}
-                value={digit}
-                onChangeText={(value) => setDigit(index, value)}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={1}
-                textContentType="oneTimeCode"
-                autoFocus={index === 0}
-                style={[
-                  styles.register,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.ink,
-                    fontSize: scaledSize("title", fontScale),
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        </Card>
-        {problem !== null ? (
-          // SC 3.3.1: a wrong code also clears every box and moves focus, so
-          // the reason must be announced or the patient only perceives the
-          // form emptying itself. Visible copy unchanged; the spoken form
-          // carries the "Hata" prefix (useLiveAnnouncement above).
-          <AppText role="body" color="amber" live="assertive">
-            {t(problem)}
-          </AppText>
-        ) : null}
-        <PrimaryButton
-          label={t("auth.otp.verifyCta")}
-          onPress={() => void submit(digits.join(""))}
-          disabled={busy || !complete}
+      ) : (
+        <SecondaryButton
+          label={t("auth.otp.resend")}
+          onPress={() => void resend()}
+          disabled={busy}
         />
-        {resendWait > 0 ? (
-          // SC 2.2.1 posture: this is a server rate limit, not a time limit
-          // on the patient's own input — nothing is lost or submitted when
-          // it runs out, so no extension mechanism is owed. It is
-          // deliberately NOT a live region: announcing a new number every
-          // second would itself be the interruption SC 2.2.2 warns about.
-          <AppText role="caption" color="inkFaint" style={styles.resendWait}>
-            {t("auth.otp.resendWait")} {resendWait}
-          </AppText>
-        ) : (
-          <SecondaryButton
-            label={t("auth.otp.resend")}
-            onPress={() => void resend()}
-            disabled={busy}
-          />
-        )}
-        {__DEV__ ? (
-          <SecondaryButton
-            label={t("auth.otp.devPeek")}
-            onPress={() => void peek()}
-            disabled={busy}
-          />
-        ) : null}
-      </ScrollView>
-    </Screen>
+      )}
+      {__DEV__ ? (
+        <SecondaryButton
+          label={t("auth.otp.devPeek")}
+          onPress={() => void peek()}
+          disabled={busy}
+        />
+      ) : null}
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md },
+  // INT-263: the extra top inset is gone with the frame padding it used to
+  // sit on top of — the screen padding now comes from the scroll content, once.
+  content: { gap: spacing.lg },
   registers: { flexDirection: "row", gap: spacing.sm, justifyContent: "center" },
   register: {
     borderWidth: 1,

@@ -11,13 +11,13 @@ import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
-import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { AppText, RAIL_EDGES, ScrollScreen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
 import { joinParts, labelled } from "@/lib/a11y/labels";
 import { useLiveAnnouncement } from "@/lib/a11y/prefs";
@@ -370,32 +370,33 @@ export default function Records() {
   const { account, consents } = useSession();
   const documentsAllowed = consents?.documents === true;
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("records.title")}
-        </AppText>
-        {!documentsAllowed ? (
-          <>
-            <GuidanceBlock
-              accent
-              icon="checkmark.shield"
-              kickerKey="records.consent.kicker"
-              titleKey="records.consent.title"
-              bodyKey="records.consent.body"
-            />
-            <SecondaryButton
-              label={t("records.consent.cta")}
-              onPress={() => router.push("/(tabs)/me/consents")}
-            />
-          </>
-        ) : account?.kind === "otp" ? (
-          <OtpRecords />
-        ) : (
-          <DevRecords records={account?.records ?? []} />
-        )}
-      </ScrollView>
-    </Screen>
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("records.title")}
+      </AppText>
+      {!documentsAllowed ? (
+        <>
+          <GuidanceBlock
+            accent
+            icon="checkmark.shield"
+            kickerKey="records.consent.kicker"
+            titleKey="records.consent.title"
+            bodyKey="records.consent.body"
+          />
+          <SecondaryButton
+            label={t("records.consent.cta")}
+            onPress={() => router.push("/(tabs)/me/consents")}
+          />
+        </>
+      ) : account?.kind === "otp" ? (
+        <OtpRecords />
+      ) : (
+        <DevRecords records={account?.records ?? []} />
+      )}
+    </ScrollScreen>
   );
 }
 

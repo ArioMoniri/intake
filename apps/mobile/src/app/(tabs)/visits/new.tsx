@@ -15,7 +15,7 @@
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useReducer, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
@@ -23,7 +23,7 @@ import {
   AppText,
   Card,
   PrimaryButton,
-  Screen,
+  ScrollScreen,
   SecondaryButton,
   useFontScale,
   useStackHeader,
@@ -127,199 +127,201 @@ export default function NewVisit() {
   };
 
   return (
-    <Screen edges={["left", "right"]}>
+    <ScrollScreen
+      edges={["left", "right"]}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen options={headerOptions(t("visits.new.title"))} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]} keyboardShouldPersistTaps="handled">
+      <AppText role="caption" color="inkFaint">
+        {t("visits.new.hint")}
+      </AppText>
+
+      {/* --- MHRS message paste-parse --------------------------------- */}
+      <Card>
+        <Kicker label={t("visits.new.smsTitle")} />
         <AppText role="caption" color="inkFaint">
-          {t("visits.new.hint")}
+          {t("visits.new.smsHint")}
         </AppText>
-
-        {/* --- MHRS message paste-parse --------------------------------- */}
-        <Card>
-          <Kicker label={t("visits.new.smsTitle")} />
-          <AppText role="caption" color="inkFaint">
-            {t("visits.new.smsHint")}
-          </AppText>
-          <TextInput
-            accessibilityLabel={t("visits.new.smsTitle")}
-            accessibilityHint={t("visits.new.smsHint")}
-            allowFontScaling={false}
-            value={form.sms}
-            onChangeText={(value) => dispatch({ type: "set_sms", value })}
-            multiline
-            style={[...fieldStyle, styles.smsField]}
-          />
-          <SecondaryButton
-            label={t("visits.new.smsAction")}
-            onPress={readSms}
-            disabled={form.sms.trim().length === 0}
-          />
-          {form.smsNotice !== null ? (
-            <AppText
-              role="body"
-              color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
-              // The paste either filled the form or did not; either way the
-              // result appears above the fields the patient is looking at
-              // (SC 3.3.1).
-              live="assertive"
-            >
-              {t(NOTICE_KEYS[form.smsNotice])}
-            </AppText>
-          ) : null}
-          {!ocrOffered ? (
-            <AppText role="caption" color="inkFaint">
-              {t("visits.new.ocrUnavailable")}
-            </AppText>
-          ) : null}
-        </Card>
-
-        {/* --- the manual fields ---------------------------------------- */}
-        <Card>
-          <AppText role="label" color="inkSoft">
-            {t("visits.new.hospital")}
-          </AppText>
-          <TextInput
-            accessibilityLabel={t("visits.new.hospital")}
-            allowFontScaling={false}
-            value={form.hospital}
-            onChangeText={(value) => dispatch({ type: "set_hospital", value })}
-            style={fieldStyle}
-          />
-
-          <AppText role="label" color="inkSoft">
-            {t("visits.new.branch")}
-          </AppText>
-          {chosen !== undefined && !picking ? (
-            <View style={styles.chosenRow}>
-              <AppText role="body">{chosen.nameTr}</AppText>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("visits.new.branchChange")}
-                hitSlop={verticalSlop(18)}
-                onPress={() => setPicking(true)}
-              >
-                <AppText role="caption" color="primary">
-                  {t("visits.new.branchChange")}
-                </AppText>
-              </Pressable>
-            </View>
-          ) : (
-            <>
-              {/* A visible caption rather than an in-field hint: a hint that
-                  vanishes on focus is unreadable to the low-literacy path
-                  (02 §3), and the tab-bar rule bans that token anyway. */}
-              <AppText role="caption" color="inkFaint">
-                {t("visits.new.branchSearch")}
-              </AppText>
-              <TextInput
-                accessibilityLabel={t("visits.new.branchSearch")}
-                allowFontScaling={false}
-                value={query}
-                onChangeText={setQuery}
-                style={fieldStyle}
-              />
-              <View style={styles.branchList}>
-                {shown.map((branch) => (
-                  <Pressable
-                    key={branch.id}
-                    // One branch per visit: the wash marks the chosen one
-                    // and a radio is what says so out loud (SC 1.4.1).
-                    accessibilityRole="radio"
-                    accessibilityLabel={branch.nameTr}
-                    accessibilityState={{
-                      selected: branch.id === form.branchId,
-                      checked: branch.id === form.branchId,
-                    }}
-                    onPress={() => {
-                      dispatch({ type: "pick_branch", branch });
-                      setPicking(false);
-                      setQuery("");
-                    }}
-                    style={[
-                      styles.branchRow,
-                      {
-                        backgroundColor:
-                          branch.id === form.branchId ? theme.primarySoft : theme.surface,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <AppText role="body">{branch.nameTr}</AppText>
-                  </Pressable>
-                ))}
-              </View>
-              {query.trim().length === 0 && bookable.length > shown.length ? (
-                <AppText role="caption" color="inkFaint">
-                  {t("visits.new.branchMore")}
-                </AppText>
-              ) : null}
-            </>
-          )}
-
-          {chosen !== undefined ? (
-            <>
-              <AppText role="label" color="inkSoft">
-                {t("visits.new.visitType")}
-              </AppText>
-              <View style={styles.typeGrid}>
-                {chosen.visitTypes.map((visitType: VisitTypeId) => (
-                  <Pressable
-                    key={visitType}
-                    accessibilityRole="radio"
-                    accessibilityLabel={t(visitTypeLabelKey(visitType))}
-                    accessibilityState={{
-                      selected: visitType === form.visitType,
-                      checked: visitType === form.visitType,
-                    }}
-                    onPress={() => dispatch({ type: "pick_visit_type", visitType })}
-                    style={[
-                      styles.typeChip,
-                      {
-                        backgroundColor:
-                          visitType === form.visitType ? theme.primarySoft : theme.surface,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <AppText role="caption">{t(visitTypeLabelKey(visitType))}</AppText>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          ) : null}
-
-          <AppText role="label" color="inkSoft">
-            {t("visits.new.date")}
-          </AppText>
-          <TextInput
-            accessibilityLabel={t("visits.new.date")}
-            // The format line and the "optional" line are instructions ABOUT
-            // this field; a sighted patient reads them under it, a screen
-            // reader gets them here (SC 3.3.2).
-            accessibilityHint={joinParts(t("visits.new.dateHint"), t("visits.new.dateOptional"))}
-            allowFontScaling={false}
-            value={form.date ?? ""}
-            onChangeText={(value) => dispatch({ type: "set_date", value })}
-            keyboardType="numbers-and-punctuation"
-            style={fieldStyle}
-          />
-          <AppText role="caption" color="inkFaint">
-            {t("visits.new.dateHint")}
-          </AppText>
-          <AppText role="caption" color="inkFaint">
-            {t("visits.new.dateOptional")}
-          </AppText>
-        </Card>
-
-        {form.problem !== null ? (
-          // Visible copy unchanged; the spoken form carries "Hata".
-          <AppText role="body" color="amber" live="assertive">
-            {problemText}
+        <TextInput
+          accessibilityLabel={t("visits.new.smsTitle")}
+          accessibilityHint={t("visits.new.smsHint")}
+          allowFontScaling={false}
+          value={form.sms}
+          onChangeText={(value) => dispatch({ type: "set_sms", value })}
+          multiline
+          style={[...fieldStyle, styles.smsField]}
+        />
+        <SecondaryButton
+          label={t("visits.new.smsAction")}
+          onPress={readSms}
+          disabled={form.sms.trim().length === 0}
+        />
+        {form.smsNotice !== null ? (
+          <AppText
+            role="body"
+            color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
+            // The paste either filled the form or did not; either way the
+            // result appears above the fields the patient is looking at
+            // (SC 3.3.1).
+            live="assertive"
+          >
+            {t(NOTICE_KEYS[form.smsNotice])}
           </AppText>
         ) : null}
-        <PrimaryButton label={t("visits.new.save")} onPress={save} />
-      </ScrollView>
-    </Screen>
+        {!ocrOffered ? (
+          <AppText role="caption" color="inkFaint">
+            {t("visits.new.ocrUnavailable")}
+          </AppText>
+        ) : null}
+      </Card>
+
+      {/* --- the manual fields ---------------------------------------- */}
+      <Card>
+        <AppText role="label" color="inkSoft">
+          {t("visits.new.hospital")}
+        </AppText>
+        <TextInput
+          accessibilityLabel={t("visits.new.hospital")}
+          allowFontScaling={false}
+          value={form.hospital}
+          onChangeText={(value) => dispatch({ type: "set_hospital", value })}
+          style={fieldStyle}
+        />
+
+        <AppText role="label" color="inkSoft">
+          {t("visits.new.branch")}
+        </AppText>
+        {chosen !== undefined && !picking ? (
+          <View style={styles.chosenRow}>
+            <AppText role="body">{chosen.nameTr}</AppText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("visits.new.branchChange")}
+              hitSlop={verticalSlop(18)}
+              onPress={() => setPicking(true)}
+            >
+              <AppText role="caption" color="primary">
+                {t("visits.new.branchChange")}
+              </AppText>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            {/* A visible caption rather than an in-field hint: a hint that
+                vanishes on focus is unreadable to the low-literacy path
+                (02 §3), and the tab-bar rule bans that token anyway. */}
+            <AppText role="caption" color="inkFaint">
+              {t("visits.new.branchSearch")}
+            </AppText>
+            <TextInput
+              accessibilityLabel={t("visits.new.branchSearch")}
+              allowFontScaling={false}
+              value={query}
+              onChangeText={setQuery}
+              style={fieldStyle}
+            />
+            <View style={styles.branchList}>
+              {shown.map((branch) => (
+                <Pressable
+                  key={branch.id}
+                  // One branch per visit: the wash marks the chosen one
+                  // and a radio is what says so out loud (SC 1.4.1).
+                  accessibilityRole="radio"
+                  accessibilityLabel={branch.nameTr}
+                  accessibilityState={{
+                    selected: branch.id === form.branchId,
+                    checked: branch.id === form.branchId,
+                  }}
+                  onPress={() => {
+                    dispatch({ type: "pick_branch", branch });
+                    setPicking(false);
+                    setQuery("");
+                  }}
+                  style={[
+                    styles.branchRow,
+                    {
+                      backgroundColor:
+                        branch.id === form.branchId ? theme.primarySoft : theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <AppText role="body">{branch.nameTr}</AppText>
+                </Pressable>
+              ))}
+            </View>
+            {query.trim().length === 0 && bookable.length > shown.length ? (
+              <AppText role="caption" color="inkFaint">
+                {t("visits.new.branchMore")}
+              </AppText>
+            ) : null}
+          </>
+        )}
+
+        {chosen !== undefined ? (
+          <>
+            <AppText role="label" color="inkSoft">
+              {t("visits.new.visitType")}
+            </AppText>
+            <View style={styles.typeGrid}>
+              {chosen.visitTypes.map((visitType: VisitTypeId) => (
+                <Pressable
+                  key={visitType}
+                  accessibilityRole="radio"
+                  accessibilityLabel={t(visitTypeLabelKey(visitType))}
+                  accessibilityState={{
+                    selected: visitType === form.visitType,
+                    checked: visitType === form.visitType,
+                  }}
+                  onPress={() => dispatch({ type: "pick_visit_type", visitType })}
+                  style={[
+                    styles.typeChip,
+                    {
+                      backgroundColor:
+                        visitType === form.visitType ? theme.primarySoft : theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <AppText role="caption">{t(visitTypeLabelKey(visitType))}</AppText>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <AppText role="label" color="inkSoft">
+          {t("visits.new.date")}
+        </AppText>
+        <TextInput
+          accessibilityLabel={t("visits.new.date")}
+          // The format line and the "optional" line are instructions ABOUT
+          // this field; a sighted patient reads them under it, a screen
+          // reader gets them here (SC 3.3.2).
+          accessibilityHint={joinParts(t("visits.new.dateHint"), t("visits.new.dateOptional"))}
+          allowFontScaling={false}
+          value={form.date ?? ""}
+          onChangeText={(value) => dispatch({ type: "set_date", value })}
+          keyboardType="numbers-and-punctuation"
+          style={fieldStyle}
+        />
+        <AppText role="caption" color="inkFaint">
+          {t("visits.new.dateHint")}
+        </AppText>
+        <AppText role="caption" color="inkFaint">
+          {t("visits.new.dateOptional")}
+        </AppText>
+      </Card>
+
+      {form.problem !== null ? (
+        // Visible copy unchanged; the spoken form carries "Hata".
+        <AppText role="body" color="amber" live="assertive">
+          {problemText}
+        </AppText>
+      ) : null}
+      <PrimaryButton label={t("visits.new.save")} onPress={save} />
+    </ScrollScreen>
   );
 }
 

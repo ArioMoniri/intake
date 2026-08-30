@@ -20,6 +20,7 @@ import {
   Hairline,
   PrimaryButton,
   Screen,
+  ScrollScreen,
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
@@ -80,12 +81,12 @@ function ReviewAndSend() {
     (note.answers.length === 0 && !hasHealthBlock && !checkpointed && !hasDeferral)
   ) {
     return (
-      <Screen edges={FLOW_EDGES}>
+      <ScrollScreen edges={FLOW_EDGES}>
         <Stack.Screen options={headerOptions("")} />
         <AppText role="body" color="inkSoft">
           {t("review.empty")}
         </AppText>
-      </Screen>
+      </ScrollScreen>
     );
   }
 
@@ -111,7 +112,7 @@ function ReviewAndSend() {
     : [];
 
   return (
-    <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
+    <Screen edges={FLOW_EDGES}>
       {/* Design pass 6: back-only top bar (every Oura flow carries a
           top-left way out — Mobbin 11265937, b67baac0); the serif line in
           the body stays the title, so the bar is untitled. */}
@@ -321,7 +322,6 @@ function ReviewAndSend() {
 }
 
 const styles = StyleSheet.create({
-  screenFlush: { padding: 0 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
   contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },

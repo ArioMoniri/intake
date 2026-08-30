@@ -11,12 +11,12 @@
  * competing place to answer it. Editing and deleting a learned fact are the
  * DSAR-backed operations of INT-140, on the store this screen will read.
  */
-import { ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { CarriedFactLedger } from "@/components/CarriedFacts";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
-import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, ScrollScreen } from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
@@ -25,30 +25,31 @@ export default function Learned() {
   const { account } = useSession();
   const facts = account?.carriedFacts ?? [];
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("me.learned")}
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("me.learned")}
+      </AppText>
+      <GuidanceBlock
+        accent
+        icon="eye"
+        kickerKey="learned.guide.kicker"
+        titleKey="learned.guide.title"
+        bodyKey="learned.guide.body"
+      />
+      <Card>
+        <AppText role="body" color="inkSoft">
+          {facts.length === 0 ? t("me.learnedEmpty") : t("carried.ledger.body")}
         </AppText>
-        <GuidanceBlock
-          accent
-          icon="eye"
-          kickerKey="learned.guide.kicker"
-          titleKey="learned.guide.title"
-          bodyKey="learned.guide.body"
-        />
+      </Card>
+      {facts.length === 0 ? null : (
         <Card>
-          <AppText role="body" color="inkSoft">
-            {facts.length === 0 ? t("me.learnedEmpty") : t("carried.ledger.body")}
-          </AppText>
+          <CarriedFactLedger facts={facts} />
         </Card>
-        {facts.length === 0 ? null : (
-          <Card>
-            <CarriedFactLedger facts={facts} />
-          </Card>
-        )}
-      </ScrollView>
-    </Screen>
+      )}
+    </ScrollScreen>
   );
 }
 

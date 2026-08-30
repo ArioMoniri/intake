@@ -3,12 +3,12 @@
  * pills over the groups, xl rhythm between them, air above the hero line.
  */
 import { Link, useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { statusLabelKey } from "@/components/StatusChip";
-import { AppText, Card, RAIL_EDGES, Screen, SecondaryButton } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, ScrollScreen, SecondaryButton } from "@/components/Themed";
 import { VisitCard, formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -40,62 +40,63 @@ export default function Visits() {
       visit.noteStatus === null ? null : t(statusLabelKey(visit.noteStatus)),
     );
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("visits.title")}
-        </AppText>
-        {visits.length === 0 ? (
-          <Card>
-            <AppText role="body" color="inkSoft">
-              {t("visits.empty")}
-            </AppText>
-          </Card>
-        ) : null}
-        {upcoming.length > 0 ? (
-          <View style={styles.section}>
-            {/* Neutral like Oura's quiet group headings (design pass 5) —
-                the accent budget belongs to the screen's one action. */}
-            <Kicker label={t("visits.upcoming")} />
-            {upcoming.map((visit) => (
-              <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={cardLabel(visit)}
-                  accessibilityHint={t("a11y.openHint")}
-                  style={styles.cardTarget}
-                >
-                  <VisitCard visit={visit} chevron />
-                </Pressable>
-              </Link>
-            ))}
-          </View>
-        ) : null}
-        {past.length > 0 ? (
-          <View style={styles.section}>
-            <Kicker label={t("visits.past")} />
-            {past.map((visit) => (
-              <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={cardLabel(visit)}
-                  accessibilityHint={t("a11y.openHint")}
-                  style={styles.cardTarget}
-                >
-                  <VisitCard visit={visit} chevron />
-                </Pressable>
-              </Link>
-            ))}
-          </View>
-        ) : null}
-        {/* Adding is available, not urgent — the Oura register keeps list
-            screens free of saturated CTAs (design pass 5). */}
-        <SecondaryButton
-          label={t("today.addVisit")}
-          onPress={() => router.push("/(tabs)/visits/new")}
-        />
-      </ScrollView>
-    </Screen>
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("visits.title")}
+      </AppText>
+      {visits.length === 0 ? (
+        <Card>
+          <AppText role="body" color="inkSoft">
+            {t("visits.empty")}
+          </AppText>
+        </Card>
+      ) : null}
+      {upcoming.length > 0 ? (
+        <View style={styles.section}>
+          {/* Neutral like Oura's quiet group headings (design pass 5) —
+              the accent budget belongs to the screen's one action. */}
+          <Kicker label={t("visits.upcoming")} />
+          {upcoming.map((visit) => (
+            <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={cardLabel(visit)}
+                accessibilityHint={t("a11y.openHint")}
+                style={styles.cardTarget}
+              >
+                <VisitCard visit={visit} chevron />
+              </Pressable>
+            </Link>
+          ))}
+        </View>
+      ) : null}
+      {past.length > 0 ? (
+        <View style={styles.section}>
+          <Kicker label={t("visits.past")} />
+          {past.map((visit) => (
+            <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={cardLabel(visit)}
+                accessibilityHint={t("a11y.openHint")}
+                style={styles.cardTarget}
+              >
+                <VisitCard visit={visit} chevron />
+              </Pressable>
+            </Link>
+          ))}
+        </View>
+      ) : null}
+      {/* Adding is available, not urgent — the Oura register keeps list
+          screens free of saturated CTAs (design pass 5). */}
+      <SecondaryButton
+        label={t("today.addVisit")}
+        onPress={() => router.push("/(tabs)/visits/new")}
+      />
+    </ScrollScreen>
   );
 }
 

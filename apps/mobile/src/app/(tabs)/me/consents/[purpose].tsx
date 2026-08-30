@@ -16,7 +16,7 @@
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SymbolView } from "expo-symbols";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
@@ -26,7 +26,7 @@ import {
   Card,
   PrimaryButton,
   RAIL_EDGES,
-  Screen,
+  ScrollScreen,
   SecondaryButton,
   useTheme,
 } from "@/components/Themed";
@@ -83,88 +83,89 @@ export default function ConsentDetail() {
   };
 
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("me.consents")}
-          accessibilityHint={t("a11y.backHint")}
-          hitSlop={verticalSlop(21)}
-          onPress={() => router.back()}
-          style={styles.backRow}
-        >
-          <SymbolView name="chevron.left" size={15} tintColor={theme.inkSoft} />
-          <AppText role="label" color="inkSoft">
-            {t("me.consents")}
-          </AppText>
-        </Pressable>
-        <AppText role="hero" heading>
-          {t(def.labelKey)}
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("me.consents")}
+        accessibilityHint={t("a11y.backHint")}
+        hitSlop={verticalSlop(21)}
+        onPress={() => router.back()}
+        style={styles.backRow}
+      >
+        <SymbolView name="chevron.left" size={15} tintColor={theme.inkSoft} />
+        <AppText role="label" color="inkSoft">
+          {t("me.consents")}
         </AppText>
+      </Pressable>
+      <AppText role="hero" heading>
+        {t(def.labelKey)}
+      </AppText>
 
-        {view.display === "stale" ? (
-          <Card>
-            <Kicker label={t("consent.state.stale")} tone="accent" />
-            <AppText role="body" color="inkSoft">
-              {t("consent.stale.body")}
-            </AppText>
-          </Card>
-        ) : null}
-
-        <View style={styles.block}>
-          <Kicker label={t("consent.detail.who")} />
+      {view.display === "stale" ? (
+        <Card>
+          <Kicker label={t("consent.state.stale")} tone="accent" />
           <AppText role="body" color="inkSoft">
-            {t(def.whoKey)}
+            {t("consent.stale.body")}
           </AppText>
-          <AppText role="body" color="inkSoft">
-            {t(def.basisKey)}
-          </AppText>
-        </View>
+        </Card>
+      ) : null}
 
-        {entry.status === "loaded" ? (
-          <Card>
-            <AppText role="body">{entry.text.body}</AppText>
-            <View style={styles.bindingRow}>
-              <AppText role="caption" color="inkFaint">
-                {t("consent.detail.version")}: {entry.text.version}
-              </AppText>
-              <AppText role="caption" color="inkFaint">
-                {t("consent.detail.binding")}: {entry.text.textHash.slice(0, 12)}
-              </AppText>
-            </View>
-          </Card>
-        ) : (
-          <Card>
-            <Kicker label={t("consent.state.pending")} />
-            <AppText role="body" color="inkSoft">
-              {t("consent.pending.body")}
-            </AppText>
-          </Card>
-        )}
+      <View style={styles.block}>
+        <Kicker label={t("consent.detail.who")} />
+        <AppText role="body" color="inkSoft">
+          {t(def.whoKey)}
+        </AppText>
+        <AppText role="body" color="inkSoft">
+          {t(def.basisKey)}
+        </AppText>
+      </View>
 
-        {view.grantable ? (
-          <PrimaryButton label={t("consent.detail.grant")} onPress={onGrant} />
-        ) : null}
-        {id === "lane:affect" && !view.grantable && !view.withdrawable ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.detail.needsVoice")}
-          </AppText>
-        ) : null}
-        {view.withdrawable ? (
-          <View style={styles.block}>
-            <SecondaryButton label={t("consent.detail.withdraw")} onPress={onWithdraw} />
+      {entry.status === "loaded" ? (
+        <Card>
+          <AppText role="body">{entry.text.body}</AppText>
+          <View style={styles.bindingRow}>
             <AppText role="caption" color="inkFaint">
-              {t("consent.detail.withdrawNote")}
+              {t("consent.detail.version")}: {entry.text.version}
+            </AppText>
+            <AppText role="caption" color="inkFaint">
+              {t("consent.detail.binding")}: {entry.text.textHash.slice(0, 12)}
             </AppText>
           </View>
-        ) : null}
-        {ledger.queue.length > 0 ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.queue.note")}
+        </Card>
+      ) : (
+        <Card>
+          <Kicker label={t("consent.state.pending")} />
+          <AppText role="body" color="inkSoft">
+            {t("consent.pending.body")}
           </AppText>
-        ) : null}
-      </ScrollView>
-    </Screen>
+        </Card>
+      )}
+
+      {view.grantable ? (
+        <PrimaryButton label={t("consent.detail.grant")} onPress={onGrant} />
+      ) : null}
+      {id === "lane:affect" && !view.grantable && !view.withdrawable ? (
+        <AppText role="caption" color="inkFaint">
+          {t("consent.detail.needsVoice")}
+        </AppText>
+      ) : null}
+      {view.withdrawable ? (
+        <View style={styles.block}>
+          <SecondaryButton label={t("consent.detail.withdraw")} onPress={onWithdraw} />
+          <AppText role="caption" color="inkFaint">
+            {t("consent.detail.withdrawNote")}
+          </AppText>
+        </View>
+      ) : null}
+      {ledger.queue.length > 0 ? (
+        <AppText role="caption" color="inkFaint">
+          {t("consent.queue.note")}
+        </AppText>
+      ) : null}
+    </ScrollScreen>
   );
 }
 

@@ -13,13 +13,13 @@
  * actions, never to leaving).
  */
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
-import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { AppText, RAIL_EDGES, ScrollScreen, SecondaryButton, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
@@ -93,121 +93,118 @@ export default function Me() {
     return null;
   }
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("me.title")}
-        </AppText>
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("me.title")}
+      </AppText>
+      <ListGroup>
+        <ListRow icon="person.crop.circle" label={account.name} sublabel={t("me.syntheticBadge")} />
+      </ListGroup>
+      {/* Görünüm (INT-260): text size, theme, motion and how a visit
+          starts. Above İzinleriniz because a patient who cannot read the
+          screen cannot reach anything below it either. */}
+      <ListGroup>
+        <ListRow
+          icon="textformat.size"
+          label={t("appearance.title")}
+          chevron
+          hint={t("a11y.appearance.entry")}
+          onPress={() => router.push("/(tabs)/me/appearance")}
+        />
+      </ListGroup>
+      {/* İzinleriniz (INT-132): the per-purpose record moved to its own
+          layered screen — every 06 §2 purpose, versioned texts, one-tap
+          withdrawal. This row is the permanent one-tap-away entry. */}
+      <View style={styles.section}>
+        <Kicker label={t("me.consents")} />
         <ListGroup>
           <ListRow
-            icon="person.crop.circle"
-            label={account.name}
-            sublabel={t("me.syntheticBadge")}
-          />
-        </ListGroup>
-        {/* Görünüm (INT-260): text size, theme, motion and how a visit
-            starts. Above İzinleriniz because a patient who cannot read the
-            screen cannot reach anything below it either. */}
-        <ListGroup>
-          <ListRow
-            icon="textformat.size"
-            label={t("appearance.title")}
+            icon="checkmark.shield"
+            label={t("me.consents")}
+            sublabel={t("consent.entry.sub")}
             chevron
-            hint={t("a11y.appearance.entry")}
-            onPress={() => router.push("/(tabs)/me/appearance")}
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/consents")}
           />
         </ListGroup>
-        {/* İzinleriniz (INT-132): the per-purpose record moved to its own
-            layered screen — every 06 §2 purpose, versioned texts, one-tap
-            withdrawal. This row is the permanent one-tap-away entry. */}
-        <View style={styles.section}>
-          <Kicker label={t("me.consents")} />
-          <ListGroup>
-            <ListRow
-              icon="checkmark.shield"
-              label={t("me.consents")}
-              sublabel={t("consent.entry.sub")}
-              chevron
-              hint={t("a11y.openHint")}
-              onPress={() => router.push("/(tabs)/me/consents")}
-            />
-          </ListGroup>
-        </View>
-        {/* Sağlık verileri (INT-208): device-local reads behind their own
-            consent. The hint states the scope honestly — read on this phone
-            only, nothing sent, nothing enters a note unless the patient adds
-            it. Content renders only while the consent is ON; the hint is the
-            group's quiet footer (Oura's under-group explanations). */}
-        <View style={styles.section}>
-          <Kicker label={t("me.health")} />
-          <ListGroup footer={t("consent.health.hint")}>
-            <ListRow
-              label={t("consent.health")}
-              trailing={
-                <StatePill
-                  label={consents.health ? t("consent.on") : t("consent.off")}
-                  context={t("consent.health")}
-                  hint={t("a11y.consent.switchHint")}
-                  active={consents.health}
-                  activeColor="success"
-                  accessibilityRole="switch"
-                  checked={consents.health}
-                  onPress={() => setConsent("health", !consents.health)}
-                />
-              }
-            />
-          </ListGroup>
-          {consents.health ? <HealthSection /> : null}
-        </View>
-        <ListGroup>
+      </View>
+      {/* Sağlık verileri (INT-208): device-local reads behind their own
+          consent. The hint states the scope honestly — read on this phone
+          only, nothing sent, nothing enters a note unless the patient adds
+          it. Content renders only while the consent is ON; the hint is the
+          group's quiet footer (Oura's under-group explanations). */}
+      <View style={styles.section}>
+        <Kicker label={t("me.health")} />
+        <ListGroup footer={t("consent.health.hint")}>
           <ListRow
-            label={t("me.language")}
+            label={t("consent.health")}
             trailing={
-              <View style={styles.langGroup}>
-                {(["tr", "en"] as const).map((code) => (
-                  <StatePill
-                    key={code}
-                    label={code === "tr" ? t("lang.tr") : t("lang.en")}
-                    context={t("me.language")}
-                    active={locale === code}
-                    activeColor="primary"
-                    onPress={() => switchLocale(code)}
-                  />
-                ))}
-              </View>
+              <StatePill
+                label={consents.health ? t("consent.on") : t("consent.off")}
+                context={t("consent.health")}
+                hint={t("a11y.consent.switchHint")}
+                active={consents.health}
+                activeColor="success"
+                accessibilityRole="switch"
+                checked={consents.health}
+                onPress={() => setConsent("health", !consents.health)}
+              />
             }
           />
-          {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
-              because the quiet-window choices do not fit a settings row —
-              and because the honest explanation of what a reminder never
-              says belongs beside the switch that governs it. */}
-          <ListRow
-            label={t("me.notifications")}
-            sublabel={t("notifications.entry.sub")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/notifications")}
-          />
-          {/* Yakınınız adına (INT-133): who is doing this sitting, and what
-              that does to the note (06 §6, 13 §13). The under-18 door lives
-              on that screen too, closed with its reason on it. */}
-          <ListRow
-            label={t("me.companion")}
-            sublabel={t("companion.entry.sub")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/companion")}
-          />
-          <ListRow
-            label={t("me.learned")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/learned")}
-          />
         </ListGroup>
-        <SecondaryButton label={t("me.signOut")} onPress={signOut} />
-      </ScrollView>
-    </Screen>
+        {consents.health ? <HealthSection /> : null}
+      </View>
+      <ListGroup>
+        <ListRow
+          label={t("me.language")}
+          trailing={
+            <View style={styles.langGroup}>
+              {(["tr", "en"] as const).map((code) => (
+                <StatePill
+                  key={code}
+                  label={code === "tr" ? t("lang.tr") : t("lang.en")}
+                  context={t("me.language")}
+                  active={locale === code}
+                  activeColor="primary"
+                  onPress={() => switchLocale(code)}
+                />
+              ))}
+            </View>
+          }
+        />
+        {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
+            because the quiet-window choices do not fit a settings row —
+            and because the honest explanation of what a reminder never
+            says belongs beside the switch that governs it. */}
+        <ListRow
+          label={t("me.notifications")}
+          sublabel={t("notifications.entry.sub")}
+          chevron
+          hint={t("a11y.openHint")}
+          onPress={() => router.push("/(tabs)/me/notifications")}
+        />
+        {/* Yakınınız adına (INT-133): who is doing this sitting, and what
+            that does to the note (06 §6, 13 §13). The under-18 door lives
+            on that screen too, closed with its reason on it. */}
+        <ListRow
+          label={t("me.companion")}
+          sublabel={t("companion.entry.sub")}
+          chevron
+          hint={t("a11y.openHint")}
+          onPress={() => router.push("/(tabs)/me/companion")}
+        />
+        <ListRow
+          label={t("me.learned")}
+          chevron
+          hint={t("a11y.openHint")}
+          onPress={() => router.push("/(tabs)/me/learned")}
+        />
+      </ListGroup>
+      <SecondaryButton label={t("me.signOut")} onPress={signOut} />
+    </ScrollScreen>
   );
 }
 

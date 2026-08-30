@@ -26,14 +26,14 @@
  * a fixed-height box, the segmented control stacks at ≥1.6, and the evidence
  * carries simulator captures at both ends of the ladder.
  */
-import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup } from "@/components/ListRow";
 import { Segmented, type SegmentedOption } from "@/components/Segmented";
 import { SwitchRow } from "@/components/SwitchRow";
-import { AppText, Card, RAIL_EDGES, Screen, useTheme } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, ScrollScreen, useTheme } from "@/components/Themed";
 import { t, type MessageKey } from "@/lib/i18n";
 import { nearestStep, type StartMode, type TextStep, type ThemePref } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
@@ -64,9 +64,7 @@ const START_KEYS: readonly { id: string; key: MessageKey }[] = [
   { id: "typed", key: "appearance.start.typed" },
 ];
 
-function labelled(
-  rows: readonly { id: string; key: MessageKey }[],
-): readonly SegmentedOption[] {
+function labelled(rows: readonly { id: string; key: MessageKey }[]): readonly SegmentedOption[] {
   return rows.map((row) => ({ id: row.id, label: t(row.key) }));
 }
 
@@ -78,11 +76,7 @@ function Preview() {
   const theme = useTheme();
   return (
     <Card>
-      <View
-        accessible
-        accessibilityLabel={t("a11y.appearance.preview")}
-        style={styles.preview}
-      >
+      <View accessible accessibilityLabel={t("a11y.appearance.preview")} style={styles.preview}>
         <View style={[styles.bubble, { backgroundColor: theme.surfaceRaised }]}>
           <AppText role="body">{t("intake.q.complaint")}</AppText>
         </View>
@@ -107,82 +101,81 @@ export default function Appearance() {
   // and it is the anchor for the first app step when that switch goes off.
   const osFontScale = useWindowDimensions().fontScale;
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("appearance.title")}
-        </AppText>
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("appearance.title")}
+      </AppText>
 
-        <View style={styles.section}>
-          <Kicker label={t("appearance.preview")} />
-          <Preview />
-        </View>
+      <View style={styles.section}>
+        <Kicker label={t("appearance.preview")} />
+        <Preview />
+      </View>
 
-        <View style={styles.section}>
-          <Kicker label={t("appearance.textSize")} />
-          <Segmented
-            label={t("appearance.textSize")}
-            hint={t("a11y.appearance.size")}
-            options={labelled(SIZE_KEYS)}
-            // `null` while the phone decides: no rung is the patient's choice,
-            // so none is shown as one.
-            value={prefs.textStep === null ? null : String(prefs.textStep)}
-            onChange={(id) => update({ textStep: Number(id) as TextStep })}
+      <View style={styles.section}>
+        <Kicker label={t("appearance.textSize")} />
+        <Segmented
+          label={t("appearance.textSize")}
+          hint={t("a11y.appearance.size")}
+          options={labelled(SIZE_KEYS)}
+          // `null` while the phone decides: no rung is the patient's choice,
+          // so none is shown as one.
+          value={prefs.textStep === null ? null : String(prefs.textStep)}
+          onChange={(id) => update({ textStep: Number(id) as TextStep })}
+        />
+        <ListGroup footer={t("appearance.overrideNote")}>
+          <SwitchRow
+            label={t("appearance.textSize.phone")}
+            hint={t("a11y.appearance.phone")}
+            checked={prefs.textStep === null}
+            // Turning it OFF must not resize the screen under the finger
+            // that turned it off, so the first app value is the rung nearest
+            // whatever is already on screen.
+            onChange={(next) => update({ textStep: next ? null : nearestStep(osFontScale) })}
           />
-          <ListGroup footer={t("appearance.overrideNote")}>
-            <SwitchRow
-              label={t("appearance.textSize.phone")}
-              hint={t("a11y.appearance.phone")}
-              checked={prefs.textStep === null}
-              // Turning it OFF must not resize the screen under the finger
-              // that turned it off, so the first app value is the rung nearest
-              // whatever is already on screen.
-              onChange={(next) =>
-                update({ textStep: next ? null : nearestStep(osFontScale) })
-              }
-            />
-          </ListGroup>
-        </View>
+        </ListGroup>
+      </View>
 
-        <View style={styles.section}>
-          <Kicker label={t("appearance.theme")} />
-          <Segmented
-            label={t("appearance.theme")}
-            hint={t("a11y.appearance.theme")}
-            options={labelled(THEME_KEYS)}
-            value={prefs.theme}
-            onChange={(id) => update({ theme: id as ThemePref })}
+      <View style={styles.section}>
+        <Kicker label={t("appearance.theme")} />
+        <Segmented
+          label={t("appearance.theme")}
+          hint={t("a11y.appearance.theme")}
+          options={labelled(THEME_KEYS)}
+          value={prefs.theme}
+          onChange={(id) => update({ theme: id as ThemePref })}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Kicker label={t("appearance.motion")} />
+        <ListGroup footer={t("appearance.motionNote")}>
+          <SwitchRow
+            label={t("appearance.motion")}
+            hint={t("a11y.appearance.motion")}
+            checked={prefs.reduceMotion}
+            onChange={(next) => update({ reduceMotion: next })}
           />
-        </View>
+        </ListGroup>
+      </View>
 
-        <View style={styles.section}>
-          <Kicker label={t("appearance.motion")} />
-          <ListGroup footer={t("appearance.motionNote")}>
-            <SwitchRow
-              label={t("appearance.motion")}
-              hint={t("a11y.appearance.motion")}
-              checked={prefs.reduceMotion}
-              onChange={(next) => update({ reduceMotion: next })}
-            />
-          </ListGroup>
-        </View>
+      <View style={styles.section}>
+        <Kicker label={t("appearance.start")} />
+        <Segmented
+          label={t("appearance.start")}
+          hint={t("a11y.appearance.start")}
+          options={labelled(START_KEYS)}
+          value={prefs.startMode}
+          onChange={(id) => update({ startMode: id as StartMode })}
+        />
+      </View>
 
-        <View style={styles.section}>
-          <Kicker label={t("appearance.start")} />
-          <Segmented
-            label={t("appearance.start")}
-            hint={t("a11y.appearance.start")}
-            options={labelled(START_KEYS)}
-            value={prefs.startMode}
-            onChange={(id) => update({ startMode: id as StartMode })}
-          />
-        </View>
-
-        <AppText role="caption" color="inkSoft">
-          {t("appearance.deviceOnly")}
-        </AppText>
-      </ScrollView>
-    </Screen>
+      <AppText role="caption" color="inkSoft">
+        {t("appearance.deviceOnly")}
+      </AppText>
+    </ScrollScreen>
   );
 }
 

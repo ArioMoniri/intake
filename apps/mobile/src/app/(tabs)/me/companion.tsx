@@ -22,13 +22,13 @@
  * of opening a form that ends in a refusal. The screen never names the band,
  * the policy rows or the blocker ids: this phone may be in a waiting room.
  */
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
-import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, ScrollScreen } from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import {
   setCompanionDeclaration,
@@ -57,128 +57,129 @@ export default function Companion() {
   }
 
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("companion.title")}
-        </AppText>
-        <GuidanceBlock
-          accent
-          icon="person.2"
-          kickerKey="companion.guide.kicker"
-          titleKey="companion.guide.title"
-          bodyKey="companion.guide.body"
-        />
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("companion.title")}
+      </AppText>
+      <GuidanceBlock
+        accent
+        icon="person.2"
+        kickerKey="companion.guide.kicker"
+        titleKey="companion.guide.title"
+        bodyKey="companion.guide.body"
+      />
 
+      <View style={styles.section}>
+        <Kicker label={t("companion.role.kicker")} />
+        <ListGroup>
+          <ListRow
+            label={t("companion.role.self")}
+            trailing={<Selected on={!isCompanion} />}
+            hint={t("a11y.companion.roleHint")}
+            onPress={() => setCompanionDeclaration({ role: "self" })}
+          />
+          <ListRow
+            label={t("companion.role.companion")}
+            trailing={<Selected on={isCompanion} />}
+            hint={t("a11y.companion.roleHint")}
+            onPress={() => setCompanionDeclaration({ role: "companion" })}
+          />
+        </ListGroup>
+      </View>
+
+      {isCompanion ? (
         <View style={styles.section}>
-          <Kicker label={t("companion.role.kicker")} />
-          <ListGroup>
+          <Kicker label={t("companion.speaker.kicker")} />
+          <ListGroup footer={t("companion.speaker.footer")}>
             <ListRow
-              label={t("companion.role.self")}
-              trailing={<Selected on={!isCompanion} />}
-              hint={t("a11y.companion.roleHint")}
-              onPress={() => setCompanionDeclaration({ role: "self" })}
+              label={t("companion.speaker.companion")}
+              trailing={<Selected on={declaration.speaker === "companion"} />}
+              hint={t("a11y.companion.speakerHint")}
+              onPress={() => setCompanionDeclaration({ speaker: "companion" })}
             />
             <ListRow
-              label={t("companion.role.companion")}
-              trailing={<Selected on={isCompanion} />}
-              hint={t("a11y.companion.roleHint")}
-              onPress={() => setCompanionDeclaration({ role: "companion" })}
-            />
-          </ListGroup>
-        </View>
-
-        {isCompanion ? (
-          <View style={styles.section}>
-            <Kicker label={t("companion.speaker.kicker")} />
-            <ListGroup footer={t("companion.speaker.footer")}>
-              <ListRow
-                label={t("companion.speaker.companion")}
-                trailing={<Selected on={declaration.speaker === "companion"} />}
-                hint={t("a11y.companion.speakerHint")}
-                onPress={() => setCompanionDeclaration({ speaker: "companion" })}
-              />
-              <ListRow
-                label={t("companion.speaker.patient")}
-                trailing={<Selected on={declaration.speaker === "patient"} />}
-                hint={t("a11y.companion.speakerHint")}
-                onPress={() => setCompanionDeclaration({ speaker: "patient" })}
-              />
-            </ListGroup>
-          </View>
-        ) : (
-          <View style={styles.section}>
-            <Kicker label={t("companion.thirdParty.kicker")} />
-            <ListGroup footer={t("companion.thirdParty.footer")}>
-              <ListRow
-                label={t("companion.thirdParty.label")}
-                trailing={<Selected on={declaration.thirdPartyPresent} />}
-                hint={t("a11y.companion.thirdPartyHint")}
-                onPress={() =>
-                  setCompanionDeclaration({
-                    thirdPartyPresent: !declaration.thirdPartyPresent,
-                  })
-                }
-              />
-            </ListGroup>
-          </View>
-        )}
-
-        {isCompanion ? (
-          <View style={styles.section}>
-            <Kicker label={t("companion.ack.kicker")} />
-            <ListGroup footer={t("companion.ack.notProof")}>
-              <ListRow
-                label={t("companion.ack.label")}
-                sublabel={outcome.ready ? undefined : t("companion.refusal.ack")}
-                trailing={<Selected on={declaration.acknowledged} />}
-                hint={t("a11y.companion.ackHint")}
-                onPress={() => setCompanionDeclaration({ acknowledged: !declaration.acknowledged })}
-              />
-            </ListGroup>
-          </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <Kicker label={t("companion.effect.kicker")} />
-          <Card>
-            {effects.length === 0 ? (
-              <AppText role="body" color="inkSoft">
-                {t("companion.effect.none")}
-              </AppText>
-            ) : (
-              effects.map((line) => (
-                <AppText key={line} role="body" color="inkSoft">
-                  {line}
-                </AppText>
-              ))
-            )}
-          </Card>
-        </View>
-
-        {/* 06 §6 — the under-18 door, with the reason on it. */}
-        <View style={styles.section}>
-          <Kicker label={t("companion.guardian.kicker")} />
-          <ListGroup footer={t("companion.guardian.body")}>
-            <ListRow
-              label={t("companion.guardian.label")}
-              sublabel={t("companion.guardian.unavailable")}
+              label={t("companion.speaker.patient")}
+              trailing={<Selected on={declaration.speaker === "patient"} />}
+              hint={t("a11y.companion.speakerHint")}
+              onPress={() => setCompanionDeclaration({ speaker: "patient" })}
             />
           </ListGroup>
         </View>
-
-        {/* 06 §6 — the adolescent-private section, stated to the guardian
-            before they ask, so the withholding is not a surprise. */}
+      ) : (
         <View style={styles.section}>
-          <Kicker label={t("companion.private.kicker")} />
-          <Card>
+          <Kicker label={t("companion.thirdParty.kicker")} />
+          <ListGroup footer={t("companion.thirdParty.footer")}>
+            <ListRow
+              label={t("companion.thirdParty.label")}
+              trailing={<Selected on={declaration.thirdPartyPresent} />}
+              hint={t("a11y.companion.thirdPartyHint")}
+              onPress={() =>
+                setCompanionDeclaration({
+                  thirdPartyPresent: !declaration.thirdPartyPresent,
+                })
+              }
+            />
+          </ListGroup>
+        </View>
+      )}
+
+      {isCompanion ? (
+        <View style={styles.section}>
+          <Kicker label={t("companion.ack.kicker")} />
+          <ListGroup footer={t("companion.ack.notProof")}>
+            <ListRow
+              label={t("companion.ack.label")}
+              sublabel={outcome.ready ? undefined : t("companion.refusal.ack")}
+              trailing={<Selected on={declaration.acknowledged} />}
+              hint={t("a11y.companion.ackHint")}
+              onPress={() => setCompanionDeclaration({ acknowledged: !declaration.acknowledged })}
+            />
+          </ListGroup>
+        </View>
+      ) : null}
+
+      <View style={styles.section}>
+        <Kicker label={t("companion.effect.kicker")} />
+        <Card>
+          {effects.length === 0 ? (
             <AppText role="body" color="inkSoft">
-              {t("companion.private.body")}
+              {t("companion.effect.none")}
             </AppText>
-          </Card>
-        </View>
-      </ScrollView>
-    </Screen>
+          ) : (
+            effects.map((line) => (
+              <AppText key={line} role="body" color="inkSoft">
+                {line}
+              </AppText>
+            ))
+          )}
+        </Card>
+      </View>
+
+      {/* 06 §6 — the under-18 door, with the reason on it. */}
+      <View style={styles.section}>
+        <Kicker label={t("companion.guardian.kicker")} />
+        <ListGroup footer={t("companion.guardian.body")}>
+          <ListRow
+            label={t("companion.guardian.label")}
+            sublabel={t("companion.guardian.unavailable")}
+          />
+        </ListGroup>
+      </View>
+
+      {/* 06 §6 — the adolescent-private section, stated to the guardian
+          before they ask, so the withholding is not a surprise. */}
+      <View style={styles.section}>
+        <Kicker label={t("companion.private.kicker")} />
+        <Card>
+          <AppText role="body" color="inkSoft">
+            {t("companion.private.body")}
+          </AppText>
+        </Card>
+      </View>
+    </ScrollScreen>
   );
 }
 

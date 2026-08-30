@@ -11,6 +11,7 @@ import { type ComponentProps, type ReactNode } from "react";
 import {
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -215,6 +216,21 @@ export function AppText({
  */
 export const RAIL_EDGES: readonly Edge[] = ["top", "left", "right"];
 
+/**
+ * The safe-area frame, and NOTHING else — a screen that does not scroll.
+ *
+ * It carried `padding: spacing.screen` until INT-263. That padding was on the
+ * FRAME, so every screen that put a ScrollView inside one was scrolling inside
+ * a box inset on all four sides: the scrollable area and its indicator stopped
+ * a screen padding short of the edge, and content was clipped there rather
+ * than running to the physical edge — the exact opposite of what RAIL_EDGES
+ * just above has promised since INT-130. Padding now belongs to the scroll
+ * CONTENT (see ScrollScreen), which is the only place it can sit without
+ * shrinking the region the patient can reach.
+ *
+ * Two callers remain, both full-screen flows that host their own scroll region
+ * beside a fixed glass bar. Everything else takes ScrollScreen.
+ */
 export function Screen({
   children,
   style,
@@ -228,9 +244,71 @@ export function Screen({
   return (
     <SafeAreaView
       edges={edges as Edge[] | undefined}
-      style={[styles.screen, { backgroundColor: theme.background }, style]}
+      style={[styles.flush, { backgroundColor: theme.background }, style]}
     >
       {children}
+    </SafeAreaView>
+  );
+}
+
+/**
+ * A screen that scrolls — the container every route uses (INT-263).
+ *
+ * `Screen` above is a bare SafeAreaView: a route that renders more content
+ * than the viewport holds simply loses the overflow, and swiping does nothing
+ * because there is nothing to swipe. That was survivable while every screen
+ * was authored at one text size. INT-260 handed the patient a ladder whose top
+ * rung doubles every line in the app, so at 2.0 the welcome screen's title sat
+ * under the status bar and `welcome.body` — the line that says what the app is
+ * — was unreachable. The fix is a scroll container, never a smaller size: 00 §2
+ * and INT-260's own ruling both say a screen that cannot survive 2.0 changes
+ * FORM, it never takes back the size the patient chose.
+ *
+ * Three things it does that a hand-rolled ScrollView in each screen did not:
+ *
+ * - the padding rides on `contentContainerStyle`, not on the SafeAreaView or
+ *   the ScrollView's own `style`. On either of those the scrollable area and
+ *   its indicator stop a screen padding short of the edge, and content is
+ *   clipped there instead of running to the physical edge — which is what
+ *   RAIL_EDGES has claimed since INT-130 while a padded `Screen` contradicted
+ *   it;
+ * - `flexGrow: 1` rather than `flex: 1`, so short content still fills the
+ *   viewport (a centred screen stays centred) and tall content is free to
+ *   exceed it;
+ * - `automaticallyAdjustKeyboardInsets`, so a ScrollView added for the
+ *   overflow does not reintroduce the covered-field defect on the screens that
+ *   carry a field. `keyboardShouldPersistTaps` stays the caller's to declare —
+ *   it is a per-screen decision about the first tap on a CTA — and every
+ *   free-text route already declares it.
+ */
+export function ScrollScreen({
+  children,
+  edges,
+  contentContainerStyle,
+  keyboardShouldPersistTaps,
+  keyboardDismissMode,
+}: {
+  children: ReactNode;
+  edges?: readonly Edge[];
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  keyboardShouldPersistTaps?: "always" | "never" | "handled";
+  keyboardDismissMode?: "none" | "on-drag" | "interactive";
+}) {
+  const theme = useTheme();
+  return (
+    <SafeAreaView
+      edges={edges as Edge[] | undefined}
+      style={[styles.flush, { backgroundColor: theme.background }]}
+    >
+      <ScrollView
+        style={styles.flush}
+        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        keyboardDismissMode={keyboardDismissMode}
+        automaticallyAdjustKeyboardInsets
+      >
+        {children}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -369,7 +447,11 @@ export function SecondaryButton({ label, onPress, disabled = false, hint }: Butt
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: spacing.screen },
+  // Deliberately padding-free, and used for every box that is not the scroll
+  // CONTENT — the safe-area frame and the ScrollView itself — so neither can
+  // inset the region the patient can scroll.
+  flush: { flex: 1 },
+  scrollContent: { flexGrow: 1, padding: spacing.screen },
   card: {
     borderRadius: radius.card,
     borderWidth: 1,

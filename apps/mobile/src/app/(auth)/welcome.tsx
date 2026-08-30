@@ -5,13 +5,19 @@
  * the OTP tier fully lands); that block is compiled out of release builds
  * via __DEV__ and renders as quiet pills so the one saturated CTA stays
  * the real sign-in (02 §5.2).
+ *
+ * INT-263: this screen is why that issue exists. It rendered inside a bare
+ * `Screen`, so at the 2.0 rung of the INT-260 ladder the hero sat under the
+ * status bar, the disclaimer was cut off, and `welcome.body` — the one line
+ * that says what the app is — could not be reached by any gesture. It scrolls
+ * now, and the copy is untouched: the fix is the container, not a smaller size.
  */
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { GlassCard } from "@/components/GlassCard";
 import { Kicker } from "@/components/Kicker";
-import { AppText, PrimaryButton, Screen, SecondaryButton } from "@/components/Themed";
+import { AppText, PrimaryButton, ScrollScreen, SecondaryButton } from "@/components/Themed";
 import { testAccounts } from "@/lib/dev/accounts";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -21,7 +27,7 @@ export default function Welcome() {
   const router = useRouter();
   const { signIn } = useSession();
   return (
-    <Screen style={styles.screen}>
+    <ScrollScreen contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         <AppText role="hero" heading>
           {t("app.name")}
@@ -53,12 +59,15 @@ export default function Welcome() {
       <AppText role="caption" color="inkFaint" style={styles.disclaimer}>
         {t("app.disclaimer")}
       </AppText>
-    </Screen>
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { justifyContent: "center", gap: spacing.lg },
+  // `justifyContent` still centres the block at the sizes it fits (ScrollScreen
+  // grows its content box to the viewport); above that the same content simply
+  // scrolls, which is the whole change.
+  content: { justifyContent: "center", gap: spacing.lg },
   hero: { gap: spacing.sm },
   devCard: { gap: spacing.sm },
   disclaimer: { textAlign: "center" },

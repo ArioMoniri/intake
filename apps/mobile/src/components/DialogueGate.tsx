@@ -19,9 +19,17 @@
  * through `onProbe`; the intake screen hands that to DevVoiceBanner, which
  * renders only under `__DEV__`. It could not live here in any case — this
  * component unmounts the instant the fallback fires.
+ *
+ * INT-263: this is one of the intake route's three phases and a full screen of
+ * its own, so it carries its own scroll container. At the 2.0 rung of the
+ * INT-260 ladder the entry title and body outgrow the phone, and the quiet
+ * typed door sits at the bottom — where an unscrollable screen would put it out
+ * of reach entirely. `content` keeps the padding on the scroll CONTENT so the
+ * region runs to the edge, and `flexGrow` replaces `flex` so short content
+ * still fills the viewport.
  */
 import { useEffect } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { GLASS_BAR_CLEARANCE } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
@@ -60,7 +68,7 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
   }, [dispatch, onProbe]);
 
   return (
-    <View style={styles.content}>
+    <ScrollView contentContainerStyle={styles.content}>
       <Kicker label={t("dialogue.kicker")} tone="accent" />
       <AppText role="hero" heading>
         {t("dialogue.entryTitle")}
@@ -91,13 +99,13 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
           </AppText>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    flex: 1,
+    flexGrow: 1,
     gap: spacing.md,
     padding: spacing.screen,
     paddingBottom: GLASS_BAR_CLEARANCE,

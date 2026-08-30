@@ -12,10 +12,10 @@
  */
 import { Redirect, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { ConsentList } from "@/components/ConsentList";
-import { AppText, PrimaryButton, Screen } from "@/components/Themed";
+import { AppText, PrimaryButton, ScrollScreen } from "@/components/Themed";
 import { viewOf } from "@/lib/consent/ledger";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
 import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
@@ -64,21 +64,19 @@ export default function FirstRunConsent() {
   };
 
   return (
-    <Screen edges={["top", "left", "right"]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("me.consents")}
-        </AppText>
-        <AppText role="body" color="inkSoft">
-          {t("consent.firstRun.body")}
-        </AppText>
-        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
-        <PrimaryButton
-          label={t("consent.firstRun.continue")}
-          onPress={() => router.replace("/(tabs)/today")}
-        />
-      </ScrollView>
-    </Screen>
+    <ScrollScreen edges={["top", "left", "right"]} contentContainerStyle={styles.content}>
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("me.consents")}
+      </AppText>
+      <AppText role="body" color="inkSoft">
+        {t("consent.firstRun.body")}
+      </AppText>
+      <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
+      <PrimaryButton
+        label={t("consent.firstRun.continue")}
+        onPress={() => router.replace("/(tabs)/today")}
+      />
+    </ScrollScreen>
   );
 }
 

@@ -7,13 +7,13 @@
  */
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, TextInput } from "react-native";
+import { StyleSheet, TextInput } from "react-native";
 
 import {
   AppText,
   Card,
   PrimaryButton,
-  Screen,
+  ScrollScreen,
   useFontScale,
   useStackHeader,
   useTheme,
@@ -78,64 +78,68 @@ export default function PhoneEntry() {
   };
 
   return (
-    <Screen edges={["left", "right"]}>
+    <ScrollScreen
+      edges={["left", "right"]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen options={headerOptions(t("auth.phone.title"))} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <AppText role="body" color="inkSoft">
-          {t("auth.phone.why")}
+      <AppText role="body" color="inkSoft">
+        {t("auth.phone.why")}
+      </AppText>
+      <Card>
+        <AppText role="label" color="inkSoft">
+          {t("auth.phone.label")}
         </AppText>
-        <Card>
-          <AppText role="label" color="inkSoft">
-            {t("auth.phone.label")}
-          </AppText>
-          <TextInput
-            accessibilityLabel={t("auth.phone.label")}
-            // The visible format line is guidance about the field, so it
-            // belongs to the field for a screen reader too (SC 3.3.2) —
-            // a caption underneath is only guidance to the eye.
-            accessibilityHint={t("auth.phone.hint")}
-            // The field applies scaledSize itself; the OS multiplier must be
-            // off or a 200 % setting becomes 400 % (SC 1.4.4).
-            allowFontScaling={false}
-            value={raw}
-            onChangeText={(next) => {
-              setRaw(next);
-              setProblem(null);
-            }}
-            keyboardType="phone-pad"
-            textContentType="telephoneNumber"
-            autoComplete="tel"
-            style={[
-              styles.field,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                color: theme.ink,
-                fontSize: scaledSize("body", fontScale),
-              },
-            ]}
-          />
-          <AppText role="caption" color="inkFaint">
-            {t("auth.phone.hint")}
-          </AppText>
-        </Card>
-        {problem !== null ? (
-          // SC 3.3.1. The VISIBLE copy is unchanged — the word "Hata" is
-          // added only to what is spoken (see useLiveAnnouncement above),
-          // because a screen reader meets the line with no colour and no
-          // position to tell it apart from the field's own hint.
-          <AppText role="body" color="amber" live="assertive">
-            {t(problem)}
-          </AppText>
-        ) : null}
-        <PrimaryButton label={t("auth.phone.cta")} onPress={() => void submit()} disabled={busy} />
-      </ScrollView>
-    </Screen>
+        <TextInput
+          accessibilityLabel={t("auth.phone.label")}
+          // The visible format line is guidance about the field, so it
+          // belongs to the field for a screen reader too (SC 3.3.2) —
+          // a caption underneath is only guidance to the eye.
+          accessibilityHint={t("auth.phone.hint")}
+          // The field applies scaledSize itself; the OS multiplier must be
+          // off or a 200 % setting becomes 400 % (SC 1.4.4).
+          allowFontScaling={false}
+          value={raw}
+          onChangeText={(next) => {
+            setRaw(next);
+            setProblem(null);
+          }}
+          keyboardType="phone-pad"
+          textContentType="telephoneNumber"
+          autoComplete="tel"
+          style={[
+            styles.field,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+              color: theme.ink,
+              fontSize: scaledSize("body", fontScale),
+            },
+          ]}
+        />
+        <AppText role="caption" color="inkFaint">
+          {t("auth.phone.hint")}
+        </AppText>
+      </Card>
+      {problem !== null ? (
+        // SC 3.3.1. The VISIBLE copy is unchanged — the word "Hata" is
+        // added only to what is spoken (see useLiveAnnouncement above),
+        // because a screen reader meets the line with no colour and no
+        // position to tell it apart from the field's own hint.
+        <AppText role="body" color="amber" live="assertive">
+          {t(problem)}
+        </AppText>
+      ) : null}
+      <PrimaryButton label={t("auth.phone.cta")} onPress={() => void submit()} disabled={busy} />
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md },
+  // INT-263: the extra top inset is gone with the frame padding it used to
+  // sit on top of — the screen padding now comes from the scroll content, once.
+  content: { gap: spacing.lg },
   field: {
     borderWidth: 1,
     borderRadius: radius.control,

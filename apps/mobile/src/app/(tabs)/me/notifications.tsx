@@ -16,13 +16,13 @@
  * honest explanation as the group's quiet footer.
  */
 import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
-import { AppText, RAIL_EDGES, Screen, useTheme } from "@/components/Themed";
+import { AppText, RAIL_EDGES, ScrollScreen, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
@@ -105,74 +105,73 @@ export default function Notifications() {
   };
 
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("notifications.title")}
-        </AppText>
-        <GuidanceBlock
-          accent
-          icon="bell"
-          kickerKey="notifications.guide.kicker"
-          titleKey="notifications.guide.title"
-          bodyKey="notifications.guide.body"
+    <ScrollScreen
+      edges={RAIL_EDGES}
+      contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+    >
+      <AppText role="hero" heading style={styles.heroLine}>
+        {t("notifications.title")}
+      </AppText>
+      <GuidanceBlock
+        accent
+        icon="bell"
+        kickerKey="notifications.guide.kicker"
+        titleKey="notifications.guide.title"
+        bodyKey="notifications.guide.body"
+      />
+      <ListGroup footer={t("notifications.optOutHint")}>
+        <ListRow
+          label={t("notifications.switchLabel")}
+          trailing={
+            <TonalPill
+              label={remindersOn ? t("notifications.on") : t("notifications.off")}
+              context={t("notifications.switchLabel")}
+              hint={t("a11y.notifications.switchHint")}
+              active={remindersOn}
+              role="switch"
+              checked={remindersOn}
+              onPress={() => void saveNotificationPrefs(withOptOut(prefs, remindersOn))}
+            />
+          }
         />
-        <ListGroup footer={t("notifications.optOutHint")}>
-          <ListRow
-            label={t("notifications.switchLabel")}
-            trailing={
-              <TonalPill
-                label={remindersOn ? t("notifications.on") : t("notifications.off")}
-                context={t("notifications.switchLabel")}
-                hint={t("a11y.notifications.switchHint")}
-                active={remindersOn}
-                role="switch"
-                checked={remindersOn}
-                onPress={() => void saveNotificationPrefs(withOptOut(prefs, remindersOn))}
-              />
-            }
-          />
+      </ListGroup>
+      <View style={styles.section}>
+        <Kicker label={t("notifications.quiet")} />
+        <ListGroup footer={t("notifications.quietHint")}>
+          <ListRow label={t("notifications.quiet")} sublabel={windowLabel} />
+          {QUIET_PRESETS.map((window) => (
+            <ListRow
+              key={window.start}
+              label={`${window.start} – ${window.end}`}
+              trailing={
+                <TonalPill
+                  label={
+                    isPresetSelected(prefs, window) ? t("notifications.on") : t("notifications.off")
+                  }
+                  context={`${window.start} – ${window.end}`}
+                  hint={t("a11y.notifications.quietHint")}
+                  active={isPresetSelected(prefs, window)}
+                  role="switch"
+                  checked={isPresetSelected(prefs, window)}
+                  onPress={() => chooseWindow(window)}
+                />
+              }
+            />
+          ))}
         </ListGroup>
-        <View style={styles.section}>
-          <Kicker label={t("notifications.quiet")} />
-          <ListGroup footer={t("notifications.quietHint")}>
-            <ListRow label={t("notifications.quiet")} sublabel={windowLabel} />
-            {QUIET_PRESETS.map((window) => (
-              <ListRow
-                key={window.start}
-                label={`${window.start} – ${window.end}`}
-                trailing={
-                  <TonalPill
-                    label={
-                      isPresetSelected(prefs, window)
-                        ? t("notifications.on")
-                        : t("notifications.off")
-                    }
-                    context={`${window.start} – ${window.end}`}
-                    hint={t("a11y.notifications.quietHint")}
-                    active={isPresetSelected(prefs, window)}
-                    role="switch"
-                    checked={isPresetSelected(prefs, window)}
-                    onPress={() => chooseWindow(window)}
-                  />
-                }
-              />
-            ))}
-          </ListGroup>
-        </View>
+      </View>
+      <AppText role="caption" color="inkSoft">
+        {t("notifications.contentFree")}
+      </AppText>
+      <AppText role="caption" color="inkSoft">
+        {t("notifications.transactionalOnly")}
+      </AppText>
+      {pending ? (
         <AppText role="caption" color="inkSoft">
-          {t("notifications.contentFree")}
+          {t("notifications.pending")}
         </AppText>
-        <AppText role="caption" color="inkSoft">
-          {t("notifications.transactionalOnly")}
-        </AppText>
-        {pending ? (
-          <AppText role="caption" color="inkSoft">
-            {t("notifications.pending")}
-          </AppText>
-        ) : null}
-      </ScrollView>
-    </Screen>
+      ) : null}
+    </ScrollScreen>
   );
 }
 

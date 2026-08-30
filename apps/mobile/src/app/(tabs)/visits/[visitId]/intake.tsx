@@ -119,7 +119,7 @@ export default function TypedIntake() {
   const [voiceProbe, setVoiceProbe] = useState<ReachabilityReport | null>(null);
 
   return (
-    <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
+    <Screen edges={FLOW_EDGES}>
       {/* Design pass 6: every Oura full-screen flow carries a top-left way
           out (Mobbin 11265937, 96fb49c7); ours had none. Back-only bar —
           the serif question line stays the screen's title, so the bar
@@ -604,7 +604,6 @@ function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeB
 }
 
 const styles = StyleSheet.create({
-  screenFlush: { padding: 0 },
   integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },

@@ -12,9 +12,5 @@ import { useReducedMotion } from "@/lib/a11y/prefs";
 
 export default function VisitsLayout() {
   const reduceMotion = useReducedMotion();
-  return (
-    <Stack
-      screenOptions={{ headerShown: false, animation: screenAnimation(reduceMotion) }}
-    />
-  );
+  return <Stack screenOptions={{ headerShown: false, animation: screenAnimation(reduceMotion) }} />;
 }

@@ -60,8 +60,12 @@ describe("route tree is exactly the 02 §4 nav map", () => {
   });
 
   it("has no routes beyond the map (no stealth surfaces)", () => {
+    // Test files are not surfaces. `scroll-containers.test.ts` (INT-263) has
+    // to sit beside the routes it enumerates from the filesystem, and Metro
+    // blocks it from the bundle (metro.config.js) so it never becomes one.
     const actual = walk(APP)
       .map((p) => p.slice(APP.length + 1))
+      .filter((route) => !route.includes(".test."))
       .sort();
     expect(actual).toEqual([...NAV_MAP].sort());
   });
