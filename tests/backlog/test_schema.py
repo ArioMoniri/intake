@@ -42,9 +42,11 @@ def test_ids_unique_and_well_formed() -> None:
     # no scroll container, so at the largest text step its content is
     # unreachable) + INT-264/265 (the OTP abuse suite's wall-clock-seeded
     # test clock, and the fixed-window rate-limit bound fixing it exposed) +
-    # INT-266 (INT-092 found a document parse holds the only in-flight slot).
+    # INT-266 (INT-092 found a document parse holds the only in-flight slot) +
+    # INT-267/268 (INT-083 found a Decimal slot value reads Unknown to every
+    # gate, and that no valueset in the repo has members).
     # Grow this count only with a stated reason.
-    assert len(ids) == 215
+    assert len(ids) == 217
     import re
 
     for i in ids:

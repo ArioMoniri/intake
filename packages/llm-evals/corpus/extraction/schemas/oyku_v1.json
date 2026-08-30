@@ -1,0 +1,12 @@
+{
+  "schema_id": "oyku_v1",
+  "step_id": "oyku.belirti_var",
+  "specs": [
+    {"ref": "oyku.belirti_var", "value_type": "boolean", "required": true},
+    {"ref": "oyku.sure_gun", "value_type": "integer", "required": true},
+    {"ref": "oyku.siddet_nrs", "value_type": "integer"},
+    {"ref": "oyku.ek_not", "value_type": "string"},
+    {"ref": "oyku.yayilim", "value_type": "code", "valueset": "vs.sentetik_yayilim"}
+  ],
+  "valuesets": {}
+}

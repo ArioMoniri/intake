@@ -227,9 +227,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # 175 blueprint issues (07 §3.11) + INT-176..178 from the 2026-08-27
     # security review (tracker issue #195) + INT-258 (overlay composition
     # mechanism) + INT-263 (large-text scroll containers) + INT-264/265 (OTP
-    # test clock and the fixed-window bound) + INT-266 (the §7.4 lane split);
-    # grows only with a stated reason.
-    assert len(ids) == 215, f"expected 175 blueprint + 40 added issues, got {len(ids)}"
+    # test clock and the fixed-window bound) + INT-266 (the §7.4 lane split) +
+    # INT-267/268 (Decimal gates, empty valuesets); grows only with a stated
+    # reason.
+    assert len(ids) == 217, f"expected 175 blueprint + 42 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -1,0 +1,21 @@
+{
+  "case_id": "ext_duration_only",
+  "completion": {
+    "candidate_flags": [],
+    "clarification_needed": false,
+    "confidence": "0.88",
+    "slot_updates": {
+      "oyku.belirti_var": true,
+      "oyku.sure_gun": 2
+    }
+  },
+  "expected_outcome": "ok",
+  "input_tokens": 0,
+  "latency_ms": 0,
+  "model_id": "Qwen/Qwen3.6-35B-A3B",
+  "model_revision": "unrecorded-no-model-served",
+  "note": "Both required slots, no optional ones. The model volunteers nothing extra. Provenance: this completion was AUTHORED in the exact shape a recording takes, not captured from a model run — no pinned model has been served on this branch (no GPU here). latency_ms, input_tokens and output_tokens are therefore 0 and model_revision reads unrecorded-no-model-served: nothing was timed, counted or served, and a plausible-looking figure or a real-looking commit hash would read as a measurement to every later reader with no diff that makes it look wrong.",
+  "output_tokens": 0,
+  "schema": "oyku_v1",
+  "transcript_tr": "Şikâyetim var, iki gündür devam ediyor."
+}

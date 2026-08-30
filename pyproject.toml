@@ -24,6 +24,7 @@ members = [
     "packages/clinical-schemas",
     "packages/protocols",
     "packages/voice-clips",
+    "packages/llm-evals",
     "services/probes",
     "services/api",
     "services/voice-runtime",
@@ -39,6 +40,7 @@ intake-api = { workspace = true }
 intake-protocols = { workspace = true }
 intake-voice-runtime = { workspace = true }
 intake-voice-clips = { workspace = true }
+intake-llm-evals = { workspace = true }
 intake-metrics = { workspace = true }
 intake-learning = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
@@ -96,6 +98,7 @@ files = [
     "packages/clinical-schemas/src",
     "packages/protocols/src",
     "packages/voice-clips/src",
+    "packages/llm-evals/src",
     "services/probes/src",
     "services/api/src",
     "services/voice-runtime/src",

@@ -1,0 +1,20 @@
+{
+  "case_id": "ext_unclear_clarification",
+  "completion": {
+    "candidate_flags": [],
+    "clarification_needed": true,
+    "confidence": "0.41",
+    "slot_updates": {
+      "oyku.belirti_var": true
+    }
+  },
+  "expected_outcome": "ok",
+  "input_tokens": 0,
+  "latency_ms": 0,
+  "model_id": "Qwen/Qwen3.6-35B-A3B",
+  "model_revision": "unrecorded-no-model-served",
+  "note": "Under-binding on purpose: the duration is not stated, so no duration is invented and clarification_needed carries the gap back to the FSM as a class-3 re-entry (files/13 §11.1). Provenance: this completion was AUTHORED in the exact shape a recording takes, not captured from a model run — no pinned model has been served on this branch (no GPU here). latency_ms, input_tokens and output_tokens are therefore 0 and model_revision reads unrecorded-no-model-served: nothing was timed, counted or served, and a plausible-looking figure or a real-looking commit hash would read as a measurement to every later reader with no diff that makes it look wrong.",
+  "output_tokens": 0,
+  "schema": "oyku_v1",
+  "transcript_tr": "Şey... var galiba ama ne zamandır bilmiyorum, karıştırdım."
+}

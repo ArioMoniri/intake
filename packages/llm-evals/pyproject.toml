@@ -1,0 +1,29 @@
+[project]
+name = "intake-llm-evals"
+version = "0.1.0"
+description = "The extraction eval set (INT-083): a named, committed corpus of recorded completions, replayed through the real gateway to produce the structural scores the INT-175 gate judges"
+requires-python = ">=3.12"
+dependencies = [
+    # The boundary under evaluation. The corpus replays through the REAL
+    # gateway, schema builder and parser — an eval that reimplements the thing
+    # it evaluates measures the reimplementation.
+    "intake-platform",
+    # CandidateFlag / the triage types the parser returns.
+    "intake-clinical-schemas",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_evals"]
+
+# NOTE FOR THE NEXT COMMIT, and deliberately not done from inside this
+# package: making this a member of the uv workspace is three lines in the ROOT
+# pyproject.toml — `[tool.uv.workspace] members`, `[tool.uv.sources]` and the
+# `[tool.mypy] files` list — followed by a sync. INT-083 left the root file
+# alone (a shared working tree, and an environment that cannot run `uv sync`
+# at all: the proxy refuses the torch wheel the `[ner]` extra pulls), so
+# tests/ai/conftest.py puts `src/` on sys.path until that lands.
+# docs/evidence/INT-083.md records it as the one open piece of wiring.
