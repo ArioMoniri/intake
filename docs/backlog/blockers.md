@@ -23,3 +23,23 @@ CLAUDE.md, Clinical content rules: *"Any change under `packages/protocols/**` re
 **The one sentence the owner must answer:** who is the CODEOWNER for `packages/protocols/**` and `files/protocols/**`, and should `.github/CODEOWNERS` plus branch protection be created so the requirement is enforced rather than stated?
 
 This is not INT-254's content to fix and it does not block the work, which is complete and green. It blocks only the *merge decision*, and it is recorded here because the requirement is currently unenforceable repo-wide rather than just on this PR. Related: the same PR found that `make check-golden` and `make security` are named in CLAUDE.md and absent from the Makefile, and that of the invariant-14 scanner set only gitleaks and semgrep run — as pre-commit hooks, not in `ci.yml`.
+
+## INT-202 — the restore drill refuses, by name, and that is the correct state
+
+**Raised:** 30 Aug 2026 (the row was owed by INT-202's own evidence and never written) · **Named human:** owner, with counsel via INT-212 · **HUMAN_BLOCKERS id:** HB-I8
+
+The drill was **run**, not reasoned about: `scripts/backup/restore_drill.sh --run` prints its plan and then refuses — *"no backup retention window is configured … Set `PGBACKREST_REPO1_RETENTION_FULL` once the owner answers files/HUMAN_BLOCKERS.md HB-I8 — a guessed window is not a default."* Behind that sits a host preflight that refuses again on HB-I1 (disk) and HB-I2 (container memory).
+
+So the mechanism is built and fails closed by name, and `tests/infra/test_restore_drill.py` passes 72 tests — but read what they pin: config parsing, `repo1-cipher-type=aes-256-cbc`, credential-literal scans, the replication plan, the compose tier's static shape, the PHI-safety refusals, the preflight, the `--dry-run` path and eleven near-miss negative controls. **The restore itself is never exercised**, no drill output exists in the tree, and there is no quarterly workflow (the cron is in `docs/runbooks/restore-drill.md`, which states plainly that the workflow needs `runs-on: [self-hosted, tr-dc]` — HB-I7).
+
+**The one sentence the owner must answer** is HB-I8's, unchanged: *(a) how many full backups does the pgBackRest repository keep, and for how long is the WAL archive retained — a KVKK-7 / DEST-2017 question, since a backup outlives the crypto-shredding it is subject to; and (b) what is the named second location in Türkiye?*
+
+Nothing depends on INT-202, so this costs no roadmap throughput. It is recorded because the acceptance's own words are *"RPO 15 min / RTO 4 h **demonstrated** in a drill script whose output is stored as evidence"*, and a drill that has never completed has not demonstrated anything.
+
+## INT-020 — the mechanism is done; the four notice texts are counsel's
+
+**Raised:** 30 Aug 2026 · **Named human:** Turkish counsel, plus the owner to decide the issue split · **HUMAN_BLOCKERS id:** HB-L22
+
+The threat model (1019 lines, one section per `sec_row`, bound both ways so a stale section fails), the incident runbook's eight sections and the PR-template Sec-Row gate are all complete and test-bound. What is missing is the acceptance's **data-subject notice templates** — legal texts, which invariant 18 renders only from `docs/legal/` with hash binding and which CLAUDE.md's stop-and-ask list reserves.
+
+**The one sentence:** *"Do the Board-form content, the data-subject breach notice, the USOM/7545 report and the hospital DPA notice belong to INT-020 — or to INT-214, in which case INT-020's acceptance should be amended and the issue closed?"* Both answers are defensible and an agent may not pick.

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**217 issues.** By phase: P0 128 · P1 47 · P2 37 · P3 5. By status: awaiting-human 4 · doing 7 · done 92 · todo 113 · withdrawn 1.
+**217 issues.** By phase: P0 128 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 5 · done 92 · todo 113 · withdrawn 1.
 
 ## P0
 
@@ -25,7 +25,7 @@
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | doing |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | doing |
-| INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | doing |
+| INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | awaiting-human |
 | INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | doing |
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | done |
 | INT-023 | Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip | E01-platform | INT-011 | area:observability | done |
@@ -95,7 +95,7 @@
 | INT-176 | Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure) | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-177 | Rate limiter: replace per-process monotonic clock with Redis TIME in the Lua script | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-178 | Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel | E01-platform | INT-013 | area:security, risk:security | done |
-| INT-179 | Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs) | E08-mobile | INT-130 | area:mobile | doing |
+| INT-179 | Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs) | E08-mobile | INT-130 | area:mobile | done |
 | INT-193 | Premium visual pass: Liquid Glass + Oura register, working add-visit, language switching, standardized clinician brief; first simulator smoke | E08-mobile | INT-179 | area:mobile | done |
 | INT-194 | Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs | E08-mobile | INT-193 | area:mobile | done |
 | INT-195 | Design pass 3: Oura-register glass layering, kicker/hairline anatomy, guidance-block empty states, Fraunces leading, AA fix | E08-mobile | INT-194 | area:mobile | done |
@@ -133,7 +133,7 @@
 | INT-261 | Voice intake mixes with the typed form: a clip that cannot be spoken ends the whole conversation, and the spoken turn reads the typed form's control copy | E08-mobile | INT-239, INT-249 | area:mobile, area:voice | done |
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | done |
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
-| INT-263 | Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach | E08-mobile | INT-260 | area:mobile, area:a11y | done |
+| INT-263 | Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach | E08-mobile | INT-260 | area:mobile, area:a11y | doing |
 | INT-264 | The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts | E08-mobile | INT-131 | area:api, risk:security | done |
 | INT-265 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-264 | area:api, risk:security | todo |
 | INT-266 | A document parse holds the only in-flight slot, so the answer the patient just gave waits behind it (files/12 §7.4 lane split) | E05-voice | INT-092, INT-083 | area:voice | todo |
@@ -175,7 +175,7 @@
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | todo |
 | INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | todo |
 | INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | todo |
-| INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
+| INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | awaiting-human |
 | INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security | todo |
 | INT-205 | Wazuh + Falco deployment + rules + console feed | E13-infra | INT-023 | area:infra, risk:security | done |
 | INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra, approval:human-infra, blocked:contract | awaiting-human |

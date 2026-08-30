@@ -185,7 +185,7 @@
   acceptance:
     - "forward proxy in dev compose; only allow-listed vendor hosts reachable from PHI-path services; every egress logged {host,purpose,bytes,ts} feeding the vendor-transfer register; denial emits sec.egress_denied"
     - "test: call to unlisted host is refused and logged"
-  tests: [tests/security/test_egress_allowlist.py]
+  tests: [tests/security/test_egress_policy.py]
   legal: "KVKK-9,TRANSFER-2024"
   sec_row: "cloud-boundary"
 - id: INT-019
@@ -209,7 +209,8 @@
   labels: [area:security, risk:legal]
   # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
   # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
-  status: doing
+  status: awaiting-human
+  evidence: docs/evidence/INT-020.md
   acceptance:
     - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
@@ -1679,7 +1680,8 @@
   title: "Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs)"
   depends_on: [INT-130]
   labels: [area:mobile]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-179.md
   acceptance:
     - "one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"
   tests: [apps/mobile/e2e/flows.spec.ts]
@@ -2190,7 +2192,8 @@
   title: "Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence"
   depends_on: [INT-030, INT-034]
   labels: [area:infra, risk:security]
-  status: doing
+  status: awaiting-human
+  evidence: docs/evidence/INT-202.md
   acceptance:
     - "RPO 15min/RTO 4h demonstrated in a drill script whose output is stored as evidence; quarterly schedule"
   tests: [tests/infra/test_restore_drill.py]
@@ -3066,7 +3069,7 @@
   title: "Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach"
   depends_on: [INT-260]
   labels: [area:mobile, area:a11y]
-  status: done
+  status: doing
   acceptance:
     - "every route under apps/mobile/src/app renders its content inside a scroll container, or declares in one line at its own definition why it is exempt (a full-bleed media surface, a list that scrolls itself); a test enumerates the routes from the filesystem so a NEW screen added without one fails, rather than a hand-kept list that silently stops covering the app"
     - "the failure is asserted at the largest step of the INT-260 ladder (2.0) and not merely at default: the regression is a function of content height against viewport height, so a test that only runs at 1.0 would have passed on the welcome screen the day the defect shipped"
