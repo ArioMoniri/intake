@@ -20,7 +20,7 @@ exist (HB-C8), C-SSRS is licence-blocked (HB-L2) and the turn budget is an
 open clinical decision (HB-C5). So :meth:`Scenario.clinical_truth` **raises**
 for all fourteen. That is HUMAN_BLOCKERS Rule 2 exactly: the mechanism is
 built, the gate is wired, the gate fails closed, the content is left empty.
-There is no ``dev_only`` flag and no placeholder rule set — a scenario that
+There is no ``dev_only`` flag and no stand-in rule set — a scenario that
 wanted a clinical expectation would have to get it from a clinician.
 
 Nothing in this module can name a triage level; the simulator's only route to
