@@ -40,8 +40,10 @@ def test_ids_unique_and_well_formed() -> None:
     # claims-control gate files/01 §3b calls a P1 deliverable had no issue at
     # all) + INT-263 (driving the app after INT-260 found the welcome screen has
     # no scroll container, so at the largest text step its content is
-    # unreachable). Grow this count only with a stated reason.
-    assert len(ids) == 212
+    # unreachable) + INT-264/265 (the OTP abuse suite's wall-clock-seeded
+    # test clock, and the fixed-window rate-limit bound fixing it exposed).
+    # Grow this count only with a stated reason.
+    assert len(ids) == 214
     import re
 
     for i in ids:

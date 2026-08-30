@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**212 issues.** By phase: P0 123 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 86 · todo 115 · withdrawn 1.
+**214 issues.** By phase: P0 125 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 87 · todo 116 · withdrawn 1.
 
 ## P0
 
@@ -134,6 +134,8 @@
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | done |
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
 | INT-263 | Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach | E08-mobile | INT-260 | area:mobile, area:a11y | todo |
+| INT-264 | The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts | E08-mobile | INT-131 | area:api, risk:security | done |
+| INT-265 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-264 | area:api, risk:security | todo |
 
 ## P1
 
