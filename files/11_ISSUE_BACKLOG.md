@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**217 issues.** By phase: P0 128 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 5 · done 92 · todo 113 · withdrawn 1.
+**217 issues.** By phase: P0 128 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 5 · done 93 · todo 112 · withdrawn 1.
 
 ## P0
 
@@ -71,7 +71,7 @@
 | INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | done |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | todo |
 | INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | todo |
-| INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | todo |
+| INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | done |
 | INT-101 | Session budgets + cost metering per component/profile | E05-voice | INT-092 | area:voice | todo |
 | INT-110 | Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only | E06-lanes | INT-092, INT-038 | area:lanes, risk:clinical | todo |
 | INT-112 | linguistic lane: TR lexicons + prosody stats + crisis bypass to triage | E06-lanes | INT-110, INT-080 | area:lanes, risk:clinical | todo |

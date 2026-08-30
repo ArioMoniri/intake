@@ -972,7 +972,8 @@
   title: "Profile typed (full parity fallback)"
   depends_on: [INT-081]
   labels: [area:voice]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-096.md
   acceptance:
     - "entire intake completable typed; kill-switch target; parity simulator run"
   tests: [tests/voice/test_typed_parity.py]
@@ -3167,7 +3168,7 @@
   # valueset has no members cannot bind, so extraction puts it in `unbound` and
   # nothing is invented. That is the correct fail-closed behaviour and it is
   # tested in both directions — but it means every code slot in the pack is
-  # currently unbindable, which is a content gap with a named owner (HB-C11).
+  # currently unbindable, which is a content gap with a named owner (HB-C16).
   title: "No valueset in the repository has members: vs.* are named everywhere and defined nowhere, so no code slot can bind"
   depends_on: [INT-083]
   labels: [area:protocols, risk:clinical, approval:human-clinical]

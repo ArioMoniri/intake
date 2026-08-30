@@ -34,7 +34,6 @@ What this module deliberately does **not** contain:
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
@@ -49,11 +48,8 @@ from intake_voice_runtime.ports import (
     PatientMemoryStore,
     PatientRecord,
     SpeechSynthesizer,
-    WorkRequest,
     WorkSubmitter,
     WorkTicket,
-    WorkType,
-    work_key,
 )
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.steps import NextStep
@@ -82,6 +78,7 @@ from intake_voice_runtime.talker.tools import (
     RepeatReason,
     normalise_tr,
 )
+from intake_voice_runtime.utterance import submit_extraction
 
 __all__ = ["TalkerConfig", "TalkerSession", "TurnOutcome"]
 
@@ -167,22 +164,21 @@ class TalkerSession:
         return self._last_step
 
     def submit_utterance(self, step_id: str, transcript: str) -> WorkTicket:
-        """Return a ticket immediately; Layer B runs on its own time."""
-        request = WorkRequest(
+        """Return a ticket immediately; Layer B runs on its own time.
+
+        The request shape and the derived-``work_id`` check are shared with
+        the typed lane (:mod:`intake_voice_runtime.utterance`): both lanes
+        feed one queue, and two copies of that check would be two things that
+        can drift apart silently.
+        """
+        return submit_extraction(
+            self.backend,
             session_id=self.config.session_id,
-            work_type=WorkType.EXTRACT_SLOTS,
             step_id=step_id,
-            input_hash=hashlib.sha256(transcript.encode("utf-8")).hexdigest(),
+            transcript=transcript,
             protocol_hash=self.config.protocol_hash,
             engine_version=self._last_step.engine_version if self._last_step else 0,
         )
-        ticket = self.backend.submit(request)
-        if ticket.work_id != work_key(request):
-            raise ValueError(
-                "Layer B minted a work_id instead of deriving it; a restart would "
-                "then duplicate every re-submitted transcript (files/12 §7.5)"
-            )
-        return ticket
 
     def cancel_work(self, work_id: str, reason: str) -> WorkTicket:
         return self.backend.cancel(work_id, reason)
