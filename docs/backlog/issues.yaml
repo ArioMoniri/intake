@@ -846,7 +846,8 @@
   title: "Patient simulator: personas + scenarios IM-01..IM-14 headless"
   depends_on: [INT-081]
   labels: [area:engine]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-082.md
   acceptance:
     - "12+ scripted personas incl. proxy, low-literacy, crisis, oncology; runs in typed and mock voice; used by CI"
   tests: [tests/sim/test_scenarios.py]
