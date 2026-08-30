@@ -60,13 +60,14 @@ def make_rule(
     tense: str = "ever",
     status: str = "active",
     source_gap: str | None = None,
+    anchor: str = ANCHOR,
 ) -> RedFlagRule:
     payload: dict[str, object] = {
         "id": rule_id,
         "label_tr": "Sentetik kural etiketi",
         "when": when,
         "tense": tense,
-        "tense_anchor": ANCHOR,
+        "tense_anchor": anchor,
         "level": level,
         "route": "EMERGENCY_NOW" if level.is_red else "SAME_DAY_ACIL",
         "notify_clinic": "always",

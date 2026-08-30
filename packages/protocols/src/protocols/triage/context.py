@@ -2,10 +2,10 @@
 
 The shapes align with the INT-031 ``SessionState`` (files/13 §9.2-9.3):
 answer states are :class:`clinical_schemas.session.AnswerState`, values are
-:data:`clinical_schemas.common.JsonValue`, and the clock is the session's
-``reference_time`` — a pure fold input, never a wall clock. The projection
-from a live ``SessionState`` (step ↔ slot bookkeeping) is owned by the
-IntakeEngine issue (INT-081); this module owns only what a rule can read.
+:data:`SlotValue`, and the clock is the session's ``reference_time`` — a
+pure fold input, never a wall clock. The projection from a live
+``SessionState`` (step ↔ slot bookkeeping) is owned by the IntakeEngine
+issue (INT-081); this module owns only what a rule can read.
 
 Three-valued reading (files/12 §1.1; files/13 §9.5): a slot whose answer
 state carries no usable value — ``not_asked``, ``unclear``, and equally
@@ -27,7 +27,19 @@ from pydantic import AwareDatetime, Field, model_validator
 from protocols.triage.expr import Truth
 from protocols.types import Tense
 
-__all__ = ["SlotAnswer", "TriageContext", "canonical_scalar", "temporal_within"]
+__all__ = ["SlotAnswer", "SlotValue", "TriageContext", "canonical_scalar", "temporal_within"]
+
+#: What one slot answer may carry. ``JsonValue`` alone would be wrong in
+#: both directions (INT-267): it admits ``float``, which files/13 §9.5
+#: forbids on the comparison path, and it excludes ``Decimal``, which is
+#: exactly what INT-083's extraction emits for a decimal or quantity slot
+#: so that no float crosses that boundary (CLAUDE.md invariant 22). A
+#: pydantic field typed ``JsonValue`` silently coerces an incoming
+#: ``Decimal`` into a ``float`` — the unguarded representation crossing the
+#: invariant names — so ``Decimal`` is admitted here explicitly and carried
+#: through untouched. ``float`` stays admitted because the JSON carrier can
+#: still produce one; :func:`canonical_scalar` is where it stops being one.
+type SlotValue = Decimal | JsonValue
 
 _VALUE_BEARING = frozenset({AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT})
 
@@ -38,7 +50,7 @@ class SlotAnswer(FrozenModel):
     state: AnswerState = Field(
         description="Answer state, files/13 §9.3 seven states via the INT-031 SessionState enum."
     )
-    values: tuple[JsonValue, ...] = Field(
+    values: tuple[SlotValue, ...] = Field(
         default=(),
         description="Carried values: exactly one for asked_present/asked_absent; "
         "two or more (head + superseded) for contested (files/12 §7.3); none "
@@ -76,7 +88,7 @@ class TriageContext(FrozenModel):
         "rule's when predicate spells it (files/03 §6 atoms).",
     )
 
-    def candidate_values(self, ref: str) -> tuple[JsonValue, ...] | None:
+    def candidate_values(self, ref: str) -> tuple[SlotValue, ...] | None:
         """The value(s) a predicate may read for ``ref``; None reads Unknown."""
         slot = self.answers.get(ref)
         if slot is None:
@@ -86,24 +98,48 @@ class TriageContext(FrozenModel):
         return None
 
 
-def canonical_scalar(value: JsonValue) -> bool | Decimal | str | None:
-    """Canonicalise a JsonValue for comparison; None reads Unknown.
+def canonical_scalar(value: SlotValue) -> bool | Decimal | str | None:
+    """Canonicalise one slot value for comparison; None reads Unknown.
 
     Numbers become Decimal (files/13 §9.5: exact comparison, no floats —
     a float arriving through the JSON carrier is converted through its
-    string form, deterministically). Collections and null do not compare
-    in this grammar and read Unknown.
+    string form, deterministically). A ``Decimal`` is *already* that
+    canonical form, so it is accepted and returned **unchanged**: this
+    function's own declared return type is one of its inputs, and INT-083's
+    extraction emits decimal and quantity slots as exact ``Decimal``
+    precisely so that no float crosses the boundary (invariant 22). Before
+    INT-267 a ``Decimal`` fell through to ``None`` and therefore read
+    Unknown to every gate that referenced it.
+
+    **Scale is carried, never normalised.** files/13 §9.5 types a decimal
+    slot as "``Decimal`` with declared scale and exact comparison", so
+    ``Decimal("38.50")`` stays ``Decimal("38.50")``: the scale belongs to
+    the slot that was authored, not to this function. Re-converting through
+    ``str`` would be a no-op and ``quantize`` would silently rewrite the
+    authored scale, which every textual render — a rule's evidence line,
+    the clinician note, the invariant-22 orthography expansion — would then
+    report wrong. No verdict can turn on the choice: :mod:`protocols.triage.
+    expr` compares Decimals by numeric value, where ``38.50 == 38.5``.
+
+    A non-finite number — NaN or an infinity, reachable both through the
+    JSON carrier and as a ``Decimal`` — is a data defect rather than a
+    magnitude, so it reads Unknown: a rule can never fire on it, and an
+    ordered comparison against it can never raise ``InvalidOperation`` on
+    the triage path. Collections and null do not compare in this grammar
+    and read Unknown too.
     """
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float)):
-        return Decimal(str(value))
+        value = Decimal(str(value))
+    if isinstance(value, Decimal):
+        return value if value.is_finite() else None
     if isinstance(value, str):
         return value
     return None
 
 
-def temporal_within(anchor_value: JsonValue, tense: Tense, reference_time: datetime) -> Truth:
+def temporal_within(anchor_value: SlotValue, tense: Tense, reference_time: datetime) -> Truth:
     """``temporal.within(anchor, tense, now)`` of files/12 §2.4.
 
     Calendar-day windows, computed against the session's reference time so
@@ -138,7 +174,7 @@ def temporal_within(anchor_value: JsonValue, tense: Tense, reference_time: datet
     return Truth.TRUE if days_ago == 0 else Truth.FALSE  # today | now
 
 
-def _anchor_date(anchor_value: JsonValue, reference_time: datetime) -> date | None:
+def _anchor_date(anchor_value: SlotValue, reference_time: datetime) -> date | None:
     if not isinstance(anchor_value, str):
         return None
     try:

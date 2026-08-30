@@ -15,10 +15,12 @@ from __future__ import annotations
 import ast as python_ast
 import itertools
 import textwrap
+from decimal import Decimal
 from pathlib import Path
 from typing import get_args
 
 import pytest
+from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import (
     CandidateFlag,
     LlmCandidateTriage,
@@ -27,18 +29,26 @@ from clinical_schemas.triage import (
     RulesTriageResult,
     TriageLevel,
 )
+from intake_voice_runtime.clinical_agent import IntakeEngine
 from protocols import EK4Level, RedFlagRule, load_pack, resolve_red_flags
+from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
+from protocols.dsl import Slot
 from protocols.loader import PackRegistry
 from protocols.triage import (
     DraftRuleError,
+    SlotAnswer,
     TriageContext,
     TriageEngineError,
     TriageEvaluation,
+    Truth,
+    canonical_scalar,
     evaluate_triage,
+    rule_truth,
     with_candidates,
 )
+from protocols.types import Delivery, SlotType
 from pydantic import ValidationError
-from synthetic_triage import ANCHOR, ctx, make_rule, present
+from synthetic_triage import ANCHOR, REF_TIME, ctx, make_rule, present
 
 # ---------------------------------------------------------------------------
 # Levels: GREEN / YELLOW / RED from rules only (CLAUDE.md invariant 1).
@@ -502,3 +512,233 @@ class TestImportBoundary:
             if hits:
                 offenders[str(path)] = hits
         assert offenders == {}
+
+
+# ---------------------------------------------------------------------------
+# INT-267 — the decimal carrier, from the extraction boundary to the verdict.
+#
+# INT-083's extraction emits decimal and quantity slot values as exact
+# `Decimal` (a float would breach CLAUDE.md invariant 22; files/13 §9.5 "no
+# floats anywhere ... exact comparison"). `canonical_scalar` declares
+# `bool | Decimal | str | None` and used to refuse the very type it returns,
+# so such a value read Unknown to every gate that referenced it.
+#
+# SENTETİK TEST VERİSİ: the slot names, the Turkish strings and the 38.5
+# threshold below are invented for this test and carry NO clinical meaning.
+# The `sentetik.` prefix is this repo's marker for exactly that (files/04
+# §7); no clinical threshold is invented here or anywhere else.
+# ---------------------------------------------------------------------------
+
+SENTETIK_ANCHOR = "sentetik.olay_zamani"
+SENTETIK_OLCUM = "sentetik.olcum"
+SENTETIK_GATED = "sentetik.ek_soru"
+SENTETIK_ESIK = "38.5"
+SENTETIK_WHEN = f"{SENTETIK_OLCUM} >= {SENTETIK_ESIK}"
+SENTETIK_GUN = "2026-08-28"  # the reference day of synthetic_triage.REF_TIME
+
+
+def _esik_rule() -> RedFlagRule:
+    return make_rule(
+        "rf.sentetik_esik",
+        EK4Level.KIRMIZI_K2,
+        SENTETIK_WHEN,
+        register=RedRegister.ALERT,
+        anchor=SENTETIK_ANCHOR,
+    )
+
+
+def _esik_ctx(value: object) -> TriageContext:
+    return TriageContext(
+        reference_time=REF_TIME,
+        answers={
+            SENTETIK_ANCHOR: present(SENTETIK_GUN),
+            SENTETIK_OLCUM: present(value),
+        },
+    )
+
+
+class TestDecimalThresholdGolden:
+    """The golden and its near-miss negative control (CLAUDE.md clinical
+    content rules: any change under packages/protocols/** ships with one)."""
+
+    def test_over_the_threshold_fires_red_with_its_own_verbatim_script(self) -> None:
+        rule = _esik_rule()
+        context = _esik_ctx(Decimal("38.5"))
+        # the golden must stay a DECIMAL golden: a carrier that quietly
+        # coerced the value to float would make it prove nothing
+        assert isinstance(context.answers[SENTETIK_OLCUM].values[0], Decimal)
+        assert rule_truth(rule, context) is Truth.TRUE
+        evaluation = evaluate_triage((rule,), context, RedLocation.REMOTE)
+        assert evaluation.result.level is TriageLevel.RED
+        assert evaluation.ek4 is EK4Level.KIRMIZI_K2
+        assert evaluation.result.register is RedRegister.ALERT
+        assert evaluation.result.location is RedLocation.REMOTE
+        assert [fire.id for fire in evaluation.result.rules] == ["rf.sentetik_esik"]
+        assert rule.action is not None
+        assert evaluation.action is rule.action.remote
+
+    def test_the_near_miss_just_under_the_threshold_is_false_not_unknown(self) -> None:
+        # The negative control, and the whole point of the issue: a gate
+        # that cannot decide returns Unknown, and Unknown is not a safe
+        # default merely because it is not FALSE. So the near miss is
+        # asserted as FALSE on the rule truth itself, not only as a GREEN
+        # verdict — GREEN is what Unknown produces too.
+        rule = _esik_rule()
+        context = _esik_ctx(Decimal("38.4"))
+        assert isinstance(context.answers[SENTETIK_OLCUM].values[0], Decimal)
+        assert rule_truth(rule, context) is Truth.FALSE
+        evaluation = evaluate_triage((rule,), context, RedLocation.REMOTE)
+        assert evaluation.result.level is TriageLevel.GREEN
+        assert evaluation.result.rules == ()
+        assert evaluation.action is None
+
+    def test_the_evidence_renders_the_decimal_at_its_authored_scale(self) -> None:
+        # The evidence string is the clinician-facing "which values
+        # satisfied this rule"; a Decimal is rendered from its own exact
+        # form, so 38.50 reads 38.50 and no float ever formats it.
+        rule = _esik_rule()
+        evaluation = evaluate_triage((rule,), _esik_ctx(Decimal("38.50")), RedLocation.REMOTE)
+        evidence = evaluation.result.rules[0].evidence
+        assert f"{SENTETIK_OLCUM}=38.50" in evidence
+        assert f"{SENTETIK_ANCHOR}=" in evidence
+
+    @pytest.mark.parametrize(
+        ("carrier", "over", "under"),
+        [
+            ("decimal", Decimal("39"), Decimal("38")),
+            ("int", 39, 38),
+            ("float", 39.0, 38.0),
+        ],
+    )
+    def test_every_carrier_reaches_the_same_verdict(
+        self, carrier: str, over: object, under: object
+    ) -> None:
+        rule = _esik_rule()
+        assert rule_truth(rule, _esik_ctx(over)) is Truth.TRUE
+        assert rule_truth(rule, _esik_ctx(under)) is Truth.FALSE
+        assert (
+            evaluate_triage((rule,), _esik_ctx(over), RedLocation.REMOTE).result.level
+            is TriageLevel.RED
+        )
+        assert (
+            evaluate_triage((rule,), _esik_ctx(under), RedLocation.REMOTE).result.level
+            is TriageLevel.GREEN
+        )
+
+    def test_no_float_reaches_the_comparison(self) -> None:
+        # files/13 §9.5. Whatever the carrier, the compared scalar is a
+        # Decimal — the float carrier converts through its string form and
+        # the Decimal carrier is not converted at all.
+        for value in (Decimal("39"), 39, 39.0):
+            compared = canonical_scalar(value)
+            assert isinstance(compared, Decimal)
+            assert not isinstance(compared, float)
+
+
+def _sentetik_protocol() -> ResolvedProtocol:
+    """A two-answer synthetic protocol whose third step is gated on the
+    decimal slot, so the FSM gate and the red-flag rule read the same
+    value through the same `canonical_scalar`."""
+
+    def resolved(key: str, **fields: object) -> ResolvedSlot:
+        return ResolvedSlot(
+            section_id="sentetik",
+            key=key,
+            fhir_link_id=f"sentetik.{key}",
+            slot=Slot.model_validate(fields),
+            delivery=Delivery.VOICE,
+        )
+
+    section = ResolvedSection(
+        id="sentetik",
+        delivery=Delivery.VOICE,
+        allow_paraphrase=False,
+        slots=(
+            resolved("olay_zamani", type=SlotType.DATE, ask_tr="Sentetik: bu ne zaman oldu?"),
+            resolved("olcum", type=SlotType.DECIMAL, ask_tr="Sentetik ölçüm sorusu."),
+            resolved(
+                "ek_soru",
+                type=SlotType.BOOLEAN,
+                ask_if=SENTETIK_WHEN,
+                ask_tr="Sentetik ek soru.",
+            ),
+        ),
+    )
+    return ResolvedProtocol(
+        pack_id="base.sentetik_esik",
+        version="1.0.0",
+        chain=("base.sentetik_esik",),
+        sections=(section,),
+        resolved_protocol_hash="0" * 64,
+    )
+
+
+def _drive(value: object) -> tuple[IntakeEngine, TriageContext]:
+    """Answer the anchor and the decimal slot through the real
+    `IntakeEngine.apply_extraction`, then project the engine's own answer
+    state onto the triage context the rules evaluate over."""
+    engine = IntakeEngine(protocol=_sentetik_protocol(), reference_time=REF_TIME)
+    engine.mark_asked(SENTETIK_ANCHOR)
+    engine.apply_extraction(SENTETIK_ANCHOR, {SENTETIK_ANCHOR: SENTETIK_GUN})
+    engine.mark_asked(SENTETIK_OLCUM)
+    engine.apply_extraction(SENTETIK_OLCUM, {SENTETIK_OLCUM: value})
+    answers = {
+        ref: SlotAnswer(state=engine.state_of(ref), values=(engine.value_of(ref),))
+        for ref in (SENTETIK_ANCHOR, SENTETIK_OLCUM)
+    }
+    return engine, TriageContext(reference_time=REF_TIME, answers=answers)
+
+
+class TestDecimalCarrierThroughIntakeEngine:
+    """The boundary the value actually arrives through (files/03 §5
+    `apply_extraction`), across all three carriers, so the extraction path
+    (INT-083) and the typed path cannot disagree."""
+
+    @pytest.mark.parametrize(
+        ("carrier", "over", "under"),
+        [
+            ("decimal", Decimal("39"), Decimal("38")),
+            ("int", 39, 38),
+            ("float", 39.0, 38.0),
+        ],
+    )
+    def test_apply_extraction_reaches_the_same_verdict_for_every_carrier(
+        self, carrier: str, over: object, under: object
+    ) -> None:
+        rule = _esik_rule()
+        _, fires = _drive(over)
+        _, misses = _drive(under)
+        assert evaluate_triage((rule,), fires, RedLocation.REMOTE).result.level is TriageLevel.RED
+        assert (
+            evaluate_triage((rule,), misses, RedLocation.REMOTE).result.level is TriageLevel.GREEN
+        )
+
+    @pytest.mark.parametrize(
+        ("carrier", "over", "under"),
+        [
+            ("decimal", Decimal("39"), Decimal("38")),
+            ("int", 39, 38),
+            ("float", 39.0, 38.0),
+        ],
+    )
+    def test_the_engines_own_gate_opens_on_the_same_reading(
+        self, carrier: str, over: object, under: object
+    ) -> None:
+        # `IntakeEngine._lookup` canonicalises through the same function, so
+        # a value invisible to a red-flag rule is invisible to the protocol
+        # gate too — and an UNKNOWN gate never offers its step.
+        opened, _ = _drive(over)
+        closed, _ = _drive(under)
+        assert SENTETIK_GATED in [step.step_id for step in opened.frontier()]
+        assert SENTETIK_GATED not in [step.step_id for step in closed.frontier()]
+
+    def test_the_engine_carries_the_decimal_without_converting_it(self) -> None:
+        engine, context = _drive(Decimal("38.50"))
+        carried = engine.value_of(SENTETIK_OLCUM)
+        assert isinstance(carried, Decimal)
+        assert not isinstance(carried, float)
+        assert str(carried) == "38.50"
+        assert engine.state_of(SENTETIK_OLCUM) is AnswerState.ASKED_PRESENT
+        projected = context.answers[SENTETIK_OLCUM].values[0]
+        assert isinstance(projected, Decimal)
+        assert str(projected) == "38.50"

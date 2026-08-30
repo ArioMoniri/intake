@@ -33,7 +33,7 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from decimal import Decimal
 
-from clinical_schemas.common import FrozenModel, JsonValue
+from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import (
     CandidateFlag,
     LlmCandidateTriage,
@@ -46,7 +46,12 @@ from clinical_schemas.triage import (
 from pydantic import Field, model_validator
 
 from protocols.dsl import LocationAction, RedFlagRule, UnknownAction
-from protocols.triage.context import TriageContext, canonical_scalar, temporal_within
+from protocols.triage.context import (
+    SlotValue,
+    TriageContext,
+    canonical_scalar,
+    temporal_within,
+)
 from protocols.triage.expr import (
     Lookup,
     Truth,
@@ -168,7 +173,7 @@ def _truth_over_worlds(
     return truth_or(truths)
 
 
-def _world_lookup(context: TriageContext, world: Mapping[str, JsonValue]) -> Lookup:
+def _world_lookup(context: TriageContext, world: Mapping[str, SlotValue]) -> Lookup:
     def lookup(ref: str) -> bool | Decimal | str | None:
         if ref in world:
             return canonical_scalar(world[ref])
@@ -182,12 +187,12 @@ def _world_lookup(context: TriageContext, world: Mapping[str, JsonValue]) -> Loo
 
 def _anchor_truth(
     context: TriageContext,
-    world: Mapping[str, JsonValue],
+    world: Mapping[str, SlotValue],
     rule: RedFlagRule,
     anchor: str,
 ) -> Truth:
     if anchor in world:
-        anchor_value: JsonValue = world[anchor]
+        anchor_value: SlotValue = world[anchor]
     else:
         values = context.candidate_values(anchor)
         if values is None:
@@ -312,8 +317,21 @@ def _evidence(rule: RedFlagRule, context: TriageContext) -> str:
     for ref in refs:
         values = context.candidate_values(ref)
         if values is not None:
-            rendered = "|".join(
-                json.dumps(value, ensure_ascii=False, separators=(",", ":")) for value in values
-            )
+            rendered = "|".join(_render_value(value) for value in values)
             parts.append(f"{ref}={rendered}")
     return "; ".join(parts)
+
+
+def _render_value(value: SlotValue) -> str:
+    """One carried value as evidence text, exactly as it was carried.
+
+    ``json.dumps`` cannot serialise a ``Decimal`` at all, and routing one
+    through ``float`` to make it serialisable would put a float on the path
+    files/13 §9.5 keeps clear of them and drop the authored scale that
+    :func:`~protocols.triage.context.canonical_scalar` deliberately carries
+    (INT-267). A Decimal therefore renders from its own exact form, which
+    is already a JSON number literal.
+    """
+    if isinstance(value, Decimal):
+        return str(value)
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))

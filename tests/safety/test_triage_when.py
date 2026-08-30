@@ -15,6 +15,7 @@ All fixtures are SYNTHETIC (SENTETİK TEST VERİSİ) — zero clinical content.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 
 import pytest
 from clinical_schemas.session import AnswerState
@@ -25,6 +26,7 @@ from protocols.triage import (
     TriageContext,
     Truth,
     WhenGrammarError,
+    canonical_scalar,
     evaluate_triage,
     parse_when,
     rule_truth,
@@ -319,3 +321,115 @@ class TestContextShape:
         first = evaluate_triage((rule,), context, RedLocation.REMOTE)
         second = evaluate_triage((rule,), context, RedLocation.REMOTE)
         assert first == second
+
+
+# ---------------------------------------------------------------------------
+# INT-267 — the Decimal carrier. `canonical_scalar` declares
+# `bool | Decimal | str | None` and its docstring says "Numbers become
+# Decimal (files/13 §9.5: exact comparison, no floats)" — so a Decimal is
+# the function's OWN output type, and feeding one back in must not lose it.
+#
+# It matters because INT-083's extraction emits decimal and quantity slot
+# values as exact `Decimal` (a float would breach CLAUDE.md invariant 22),
+# so every such value reaching a gate today reads Unknown — and Unknown is
+# not a safe default merely because it is not FALSE.
+# ---------------------------------------------------------------------------
+
+
+class TestDecimalCarrier:
+    def test_the_round_trip_through_the_declared_return_type_is_lossless(self) -> None:
+        # The identity case: canonical_scalar's own output, fed back in.
+        converted = canonical_scalar(38.5)
+        assert converted == Decimal("38.5")
+        assert canonical_scalar(converted) == converted
+
+    def test_a_decimal_is_accepted_and_returned_unchanged(self) -> None:
+        # Unchanged means the same object: no re-conversion, not through
+        # `str` and not through `quantize`.
+        value = Decimal("38.5")
+        assert canonical_scalar(value) is value
+
+    def test_the_declared_scale_is_carried_never_normalised(self) -> None:
+        # THE SCALE DECISION, asserted rather than left to fall out of the
+        # implementation. files/13 §9.5 types a decimal slot as "Decimal
+        # with declared scale and exact comparison": the scale belongs to
+        # the slot that was authored, not to this function, so 38.50 stays
+        # 38.50. Comparison in expr.py is `Decimal == / < / >=`, which is by
+        # numeric value and ignores trailing zeros, so carrying the scale
+        # can never change a verdict — it only keeps `str()` and any
+        # textual render (evidence, notes, TTS orthography) honest.
+        carried = canonical_scalar(Decimal("38.50"))
+        assert isinstance(carried, Decimal)
+        assert str(carried) == "38.50"
+        assert carried.as_tuple().exponent == -2
+
+    def test_trailing_zeros_never_change_a_verdict(self) -> None:
+        assert canonical_scalar(Decimal("38.50")) == canonical_scalar(Decimal("38.5"))
+        assert truth("olcum == 38.5", olcum=present(Decimal("38.50"))) is Truth.TRUE
+        assert truth("olcum >= 38.5", olcum=present(Decimal("38.50"))) is Truth.TRUE
+        assert truth("olcum > 38.5", olcum=present(Decimal("38.50"))) is Truth.FALSE
+
+    def test_the_answer_carrier_preserves_the_decimal_it_was_given(self) -> None:
+        # `tuple[JsonValue, ...]` admits float and would coerce a Decimal
+        # into one — the exact unguarded representation boundary invariant
+        # 22 names, and a silent loss of the authored scale.
+        carried = present(Decimal("38.50")).values[0]
+        assert isinstance(carried, Decimal)
+        assert not isinstance(carried, float)
+        assert str(carried) == "38.50"
+
+    @pytest.mark.parametrize("value", [38, 38.5, True, False, "38.5", "kirmizi", None])
+    def test_admitting_a_decimal_reroutes_no_other_carrier(self, value: object) -> None:
+        # Widening the carrier must not pull an existing type through
+        # Decimal on the way in: "38.5" is still a string and 38 is still
+        # an int, so nothing that compares today starts comparing
+        # differently tomorrow.
+        assert type(present(value).values[0]) is type(value)
+
+    @pytest.mark.parametrize(
+        ("carrier", "over", "at", "under"),
+        [
+            ("decimal", Decimal("38.6"), Decimal("38.5"), Decimal("38.4")),
+            ("int", 39, None, 38),
+            ("float", 38.6, 38.5, 38.4),
+        ],
+    )
+    def test_every_carrier_reads_the_same_threshold(
+        self, carrier: str, over: object, at: object, under: object
+    ) -> None:
+        # The near miss is the point: just under the threshold must be
+        # FALSE — not Unknown, which is what a gate that cannot decide
+        # returns, and not TRUE.
+        assert truth("olcum >= 38.5", olcum=present(over)) is Truth.TRUE
+        assert truth("olcum >= 38.5", olcum=present(under)) is Truth.FALSE
+        if at is not None:
+            assert truth("olcum >= 38.5", olcum=present(at)) is Truth.TRUE
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            Decimal("NaN"),
+            Decimal("sNaN"),
+            Decimal("Infinity"),
+            Decimal("-Infinity"),
+            float("nan"),
+            float("inf"),
+            float("-inf"),
+        ],
+    )
+    def test_a_non_finite_number_reads_unknown(self, value: object) -> None:
+        # An ordered comparison against a NaN raises InvalidOperation and an
+        # infinity is not a magnitude any slot declares, so a non-finite
+        # number is a data defect: it reads Unknown (review), never FALSE
+        # (false reassurance). A signalling NaN reaches canonical_scalar
+        # only through an unvalidated carrier — SlotAnswer's own validation
+        # refuses it — which is exactly why the guard lives in the function.
+        assert canonical_scalar(value) is None
+
+    @pytest.mark.parametrize(
+        "value",
+        [Decimal("NaN"), Decimal("Infinity"), Decimal("-Infinity"), float("nan"), float("inf")],
+    )
+    def test_a_non_finite_answer_never_raises_on_the_triage_path(self, value: object) -> None:
+        assert truth("olcum >= 38.5", olcum=present(value)) is Truth.UNKNOWN
+        assert truth("olcum == 38.5", olcum=present(value)) is Truth.UNKNOWN

@@ -3152,7 +3152,8 @@
   title: "A Decimal slot value reads Unknown to every gate: canonical_scalar converts to Decimal but refuses to accept one"
   depends_on: [INT-083]
   labels: [area:protocols, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-267.md
   acceptance:
     - "the defect is reproduced first as a failing test: `canonical_scalar(Decimal('38.5'))` returns None today while `canonical_scalar(38.5)` returns `Decimal('38.5')`, so the round trip through the function's own declared return type is lossy — the test states it as the identity it is, not as a new feature"
     - "a Decimal is accepted and returned unchanged, with no re-conversion through str: `Decimal('38.50')` must not silently become `Decimal('38.5')` if any caller compares textual scale, and whichever behaviour is chosen is asserted rather than left to fall out of the implementation"
