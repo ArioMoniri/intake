@@ -2722,7 +2722,8 @@
     rejection; the api harness injected a clean scanner into every case which is
     why no test caught the slot the service actually builds at boot'
   tests:
-  - tests/api/test_document_scan_wiring.py
+  - tests/api/test_wiring.py
+  - tests/api/test_documents.py
 - id: INT-239
   epic: E08-mobile
   phase: P0
