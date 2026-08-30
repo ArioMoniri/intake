@@ -728,7 +728,18 @@ def _life_threat_rule_yaml(**overrides: Any) -> dict[str, Any]:
 
 
 def _paediatric_rule_yaml() -> dict[str, Any]:
-    return _life_threat_rule_yaml(id="rf.sentetik_cocuk", age_band="paediatric")
+    """A synthetic paediatric rule, in the shape INT-255 now requires: a rule
+    that says its age_band is paediatric must also say its subject is a
+    child, and files/02 §5.3 then puts it in the CALM register rather than
+    ALERT — the alarm is what produces the deterioration."""
+    return _life_threat_rule_yaml(
+        id="rf.sentetik_cocuk",
+        age_band="paediatric",
+        subject_is_child=True,
+        register="CALM",
+        distress_sensitive=True,
+        suppress_attention_interrupt=True,
+    )
 
 
 def _draft_life_threat_rule_yaml() -> dict[str, Any]:
