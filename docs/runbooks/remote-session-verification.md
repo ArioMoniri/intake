@@ -104,6 +104,47 @@ This does **not** make the container a model host. The de-id tier is a 250 MB
 DistilBERT running on CPU for a token-level test sample; nothing about it
 generalises to the `residency_tr` profile, which still needs HB-I4's GPU.
 
+## What a full `pytest tests/` actually looks like here
+
+Measured on 30 Aug 2026 at commit `c2ad67a`: **3153 passed, 23 failed, 29 errors**
+(tests/ai and tests/voice excluded — they were being written at the time).
+Every one of the 52 traces back to the absent Docker daemon, and they come in
+**two shapes that must not be confused**:
+
+**Shape 1 — the service simply is not there.** Postgres refuses on
+`127.0.0.1:5432`; EHRbase, HAPI, clamd, MinIO and OpenBao likewise. These are
+the 29 errors and 16 of the failures (`test_rls`, `test_api_postgres`,
+`test_analytics_views_db`, `test_ehrbase_roundtrip`, `test_fhir_validation`,
+`test_upload_pipeline_integration`, `test_document_store_integration`,
+`test_openbao_wiring`, `test_envelope_encryption`, `test_tokenization_roundtrip`).
+Obvious, expected, and harmless to read.
+
+**Shape 2 — the knock-on, and this is the one that will mislead you.** Seven
+further failures are *log-assertion* tests, and they have nothing wrong with
+them:
+
+```
+tests/experience/test_survey_cadence.py::TestNoPhiEscapes::test_planning_logs_enums_only_never_the_recipient
+tests/legal/test_notifications.py::TestLogging::test_dispatch_logs_ids_and_statuses_never_a_body
+tests/observability/test_error_scrub.py::TestSetupGating::test_missing_sdk_is_a_logged_noop
+tests/observability/test_flags_provider.py::TestFlagReadLogging::test_read_is_logged_without_ctx_echo
+tests/observability/test_flags_provider.py::TestFlagReadLogging::test_unleash_read_logs_provider_and_never_ctx
+tests/security/test_otp_abuse.py::test_code_and_phone_never_in_logs_or_request_response
+tests/security/test_egress_policy.py::test_denial_emits_structured_record_and_allow_logs_purpose
+```
+
+**Each of them passes in isolation.** `pytest tests/experience` is 197 passed;
+add `tests/api` in front of it and the same module fails one test. The DB
+suites do not merely error — the failed bootstrap leaves logging configured in
+a way later `caplog` assertions cannot see through. Bisected and confirmed:
+`tests/api tests/experience` reproduces it, `tests/experience` alone does not.
+
+These are all *"no PHI in the logs"* tests, so note the direction: the absent
+service makes them **fail noisily**, never pass silently. That is the safe way
+round, and it is why this is a reporting hazard rather than a safety one — but
+it does mean **a red run here is not evidence of a defect until you have re-run
+the module on its own.**
+
 ## The reporting rule
 
 `make check` is an alias that fans out to `check-py`, `check-ts`, `check-golden`
