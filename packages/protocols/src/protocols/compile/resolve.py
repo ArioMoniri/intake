@@ -217,7 +217,53 @@ def _rule_refusals(rules: Sequence[RedFlagRule]) -> list[Refusal]:
                 )
             )
             continue
+        refusals.extend(_crisis_path_refusals(rule))
         refusals.extend(_red_axis_refusals(rule))
+    return refusals
+
+
+def _crisis_path_refusals(rule: RedFlagRule) -> list[Refusal]:
+    """The files/04 §4.2 crisis path and the open clinician questions
+    recorded against an action (HUMAN_BLOCKERS HB-C8, HB-C9).
+
+    Both are the HUMAN_BLOCKERS rule-2 shape: the mechanism is built, the
+    gate is wired, and it fails closed with the content empty. Neither takes
+    a flag, a dev-only mode or a demo default, because the missing thing is a
+    policy a clinician has to write and designing a way to run without it is
+    how a blocker becomes a defect.
+    """
+    refusals: list[Refusal] = []
+    if rule.consent_independent:
+        refusals.append(
+            _refusal(
+                RefusalCode.CRISIS_PATH_POLICY_MISSING,
+                rule.id,
+                "a consent-independent crisis rule cannot be emitted while the "
+                "files/04 §4.2 escalation policy does not exist (HUMAN_BLOCKERS "
+                "HB-C8). The rule's own two structural obligations are met — no "
+                "offline draft path, a named abandonment handler — but defect 1 "
+                "(a named responder with a stated SLA and a documented "
+                "out-of-hours path) and defect 4 (means restriction and safety "
+                "planning) are policy nobody has written, and files/04 §4.2 "
+                "states that running this pathway before they exist is not "
+                "defensible",
+            )
+        )
+    action = rule.action
+    if action is not None:
+        for location, branch in (("REMOTE", action.remote), ("ON_SITE", action.on_site)):
+            if branch.open_question:
+                refusals.append(
+                    _refusal(
+                        RefusalCode.ACTION_OPEN_QUESTION_UNANSWERED,
+                        rule.id,
+                        f"the {location} action still records an open clinician "
+                        f"question, so its script is provisional: {branch.open_question} "
+                        "(HUMAN_BLOCKERS HB-C9, which blocks the ON_SITE action "
+                        "text). Recording the question is right; serving the "
+                        "action while it stands is not",
+                    )
+                )
     return refusals
 
 

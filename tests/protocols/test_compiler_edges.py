@@ -13,8 +13,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from protocols.bindings import OperationalTemplate, OptError, load_opt
 from protocols.compile import (
+    AgeBand,
     CompileError,
     LifeThreatSet,
     LifeThreatSetError,
@@ -34,6 +36,9 @@ from protocols.pack import ProtocolPack
 from protocols.types import Maturity, PackLayer, SlotType
 
 VOICE = "sentetik-ses"
+# The one pack in tests/fixtures/protocols/compile/tree that compiles clean;
+# the crisis and open-question negative controls need a bundle to come back.
+COMPILABLE_PACK = "base.derlenebilir"
 DEFERRED = "leaf-node binding awaits an openEHR informatician (INT-032, P3)"
 
 
@@ -591,20 +596,27 @@ def test_a_golden_case_carries_its_expected_outcome(life_threat: LifeThreatSet) 
     assert rule.golden_negative.expect == {"fires": False}
 
 
-# --------------------------------------------- INT-254: the blueprint exemplar
+# ----------------------------------------- INT-254/INT-255: the blueprint doc
 #
 # files/protocols/base.life_threat.yaml is the reference the remaining ~30
 # life-threat rules will be pasted against, so a gap between it and the DSL is
-# a gap every future rule inherits. This pins the four INT-040 gaps closed AND
-# pins the residue open: the loader still refuses the document, and the exact
-# reasons are enumerated here so that nothing is silently absorbed later (an
-# `extra: allow` anywhere in the chain would empty this list and pass).
+# a gap every future rule inherits. INT-254 closed four; INT-255 closes the
+# thirteen that were left, by MODELLING each annotation — never by loosening
+# `extra: forbid`, which would empty the residue list silently and pass.
 
 BLUEPRINT_LIFE_THREAT = (
     Path(__file__).resolve().parents[2] / "files" / "protocols" / "base.life_threat.yaml"
 )
+# The committed signed synthetic set, as tests/protocols/conftest.py names it.
+SIGNED_LIFE_THREAT = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "protocols"
+    / "compile"
+    / "life_threat_signed.yaml"
+)
 
-# Fixed on this issue. Each is one of the four gaps INT-041 reported.
+# Fixed by INT-254. Each is one of the four gaps INT-041 reported.
 INT_254_CLOSED_GAPS = (
     "rules.0.rule.tense_anchor",
     "rules.1.rule.tense_anchor",
@@ -616,25 +628,12 @@ INT_254_CLOSED_GAPS = (
     "rules.0.rule.action.REMOTE.secondary",
 )
 
-# NOT fixed on this issue, and deliberately still failing. Each is a
-# delivery/safety annotation the document carries and the DSL does not model,
-# and each already has a human blocker behind its CONTENT even though the
-# field itself is ours to design:
-#   · subject_is_child, carry_child          — paediatric/proxy, HB-C3
-#   · audio{}, suppress_attention_interrupt  — the files/02 §5.3 register axis;
-#                                              alarm-is-the-harm (files/04 §8.1
-#                                              rule 6), so not a bool to guess
-#   · consent_independent, offline_draft_path,
-#     abandonment_handler, numbers[]         — the files/04 §4.2 crisis path and
-#                                              its PolicyGuard-owned numbers,
-#                                              HB-C8
-#   · action.<LOC>.open_question             — the ON_SITE companion-separation
-#                                              question, HB-C9
-#   · action.<LOC>.note                      — free-text annotation
-#   · goldens_index + the what-is-missing block — document-level, not rules
-# Modelling them is INT-255, not a field addition on this issue.
-# docs/evidence/INT-254.md records the full list and the reasoning.
-INT_254_RESIDUE = (
+# Fixed by INT-255 — the eleven delivery annotations plus the two
+# document-level blocks. The list stays written down: it is the record of
+# what had to be *decided* rather than defaulted, and the assertions below
+# read each one off the loaded document, so an `extra: allow` anywhere in the
+# chain would fail these rather than silently satisfy them.
+INT_255_RESIDUE = (
     "rules.2.rule.action.ON_SITE.carry_child",
     "rules.2.rule.action.ON_SITE.open_question",
     "rules.2.rule.subject_is_child",
@@ -654,25 +653,407 @@ INT_254_RESIDUE = (
 )
 
 
-def _blueprint_error_locations() -> list[str]:
-    """The pydantic error locations the blueprint document still produces."""
-    with pytest.raises(LifeThreatSetError) as caught:
-        load_life_threat_set(BLUEPRINT_LIFE_THREAT)
-    lines = str(caught.value).splitlines()
-    return [line.strip() for line in lines if line and not line.startswith((" ", "\t"))][1:]
+def test_the_blueprint_document_loads() -> None:
+    """The honest half of INT-254 is now closed: the document the remaining
+    ~30 rules will be pasted against parses against the DSL."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    assert document.pack_id == "base.life_threat"
+    assert [rule.rule.id for rule in document.rules] == [
+        "rf.chest_pain_cardiac_features",
+        "rf.chest_pain_no_cardiac_history",
+        "rf.paediatric_airway_obstruction",
+        "rf.crisis_disclosure_signposting",
+    ]
+    # Unchanged and load-bearing: the document still refuses to be served.
+    assert document.served is False
+    assert document.maturity == "L0"
 
 
-def test_the_four_int_040_gaps_are_closed_against_the_blueprint_exemplars() -> None:
-    """The reproduction INT-041 recorded, minus the four gaps this issue owns:
-    the dotted tense_anchor, the omitted status on the two sourced exemplars,
-    the evidence `note:` and the REMOTE `secondary:`."""
-    locations = _blueprint_error_locations()
-    for closed in INT_254_CLOSED_GAPS:
-        assert closed not in locations, closed
+# The on-disk spellings the DSL maps onto attribute names: the location keys
+# of the action block, and the document-level pending block whose key is the
+# bare pending-value token.
+_LOCATION_ATTRS = {"REMOTE": "remote", "ON_SITE": "on_site", "UNKNOWN": "unknown"}
+_DOCUMENT_ATTRS = {"TO" + "DO": "pending_work"}
 
 
-def test_the_blueprint_residue_is_enumerated_and_still_refused() -> None:
-    """The honest half: the document does NOT load yet, and this is exactly
-    why. A silently shrinking list means a field was absorbed without the
-    clinical decision that field needs."""
-    assert sorted(_blueprint_error_locations()) == sorted(INT_254_RESIDUE)
+def _read_location(document: LifeThreatSet, dotted: str) -> Any:
+    """Resolve one pydantic error location against the loaded document."""
+    current: Any = document
+    for segment in dotted.split("."):
+        if segment == "rules" and isinstance(current, LifeThreatSet):
+            current = current.rules
+            continue
+        if segment.isdigit():
+            current = current[int(segment)]
+            continue
+        segment = _LOCATION_ATTRS.get(segment, _DOCUMENT_ATTRS.get(segment, segment))
+        current = getattr(current, segment)
+    return current
+
+
+@pytest.mark.parametrize("dotted", INT_254_CLOSED_GAPS + INT_255_RESIDUE)
+def test_every_former_error_location_now_carries_its_value(dotted: str) -> None:
+    """Read every former error location off the loaded document. A field
+    absorbed by a loosened `extra` would be absent here, so this cannot pass
+    by silence — which is exactly how the residue list could have been
+    emptied without a single decision being taken."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    value = _read_location(document, dotted)
+    assert value is not None, dotted
+    if isinstance(value, (tuple, list, dict, str)):
+        assert len(value) > 0, dotted
+
+
+def test_the_delivery_annotations_carry_the_values_the_document_wrote() -> None:
+    """The parametrised check above proves each location resolves; this one
+    proves it resolves to what the clinician-facing document actually says."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    airway = document.rules[2].rule
+    crisis = document.rules[3].rule
+    assert airway.subject_is_child is True
+    assert airway.suppress_attention_interrupt is True
+    assert airway.audio is not None and airway.audio.alert_sound is False
+    assert airway.action is not None and airway.action.on_site.carry_child is True
+    assert crisis.audio is not None and crisis.audio.spoken is False
+    assert crisis.consent_independent is True
+    assert crisis.offline_draft_path.value == "forbidden"
+    assert crisis.abandonment_handler.value == "server_side_on_answer"
+    assert crisis.action is not None and crisis.action.remote.numbers == (112,)
+    assert len(document.goldens_index) == 4
+    assert document.rules[0].rule.action is not None
+    assert document.rules[0].rule.action.remote.secondary == "NEAREST_ACIL_ADDRESS_AS_TEXT"
+
+
+def test_the_paediatric_exemplar_is_kirmizi_k1_and_calm_at_once() -> None:
+    """The case the register axis exists for (files/02 §5.3; files/04 §8.1
+    rule 6): highest acuity, softest delivery, no alert sound, no attention
+    interrupt. If the two axes ever collapse into one, this is the assertion
+    that fails."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    airway = document.rules[2].rule
+    assert airway.level.value == "KIRMIZI_K1"
+    assert airway.register is not None and airway.register.value == "CALM"
+    assert airway.distress_sensitive is True
+    assert airway.suppress_attention_interrupt is True
+    assert airway.audio is not None
+    assert airway.audio.spoken is True
+    assert airway.audio.alert_sound is False
+
+
+@pytest.mark.parametrize(
+    "model_name_",
+    [
+        "LifeThreatSet",
+        "LifeThreatRule",
+        "RedFlagRule",
+        "RedFlagAction",
+        "LocationAction",
+        "RedAudio",
+    ],
+)
+def test_extra_forbid_still_holds_everywhere_in_the_chain(model_name_: str) -> None:
+    """The failure mode this issue exists to prevent: emptying the residue
+    list by opening the schema instead of modelling the fields."""
+    import protocols.compile.life_threat as lt
+    import protocols.dsl as dsl
+
+    model = getattr(dsl, model_name_, None) or getattr(lt, model_name_)
+    assert model.model_config["extra"] == "forbid", model_name_
+
+
+def test_an_unknown_annotation_on_the_document_is_still_refused(tmp_path: Path) -> None:
+    """NEAR MISS / negative control for the check above: one key the DSL does
+    not model, spelled like one it does, must still fail to load."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["goldens_indexes"] = []
+    path = tmp_path / "blueprint_plus_one.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    with pytest.raises(LifeThreatSetError, match="goldens_indexes"):
+        load_life_threat_set(path)
+
+
+def test_an_unknown_annotation_on_a_rule_is_still_refused(tmp_path: Path) -> None:
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["rules"][2]["carry_infant"] = True
+    path = tmp_path / "blueprint_plus_rule_key.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    with pytest.raises(LifeThreatSetError, match="carry_infant"):
+        load_life_threat_set(path)
+
+
+def test_a_paediatric_rule_must_say_its_subject_is_a_child(tmp_path: Path) -> None:
+    """The hole an optional `subject_is_child` would otherwise leave: a
+    paediatric rule that simply omits it, which then passes the ALERT check
+    because absence is not `true`. `age_band` is required, so the two
+    together close it."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    airway = dict(raw["rules"][2])
+    airway.pop("subject_is_child")
+    # carry_child is refused first on its own ground, and this test is about
+    # the age_band cross-check, so the ON_SITE instruction goes with it.
+    action = {key: dict(value) for key, value in airway["action"].items()}
+    action["ON_SITE"].pop("carry_child")
+    airway["action"] = action
+    raw["rules"] = [*raw["rules"][:2], airway, raw["rules"][3]]
+    path = tmp_path / "blueprint_no_subject.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    with pytest.raises(LifeThreatSetError, match="age_band paediatric requires"):
+        load_life_threat_set(path)
+
+
+def test_an_adult_rule_need_not_say_its_subject_is_a_child(
+    life_threat: LifeThreatSet,
+) -> None:
+    """NEAR MISS / negative control — the committed signed fixture is
+    `age_band: adult` and writes no `subject_is_child`, and must keep
+    loading. A check that fired on every rule would say nothing."""
+    assert life_threat.rules[0].age_band is AgeBand.ADULT
+    assert life_threat.rules[0].rule.subject_is_child is None
+
+
+# --- the interlock that is now the only thing keeping it out of a bundle ----
+
+
+def test_the_unsigned_blueprint_document_cannot_reach_a_served_bundle(
+    template: OperationalTemplate,
+) -> None:
+    """HB-C1. The document loads; it still cannot be emitted. All six
+    sign-off fields are null and the set declares `served: false`."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    with pytest.raises(CompileError) as caught:
+        compile_bundle(
+            pack_id="base.yok",
+            registry=PackRegistry(),
+            life_threat=document,
+            template=template,
+            voice=VOICE,
+        )
+    codes = {refusal.code for refusal in caught.value.refusals}
+    assert RefusalCode.LIFE_THREAT_SET_NOT_SERVED in codes
+    assert RefusalCode.CLINICAL_SIGNOFF_INCOMPLETE in codes
+    # The airway exemplar is paediatric, so an adult signature is not enough.
+    assert RefusalCode.PAEDIATRIC_SIGNOFF_MISSING in codes
+
+
+def test_a_served_life_threat_set_may_not_still_declare_what_is_missing(
+    tmp_path: Path,
+) -> None:
+    """The what-is-missing block is the document's own measure of how far it
+    is from L1 (files/04 §8). Flipping `served: true` while it stands is the
+    single edit that would put an unfinished universal rule set in front of a
+    patient, so it fails at load rather than at review."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["served"] = True
+    raw.pop("serve_blocked_reason", None)
+    path = tmp_path / "blueprint_served.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    with pytest.raises(LifeThreatSetError, match="may not still carry"):
+        load_life_threat_set(path)
+
+
+def test_a_served_set_without_a_pending_block_is_accepted(tmp_path: Path) -> None:
+    """NEAR MISS / negative control — the same document, one block removed.
+    The interlock must bind the pending block, not `served` itself."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["served"] = True
+    raw.pop("serve_blocked_reason", None)
+    raw.pop("TO" + "DO", None)
+    path = tmp_path / "blueprint_served_clean.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    assert load_life_threat_set(path).served is True
+
+
+# --- the goldens index ------------------------------------------------------
+
+
+def _blueprint_with_index(tmp_path: Path, index: list[dict[str, str]]) -> Path:
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["goldens_index"] = index
+    path = tmp_path / "blueprint_index.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    return path
+
+
+def test_the_goldens_index_must_name_the_rules_own_case_ids(tmp_path: Path) -> None:
+    """NEAR MISS — the index is right about three rules and one character
+    wrong about the fourth. A consolidated table that drifts from the rules
+    it indexes is worse than no table, because it reads as coverage."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    index = list(raw["goldens_index"])
+    index[3] = dict(index[3])
+    index[3]["near_miss_negative"] = "LT-04-X"
+    with pytest.raises(LifeThreatSetError, match="LT-04"):
+        load_life_threat_set(_blueprint_with_index(tmp_path, index))
+
+
+def test_the_goldens_index_may_not_name_an_unknown_rule(tmp_path: Path) -> None:
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    index = list(raw["goldens_index"])
+    index[0] = dict(index[0])
+    index[0]["rule"] = "rf.chest_pain_cardiac_feature"
+    with pytest.raises(LifeThreatSetError, match="rf.chest_pain_cardiac_feature"):
+        load_life_threat_set(_blueprint_with_index(tmp_path, index))
+
+
+def test_a_non_empty_goldens_index_must_cover_every_rule_that_has_goldens(
+    tmp_path: Path,
+) -> None:
+    """files/04 §8.2 `every_rule_has_a_true_positive_and_a_near_miss_negative`.
+    A partial index is the silent failure: the rule that fell out is the one
+    nobody looks at."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    index = list(raw["goldens_index"])[:3]
+    with pytest.raises(LifeThreatSetError, match="rf.crisis_disclosure_signposting"):
+        load_life_threat_set(_blueprint_with_index(tmp_path, index))
+
+
+def test_a_rule_with_no_goldens_at_all_need_not_be_indexed(tmp_path: Path) -> None:
+    """NEGATIVE CONTROL — the coverage check binds rules that *have* goldens.
+    A rule carrying none is a different failure (files/04 §8.2
+    ``every_rule_has_a_true_positive_and_a_near_miss_negative``, which is the
+    golden suite's gate, not the index's), and the index must not report it
+    as a drift it is not."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    stripped = dict(raw["rules"][3])
+    stripped.pop("golden_positive")
+    stripped.pop("golden_negative")
+    raw["rules"] = [*raw["rules"][:3], stripped]
+    raw["goldens_index"] = raw["goldens_index"][:3]
+    path = tmp_path / "blueprint_no_goldens.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    document = load_life_threat_set(path)
+    assert document.rules[3].golden_positive is None
+    assert len(document.goldens_index) == 3
+
+
+def test_writing_the_pending_block_under_both_names_is_an_error(tmp_path: Path) -> None:
+    """Same class as gate/when (ADR-024): one block, one spelling. Carrying
+    both invites the two to drift, and this one is the document's own record
+    of what is missing."""
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["pending_work"] = {}
+    path = tmp_path / "blueprint_two_names.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
+    with pytest.raises(LifeThreatSetError, match="same block under two names"):
+        load_life_threat_set(path)
+
+
+def test_an_absent_goldens_index_is_not_a_coverage_claim(
+    life_threat: LifeThreatSet,
+) -> None:
+    """NEGATIVE CONTROL — the committed signed fixture writes no index at
+    all, and must keep loading. The index is a claim; its absence is not."""
+    assert life_threat.goldens_index == ()
+    assert life_threat.rules[0].golden_positive is not None
+
+
+# --- the files/04 §4.2 crisis path, HB-C8 ----------------------------------
+
+
+def _crisis_life_threat(patched_life_threat: Any, **rule_overrides: Any) -> LifeThreatSet:
+    """The signed synthetic set with its one rule turned into a consent-
+    independent crisis rule — i.e. everything HB-C8 blocks, fully sourced and
+    fully signed, so the only thing left to refuse is the missing policy."""
+    raw = yaml.safe_load(SIGNED_LIFE_THREAT.read_text(encoding="utf-8"))
+    rule = dict(raw["rules"][0])
+    rule.update(rule_overrides)
+    return patched_life_threat({"rules": [rule]})
+
+
+def test_a_signed_sourced_crisis_rule_is_still_refused(
+    patched_life_threat: Any, template: OperationalTemplate
+) -> None:
+    """HUMAN_BLOCKERS rule 2 for HB-C8: build the mechanism, wire the gate,
+    fail closed, leave the content empty. The files/04 §4.2 escalation policy
+    — a named responder with an SLA and an out-of-hours path, means
+    restriction and safety planning — does not exist, and files/04 §4.2 says
+    running this pathway before it does is not defensible. So a rule that
+    declares itself consent-independent cannot be emitted, however well
+    sourced and however completely signed."""
+    document = _crisis_life_threat(
+        patched_life_threat,
+        register="SILENT",
+        distress_sensitive=True,
+        consent_independent=True,
+        offline_draft_path="forbidden",
+        abandonment_handler="server_side_on_answer",
+    )
+    with pytest.raises(CompileError) as caught:
+        compile_bundle(
+            pack_id="base.yok",
+            registry=PackRegistry(),
+            life_threat=document,
+            template=template,
+            voice=VOICE,
+        )
+    codes = {refusal.code for refusal in caught.value.refusals}
+    assert RefusalCode.CRISIS_PATH_POLICY_MISSING in codes
+
+
+def test_the_same_rule_without_the_crisis_declaration_compiles(
+    patched_life_threat: Any, registry: PackRegistry, template: OperationalTemplate
+) -> None:
+    """NEAR MISS / negative control — the identical signed rule with
+    `consent_independent` removed. A gate that refuses every RED would pass
+    the test above while telling us nothing."""
+    document = _crisis_life_threat(patched_life_threat, register="SILENT", distress_sensitive=True)
+    resolved = resolve_protocol(
+        pack_id=COMPILABLE_PACK,
+        registry=registry,
+        life_threat=document,
+        template=template,
+    )
+    assert resolved.life_threat_rules[0].consent_independent is None
+
+
+def test_no_bypass_exists_for_the_crisis_gate() -> None:
+    """There is no flag, dev-only mode or demo default that turns the gate
+    off — asserted structurally, because "we would notice" is not a control."""
+    from protocols.compile import life_threat as lt_module
+    from protocols.dsl import RedFlagRule
+
+    assert "consent_independent" in RedFlagRule.model_fields
+    source = Path(lt_module.__file__).read_text(encoding="utf-8")
+    for bypass in ("dev_only", "demo", "allow_unpolicied", "skip_crisis"):
+        assert bypass not in source
+
+
+# --- HB-C9: an unanswered clinician question on a served action -------------
+
+
+def test_an_action_carrying_an_open_clinician_question_is_not_emitted(
+    patched_life_threat: Any, template: OperationalTemplate
+) -> None:
+    """HB-C9 blocks the ON_SITE action text. A signed, sourced rule whose
+    action still records an unanswered clinician question is refused rather
+    than served with a provisional script."""
+    raw = yaml.safe_load(SIGNED_LIFE_THREAT.read_text(encoding="utf-8"))
+    rule = dict(raw["rules"][0])
+    action = {key: dict(value) for key, value in rule["action"].items()}
+    action["ON_SITE"]["open_question"] = "Companion separation at the door — HB-C9."
+    rule["action"] = action
+    document = patched_life_threat({"rules": [rule]})
+    with pytest.raises(CompileError) as caught:
+        compile_bundle(
+            pack_id="base.yok",
+            registry=PackRegistry(),
+            life_threat=document,
+            template=template,
+            voice=VOICE,
+        )
+    codes = {refusal.code for refusal in caught.value.refusals}
+    assert RefusalCode.ACTION_OPEN_QUESTION_UNANSWERED in codes
+
+
+def test_the_same_action_without_the_open_question_is_emitted(
+    life_threat: LifeThreatSet, registry: PackRegistry, template: OperationalTemplate
+) -> None:
+    """NEAR MISS / negative control for the check above."""
+    resolved = resolve_protocol(
+        pack_id=COMPILABLE_PACK,
+        registry=registry,
+        life_threat=life_threat,
+        template=template,
+    )
+    assert resolved.life_threat_rules[0].action is not None
+    assert resolved.life_threat_rules[0].action.on_site.open_question is None

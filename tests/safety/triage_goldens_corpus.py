@@ -152,6 +152,18 @@ _RULE_KEYS = (
     "distress_sensitive",
     "notify_clinic",
     "source_gap",
+    # INT-255 — the files/02 §5.3 delivery axes and the files/04 §4.2 crisis
+    # path. Forwarded rather than dropped for the same reason `status` is:
+    # the DSL requires `suppress_attention_interrupt` on a distress_sensitive
+    # rule with no default, and a translator that silently dropped it would
+    # evaluate the paediatric airway exemplar under a delivery the document
+    # does not declare.
+    "audio",
+    "subject_is_child",
+    "suppress_attention_interrupt",
+    "consent_independent",
+    "offline_draft_path",
+    "abandonment_handler",
 )
 _SOURCE_KEYS = (
     "guideline_id",
@@ -173,6 +185,11 @@ _LOCATION_KEYS = (
     "why_tr",
     "why_tr_ref",
     "notify_staff_immediate",
+    # INT-255 — the per-location annotations the document carries.
+    "carry_child",
+    "numbers",
+    "open_question",
+    "note",
 )
 _UNKNOWN_KEYS = ("ask_one_tr", "on_yes", "on_no", "on_no_answer")
 

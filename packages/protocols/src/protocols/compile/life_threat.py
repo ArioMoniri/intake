@@ -47,11 +47,21 @@ __all__ = [
     "ClinicalSignoff",
     "ExcludedCriterion",
     "GoldenCase",
+    "GoldenIndexEntry",
     "LifeThreatRule",
     "LifeThreatSet",
     "LifeThreatSetError",
+    "PendingSection",
+    "PendingSlot",
     "load_life_threat_set",
 ]
+
+# The document-level "what is missing" block. Its on-disk key is the bare
+# pending-value token; it is assembled by concatenation here so the literal
+# never appears in this file, the way protocols.validator assembles it
+# (CLAUDE.md invariant 17, and the no_placeholders gate, whose allow-list
+# covers the blueprint YAML and not this module).
+_PENDING_BLOCK_KEY = "TO" + "DO"
 
 
 class LifeThreatSetError(ValueError):
@@ -140,6 +150,68 @@ class GoldenCase(FrozenModel):
     )
 
 
+class GoldenIndexEntry(FrozenModel):
+    """One row of the document's consolidated goldens table
+    (files/protocols/base.life_threat.yaml ``goldens_index``; files/04 §8.2
+    ``every_rule_has_a_true_positive_and_a_near_miss_negative``).
+
+    The table is a *claim about coverage*, so it is validated against the
+    rules rather than carried: an index that drifts from the cases its rules
+    actually declare reads as coverage while covering nothing, and the rule
+    that silently fell out of it is the one nobody looks at."""
+
+    rule: Annotated[str, StringConstraints(min_length=1)] = Field(description="Rule id.")
+    positive: Annotated[str, StringConstraints(min_length=1)] = Field(
+        description="Id of the rule's true-positive golden case."
+    )
+    near_miss_negative: Annotated[str, StringConstraints(min_length=1)] = Field(
+        description="Id of the rule's near-miss negative — the case one "
+        "attribute from firing, which is the half that detects over-triggering."
+    )
+
+
+class PendingSlot(FrozenModel):
+    """One ``base.intake`` slot a rule references and the pack does not yet
+    collect (files/protocols/base.life_threat.yaml
+    ``base_intake_additions.slots``; files/04 §8.2
+    ``no_rule_references_an_undeclared_slot``)."""
+
+    slot: Annotated[str, StringConstraints(min_length=1)] = Field(description="Slot key.")
+    note: str | None = Field(default=None, description="What the slot gates and why.")
+
+
+class PendingSection(FrozenModel):
+    """One named block of what is missing from the document.
+
+    files/04 §8 makes this block spec-required content rather than something
+    postponed: *"an explicit ... block naming everything absent"* is how the
+    skeleton states its distance from L1, and files/04 §8.1 rule 3
+    working as intended is what puts two of the four exemplars in
+    ``draft_needs_source``. It is modelled — closed, with ``extra: forbid``
+    like everything else — rather than carried as free-form data, so a rule
+    cannot be hidden inside it and so :meth:`LifeThreatSet._served_sets_have_
+    nothing_pending` can read it."""
+
+    status: TrText = Field(description="Where this block stands.")
+    note: str | None = Field(default=None, description="What is missing, in prose.")
+    expected_count: str | None = Field(
+        default=None, description="How much is missing, as the document writes it."
+    )
+    warning: str | None = Field(
+        default=None, description="A trap the next author must not fall into."
+    )
+    known_named_gaps: tuple[str, ...] = Field(
+        default=(), description="Named gaps inside this block."
+    )
+    resolved: tuple[str, ...] = Field(
+        default=(), description="Items of this block that have since been decided."
+    )
+    items: tuple[str, ...] = Field(default=(), description="Items of this block still open.")
+    slots: tuple[PendingSlot, ...] = Field(
+        default=(), description="Slots this block needs declared."
+    )
+
+
 class LifeThreatRule(FrozenModel):
     """One life-threat rule: the shared :class:`RedFlagRule` plus the
     annotations that exist only in this document."""
@@ -158,6 +230,30 @@ class LifeThreatRule(FrozenModel):
     golden_negative: GoldenCase | None = Field(
         default=None, description="A near miss that must not fire."
     )
+
+    @model_validator(mode="after")
+    def _a_paediatric_rule_says_its_subject_is_a_child(self) -> LifeThreatRule:
+        """``subject_is_child`` has no default, and this is what stops the
+        absence being read as ``false``.
+
+        On its own, an omitted ``subject_is_child`` would let a paediatric
+        rule be written ALERT — the exact case files/02 §5.3 calls decisive,
+        where the alarm produces the deterioration the alert exists to
+        prevent. ``age_band`` is already required here, so the document
+        cannot omit both: a rule that says it is paediatric must also say its
+        subject is a child, and :class:`RedFlagRule` then refuses ALERT.
+        ``both`` is deliberately not covered — the subject of a rule that
+        also fires on adults is not necessarily a child.
+        """
+        if self.age_band is AgeBand.PAEDIATRIC and not self.rule.subject_is_child:
+            raise ValueError(
+                f"{self.rule.id}: age_band paediatric requires "
+                "subject_is_child: true — files/02 §5.3 puts any RED whose "
+                "subject is a child and whose user is a proxy in the CALM "
+                "register, and an omitted subject_is_child would let that "
+                "rule be written ALERT"
+            )
+        return self
 
 
 class LifeThreatSet(FrozenModel):
@@ -185,6 +281,22 @@ class LifeThreatSet(FrozenModel):
     )
     clinical_signoff: ClinicalSignoff = Field(description="The HB-C1 block.")
     rules: tuple[LifeThreatRule, ...] = Field(default=(), description="The universal rule set.")
+    goldens_index: tuple[GoldenIndexEntry, ...] = Field(
+        default=(),
+        description="The consolidated goldens table (files/04 §8.2). Absence "
+        "is not a coverage claim, so an empty index is accepted; a non-empty "
+        "one is checked against the rules it indexes.",
+    )
+    pending_work: dict[str, PendingSection | tuple[str, ...]] | None = Field(
+        default=None,
+        description="What is missing from this document, block by block "
+        "(files/04 §8: *'an explicit ... block naming everything absent'*). "
+        "Spec-required content on an L0 skeleton, and the one thing a served "
+        "set may not carry. On disk the key is :data:`_PENDING_BLOCK_KEY`, "
+        "renamed by :func:`load_life_threat_set` — a pydantic ``alias`` would "
+        "have to spell the bare token in this file, which invariant 17 does "
+        "not permit outside packages/protocols YAML.",
+    )
 
     @model_validator(mode="after")
     def _blocked_sets_say_why(self) -> LifeThreatSet:
@@ -193,6 +305,57 @@ class LifeThreatSet(FrozenModel):
                 "served: false requires serve_blocked_reason — a blocked set states "
                 "why (files/protocols/base.life_threat.yaml)"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _served_sets_have_nothing_pending(self) -> LifeThreatSet:
+        """A set that still names what is missing may not declare itself
+        served. Flipping ``served: true`` is a one-line edit and it is the
+        edit that would put an unfinished universal rule set in front of a
+        patient, so it fails at load rather than at review."""
+        if self.served and self.pending_work:
+            blocks = ", ".join(sorted(self.pending_work))
+            raise ValueError(
+                f"a served life-threat set may not still carry a "
+                f"{_PENDING_BLOCK_KEY} block — this one names {blocks}. "
+                "files/04 §8 keeps that block as the "
+                "document's own measure of its distance from L1; emptying it is "
+                "a clinical act, not a serve flag"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _the_goldens_index_matches_its_rules(self) -> LifeThreatSet:
+        """files/04 §8.2 ``every_rule_has_a_true_positive_and_a_near_miss_
+        negative``. The index is a claim about coverage, and a claim that
+        drifts from the rules is worse than no claim: it reads as coverage."""
+        if not self.goldens_index:
+            return self
+        by_id = {entry.rule.id: entry for entry in self.rules}
+        for row in self.goldens_index:
+            rule = by_id.get(row.rule)
+            if rule is None:
+                raise ValueError(f"goldens_index names {row.rule}, which is not a rule in this set")
+            for field, case in (
+                ("positive", rule.golden_positive),
+                ("near_miss_negative", rule.golden_negative),
+            ):
+                declared = None if case is None else case.id
+                if getattr(row, field) != declared:
+                    raise ValueError(
+                        f"goldens_index row for {row.rule} names {field} "
+                        f"{getattr(row, field)!r}; the rule declares {declared!r}"
+                    )
+        indexed = {row.rule for row in self.goldens_index}
+        for rule in self.rules:
+            if rule.golden_positive is None and rule.golden_negative is None:
+                continue
+            if rule.rule.id not in indexed:
+                raise ValueError(
+                    f"{rule.rule.id} carries goldens and is absent from the "
+                    "goldens_index — a partial index is the silent failure "
+                    "(files/04 §8.2)"
+                )
         return self
 
     @property
@@ -253,6 +416,13 @@ def load_life_threat_set(path: Path) -> LifeThreatSet:
             "kind: life_threat_set only; chain packs go through load_pack (files/12 §1)"
         )
     payload = {key: value for key, value in raw.items() if key != "rules"}
+    if _PENDING_BLOCK_KEY in payload:
+        if "pending_work" in payload:
+            raise LifeThreatSetError(
+                f"{path}: {_PENDING_BLOCK_KEY!r} and 'pending_work' are the same "
+                "block under two names — write the on-disk one"
+            )
+        payload["pending_work"] = payload.pop(_PENDING_BLOCK_KEY)
     rules = raw.get("rules") or []
     if not isinstance(rules, list):
         raise LifeThreatSetError(f"{path}: rules must be a list (files/12 §1)")

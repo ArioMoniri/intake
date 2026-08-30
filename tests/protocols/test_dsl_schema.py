@@ -720,3 +720,469 @@ def test_on_site_still_never_offers_112_when_a_secondary_action_is_set() -> None
     assert isinstance(action, dict)
     action["ON_SITE"] = _location(secondary="NEAREST_ACIL_ADDRESS_AS_TEXT", show_112=True)
     _expect_rule_rejected("ON_SITE action never offers 112", action=action)
+
+
+# ---------------------------------------------------------------------------
+# INT-255 — the eleven delivery annotations the DSL refused.
+#
+# Each field below is one the blueprint life-threat document carries and the
+# DSL did not model. The rule the whole group is written under: **no field
+# here gets an engineer-chosen default.** A default is picked once, by
+# somebody who is not a clinician, for every rule written afterwards — which
+# is how the paediatric airway case (KIRMIZI_K1 *and* CALM, because alarm is
+# the mechanism of harm) acquires an alarm. So every one of these is either
+# absent-meaning-undeclared (`None`, never `False`) or resolved through a
+# field that is itself required with no default.
+# ---------------------------------------------------------------------------
+
+# files/02 §5.3 Axis 2, verbatim from the register table: what each register
+# does to the audio channel. Written here independently of the source so the
+# test is a check and not a restatement of the implementation.
+REGISTER_AUDIO_TABLE = {
+    "ALERT": {"spoken": True, "prosody": "urgent", "alert_sound": True},
+    "CALM": {"spoken": True, "prosody": "soft", "alert_sound": False},
+    "SILENT": {"spoken": False, "prosody": None, "alert_sound": False},
+    "DEFERRED_CLINICIAN": {"spoken": False, "prosody": None, "alert_sound": False},
+}
+
+# A KIRMIZI rule needs a register and an action; CALM/SILENT rules are
+# distress_sensitive, which is what makes the interrupt question live.
+DELIVERY_FIELDS_WITH_NO_DEFAULT = (
+    "audio",
+    "subject_is_child",
+    "suppress_attention_interrupt",
+    "consent_independent",
+    "offline_draft_path",
+    "abandonment_handler",
+)
+
+
+def _calm_child_rule(**overrides: object) -> dict[str, object]:
+    """The shape of the paediatric airway exemplar: CALM, distress
+    sensitive, subject is a child, interrupt suppressed."""
+    payload = _rule_payload(
+        register="CALM",
+        distress_sensitive=True,
+        subject_is_child=True,
+        suppress_attention_interrupt=True,
+        audio=dict(REGISTER_AUDIO_TABLE["CALM"]),
+    )
+    payload.update(overrides)
+    return payload
+
+
+def _crisis_rule(**overrides: object) -> dict[str, object]:
+    """The shape of the crisis-signposting exemplar: SILENT, consent
+    independent, no offline draft path, a named abandonment handler."""
+    payload = _rule_payload(
+        register="SILENT",
+        distress_sensitive=True,
+        audio=dict(REGISTER_AUDIO_TABLE["SILENT"]),
+        consent_independent=True,
+        offline_draft_path="forbidden",
+        abandonment_handler="server_side_on_answer",
+    )
+    payload.update(overrides)
+    return payload
+
+
+@pytest.mark.parametrize("field", DELIVERY_FIELDS_WITH_NO_DEFAULT)
+def test_no_delivery_annotation_carries_an_engineer_chosen_default(field: str) -> None:
+    """CLAUDE.md invariant 21 and files/02 §5.3: `register` is required with
+    no permitted default *because* a default is chosen once for every future
+    rule. The fields that carry the same axis inherit the same rule — absent
+    means undeclared (`None`), never `False`, and never a value."""
+    from protocols import RedFlagRule
+
+    assert RedFlagRule.model_fields[field].default is None, field
+    rule = RedFlagRule.model_validate(_rule_payload())
+    assert getattr(rule, field) is None, field
+
+
+def test_the_action_delivery_annotations_carry_no_default_either() -> None:
+    from protocols import LocationAction
+
+    assert LocationAction.model_fields["carry_child"].default is None
+    assert LocationAction.model_fields["open_question"].default is None
+    assert LocationAction.model_fields["note"].default is None
+    # An empty number list is the absence of an affordance, which is the safe
+    # direction; a non-empty one is a decision and is gated below.
+    assert LocationAction.model_fields["numbers"].default == ()
+
+
+# --- audio: the register axis restated, never independently chosen ---------
+
+
+def test_every_field_inside_the_audio_block_is_required() -> None:
+    """`audio: {spoken, prosody, alert_sound}` — writing two of the three and
+    letting the third default is the same failure one level down."""
+    from protocols.dsl import RedAudio
+
+    for name in ("spoken", "prosody", "alert_sound"):
+        assert RedAudio.model_fields[name].is_required(), name
+
+
+@pytest.mark.parametrize("register", sorted(REGISTER_AUDIO_TABLE))
+def test_audio_restates_the_register_table(register: str) -> None:
+    """files/02 §5.3 Axis 2 fixes the audio profile per register. A written
+    `audio` block is a restatement of that row and must agree with it."""
+    from protocols import RedFlagRule
+
+    payload = _rule_payload(register=register, audio=dict(REGISTER_AUDIO_TABLE[register]))
+    if register in ("CALM", "SILENT"):
+        payload["distress_sensitive"] = True
+        payload["suppress_attention_interrupt"] = True
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.audio is not None
+    assert rule.audio.spoken is REGISTER_AUDIO_TABLE[register]["spoken"]
+    assert rule.audio.alert_sound is REGISTER_AUDIO_TABLE[register]["alert_sound"]
+
+
+def test_a_rule_that_omits_audio_resolves_it_through_its_register() -> None:
+    """The answer to "what does absence mean" is not a constant somebody
+    picked: it is the register's own row, and `register` is required with no
+    default on every RED."""
+    from protocols import RedFlagRule
+    from protocols.dsl import REGISTER_AUDIO
+
+    rule = RedFlagRule.model_validate(_rule_payload())
+    assert rule.audio is None
+    assert rule.register is not None
+    assert rule.resolved_audio == REGISTER_AUDIO[rule.register]
+
+
+def test_a_written_audio_block_is_what_resolves() -> None:
+    from protocols import RedFlagRule
+
+    payload = _rule_payload(audio=dict(REGISTER_AUDIO_TABLE["ALERT"]))
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.resolved_audio is rule.audio
+
+
+def test_a_rule_with_no_register_resolves_no_audio() -> None:
+    """A non-RED rule that declared no delivery has no audio profile, and the
+    property says so rather than inventing one."""
+    from protocols import RedFlagRule
+
+    rule = RedFlagRule.model_validate(_rule_payload(level="SARI_K2", register=None, action=None))
+    assert rule.register is None
+    assert rule.resolved_audio is None
+
+
+def test_the_register_audio_table_is_the_blueprint_table() -> None:
+    from protocols.dsl import REGISTER_AUDIO
+
+    rendered = {
+        register.value: {
+            "spoken": profile.spoken,
+            "prosody": None if profile.prosody is None else profile.prosody.value,
+            "alert_sound": profile.alert_sound,
+        }
+        for register, profile in REGISTER_AUDIO.items()
+    }
+    assert rendered == REGISTER_AUDIO_TABLE
+
+
+@pytest.mark.parametrize(
+    ("register", "audio"),
+    [
+        # NEAR MISS — one field away from the CALM row, and the one field is
+        # the alarm itself. This is the paediatric airway case acquiring the
+        # alert sound that files/04 §8.1 rule 6 forbids.
+        ("CALM", {"spoken": True, "prosody": "soft", "alert_sound": True}),
+        # NEAR MISS — CALM with urgent prosody: no alert sound, but the
+        # delivery is still the one that agitates the child.
+        ("CALM", {"spoken": True, "prosody": "urgent", "alert_sound": False}),
+        # NEAR MISS — SILENT that speaks. "No audio, ever" is the whole row.
+        ("SILENT", {"spoken": True, "prosody": None, "alert_sound": False}),
+        # NEAR MISS — ALERT quietened. Disagreement in the safe direction is
+        # still disagreement: the register is what the runtime reads.
+        ("ALERT", {"spoken": True, "prosody": "soft", "alert_sound": False}),
+    ],
+)
+def test_audio_that_contradicts_its_register_is_refused(
+    register: str, audio: dict[str, object]
+) -> None:
+    payload = _rule_payload(register=register, audio=audio)
+    if register in ("CALM", "SILENT"):
+        payload["distress_sensitive"] = True
+        payload["suppress_attention_interrupt"] = True
+    _expect_rule_rejected("audio", **payload)
+
+
+def test_audio_without_a_register_is_refused() -> None:
+    """An audio block with no register is a delivery decision with no axis
+    to hang on — and on a non-RED rule there is no register to check it
+    against."""
+    _expect_rule_rejected(
+        "audio", level="SARI_K2", register=None, action=None, audio=REGISTER_AUDIO_TABLE["ALERT"]
+    )
+
+
+# --- the attention interrupt ------------------------------------------------
+
+
+def test_a_distress_sensitive_rule_must_state_whether_the_interrupt_runs() -> None:
+    """files/04 §8.1 rule 6: the airway rule "must not run the normal
+    attention-grabbing interrupt at all". A rule that has declared alarm to
+    be the harm cannot leave that unwritten."""
+    payload = _calm_child_rule()
+    del payload["suppress_attention_interrupt"]
+    _expect_rule_rejected("suppress_attention_interrupt", **payload)
+
+
+def test_a_rule_that_is_not_distress_sensitive_need_not_state_it() -> None:
+    """NEAR MISS / negative control — one field away from the case above.
+    For an ordinary ALERT rule the interrupt is the blueprint's own RED
+    behaviour (files/02 §5: RED is the only interruption), not a silence."""
+    from protocols import RedFlagRule
+
+    rule = RedFlagRule.model_validate(_rule_payload(distress_sensitive=False))
+    assert rule.suppress_attention_interrupt is None
+
+
+def test_a_silent_register_may_not_claim_the_interrupt_runs() -> None:
+    """SILENT is "no headline, no colour change, no takeover" — there is no
+    interrupt to run, so `false` here is a contradiction, not a choice."""
+    _expect_rule_rejected(
+        "suppress_attention_interrupt", **_crisis_rule(suppress_attention_interrupt=False)
+    )
+
+
+# --- the paediatric proxy axis ---------------------------------------------
+
+
+def test_a_child_subject_may_not_be_delivered_as_an_alarm() -> None:
+    """files/02 §5.3: CALM covers "any RED where the subject is a child and
+    the user is a proxy". ALERT on such a rule is the exact failure the
+    register axis exists to prevent."""
+    _expect_rule_rejected(
+        "subject_is_child",
+        **_calm_child_rule(
+            register="ALERT",
+            audio=dict(REGISTER_AUDIO_TABLE["ALERT"]),
+        ),
+    )
+
+
+def test_an_adult_rule_with_the_same_register_is_untouched() -> None:
+    """NEAR MISS / negative control — identical rule, one field different.
+    ALERT is correct for adults where alarm aids action."""
+    from protocols import RedFlagRule
+
+    rule = RedFlagRule.model_validate(_rule_payload(register="ALERT"))
+    assert rule.subject_is_child is None
+    assert rule.register is not None and rule.register.value == "ALERT"
+
+
+def test_carry_child_requires_the_subject_to_be_a_child() -> None:
+    """`carry_child` is the ON_SITE instruction to carry the child to the
+    acil servis. On a rule whose subject is not a child it is an instruction
+    to carry somebody who is not there."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(carry_child=True)
+    _expect_rule_rejected("carry_child", action=action)
+
+
+def test_carry_child_is_accepted_on_a_child_rule() -> None:
+    from protocols import RedFlagRule
+
+    payload = _calm_child_rule()
+    action = dict(payload["action"])  # type: ignore[arg-type]
+    action["ON_SITE"] = _location(carry_child=True)
+    payload["action"] = action
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    assert rule.action.on_site.carry_child is True
+
+
+# --- the files/04 §4.2 crisis path ------------------------------------------
+
+
+def test_a_consent_independent_rule_must_forbid_the_offline_draft_path() -> None:
+    """files/04 §8.2 `crisis_items_have_no_offline_draft_path`: the local
+    encrypted resume cache means the disclosure may never reach the server
+    at all (files/04 §4.2 defect 2)."""
+    payload = _crisis_rule()
+    del payload["offline_draft_path"]
+    _expect_rule_rejected("offline_draft_path", **payload)
+
+
+def test_a_consent_independent_rule_must_name_an_abandonment_handler() -> None:
+    """files/04 §8.2 `abandonment_handler_is_defined`."""
+    payload = _crisis_rule()
+    del payload["abandonment_handler"]
+    _expect_rule_rejected("abandonment_handler", **payload)
+
+
+def test_a_rule_that_is_not_consent_independent_needs_neither() -> None:
+    """NEAR MISS / negative control — the same rule with the one field
+    cleared. The crisis obligations attach to the crisis path, not to every
+    SILENT rule, or the check would fire on everything and mean nothing."""
+    from protocols import RedFlagRule
+
+    payload = _crisis_rule()
+    del payload["consent_independent"]
+    del payload["offline_draft_path"]
+    del payload["abandonment_handler"]
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.consent_independent is None
+    assert rule.offline_draft_path is None
+    assert rule.abandonment_handler is None
+
+
+def test_the_offline_draft_path_admits_only_the_value_the_blueprint_names() -> None:
+    """`forbidden` is the only value files/04 states. An `allowed` member
+    would be this file inventing the policy HB-C8 is open on."""
+    from protocols.types import OfflineDraftPath
+
+    assert [member.value for member in OfflineDraftPath] == ["forbidden"]
+    _expect_rule_rejected("offline_draft_path", **_crisis_rule(offline_draft_path="allowed"))
+
+
+def test_the_abandonment_handler_admits_only_the_value_the_blueprint_names() -> None:
+    from protocols.types import AbandonmentHandler
+
+    assert [member.value for member in AbandonmentHandler] == ["server_side_on_answer"]
+    _expect_rule_rejected(
+        "abandonment_handler", **_crisis_rule(abandonment_handler="phone_the_patient")
+    )
+
+
+# --- the crisis numbers -----------------------------------------------------
+
+
+def test_the_number_allow_list_is_the_blueprint_table() -> None:
+    """files/04 §4.1. The numbers live in docs/legal/strings.yaml under
+    PolicyGuard; this list exists so that nothing else can be written into a
+    protocol action."""
+    from protocols.dsl import CRISIS_NUMBERS_TR
+
+    assert set(CRISIS_NUMBERS_TR) == {112, 183, 191}
+
+
+@pytest.mark.parametrize("number", [182, 188, 155, 911, 988])
+def test_a_number_outside_the_blueprint_table_is_refused(number: int) -> None:
+    """182 is the one that matters: ALO 182 is the MHRS *appointment* line
+    and the claim that it is a 24/7 suicide line is in wide circulation
+    (files/04 §4.1). It is a near miss by construction — one digit from 183,
+    which is a real safeguarding line."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112", show_112=True, notify_staff_immediate=False, numbers=[number]
+    )
+    _expect_rule_rejected("numbers", action=action)
+
+
+def test_the_permitted_numbers_are_accepted() -> None:
+    """NEGATIVE CONTROL for the check above — a gate that refuses everything
+    proves nothing."""
+    from protocols import RedFlagRule
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112", show_112=True, notify_staff_immediate=False, numbers=[112]
+    )
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    assert rule.action.remote.numbers == (112,)
+
+
+def test_on_site_may_not_list_112() -> None:
+    """CLAUDE.md invariant 21: under ON_SITE the 112 affordance is absent,
+    not de-emphasised. NEAR MISS — `show_112` is correctly false here, so the
+    existing flag check passes and only the number list is wrong. The list is
+    the second carrier the flag does not close."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(numbers=[112])
+    _expect_rule_rejected("ON_SITE action never offers 112", action=action)
+
+
+def test_on_site_may_still_carry_a_number_that_is_not_the_112_affordance() -> None:
+    """NEGATIVE CONTROL — invariant 21 is about the ambulance affordance,
+    which is what moves a checked-in patient out of the building. ALO 183 is
+    a safeguarding line (files/04 §4.1) and moves nobody, so a check that
+    refused every number under ON_SITE would be refusing the wrong thing."""
+    from protocols import RedFlagRule
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(numbers=[183])
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    assert rule.action.on_site.numbers == (183,)
+
+
+def test_numbers_are_not_turkish_text_and_never_reach_the_clip_manifest(
+    tmp_path: Path,
+) -> None:
+    """CLAUDE.md invariant 22: no numeral reaches a TTS model. The number
+    list is structured data — the spoken words come from `action_tr` /
+    `action_tr_ref`, which the compiler expands to Turkish orthography."""
+    from protocols import RedFlagRule
+    from protocols.validator import _tr_texts
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112",
+        show_112=True,
+        notify_staff_immediate=False,
+        numbers=[112],
+        action_tr="Yardım isteyin.",
+        note="Authoring note, never spoken.",
+    )
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    body = minimal("base.synthetic_sayilar", "base") + textwrap.dedent(
+        """\
+        red_flags: []
+        """
+    )
+    path = write_pack(tmp_path, "sayilar.yaml", body)
+    pack = load_pack(path)
+    pack = pack.model_copy(update={"red_flags": (rule,)})
+    texts = [text for _, text in _tr_texts(pack)]
+    assert "112" not in "".join(texts)
+    assert "Authoring note, never spoken." not in texts
+
+
+# --- authoring annotations on an action ------------------------------------
+
+
+def test_an_action_carries_an_optional_note_that_is_not_patient_facing() -> None:
+    from protocols import RedFlagRule
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    assert RedFlagRule.model_validate(payload).action.on_site.note is None
+    action["ON_SITE"] = _location(note="ON_SITE is the strongest case for staff notification.")
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    assert rule.action.on_site.note is not None
+
+
+def test_an_action_records_an_open_clinician_question() -> None:
+    """HB-C9: Tebliğ MADDE 9(1) admits no companion to the kırmızı alan as a
+    rule. Whether to pre-warn a carer is an open clinician decision, and the
+    document records it against the action it concerns."""
+    from protocols import RedFlagRule
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(open_question="Companion separation at the door — HB-C9.")
+    rule = RedFlagRule.model_validate(payload)
+    assert rule.action is not None
+    assert rule.action.on_site.open_question is not None

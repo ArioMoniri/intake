@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import unicodedata
 import warnings
+from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal
 from typing import Annotated, Literal
@@ -29,11 +30,14 @@ from pydantic import Field, StringConstraints, model_validator
 from protocols.types import (
     SLOT_KEY_PATTERN,
     SLOT_REF_PATTERN,
+    AbandonmentHandler,
     AckStyle,
     Delivery,
     EK4Level,
     NotifyClinic,
+    OfflineDraftPath,
     Pace,
+    Prosody,
     RedFlagRoute,
     RedRegister,
     RuleStatus,
@@ -42,11 +46,15 @@ from protocols.types import (
 )
 
 __all__ = [
+    "CRISIS_NUMBERS_TR",
+    "EMERGENCY_NUMBER_112",
+    "REGISTER_AUDIO",
     "ClipManifestEntry",
     "Instrument",
     "InstrumentItem",
     "LocationAction",
     "OverlayActivation",
+    "RedAudio",
     "RedFlagAction",
     "RedFlagRule",
     "Section",
@@ -267,6 +275,78 @@ class SourceBlock(FrozenModel):
     )
 
 
+class RedAudio(FrozenModel):
+    """What a RED does to the audio channel (files/02 §5.3 Axis 2, the
+    register table's Audio column).
+
+    **Every field is required.** Writing two of the three and letting the
+    third default is the invariant-21 failure one level down — and the field
+    that would be defaulted is ``alert_sound``, which is the mechanism of
+    harm in the paediatric airway case (files/04 §8.1 rule 6).
+
+    The block is a *restatement* of the rule's ``register``, never an
+    independent choice: :data:`REGISTER_AUDIO` holds the blueprint's table
+    and :meth:`RedFlagRule._rule_invariants` refuses any disagreement. A rule
+    that omits ``audio`` resolves it through ``register``, which is itself
+    required with no permitted default on every RED — so absence never
+    reaches a value an engineer picked.
+    """
+
+    spoken: bool = Field(description="Whether the script is voiced at all (files/02 §5.3).")
+    prosody: Prosody | None = Field(
+        description="Voicing of a spoken script; null where the register is "
+        "silent (files/protocols/base.life_threat.yaml exemplar 4 writes "
+        "``prosody: null`` explicitly rather than omitting the key)."
+    )
+    alert_sound: bool = Field(
+        description="Whether an alert sound plays. False under CALM: "
+        "*'children with upper-airway obstruction deteriorate if upset'* "
+        "(files/04 §8.1 rule 6)."
+    )
+
+
+REGISTER_AUDIO: Mapping[RedRegister, RedAudio] = {
+    RedRegister.ALERT: RedAudio(spoken=True, prosody=Prosody.URGENT, alert_sound=True),
+    RedRegister.CALM: RedAudio(spoken=True, prosody=Prosody.SOFT, alert_sound=False),
+    RedRegister.SILENT: RedAudio(spoken=False, prosody=None, alert_sound=False),
+    RedRegister.DEFERRED_CLINICIAN: RedAudio(spoken=False, prosody=None, alert_sound=False),
+}
+"""The files/02 §5.3 register table, Audio column, transcribed: ALERT
+*"spoken with urgent prosody, alert sound"*; CALM *"spoken softly, no alert
+sound"*; SILENT *"no audio, ever"*; DEFERRED_CLINICIAN *"None"* (the patient
+screen is unchanged, which is also what ``device_functions=off`` requires,
+files/06 §0.3).
+
+This table is what makes ``audio`` modellable without a default. The
+question "what does an omitted ``audio`` block mean?" has a blueprint answer
+— the register's own row — rather than an engineer's answer, and the
+register is required with no default on every RED."""
+
+
+EMERGENCY_NUMBER_112 = 112
+"""The single national emergency number (files/04 §4.1). Named because
+CLAUDE.md invariant 21 is about *this* affordance specifically: under ON_SITE
+it is absent, not de-emphasised."""
+
+
+CRISIS_NUMBERS_TR: Mapping[int, str] = {
+    112: "single national emergency number since 1 Feb 2018; psychiatric "
+    "emergencies including suicide risk are in remit",
+    183: "ALO 183, Aile ve Sosyal Hizmetler Bakanlığı — violence, child abuse, neglect",
+    191: "ALO 191, MoH — substance misuse",
+}
+"""The files/04 §4.1 table, and the whole of it. Any other number in a
+protocol action is refused.
+
+files/04 §4.1 is blunt about why: *"no model, search tool or learning-loop
+proposal may ever populate a crisis number"*, and the number in wide
+circulation as a Turkish suicide line — 182 — is the **MHRS appointment**
+line, which routes a suicidal patient to a booking queue. It is one digit
+from 183, which is real. The spoken and displayed *text* stays in
+docs/legal/strings.yaml under PolicyGuard with clinician sign-off; this
+mapping only bounds what a protocol document is structurally able to say."""
+
+
 class LocationAction(FrozenModel):
     """The action for one resolved location (REMOTE or ON_SITE), per the rule
     schema in files/protocols/base.life_threat.yaml and files/04 §8.1 rule 7."""
@@ -316,6 +396,42 @@ class LocationAction(FrozenModel):
         default=False,
         description="Under ON_SITE the inbox entry is the primary channel (files/04 §8.1 rule 7).",
     )
+    carry_child: bool | None = Field(
+        default=None,
+        description="Carry the child to the acil servis rather than walking "
+        "them there (files/protocols/base.life_threat.yaml exemplar 3, "
+        "ON_SITE). No default: absent means the action says nothing about "
+        "carrying, and :class:`RedFlagRule` refuses ``true`` on a rule whose "
+        "subject is not a child.",
+    )
+    numbers: tuple[int, ...] = Field(
+        default=(),
+        description="Emergency numbers this action surfaces, constrained to "
+        "the files/04 §4.1 table (:data:`CRISIS_NUMBERS_TR`). Empty is the "
+        "absence of an affordance, which is the safe direction; the numbers "
+        "are structured data and never text — the words the patient hears "
+        "come from action_tr / action_tr_ref, so no numeral crosses into TTS "
+        "(CLAUDE.md invariant 22). 112 in particular is refused under ON_SITE "
+        "by :class:`RedFlagAction`, which is the carrier the ``show_112`` flag "
+        "does not close.",
+    )
+    open_question: str | None = Field(
+        default=None,
+        description="An unanswered clinician decision recorded against this "
+        "action (files/protocols/base.life_threat.yaml exemplar 3, ON_SITE: "
+        "the Tebliğ MADDE 9(1) companion-separation question, HUMAN_BLOCKERS "
+        "HB-C9). Authoring prose, never patient-facing — and the compiler "
+        "refuses to emit an action that still carries one, so recording the "
+        "question cannot become a way of shipping past it.",
+    )
+    note: str | None = Field(
+        default=None,
+        description="Authoring commentary about this action — why the "
+        "location resolves as it does (files/protocols/base.life_threat.yaml "
+        "exemplar 4, ON_SITE). Never patient-facing and never a substitute "
+        "for action_tr; the invariant-17 pending-value scan in "
+        "protocols.validator walks it with every other rule string.",
+    )
 
     @model_validator(mode="after")
     def _exactly_one_text_carrier(self) -> LocationAction:
@@ -324,6 +440,20 @@ class LocationAction(FrozenModel):
                 "exactly one of action_tr / action_tr_ref must be set "
                 "(files/protocols/base.life_threat.yaml exemplar 4)"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _numbers_come_from_the_blueprint_table(self) -> LocationAction:
+        for number in self.numbers:
+            if number not in CRISIS_NUMBERS_TR:
+                permitted = ", ".join(str(key) for key in sorted(CRISIS_NUMBERS_TR))
+                raise ValueError(
+                    f"numbers: {number} is not in the files/04 §4.1 table "
+                    f"({permitted}) — no model, search tool or learning-loop "
+                    "proposal may ever populate a crisis number, and 182 in "
+                    "particular is the MHRS appointment line, which routes a "
+                    "suicidal patient to a booking queue"
+                )
         return self
 
 
@@ -363,6 +493,15 @@ class RedFlagAction(FrozenModel):
             raise ValueError(
                 "ON_SITE action never offers 112 — the affordance is absent, not "
                 "de-emphasised (CLAUDE.md invariant 21; files/04 §8.2)"
+            )
+        if EMERGENCY_NUMBER_112 in self.on_site.numbers:
+            raise ValueError(
+                "ON_SITE action never offers 112 — the affordance is absent, "
+                "not de-emphasised, and the number list is the second carrier "
+                "the show_112 flag does not close (CLAUDE.md invariant 21; "
+                "files/04 §8.2 on_site_action_never_offers_112). Other "
+                "files/04 §4.1 numbers are not this affordance and are not "
+                "refused here"
             )
         return self
 
@@ -415,6 +554,55 @@ class RedFlagRule(FrozenModel):
         default=False,
         description="Marks rules where alarm is the harm (files/02 §5.3; "
         "files/protocols/base.life_threat.yaml exemplar 3).",
+    )
+    audio: RedAudio | None = Field(
+        default=None,
+        description="The register's audio row, restated on the rule "
+        "(files/02 §5.3 Axis 2; files/protocols/base.life_threat.yaml "
+        "exemplars 3 and 4). Optional *in the type only*: when written it "
+        "must agree with :data:`REGISTER_AUDIO` for the rule's register, and "
+        "when omitted :attr:`resolved_audio` reads that same table. There is "
+        "no engineer-chosen default anywhere on this path.",
+    )
+    suppress_attention_interrupt: bool | None = Field(
+        default=None,
+        description="Whether the normal attention-grabbing interrupt is "
+        "suppressed for this rule. files/04 §8.1 rule 6 requires exactly "
+        "this of the paediatric airway rule — it *'must not run the normal "
+        "attention-grabbing interrupt at all'*. No default: a rule that has "
+        "declared alarm to be the harm (``distress_sensitive``) under a "
+        "register that still interrupts must state the answer, and under a "
+        "register that never interrupts it cannot claim one runs.",
+    )
+    subject_is_child: bool | None = Field(
+        default=None,
+        description="The subject of the rule is a child and the user is a "
+        "proxy (files/protocols/base.life_threat.yaml exemplar 3). files/02 "
+        "§5.3 puts *'any RED where the subject is a child and the user is a "
+        "proxy'* in the CALM register, so this field is refused alongside "
+        "ALERT. No default: ``false`` chosen once by an engineer is how a "
+        "paediatric rule acquires an alarm.",
+    )
+    consent_independent: bool | None = Field(
+        default=None,
+        description="The rule runs regardless of wellbeing-lane consent "
+        "(files/04 §4.2 defect 3; files/04 §8.2 "
+        "``consent_independent_path_runs_when_wellbeing_consent_is_declined``). "
+        "This is the files/04 §4.2 crisis path, and HUMAN_BLOCKERS HB-C8 is "
+        "open on the escalation policy it hands off to — so the compiler "
+        "refuses to emit such a rule at all.",
+    )
+    offline_draft_path: OfflineDraftPath | None = Field(
+        default=None,
+        description="Whether the item may sit in the encrypted offline-resume "
+        "cache; ``forbidden`` on the crisis path (files/04 §4.2 defect 2; "
+        "files/04 §8.2 ``crisis_items_have_no_offline_draft_path``).",
+    )
+    abandonment_handler: AbandonmentHandler | None = Field(
+        default=None,
+        description="How a session abandoned mid-disclosure is handled "
+        "(files/04 §4.2 defect 2; files/04 §8.2 "
+        "``abandonment_handler_is_defined``).",
     )
     notify_clinic: NotifyClinic = Field(
         description="always|never; always for every RED, unconditional and "
@@ -479,7 +667,107 @@ class RedFlagRule(FrozenModel):
                     "for every RED, notify_clinic is always — unconditional and "
                     "time-bound (files/protocols/base.life_threat.yaml; files/04 §4.2)"
                 )
+        self._delivery_invariants()
+        self._crisis_path_invariants()
         return self
+
+    # --- the files/02 §5.3 register axis (CLAUDE.md invariant 21) ----------
+
+    def _delivery_invariants(self) -> None:
+        """Audio, the attention interrupt and the paediatric proxy axis.
+
+        None of the three gets a default. ``audio`` resolves through
+        ``register``; the interrupt must be *written* exactly where the rule
+        has declared alarm to be the harm; and a child subject cannot be
+        delivered as an alarm at all.
+        """
+        if self.audio is not None:
+            if self.register is None:
+                raise ValueError(
+                    "audio restates the register's row in the files/02 §5.3 "
+                    "table, so a rule carrying an audio block must declare a "
+                    "register — an audio profile with no register is a "
+                    "delivery decision with no axis"
+                )
+            expected = REGISTER_AUDIO[self.register]
+            if self.audio != expected:
+                raise ValueError(
+                    f"audio disagrees with register {self.register.value}: "
+                    f"files/02 §5.3 gives {expected!r}, the rule writes "
+                    f"{self.audio!r}. The register is what the runtime reads, "
+                    "so a disagreement here is a rule that is delivered "
+                    "differently from the way it reads"
+                )
+        interrupts = self.register in (RedRegister.ALERT, RedRegister.CALM)
+        if self.distress_sensitive and interrupts and self.suppress_attention_interrupt is None:
+            raise ValueError(
+                "suppress_attention_interrupt is required, with no default, on "
+                "a distress_sensitive rule whose register still interrupts: "
+                "files/04 §8.1 rule 6 requires the paediatric airway rule to "
+                "run no attention interrupt at all, and a rule that has "
+                "declared alarm to be the harm may not leave that unwritten"
+            )
+        if not interrupts and self.suppress_attention_interrupt is False:
+            raise ValueError(
+                "suppress_attention_interrupt: false contradicts register "
+                f"{None if self.register is None else self.register.value} — "
+                "that register runs no takeover to suppress (files/02 §5.3)"
+            )
+        if self.subject_is_child and self.register is RedRegister.ALERT:
+            raise ValueError(
+                "subject_is_child with register ALERT: files/02 §5.3 puts any "
+                "RED whose subject is a child and whose user is a proxy in the "
+                "CALM register, because the alarm produces the deterioration "
+                "the alert exists to prevent (files/04 §8.1 rule 6)"
+            )
+        carried = self.action is not None and (
+            bool(self.action.remote.carry_child) or bool(self.action.on_site.carry_child)
+        )
+        if carried and not self.subject_is_child:
+            raise ValueError(
+                "carry_child on a rule whose subject_is_child is not true — "
+                "the instruction is to carry a child who is not the subject "
+                "(files/protocols/base.life_threat.yaml exemplar 3)"
+            )
+
+    # --- the files/04 §4.2 crisis path (HUMAN_BLOCKERS HB-C8) -------------
+
+    def _crisis_path_invariants(self) -> None:
+        """Two of the four files/04 §4.2 defects are structural and are
+        enforced here; the other two are policy nobody has written, and the
+        compiler refuses the rule outright for them (HB-C8, rule 2)."""
+        if not self.consent_independent:
+            return
+        if self.offline_draft_path is not OfflineDraftPath.FORBIDDEN:
+            raise ValueError(
+                "a consent_independent crisis rule requires "
+                "offline_draft_path: forbidden — files/04 §4.2 defect 2: the "
+                "encrypted offline-resume cache means the disclosure may never "
+                "reach the server at all (files/04 §8.2 "
+                "crisis_items_have_no_offline_draft_path)"
+            )
+        if self.abandonment_handler is None:
+            raise ValueError(
+                "a consent_independent crisis rule requires an "
+                "abandonment_handler — files/04 §4.2 defect 2 calls an "
+                "unhandled abandonment the highest-risk state the product can "
+                "enter (files/04 §8.2 abandonment_handler_is_defined)"
+            )
+
+    @property
+    def resolved_audio(self) -> RedAudio | None:
+        """The audio profile this rule is delivered with.
+
+        The rule's own block when it wrote one, otherwise its register's row
+        in the files/02 §5.3 table — never a constant chosen here. ``None``
+        only where there is no register, i.e. on a non-RED rule that declared
+        no delivery at all.
+        """
+        if self.audio is not None:
+            return self.audio
+        if self.register is None:
+            return None
+        return REGISTER_AUDIO[self.register]
 
 
 class OverlayActivation(FrozenModel):

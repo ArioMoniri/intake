@@ -20,13 +20,16 @@ from clinical_schemas.triage import RedLocation, RedRegister
 __all__ = [
     "SLOT_KEY_PATTERN",
     "SLOT_REF_PATTERN",
+    "AbandonmentHandler",
     "AckStyle",
     "Delivery",
     "EK4Level",
     "Maturity",
     "NotifyClinic",
+    "OfflineDraftPath",
     "Pace",
     "PackLayer",
+    "Prosody",
     "RedFlagRoute",
     "RedLocation",
     "RedRegister",
@@ -166,6 +169,44 @@ class RuleStatus(enum.StrEnum):
 
     ACTIVE = "active"
     DRAFT_NEEDS_SOURCE = "draft_needs_source"
+
+
+class Prosody(enum.StrEnum):
+    """How a spoken RED is voiced (files/02 §5.3 Axis 2, the register
+    table's Audio column: ALERT is *"spoken with urgent prosody, alert
+    sound"*, CALM is *"spoken softly, no alert sound"*). Only the two forms
+    the table names exist — a third would be a delivery decision this file
+    is not entitled to take."""
+
+    URGENT = "urgent"
+    SOFT = "soft"
+
+
+class OfflineDraftPath(enum.StrEnum):
+    """Whether an item may sit in the encrypted offline-resume cache.
+
+    ``forbidden`` is the only member because it is the only value the
+    blueprint states: files/04 §4.2 defect 2 requires crisis items to be
+    evaluated **server-side on the answer** and kept out of the local cache
+    — *"the disclosure may never reach the server at all"* — and files/04
+    §8.2 makes that the blocking gate
+    ``crisis_items_have_no_offline_draft_path``. An ``allowed`` member would
+    be this module inventing the half of the policy HB-C8 is open on."""
+
+    FORBIDDEN = "forbidden"
+
+
+class AbandonmentHandler(enum.StrEnum):
+    """How a session abandoned mid-disclosure is handled (files/04 §4.2
+    defect 2; files/04 §8.2 ``abandonment_handler_is_defined``).
+
+    One member, for the same reason as :class:`OfflineDraftPath`:
+    ``server_side_on_answer`` is the mechanism files/04 §4.2 names. The rest
+    of that defect — *"a named human follow-up within a stated window with a
+    documented what-if-nobody-answers path"* — is a policy nobody has
+    written, and it is HB-C8's to answer, not this enum's to guess."""
+
+    SERVER_SIDE_ON_ANSWER = "server_side_on_answer"
 
 
 class Delivery(enum.StrEnum):
