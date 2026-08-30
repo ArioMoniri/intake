@@ -130,11 +130,20 @@ class WorkType(enum.StrEnum):
 
 
 class WorkState(enum.StrEnum):
-    """files/03 §4.3: queued → running → completed | failed | cancelled."""
+    """files/03 §4.3: queued → running → completed | failed | cancelled.
+
+    files/12 §7.1 adds the sixth member, and it is a clinical distinction
+    rather than a bookkeeping one: *"running state-lane work is never aborted
+    mid-write — if it has committed, the write stands (you cannot un-know a red
+    flag) and the effect is ``COMPLETED_SUPPRESSED``, so a patient retraction
+    becomes a supersession, not a deletion."* A cancel that arrives while the
+    Work is running suppresses the **speech**, never the write.
+    """
 
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
+    COMPLETED_SUPPRESSED = "completed_suppressed"
     FAILED = "failed"
     CANCELLED = "cancelled"
 

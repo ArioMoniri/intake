@@ -915,7 +915,8 @@
   title: "Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent"
   depends_on: [INT-081, INT-035]
   labels: [area:voice]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-092.md
   acceptance:
     - "one Work in flight per session; results {inline,speech_tr,priority}; duplicates impossible (test)"
   tests: [tests/voice/test_work_queue.py]
@@ -3112,3 +3113,24 @@
     - "whatever bound is implemented is the bound written down: the docs/security/threat-model.md onboarding row states it, and any wording in files/10 §2 that the implementation cannot honour is corrected there rather than left as an aspiration"
   tests: [tests/security/test_otp_abuse.py]
   sec_row: "onboarding"
+- id: INT-266
+  epic: E05-voice
+  phase: P0
+  # Surfaced building INT-092 rather than left implicit. The queue serialises
+  # correctly and the single in-flight slot is what makes SessionState safe to
+  # write — but files/12 §7.4 splits the lane precisely so a slow document
+  # parse cannot sit in front of the answer the patient just gave. That split
+  # needs six work types and a ProposedFact that do not exist yet, and a
+  # half-built lane is worse than none (invariant 17), so it was NOT started.
+  title: "A document parse holds the only in-flight slot, so the answer the patient just gave waits behind it (files/12 §7.4 lane split)"
+  depends_on: [INT-092, INT-083]
+  labels: [area:voice]
+  status: todo
+  acceptance:
+    - "the head-of-line case is reproduced BEFORE it is fixed: a parse_document Work in flight delays an extract_slots Work submitted after it, measured on a fake clock, and the measurement is recorded rather than described"
+    - "the state lane and the background lane are separated per files/12 §7.4, with the six work types that section names (`confirm_proposed_fact`, `reconcile_meds`, `note_finalize`, `retrieve_records`, `draft_note_delta`, `score_wellbeing_segment`) and the `ProposedFact` type it depends on — all six, or the issue stays open, because a partial lane is the postponement invariant 17 forbids"
+    - "the serialisation property INT-092 established does not weaken: SessionState still takes exactly one writer at a time, asserted by the same peak-concurrency test rather than a new weaker one, and the `parse_document may not carry slot updates` control keeps passing unchanged"
+    - "`priority: preempt` stays reachable only from a rules-engine RED on the pinned pack (invariant 1); adding a lane must not add a second route to it, and the four INT-092 near-miss controls are re-run against the split queue"
+    - "work_id idempotency holds across lanes: the same content-addressed Work submitted to either lane runs once and delivers once, proved concurrently and across a restart, not only sequentially"
+  tests: [tests/voice/test_work_queue.py]
+  sec_row: "voice-runtime"

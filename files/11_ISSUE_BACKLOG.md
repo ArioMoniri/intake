@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**214 issues.** By phase: P0 125 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 90 · todo 113 · withdrawn 1.
+**215 issues.** By phase: P0 126 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 91 · todo 113 · withdrawn 1.
 
 ## P0
 
@@ -68,7 +68,7 @@
 | INT-085 | Patient summary (B1 Turkish) + reading-level check | E04-engines | INT-084 | area:engine | todo |
 | INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | done |
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | done |
-| INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | todo |
+| INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | done |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | todo |
 | INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | todo |
 | INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | todo |
@@ -136,6 +136,7 @@
 | INT-263 | Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach | E08-mobile | INT-260 | area:mobile, area:a11y | done |
 | INT-264 | The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts | E08-mobile | INT-131 | area:api, risk:security | done |
 | INT-265 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-264 | area:api, risk:security | todo |
+| INT-266 | A document parse holds the only in-flight slot, so the answer the patient just gave waits behind it (files/12 §7.4 lane split) | E05-voice | INT-092, INT-083 | area:voice | todo |
 
 ## P1
 
