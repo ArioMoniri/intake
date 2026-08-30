@@ -42,7 +42,8 @@ Measured on this container:
 ## What still works, and the one flag you need
 
 Python unit tests, TS tests, ruff, mypy, eslint, tsc, the backlog machinery, the
-gate scripts, `protocols compile` and the safety/golden suites all run fine.
+gate scripts, `protocols compile` and the safety/golden suites all run fine. So,
+with the two steps below, does the de-identification NER gate.
 
 **`uv sync` and bare `uv run` FAIL in this container.** The proxy answers `403`
 to `CONNECT download-r2.pytorch.org:443`, and `torch` is a hard dependency via
@@ -62,9 +63,46 @@ UV_NO_SYNC=1 uv run --no-sync pytest ...
 `files/11` drift check and the LOOP selector among them) and they fail on torch
 without it. Both were needed here.
 
-The cost is real and must be recorded, not glossed: **the `ner` extra is absent,
-so `tests/**/test_deid_ner.py` cannot run.** De-identification is invariant 6
-surface. A session that skipped it says so.
+### The `ner` extra, and how to get it anyway
+
+Skipping the sync leaves the `ner` extra out, so `tests/security/test_deid_ner.py`
+fails four ways. De-identification is invariant 6 surface and that is not a gap
+worth accepting — **it can be closed here, in two steps that took about six
+minutes**, and it was, on 30 Aug 2026.
+
+**1 · The wheels.** `pypi.org` and `files.pythonhosted.org` are in the proxy's
+`noProxy` list, so they are reached directly; only `download.pytorch.org` is
+403'd. `pyproject.toml` pins torch to the `pytorch-cpu` index for Linux, which
+is why `uv sync` dies — but the ordinary PyPI wheel installs fine:
+
+```sh
+UV_NO_SYNC=1 uv pip install torch presidio-analyzer
+```
+
+It adds 20 packages and **upgrades or removes none**, so it is safe to run while
+other work is using the venv (check with `--dry-run` first if unsure). The cost
+is the bundled CUDA stack: about 5 GB of the disk allowance, on a container with
+no GPU to use it. Worth it to run the gate; delete the venv if space gets tight.
+
+**2 · The model artefact.** `make deid-model` shells out to `gh release
+download`, and the `gh` CLI is not installed in a remote container. Fetch the
+same asset through the API instead — the release is `deid-tr-ner-v1` on this
+repo, asset id `532480865`:
+
+```sh
+curl -sSL --fail -H "Accept: application/octet-stream"   -H "Authorization: Bearer $GITHUB_TOKEN"   https://api.github.com/repos/ArioMoniri/intake/releases/assets/532480865   -o .cache/deid-tr-ner-v1.tar.gz
+sha256sum .cache/deid-tr-ner-v1.tar.gz   # must equal DEID_MODEL_SHA256 in the Makefile
+tar -xzf .cache/deid-tr-ner-v1.tar.gz -C .cache && rm .cache/deid-tr-ner-v1.tar.gz
+```
+
+**Verify the checksum against the Makefile pin before extracting** — `make
+deid-model` does, and an artefact fetched by a different route must not skip the
+check that route provided. It matched (`d4faec57…`), and the four tests then
+passed in 15 s.
+
+This does **not** make the container a model host. The de-id tier is a 250 MB
+DistilBERT running on CPU for a token-level test sample; nothing about it
+generalises to the `residency_tr` profile, which still needs HB-I4's GPU.
 
 ## The reporting rule
 
