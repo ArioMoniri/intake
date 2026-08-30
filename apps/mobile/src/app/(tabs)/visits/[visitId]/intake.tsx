@@ -354,6 +354,15 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         contentContainerStyle={[styles.content, floatingCta ? styles.contentUnderBar : null]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        // INT-263: the free-text step's field lives in THIS region, and this
+        // region is the one screen in the app that hosts a field without
+        // going through ScrollScreen. Its frame runs under the keyboard, so
+        // without a keyboard-sized bottom inset it can only be dragged until
+        // the content's bottom meets the frame's bottom — which is under the
+        // keyboard — and the last keyboard-height of the step, the field
+        // included, cannot be reached while typing however tall the content
+        // is. e2e/large-text-overflow.spec.ts asserts it at scale 2.0.
+        automaticallyAdjustKeyboardInsets
       >
         {modeBar}
         <View style={styles.progressRow}>
