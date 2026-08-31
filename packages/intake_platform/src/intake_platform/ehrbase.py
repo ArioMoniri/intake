@@ -27,7 +27,10 @@ Four rules this module keeps, each with a test in
 
 The EHRbase container is inside the deployment boundary and is addressed over
 loopback in dev, so it adds no entry to
-``infra/security/egress-allowlist.yaml`` and no PHI egress path.
+``infra/security/egress-allowlist.yaml`` and no PHI egress path. INT-018 makes
+that enforceable rather than merely true: the client's transport is the
+in-boundary guard, so a re-pointed base URL is refused and logged instead of
+quietly dialling out.
 """
 
 from __future__ import annotations
@@ -41,6 +44,8 @@ from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
 import httpx
+
+from intake_platform.egress_boundary import boundary_transport
 
 __all__ = [
     "DEFAULT_TIMEOUT_S",
@@ -202,8 +207,14 @@ class ContributionAudit:
 class EhrbaseClient:
     """A small, synchronous openEHR REST client.
 
-    ``transport`` is the seam: tests pass ``httpx.MockTransport`` and a
-    deployment can pass ``intake_platform.egress.guarded_transport``.
+    Every request goes through :func:`intake_platform.egress_boundary.boundary_transport`
+    (INT-018). The CDR is inside the deployment boundary, so the client may
+    reach its configured in-boundary destination and nothing else — no vendor
+    host, no public FQDN, no routable IP literal, no cloud metadata address —
+    and a refusal is logged as ``sec.egress_denied`` for the vendor-transfer
+    register. ``transport`` is the seam *underneath* that guard: tests pass
+    ``httpx.MockTransport`` and are policed exactly as production is, because
+    a guard every exercised path bypasses is a guard nobody exercises.
     """
 
     def __init__(
@@ -215,7 +226,12 @@ class EhrbaseClient:
     ) -> None:
         self._config = config
         self._timeout_s = timeout_s
-        self._transport = transport
+        self._transport = boundary_transport(
+            service="ehrbase",
+            purpose="openEHR composition export to the in-boundary CDR (INT-032)",
+            base_url=config.base_url,
+            inner=transport,
+        )
 
     # --- transport -----------------------------------------------------------
 

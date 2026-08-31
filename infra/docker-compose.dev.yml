@@ -92,6 +92,56 @@ services:
       timeout: 3s
       retries: 12
 
+  forward-proxy:
+    # INT-018 — the dev forward proxy. files/10 §4: "egress proxy with an
+    # allow-list — only contracted vendors are reachable from the PHI path,
+    # and every egress call is logged with vendor, purpose and bytes, which
+    # doubles as KVKK transfer evidence". The production edge tier is INT-203.
+    #
+    # Its whole configuration is GENERATED from infra/security/egress-allowlist.yaml
+    # by intake_platform.egress_proxy, which is the same file the in-process
+    # policy (intake_platform.egress) loads — one source of truth, rendered
+    # twice, with a byte-identity test so they cannot drift.
+    #
+    # Not behind a profile: `make dev` is `docker compose --profile clamav up`
+    # with no service list, so the proxy starts with the tier. An enforcement
+    # point nobody runs is not an enforcement point.
+    #
+    # Named `forward-proxy`, not `egress-proxy`: tests/voice/test_audio_retention_guard.py
+    # refuses any dev service whose name or image contains egress/ingress/recorder,
+    # because those are LiveKit's *recording* components (invariant 3). That
+    # guard is right; this name keeps it green.
+    #
+    # ⚠ This service has never been started — there is no Docker daemon in the
+    # session that wrote it. It is validated statically (invariant 14 pinning,
+    # loopback binding, generated-config byte-identity, default-deny ACL order)
+    # by tests/security/test_egress_proxy_compose.py. See docs/evidence/INT-018.md.
+    #
+    # Pinned by exact tag AND manifest-list digest: a floating tag on the host
+    # that terminates every outbound connection is a supply-chain hole
+    # (invariant 14). Tag and digest verified against the Docker Hub registry
+    # API on 31 Aug 2026; multi-arch (amd64, arm64, ppc64le, s390x).
+    image: ubuntu/squid:6.6-24.04_edge@sha256:8a3baed477e2c282ab8aa5edad442f69873246964f225c5c2ae8364b6610963c
+    ports:
+      # host 3128: squid's own default, so a host-side service needs no
+      # remapping. Loopback only, like every other port in this file.
+      - "127.0.0.1:3128:3128"
+    volumes:
+      # The only mount, read-only: the generated allow-list config. No cache
+      # volume — `cache deny all` in the config, because a caching egress
+      # proxy is a store of response bodies.
+      - ./security/squid/squid.conf:/etc/squid/squid.conf:ro
+    healthcheck:
+      # `squid -k check` validates the running instance against the config it
+      # was started with. No credential anywhere: the proxy authenticates
+      # nobody — access control is the ACL plus network placement, so there is
+      # no secret for `docker inspect` to leak (invariant 14).
+      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
   clamav:
     # INT-120: the upload pipeline's malware verdict. Behind a profile — the
     # image ships the whole signature database (hundreds of MB), and the unit

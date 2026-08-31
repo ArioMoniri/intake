@@ -35,6 +35,8 @@ from typing import Final, Protocol
 
 import httpx
 
+from intake_platform.egress_boundary import boundary_transport
+
 __all__ = [
     "SAFETY_FLAG_DEFAULTS",
     "UNLEASH_TIMEOUT_SECONDS",
@@ -122,11 +124,24 @@ class UnleashProvider:
         self.timeout_seconds = UNLEASH_TIMEOUT_SECONDS
         self._fallback = fallback if fallback is not None else InMemoryProvider()
         headers = {"Authorization": token} if token else {}
+        # INT-018: Unleash is inside the deployment boundary, so this client
+        # may reach its configured in-boundary address and nothing else.
+        # ``transport`` is the seam underneath that guard, never a way around
+        # it. An egress denial is deliberately NOT swallowed by the
+        # fall-closed path below: it is a deterministic configuration error,
+        # not the intermittent outage that path exists for, and a flag client
+        # silently reaching a host nobody allow-listed is the thing INT-018
+        # is for.
         self._client = httpx.Client(
             base_url=url.rstrip("/"),
             headers=headers,
             timeout=httpx.Timeout(UNLEASH_TIMEOUT_SECONDS),
-            transport=transport,
+            transport=boundary_transport(
+                service="unleash",
+                purpose="feature-flag reads (safety kill switch, lane enablement)",
+                base_url=url,
+                inner=transport,
+            ),
         )
 
     def get_bool(self, flag: str, default: bool, ctx: Mapping[str, str] | None = None) -> bool:

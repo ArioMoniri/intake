@@ -181,11 +181,14 @@
   title: "Egress proxy with vendor allow-list + transfer log"
   depends_on: [INT-001]
   labels: [area:security, risk:legal]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-018.md
   acceptance:
     - "forward proxy in dev compose; only allow-listed vendor hosts reachable from PHI-path services; every egress logged {host,purpose,bytes,ts} feeding the vendor-transfer register; denial emits sec.egress_denied"
     - "test: call to unlisted host is refused and logged"
-  tests: [tests/security/test_egress_policy.py]
+  tests: [tests/security/test_egress_policy.py,
+          tests/security/test_egress_service_wiring.py,
+          tests/security/test_egress_proxy_compose.py]
   legal: "KVKK-9,TRANSFER-2024"
   sec_row: "cloud-boundary"
 - id: INT-019

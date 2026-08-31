@@ -25,9 +25,12 @@ Three layers, so a config mistake cannot silently widen the boundary:
 construction. Redirects are safe by composition: httpx follows a redirect by
 issuing a new request through the same transport, so every hop is re-checked
 (and ``follow_redirects`` defaults to off in httpx anyway — files/10 §4 wants
-redirects disabled at the proxy tier too). The deployed forward proxy that
-makes this network-mandatory (Envoy/squid in compose) is INT-203 infra; this
-module is the policy and the in-process enforcement it will share.
+redirects disabled at the proxy tier too). The dev forward proxy that makes
+this network-mandatory is rendered from the same allow-list by
+:mod:`intake_platform.egress_proxy` (``infra/security/squid/squid.conf``, the
+``forward-proxy`` service in ``infra/docker-compose.dev.yml``); the production
+edge tier is INT-203. PHI-path clients carry the narrower in-boundary form,
+:mod:`intake_platform.egress_boundary`.
 """
 
 from __future__ import annotations
@@ -37,17 +40,19 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 import httpx
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __all__ = [
+    "DEFAULT_SCHEME_PORTS",
     "VENDOR_LLM_DOMAINS",
     "AllowlistEntry",
     "Decision",
     "EgressAllowlist",
+    "EgressCheck",
     "EgressConfigError",
     "EgressDenied",
     "EgressPolicy",
@@ -55,13 +60,15 @@ __all__ = [
     "assert_dev_only_vendors",
     "guarded_transport",
     "load_allowlist",
+    "log_decision",
+    "normalize_host",
 ]
 
 _LOGGER = logging.getLogger("intake_platform.egress")
 
 _PHI_EGRESS_ENV = "INTAKE_ALLOW_PHI_EGRESS"
 _PHI_EGRESS_VALUE = "explicit-yes"
-_DEFAULT_SCHEME_PORTS = {"https": 443, "http": 80}
+DEFAULT_SCHEME_PORTS = {"https": 443, "http": 80}
 
 #: The vendor LLM domain families whose adapters are mock/dev only (invariant
 #: 19). Matched as suffixes — any host under one of these domains counts —
@@ -87,7 +94,7 @@ class EgressDenied(Exception):
     """An outbound request was refused by the egress policy (default deny)."""
 
 
-def _normalize_host(host: str) -> str:
+def normalize_host(host: str) -> str:
     """Lowercase + strip the trailing FQDN dot, so matching is by identity,
     not by spelling — ``PyPI.org.`` and ``pypi.org`` are the same host."""
     return host.strip().lower().rstrip(".")
@@ -119,7 +126,7 @@ class AllowlistEntry(BaseModel):
     @field_validator("host")
     @classmethod
     def _normalized_host(cls, value: str) -> str:
-        return _normalize_host(value)
+        return normalize_host(value)
 
     @model_validator(mode="after")
     def _enforce_shape(self) -> AllowlistEntry:
@@ -196,6 +203,16 @@ class Decision:
     purpose: str | None = None
 
 
+class EgressCheck(Protocol):
+    """What :func:`guarded_transport` needs from a policy: one decision per
+    destination. :class:`EgressPolicy` (the vendor allow-list) and
+    ``intake_platform.egress_boundary.BoundaryPolicy`` (the in-boundary form a
+    PHI-path client carries) both satisfy it, so one transport enforces both
+    and there is exactly one place where bytes are let through."""
+
+    def check(self, host: str, port: int) -> Decision: ...
+
+
 class EgressPolicy:
     """Default-deny host/port policy over one tier of the allow-list."""
 
@@ -209,7 +226,7 @@ class EgressPolicy:
         return cls(entries, tier)
 
     def check(self, host: str, port: int) -> Decision:
-        normalized = _normalize_host(host)
+        normalized = normalize_host(host)
         if not normalized:
             return Decision(False, "empty host (default deny)", normalized, port)
         if _is_ip_literal(normalized):
@@ -296,7 +313,7 @@ def assert_dev_only_vendors(allowlist: EgressAllowlist) -> None:
                 )
 
 
-def _log_decision(decision: Decision, bytes_out: int) -> None:
+def log_decision(decision: Decision, bytes_out: int) -> None:
     """One structured record per decision: {host, port, decision, purpose,
     bytes_out, reason} — the in-process feed for the vendor-transfer register.
     Never the URL path, query or payload (invariant 6): a query string is
@@ -323,18 +340,18 @@ class _GuardedTransport(httpx.BaseTransport):
     ``handle_request``, so every hop is checked independently.
     """
 
-    def __init__(self, policy: EgressPolicy, inner: httpx.BaseTransport) -> None:
+    def __init__(self, policy: EgressCheck, inner: httpx.BaseTransport) -> None:
         self._policy = policy
         self._inner = inner
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         host = request.url.host
-        port = request.url.port or _DEFAULT_SCHEME_PORTS.get(request.url.scheme, 0)
+        port = request.url.port or DEFAULT_SCHEME_PORTS.get(request.url.scheme, 0)
         decision = self._policy.check(host, port)
         # bytes_out only for requests that actually leave; a denied request
         # transferred nothing. Header-declared size — never the body itself.
         bytes_out = int(request.headers.get("content-length", 0)) if decision.allowed else 0
-        _log_decision(decision, bytes_out)
+        log_decision(decision, bytes_out)
         if not decision.allowed:
             raise EgressDenied(
                 f"egress denied for {decision.host}:{decision.port} — {decision.reason}"
@@ -346,7 +363,7 @@ class _GuardedTransport(httpx.BaseTransport):
 
 
 def guarded_transport(
-    policy: EgressPolicy, inner: httpx.BaseTransport | None = None
+    policy: EgressCheck, inner: httpx.BaseTransport | None = None
 ) -> httpx.BaseTransport:
     """Build the enforcing transport: ``httpx.Client(transport=guarded_transport(p))``.
 

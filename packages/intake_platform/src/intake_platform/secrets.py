@@ -19,6 +19,8 @@ from typing import Any
 
 import httpx
 
+from intake_platform.egress_boundary import boundary_transport
+
 __all__ = ["DynamicDbCreds", "SecretsBootError", "SecretsProvider"]
 
 _DEV_TOKEN_MARKERS = ("dev", "root", "test")
@@ -41,10 +43,20 @@ class SecretsProvider:
     def __init__(self, addr: str, token: str, timeout_s: float = 5.0) -> None:
         self.addr = addr.rstrip("/")
         self._token = token
+        # INT-018: OpenBao is inside the deployment boundary, so this client
+        # may reach its configured in-boundary address and nothing else. A
+        # re-pointed OPENBAO_ADDR — the server-side-fetch case files/10 §4
+        # names, where the credential store itself becomes the target — is
+        # refused before any byte leaves, and logged as sec.egress_denied.
         self._client = httpx.Client(
             base_url=self.addr,
             headers={"X-Vault-Token": token},
             timeout=timeout_s,
+            transport=boundary_transport(
+                service="openbao",
+                purpose="secret reads, dynamic DB credentials and transit KEK operations",
+                base_url=self.addr,
+            ),
         )
 
     # --- construction ---------------------------------------------------------------
