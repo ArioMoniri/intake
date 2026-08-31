@@ -1,0 +1,42 @@
+previsit_note
+visit_id: visit-0001
+generated_at: 2026-08-31T09:15:00+00:00
+protocol_hash: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+mode: fast
+language: tr
+model: synthetic-extractor@rev-0
+prompt_version: extract.v0
+legal_strings_version: int-084-test-fixture.1
+legal_strings_sha256: 48fe5feeeeb8736f306a3af4a1f2990e8d7f06da675d6959dc602f7d18706bbb
+S
+chief_complaint.text: gogus agrisi
+chief_complaint.patient_goals[0]: rahatlamak
+hpi.narrative: dun aksam basladi
+hpi.oldcarts.onset: dun aksam
+hpi.oldcarts.character: baski
+hpi.oldcarts.severity_nrs: 6
+hpi.associated[0]: terleme
+hpi.negatives[0]: nefes darligi yok
+O
+A
+-
+P
+-
+triage
+level: YELLOW
+rule synthetic.rule.yellow_a: onset=dun aksam
+llm_candidates
+llm_candidate: sentetik aday not | evidence: turn:5 terleme
+data_gaps
+hpi.oldcarts.radiation
+sources
+chief_complaint.text <- utterance turn:1[4:17]
+chief_complaint.patient_goals[0] <- utterance turn:1[20:30]
+hpi.narrative <- utterance turn:2[0:17]
+hpi.oldcarts.onset <- utterance turn:2[0:9]
+hpi.oldcarts.character <- utterance turn:3[5:10]
+hpi.oldcarts.severity_nrs <- utterance turn:4[0:1]
+hpi.associated[0] <- utterance turn:5[3:10]
+hpi.negatives[0] <- utterance turn:6[0:17]
+legal
+SENTETIK DIPNOT - gercek metin degildir

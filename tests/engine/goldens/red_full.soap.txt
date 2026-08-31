@@ -1,0 +1,111 @@
+previsit_note
+visit_id: visit-0001
+generated_at: 2026-08-31T09:15:00+00:00
+protocol_hash: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+mode: detailed
+language: tr
+model: synthetic-extractor@rev-0
+prompt_version: extract.v0
+legal_strings_version: int-084-test-fixture.1
+legal_strings_sha256: 48fe5feeeeb8736f306a3af4a1f2990e8d7f06da675d6959dc602f7d18706bbb
+S
+chief_complaint.text: siddetli bas agrisi
+chief_complaint.patient_goals[0]: acil yardim
+hpi.narrative: ani basladi
+hpi.oldcarts.onset: ani
+hpi.oldcarts.location: ense
+hpi.oldcarts.duration: bir saat
+hpi.oldcarts.character: zonklayici
+hpi.oldcarts.radiation: omuza
+hpi.oldcarts.timing: surekli
+hpi.oldcarts.trajectory: artiyor
+hpi.oldcarts.severity_nrs: 10
+hpi.oldcarts.aggravating[0]: hareket
+hpi.oldcarts.relieving[0]: karanlik oda
+hpi.associated[0]: bulanti
+hpi.negatives[0]: atesi yok
+ros_pertinent[0]: noro | finding=ense sertligi | present=true
+pmh[0]: sentetik kronik durum | icd10=Z00.0 | status=confirmed | source=patient
+medications[0]: sentetik ilac | atc=A01AA01 | dose=beş miligram | adherence=duzenli | source=patient | reconciliation=matches
+allergies[0]: sentetik madde | reaction=dokuntu | severity=hafif
+family_social.family[0]: anne migren
+family_social.smoking: status=never
+family_social.alcohol: status=never
+family_social.occupation: ogretmen
+family_social.living_situation: ailesiyle
+screening.phq2: 1
+screening.gad2: 0
+screening.phq9: 12
+screening.gad7: 9
+O
+konusma_ozellikleri.speech_rate_syll_s: 4.25 syll/s
+konusma_ozellikleri.pause_ratio: 0.125
+konusma_ozellikleri.f0_mean_hz: 132.5 Hz
+konusma_ozellikleri.f0_sd_hz: 18.75 Hz
+konusma_ozellikleri.response_latency_ms_mean: 1250.0 ms
+konusma_ozellikleri.reference_ranges: speech_rate_syll_s=sentetik aralik
+konusma_ozellikleri.recording_conditions_caveat_tr: sentetik kayit kosulu notu
+imported_objective[0]: lab | summary=Üre 45 mg/dL | date=2026-08-20 | provenance=document:doc-1 p2
+A
+-
+P
+-
+considerations
+considerations[0]: pattern=sentetik oruntu | why=sentetik gerekce
+suggested_focus_questions
+suggested_focus_questions[0]: sentetik odak sorusu
+patient_confirmed_sections
+patient_confirmed_sections[0]: chief_complaint
+patient_confirmed_sections[1]: medications
+triage
+level: RED
+register: ALERT
+location: REMOTE
+rule synthetic.rule.red_a: onset=ani; severity_nrs=10
+rule synthetic.rule.red_b: ros=ense sertligi
+data_gaps
+family_social.occupation_detail
+sources
+chief_complaint.text <- utterance turn:1[0:19]
+chief_complaint.patient_goals[0] <- utterance turn:1[22:33]
+hpi.narrative <- utterance turn:2[0:11]
+hpi.oldcarts.onset <- utterance turn:2[0:3]
+hpi.oldcarts.location <- utterance turn:3[0:4]
+hpi.oldcarts.duration <- utterance turn:3[6:14]
+hpi.oldcarts.character <- utterance turn:4[0:10]
+hpi.oldcarts.radiation <- utterance turn:4[12:17]
+hpi.oldcarts.timing <- utterance turn:5[0:7]
+hpi.oldcarts.trajectory <- utterance turn:5[9:16]
+hpi.oldcarts.severity_nrs <- utterance turn:6[0:2]
+hpi.oldcarts.aggravating[0] <- utterance turn:7[0:7]
+hpi.oldcarts.relieving[0] <- utterance turn:7[9:21]
+hpi.associated[0] <- utterance turn:8[0:7]
+hpi.negatives[0] <- utterance turn:8[9:18]
+ros_pertinent[0] <- utterance turn:9[0:13]
+pmh[0] <- utterance turn:10[0:21]
+medications[0] <- utterance turn:11[0:13]
+allergies[0] <- utterance turn:12[0:14]
+family_social.family[0] <- utterance turn:13[0:11]
+family_social.smoking <- utterance turn:14[0:5]
+family_social.alcohol <- utterance turn:14[7:12]
+family_social.occupation <- utterance turn:15[0:8]
+family_social.living_situation <- utterance turn:15[10:19]
+screening.phq2 <- typed instrument:phq2[0:1]
+screening.gad2 <- typed instrument:gad2[0:1]
+screening.phq9 <- typed instrument:phq9[0:2]
+screening.gad7 <- typed instrument:gad7[0:1]
+konusma_ozellikleri.speech_rate_syll_s <- utterance window:1[0:30]
+konusma_ozellikleri.pause_ratio <- utterance window:1[0:30]
+konusma_ozellikleri.f0_mean_hz <- utterance window:1[0:30]
+konusma_ozellikleri.f0_sd_hz <- utterance window:1[0:30]
+konusma_ozellikleri.response_latency_ms_mean <- utterance window:1[0:30]
+konusma_ozellikleri.reference_ranges <- utterance window:1[0:30]
+konusma_ozellikleri.recording_conditions_caveat_tr <- utterance window:1[0:30]
+imported_objective[0] <- document document:doc-1[40:52] p2
+suggested_focus_questions[0] <- utterance turn:9[0:13]
+considerations[0] <- utterance turn:2[0:11]
+patient_confirmed_sections[0] <- utterance turn:16[0:4]
+patient_confirmed_sections[1] <- utterance turn:16[6:10]
+legal
+SENTETIK DIPNOT - gercek metin degildir
+SENTETIK ETIKET - gercek metin degildir

@@ -1,0 +1,732 @@
+{
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:903bf043-f840-5149-85bb-d64096dca32d",
+      "resource": {
+        "author": [
+          {
+            "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+          }
+        ],
+        "date": "2026-08-31T09:15:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:protocol-hash",
+            "valueString": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:intake-mode",
+            "valueString": "detailed"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:note-model",
+            "valueString": "synthetic-extractor@rev-0"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:prompt-version",
+            "valueString": "extract.v0"
+          }
+        ],
+        "resourceType": "Composition",
+        "section": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "triage",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:0741067e-fc5b-5c42-be92-d8e5927ab4cc"
+              },
+              {
+                "reference": "urn:uuid:dd4b4fe0-3b04-5b43-bf51-b904e6a2c294"
+              }
+            ],
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>level: RED</p><p>rule synthetic.rule.red_a: onset=ani; severity_nrs=10</p><p>rule synthetic.rule.red_b: ros=ense sertligi</p></div>",
+              "status": "generated"
+            },
+            "title": "triage"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "chief_complaint",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>siddetli bas agrisi</p><p>goal: acil yardim</p></div>",
+              "status": "generated"
+            },
+            "title": "chief_complaint"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "hpi",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>ani basladi</p><p>onset: ani</p><p>location: ense</p><p>duration: bir saat</p><p>character: zonklayici</p><p>radiation: omuza</p><p>timing: surekli</p><p>trajectory: artiyor</p><p>aggravating: hareket</p><p>relieving: karanlik oda</p><p>severity_nrs: 10</p><p>associated: bulanti</p><p>negative: atesi yok</p></div>",
+              "status": "generated"
+            },
+            "title": "hpi"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "ros_pertinent",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>noro: ense sertligi (+)</p></div>",
+              "status": "generated"
+            },
+            "title": "ros_pertinent"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "pmh",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:3b72d52d-0bec-5b76-9927-19847c5c9dc6"
+              }
+            ],
+            "title": "pmh"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "medications",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:25bc880b-81aa-5b75-b9a1-29e46e8e7926"
+              }
+            ],
+            "title": "medications"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "allergies",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:8d79ac60-bd4f-5574-a646-319911c81ab4"
+              }
+            ],
+            "title": "allergies"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "family_social",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>family: anne migren</p><p>smoking.status: never</p><p>alcohol.status: never</p><p>occupation: ogretmen</p><p>living_situation: ailesiyle</p></div>",
+              "status": "generated"
+            },
+            "title": "family_social"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "screening",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:e6f2d311-2de9-582f-b906-11548170420f"
+              },
+              {
+                "reference": "urn:uuid:356fc9cf-6383-58f3-9f27-4069a950c8f4"
+              },
+              {
+                "reference": "urn:uuid:c3a88af8-e2c5-50ab-ad52-2bdcdcd461ff"
+              },
+              {
+                "reference": "urn:uuid:7b2fb7af-90c3-557f-853b-b67b65d51306"
+              }
+            ],
+            "title": "screening"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "konusma_ozellikleri",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>speech_rate_syll_s: 4.25 syll/s</p><p>pause_ratio: 0.125</p><p>f0_mean_hz: 132.5 Hz</p><p>f0_sd_hz: 18.75 Hz</p><p>response_latency_ms_mean: 1250.0 ms</p><p>reference_ranges.speech_rate_syll_s: sentetik aralik</p><p>recording_conditions_caveat_tr: sentetik kayit kosulu notu</p></div>",
+              "status": "generated"
+            },
+            "title": "konusma_ozellikleri"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "imported_objective",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>lab: Üre 45 mg/dL (2026-08-20) [document:doc-1 p2]</p></div>",
+              "status": "generated"
+            },
+            "title": "imported_objective"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "data_gaps",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>family_social.occupation_detail</p></div>",
+              "status": "generated"
+            },
+            "title": "data_gaps"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "suggested_focus_questions",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik odak sorusu</p></div>",
+              "status": "generated"
+            },
+            "title": "suggested_focus_questions"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "considerations",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik oruntu: sentetik gerekce</p></div>",
+              "status": "generated"
+            },
+            "title": "considerations"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "patient_confirmed_sections",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>chief_complaint</p><p>medications</p></div>",
+              "status": "generated"
+            },
+            "title": "patient_confirmed_sections"
+          }
+        ],
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "text": {
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Ön görüşme notu</p></div>",
+          "status": "generated"
+        },
+        "title": "Ön görüşme notu",
+        "type": {
+          "coding": [
+            {
+              "code": "previsit_note",
+              "system": "urn:intake:fhir:CodeSystem:document-type"
+            }
+          ],
+          "text": "previsit_note"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3",
+      "resource": {
+        "id": "patient-0001",
+        "resourceType": "Patient"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:0741067e-fc5b-5c42-be92-d8e5927ab4cc",
+      "resource": {
+        "method": {
+          "coding": [
+            {
+              "code": "rules",
+              "system": "urn:intake:fhir:CodeSystem:triage-method"
+            }
+          ]
+        },
+        "prediction": [
+          {
+            "qualitativeRisk": {
+              "coding": [
+                {
+                  "code": "RED",
+                  "system": "urn:intake:fhir:CodeSystem:triage-level"
+                }
+              ]
+            }
+          }
+        ],
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "code": "synthetic.rule.red_a",
+                "system": "urn:intake:fhir:CodeSystem:triage-rule"
+              }
+            ],
+            "text": "onset=ani; severity_nrs=10"
+          },
+          {
+            "coding": [
+              {
+                "code": "synthetic.rule.red_b",
+                "system": "urn:intake:fhir:CodeSystem:triage-rule"
+              }
+            ],
+            "text": "ros=ense sertligi"
+          }
+        ],
+        "resourceType": "RiskAssessment",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:dd4b4fe0-3b04-5b43-bf51-b904e6a2c294",
+      "resource": {
+        "code": {
+          "coding": [
+            {
+              "code": "RED",
+              "system": "urn:intake:fhir:CodeSystem:triage-level"
+            },
+            {
+              "code": "synthetic.rule.red_a",
+              "system": "urn:intake:fhir:CodeSystem:triage-rule"
+            },
+            {
+              "code": "synthetic.rule.red_b",
+              "system": "urn:intake:fhir:CodeSystem:triage-rule"
+            }
+          ],
+          "text": "RED"
+        },
+        "resourceType": "Flag",
+        "status": "active",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:e6f2d311-2de9-582f-b906-11548170420f",
+      "resource": {
+        "category": [
+          {
+            "coding": [
+              {
+                "code": "survey",
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "55758-7",
+              "system": "http://loinc.org"
+            },
+            {
+              "code": "phq2",
+              "system": "urn:intake:fhir:CodeSystem:screening-instrument"
+            }
+          ],
+          "text": "phq2"
+        },
+        "effectiveDateTime": "2026-08-31T09:15:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:administration-mode",
+            "valueString": "typed"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:proxy-reported",
+            "valueBoolean": false
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:third-party-present",
+            "valueBoolean": true
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:qualifier-tr",
+            "valueString": "başka bir konuşmacı duyuldu"
+          }
+        ],
+        "performer": [
+          {
+            "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+          }
+        ],
+        "resourceType": "Observation",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "valueInteger": 1
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:356fc9cf-6383-58f3-9f27-4069a950c8f4",
+      "resource": {
+        "category": [
+          {
+            "coding": [
+              {
+                "code": "survey",
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "gad2",
+              "system": "urn:intake:fhir:CodeSystem:screening-instrument"
+            }
+          ],
+          "text": "gad2"
+        },
+        "effectiveDateTime": "2026-08-31T09:15:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:administration-mode",
+            "valueString": "typed"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:proxy-reported",
+            "valueBoolean": false
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:third-party-present",
+            "valueBoolean": true
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:qualifier-tr",
+            "valueString": "başka bir konuşmacı duyuldu"
+          }
+        ],
+        "performer": [
+          {
+            "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+          }
+        ],
+        "resourceType": "Observation",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "valueInteger": 0
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c3a88af8-e2c5-50ab-ad52-2bdcdcd461ff",
+      "resource": {
+        "category": [
+          {
+            "coding": [
+              {
+                "code": "survey",
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "44261-6",
+              "system": "http://loinc.org"
+            },
+            {
+              "code": "phq9",
+              "system": "urn:intake:fhir:CodeSystem:screening-instrument"
+            }
+          ],
+          "text": "phq9"
+        },
+        "effectiveDateTime": "2026-08-31T09:15:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:administration-mode",
+            "valueString": "typed"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:proxy-reported",
+            "valueBoolean": false
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:third-party-present",
+            "valueBoolean": true
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:qualifier-tr",
+            "valueString": "başka bir konuşmacı duyuldu"
+          }
+        ],
+        "performer": [
+          {
+            "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+          }
+        ],
+        "resourceType": "Observation",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "valueInteger": 12
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7b2fb7af-90c3-557f-853b-b67b65d51306",
+      "resource": {
+        "category": [
+          {
+            "coding": [
+              {
+                "code": "survey",
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "70274-6",
+              "system": "http://loinc.org"
+            },
+            {
+              "code": "gad7",
+              "system": "urn:intake:fhir:CodeSystem:screening-instrument"
+            }
+          ],
+          "text": "gad7"
+        },
+        "effectiveDateTime": "2026-08-31T09:15:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:administration-mode",
+            "valueString": "typed"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:proxy-reported",
+            "valueBoolean": false
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:third-party-present",
+            "valueBoolean": true
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:qualifier-tr",
+            "valueString": "başka bir konuşmacı duyuldu"
+          }
+        ],
+        "performer": [
+          {
+            "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+          }
+        ],
+        "resourceType": "Observation",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "valueInteger": 9
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3b72d52d-0bec-5b76-9927-19847c5c9dc6",
+      "resource": {
+        "code": {
+          "coding": [
+            {
+              "code": "Z00.0",
+              "system": "http://hl7.org/fhir/sid/icd-10"
+            }
+          ],
+          "text": "sentetik kronik durum"
+        },
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:pmh-source",
+            "valueString": "patient"
+          }
+        ],
+        "resourceType": "Condition",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "code": "confirmed",
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:25bc880b-81aa-5b75-b9a1-29e46e8e7926",
+      "resource": {
+        "dosage": [
+          {
+            "text": "beş miligram"
+          }
+        ],
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:reconciliation",
+            "valueString": "matches"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:adherence",
+            "valueString": "duzenli"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:medication-source",
+            "valueString": "patient"
+          }
+        ],
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "code": "A01AA01",
+              "system": "http://www.whocc.no/atc"
+            }
+          ],
+          "text": "sentetik ilac"
+        },
+        "resourceType": "MedicationStatement",
+        "status": "unknown",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:8d79ac60-bd4f-5574-a646-319911c81ab4",
+      "resource": {
+        "clinicalStatus": {
+          "coding": [
+            {
+              "code": "active",
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+            }
+          ]
+        },
+        "code": {
+          "text": "sentetik madde"
+        },
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:allergy-severity",
+            "valueString": "hafif"
+          }
+        ],
+        "patient": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "reaction": [
+          {
+            "manifestation": [
+              {
+                "text": "dokuntu"
+              }
+            ]
+          }
+        ],
+        "resourceType": "AllergyIntolerance",
+        "verificationStatus": {
+          "coding": [
+            {
+              "code": "confirmed",
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "identifier": {
+    "system": "urn:intake:fhir:NamingSystem:visit",
+    "value": "visit-0001"
+  },
+  "resourceType": "Bundle",
+  "timestamp": "2026-08-31T09:15:00+00:00",
+  "type": "document"
+}

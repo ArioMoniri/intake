@@ -1,0 +1,200 @@
+{
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:903bf043-f840-5149-85bb-d64096dca32d",
+      "resource": {
+        "author": [
+          {
+            "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+          }
+        ],
+        "date": "2026-08-31T09:15:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:protocol-hash",
+            "valueString": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:intake-mode",
+            "valueString": "fast"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:note-model",
+            "valueString": "synthetic-extractor@rev-0"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:prompt-version",
+            "valueString": "extract.v0"
+          }
+        ],
+        "resourceType": "Composition",
+        "section": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "triage",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:0741067e-fc5b-5c42-be92-d8e5927ab4cc"
+              },
+              {
+                "reference": "urn:uuid:dd4b4fe0-3b04-5b43-bf51-b904e6a2c294"
+              }
+            ],
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>level: YELLOW</p><p>rule synthetic.rule.yellow_a: onset=dun aksam</p></div>",
+              "status": "generated"
+            },
+            "title": "triage"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "chief_complaint",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>gogus agrisi</p><p>goal: rahatlamak</p></div>",
+              "status": "generated"
+            },
+            "title": "chief_complaint"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "hpi",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>dun aksam basladi</p><p>onset: dun aksam</p><p>character: baski</p><p>severity_nrs: 6</p><p>associated: terleme</p><p>negative: nefes darligi yok</p></div>",
+              "status": "generated"
+            },
+            "title": "hpi"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "data_gaps",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>hpi.oldcarts.radiation</p></div>",
+              "status": "generated"
+            },
+            "title": "data_gaps"
+          }
+        ],
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        },
+        "text": {
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Ön görüşme notu</p></div>",
+          "status": "generated"
+        },
+        "title": "Ön görüşme notu",
+        "type": {
+          "coding": [
+            {
+              "code": "previsit_note",
+              "system": "urn:intake:fhir:CodeSystem:document-type"
+            }
+          ],
+          "text": "previsit_note"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3",
+      "resource": {
+        "id": "patient-0001",
+        "resourceType": "Patient"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:0741067e-fc5b-5c42-be92-d8e5927ab4cc",
+      "resource": {
+        "method": {
+          "coding": [
+            {
+              "code": "rules",
+              "system": "urn:intake:fhir:CodeSystem:triage-method"
+            }
+          ]
+        },
+        "prediction": [
+          {
+            "qualitativeRisk": {
+              "coding": [
+                {
+                  "code": "YELLOW",
+                  "system": "urn:intake:fhir:CodeSystem:triage-level"
+                }
+              ]
+            }
+          }
+        ],
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "code": "synthetic.rule.yellow_a",
+                "system": "urn:intake:fhir:CodeSystem:triage-rule"
+              }
+            ],
+            "text": "onset=dun aksam"
+          }
+        ],
+        "resourceType": "RiskAssessment",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:dd4b4fe0-3b04-5b43-bf51-b904e6a2c294",
+      "resource": {
+        "code": {
+          "coding": [
+            {
+              "code": "YELLOW",
+              "system": "urn:intake:fhir:CodeSystem:triage-level"
+            },
+            {
+              "code": "synthetic.rule.yellow_a",
+              "system": "urn:intake:fhir:CodeSystem:triage-rule"
+            }
+          ],
+          "text": "YELLOW"
+        },
+        "resourceType": "Flag",
+        "status": "active",
+        "subject": {
+          "reference": "urn:uuid:b0605994-7bbd-5591-9c47-2a1dbd95a9f3"
+        }
+      }
+    }
+  ],
+  "identifier": {
+    "system": "urn:intake:fhir:NamingSystem:visit",
+    "value": "visit-0001"
+  },
+  "resourceType": "Bundle",
+  "timestamp": "2026-08-31T09:15:00+00:00",
+  "type": "document"
+}

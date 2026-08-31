@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**219 issues.** By phase: P0 130 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 98 · todo 110 · withdrawn 1.
+**220 issues.** By phase: P0 131 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 99 · todo 110 · withdrawn 1.
 
 ## P0
 
@@ -64,7 +64,7 @@
 | INT-081 | IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays | E04-engines | INT-080, INT-258 | area:engine | done |
 | INT-082 | Patient simulator: personas + scenarios IM-01..IM-14 headless | E04-engines | INT-081 | area:engine | done |
 | INT-083 | Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set | E04-engines | INT-081, INT-015 | area:ai | done |
-| INT-084 | Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer | E04-engines | INT-083, INT-033 | area:engine, risk:legal | todo |
+| INT-084 | Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer | E04-engines | INT-083, INT-033 | area:engine, risk:legal | done |
 | INT-085 | Patient summary (B1 Turkish) + reading-level check | E04-engines | INT-084 | area:engine | todo |
 | INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | done |
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | done |
@@ -141,6 +141,7 @@
 | INT-268 | No valueset in the repository has members: vs.* are named everywhere and defined nowhere, so no code slot can bind | E03-protocols | INT-083 | area:protocols, risk:clinical, approval:human-clinical | awaiting-human |
 | INT-269 | The triage attestation belongs to the rules engine, not the Talker: files/12 §5's HMAC has no owner | E03-protocols | INT-080, INT-093 | area:protocols, risk:security | todo |
 | INT-270 | Wire the RED script and its latency metric into Layer B, so a queue-originated RED can actually speak | E05-voice | INT-093, INT-092, INT-110 | area:voice, risk:clinical | todo |
+| INT-271 | The note composer renders acoustic features on trust: no second check that the acoustic lane was ever authorised | E06-lanes | INT-084, INT-110 | area:lanes, risk:clinical | todo |
 
 ## P1
 

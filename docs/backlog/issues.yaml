@@ -871,7 +871,8 @@
   title: "Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer"
   depends_on: [INT-083, INT-033]
   labels: [area:engine, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-084.md
   acceptance:
     - "every fact carries source span; fixed legal disclaimer text (06 §7 wording: hasta beyanina dayanir, hekim degerlendirmesinin yerine gecmez) rendered on note+PDF; golden note snapshots"
   tests: [tests/engine/test_note_golden.py]
@@ -3223,3 +3224,26 @@
     - "the register x location matrix is re-asserted end to end through the queue — SILENT still produces no playback stop, ON_SITE still has no 112 affordance, DEFERRED_CLINICIAN still does nothing on Layer A"
   tests: [tests/voice/test_red_preemption.py, tests/voice/test_work_queue.py]
   sec_row: "voice-runtime"
+- id: INT-271
+  epic: E06-lanes
+  phase: P0
+  # Found reviewing INT-084's goldens. The note composer renders the
+  # konusma_ozellikleri block whenever it is handed one, and renders nothing
+  # when it is not. That is a correct input contract, and INT-110 does gate
+  # production at the lane — but the composer is the LAST hop before a
+  # clinician reads it, and it carries f0_mean_hz and f0_sd_hz, which are
+  # acoustic features. Invariant 11 makes `acoustic` unreachable unless
+  # {study_id, protocol_version, ICF_version, approval_date} all assert, and a
+  # surface with no second check has no defence in depth on a consent boundary.
+  title: "The note composer renders acoustic features on trust: no second check that the acoustic lane was ever authorised"
+  depends_on: [INT-084, INT-110]
+  labels: [area:lanes, risk:clinical]
+  status: todo
+  acceptance:
+    - "the gap is reproduced first: a NoteSources carrying a konusma_ozellikleri block with f0 fields, built WITHOUT any acoustic authorisation, renders those fields into the SOAP note, the PDF and the FHIR bundle today — asserted as the failing test before anything changes"
+    - "the composer refuses rather than strips: a block whose acoustic provenance does not assert fails the whole compose with a named error, because a note silently missing its objective section is a note a clinician reads as 'nothing was measured' rather than 'this was withheld'"
+    - "the four INT-110 fields are checked as a set and each is tested missing on its own, and the check reads the SAME authorisation record the lane framework uses rather than a second copy of the rule — two copies of a consent rule is how they drift apart"
+    - "the split between acoustic and non-acoustic features in the block is made explicit rather than assumed: speech_rate_syll_s and pause_ratio may be linguistic, f0_mean_hz and f0_sd_hz are not, and whichever fields survive without acoustic authorisation are named in the type rather than filtered at render"
+    - "INT-084's three goldens are regenerated under the new rule and the diff is reviewed in the evidence — a golden that changes silently is a golden nobody is reading"
+  tests: [tests/engine/test_note_golden.py, tests/lanes/test_isolation.py]
+  sec_row: "observer-lanes"
