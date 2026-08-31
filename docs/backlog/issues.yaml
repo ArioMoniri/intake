@@ -200,7 +200,8 @@
   title: "security.yml CI job: full gate set + signing"
   depends_on: [INT-002]
   labels: [area:ci, risk:security]
-  status: doing
+  status: awaiting-human
+  evidence: docs/evidence/INT-019.md
   acceptance:
     - "gitleaks, semgrep+bandit, eslint-security, trivy fs/image/IaC + osv-scanner fail on critical/high, checkov, license allow-list (AGPL flagged), syft SBOM artifact, cosign keyless signing + SLSA provenance for images and protocol bundles on tags, schemathesis fuzz, PHI-pattern scan of fixtures"
     - "`make security` runs the same list locally; planted secret, planted critical CVE and planted PHI each fail (proved in evidence, then reverted)"

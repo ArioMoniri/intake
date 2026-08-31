@@ -1,0 +1,66 @@
+# INT-019 — gitleaks configuration for `make security` and the security
+# workflow (files/10 §8 "gitleaks (secrets)").
+#
+# It EXTENDS the default rule set; nothing is removed. What is below is two
+# narrow allowlist entries, each scoped to one path and one rule, and the
+# installed-dependency trees, which are not ours to hold secrets in.
+#
+# The rule for adding an entry here: the finding must be provably not a
+# credential, and the entry must be narrow enough that a real credential in
+# the same file would still fire. "This file is noisy" is not a reason.
+title = "INTAKE gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+Vendored and installed dependency trees, plus local caches. These are not
+committed (.gitignore) and their contents are upstream's; a finding in one is
+a report about somebody else's repository, and `gitleaks dir` walks them
+because it reads the filesystem rather than the index. The commit history and
+every tracked file are still scanned.
+"""
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.venv/''',
+  '''(^|/)\.cache/''',
+  '''(^|/)\.git/''',
+  '''(^|/)dist/''',
+]
+
+[[allowlists]]
+description = """
+infra/docker-compose.siem.yml healthcheck: `curl -sk -u admin:$${INDEXER_PASSWORD}`.
+The matched text is a compose variable REFERENCE, not a credential — the value
+is injected from OpenBao by scripts/security/siem_secrets.sh (files/10 §8:
+"secrets injected from OpenBao, no secrets in env files or images"). Scoped to
+the one rule and the one file: a literal password on any other line of that
+file still fires.
+"""
+targetRules = ["curl-auth-user"]
+paths = ['''^infra/docker-compose\.siem\.yml$''']
+regexes = ['''\$\$\{INDEXER_PASSWORD\}''']
+
+[[allowlists]]
+description = """
+files/ is the specification and historical record — prose, no code and no
+deployment reads it. The generic-api-key heuristic fires on a long prose line
+in files/10 §7 that enumerates monitoring signals. Scoped to that rule and
+that tree; every other rule, including the specific provider-token rules that
+match real credential shapes, still applies to files/.
+"""
+targetRules = ["generic-api-key"]
+paths = ['''^files/''']
+
+[[allowlists]]
+description = """
+.github/workflows/ci.yml's actions/cache key `deid-tr-ner-v1-d4faec57`. The
+hex is the first eight characters of the pinned sha256 of the INT-015 de-id
+NER artefact (the full digest is DEID_MODEL_SHA256 in the Makefile), used to
+key a cache entry; the generic-api-key heuristic reads `key: <hex>` as a
+credential. Scoped to that rule, that file and that literal prefix.
+"""
+targetRules = ["generic-api-key"]
+paths = ['''^\.github/workflows/ci\.yml$''']
+regexes = ['''key: deid-tr-ner-v1-''']

@@ -1,0 +1,27 @@
+{
+    "failed_checks": [
+        {
+            "file": "/backup/minio-replication.yaml",
+            "findings": [
+                {
+                    "resource": "752886339ba93c4b24a5bb71a8b916c5290de90b",
+                    "check_ids": [
+                        "CKV_SECRET_6"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/docker-compose.obs.yml",
+            "findings": [
+                {
+                    "resource": "9491cceec3792512a4e9b999b84948bcc5b58395",
+                    "check_ids": [
+                        "CKV_SECRET_4",
+                        "CKV_SECRET_6"
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+# INT-019 — the docs/ half of the PHI-pattern scan's exemptions (prefix match).
+# Pinned "may only shrink" by tests/ci/test_security_gates.py, exactly like
+# scripts/ci/no_placeholders_allow.txt.
+#
+# tests/fixtures/** is NOT excused from here. A fixture is excused only by a
+# sha256-pinned declaration in infra/ci/no-phi-policy.yaml (INT-206), which
+# records origin, provenance and licence and fails the moment the bytes change.
+# This file exists because docs/ is outside that policy's scope.
+#
+# Every entry below is a document that quotes this repository's CANONICAL
+# SYNTHETIC identifiers — the checksum-valid TC Kimlik, the constructed TR
+# mobile and the constructed IBAN that the redaction work uses everywhere — as
+# the subject of the sentence. Removing the quote would make the evidence
+# unreadable: "the redactor missed this shape" is not a claim you can check
+# without the shape. None of these values belongs to a person.
+#
+# Adding a row here is not a routine act. The question to answer first is
+# whether the document needs the literal at all; the answer is usually no, and
+# then the row does not get added.
+docs/PROGRESS.md
+docs/evidence/INT-013.md
+docs/evidence/INT-145.md
+docs/evidence/INT-205.md
+docs/evidence/INT-206.md
+docs/evidence/INT-230.md

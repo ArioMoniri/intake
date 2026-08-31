@@ -296,3 +296,37 @@ siem-down:
 
 test-sim:
 	uv run pytest tests/sim -q -o addopts=""
+
+# INT-019: the full security gate set (CLAUDE.md invariant 14; files/10 §8) —
+# gitleaks, semgrep, bandit, eslint-security, trivy fs/image/IaC, osv-scanner,
+# checkov, the licence allow-list, the syft SBOM, the schemathesis API fuzz,
+# the PHI-pattern scan, the accuracy-claims scan and INT-206's no-PHI-in-CI
+# policy, in the order .github/workflows/security.yml runs them.
+#
+# The list lives in exactly one place — the GATES array in
+# scripts/ci/security_gates.sh — and tests/ci/test_security_gates.py asserts
+# the workflow declares the same ids in the same order. That is what "make
+# security runs the same list locally" means as a property rather than a claim.
+#
+# No gate skips. A scanner that is not installed FAILS with its install line;
+# there is deliberately no switch here that turns one off (disabling a CI
+# security gate is on CLAUDE.md's stop-and-ask list). Pass gate ids to run a
+# subset while iterating: `make security GATES="phi-scan claims-scan"`.
+.PHONY: security sign
+
+security:
+	scripts/ci/security_gates.sh $(GATES)
+
+# INT-019: cosign keyless signing + SLSA provenance for protocol bundles and
+# images, on tags. Keyless means there is no key on this machine to sign with:
+# the identity is the OIDC token GitHub Actions mints, so the real run is the
+# `sign-and-attest` job in the security workflow. Locally this target does the
+# half that is honest here — enumerate exactly what a tag would sign, and fail
+# closed when that set is empty (HB-C1: no pack compiles yet, and a release
+# with no protocol content is not one worth signing).
+sign:
+	@command -v cosign >/dev/null || { echo "cosign is not installed (https://github.com/sigstore/cosign/releases)"; exit 1; }
+	scripts/ci/protocol_bundles.sh
+	@echo "keyless signing needs the GitHub Actions OIDC token: run the tags-only"
+	@echo "sign-and-attest job (.github/workflows/security.yml), not this machine."
+	@exit 1

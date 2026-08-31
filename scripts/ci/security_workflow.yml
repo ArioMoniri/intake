@@ -1,0 +1,302 @@
+# INT-019 — the security gate set (CLAUDE.md invariant 14; files/10 §8).
+#
+# PLACEMENT: this is the complete, byte-final content of
+# .github/workflows/security.yml. That path is hook-protected
+# (scripts/hooks/guard-protected-files.sh; 07 §3.8 / §F rule 2) and the guard
+# refused its creation from this agent session — deliberately: protected gate
+# files move only under the human-sanctioned ALLOW_PROTECTED=1. One step
+# remains, and it is a human's:
+#
+#     ALLOW_PROTECTED=1 git mv scripts/ci/security_workflow.yml \
+#         .github/workflows/security.yml
+#
+# tests/ci/test_security_gates.py pins this content wherever it lives, requires
+# the two copies to stay byte-identical while both exist, and keeps
+# test_workflow_is_installed RED until the move happens — so the gate set
+# cannot be declared done while it is not actually installed.
+#
+# ONE LIST, TWO RUNNERS. Every step below is named `gate: <id>`, and the ids
+# are exactly the GATES array in scripts/ci/security_gates.sh, in the same
+# order. tests/ci/test_security_gates.py asserts that equality, so "make
+# security runs the same list locally" is a property the suite holds rather
+# than a sentence in a README. Where a gate can be run by the driver script it
+# is, so CI and a laptop execute literally the same code.
+#
+# NOTHING SKIPS. There is no `continue-on-error`, no `|| true` and no
+# `if: always()` in this file, and the driver has no skip verdict at all: a
+# scanner that is not installed FAILS with its install line. Disabling a CI
+# security gate is on CLAUDE.md's stop-and-ask list, so there is no switch here
+# that does it.
+#
+# EVERY ACTION IS PINNED to a full commit sha with the resolved tag beside it —
+# a tag can be silently repointed, a sha cannot (ci.yml's rule; the INT-206
+# workflow policy enforces it, and so does the test suite). The three binary
+# scanners installed by hand are pinned by version AND sha256 of the release
+# asset, for the same reason.
+#
+# NETWORK POSTURE. Semgrep fetches the p/ci ruleset, Trivy and osv-scanner
+# fetch vulnerability databases, npm fetches the pinned eslint-plugin-security
+# and uvx fetches the pinned Python scanners. Those are rule and database
+# pulls; no vendor AI call, no PHI, and no repository secret — the only
+# credential in this file is the ephemeral `github.token`, and the tags-only
+# signing job's OIDC token.
+#
+# ARTEFACTS. This workflow hands no path to actions/upload-artifact:
+# `artefact_paths` in infra/ci/no-phi-policy.yaml (INT-206) is empty, and that
+# list belongs to that policy, not to this workflow. The SBOM is produced by
+# the sbom gate and, on a tag, signed and attested in place. Publishing it as a
+# downloadable artefact needs a declaration in that file first; the required
+# diff is in docs/evidence/INT-019.md.
+#
+# NO RUN OF THIS WORKFLOW HAS EVER EXECUTED A STEP. GitHub Actions billing on
+# this repository is unpaid (HUMAN_BLOCKERS.md HB-I9): every run since 28 Aug
+# 2026 fails in three to four seconds without dispatching to a runner.
+# Everything below is verified by the local driver and by
+# tests/ci/test_security_gates.py; none of it is verified by a green check
+# mark, and docs/evidence/INT-019.md says so per gate.
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  # Pinned binary scanners: version + sha256 of the release asset.
+  GITLEAKS_VERSION: "8.30.0"
+  GITLEAKS_SHA256: "79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e"
+  OSV_SCANNER_VERSION: "2.5.1"
+  OSV_SCANNER_SHA256: "f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be"
+  SYFT_VERSION: "1.33.0"
+  SYFT_SHA256: "adc1b944a827ed3432bcd9f1dbdbc8fa3c0dca7d3d449e7084c90248c2c6cb50"
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # a secret buried three commits back still fails the build
+          fetch-depth: 0
+      - name: install gitleaks (pinned by sha256)
+        run: |
+          set -euo pipefail
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o /tmp/gitleaks.tar.gz "$url"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+      - name: "gate: gitleaks"
+        run: scripts/ci/security_gates.sh gitleaks
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: "gate: semgrep"
+        run: scripts/ci/security_gates.sh semgrep
+      - name: "gate: bandit"
+        run: scripts/ci/security_gates.sh bandit
+      - name: "gate: eslint-security"
+        run: scripts/ci/security_gates.sh eslint-security
+
+  vulnerabilities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # trivy is installed by its own pinned action: its release tarball is not
+      # reachable from the environment this workflow was authored in, so its
+      # sha256 could not be verified here — and an unverified digest is not
+      # written down (HUMAN_BLOCKERS.md rule 1: never invent a value).
+      - name: "gate: trivy-fs"
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          skip-dirs: node_modules,.cache,.venv
+      - name: "gate: trivy-image"
+        run: scripts/ci/security_gates.sh trivy-image
+      - name: install osv-scanner (pinned by sha256)
+        run: |
+          set -euo pipefail
+          url="https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          curl -sSfL -o /tmp/osv-scanner "$url"
+          echo "${OSV_SCANNER_SHA256}  /tmp/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+      - name: "gate: osv-scanner"
+        run: scripts/ci/security_gates.sh osv-scanner
+
+  iac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - name: "gate: trivy-iac"
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - name: "gate: checkov"
+        run: scripts/ci/security_gates.sh checkov
+
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: uv sync --all-packages
+      - run: pnpm install --frozen-lockfile
+      - name: "gate: licences"
+        run: scripts/ci/security_gates.sh licences
+      - name: install syft (pinned by sha256)
+        run: |
+          set -euo pipefail
+          url="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL -o /tmp/syft.tar.gz "$url"
+          echo "${SYFT_SHA256}  /tmp/syft.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/syft.tar.gz -C /usr/local/bin syft
+      - name: "gate: sbom"
+        run: scripts/ci/security_gates.sh sbom
+
+  api-fuzz:
+    # Schemathesis grades RESPONSES, so the API has to be up: the compose tier
+    # `make check-integration` uses, then uvicorn, then the fuzz. Recorded
+    # adapters only — this job calls no vendor (CLAUDE.md "never call
+    # paid/live APIs in tests or CI").
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages
+      - name: bring up the API's dependencies
+        run: |
+          set -euo pipefail
+          docker compose -f infra/docker-compose.dev.yml up -d --wait postgres openbao minio
+          POSTGRES_DB=intake bash scripts/security/openbao_dev_setup.sh
+      - name: start the API
+        env:
+          OPENBAO_TOKEN: intake-dev-root
+        run: |
+          set -euo pipefail
+          uv run uvicorn intake_api.app:create_app --factory --host 127.0.0.1 --port 8000 &
+          for _ in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8000/healthz >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "the API did not become healthy — the fuzz gate has no target" >&2
+          exit 1
+      - name: "gate: schemathesis"
+        env:
+          INTAKE_FUZZ_BASE_URL: http://127.0.0.1:8000
+        run: scripts/ci/security_gates.sh schemathesis
+
+  content:
+    # The three gates that read the repository as text: PHI shapes, accuracy
+    # claims, and INT-206's no-PHI-in-CI policy over the six CI surfaces.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages
+      - name: "gate: phi-scan"
+        run: scripts/ci/security_gates.sh phi-scan
+      - name: "gate: claims-scan"
+        run: scripts/ci/security_gates.sh claims-scan
+      - name: "gate: ci-policy"
+        run: scripts/ci/security_gates.sh ci-policy
+
+  sign-and-attest:
+    # Tags only. cosign keyless: the OIDC token GitHub mints is exchanged for a
+    # short-lived Fulcio certificate, so there is no signing key to hold, lose
+    # or rotate. SLSA provenance is attested through the GitHub attestations
+    # API, which records what built the artefact.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [secrets, sast, vulnerabilities, iac, supply-chain, api-fuzz, content]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # keyless signing exchanges this for a Fulcio certificate
+      attestations: write # SLSA provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: compile the protocol packs this tag ships
+        env:
+          INTAKE_SIGN_PACK: ${{ vars.INTAKE_SIGN_PACK }}
+          INTAKE_SIGN_VOICE: ${{ vars.INTAKE_SIGN_VOICE }}
+        run: |
+          set -euo pipefail
+          # The pack and the voice profile have no defaults, here as in
+          # `make protocols-compile`: the clip cache is keyed per voice, so a
+          # default would silently build somebody else's cache. The compiler
+          # refuses a pack it may not emit (invariant 13; HB-C1 today), and a
+          # refusal fails this job — a tag is not signed over packs that did
+          # not compile.
+          uv run protocols compile \
+            --pack "${INTAKE_SIGN_PACK:?INTAKE_SIGN_PACK must name the pack this tag ships}" \
+            --voice "${INTAKE_SIGN_VOICE:?INTAKE_SIGN_VOICE must name the voice profile}"
+      - name: "gate: sign-protocol-bundles"
+        run: |
+          set -euo pipefail
+          # scripts/ci/protocol_bundles.sh fails closed on an empty emit root:
+          # signing nothing and signing everything print the same green tick.
+          scripts/ci/protocol_bundles.sh > /tmp/bundle-files.txt
+          while IFS= read -r file; do
+            cosign sign-blob --yes "$file" --bundle "$file.cosign.bundle"
+            cosign verify-blob "$file" --bundle "$file.cosign.bundle" \
+              --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          done < /tmp/bundle-files.txt
+      - name: SLSA provenance for the protocol bundles
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: packages/protocols/dist/**/*
+      - name: "gate: sign-images"
+        run: |
+          set -euo pipefail
+          # No Dockerfile is tracked, so this tag ships no container image. The
+          # gate is wired rather than assumed: the moment an image build exists
+          # this step signs its digest with the same keyless identity, and
+          # fails until that build is wired to it.
+          images=$(git ls-files -- '**/Dockerfile' '**/Dockerfile.*' 'Dockerfile' 'Dockerfile.*')
+          if [ -z "$images" ]; then
+            echo "no Dockerfile is tracked — this tag ships no container image"
+            exit 0
+          fi
+          echo "an image build exists but no build step feeds this signature yet;" >&2
+          echo "sign the pushed digest: cosign sign --yes <registry>/<image>@<digest>" >&2
+          exit 1
