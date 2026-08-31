@@ -938,4 +938,31 @@ export const en: Record<MessageKey, string> = {
   "note.fact.allergy.changed.clinician": "the clinician recorded a difference; no new detail taken",
   "note.fact.allergy.stopped.patient": "the patient says they have no such allergy",
   "note.fact.allergy.stopped.clinician": "the clinician recorded no such allergy",
+
+  // INT-137 — the share summary shown before Send (02 §5.4: what, with whom,
+  // until when). The duration is an anchor, not a clock: 02 §2 pins the
+  // Doctor Link expiry to the appointment, never to the moment of sending.
+  "review.consent.title": "Sharing summary",
+  "review.consent.sections": "Sections being shared",
+  "review.consent.nothing": "No section is being shared right now.",
+  "review.consent.recipient": "Who it goes to",
+  "review.consent.until": "Until when",
+  "review.consent.untilValue": "Sharing ends 72 hours after your appointment.",
+  // INT-137 — the one-tap satisfaction question asked after sending. Without
+  // the 06 §2 `satisfaction` consent it never appears and nothing is collected.
+  "csat.title": "How was this conversation?",
+  "csat.optional": "This question is optional. Your note was sent either way.",
+  "csat.scoreGroup": "Rating for the conversation",
+  "csat.score.veryBad": "Very poor",
+  "csat.score.bad": "Poor",
+  "csat.score.ok": "Fair",
+  "csat.score.good": "Good",
+  "csat.score.veryGood": "Very good",
+  "csat.reasonGroup": "The reason",
+  "csat.reason.tooLong": "It took too long",
+  "csat.reason.didntUnderstandMe": "It did not understand me",
+  "csat.reason.feltRushed": "It rushed me",
+  "csat.reason.helpful": "It was helpful",
+  "csat.reason.feltHeard": "I felt heard",
+  "csat.thanks": "Thank you.",
 };

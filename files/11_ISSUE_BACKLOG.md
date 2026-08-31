@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**223 issues.** By phase: P0 133 · P1 48 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 103 · todo 109 · withdrawn 1.
+**225 issues.** By phase: P0 133 · P1 50 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 104 · todo 110 · withdrawn 1.
 
 ## P0
 
@@ -85,7 +85,7 @@
 | INT-133 | Profiles, companions, guardian flows (minors), proxy acknowledgement | E08-mobile | INT-131, INT-223 | area:mobile, risk:legal | done |
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
 | INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | done |
-| INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | todo |
+| INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | done |
 | INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | todo |
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | todo |
@@ -197,6 +197,8 @@
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-274 | files/10 §2 promises carrier and geo sanity checks against SMS pumping, and no code honours it | E01-platform | INT-131, INT-265 | area:api, risk:security | todo |
+| INT-275 | CSAT is specified as one-tap and the schema will not form an event on one tap | E08-mobile | INT-137 | area:mobile, risk:legal | todo |
+| INT-276 | A patient can withhold a section the share ledger cannot name: SectionId is narrower than the note | E02-data | INT-137, INT-197 | area:data, risk:legal | todo |
 
 ## P2
 

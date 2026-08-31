@@ -1365,7 +1365,8 @@
   title: "Review & send + Doctor Link QR + CSAT prompt"
   depends_on: [INT-084, INT-240]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-137.md
   acceptance:
     - "section-level scope UI; consent summary; send; status timeline; one-tap CSAT with reason chips; never blocks send"
   tests: [apps/mobile/e2e/review_send.spec.ts]
@@ -3311,3 +3312,43 @@
     - "if the carrier lookup needs a vendor the repo has no contract for, that is `blocked:*` plus a HUMAN_BLOCKERS row with a named human — the gate is wired and fails closed and no lookup is faked (mocks live in tests only)"
   tests: [tests/security/test_otp_abuse.py]
   sec_row: "onboarding"
+- id: INT-275
+  epic: E08-mobile
+  phase: P1
+  # Found building INT-137. files/02 §5.4 calls CSAT "one-tap"; the landed
+  # csat.v1 schema REQUIRES `reason`, so a single tap cannot form an event.
+  # The UI honours the tap and csatResponse() returns null until both parts
+  # exist — no reason is defaulted, because a defaulted reason is a fabricated
+  # answer attributed to a patient.
+  title: "CSAT is specified as one-tap and the schema will not form an event on one tap"
+  depends_on: [INT-137]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "the contradiction is stated before it is resolved: files/02 §5.4 says one-tap, `clinical_schemas` csat.v1 requires `reason`, and a test pins both facts so whichever side changes has to change deliberately"
+    - "the resolution is a DECISION recorded in the issue, not an inference: either §5.4's one-tap becomes score-only with `reason` optional, or §5.4 is corrected to two taps — and whichever is chosen, no reason value is ever defaulted, inferred from the score, or filled in by a model, because a fabricated reason is a patient's words put in their mouth"
+    - "the near-miss control survives: a score with no reason must still be REFUSED rather than silently completed, and a test proves the refusal is not reachable by any UI path"
+    - "invariant 18 is re-checked if the shape changes: a CSAT event is personal data under the `satisfaction` purpose, so any new or widened field carries its {category, purpose, basis, retention, recipients} annotation or the schema test fails"
+  tests: [apps/mobile/e2e/review_send.spec.ts, tests/schemas/test_roundtrip.py]
+  sec_row: "review-send"
+- id: INT-276
+  epic: E02-data
+  phase: P1
+  # Found building INT-137. The share ledger's SectionId is
+  # chief_complaint|hpi|medications; buildNote also emits allergies, pmh,
+  # family_social, device_health and deferred, and every one of them is
+  # scope-toggleable in the review UI. So a patient can turn a scope off on a
+  # section the ledger cannot name — the UI implies a guarantee the storage
+  # layer cannot keep. NOT widened from the app, deliberately.
+  title: "A patient can withhold a section the share ledger cannot name: SectionId is narrower than the note"
+  depends_on: [INT-137, INT-197]
+  labels: [area:data, risk:legal]
+  status: todo
+  acceptance:
+    - "the gap is asserted first: `intake_api.schemas.SectionId` names three sections, `buildNote` emits at least eight, and the review screen offers a scope toggle on all of them — a test pins the set difference so it cannot widen silently"
+    - "`allergies` is the worked example and the reason this is not cosmetic: a patient who withholds their allergy list has expressed a scope the ledger cannot record, so the share is stored as if they had not"
+    - "the vocabulary is settled ONCE against files/04 §5's note keys rather than twice: INT-084's composer already pins that SectionId is a SUBSET of the note keys, and this issue makes it the right subset — the fix is in the schema and the ledger, never in the app"
+    - "invariant 4 holds after the change: every share still checks a consent scope and is audited, and a section added to SectionId gets a scope check on the same commit rather than defaulting to shareable"
+    - "the near-miss control: a section the patient did NOT toggle must not become shareable as a side effect of widening the enumeration — the default for a newly expressible section is withheld, and a test proves it"
+  tests: [tests/api/test_notes.py, apps/mobile/e2e/review_send.spec.ts]
+  sec_row: "review-send"

@@ -973,6 +973,33 @@ export const tr = {
   "note.fact.allergy.changed.clinician": "hekim farklı olduğunu kaydetti; yeni bilgi alınmadı",
   "note.fact.allergy.stopped.patient": "hasta böyle bir alerjisi olmadığını söyledi",
   "note.fact.allergy.stopped.clinician": "hekim böyle bir alerji olmadığını kaydetti",
+
+  // INT-137 — Gönder'den önceki paylaşım özeti (02 §5.4: ne, kiminle, ne
+  // zamana kadar). Süre bir saat değil, bir dayanak: 02 §2 Doctor Link
+  // süresini randevuya bağlar, gönderim anına değil.
+  "review.consent.title": "Paylaşım özeti",
+  "review.consent.sections": "Paylaşılan bölümler",
+  "review.consent.nothing": "Şu anda hiçbir bölüm paylaşılmıyor.",
+  "review.consent.recipient": "Kime gidiyor",
+  "review.consent.until": "Ne zamana kadar",
+  "review.consent.untilValue": "Paylaşım, randevunuzdan 72 saat sonra sona erer.",
+  // INT-137 — gönderimden sonra sorulan tek dokunuşluk memnuniyet sorusu.
+  // 06 §2 `satisfaction` izni yoksa hiç görünmez ve hiçbir şey toplanmaz.
+  "csat.title": "Bu görüşme nasıldı?",
+  "csat.optional": "Bu soru isteğe bağlıdır. Yanıt vermeseniz de notunuz gönderildi.",
+  "csat.scoreGroup": "Görüşme değerlendirmesi",
+  "csat.score.veryBad": "Çok kötüydü",
+  "csat.score.bad": "Kötüydü",
+  "csat.score.ok": "İdare eder",
+  "csat.score.good": "İyiydi",
+  "csat.score.veryGood": "Çok iyiydi",
+  "csat.reasonGroup": "Bunun nedeni",
+  "csat.reason.tooLong": "Çok uzundu",
+  "csat.reason.didntUnderstandMe": "Beni anlamadı",
+  "csat.reason.feltRushed": "Acele ettirdi",
+  "csat.reason.helpful": "Yardımcı oldu",
+  "csat.reason.feltHeard": "Dinlendiğimi hissettim",
+  "csat.thanks": "Teşekkür ederiz.",
 } as const;
 
 export type MessageKey = keyof typeof tr;
