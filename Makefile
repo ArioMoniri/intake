@@ -64,6 +64,25 @@ safety:
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run python scripts/safety/triage_mutation_report.py
 	uv run pytest tests/voice tests/engine tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+# INT-102: the adversarial suite RT-09..14, which files/04 §6 makes "required
+# in `make safety`". The tests/safety line above already collects it; it is
+# named again here because a gate nobody can see in the Makefile is a gate
+# nobody runs. The second line proves the nightly LLM-judge job is wired and
+# enumerates its six cases from files/04 line 203 WITHOUT invoking a judge —
+# CI never calls a model, and `--plan` cannot (see nightly-llm-judge below).
+	uv run pytest tests/safety/test_adversarial_rt09_14.py -q -o addopts=""
+	uv run python scripts/safety/nightly_llm_judge.py --plan
+
+# INT-102: the nightly LLM red-team/judge job (files/10 §9 row `llm-boundary`).
+# NOT part of `make check`, `make safety` or any CI job: it is the only target
+# here that would reach a model. It fails closed and exits 2 unless
+# EVAL_BUDGET_USD and INTAKE_JUDGE_MAX_COST_PER_CALL_USD are both set (neither
+# has a default), the budget is inside the 20 USD ceiling CLAUDE.md reserves
+# for a human decision, and a judge client is deliberately wired in — there is
+# none in this repository, so on this tree it refuses, having invoked nothing.
+.PHONY: nightly-llm-judge
+nightly-llm-judge:
+	uv run python scripts/safety/nightly_llm_judge.py --run
 
 check-ts:
 	pnpm -r lint

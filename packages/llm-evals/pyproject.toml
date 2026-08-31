@@ -10,6 +10,10 @@ dependencies = [
     "intake-platform",
     # CandidateFlag / the triage types the parser returns.
     "intake-clinical-schemas",
+    # INT-102: the committed Turkish cardinal lexicon the adversarial
+    # spoken-identifier probe renders digits with, so this package cannot
+    # disagree with the protocol compiler about how a digit is spelt.
+    "intake-protocols",
 ]
 
 [build-system]

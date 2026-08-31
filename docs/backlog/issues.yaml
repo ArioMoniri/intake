@@ -1073,7 +1073,8 @@
   title: "Adversarial suite RT-09..14 in make safety + nightly LLM red-team job"
   depends_on: [INT-094, INT-083]
   labels: [area:safety, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-102.md
   acceptance:
     - "injection by speech and hidden-PDF text, triage manipulation, proxy impersonation, spoken TCKN masking, vendor failover — all pass; nightly job budgeted"
   tests: [tests/safety/test_adversarial_rt09_14.py]
@@ -1586,7 +1587,8 @@
   title: "PatientOverlay: store, confirmation rules, /me/learned API, engine integration"
   depends_on: [INT-031, INT-081]
   labels: [area:learning]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-170.md
   acceptance:
     - "facts commit only with patient/clinician confirmation (type-level); 12-month reconfirm; provenance shown; delta-mode works in simulator"
   tests: [tests/learning/test_overlay_provenance.py]
@@ -3403,3 +3405,25 @@
     - "each property names the files/10 §3 row it discharges, and INT-094's `INVARIANTS[2].not_covered_here` list shrinks by exactly the rows proved — never by rewording the entry"
   tests: [tests/voice/test_invariants.py, tests/voice/test_audio_retention_guard.py]
   sec_row: "voice-runtime"
+- id: INT-279
+  epic: E01-platform
+  phase: P0
+  # Found by INT-102 building RT-13 (spoken TCKN masking). Both
+  # deid._TCKN and redaction._TCKN_CANDIDATE are `\b[1-9]\d{10}\b`, so an
+  # identifier said aloud — "100 000 001 46", or digit words — is not an 11-digit
+  # token and the pattern tier does not see it. The suite ASSERTS that fact
+  # rather than hiding it. Not a leak today (the dev tier fails closed without
+  # NER and the trace span carries no content), but a fully-configured tier
+  # would egress it.
+  title: "A TCKN said aloud is not eleven digits: the pattern tier cannot see a spoken identifier"
+  depends_on: [INT-015, INT-102]
+  labels: [area:platform, risk:security]
+  status: todo
+  acceptance:
+    - "the gap is reproduced from INT-102's own helpers before it is closed: `spoken_turkish_digits` / `digits_from_spoken` in packages/llm-evals already generate the forms that slip through, and the failing test uses them rather than a new fixture — the reproduction exists, it just has no fix behind it"
+    - "the pattern tier masks a spaced, grouped or word-spelled identifier in TRANSCRIPT form, and the checksum still decides: a candidate that fails the TCKN check digit is NOT masked, because over-masking a patient's own words is its own harm and the near-miss control is exactly that case"
+    - "the same treatment is applied to the 05x phone and the TR IBAN or its absence is stated with a reason — a redactor that catches one spoken identifier class and silently misses the other two is worse than one that catches none, because it reads as covered"
+    - "no real identifier is added anywhere: the suite uses only the already-committed synthetic values, and any new case is checksum-invalid by construction"
+    - "invariant 6 holds end to end: a transcript carrying a spoken identifier produces a trace span, a log line and an extraction payload that contain neither the digits nor the words, asserted at each of the three surfaces rather than only at the redactor"
+  tests: [tests/security/test_deid_ner.py, tests/safety/test_adversarial_rt09_14.py]
+  sec_row: "llm-boundary"

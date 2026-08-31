@@ -56,9 +56,11 @@ def test_ids_unique_and_well_formed() -> None:
     # two, and that a patient can withhold a section the ledger cannot name) +
     # INT-277 (INT-016 made the verifier runnable; nothing schedules it and it
     # has no external anchor) + INT-278 (INT-094 found invariant 3's mlock,
-    # core-dump, crash-report and ptrace rows have no test on any branch).
+    # core-dump, crash-report and ptrace rows have no test on any branch) +
+    # INT-279 (INT-102 found a TCKN said aloud is not eleven digits, so the
+    # pattern tier cannot see it).
     # Grow this count only with a stated reason.
-    assert len(ids) == 227
+    assert len(ids) == 228
     import re
 
     for i in ids:

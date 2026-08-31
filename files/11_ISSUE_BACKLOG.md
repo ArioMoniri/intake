@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**227 issues.** By phase: P0 135 · P1 50 · P2 37 · P3 5. By status: awaiting-human 7 · doing 1 · done 107 · todo 111 · withdrawn 1.
+**228 issues.** By phase: P0 136 · P1 50 · P2 37 · P3 5. By status: awaiting-human 7 · doing 1 · done 109 · todo 110 · withdrawn 1.
 
 ## P0
 
@@ -91,7 +91,7 @@
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | todo |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | todo |
 | INT-151 | Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback | E09-clinician | INT-150, INT-117 | area:clinician | todo |
-| INT-170 | PatientOverlay: store, confirmation rules, /me/learned API, engine integration | E11-learning | INT-031, INT-081 | area:learning | todo |
+| INT-170 | PatientOverlay: store, confirmation rules, /me/learned API, engine integration | E11-learning | INT-031, INT-081 | area:learning | done |
 | INT-176 | Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure) | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-177 | Rate limiter: replace per-process monotonic clock with Redis TIME in the Lua script | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-178 | Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel | E01-platform | INT-013 | area:security, risk:security | done |
@@ -146,6 +146,7 @@
 | INT-273 | The attestation verifier has no call site: a RED is authorised but not authenticated | E05-voice | INT-269, INT-093, INT-270 | area:voice, risk:security | todo |
 | INT-277 | Nothing schedules the audit verifier, and without an external anchor it can only verify itself | E00-governance | INT-016, INT-021 | area:platform, risk:security | todo |
 | INT-278 | Invariant 3's memory half is untested: nothing proves audio is out of a core dump, a swap page or a crash report | E05-voice | INT-094 | area:voice, risk:security | todo |
+| INT-279 | A TCKN said aloud is not eleven digits: the pattern tier cannot see a spoken identifier | E01-platform | INT-015, INT-102 | area:platform, risk:security | todo |
 
 ## P1
 
@@ -154,7 +155,7 @@
 | INT-095 | Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke | E05-voice | INT-094, INT-018 | area:voice, approval:human-infra, gpu | todo |
 | INT-099 | Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI | E05-voice | INT-095 | area:voice | todo |
 | INT-100 | Vendor failover + circuit breakers + typed fallback <=2s + chaos test | E05-voice | INT-095, INT-024 | area:voice | todo |
-| INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | todo |
+| INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | done |
 | INT-103 | Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background | E05-voice | INT-130, INT-090 | area:mobile | done |
 | INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | INT-110 | area:lanes, approval:human-clinical | todo |
 | INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | INT-110, INT-095 | area:lanes | todo |

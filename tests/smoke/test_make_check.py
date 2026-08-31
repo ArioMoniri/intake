@@ -233,9 +233,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # in the note) + INT-272 (the LaneSignal wiring) + INT-273 (the attestation call
     # site) + INT-274 (carrier/geo sanity) + INT-275/276 (CSAT shape, share
     # vocabulary) + INT-277 (the verifier scheduler) + INT-278 (invariant 3's memory
-    # half); grows only with a stated
+    # half) + INT-279 (spoken identifiers); grows only with a stated
     # reason.
-    assert len(ids) == 227, f"expected 175 blueprint + 52 added issues, got {len(ids)}"
+    assert len(ids) == 228, f"expected 175 blueprint + 53 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

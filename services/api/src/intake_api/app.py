@@ -44,6 +44,7 @@ from intake_api import (
     documents,
     dsar,
     experience,
+    learned_routes,
     notes,
     notification_prefs,
     otp_routes,
@@ -315,4 +316,10 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(notification_prefs.router)
     app.include_router(experience.router)
     app.include_router(access_log.router)
+    # INT-170: mounted unconditionally. Until `app.state.overlay_facts` is set
+    # the route answers 503 `overlay_store_unconfigured`, which is the intended
+    # fail-closed state — a learned fact with no store behind it must refuse,
+    # never answer empty, because "no facts" and "no store" read identically to
+    # a patient asking what the app has learned about them.
+    app.include_router(learned_routes.router)
     return app
