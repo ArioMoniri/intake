@@ -29,7 +29,6 @@ that transitively).
 from __future__ import annotations
 
 import itertools
-import json
 from collections.abc import Iterable, Mapping, Sequence
 from decimal import Decimal
 
@@ -50,6 +49,7 @@ from protocols.triage.context import (
     SlotValue,
     TriageContext,
     canonical_scalar,
+    render_slot_value,
     temporal_within,
 )
 from protocols.triage.expr import (
@@ -317,21 +317,6 @@ def _evidence(rule: RedFlagRule, context: TriageContext) -> str:
     for ref in refs:
         values = context.candidate_values(ref)
         if values is not None:
-            rendered = "|".join(_render_value(value) for value in values)
+            rendered = "|".join(render_slot_value(value) for value in values)
             parts.append(f"{ref}={rendered}")
     return "; ".join(parts)
-
-
-def _render_value(value: SlotValue) -> str:
-    """One carried value as evidence text, exactly as it was carried.
-
-    ``json.dumps`` cannot serialise a ``Decimal`` at all, and routing one
-    through ``float`` to make it serialisable would put a float on the path
-    files/13 §9.5 keeps clear of them and drop the authored scale that
-    :func:`~protocols.triage.context.canonical_scalar` deliberately carries
-    (INT-267). A Decimal therefore renders from its own exact form, which
-    is already a JSON number literal.
-    """
-    if isinstance(value, Decimal):
-        return str(value)
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))

@@ -3199,7 +3199,8 @@
   title: "The triage attestation belongs to the rules engine, not the Talker: files/12 §5's HMAC has no owner"
   depends_on: [INT-080, INT-093]
   labels: [area:protocols, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-269.md
   acceptance:
     - "the attestor lives under `packages/protocols/triage`, NOT under `services/voice-runtime/talker`: files/12 §5's import-boundary rule forbids the Talker from holding it, and the key is an OpenBao secret the rules engine reads — a component that can mint an attestation cannot also be the one that verifies it"
     - "the attestation covers `inputs_hash` and a nonce, so a replay of a genuine RED against a different session or a later turn is refused; the nonce moves per attestation and the prompt/rule version does not"
@@ -3269,3 +3270,22 @@
     - "the acoustic gate survives the new path: a signal from a lane whose consent scope or study authorisation does not assert is never written, so the audit chain cannot become a second surface for an unauthorised lane (see INT-271 for the same failure in the note composer)"
   tests: [tests/lanes/test_isolation.py, tests/security/test_audit_chain.py]
   sec_row: "observer-lanes"
+- id: INT-273
+  epic: E05-voice
+  phase: P0
+  # Reported by INT-269 rather than reached for: the attestor is built, verified
+  # and 100% covered, and nothing calls it yet. Until this lands, a RED reaching
+  # the Talker is authorised by shape and provenance (INT-091/093) but NOT
+  # authenticated — which is the gap files/12 §5 exists to close.
+  title: "The attestation verifier has no call site: a RED is authorised but not authenticated"
+  depends_on: [INT-269, INT-093, INT-270]
+  labels: [area:voice, risk:security]
+  status: todo
+  acceptance:
+    - "the gap is asserted before it is closed: a RED constructed with NO attestation reaches the timed preemption path today and fires, which is the test to write first — authorised by shape and provenance is not the same as authenticated"
+    - "`talker/red_path.py` gains an INJECTED `AttestationVerifier` port called in `_authorised_determination` after `authorise_preempt`, and when the port is ABSENT the RED path raises `RedPreemptRefused` — fail closed, because a verifier that can be omitted is a verifier an attacker omits; `AttestationRefused` re-raises as `RedPreemptRefused` so the RED path has one refusal type"
+    - "the attestation is carried as an OPAQUE field on Presentation/BackendResult and `services/voice-runtime/**` still imports neither `protocols.triage.attestation` nor any signing primitive — INT-269's two-armed boundary gate (AST scan plus transitive import-closure walk) must keep passing unchanged, so the types are re-homed into packages/clinical-schemas or the field is typed structurally, never by importing the attestor"
+    - "`work_queue.py` carries the attestation through from the rules engine on the same wire INT-270 opens for `TriageEvaluation.action`, and INT-092's four near-miss controls plus INT-093's three budget mutation controls are re-run against the authenticated path rather than only the direct one"
+    - "`safety_forged_triage_total` moves from `status: planned` to live in the same change (invariant 13 wants the row first, which INT-269 already added), and a refused attestation increments it with the closed reason label and no session content"
+  tests: [tests/voice/test_red_preemption.py, tests/safety/test_triage_attestation.py]
+  sec_row: "triage"

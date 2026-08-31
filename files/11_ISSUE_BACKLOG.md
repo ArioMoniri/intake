@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**221 issues.** By phase: P0 132 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 101 · todo 109 · withdrawn 1.
+**222 issues.** By phase: P0 133 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 102 · todo 109 · withdrawn 1.
 
 ## P0
 
@@ -139,10 +139,11 @@
 | INT-266 | A document parse holds the only in-flight slot, so the answer the patient just gave waits behind it (files/12 §7.4 lane split) | E05-voice | INT-092, INT-083 | area:voice | todo |
 | INT-267 | A Decimal slot value reads Unknown to every gate: canonical_scalar converts to Decimal but refuses to accept one | E03-protocols | INT-083 | area:protocols, risk:clinical | done |
 | INT-268 | No valueset in the repository has members: vs.* are named everywhere and defined nowhere, so no code slot can bind | E03-protocols | INT-083 | area:protocols, risk:clinical, approval:human-clinical | awaiting-human |
-| INT-269 | The triage attestation belongs to the rules engine, not the Talker: files/12 §5's HMAC has no owner | E03-protocols | INT-080, INT-093 | area:protocols, risk:security | todo |
+| INT-269 | The triage attestation belongs to the rules engine, not the Talker: files/12 §5's HMAC has no owner | E03-protocols | INT-080, INT-093 | area:protocols, risk:security | done |
 | INT-270 | Wire the RED script and its latency metric into Layer B, so a queue-originated RED can actually speak | E05-voice | INT-093, INT-092, INT-110 | area:voice, risk:clinical | todo |
 | INT-271 | The note composer renders acoustic features on trust: no second check that the acoustic lane was ever authorised | E06-lanes | INT-084, INT-110 | area:lanes, risk:clinical | todo |
 | INT-272 | A lane's signal never reaches the audit chain: LaneSignal has a producer and a sink and nothing between them | E06-lanes | INT-110, INT-112, INT-016 | area:lanes, risk:security | todo |
+| INT-273 | The attestation verifier has no call site: a RED is authorised but not authenticated | E05-voice | INT-269, INT-093, INT-270 | area:voice, risk:security | todo |
 
 ## P1
 

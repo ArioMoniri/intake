@@ -230,9 +230,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # test clock and the fixed-window bound) + INT-266 (the §7.4 lane split) +
     # INT-267/268 (Decimal gates, empty valuesets) + INT-269/270 (the triage
     # attestation's owner, the RED script wiring) + INT-271 (acoustic features
-    # in the note) + INT-272 (the LaneSignal wiring); grows only with a stated
+    # in the note) + INT-272 (the LaneSignal wiring) + INT-273 (the attestation call
+    # site); grows only with a stated
     # reason.
-    assert len(ids) == 221, f"expected 175 blueprint + 46 added issues, got {len(ids)}"
+    assert len(ids) == 222, f"expected 175 blueprint + 47 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

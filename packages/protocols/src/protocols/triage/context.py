@@ -17,6 +17,7 @@ union of head and superseded values and takes max acuity.
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -27,7 +28,14 @@ from pydantic import AwareDatetime, Field, model_validator
 from protocols.triage.expr import Truth
 from protocols.types import Tense
 
-__all__ = ["SlotAnswer", "SlotValue", "TriageContext", "canonical_scalar", "temporal_within"]
+__all__ = [
+    "SlotAnswer",
+    "SlotValue",
+    "TriageContext",
+    "canonical_scalar",
+    "render_slot_value",
+    "temporal_within",
+]
 
 #: What one slot answer may carry. ``JsonValue`` alone would be wrong in
 #: both directions (INT-267): it admits ``float``, which files/13 §9.5
@@ -137,6 +145,28 @@ def canonical_scalar(value: SlotValue) -> bool | Decimal | str | None:
     if isinstance(value, str):
         return value
     return None
+
+
+def render_slot_value(value: SlotValue) -> str:
+    """One carried value as text, exactly as it was carried.
+
+    The single canonical rendering of a slot value, used by two callers that
+    must never disagree: the engine's rule-evidence line
+    (:func:`~protocols.triage.engine.evaluate_triage`) and the attestation's
+    ``inputs_hash`` (:func:`~protocols.triage.attestation.context_inputs_hash`).
+    Two copies of a canonicalisation is how a hash and the text it claims to
+    cover drift apart.
+
+    ``json.dumps`` cannot serialise a ``Decimal`` at all, and routing one
+    through ``float`` to make it serialisable would put a float on the path
+    files/13 §9.5 keeps clear of them and drop the authored scale that
+    :func:`canonical_scalar` deliberately carries (INT-267). A Decimal
+    therefore renders from its own exact form, which is already a JSON number
+    literal.
+    """
+    if isinstance(value, Decimal):
+        return str(value)
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
 def temporal_within(anchor_value: SlotValue, tense: Tense, reference_time: datetime) -> Truth:

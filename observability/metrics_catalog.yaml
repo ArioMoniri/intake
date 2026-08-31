@@ -1601,6 +1601,25 @@ metrics:
       because the subject key is a keyed derivation and remains personal data
       under KVKK (KSVY m.16(1)'s anonymisation route is not the one this
       pipeline takes).
+  # --- INT-269: the files/12 §5 triage attestation. `status: planned` for the
+  # same reason as the lane counter — invariant 13 wants the row before the
+  # emission. Refusals are tallied in process by ForgedTriageTally until the
+  # verifier is wired into the Talker's RED path.
+  - name: safety_forged_triage_total
+    id: safety.forged_triage_total
+    type: counter
+    labels: [reason]
+    owner: safety
+    unit: "count"
+    target: "0 (any non-zero is an intrusion signal, not hygiene)"
+    status: planned
+    description: >-
+      Triage attestations refused by the rules-engine verifier
+      (protocols.triage.attestation.verify), by closed refusal reason:
+      unknown_key, bad_mac, verdict_mismatch, session_mismatch,
+      inputs_mismatch, protocol_mismatch, stale, nonce_reuse. files/12 §5.
+      The label set is a closed enumeration and carries no session, slot or
+      patient content (CLAUDE.md invariant 6).
   # --- INT-110: the observer-lane framework's one signal. `status: planned`
   # is honest and stays correct until the framework is switched to emit — the
   # counter is kept in process by observers.metrics.DropLedger today, because
