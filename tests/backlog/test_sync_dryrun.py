@@ -60,8 +60,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-264/265 OTP clock and window bound + INT-266 lane split
     # + INT-267/268 Decimal gates and empty valuesets
     # + INT-269/270 triage attestation and the RED script wiring
-    # + INT-271 acoustic features in the note)
-    assert len(actions) == 220
+    # + INT-271 acoustic features in the note + INT-272 LaneSignal wiring)
+    assert len(actions) == 221
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

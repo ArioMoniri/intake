@@ -48,9 +48,10 @@ def test_ids_unique_and_well_formed() -> None:
     # (INT-093 found the files/12 §5 attestor has no owner, and that a
     # queue-originated RED cannot yet reach its script) + INT-271 (reviewing
     # INT-084's goldens found the note composer renders acoustic features with
-    # no second authorisation check).
+    # no second authorisation check) + INT-272 (INT-112 found LaneSignal has a
+    # producer and a sink and nothing between them).
     # Grow this count only with a stated reason.
-    assert len(ids) == 220
+    assert len(ids) == 221
     import re
 
     for i in ids:

@@ -3,10 +3,14 @@
 files/03 §4.7: the lanes *"read the same audio/transcript stream, write only to
 ``ObserverState``, and merge into the Backend Agent at section boundaries as a
 normal ``wellbeing_signal`` Work item"*. This package is the machinery all five
-lanes run inside; **it contains no lane**. ``affect`` is INT-111,
-``linguistic`` INT-112, ``asr_quality`` INT-113, ``engagement`` INT-114 and
-``acoustic`` INT-115, each with its own model, its own evidence and its own
-approval.
+lanes run inside, and the framework modules beside this one hold **no lane of
+their own**. ``linguistic`` (INT-112) is the first and lives in its own
+subpackage, :mod:`.linguistic`; ``affect`` is INT-111, ``asr_quality``
+INT-113, ``engagement`` INT-114 and ``acoustic`` INT-115, each with its own
+model, its own evidence and its own approval. ⚠️ ``asr_quality`` and
+``engagement`` have **no declared consent purpose** — files/03 §4.7 and
+files/06 §2 contradict each other and HB-L23 owns the answer, so
+:func:`.consent.consent_scope_for` refuses both by name and neither may run.
 
 What the framework guarantees, and where each guarantee lives:
 

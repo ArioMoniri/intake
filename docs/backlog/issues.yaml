@@ -1126,7 +1126,8 @@
   title: "linguistic lane: TR lexicons + prosody stats + crisis bypass to triage"
   depends_on: [INT-110, INT-080]
   labels: [area:lanes, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-112.md
   acceptance:
     - "crisis lexicon hits route deterministically to C-SSRS path (test); markers aggregate per section"
   tests: [tests/lanes/test_crisis_bypass.py]
@@ -3247,4 +3248,24 @@
     - "the split between acoustic and non-acoustic features in the block is made explicit rather than assumed: speech_rate_syll_s and pause_ratio may be linguistic, f0_mean_hz and f0_sd_hz are not, and whichever fields survive without acoustic authorisation are named in the type rather than filtered at render"
     - "INT-084's three goldens are regenerated under the new rule and the diff is reviewed in the evidence — a golden that changes silently is a golden nobody is reading"
   tests: [tests/engine/test_note_golden.py, tests/lanes/test_isolation.py]
+  sec_row: "observer-lanes"
+- id: INT-272
+  epic: E06-lanes
+  phase: P0
+  # Found building INT-112. INT-110's evidence anticipated LaneSignal emission
+  # landing with the first lane; it cannot, because the emitter is the framework
+  # scheduler and the sink is intake_platform's hash-chained audit chain — two
+  # owners, neither of them a lane. The lane now produces the payload, so the
+  # wiring is unblocked and this is the issue that does it.
+  title: "A lane's signal never reaches the audit chain: LaneSignal has a producer and a sink and nothing between them"
+  depends_on: [INT-110, INT-112, INT-016]
+  labels: [area:lanes, risk:security]
+  status: todo
+  acceptance:
+    - "the gap is stated as a failing test first: INT-112's linguistic lane produces a LaneSignal payload today and nothing consumes it, so no lane observation is auditable — assert the absence before closing it"
+    - "the scheduler emits, the lane does not: invariant 11 keeps a lane read-only and a lane that could write the audit chain would be a writer, so the emission point is observers/scheduler.py and an AST gate proves no lane module reaches the audit sink, with a negative control proving the gate can fail"
+    - "the chain property INT-016 established is not weakened: a lane signal is a normal hash-chained entry, the tamper test still names the exact broken seq, and the running-head rollback and fork-truncate controls still detect"
+    - "invariant 6 holds at the sink: a signal carries lane id, section ref, window bounds and marker COUNTS, never a matched phrase and never transcript text — asserted with a near-miss control that a payload carrying text is refused rather than redacted"
+    - "the acoustic gate survives the new path: a signal from a lane whose consent scope or study authorisation does not assert is never written, so the audit chain cannot become a second surface for an unauthorised lane (see INT-271 for the same failure in the note composer)"
+  tests: [tests/lanes/test_isolation.py, tests/security/test_audit_chain.py]
   sec_row: "observer-lanes"
