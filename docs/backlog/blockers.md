@@ -43,3 +43,17 @@ Nothing depends on INT-202, so this costs no roadmap throughput. It is recorded 
 The threat model (1019 lines, one section per `sec_row`, bound both ways so a stale section fails), the incident runbook's eight sections and the PR-template Sec-Row gate are all complete and test-bound. What is missing is the acceptance's **data-subject notice templates** — legal texts, which invariant 18 renders only from `docs/legal/` with hash binding and which CLAUDE.md's stop-and-ask list reserves.
 
 **The one sentence:** *"Do the Board-form content, the data-subject breach notice, the USOM/7545 report and the hospital DPA notice belong to INT-020 — or to INT-214, in which case INT-020's acceptance should be amended and the issue closed?"* Both answers are defensible and an agent may not pick.
+
+## INT-085 — the readability gate reports structure and claims no reading level
+
+**Raised:** 31 Aug 2026 · **Named human:** clinical copy owner (files/09 §2 role L2) · **HUMAN_BLOCKERS id:** HB-C17
+
+The acceptance asks for a "readability metric gate". A metric was deliberately **not** chosen. Flesch–Kincaid is an English formula and Turkish is agglutinative, so applying it and reporting the result as a B1 level would be a fabricated measurement — precisely what invariant 20 exists to stop. `grep -in "readab\|okunab"` over `files/` returns nothing, so the blueprint names no formula either.
+
+What ships instead is five **structural** checks that block a release — sentence length, one idea per sentence, the `sen` register, jargon without a gloss, and `-iniz` in instructional prose with the RED inversion (`Tutun · Arayın` is correct under RED, and `-iniz` is a finding there). The length bound is not a number chosen by an agent: it mirrors `policy_guard.B1_MAX_WORDS_PER_SENTENCE`, and a test pins the two equal so they cannot drift.
+
+`SCORED_METRICS` is empty, `ReadabilityMetric` refuses any row without a committed `formula_source`, and `ReadabilityReport.asserts_b1_level` is permanently `False`. **The gate reports structure and claims no level.**
+
+**The one sentence:** *"Which published Turkish readability formula does patient copy get measured against, what is its B1 cut-off, and against which committed, dated snapshot of that formula do we read it?"*
+
+This blocks nothing — the structural gate is live and fails closed on authored copy.
