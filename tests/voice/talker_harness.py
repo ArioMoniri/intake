@@ -35,6 +35,7 @@ from intake_voice_runtime.steps import Step, StepKind
 from intake_voice_runtime.talker.clips import ClipCatalogue
 from intake_voice_runtime.talker.insertion import YELLOW_DEADLINES, DeliveryDeadlines
 from intake_voice_runtime.talker.preemption import BackendResult
+from intake_voice_runtime.talker.red_path import RedDataChannel
 from intake_voice_runtime.talker.session import TalkerConfig, TalkerSession
 
 # --- virtual time ------------------------------------------------------------------
@@ -240,6 +241,7 @@ def build_session(
     sink: RecordingSink | None = None,
     memory: InMemoryPatientMemory | None = None,
     rule_ids: frozenset[str] = frozenset(),
+    red_channel: RedDataChannel | None = None,
 ) -> TalkerSession:
     """One fully wired Talker over doubles — the shape services/voice-runtime
     will be given by its LiveKit Agents entrypoint once INT-095 lands."""
@@ -260,4 +262,5 @@ def build_session(
         sink=sink or RecordingSink(clock=clock),
         memory=memory or InMemoryPatientMemory(),
         clock=clock,
+        red_channel=red_channel,
     )

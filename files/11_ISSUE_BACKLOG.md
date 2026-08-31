@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**217 issues.** By phase: P0 128 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 96 · todo 110 · withdrawn 1.
+**219 issues.** By phase: P0 130 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 97 · todo 111 · withdrawn 1.
 
 ## P0
 
@@ -69,7 +69,7 @@
 | INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | done |
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | done |
 | INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | done |
-| INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | todo |
+| INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | done |
 | INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | todo |
 | INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | done |
 | INT-101 | Session budgets + cost metering per component/profile | E05-voice | INT-092 | area:voice | todo |
@@ -139,6 +139,8 @@
 | INT-266 | A document parse holds the only in-flight slot, so the answer the patient just gave waits behind it (files/12 §7.4 lane split) | E05-voice | INT-092, INT-083 | area:voice | todo |
 | INT-267 | A Decimal slot value reads Unknown to every gate: canonical_scalar converts to Decimal but refuses to accept one | E03-protocols | INT-083 | area:protocols, risk:clinical | done |
 | INT-268 | No valueset in the repository has members: vs.* are named everywhere and defined nowhere, so no code slot can bind | E03-protocols | INT-083 | area:protocols, risk:clinical, approval:human-clinical | awaiting-human |
+| INT-269 | The triage attestation belongs to the rules engine, not the Talker: files/12 §5's HMAC has no owner | E03-protocols | INT-080, INT-093 | area:protocols, risk:security | todo |
+| INT-270 | Wire the RED script and its latency metric into Layer B, so a queue-originated RED can actually speak | E05-voice | INT-093, INT-092, INT-110 | area:voice, risk:clinical | todo |
 
 ## P1
 

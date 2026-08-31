@@ -44,9 +44,11 @@ def test_ids_unique_and_well_formed() -> None:
     # test clock, and the fixed-window rate-limit bound fixing it exposed) +
     # INT-266 (INT-092 found a document parse holds the only in-flight slot) +
     # INT-267/268 (INT-083 found a Decimal slot value reads Unknown to every
-    # gate, and that no valueset in the repo has members).
+    # gate, and that no valueset in the repo has members) + INT-269/270
+    # (INT-093 found the files/12 §5 attestor has no owner, and that a
+    # queue-originated RED cannot yet reach its script).
     # Grow this count only with a stated reason.
-    assert len(ids) == 217
+    assert len(ids) == 219
     import re
 
     for i in ids:

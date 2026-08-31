@@ -15,14 +15,18 @@ step. Every step in that list is non-blocking with respect to Backend Work,
 which is the whole point of ADR-009 and the reason the turn budget survives a
 stalled backend.
 
+A RED is the one exception, and it is wired here rather than implemented here:
+:meth:`TalkerSession.accept_result` authorises it and stamps the clock,
+:meth:`TalkerSession.fire_preempts` runs it, and :meth:`take_turn` calls that
+**before** the insertion tick and before the next step is spoken — which is
+the two halves of invariant 9 in one method. The path itself is
+:mod:`intake_voice_runtime.talker.red_path`, which holds the data channel and
+a stop-only view of playback; files/03 §4.6 invariant 4 requires it to touch
+no media transport, so the router, the clip catalogue and the synthesiser this
+module owns are not reachable from it.
+
 What this module deliberately does **not** contain:
 
-- **the RED preemption path.** Only its authorisation gate lives here
-  (:func:`~intake_voice_runtime.talker.preemption.authorise_preempt`); the
-  flush → cancel → pre-positioned-clip sequence over the data channel is
-  INT-093, and files/03 §4.6 invariant 4 requires that path to touch no media
-  transport at all — which is precisely why it is not plumbed through this
-  audio sink.
 - **an LLM.** Dynamic text arrives as a string from Layer B or from the
   Talker's small model behind ADR-006's gateway; this module routes and guards
   it. There is no model call here to mock.
@@ -61,6 +65,12 @@ from intake_voice_runtime.talker.preemption import (
     BackendResult,
     Priority,
     authorise_preempt,
+)
+from intake_voice_runtime.talker.red_path import (
+    RedDataChannel,
+    RedPathNotWired,
+    RedPreemption,
+    RedPreemptOutcome,
 )
 from intake_voice_runtime.talker.speech import SpeechRouter
 from intake_voice_runtime.talker.tools import (
@@ -112,6 +122,12 @@ class TurnOutcome(FrozenModel):
     work_id: str | None = Field(default=None)
     drained_results: int = Field(default=0, ge=0)
     delivered_work_ids: tuple[str, ...] = Field(default=())
+    red_preempts: int = Field(
+        default=0,
+        ge=0,
+        description="Rules-engine REDs triggered in this turn, before the "
+        "insertion tick and before the next step was spoken (invariant 9).",
+    )
     elapsed_ms: float = Field(ge=0.0)
 
 
@@ -129,12 +145,16 @@ class TalkerSession:
     memory: PatientMemoryStore
     clock: Clock
     policy_guard: PolicyGuard | None = None
+    red_channel: RedDataChannel | None = None
     guard: PolicyGuard = field(init=False)
     scheduler: InsertionScheduler = field(init=False)
     router: SpeechRouter = field(init=False)
+    red_path: RedPreemption | None = field(default=None, init=False)
     preempts: tuple[BackendResult, ...] = field(default=(), init=False)
+    red_outcomes: tuple[RedPreemptOutcome, ...] = field(default=(), init=False)
     duplex: DuplexState = field(init=False)
     undelivered: list[str] = field(default_factory=list, init=False)
+    _pending_preempts: list[tuple[BackendResult, float]] = field(default_factory=list, init=False)
     _last_step: NextStep | None = field(default=None, init=False)
     _permissions: dict[str, PermissionRequest] = field(default_factory=dict, init=False)
     _playback: list[tuple[float, float]] = field(default_factory=list, init=False)
@@ -151,6 +171,18 @@ class TalkerSession:
             sink=self.sink,
         )
         self.duplex = DuplexState(patient_silence_ms=0.0, talker_idle=True, pending_response=False)
+        if self.red_channel is not None:
+            # The RED path gets a *stop-only* view of playback: `PlaybackStop`
+            # has no play member, so files/03 §4.6 invariant 4 holds by type
+            # rather than by discipline even though the object behind it is
+            # the same sink the router hands frames to.
+            self.red_path = RedPreemption(
+                clock=self.clock,
+                playback=self.sink,
+                channel=self.red_channel,
+                rule_ids=self.config.rule_ids,
+                profile=self.config.profile,
+            )
 
     # --- the six tools, as methods -------------------------------------------------
 
@@ -289,6 +321,10 @@ class TalkerSession:
         if result.priority is Priority.PREEMPT:
             authorise_preempt(result, rule_ids=self.config.rule_ids)
             self.preempts = (*self.preempts, result)
+            # The clock is stamped here, not at the trigger: the ≤ 300 ms
+            # budget is end-to-end from the determination reaching Layer A, so
+            # any wait between acceptance and firing is charged to it.
+            self._pending_preempts.append((result, self.clock.now_ms()))
             return
         if result.presentation.speech_tr is None:
             return
@@ -328,6 +364,11 @@ class TalkerSession:
             if isinstance(result, BackendResult):
                 self.accept_result(result)
 
+        # A RED runs here — before the insertion tick, before the next step.
+        # That ordering *is* invariant 9's exception: everything else waits for
+        # a safe window, and the one thing that does not is a rules-engine RED.
+        preempted = await self.fire_preempts()
+
         delivered: list[str] = []
         for decision in self.scheduler.tick(self.duplex, now_ms=self.clock.now_ms()):
             if isinstance(decision, Speak) and decision.item.presentation.speech_tr is not None:
@@ -347,8 +388,34 @@ class TalkerSession:
             work_id=work_id,
             drained_results=len(drained),
             delivered_work_ids=tuple(delivered),
+            red_preempts=len(preempted),
             elapsed_ms=self.clock.now_ms() - started_ms,
         )
+
+    async def fire_preempts(self) -> tuple[RedPreemptOutcome, ...]:
+        """Run every accepted-but-untriggered RED, oldest first.
+
+        A session with no data channel raises rather than dropping one: a RED
+        that cannot be delivered is the failure this whole path exists to
+        prevent, and swallowing it would leave no trace anywhere. The
+        unconditional server-side effects of files/02 §5.3 do not run on Layer
+        A and are unaffected either way.
+        """
+        if not self._pending_preempts:
+            return ()
+        if self.red_path is None:
+            raise RedPathNotWired(
+                f"session {self.config.session_id!r} accepted a rules-engine RED with "
+                "no data channel wired, so the pre-positioned script cannot be "
+                "triggered (files/03 §4.6 invariant 4)"
+            )
+        pending = tuple(self._pending_preempts)
+        self._pending_preempts.clear()
+        outcomes: list[RedPreemptOutcome] = []
+        for result, accepted_at_ms in pending:
+            outcomes.append(await self.red_path.trigger(result, accepted_at_ms=accepted_at_ms))
+        self.red_outcomes = (*self.red_outcomes, *outcomes)
+        return tuple(outcomes)
 
     async def speak_step(self, step: NextStep | None, paraphrase: str | None = None) -> TurnOutcome:
         """Speak one step: clip cache first, verbatim TTS second."""

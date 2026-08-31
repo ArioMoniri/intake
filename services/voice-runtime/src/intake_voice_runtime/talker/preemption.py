@@ -22,10 +22,15 @@ which:
 files/12 §5 puts a third gate above these — HMAC-SHA256 attestation over
 ``(session_id, ek4, disposition, rule_ids, inputs_hash, protocol_hash, …)``
 with the signing key fetched from OpenBao by the rules-engine subsystem alone,
-and the seven-way forgery mutation test. That attestor does not exist on this
-branch; it is INT-093's scope, recorded in docs/evidence/INT-091.md. Nothing
-here pretends to be it, and nothing here is weakened in its absence — the two
-gates that *can* be built both refuse by default.
+and the seven-way forgery mutation test. That attestor does not exist on any
+branch, and it cannot live here: files/12 §5's own import-boundary rule is
+that *"no module under ``extraction/``, ``observers/`` or ``talker/``
+transitively imports the attestor"*, so it belongs to the rules-engine
+subsystem and needs its own issue (docs/evidence/INT-093.md records the
+handover). Nothing here pretends to be it, and nothing here is weakened in its
+absence — the two gates that *can* be built both refuse by default, and
+INT-093's timed path in :mod:`intake_voice_runtime.talker.red_path` runs both
+again before it interrupts anyone.
 
 :class:`Presentation` also carries invariant 22's second clause, the one
 files/03 §4.6 numbers 30: *"no numeric slot value is spoken without a matching
@@ -43,6 +48,7 @@ from pydantic import Field, model_validator
 
 from intake_voice_runtime.ports import WorkState
 from intake_voice_runtime.talker.delivery import DeliveryClass
+from intake_voice_runtime.talker.red_script import RedScriptRef
 
 __all__ = [
     "BackendResult",
@@ -104,6 +110,14 @@ class Presentation(FrozenModel):
     )
     candidate_flags: tuple[CandidateFlag, ...] = Field(
         default=(), description="LLM candidates: clinician-facing text, never a level."
+    )
+    red_script: RedScriptRef | None = Field(
+        default=None,
+        description="RED only: the identity of the script already pre-positioned on "
+        "the device, which the data-channel trigger names (files/03 §4.6 invariant "
+        "4; INT-093). Never the script's text — the runtime does not hold it. "
+        "Optional in the type because a non-RED result has none; the RED path "
+        "refuses a preempt that arrives without one rather than improvising copy.",
     )
 
     @model_validator(mode="after")

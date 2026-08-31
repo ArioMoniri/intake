@@ -11,30 +11,24 @@ invariant 10 says "clip cache or TTS", not "clip cache, else improvise".
 Offering a paraphrase for such a step raises rather than being ignored — a
 silently discarded paraphrase is how a caller learns the wrong lesson.
 
-**Invariant 22 — no numeral reaches any TTS model.** The compiler expands
-every digit, unit, dose form and drug name at compile time
-(``protocols.compile.tr_orthography``) precisely because both candidate TTS
-models ship a Turkish-hostile normaliser: Freya reads ``2.5 mg`` as *"yirmi
-beş"* — a silent ten-fold dose error — and VoxCPM2 routes Turkish through its
-English branch. :func:`assert_no_numeral` is the runtime backstop for that
-compile-time guarantee, and it refuses rather than sanitising: a numeral here
-means an upstream invariant has already failed, and rewriting it would hide
-which one.
-
-The check is over Unicode ``Nd``, not ASCII ``0-9``. An Eastern-Arabic ``٣``
-in a hospital-supplied string is exactly the kind of digit that would slip a
-``[0-9]`` regex and reach a normaliser that has never seen it.
+**Invariant 22 — no numeral reaches any TTS model.**
+:func:`~intake_voice_runtime.talker.orthography.assert_no_numeral` is the
+runtime backstop for the compiler's Turkish expansion, and it guards this
+router's one entry into synthesis. It is re-exported here — every caller that
+had it from this module still does — but it *lives* in
+:mod:`intake_voice_runtime.talker.orthography`, which imports no media port at
+all, so the RED preemption path can use the same refusal without acquiring a
+route to a synthesiser (files/03 §4.6 invariant 4; INT-093).
 """
 
 from __future__ import annotations
-
-import unicodedata
 
 from clinical_schemas.common import FrozenModel
 from pydantic import Field
 
 from intake_voice_runtime.ports import AudioSink, ClipStore, SpeechSynthesizer
 from intake_voice_runtime.steps import NextStep
+from intake_voice_runtime.talker.orthography import NumeralOnTtsPathError, assert_no_numeral
 
 __all__ = [
     "NumeralOnTtsPathError",
@@ -45,23 +39,8 @@ __all__ = [
 ]
 
 
-class NumeralOnTtsPathError(ValueError):
-    """Text carrying a numeral reached the speech path (invariant 22)."""
-
-
 class ParaphraseNotPermittedError(ValueError):
     """A paraphrase was offered for a step that must be spoken verbatim."""
-
-
-def assert_no_numeral(text: str) -> None:
-    """Refuse any Unicode decimal digit. The compiler expanded them all."""
-    offenders = sorted({character for character in text if unicodedata.category(character) == "Nd"})
-    if offenders:
-        raise NumeralOnTtsPathError(
-            f"{offenders} in {text!r} — no numeral reaches a TTS model; the protocol "
-            "compiler expands every digit to Turkish orthography and the models' "
-            "own normalisers are disabled (CLAUDE.md invariant 22; files/03 §4.9.6)"
-        )
 
 
 class SpokenSpeech(FrozenModel):
