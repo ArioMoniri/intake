@@ -58,9 +58,10 @@ def test_ids_unique_and_well_formed() -> None:
     # has no external anchor) + INT-278 (INT-094 found invariant 3's mlock,
     # core-dump, crash-report and ptrace rows have no test on any branch) +
     # INT-279 (INT-102 found a TCKN said aloud is not eleven digits, so the
-    # pattern tier cannot see it).
+    # pattern tier cannot see it) + INT-280/281 (INT-278 proved the locked
+    # buffer and found nothing uses it, and that no SafeError boundary exists).
     # Grow this count only with a stated reason.
-    assert len(ids) == 228
+    assert len(ids) == 230
     import re
 
     for i in ids:

@@ -27,13 +27,16 @@ can fail — whether that control is new here or already lives in the cited
 suite. ``test_every_invariant_names_a_near_miss_control`` refuses an entry
 without one.
 
-**What this module does not claim.** Invariant 3's *mlocked*, *core dump* and
-*swap page* clauses are process-level controls specified in files/10 §3 and
-numbered there as invariants 16–19 and 28. Nothing in this repository asserts
-them yet — not here, not in ``tests/lanes``, not in
-``tests/voice/test_audio_retention_guard.py``. They are recorded in
-:data:`INVARIANTS` as ``not_covered_here`` rather than implied, and repeated
-in docs/evidence/INT-094.md.
+**What this module does not claim.** Invariant 3's *mlocked*, *core dump*,
+*swap page* and *crash report* clauses are process-level controls specified in
+files/10 §3 and numbered there as invariants 16–19 and 28. When this module
+was written nothing in the repository asserted them, and they were recorded in
+:data:`INVARIANTS` as ``not_covered_here`` rather than implied. INT-278 proved
+all four with their controls in
+``tests/voice/test_audio_memory_hygiene.py``, so the four entries are gone
+from that list; what remains unproved after it — the runtime's lane frames are
+still ordinary ``bytearray``s, and ``infra/`` carries no container hardening —
+is recorded in docs/evidence/INT-278.md, not here.
 
 **Everything timed here runs on INT-091's ``FakeClock``.** A wall-clock
 latency assertion in CI is a flake, and this repository has already paid for
@@ -220,15 +223,6 @@ INVARIANTS: tuple[InvariantEntry, ...] = (
             ),
         ),
         near_miss=f"{_HERE}::test_the_write_probe_would_notice_a_write",
-        not_covered_here=(
-            "mlocked — files/10 §3 invariant 17 (`audio_no_swap_guard`): nothing in "
-            "this repository reads /proc/self/smaps or asserts a Locked: region",
-            "core dump — files/10 §3 invariant 16 (`audio_no_core_guard`): the "
-            "real-crash test with RLIMIT_CORE=(0,0) does not exist on any branch",
-            "crash report — files/10 §3 invariant 19 (`audio_no_telemetry_guard`), "
-            "recorded there as a live defect independent of the acoustic lane",
-            "ptrace — files/10 §3 invariant 28 (`process_hardening_guard`)",
-        ),
     ),
     InvariantEntry(
         number=4,

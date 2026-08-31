@@ -3396,7 +3396,8 @@
   title: "Invariant 3's memory half is untested: nothing proves audio is out of a core dump, a swap page or a crash report"
   depends_on: [INT-094]
   labels: [area:voice, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-278.md
   acceptance:
     - "**mlock is proved, not declared**: a test reads `/proc/self/smaps` for the live buffer region and asserts a non-zero `Locked:` line, with a near-miss control over an ordinary allocation that must show zero — an assertion that only checks the mlock CALL RETURNED proves nothing, because a partial lock and a full one both return 0"
     - "**core dumps are proved by crashing**: a subprocess sets RLIMIT_CORE to (0,0), fills a buffer with a known synthetic marker, calls os.abort(), and the test asserts no core file exists AND that the marker appears in no file the process could have written; the control is the same subprocess with the limit RAISED, which must produce a core, or the test is asserting the platform rather than the code"
@@ -3427,3 +3428,43 @@
     - "invariant 6 holds end to end: a transcript carrying a spoken identifier produces a trace span, a log line and an extraction payload that contain neither the digits nor the words, asserted at each of the three surfaces rather than only at the redactor"
   tests: [tests/security/test_deid_ner.py, tests/safety/test_adversarial_rt09_14.py]
   sec_row: "llm-boundary"
+- id: INT-280
+  epic: E05-voice
+  phase: P0
+  # INT-278 built and PROVED the locked buffer and the process hardening — and
+  # then reported the thing that matters: nothing uses them. Frame.samples in
+  # observers/buffer.py is still a plain bytearray, pageable and dumpable, and
+  # no worker calls harden_process(). Invariant 3's memory half is now provable
+  # and still not true of the running system. This is the issue that makes it
+  # true; without it INT-278 is a proof about a class nobody instantiates.
+  title: "The locked buffer is proved and unused: the runtime still holds audio in a pageable bytearray"
+  depends_on: [INT-278, INT-110]
+  labels: [area:voice, risk:security]
+  status: todo
+  acceptance:
+    - "the gap is asserted before it is closed: a test proves that today's `observers/buffer.py` Frame holds its samples in an ordinary allocation — `Locked: 0 kB` in smaps for the live region — so the absence is in the suite rather than only in an evidence file"
+    - "`Frame.samples` is backed by INT-278's locked buffer and every voice-runtime process that can touch audio calls `harden_process()` before the first frame arrives, not after: a buffer locked one frame late is a buffer that was pageable when the first patient spoke"
+    - "the modules move to the package ADR-025 names, by rename and with no behaviour change: they import nothing from `voice_clips`, and `voice-clips` is the build-time clip cache whose own header disclaims patient audio — a security primitive living in the wrong package is one a future reader will reasonably delete"
+    - "INT-278's four proofs are re-run against the REAL runtime buffer rather than a test double, and each keeps its control — in particular the half-region control, which is what distinguishes a locked buffer from an `mlock` call that returned zero"
+    - "the ≤ 60 s ceiling and the zeroize-on-every-trigger property survive the move: invariant 3's already-tested half must not regress while its untested half is being closed, and the existing retention guard stays green unchanged"
+  tests: [tests/voice/test_audio_memory_hygiene.py, tests/lanes/test_isolation.py]
+  sec_row: "voice-runtime"
+- id: INT-281
+  epic: E01-platform
+  phase: P1
+  # INT-278 found this while proving the crash-report row. files/10 §3's remedy
+  # for payload quoted into an exception message is a `SafeError` boundary, and
+  # no such class exists in the workspace — the name appears only in a schema
+  # field description. scrub_event redacts identifiers, not arbitrary content,
+  # so a message that interpolates a transcript reaches the reporter intact.
+  title: "An exception message can carry patient text past the scrubber: files/10 §3's SafeError boundary does not exist"
+  depends_on: [INT-278]
+  labels: [area:platform, risk:security]
+  status: todo
+  acceptance:
+    - "the hole is reproduced first: an exception whose message interpolates transcript text survives `scrub_event` intact, because `redact_text` targets identifier SHAPES and arbitrary clinical prose has none — asserted as a failing test before anything changes"
+    - "`SafeError` exists as files/10 §3 describes it, and carrying unsafe content is refused at construction rather than scrubbed at the reporter: a boundary that cleans up after the fact still lets every path that bypasses the reporter leak"
+    - "an AST gate proves no raise on a PHI-carrying path constructs a bare exception with an interpolated message, with a negative control proving the gate can fail"
+    - "the near-miss control keeps errors useful: a message naming a field, an id or a code still passes, because an unusable error is its own defect and the fix must not push developers back to interpolating values to debug"
+  tests: [tests/observability/test_error_scrub.py]
+  sec_row: "observability"

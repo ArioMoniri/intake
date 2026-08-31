@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**228 issues.** By phase: P0 136 · P1 50 · P2 37 · P3 5. By status: awaiting-human 7 · doing 1 · done 109 · todo 110 · withdrawn 1.
+**230 issues.** By phase: P0 137 · P1 51 · P2 37 · P3 5. By status: awaiting-human 7 · doing 1 · done 110 · todo 111 · withdrawn 1.
 
 ## P0
 
@@ -145,8 +145,9 @@
 | INT-272 | A lane's signal never reaches the audit chain: LaneSignal has a producer and a sink and nothing between them | E06-lanes | INT-110, INT-112, INT-016 | area:lanes, risk:security | todo |
 | INT-273 | The attestation verifier has no call site: a RED is authorised but not authenticated | E05-voice | INT-269, INT-093, INT-270 | area:voice, risk:security | todo |
 | INT-277 | Nothing schedules the audit verifier, and without an external anchor it can only verify itself | E00-governance | INT-016, INT-021 | area:platform, risk:security | todo |
-| INT-278 | Invariant 3's memory half is untested: nothing proves audio is out of a core dump, a swap page or a crash report | E05-voice | INT-094 | area:voice, risk:security | todo |
+| INT-278 | Invariant 3's memory half is untested: nothing proves audio is out of a core dump, a swap page or a crash report | E05-voice | INT-094 | area:voice, risk:security | done |
 | INT-279 | A TCKN said aloud is not eleven digits: the pattern tier cannot see a spoken identifier | E01-platform | INT-015, INT-102 | area:platform, risk:security | todo |
+| INT-280 | The locked buffer is proved and unused: the runtime still holds audio in a pageable bytearray | E05-voice | INT-278, INT-110 | area:voice, risk:security | todo |
 
 ## P1
 
@@ -202,6 +203,7 @@
 | INT-274 | files/10 §2 promises carrier and geo sanity checks against SMS pumping, and no code honours it | E01-platform | INT-131, INT-265 | area:api, risk:security | todo |
 | INT-275 | CSAT is specified as one-tap and the schema will not form an event on one tap | E08-mobile | INT-137 | area:mobile, risk:legal | todo |
 | INT-276 | A patient can withhold a section the share ledger cannot name: SectionId is narrower than the note | E02-data | INT-137, INT-197 | area:data, risk:legal | todo |
+| INT-281 | An exception message can carry patient text past the scrubber: files/10 §3's SafeError boundary does not exist | E01-platform | INT-278 | area:platform, risk:security | todo |
 
 ## P2
 

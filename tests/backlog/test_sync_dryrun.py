@@ -66,8 +66,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-275/276 CSAT shape and the share vocabulary
     # + INT-277 the verifier scheduler and its anchor
     # + INT-278 invariant 3's memory half
-    # + INT-279 spoken identifiers)
-    assert len(actions) == 228
+    # + INT-279 spoken identifiers
+    # + INT-280/281 the unused locked buffer and SafeError)
+    assert len(actions) == 230
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
