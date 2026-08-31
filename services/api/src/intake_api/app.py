@@ -21,6 +21,11 @@ from dataclasses import dataclass
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from intake_platform.access_log import (
+    AccessLogSource,
+    SqlAlchemyAccessLogSource,
+    StoreScanAccessLogSource,
+)
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
@@ -34,6 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from intake_api import (
+    access_log,
     consents,
     documents,
     dsar,
@@ -83,6 +89,11 @@ class ApiWiring:
     engine: AsyncEngine
     audit_store: AuditStore
     cipher: EnvelopeCipher
+    # INT-016: the read side of the same chain. None falls back to a scan over
+    # the AuditStore protocol, which is correct for any store; the env wiring
+    # passes the SQL source so the ownership and suppression predicates run in
+    # the WHERE clause instead of in Python.
+    access_log_source: AccessLogSource | None = None
     bootstrap: bool = True
     bootstrap_engine: AsyncEngine | None = None
     documents: DocumentsConfig | None = None
@@ -178,10 +189,14 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
 
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
+    # one engine for both sides of the audit database: the writer's store and
+    # the access-log reader (which issues SELECT and nothing else)
+    audit_engine = create_engine(settings.audit_db_url)
     return ApiWiring(
         settings=settings,
         engine=build_engine(settings.app_db_url),
-        audit_store=SqlAlchemyAuditStore(create_engine(settings.audit_db_url)),
+        audit_store=SqlAlchemyAuditStore(audit_engine),
+        access_log_source=SqlAlchemyAccessLogSource(audit_engine),
         cipher=_cipher_from_settings(settings),
         bootstrap=True,
         bootstrap_engine=build_engine(settings.bootstrap_db_url),
@@ -199,6 +214,11 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         engine=w.engine,
         audit=audit,
         cipher=w.cipher,
+        access_log=(
+            w.access_log_source
+            if w.access_log_source is not None
+            else StoreScanAccessLogSource(w.audit_store)
+        ),
         documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
     )
@@ -294,4 +314,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)
     app.include_router(experience.router)
+    app.include_router(access_log.router)
     return app

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**225 issues.** By phase: P0 133 · P1 50 · P2 37 · P3 5. By status: awaiting-human 6 · doing 3 · done 105 · todo 110 · withdrawn 1.
+**226 issues.** By phase: P0 134 · P1 50 · P2 37 · P3 5. By status: awaiting-human 6 · doing 2 · done 106 · todo 111 · withdrawn 1.
 
 ## P0
 
@@ -21,7 +21,7 @@
 | INT-013 | Tokenization service + identity vault (TCKN/phone never in clear) | E01-platform | INT-012, INT-017 | area:security, risk:security | done |
 | INT-014 | Envelope encryption (OpenBao Transit) + rotation + crypto-shredding | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | done |
-| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | doing |
+| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | done |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | done |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | doing |
@@ -144,6 +144,7 @@
 | INT-271 | The note composer renders acoustic features on trust: no second check that the acoustic lane was ever authorised | E06-lanes | INT-084, INT-110 | area:lanes, risk:clinical | todo |
 | INT-272 | A lane's signal never reaches the audit chain: LaneSignal has a producer and a sink and nothing between them | E06-lanes | INT-110, INT-112, INT-016 | area:lanes, risk:security | todo |
 | INT-273 | The attestation verifier has no call site: a RED is authorised but not authenticated | E05-voice | INT-269, INT-093, INT-270 | area:voice, risk:security | todo |
+| INT-277 | Nothing schedules the audit verifier, and without an external anchor it can only verify itself | E00-governance | INT-016, INT-021 | area:platform, risk:security | todo |
 
 ## P1
 

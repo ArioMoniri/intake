@@ -53,9 +53,11 @@ def test_ids_unique_and_well_formed() -> None:
     # attestation verifier and nothing calls it yet) + INT-274 (INT-265 read
     # files/10 §2 against the code and found a control nothing honours) +
     # INT-275/276 (INT-137 found CSAT is one-tap against a schema that needs
-    # two, and that a patient can withhold a section the ledger cannot name).
+    # two, and that a patient can withhold a section the ledger cannot name) +
+    # INT-277 (INT-016 made the verifier runnable; nothing schedules it and it
+    # has no external anchor).
     # Grow this count only with a stated reason.
-    assert len(ids) == 225
+    assert len(ids) == 226
     import re
 
     for i in ids:

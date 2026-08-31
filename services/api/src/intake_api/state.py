@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, Request
+from intake_platform.access_log import AccessLogSource, ActorRoleDirectory, NoRoleDirectory
 from intake_platform.consent import ConsentTextCatalog
 from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
@@ -45,6 +46,16 @@ class ApiState:
     # that reads a verified DOB replaces it when onboarding has one, and
     # every guarded route inherits the change with no route edit.
     age_context: AgeContextSource = field(default_factory=NoAgeRecordSource)
+    # INT-016: the read side of the hash-chained audit log, filtered to one
+    # subject's own resource refs. None = not wired, and the access-log route
+    # answers 503 rather than an empty log (an empty log and an unreadable one
+    # are indistinguishable to a patient, and only one of them is true).
+    access_log: AccessLogSource | None = None
+    # INT-016: actor id -> a files/08 §2.1 role id, for the "who" column of
+    # that view. The default records no role for anyone, truthfully — no
+    # account directory exists until Keycloak lands (INT-131/INT-180), and a
+    # guessed role in front of a patient is worse than an honest blank.
+    actor_roles: ActorRoleDirectory = field(default_factory=NoRoleDirectory)
     # INT-133: the INT-023 flag facade, so a route can read a safety gate
     # (guardian_link) without reaching for the environment. The default
     # provider is in-memory unless INTAKE_UNLEASH_URL is set, and the safety

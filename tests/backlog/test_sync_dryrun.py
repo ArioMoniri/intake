@@ -63,8 +63,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-271 acoustic features in the note + INT-272 LaneSignal wiring
     # + INT-273 the attestation call site
     # + INT-274 carrier/geo sanity
-    # + INT-275/276 CSAT shape and the share vocabulary)
-    assert len(actions) == 225
+    # + INT-275/276 CSAT shape and the share vocabulary
+    # + INT-277 the verifier scheduler and its anchor)
+    assert len(actions) == 226
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

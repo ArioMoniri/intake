@@ -154,11 +154,14 @@
   title: "Hash-chained audit log + WORM export + daily verifier"
   depends_on: [INT-014]
   labels: [area:security]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-016.md
   acceptance:
     - "audit.v1 events chained (prev-hash), verifier job, MinIO object-lock bucket copy; patient-visible access-log view model"
     - "tamper test flips one row and the verifier detects it"
-  tests: [tests/security/test_audit_chain.py]
+  tests: [tests/security/test_audit_chain.py,
+          tests/security/test_access_log_view.py,
+          tests/security/test_audit_verifier_cli.py]
   legal: "KVKK-12,KSVY-7"
   sec_row: "audit"
 - id: INT-017
@@ -3355,3 +3358,24 @@
     - "the near-miss control: a section the patient did NOT toggle must not become shareable as a side effect of widening the enumeration — the default for a newly expressible section is withheld, and a test proves it"
   tests: [tests/api/test_notes.py, apps/mobile/e2e/review_send.spec.ts]
   sec_row: "review-send"
+- id: INT-277
+  epic: E00-governance
+  phase: P0
+  # INT-016 made the daily verifier runnable and observable (a CLI with distinct
+  # exit codes and a Prometheus textfile) but deliberately did NOT invent
+  # `services/workers`: the repo map names it, no issue creates it, and standing
+  # one up drags in invariant 15's whole /healthz + SLO + probe contract as
+  # scope nobody asked for. This is that issue, and its most important clause is
+  # the external anchor — without one, every verification is self-referential.
+  title: "Nothing schedules the audit verifier, and without an external anchor it can only verify itself"
+  depends_on: [INT-016, INT-021]
+  labels: [area:platform, risk:security]
+  status: todo
+  acceptance:
+    - "`services/workers` is created ONCE, with the full invariant-15 surface — /healthz, /readyz, /metrics, /version via packages/intake_platform/health, OTel through the shared setup, docs/slo/workers.yaml and a synthetic probe — or it is not created and the trigger lives somewhere that already has them; whichever is chosen is stated, because a service without that surface fails make check"
+    - "**the external anchor is the point**: `--expected-head` has no producer today, so every run reports `anchored: false` and a verifier that reads only the store it is verifying cannot detect a consistent rewrite of both. This issue gives the head a producer outside that store, and a test proves a rewritten store WITH a matching internal chain is still caught by the anchor and missed without it"
+    - "the daily trigger runs against the READ-ONLY engine and its failure is loud: exit 1 pages rather than logging, and `sec.audit_chain_ok` moves from `status: planned` to live in the same change (invariant 13 wants the row first, which already exists)"
+    - "the probe row lands with its code: `observability/registry.yaml` gains `component: audit-chain-verifier` / `probe: audit_chain_verified` AND `services/probes` gains the function and its `ProbeId` member in the same commit, because the validator requires the id to exist in code"
+    - "`seq`-gap alerting and `admin.audit_external_anchor_age_min` exist, so a verifier that silently stops running is itself detected — an unrun verifier and a passing verifier look identical in a dashboard that only shows the last result"
+  tests: [tests/security/test_audit_verifier_cli.py, tests/observability/test_probe_registry.py]
+  sec_row: "audit"

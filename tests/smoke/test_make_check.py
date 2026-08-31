@@ -232,9 +232,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # attestation's owner, the RED script wiring) + INT-271 (acoustic features
     # in the note) + INT-272 (the LaneSignal wiring) + INT-273 (the attestation call
     # site) + INT-274 (carrier/geo sanity) + INT-275/276 (CSAT shape, share
-    # vocabulary); grows only with a stated
+    # vocabulary) + INT-277 (the verifier scheduler); grows only with a stated
     # reason.
-    assert len(ids) == 225, f"expected 175 blueprint + 50 added issues, got {len(ids)}"
+    assert len(ids) == 226, f"expected 175 blueprint + 51 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

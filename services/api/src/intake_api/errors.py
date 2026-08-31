@@ -28,6 +28,7 @@ __all__ = [
     "phone_invalid",
     "purpose_unknown",
     "refresh_reused",
+    "service_unconfigured",
     "taxonomy_unconfigured",
     "unauthorized",
     "visit_invalid",
@@ -124,6 +125,17 @@ def taxonomy_unconfigured() -> HTTPException:
 
 def dev_auth_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "dev_auth_unconfigured"})
+
+
+def service_unconfigured(code: str) -> HTTPException:
+    """A dependency this route cannot work without is not wired (INT-016).
+
+    The same fail-closed 503 as ``taxonomy_unconfigured``, parameterised by
+    the caller's own code, so a surface that would otherwise answer with an
+    EMPTY result says "unconfigured" instead. For an access log the difference
+    is the whole point: an empty log and an unreadable one look identical to a
+    patient, and only one of them is true."""
+    return HTTPException(status_code=503, detail={"error": code})
 
 
 # --- INT-131 OTP/DPoP auth codes ---------------------------------------------------
