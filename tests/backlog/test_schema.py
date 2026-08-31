@@ -50,9 +50,10 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-084's goldens found the note composer renders acoustic features with
     # no second authorisation check) + INT-272 (INT-112 found LaneSignal has a
     # producer and a sink and nothing between them) + INT-273 (INT-269 built the
-    # attestation verifier and nothing calls it yet).
+    # attestation verifier and nothing calls it yet) + INT-274 (INT-265 read
+    # files/10 §2 against the code and found a control nothing honours).
     # Grow this count only with a stated reason.
-    assert len(ids) == 222
+    assert len(ids) == 223
     import re
 
     for i in ids:

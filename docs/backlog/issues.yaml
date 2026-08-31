@@ -3116,7 +3116,8 @@
   title: "OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
   depends_on: [INT-131, INT-264]
   labels: [area:api, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-265.md
   acceptance:
     - "the deviation is stated first: auth_store._window_key buckets on floor(now / OTP_WINDOW_S), so a caller who spends its budget just before a boundary is given a fresh budget just after it. INT-264 pinned the worst case as 2 x PHONE_LIMIT_PER_HOUR codes to one phone inside about six minutes, against the files/10 §2 wording '3 requests/hour/phone'"
     - "the budgets are counted so that no more than PHONE_LIMIT_PER_HOUR requests per phone, IP_LIMIT_PER_HOUR per IP and DEVICE_LIMIT_PER_HOUR per device are admitted in ANY OTP_WINDOW_S span rather than in each fixed window; the retry-after the caller is told is the true one for that bound, not the time to the next boundary"
@@ -3289,3 +3290,24 @@
     - "`safety_forged_triage_total` moves from `status: planned` to live in the same change (invariant 13 wants the row first, which INT-269 already added), and a refused attestation increments it with the closed reason label and no session content"
   tests: [tests/voice/test_red_preemption.py, tests/safety/test_triage_attestation.py]
   sec_row: "triage"
+- id: INT-274
+  epic: E01-platform
+  phase: P1
+  # Found by INT-265 reading files/10 §2 against the code, which is that issue's
+  # last acceptance clause. The sentence names a control that does not exist:
+  # `grep -rn "carrier\|geo sanity\|pumping" services/api/src/intake_api/*.py`
+  # returns nothing and no adapter carries it. Filed rather than deleted from
+  # the spec — SMS pumping is a real fraud vector with a real bill attached, so
+  # this is a planned control with no owner, not an aspiration to tidy away.
+  title: "files/10 §2 promises carrier and geo sanity checks against SMS pumping, and no code honours it"
+  depends_on: [INT-131, INT-265]
+  labels: [area:api, risk:security]
+  status: todo
+  acceptance:
+    - "the absence is asserted before it is closed: a test pins that no carrier or destination-country check runs on the OTP send path today, so the gap is visible in the suite rather than only in a grep"
+    - "the check is on the SEND path and refuses before the message is dispatched, not after: SMS pumping bills the sender for traffic it never delivers, so a control that logs after the send has cost exactly what it was meant to prevent"
+    - "the destination allow-list is data, not code, and its default is the tenant's own country rather than a global list an engineer chose; a destination outside it is refused with the SAME generic error the other OTP refusals use (files/10 §9 row 1), because a distinguishable refusal is an enumeration oracle"
+    - "invariant 6 holds: nothing added logs the phone number, and the carrier or country label on any metric is a closed enumeration rather than free text"
+    - "if the carrier lookup needs a vendor the repo has no contract for, that is `blocked:*` plus a HUMAN_BLOCKERS row with a named human — the gate is wired and fails closed and no lookup is faked (mocks live in tests only)"
+  tests: [tests/security/test_otp_abuse.py]
+  sec_row: "onboarding"

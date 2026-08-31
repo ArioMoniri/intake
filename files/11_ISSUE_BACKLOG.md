@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**222 issues.** By phase: P0 133 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 102 · todo 109 · withdrawn 1.
+**223 issues.** By phase: P0 133 · P1 48 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 103 · todo 109 · withdrawn 1.
 
 ## P0
 
@@ -135,7 +135,7 @@
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
 | INT-263 | Content a patient cannot scroll to is content the app did not show: a scroll container for every screen the appearance work did not reach | E08-mobile | INT-260 | area:mobile, area:a11y | done |
 | INT-264 | The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts | E08-mobile | INT-131 | area:api, risk:security | done |
-| INT-265 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-264 | area:api, risk:security | todo |
+| INT-265 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-264 | area:api, risk:security | done |
 | INT-266 | A document parse holds the only in-flight slot, so the answer the patient just gave waits behind it (files/12 §7.4 lane split) | E05-voice | INT-092, INT-083 | area:voice | todo |
 | INT-267 | A Decimal slot value reads Unknown to every gate: canonical_scalar converts to Decimal but refuses to accept one | E03-protocols | INT-083 | area:protocols, risk:clinical | done |
 | INT-268 | No valueset in the repository has members: vs.* are named everywhere and defined nowhere, so no code slot can bind | E03-protocols | INT-083 | area:protocols, risk:clinical, approval:human-clinical | awaiting-human |
@@ -196,6 +196,7 @@
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
+| INT-274 | files/10 §2 promises carrier and geo sanity checks against SMS pumping, and no code honours it | E01-platform | INT-131, INT-265 | area:api, risk:security | todo |
 
 ## P2
 

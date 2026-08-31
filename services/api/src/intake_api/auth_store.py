@@ -6,7 +6,7 @@ The limits are files/10 §2 verbatim — 6 digits, 5-min TTL, 5 attempts,
 resend cooldown the mobile flow surfaces ("resend limits shown", 02 §8.2).
 
 Correctness never rides on Redis TTLs: every window and expiry is computed
-from an injectable clock (docs/TDD.md rule 6) with fixed-window keys and
+from an injectable clock (docs/TDD.md rule 6) with rolling-window scores and
 stored timestamps, so fakeredis unit tests advance time without sleeping;
 the EXPIREs exist as hygiene for the live deployment only.
 
@@ -66,21 +66,44 @@ REFRESH_TTL_S = 30 * 24 * 3600
 CHALLENGE_TTL_S = 120
 JTI_TTL_S = 600
 
-# The request budgets above are counted in FIXED windows: the counter key
-# carries floor(now / OTP_WINDOW_S), so every budget resets together on the
-# hour instead of sliding with each caller. That is deliberate — one INCR and
-# one EXPIRE per dimension, no per-caller timestamp set to trim, and a window
-# reconstructible from a clock alone, which is what lets the tests advance time
-# instead of sleeping (docs/TDD.md rule 6).
+# The request budgets above are counted in a TRUE ROLLING window (INT-265).
+# INT-131 shipped FIXED windows — the counter key carried
+# floor(now / OTP_WINDOW_S), so every budget reset together on the hour and a
+# caller who spent its budget just before a boundary was handed a fresh one
+# just after it. The bound that actually enforced was 2 x limit inside a
+# rolling hour (six codes to one phone in about six minutes, floored by the
+# resend cooldown), not the "3 requests/hour/phone" of files/10 §2. INT-264
+# measured it; this is the narrowing.
 #
-# The cost is stated rather than hidden. A caller who spends its budget just
-# before a boundary is handed a fresh budget just after it, so the enforced
-# bound is 2 x limit inside a rolling hour, floored by the resend cooldown at
-# one request per RESEND_COOLDOWN_S. For the phone budget that is six codes in
-# about six minutes, not the "3 requests/hour/phone" of files/10 §2.
-# tests/security/test_otp_abuse.py pins that number so it cannot drift
-# unnoticed, and narrowing it to the wording needs a different counting scheme:
-# that is INT-265, not a change to make in passing.
+# The scheme, stated so it can be checked rather than trusted:
+#   * one Redis sorted set per (dimension, identifier) — no window suffix — in
+#     which each ADMITTED request is one member scored with its timestamp;
+#   * every gate call first drops the members scored at or before
+#     now - OTP_WINDOW_S, so what remains is exactly the admissions inside the
+#     rolling window ending now;
+#   * a request is refused when that count has reached the dimension's limit.
+#
+# Bound and cost, both asserted in tests/security/test_otp_abuse.py rather than
+# described here:
+#   * ERROR versus a true rolling window: none. The retained scores ARE the
+#     admission times, so the enforced bound is exactly "no more than `limit`
+#     admissions in any OTP_WINDOW_S span", with no sub-bucket rounding.
+#   * KEY COUNT: one key per (dimension, identifier), holding at most `limit`
+#     members (3 phone, 10 IP, 3 device) and expiring 2 x OTP_WINDOW_S after
+#     its last write. Refused requests write nothing, so the set an attacker
+#     can grow is bounded by the identifiers it can present — the same bound as
+#     any counter scheme, and half the previous one, which kept the old and the
+#     new bucket alive across a boundary. There is no unbounded per-request
+#     timestamp list.
+#   * WORK PER REQUEST: constant and independent of traffic — one
+#     ZREMRANGEBYSCORE + one ZRANGE + one ZCARD per dimension, then one ZADD +
+#     one EXPIRE per dimension on admission.
+#   * RETRY-AFTER: the true wait for this bound — the oldest retained
+#     admission leaves the window at `oldest + OTP_WINDOW_S`, and where more
+#     than one dimension is over its limit the caller is told the latest of
+#     them. It is never the time to the next hour boundary, which under the old
+#     scheme could be shorter than the true wait and send the caller back into
+#     a refusal.
 OTP_WINDOW_S = 3600
 
 
@@ -152,16 +175,20 @@ class AuthStore:
     # --- OTP request windows (files/10 §2) ------------------------------------------
 
     def _window_key(self, dimension: str, identifier: str) -> str:
-        window = int(self._now() // OTP_WINDOW_S)
-        return self._key("otp", "w", dimension, identifier, str(window))
+        """One key per (dimension, identifier). Deliberately carries no window
+        number: a rolling window has no boundary to roll over, so the key set
+        no longer doubles at the top of every hour."""
+        return self._key("otp", "w", dimension, identifier)
 
-    def _window_count(self, dimension: str, identifier: str) -> int:
-        raw = _text(self._r.get(self._window_key(dimension, identifier)))
-        return int(raw) if raw is not None else 0
-
-    def _window_retry_after(self) -> float:
-        now = self._now()
-        return (int(now // OTP_WINDOW_S) + 1) * OTP_WINDOW_S - now
+    def _window_state(self, key: str, now: float) -> tuple[int, float | None]:
+        """Drop the admissions that have left the window ending at ``now``,
+        then report how many remain and when the oldest of them leaves."""
+        self._r.zremrangebyscore(key, "-inf", now - OTP_WINDOW_S)
+        rows = self._r.zrange(key, 0, 0, withscores=True)
+        count = int(self._r.zcard(key))
+        if not rows:
+            return count, None
+        return count, float(rows[0][1])
 
     def otp_request_gate(self, pseudonym: str, ip: str, device_ref: str) -> float | None:
         """Admit or refuse one OTP request. Returns None on admission (and
@@ -171,18 +198,29 @@ class AuthStore:
         last = _text(self._r.get(cooldown_key))
         if last is not None and now - float(last) < RESEND_COOLDOWN_S:
             return RESEND_COOLDOWN_S - (now - float(last))
-        limits = (
-            ("ip", ip, IP_LIMIT_PER_HOUR),
-            ("device", device_ref, DEVICE_LIMIT_PER_HOUR),
-            ("phone", pseudonym, PHONE_LIMIT_PER_HOUR),
+        budgets = (
+            (self._window_key("ip", ip), IP_LIMIT_PER_HOUR),
+            (self._window_key("device", device_ref), DEVICE_LIMIT_PER_HOUR),
+            (self._window_key("phone", pseudonym), PHONE_LIMIT_PER_HOUR),
         )
-        for dimension, identifier, limit in limits:
-            if self._window_count(dimension, identifier) >= limit:
-                return self._window_retry_after()
-        for dimension, identifier, _limit in limits:
-            key = self._window_key(dimension, identifier)
-            if int(self._r.incr(key)) == 1:
-                self._r.expire(key, OTP_WINDOW_S * 2)
+        waits: list[float] = []
+        for key, limit in budgets:
+            count, oldest = self._window_state(key, now)
+            # ``oldest is None`` is exactly an empty window, which no limit >= 1
+            # refuses; when it is set, it is the admission whose departure frees
+            # the next slot, so it is also the true retry-after.
+            if oldest is not None and count >= limit:
+                waits.append(oldest + OTP_WINDOW_S - now)
+        if waits:
+            # every over-budget dimension has to clear, so the caller is told
+            # the latest of them and is not sent back into a refusal
+            return max(waits)
+        # a unique member per admission: two requests at the same instant (a
+        # burst against one IP) are two admissions, not one overwritten score
+        member = secrets.token_hex(8)
+        for key, _limit in budgets:
+            self._r.zadd(key, {member: now})
+            self._r.expire(key, OTP_WINDOW_S * 2)
         self._r.set(cooldown_key, repr(now), ex=RESEND_COOLDOWN_S * 2)
         return None
 
