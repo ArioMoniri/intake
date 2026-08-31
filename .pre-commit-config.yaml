@@ -30,6 +30,22 @@ repos:
 
   - repo: local
     hooks:
+      # INT-019: the two text gates that are cheap enough to run on every
+      # commit. The rest of the set (trivy, osv-scanner, syft, checkov,
+      # schemathesis) needs a database pull or a running API and belongs to
+      # `make security` and the security workflow, not to a commit hook.
+      - id: phi-scan
+        name: PHI-pattern scan (fixtures + docs)
+        entry: scripts/ci/phi_scan.sh
+        language: system
+        pass_filenames: false
+        files: ^(tests/fixtures/|docs/|infra/ci/no-phi-policy\.yaml|scripts/ci/phi_scan)
+      - id: claims-scan
+        name: accuracy-claims scan (invariant 20)
+        entry: scripts/ci/claims_scan.sh
+        language: system
+        pass_filenames: false
+        files: ^(docs/regulatory/|docs/legal/|apps/.*/store|scripts/ci/claims_scan)
       - id: eslint
         name: eslint (workspace)
         entry: pnpm -r lint
