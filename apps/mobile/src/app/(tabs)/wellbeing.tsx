@@ -13,6 +13,7 @@ import { StyleSheet } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
+import { InstrumentItems } from "@/components/InstrumentItems";
 import { AppText, RAIL_EDGES, ScrollScreen } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
@@ -31,6 +32,16 @@ export default function Wellbeing() {
       <AppText role="body" color="inkSoft">
         {t("wellbeing.intro")}
       </AppText>
+      {/* INT-136: this screen IS the WHO-5-family space (02 §4), so it asks
+          the instrument registry for the items rather than remembering that
+          it must not show any. WHO-5 is licence-BLOCKED (HB-L3: CC BY-NC-SA
+          3.0 IGO, NonCommercial, with a ShareAlike copyleft that reaches a
+          mobile re-layout), so the offer is refused and this renders
+          nothing. The gate is wired here rather than described in the
+          header comment above, which is what makes the refusal structural:
+          the day someone commits items for a licensed instrument, the surface
+          renders them verbatim and no other change is needed. */}
+      <InstrumentItems instrumentId="WHO-5" />
       <GuidanceBlock
         accent
         icon="heart"

@@ -62,6 +62,10 @@
  * deliberately NOT authored is listed in docs/evidence/INT-256.md.
  */
 import type { MessageKey } from "../i18n";
+// Type-only, so the pair below is a shared vocabulary and not an import
+// cycle: ./affordance reads `IntakeQuestion` and this file reads `SlotType`,
+// and both edges vanish at runtime.
+import type { SlotType } from "./affordance";
 
 export interface IntakeOption {
   id: string;
@@ -157,7 +161,40 @@ export interface IntakeQuestion {
   modes?: readonly IntakeMode[];
   /** Deferral unit this question belongs to (02 §33); absent = never deferred. */
   deferrableAs?: DeferralId;
+  /**
+   * The slot type this question answers, mirroring `protocols.types.SlotType`
+   * (INT-136). Absent is read from `kind` — an option question answers a
+   * `code` slot, a free-note step a `string` one — so the field exists for
+   * the case a pack needs to say "this asks for a magnitude" and be held to
+   * invariant 22 for it (./affordance `numericStepsWithoutChoices`). No
+   * question in this fixture pack declares one, because none asks for a
+   * number: every quantity a clinical pack will ask for arrives with
+   * clinician-authored `choices_tr` or does not arrive at all (HB-C6).
+   */
+  slotType?: SlotType;
+  /**
+   * This question's options are an ORDINAL SCALE (02 §3): 3–4 spoken anchors
+   * standing in for a number the patient would otherwise have to read, rate
+   * and hold. Declaring it is what subjects the question to
+   * `ORDINAL_ANCHOR_MIN`/`MAX` — a scale that grew a fifth rung would be a
+   * scale a listener can no longer hold in working memory, and it would grow
+   * silently without this flag.
+   */
+  ordinal?: true;
 }
+
+/**
+ * The low-literacy severity bound (files/02 §3): *"severity is numeracy-free,
+ * using 3–4 ordinal spoken anchors (Cowan 2010 on working-memory capacity —
+ * *not* the 7±2 folklore that `13 §5.3` debunks)"*.
+ *
+ * Two numbers rather than one constant, because the rule has both ends: below
+ * three the scale stops discriminating, above four the patient is holding a
+ * list instead of choosing from one. `e2e/typed_intake.spec.ts` holds every
+ * `ordinal` question to the pair.
+ */
+export const ORDINAL_ANCHOR_MIN = 3;
+export const ORDINAL_ANCHOR_MAX = 4;
 
 /** The slice of an answer the gate evaluator needs (note.ts Answer fits). */
 export interface AnsweredValues {
@@ -225,6 +262,10 @@ const severity: IntakeQuestion = {
   kind: "single",
   titleKey: "intake.q.severity",
   hpiLabelKey: "intake.hpi.severity",
+  // 02 §3's worked example of the low-literacy path: three ordinal anchors a
+  // patient hears and chooses between, never a 0–10 they have to read and
+  // rate themselves. Marked so the bound is enforced, not just intended.
+  ordinal: true,
   options: [
     { id: "mild", labelKey: "intake.opt.mild" },
     { id: "moderate", labelKey: "intake.opt.moderate" },
@@ -1831,6 +1872,44 @@ export function missingQuestions(
     answers.filter((a) => a.values.some((v) => v.trim().length > 0)).map((a) => a.questionId),
   );
   return applicableQuestions(pack, answers).filter((q) => !answered.has(q.id));
+}
+
+/**
+ * Where the typed flow opens — the resume rule, as a function (INT-136).
+ *
+ * It was already the behaviour: INT-179 resumed at the first unanswered
+ * question and INT-236 narrowed that to the APPLICABLE ones, so leaving the
+ * flow and coming back never re-asks what was answered and never stops on a
+ * question whose gate has since closed. What it was not, until now, is
+ * reachable from a test — the rule lived as three chained expressions inside
+ * the screen component, and the vitest lane has no renderer to drive a
+ * component with. Moving it here changes no behaviour and makes "resume"
+ * something `e2e/typed_intake.spec.ts` can assert rather than describe.
+ *
+ * Three cases, in priority order:
+ *
+ *  1. `requestedId` — the review screen's pencil. An edit jumps to that exact
+ *     question even when it is answered, and even when its gate is currently
+ *     unmet: the patient asked for it by name.
+ *  2. the first applicable question with no answer — the resume point.
+ *  3. the last applicable question — reached only when everything is
+ *     answered. Never null, because a flow that resumes onto nothing is a
+ *     blank screen, and a blank screen is how a session ends by accident.
+ */
+export function resumeQuestion(
+  pack: readonly IntakeQuestion[],
+  answers: readonly AnsweredValues[],
+  requestedId?: string,
+): IntakeQuestion {
+  const requested = requestedId === undefined ? undefined : pack.find((q) => q.id === requestedId);
+  if (requested !== undefined) {
+    return requested;
+  }
+  const applicable = applicableQuestions(pack, answers);
+  const answered = new Set(answers.map((a) => a.questionId));
+  return (
+    applicable.find((q) => !answered.has(q.id)) ?? applicable[applicable.length - 1] ?? pack[0]
+  );
 }
 
 export function optionLabelKey(questionId: string, optionId: string): MessageKey | null {

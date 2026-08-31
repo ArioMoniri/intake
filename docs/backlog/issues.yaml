@@ -1350,7 +1350,8 @@
   title: "Typed intake UI (Detayli) + chips + instruments verbatim"
   depends_on: [INT-096, INT-130]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-136.md
   acceptance:
     - "instrument items rendered verbatim; low-literacy chips; progress + resume"
   tests: [apps/mobile/e2e/typed_intake.spec.ts]

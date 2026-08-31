@@ -58,6 +58,7 @@ import {
   applicableQuestions,
   nextApplicableQuestion,
   packForVisit,
+  resumeQuestion,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
 import {
@@ -202,11 +203,12 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
 
   // `q` = edit mode: jump straight to that question with its current answer
   // preloaded (the review screen's pencil). Otherwise resume at the first
-  // unanswered APPLICABLE question.
+  // unanswered APPLICABLE question. The rule itself lives in the pack layer
+  // (INT-136 `resumeQuestion`) so a node test can drive it; this screen holds
+  // the same behaviour it always did.
   const answeredIds = new Set(answers.map((a) => a.questionId));
   const requested = requestedQ ? intakeQuestions.find((x) => x.id === requestedQ) : undefined;
-  const firstUnanswered = applicable.find((x) => !answeredIds.has(x.id));
-  const initialQuestion = requested ?? firstUnanswered ?? applicable[applicable.length - 1];
+  const initialQuestion = resumeQuestion(intakeQuestions, answers, requestedQ);
   const initialAnswer = answers.find((a) => a.questionId === initialQuestion.id);
   const initialPrefill = initialAnswer === undefined ? prefill[initialQuestion.id] : undefined;
   const initialKind = initialQuestion.kind;

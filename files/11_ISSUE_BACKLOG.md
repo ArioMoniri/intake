@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**219 issues.** By phase: P0 130 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 97 · todo 111 · withdrawn 1.
+**219 issues.** By phase: P0 130 · P1 47 · P2 37 · P3 5. By status: awaiting-human 6 · doing 4 · done 98 · todo 110 · withdrawn 1.
 
 ## P0
 
@@ -84,7 +84,7 @@
 | INT-132 | Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what | E08-mobile | INT-038, INT-130 | area:mobile, risk:legal, approval:human-legal | done |
 | INT-133 | Profiles, companions, guardian flows (minors), proxy acknowledgement | E08-mobile | INT-131, INT-223 | area:mobile, risk:legal | done |
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
-| INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | todo |
+| INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | done |
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | todo |
 | INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | todo |
