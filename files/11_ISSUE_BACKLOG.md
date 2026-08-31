@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**226 issues.** By phase: P0 134 · P1 50 · P2 37 · P3 5. By status: awaiting-human 6 · doing 2 · done 106 · todo 111 · withdrawn 1.
+**227 issues.** By phase: P0 135 · P1 50 · P2 37 · P3 5. By status: awaiting-human 6 · doing 2 · done 107 · todo 111 · withdrawn 1.
 
 ## P0
 
@@ -70,7 +70,7 @@
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | done |
 | INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | done |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | done |
-| INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | todo |
+| INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | done |
 | INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | done |
 | INT-101 | Session budgets + cost metering per component/profile | E05-voice | INT-092 | area:voice | todo |
 | INT-110 | Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only | E06-lanes | INT-092, INT-038 | area:lanes, risk:clinical | done |
@@ -145,6 +145,7 @@
 | INT-272 | A lane's signal never reaches the audit chain: LaneSignal has a producer and a sink and nothing between them | E06-lanes | INT-110, INT-112, INT-016 | area:lanes, risk:security | todo |
 | INT-273 | The attestation verifier has no call site: a RED is authorised but not authenticated | E05-voice | INT-269, INT-093, INT-270 | area:voice, risk:security | todo |
 | INT-277 | Nothing schedules the audit verifier, and without an external anchor it can only verify itself | E00-governance | INT-016, INT-021 | area:platform, risk:security | todo |
+| INT-278 | Invariant 3's memory half is untested: nothing proves audio is out of a core dump, a swap page or a crash report | E05-voice | INT-094 | area:voice, risk:security | todo |
 
 ## P1
 

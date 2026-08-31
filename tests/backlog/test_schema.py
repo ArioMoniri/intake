@@ -55,9 +55,10 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-275/276 (INT-137 found CSAT is one-tap against a schema that needs
     # two, and that a patient can withhold a section the ledger cannot name) +
     # INT-277 (INT-016 made the verifier runnable; nothing schedules it and it
-    # has no external anchor).
+    # has no external anchor) + INT-278 (INT-094 found invariant 3's mlock,
+    # core-dump, crash-report and ptrace rows have no test on any branch).
     # Grow this count only with a stated reason.
-    assert len(ids) == 226
+    assert len(ids) == 227
     import re
 
     for i in ids:

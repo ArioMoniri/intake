@@ -949,7 +949,8 @@
   title: "Runtime invariants 1-11 + RT-01..08 + latency harness"
   depends_on: [INT-093, INT-110]
   labels: [area:voice]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-094.md
   acceptance:
     - "all invariant tests incl. lanes-stalled-30s; harness reports per-turn budgets per profile"
   tests: [tests/voice/test_invariants.py]
@@ -3379,3 +3380,25 @@
     - "`seq`-gap alerting and `admin.audit_external_anchor_age_min` exist, so a verifier that silently stops running is itself detected — an unrun verifier and a passing verifier look identical in a dashboard that only shows the last result"
   tests: [tests/security/test_audit_verifier_cli.py, tests/observability/test_probe_registry.py]
   sec_row: "audit"
+- id: INT-278
+  epic: E05-voice
+  phase: P0
+  # Found by INT-094, which asserted the eleven invariants in one place and
+  # reported what it could NOT prove. Invariant 3 says raw audio is never
+  # reachable "through a core dump, a swap page or a crash report" and that
+  # buffers are "mlocked, zeroed on every trigger". The zeroing is tested. The
+  # other three memory-hygiene properties have NO TEST ON ANY BRANCH — nothing
+  # reads /proc/self/smaps, no RLIMIT_CORE crash test exists, and files/10 §3
+  # calls the crash-report row "a live defect today".
+  title: "Invariant 3's memory half is untested: nothing proves audio is out of a core dump, a swap page or a crash report"
+  depends_on: [INT-094]
+  labels: [area:voice, risk:security]
+  status: todo
+  acceptance:
+    - "**mlock is proved, not declared**: a test reads `/proc/self/smaps` for the live buffer region and asserts a non-zero `Locked:` line, with a near-miss control over an ordinary allocation that must show zero — an assertion that only checks the mlock CALL RETURNED proves nothing, because a partial lock and a full one both return 0"
+    - "**core dumps are proved by crashing**: a subprocess sets RLIMIT_CORE to (0,0), fills a buffer with a known synthetic marker, calls os.abort(), and the test asserts no core file exists AND that the marker appears in no file the process could have written; the control is the same subprocess with the limit RAISED, which must produce a core, or the test is asserting the platform rather than the code"
+    - "**the crash-report path is closed rather than assumed**: files/10 §3 names it a live defect, so the handler that would ship a report is identified and a test proves the audio buffer is unreachable from it — and if no crash reporter is wired yet, that is asserted as the reason rather than left implied, so the test starts failing the day one is added"
+    - "**ptrace is refused** (files/10 §3 invariant 28): the process denies attach, with a control showing an unprotected child permits it — and the platform dependence is stated, since this is a Linux assertion and the CI runner is the only place it holds"
+    - "each property names the files/10 §3 row it discharges, and INT-094's `INVARIANTS[2].not_covered_here` list shrinks by exactly the rows proved — never by rewording the entry"
+  tests: [tests/voice/test_invariants.py, tests/voice/test_audio_retention_guard.py]
+  sec_row: "voice-runtime"
