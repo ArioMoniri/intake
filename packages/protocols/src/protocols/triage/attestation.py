@@ -27,8 +27,8 @@ departures, both stated rather than silent:
 - ``disposition`` is carried as :class:`~clinical_schemas.triage.TriageLevel`,
   the patient-routing determination that exists on this branch. files/12 §2.1's
   ``Disposition`` enum is not implemented anywhere in the repo yet; inventing a
-  value for it here would be a placeholder in the one place a placeholder is
-  most expensive (CLAUDE.md invariant 17). When that enum lands, it joins the
+  value for it here would be an invented value in the one place an invented
+  value is most expensive (CLAUDE.md invariant 17). When that enum lands, it joins the
   claim as its own field and the domain constant below moves to ``v2``.
 - ``register`` and ``location`` are covered **in addition**. A RED is three
   axes, not one (invariant 21); an ``ALERT`` verdict whose register can be
