@@ -1601,6 +1601,27 @@ metrics:
       because the subject key is a keyed derivation and remains personal data
       under KVKK (KSVY m.16(1)'s anonymisation route is not the one this
       pipeline takes).
+  # --- INT-110: the observer-lane framework's one signal. `status: planned`
+  # is honest and stays correct until the framework is switched to emit — the
+  # counter is kept in process by observers.metrics.DropLedger today, because
+  # invariant 13 says a metric must exist here BEFORE it is emitted, not after.
+  - name: lane_dropped_frames_total
+    type: counter
+    labels: [lane, reason]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: >-
+      Observer-lane frames shed rather than delaying speech (CLAUDE.md
+      invariant 11; files/03 §4.7.6; the observer-lanes threat-model row names
+      lane.dropped_frames as an INT-110 signal — the catalogue carries no
+      `id:` for it because that name is the threat model's, not a files/08 §4
+      spec id, and `id` must normalise to `name`). `lane` is one of the five
+      lanes of files/03 §4.7.5; `reason` is the closed DropReason set —
+      backpressure, lane_overran, consent_withdrawn, lane_disabled. A dropped
+      frame is the framework working: invariant 11 says a stalled lane must
+      never delay a turn, so shedding is the designed outcome and this counter
+      is how often the design was needed.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
