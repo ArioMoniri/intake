@@ -3057,10 +3057,20 @@
   # 2026-09-02) with the directive: use it as BASE-LAYER questions, "as much as
   # possible ... but not populate too much". The whole value of this issue is the
   # split below; adding all 103 fields would be the wrong reading of it.
-  title: "Base-layer questions from the HBYS schema: the patient-answerable subset only"
+  #
+  # WIDENED BY THE OWNER, same day, verbatim: "dont use only my schema use
+  # dyanimc department based resposive to previosus questions and asnwering plus
+  # the schema" - and, at length, "the questions should be dynamic and covering a
+  # specific per department per chief complaint, dynamic to previos questions and
+  # answers and making a complete previsit (in 2 modes of fast and in hospital)".
+  # So the schema is the BASE LAYER and not the whole issue: the department packs
+  # must also branch on what the patient already said, in both modes. Every
+  # acceptance line below the original five is that second half. Nothing was
+  # removed from the original five.
+  title: "Base-layer questions from the HBYS schema, and department branching on the answers"
   depends_on: [INT-256]
   labels: [area:engine, risk:clinical]
-  status: todo
+  status: doing
   acceptance:
     - "the source is committed verbatim at docs/sources/hbys_intake_schema.md and never edited; a test asserts the file is byte-identical to the recorded sha256"
     - "PATIENT-ANSWERABLE fields become base-layer questions, composed onto every department pack by packForVisit the way INT-256's history block is, NOT duplicated per department: smoking status (5 states), alcohol, substance use, the seven named chronic conditions as a checklist, injury history, declared blood group, disability status, occupation, and transfusion history"
@@ -3068,5 +3078,13 @@
     - "CLINICIAN- OR LAB-ONLY fields are NEVER asked of a patient and a test asserts each is absent from every pack: respiratory rate, pulse, pulse rhythm, systolic and diastolic BP, lab blood group, fall risk, examination note, treatment note, and the clinician narrative fields (Oyku, Ozgecmis Notu)"
     - "height, weight and the 0-10 pain score are collected through guarded controls, never free numeric text on the clinical critical path (invariant 22), and every numeral has an inline render on the same work_id"
     - "no clinical threshold, cut-off or interpretation is authored: the schema's option lists are a vendor vocabulary, not a validated instrument, and a claim that any of it is validated requires the physician of record"
-  tests: [apps/mobile/src/lib/intake/history.test.ts]
+    - "a follow-up genuinely depends on the previous answer: duration 'today' opens a different question from duration 'week/month', and the two asked sets differ in BOTH directions - neither is a prefix of the other"
+    - "the base layer branches on its own answers too: an ex-smoker is asked when they stopped and a never-smoker is not; an injury reported opens its detail; no pain means no pain score"
+    - "both modes, with the EXISTING mode filter as the lever and no new mechanism: Hizli asks one level of department follow-up, Detayli asks two, and Hizli carries no base-layer question at all (02 SS2 puts them in the detailed column); Hizli is strictly shorter than Detayli in every branch and still branches on the complaint"
+    - "every gate is STRUCTURAL - did they say yes, how long, which relative - and a test asserts no gate turns on clinical significance; deciding what an answer means stays INT-043 -> INT-044..051 (HB-C1)"
+    - "the mobile ask_if agrees with the clinical_agent engine gate semantics of INT-081: a gate opens only on TRUE and an unanswered gating question leaves it shut; any disagreement found is reported rather than papered over"
+    - "no numeral reaches a spoken surface: every numeral-bearing step declares files/13 SS13 text_only, spokenPack drops it, and toQuestionSpecs refuses it - so invariant 22 holds structurally rather than by convention"
+  tests:
+    - apps/mobile/src/lib/intake/history.test.ts
+    - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
