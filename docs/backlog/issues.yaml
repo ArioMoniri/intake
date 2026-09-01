@@ -3050,3 +3050,23 @@
     - apps/mobile/e2e/appearance.spec.ts
   sec_row: "mobile"
   evidence: docs/evidence/INT-260.md
+- id: INT-282
+  epic: E04-engines
+  phase: P1
+  # Owner supplied a real HBYS intake schema (docs/sources/hbys_intake_schema.md,
+  # 2026-09-02) with the directive: use it as BASE-LAYER questions, "as much as
+  # possible ... but not populate too much". The whole value of this issue is the
+  # split below; adding all 103 fields would be the wrong reading of it.
+  title: "Base-layer questions from the HBYS schema: the patient-answerable subset only"
+  depends_on: [INT-256]
+  labels: [area:engine, risk:clinical]
+  status: todo
+  acceptance:
+    - "the source is committed verbatim at docs/sources/hbys_intake_schema.md and never edited; a test asserts the file is byte-identical to the recorded sha256"
+    - "PATIENT-ANSWERABLE fields become base-layer questions, composed onto every department pack by packForVisit the way INT-256's history block is, NOT duplicated per department: smoking status (5 states), alcohol, substance use, the seven named chronic conditions as a checklist, injury history, declared blood group, disability status, occupation, and transfusion history"
+    - "family history gains the per-relative shape the schema uses (mother/father/brother/sister x HT, cardiac, cancer, diabetes, blood disorder) instead of one free-text field - the note mapper must not attribute a relative's condition to the patient"
+    - "CLINICIAN- OR LAB-ONLY fields are NEVER asked of a patient and a test asserts each is absent from every pack: respiratory rate, pulse, pulse rhythm, systolic and diastolic BP, lab blood group, fall risk, examination note, treatment note, and the clinician narrative fields (Oyku, Ozgecmis Notu)"
+    - "height, weight and the 0-10 pain score are collected through guarded controls, never free numeric text on the clinical critical path (invariant 22), and every numeral has an inline render on the same work_id"
+    - "no clinical threshold, cut-off or interpretation is authored: the schema's option lists are a vendor vocabulary, not a validated instrument, and a claim that any of it is validated requires the physician of record"
+  tests: [apps/mobile/src/lib/intake/history.test.ts]
+  sec_row: "intake-typed"
