@@ -1580,7 +1580,8 @@
   title: "PatientOverlay: store, confirmation rules, /me/learned API, engine integration"
   depends_on: [INT-031, INT-081]
   labels: [area:learning]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-170.md
   acceptance:
     - "facts commit only with patient/clinician confirmation (type-level); 12-month reconfirm; provenance shown; delta-mode works in simulator"
   tests: [tests/learning/test_overlay_provenance.py]

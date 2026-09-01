@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**214 issues.** By phase: P0 124 · P1 48 · P2 37 · P3 5. By status: awaiting-human 3 · doing 6 · done 92 · todo 112 · withdrawn 1.
+**214 issues.** By phase: P0 124 · P1 48 · P2 37 · P3 5. By status: awaiting-human 3 · doing 6 · done 93 · todo 111 · withdrawn 1.
 
 ## P0
 
@@ -91,7 +91,7 @@
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | todo |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | todo |
 | INT-151 | Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback | E09-clinician | INT-150, INT-117 | area:clinician | todo |
-| INT-170 | PatientOverlay: store, confirmation rules, /me/learned API, engine integration | E11-learning | INT-031, INT-081 | area:learning | todo |
+| INT-170 | PatientOverlay: store, confirmation rules, /me/learned API, engine integration | E11-learning | INT-031, INT-081 | area:learning | done |
 | INT-176 | Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure) | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-177 | Rate limiter: replace per-process monotonic clock with Redis TIME in the Lua script | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-178 | Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel | E01-platform | INT-013 | area:security, risk:security | done |
