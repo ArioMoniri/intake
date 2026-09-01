@@ -41,6 +41,7 @@ __all__ = [
     "OTP_CODE_DIGITS",
     "OTP_MAX_ATTEMPTS",
     "OTP_TTL_S",
+    "OTP_WINDOW_S",
     "PHONE_LIMIT_PER_HOUR",
     "REFRESH_TTL_S",
     "RESEND_COOLDOWN_S",
@@ -65,7 +66,22 @@ REFRESH_TTL_S = 30 * 24 * 3600
 CHALLENGE_TTL_S = 120
 JTI_TTL_S = 600
 
-_WINDOW_S = 3600
+# The request budgets above are counted in FIXED windows: the counter key
+# carries floor(now / OTP_WINDOW_S), so every budget resets together on the
+# hour instead of sliding with each caller. That is deliberate — one INCR and
+# one EXPIRE per dimension, no per-caller timestamp set to trim, and a window
+# reconstructible from a clock alone, which is what lets the tests advance time
+# instead of sleeping (docs/TDD.md rule 6).
+#
+# The cost is stated rather than hidden. A caller who spends its budget just
+# before a boundary is handed a fresh budget just after it, so the enforced
+# bound is 2 x limit inside a rolling hour, floored by the resend cooldown at
+# one request per RESEND_COOLDOWN_S. For the phone budget that is six codes in
+# about six minutes, not the "3 requests/hour/phone" of files/10 §2.
+# tests/security/test_otp_abuse.py pins that number so it cannot drift
+# unnoticed, and narrowing it to the wording needs a different counting scheme:
+# that is INT-263, not a change to make in passing.
+OTP_WINDOW_S = 3600
 
 
 def code_digest(pseudonym: str, code: str) -> str:
@@ -136,7 +152,7 @@ class AuthStore:
     # --- OTP request windows (files/10 §2) ------------------------------------------
 
     def _window_key(self, dimension: str, identifier: str) -> str:
-        window = int(self._now() // _WINDOW_S)
+        window = int(self._now() // OTP_WINDOW_S)
         return self._key("otp", "w", dimension, identifier, str(window))
 
     def _window_count(self, dimension: str, identifier: str) -> int:
@@ -145,7 +161,7 @@ class AuthStore:
 
     def _window_retry_after(self) -> float:
         now = self._now()
-        return (int(now // _WINDOW_S) + 1) * _WINDOW_S - now
+        return (int(now // OTP_WINDOW_S) + 1) * OTP_WINDOW_S - now
 
     def otp_request_gate(self, pseudonym: str, ip: str, device_ref: str) -> float | None:
         """Admit or refuse one OTP request. Returns None on admission (and
@@ -166,7 +182,7 @@ class AuthStore:
         for dimension, identifier, _limit in limits:
             key = self._window_key(dimension, identifier)
             if int(self._r.incr(key)) == 1:
-                self._r.expire(key, _WINDOW_S * 2)
+                self._r.expire(key, OTP_WINDOW_S * 2)
         self._r.set(cooldown_key, repr(now), ex=RESEND_COOLDOWN_S * 2)
         return None
 
