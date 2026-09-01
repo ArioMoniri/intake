@@ -154,11 +154,23 @@
   title: "Hash-chained audit log + WORM export + daily verifier"
   depends_on: [INT-014]
   labels: [area:security]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-016.md
+  # NOTE 29 Aug 2026: all four acceptance clauses delivered. The daily verifier
+  # ships with the anchored head as a REQUIRED input and no publisher for it —
+  # HB-I8 owns naming the destination, HB-I9 owns the production WORM target.
+  # Per HUMAN_BLOCKERS Rule 2 the mechanism is built and fails closed (no anchor
+  # => sec_audit_chain_ok 0, exit 3), which is the delivered state, not a gap.
+  # Invariant 40's flip-and-repair test against a live external copy is a
+  # separate and strictly stronger control and is not claimed here.
   acceptance:
     - "audit.v1 events chained (prev-hash), verifier job, MinIO object-lock bucket copy; patient-visible access-log view model"
     - "tamper test flips one row and the verifier detects it"
-  tests: [tests/security/test_audit_chain.py]
+  tests:
+    - tests/security/test_audit_chain.py
+    - tests/security/test_audit_verifier.py
+    - tests/security/test_audit_verifier_integration.py
+    - tests/security/test_access_log_view.py
   legal: "KVKK-12,KSVY-7"
   sec_row: "audit"
 - id: INT-017

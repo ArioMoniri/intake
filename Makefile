@@ -264,3 +264,20 @@ siem:
 
 siem-down:
 	scripts/security/siem_up.sh --down
+
+# INT-016: the daily audit-chain verification job (files/10 §3 schedules it
+# daily). The anchored head is an INPUT, never a default: without it the
+# command exits 3 rather than reporting a chain that merely agrees with itself
+# (files/10 §2 (b); HB-I8 owns where that head gets published).
+#
+#   make audit-verify ANCHOR=<64-hex>            # verify only
+#   make audit-verify ANCHOR=<64-hex> WORM=1     # verify, then archive
+#
+# Not part of `make check`: it needs a live chain and an external anchor, and a
+# gate that passes because neither exists is the verifier this issue exists to
+# avoid.
+.PHONY: audit-verify
+
+audit-verify:
+	uv run python -m intake_platform.audit_verifier \
+	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)
