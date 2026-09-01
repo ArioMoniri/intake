@@ -1567,6 +1567,33 @@ metrics:
       evidence-bundle completeness; this is it. A bundle is incomplete while
       any artefact in intake_learning.evidence.REQUIRED_CHECKS is unavailable,
       and an incomplete bundle cannot open a pull request.
+  # --- INT-170: Loop 1, the per-patient learning store. files/08 §4 names no
+  # id for it (group L is prose), so the names are ours — the INT-171/INT-172
+  # precedent. Label sets are minimal for the reason those two record: a label
+  # carrying a fact key or a patient would publish that cohort to Prometheus,
+  # which retains it (inv. 6). `source` is one of the three closed
+  # LearnedFactSource members and `action` one of two verbs.
+  - name: overlay_facts_confirmed_total
+    type: counter
+    labels: [source]
+    owner: learning
+    unit: "count"
+    description: >-
+      PatientOverlay facts committed after a patient or clinician confirmation,
+      by confirmed provenance class (confirmed_intake_extraction,
+      clinician_accepted_note, confirmed_imported_record). Emitted by
+      intake_platform.overlay.store; an unconfirmed value has no provenance to
+      label with and no row to be counted in (CLAUDE.md invariant 12).
+  - name: overlay_facts_withdrawn_total
+    type: counter
+    labels: [action]
+    owner: learning
+    unit: "count"
+    description: >-
+      PatientOverlay facts a patient took back, by action (deleted, unshared).
+      files/09 §3 gives the patient both verbs over anything the system learned
+      about them; read against overlay_facts_confirmed_total it is how often
+      the learning loop got it wrong enough to be corrected.
   # --- INT-230: the research export gate. Same posture as the INT-171 pair
   # above and for the same reason — a refusal labelled with the study cohort,
   # the window or a dimension value would publish to Prometheus exactly what

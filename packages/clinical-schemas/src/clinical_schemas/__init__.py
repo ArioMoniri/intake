@@ -63,10 +63,15 @@ from clinical_schemas.observers import (
     ObserverState,
 )
 from clinical_schemas.overlay import (
+    CONFIRMING_ACTOR,
     RECONFIRM_AFTER,
+    Confirmation,
+    ConfirmingActor,
+    FactCandidate,
     LearnedFact,
     LearnedFactSource,
     PatientOverlay,
+    confirm,
     fact_needs_reconfirmation,
 )
 from clinical_schemas.proposal import (
@@ -103,6 +108,7 @@ from clinical_schemas.triage import (
 
 __all__ = [
     "ALLOWED_TARGET_PREFIXES",
+    "CONFIRMING_ACTOR",
     "EVENT_MODELS",
     "RECONFIRM_AFTER",
     "SCHEMA_NAMESPACE",
@@ -115,6 +121,8 @@ __all__ = [
     "CodeSystem",
     "ConsentChannel",
     "ConsentPurpose",
+    "Confirmation",
+    "ConfirmingActor",
     "ConsentScope",
     "Consideration",
     "CsatReason",
@@ -123,6 +131,7 @@ __all__ = [
     "EvidenceBundle",
     "EvidenceStats",
     "ExtractedRecordItem",
+    "FactCandidate",
     "FamilySocial",
     "FrozenModel",
     "Hpi",
@@ -172,6 +181,7 @@ __all__ = [
     "VerificationStatus",
     "WaitKind",
     "WaitV1",
+    "confirm",
     "fact_needs_reconfirmation",
     "schema_id",
 ]

@@ -8,6 +8,11 @@ dependencies = [
     "cryptography>=43.0",
     "fastapi>=0.115",
     "httpx>=0.27",
+    # Declared, not de facto: intake_platform.wait_times has imported the
+    # event schemas since INT-197 and intake_platform.db.models imports the
+    # closed LearnedFactSource vocabulary since INT-170. clinical-schemas
+    # depends on pydantic alone, so the edge is one-way and acyclic.
+    "intake-clinical-schemas",
     "minio>=7.2.9",
     "opentelemetry-api>=1.27",
     "opentelemetry-sdk>=1.27",

@@ -29,6 +29,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from clinical_schemas.overlay import LearnedFactSource
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -87,7 +88,9 @@ __all__ = [
     "KvkkRole",
     "NotificationPreference",
     "Note",
+    "OverlayFact",
     "Patient",
+    "PatientOverlayHeader",
     "SessionAttribution",
     "SessionStatus",
     "Share",
@@ -1270,3 +1273,188 @@ class CsatText(Base):
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_SATISFACTION)
+
+
+class PatientOverlayHeader(Base):
+    """INT-170 — the versioned header of one patient's ``PatientOverlay``.
+
+    files/09 §3 makes the overlay *"versioned, patient-owned, exported/
+    deletable"*. The version cannot be derived from the facts themselves: a
+    deletion is a mutation, and a version taken as ``max()`` over surviving
+    rows would go **backwards** when the patient removes the newest fact. So
+    the counter is a column, bumped by every mutation and by nothing else.
+
+    Version 1 is the empty overlay every patient starts with — the header row
+    appears on the first mutation, at version 2, so "no header" and "version 1"
+    are the same statement rather than two.
+    """
+
+    __tablename__ = "patient_overlays"
+    __table_args__ = (UniqueConstraint("tenant_id", "patient_id"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk("patient overlay header key", RET_RECORD)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_RECORD)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient who owns this overlay",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    version: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "overlay version — monotonic, one increment per mutation (files/09 §3: "
+            "the overlay is versioned)",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        info=inv(
+            CAT_OPERATIONAL,
+            "instant of the most recent overlay mutation",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+
+
+class OverlayFact(Base):
+    """INT-170 — one CONFIRMED learned fact (files/09 §3; invariant 12).
+
+    There is deliberately **no companion table for unconfirmed candidates**,
+    and the absence is the design rather than an omission. A nullable
+    ``source`` column — one table holding both forms — is exactly the runtime
+    check invariant 12 refuses to rely on; and persisting unconfirmed
+    proposals would be a new category of personal data, which CLAUDE.md makes
+    a stop-and-ask. A :class:`~clinical_schemas.overlay.FactCandidate` is
+    therefore held by the patient's own device until they confirm it, and only
+    the confirmation is written here (see docs/evidence/INT-170.md).
+
+    Shape notes:
+
+    - **The value is an envelope, always** (invariant 14: field-level envelope
+      encryption for *"transcripts/notes/learned facts"*). ``payload`` carries
+      EncryptedField JSON over ``{"value": …, "confidence": …}``; there is no
+      plaintext-value column to fall back to.
+    - **``fact_key`` is in the clear**, exactly as ``slots.slot_id`` is: a fact
+      key is an authored protocol reference (``oyku.belirti_var``), not
+      patient narrative — that is what makes delta mode able to match it
+      against a step id at all.
+    - **One row per key per patient.** Re-confirmation replaces it in place and
+      restarts the twelve-month clock; the history of a confirmation is the
+      hash-chained audit's business, not this table's.
+    - **A deletion removes the row**, with no tombstone: a tombstone that keeps
+      the key keeps the health fact the patient asked us to forget.
+    """
+
+    __tablename__ = "overlay_facts"
+    __table_args__ = (UniqueConstraint("tenant_id", "patient_id", "fact_key"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk("learned fact row key", RET_RECORD)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_RECORD)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient the fact was learned about",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    fact_key: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "authored protocol reference the fact answers (files/09 §3 fact key); "
+            "an id in the shape of slots.slot_id, never patient narrative",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the learned value and its confidence as EncryptedField JSON "
+            "(field-level envelope encryption; never plaintext at rest)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    source: Mapped[str] = mapped_column(
+        Enum(
+            LearnedFactSource,
+            name="learned_fact_source",
+            native_enum=False,
+            length=32,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "confirmed provenance (files/09 §3): the closed three-member vocabulary, "
+            "which has no unconfirmed value to store",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    source_ref: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "id of the confirming artefact — the 'where from' every fact must show "
+            "the patient (files/09 §3 guardrails)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    confirmed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "when the patient or clinician confirmed it; the twelve-month "
+            "re-confirmation window runs from here (files/09 §3)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    shared: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
+        info=inv(
+            CAT_CONSENT,
+            "per-field share scope (files/09 §3 guardrails): whether this fact may "
+            "travel with a shared note",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_RECORD)
