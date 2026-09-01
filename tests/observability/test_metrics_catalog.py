@@ -33,6 +33,7 @@ from typing import Any
 # test_live_entries_are_emitted_and_planned_entries_are_not, which points here.
 import intake_platform.chaos  # noqa: F401  (vendor_*/chaos_* resilience families, INT-024)
 import intake_platform.event_bus  # noqa: F401  (event_bus_* lag/retry/DLQ families)
+import intake_platform.overlay.store  # noqa: F401  (overlay_facts_* families, INT-170)
 import intake_platform.retention.engine  # noqa: F401  (retention_*_total)
 import intake_platform.uploads  # noqa: F401  (document_upload_pipeline_total)
 import intake_voice_runtime.metrics  # noqa: F401  (talker_/policyguard_/delivery_ families, INT-091)

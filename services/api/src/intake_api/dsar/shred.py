@@ -62,6 +62,8 @@ from intake_platform.db.models import (
     Event,
     IntakeSession,
     Note,
+    OverlayFact,
+    PatientOverlayHeader,
     Share,
     Slot,
     SlotSensitivity,
@@ -228,6 +230,25 @@ async def _erase_subject(
         slot.value = _shredded(dict(slot.value))
         flag_modified(slot, "value")
         shredded += 1
+    # INT-170: the Loop 1 learning store is part of the subject's record —
+    # files/09 §3 makes the overlay "patient-owned, exported/deletable", and an
+    # erasure that left a learned fact standing would leave behind exactly the
+    # health data the patient asked us to destroy. Queried here rather than
+    # added to SubjectRecord because the export's FHIR mapping has no resource
+    # for a learned fact yet (INT-037 owns that shape); erasure needs no shape.
+    overlay_facts = tuple(
+        (
+            await session.scalars(
+                select(OverlayFact).where(
+                    OverlayFact.tenant_id == tenant_id, OverlayFact.patient_id == patient_id
+                )
+            )
+        ).all()
+    )
+    for fact in overlay_facts:
+        fact.payload = _shredded(dict(fact.payload))
+        flag_modified(fact, "payload")
+        shredded += 1
     await session.flush()
 
     session_ids = [row.id for row in record.sessions]
@@ -251,6 +272,19 @@ async def _erase_subject(
     )
     removed += await _delete(
         session, delete(Note).where(Note.tenant_id == tenant_id, Note.patient_id == patient_id)
+    )
+    removed += await _delete(
+        session,
+        delete(OverlayFact).where(
+            OverlayFact.tenant_id == tenant_id, OverlayFact.patient_id == patient_id
+        ),
+    )
+    removed += await _delete(
+        session,
+        delete(PatientOverlayHeader).where(
+            PatientOverlayHeader.tenant_id == tenant_id,
+            PatientOverlayHeader.patient_id == patient_id,
+        ),
     )
     if session_ids:
         removed += await _delete(
