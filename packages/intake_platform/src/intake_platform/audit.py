@@ -40,6 +40,7 @@ __all__ = [
     "AuditStore",
     "InMemoryAuditStore",
     "VerificationResult",
+    "build_worm_bundle",
     "run_daily_verifier",
     "verify_entries",
     "verify_worm_export",
@@ -194,24 +195,30 @@ class AuditChain:
         return verify_entries(self._store.entries(), expected_head=self._head)
 
     def export_worm(self) -> bytes:
-        """A self-verifying JSON-lines bundle: every entry in canonical form,
-        then one head record carrying the running head and the count. The
-        bundle needs no store to check — that independence is what makes the
-        object-lock (WORM) copy auditable on its own; the MinIO upload itself
-        is the integration slice."""
-        entries = self._store.entries()
-        lines = [
-            json.dumps(asdict(entry), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-            for entry in entries
-        ]
-        head_record: dict[str, int | str] = {
-            "chain_head": self._head,
-            "entry_count": len(entries),
-            "hash_algorithm": "sha256",
-            "record_type": _HEAD_RECORD_TYPE,
-        }
-        lines.append(json.dumps(head_record, sort_keys=True, separators=(",", ":")))
-        return ("\n".join(lines) + "\n").encode("utf-8")
+        """The writer's view of :func:`build_worm_bundle`: this chain's
+        entries under this chain's running head."""
+        return build_worm_bundle(self._store.entries(), self._head)
+
+
+def build_worm_bundle(entries: Sequence[AuditEntry], head: str) -> bytes:
+    """A self-verifying JSON-lines bundle: every entry in canonical form, then
+    one head record carrying ``head`` and the count. The bundle needs no store
+    to check — that independence is what makes the object-lock (WORM) copy
+    auditable on its own, and it is why this is a free function rather than a
+    method: the daily verifier builds the copy while holding no writer, and
+    therefore no INSERT capability on the chain (files/10 §2)."""
+    lines = [
+        json.dumps(asdict(entry), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        for entry in entries
+    ]
+    head_record: dict[str, int | str] = {
+        "chain_head": head,
+        "entry_count": len(entries),
+        "hash_algorithm": "sha256",
+        "record_type": _HEAD_RECORD_TYPE,
+    }
+    lines.append(json.dumps(head_record, sort_keys=True, separators=(",", ":")))
+    return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 def verify_entries(
