@@ -2822,7 +2822,7 @@
   - risk:clinical
   - approval:human-clinical
   sec_row: protocol-registry
-  status: todo
+  status: done
   acceptance:
   - 'after INT-254 the blueprint life-threat document still fails to load with 13
     errors, pinned by `test_the_blueprint_residue_is_enumerated_and_still_refused`.
