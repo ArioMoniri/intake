@@ -999,8 +999,13 @@ metrics:
     labels: []
     owner: security
     unit: "bool (0/1)"
-    status: planned
-    description: Daily audit hash-chain verification (1 = intact).
+    description: >-
+      Daily audit hash-chain verification (1 = intact). Emitted by
+      intake_platform.audit_verifier.job.run_daily_verification (INT-016).
+      1 means the chain verified against the EXTERNALLY ANCHORED head
+      (files/10 §2 (b)); a run with no anchor sets 0, because a chain that
+      merely agrees with itself survives both a truncation and a full
+      re-forge, and reporting 1 there would be a pass by omission.
   - name: sec_image_signature_failures
     id: sec.image_signature_failures
     type: counter

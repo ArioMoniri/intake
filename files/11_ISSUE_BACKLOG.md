@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**212 issues.** By phase: P0 122 · P1 48 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 88 · todo 113 · withdrawn 1.
+**212 issues.** By phase: P0 122 · P1 48 · P2 37 · P3 5. By status: awaiting-human 3 · doing 6 · done 89 · todo 113 · withdrawn 1.
 
 ## P0
 
@@ -21,7 +21,7 @@
 | INT-013 | Tokenization service + identity vault (TCKN/phone never in clear) | E01-platform | INT-012, INT-017 | area:security, risk:security | done |
 | INT-014 | Envelope encryption (OpenBao Transit) + rotation + crypto-shredding | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | done |
-| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | doing |
+| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | done |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | doing |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | doing |
