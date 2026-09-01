@@ -34,11 +34,13 @@ from protocols.compile.emit_code import model_name, pydantic_module, typescript_
 from protocols.compile.emit_fhir import VALUESET_CANONICAL_PREFIX, questionnaire
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import (
+    PENDING_WORK_KEY,
     SIGNOFF_FIELDS,
     AgeBand,
     ClinicalSignoff,
     ExcludedCriterion,
     GoldenCase,
+    GoldenIndexEntry,
     LifeThreatRule,
     LifeThreatSet,
     LifeThreatSetError,
@@ -75,6 +77,7 @@ __all__ = [
     "DOSE_FORM_CHIPS",
     "DRUG_ORTHOGRAPHY",
     "MONOTONICITY_FINDINGS",
+    "PENDING_WORK_KEY",
     "SIGNOFF_FIELDS",
     "TR_UNITS",
     "VALUESET_CANONICAL_PREFIX",
@@ -86,6 +89,7 @@ __all__ = [
     "ExcludedCriterion",
     "Expansion",
     "GoldenCase",
+    "GoldenIndexEntry",
     "LifeThreatRule",
     "LifeThreatSet",
     "LifeThreatSetError",
