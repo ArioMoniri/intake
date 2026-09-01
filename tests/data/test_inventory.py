@@ -36,6 +36,11 @@ EXPECTED_TABLES = {
     "csat_texts",
     # INT-141 — notification opt-out and quiet hours
     "notification_preferences",
+    # INT-170 — the Loop 1 learning store: the overlay version header and the
+    # patient's CONFIRMED learned facts. There is no third table: an
+    # unconfirmed candidate has nowhere to be written (invariant 12).
+    "patient_overlays",
+    "overlay_facts",
 }
 
 
