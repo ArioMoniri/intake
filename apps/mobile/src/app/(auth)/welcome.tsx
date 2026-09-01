@@ -6,7 +6,7 @@
  * via __DEV__ and renders as quiet pills so the one saturated CTA stays
  * the real sign-in (02 §5.2).
  *
- * INT-264: the screen SCROLLS. It used to centre its column in a `flex: 1`
+ * INT-284: the screen SCROLLS. It used to centre its column in a `flex: 1`
  * box, which is fine until the column outgrows the box — flexbox centring does
  * not clip, it pushes the overflow out of BOTH ends, past the safe-area inset
  * the Screen just applied. At the largest text step INT-260 can now reach, the

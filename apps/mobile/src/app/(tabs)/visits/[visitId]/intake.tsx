@@ -219,7 +219,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       ? (initialAnswer?.values.join(" ") ?? initialPrefill?.values.join(" ") ?? "")
       : "",
   );
-  // The glass bar reports its own height (INT-264): the CTA label wraps at
+  // The glass bar reports its own height (INT-284): the CTA label wraps at
   // the large text steps, so the room reserved for it cannot be a constant —
   // it was 128 against a bar that measures 136 at 2.0, and the last option
   // chip was clipped by the bar with nowhere left to scroll.

@@ -28,14 +28,16 @@ try {
 }
 
 /**
- * Scroll-content bottom padding that keeps the last row reachable (INT-264).
+ * Scroll-content bottom padding that keeps the last row reachable (INT-284).
  *
  * `height` is what the bar reported through `onHeight`, or `null` until it has
- * laid out. Before INT-264 this was a constant `128` and the bar was free to
- * grow past it: at the largest text step it measures 136 on an iPhone 16 Pro,
- * and the last option chip was clipped by the bar with nowhere left to scroll.
- * The arithmetic lives in lib/prefs/appearance.ts beside `railWellSize`, where
- * the node suite can hold it.
+ * laid out. Before INT-284 this was a constant `128` and the bar was free to
+ * grow past it. Measured on an iPhone 16 Pro at the largest text step: 131
+ * with a one-line CTA, and about 178 on the review screen, where
+ * "Hekiminize gönderin" wraps — so the note's provenance line sat under the
+ * glass with nowhere left to scroll. The arithmetic lives in
+ * lib/prefs/appearance.ts beside `railWellSize`, where the node suite can
+ * hold it.
  */
 export function useGlassBarClearance(height: number | null): number {
   const insets = useSafeAreaInsets();

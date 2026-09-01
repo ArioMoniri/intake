@@ -144,7 +144,12 @@ export default function OtpEntry() {
   const complete = isCompleteOtp(digits);
 
   return (
-    <Screen edges={["left", "right"]}>
+    <Screen edges={["left", "right", "bottom"]}>
+      {/* INT-284: the bottom safe edge is DROPPED only where something else
+          owns that zone — the floating tab rail, or a glass bar. This flow has
+          neither, and at the largest text step it is long enough to reach the
+          physical bottom, so the last control was left under the home
+          indicator. */}
       <Stack.Screen options={headerOptions(t("auth.otp.title"))} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <AppText role="body" color="inkSoft">

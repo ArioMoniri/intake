@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: "center",
     // Touch target ≥48dp (02 §8.2); 56 with a body-size semibold label is
-    // the Oura CTA register (design pass 4). INT-264 moved the number to
+    // the Oura CTA register (design pass 4). INT-284 moved the number to
     // lib/prefs/appearance.ts, because the glass bar's clearance has to
     // predict this height and a second copy of it would drift.
     minHeight: CTA_MIN_HEIGHT,

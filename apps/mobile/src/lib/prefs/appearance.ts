@@ -138,7 +138,7 @@ export function railWellSize(effectiveScale: number, minimum: number): number {
 /**
  * The focal CTA's height floor at scale 1.0 — `primaryButton` in
  * components/Themed.tsx, declared HERE so the bar's height and the scroll room
- * reserved for it read the same number from the same place (INT-264).
+ * reserved for it read the same number from the same place (INT-284).
  */
 export const CTA_MIN_HEIGHT = 56;
 
@@ -162,13 +162,15 @@ export function glassBarFloor(effectiveScale: number, insetBottom: number): numb
 }
 
 /**
- * Scroll-content bottom padding under the glass bar (INT-264).
+ * Scroll-content bottom padding under the glass bar (INT-284).
  *
  * The defect this replaces is the one INT-260 fixed for the tab rail and did
  * not reach here: `GLASS_BAR_CLEARANCE` was the constant `128`, sized when a
  * body line was 17 pt, and `DIALOGUE_BAR_CLEARANCE` was that plus a guessed
- * `176`. At the largest step the bar measures 136 on an iPhone 16 Pro and the
- * last option chip is clipped by chrome with nowhere left to scroll — a
+ * `176`. Measured on an iPhone 16 Pro at the largest step, the bar is 131 with
+ * a one-line CTA and about 178 on the review screen, where the CTA label
+ * wraps — and there the note's provenance line (`Bu not hasta beyanına
+ * dayanır; tanı içermez.`) sat under the glass at the end of the scroll. A
  * reserved number and a rendered number, free to drift.
  *
  * `measured` comes from the bar's own `onLayout`, which is the only thing that

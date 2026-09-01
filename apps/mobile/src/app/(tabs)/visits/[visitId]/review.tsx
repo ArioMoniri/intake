@@ -62,7 +62,7 @@ function ReviewAndSend() {
   const router = useRouter();
   const theme = useTheme();
   const headerOptions = useStackHeader();
-  // The bar reports its own height (INT-264); until it has, the clearance
+  // The bar reports its own height (INT-284); until it has, the clearance
   // falls back to the one-CTA floor. Declared above every early return —
   // hooks may not be conditional.
   const [barHeight, setBarHeight] = useState<number | null>(null);
@@ -126,10 +126,7 @@ function ReviewAndSend() {
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
         <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            sent ? null : { paddingBottom: barClearance },
-          ]}
+          contentContainerStyle={[styles.content, sent ? null : { paddingBottom: barClearance }]}
         >
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one
@@ -335,8 +332,20 @@ const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  actionRow: { flexDirection: "row", gap: spacing.xs, alignItems: "center" },
+  // INT-284: the eyebrow and the scope chips are the card's two ends, and RN
+  // flex children do not shrink by default — so at the largest text step the
+  // chips were pushed off the right edge, where "Paylaşılıyor" was clipped and
+  // "Düzenleyin" could not be tapped at all. Wrapping drops the chips onto
+  // their own line instead; at every smaller step the row is unchanged,
+  // because there is nothing to wrap.
+  sectionHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, alignItems: "center" },
   scopeChip: {
     borderRadius: radius.chip,
     paddingHorizontal: spacing.sm + 2,
