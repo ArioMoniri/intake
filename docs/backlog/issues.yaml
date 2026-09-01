@@ -926,7 +926,8 @@
   title: "Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent"
   depends_on: [INT-081, INT-035]
   labels: [area:voice]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-092.md
   acceptance:
     - "one Work in flight per session; results {inline,speech_tr,priority}; duplicates impossible (test)"
   tests: [tests/voice/test_work_queue.py]

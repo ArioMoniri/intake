@@ -1,4 +1,4 @@
-"""The three families this service emits (CLAUDE.md invariant 13).
+"""The families this service emits (CLAUDE.md invariant 13).
 
 Every one is already catalogued in ``observability/metrics_catalog.yaml`` from
 files/08 §4 — this module flips them from `planned` to emitted, and the
@@ -12,12 +12,15 @@ violation class, a profile. No session id, no transcript, no free text.
 
 from __future__ import annotations
 
-from prometheus_client import Counter, Histogram, disable_created_metrics
+from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 __all__ = [
     "DELIVERY_INSERTION_WAIT_MS",
     "POLICYGUARD_BLOCKS_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
+    "WORK_FAILED_TOTAL",
+    "WORK_LATENCY_MS",
+    "WORK_QUEUE_DEPTH",
 ]
 
 # The client's `_created` companion series would sit next to every counter
@@ -43,4 +46,32 @@ DELIVERY_INSERTION_WAIT_MS = Histogram(
     "delivery_insertion_wait_ms",
     "Wait until a safe insertion window delivered Backend speech, in milliseconds.",
     buckets=(100.0, 300.0, 1_000.0, 2_000.0, 5_000.0, 20_000.0, 45_000.0, 90_000.0, float("inf")),
+)
+
+# --- Layer B, the Work queue (INT-092) ------------------------------------------
+#
+# files/08 §4 C. The only label any of the three carries is ``type``, whose
+# domain is the closed ``WorkType`` enumeration — no session id, no step text,
+# no transcript (invariant 6). The queue itself holds ``input_hash`` rather
+# than a transcript, so there is no patient text here to redact.
+
+WORK_QUEUE_DEPTH = Gauge(
+    "work_queue_depth",
+    "Backend Work queued (not running) by work type.",
+    ["type"],
+)
+
+#: files/08 §4 targets extract_slots p50 < 3 s. Buckets bracket that target and
+#: the files/03 §4.3 note that Backend Work carries no spoken-loop constraint.
+WORK_LATENCY_MS = Histogram(
+    "work_latency_ms",
+    "Backend Work execution time by work type, in milliseconds.",
+    ["type"],
+    buckets=(10.0, 50.0, 250.0, 1_000.0, 3_000.0, 10_000.0, 30_000.0, float("inf")),
+)
+
+WORK_FAILED_TOTAL = Counter(
+    "work_failed_total",
+    "Backend Work that ended in the failed state, by work type.",
+    ["type"],
 )
