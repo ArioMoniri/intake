@@ -581,10 +581,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   outputs, six non-clinical Talker tools, deterministic triage, PolicyGuard, no cross-patient
   context, output validated and never rendered as HTML, per-session budgets and circuit
   breakers.
-- **Signals:** `security.injection_suspected` events (§5), PolicyGuard spikes, budget
-  exhaustion (§7) — land with INT-083, INT-101, INT-102.
-- **Tests:** adversarial suite RT-09…14 in `make safety` plus the nightly red-team job land
-  with INT-102; schema-validation tests with INT-083.
+- **Signals:** `security.injection_suspected` (§5) is **live** — INT-083 emits
+  `sec_injection_suspected_total` from `intake_voice_runtime.extraction.boundary` when a
+  transcript carries the data-block control marker, and `injection_event()` builds the
+  `SecurityV1` row (ids and closed enumerations only; the refused string is never
+  recorded). PolicyGuard spikes and budget exhaustion (§7) land with INT-101, INT-102.
+- **Tests:** schema-validation tests landed with INT-083 —
+  `tests/ai/test_extraction_contract.py`, which pins the four structural facts this row
+  turns on: the instruction region takes no transcript parameter, the transcript travels
+  delimited in its own message role, the output schema has no property a triage level
+  could occupy, and `ExtractionResult` has no `level` field at all (invariant 1 as a
+  `TypeError` at the call site rather than a check). A planted Turkish injection —
+  INT-175's symptom sentence with an instruction welded onto it — is refused without the
+  refusal echoing a fragment of it. The adversarial suite RT-09…14 in `make safety` plus
+  the nightly red-team job still land with INT-102.
 
 ## `cloud-boundary` — what may leave, and in what form
 

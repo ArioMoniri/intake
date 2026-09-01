@@ -983,8 +983,16 @@ metrics:
     labels: []
     owner: security
     unit: "count"
-    status: planned
-    description: Suspected prompt-injection attempts.
+    status: live
+    description: >-
+      Suspected prompt-injection attempts (files/10 §5 LLM01; files/10 §9 row
+      llm-boundary, whose signals line names INT-083). Emitted by
+      intake_voice_runtime.extraction.boundary when a transcript carries the
+      data-block control marker and is therefore refused rather than escaped.
+      Deliberately unlabelled and value-free: the refused string is exactly
+      what must not reach a metric, a log or an exception message (invariant
+      6), so the counter records that a refusal happened and nothing about
+      what it refused.
   - name: sec_policyguard_spike
     id: sec.policyguard_spike
     type: gauge

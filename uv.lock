@@ -1053,6 +1053,7 @@ version = "0.1.0"
 source = { editable = "services/voice-runtime" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "intake-clinical-schemas" },
     { name = "intake-platform" },
     { name = "intake-protocols" },
@@ -1063,6 +1064,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
     { name = "intake-platform", editable = "packages/intake_platform" },
     { name = "intake-protocols", editable = "packages/protocols" },
