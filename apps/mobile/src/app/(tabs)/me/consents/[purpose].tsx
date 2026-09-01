@@ -19,7 +19,7 @@ import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SymbolView } from "expo-symbols";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -49,6 +49,8 @@ export default function ConsentDetail() {
   const params = useLocalSearchParams<{ purpose?: string }>();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // Hoisted above the early return: hooks run in the same order every render.
+  const tabBarClearance = useTabBarClearance();
 
   useEffect(() => {
     if (account !== null) {
@@ -82,7 +84,7 @@ export default function ConsentDetail() {
 
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("me.consents")}
@@ -167,7 +169,7 @@ export default function ConsentDetail() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.md },
   backRow: {
     flexDirection: "row",
     alignItems: "center",

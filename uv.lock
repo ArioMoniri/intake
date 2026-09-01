@@ -15,6 +15,7 @@ members = [
     "intake",
     "intake-api",
     "intake-clinical-schemas",
+    "intake-learning",
     "intake-metrics",
     "intake-platform",
     "intake-probes",
@@ -790,6 +791,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "intake-api" },
     { name = "intake-clinical-schemas" },
+    { name = "intake-learning" },
     { name = "intake-metrics" },
     { name = "intake-platform", extra = ["ner"] },
     { name = "intake-probes" },
@@ -819,6 +821,7 @@ dev = [
 requires-dist = [
     { name = "intake-api", editable = "services/api" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-learning", editable = "services/learning" },
     { name = "intake-metrics", editable = "services/metrics" },
     { name = "intake-platform", extras = ["ner"], editable = "packages/intake_platform" },
     { name = "intake-probes", editable = "services/probes" },
@@ -881,6 +884,23 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2.8" }]
+
+[[package]]
+name = "intake-learning"
+version = "0.1.0"
+source = { editable = "services/learning" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "intake-platform" },
+    { name = "prometheus-client" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "prometheus-client", specifier = ">=0.20" },
+]
 
 [[package]]
 name = "intake-metrics"
@@ -1031,6 +1051,7 @@ version = "0.1.0"
 source = { editable = "services/voice-runtime" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "intake-clinical-schemas" },
     { name = "intake-platform" },
     { name = "intake-protocols" },
@@ -1041,6 +1062,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
     { name = "intake-platform", editable = "packages/intake_platform" },
     { name = "intake-protocols", editable = "packages/protocols" },

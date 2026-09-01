@@ -11,7 +11,7 @@ from __future__ import annotations
 import socket
 import ssl
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,6 +19,7 @@ from typing import Protocol
 
 import httpx
 from cryptography import x509
+from intake_platform.ci import RunnerPools, evaluate_heartbeats
 
 __all__ = [
     "Failed",
@@ -35,6 +36,7 @@ __all__ = [
     "openbao_seal_status",
     "postgres_select1",
     "redis_ping",
+    "runner_heartbeat",
     "tcp_connect",
 ]
 
@@ -216,3 +218,25 @@ def livekit_room_join() -> Outcome:
     Skipped status — visible in every probe sweep, never counted healthy.
     """
     return Skipped(reason="livekit lands with INT-090")
+
+
+# --- ci -------------------------------------------------------------------------------
+
+
+def runner_heartbeat(
+    pools: RunnerPools, seen: Mapping[str, float], now: float | None = None
+) -> Outcome:
+    """The self-hosting registry's CI probe (files/08 §6: "runner heartbeat").
+
+    `seen` maps a pool label to the epoch time of its last heartbeat; the
+    caller owns how it collected them, which keeps this decision testable with
+    a fake clock. With no pool declared the outcome is Skipped and names
+    HB-I7 — an empty set reported healthy is how a monitor tells you a service
+    is fine when it does not exist.
+    """
+    report = evaluate_heartbeats(pools, seen, time.time() if now is None else now)
+    if not report.checked:
+        return Skipped(reason=report.detail)
+    if report.healthy:
+        return Ok(report.detail)
+    return Failed(report.detail)

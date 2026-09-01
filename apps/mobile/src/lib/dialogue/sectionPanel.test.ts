@@ -42,6 +42,7 @@ function idle(overrides: Partial<DialogueStreamState> = {}): DialogueStreamState
     inflight: [],
     seq: {},
     stream: [],
+    voiceMuted: false,
     ...overrides,
   };
 }
@@ -51,6 +52,8 @@ describe("sectionLabelKey — pack-driven labels, buildNote's mapping", () => {
     expect(cardio.map(sectionLabelKey)).toEqual([
       "review.section.cc", // complaint — chief complaint section
       "review.hpi.duration",
+      "intake.hpi.onsetTodayWhen",
+      "intake.hpi.durationCourse",
       "intake.hpi.onset",
       "intake.hpi.character",
       "intake.hpi.radiation",

@@ -5,7 +5,7 @@
 import { Link, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { statusLabelKey } from "@/components/StatusChip";
 import { AppText, Card, RAIL_EDGES, Screen, SecondaryButton } from "@/components/Themed";
@@ -41,7 +41,7 @@ export default function Visits() {
     );
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("visits.title")}
         </AppText>
@@ -100,7 +100,7 @@ export default function Visits() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.xl },
   heroLine: { marginTop: spacing.xl },
   section: { gap: spacing.md },
   // The card inside is far taller than the floor; declaring it keeps the

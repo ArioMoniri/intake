@@ -34,15 +34,24 @@ from protocols.compile.emit_code import model_name, pydantic_module, typescript_
 from protocols.compile.emit_fhir import VALUESET_CANONICAL_PREFIX, questionnaire
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import (
+    PENDING_WORK_KEY,
     SIGNOFF_FIELDS,
     AgeBand,
     ClinicalSignoff,
     ExcludedCriterion,
     GoldenCase,
+    GoldenIndexEntry,
     LifeThreatRule,
     LifeThreatSet,
     LifeThreatSetError,
     load_life_threat_set,
+)
+from protocols.compile.overlay import (
+    MONOTONICITY_FINDINGS,
+    OverlayComposition,
+    OverlaySelection,
+    activate_overlays,
+    compose_overlay_rules,
 )
 from protocols.compile.resolve import (
     ResolvedProtocol,
@@ -67,6 +76,8 @@ __all__ = [
     "DIST_ROOT",
     "DOSE_FORM_CHIPS",
     "DRUG_ORTHOGRAPHY",
+    "MONOTONICITY_FINDINGS",
+    "PENDING_WORK_KEY",
     "SIGNOFF_FIELDS",
     "TR_UNITS",
     "VALUESET_CANONICAL_PREFIX",
@@ -78,9 +89,12 @@ __all__ = [
     "ExcludedCriterion",
     "Expansion",
     "GoldenCase",
+    "GoldenIndexEntry",
     "LifeThreatRule",
     "LifeThreatSet",
     "LifeThreatSetError",
+    "OverlayComposition",
+    "OverlaySelection",
     "Refusal",
     "RefusalCode",
     "Replacement",
@@ -88,9 +102,11 @@ __all__ = [
     "ResolvedSection",
     "ResolvedSlot",
     "TrExpansionError",
+    "activate_overlays",
     "assert_round_trip",
     "clip_manifest",
     "compile_bundle",
+    "compose_overlay_rules",
     "expand_tr",
     "load_life_threat_set",
     "model_name",
