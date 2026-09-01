@@ -60,12 +60,41 @@
  * concluded from them. The guideline-grounded, department-specific content
  * is INT-043 → INT-044..051 and is awaiting a physician (HB-C1). What was
  * deliberately NOT authored is listed in docs/evidence/INT-256.md.
+ *
+ * INT-282 adds two things on the same terms.
+ *
+ * (a) The BASE LAYER from the owner's HBYS intake schema lives in
+ * ./baseLayer and is composed here by `packForVisit`, after the history
+ * block, exactly as that block is composed after the department dimensions.
+ * That file also records the split the schema is FOR: what a patient can
+ * answer, and what only a clinician or a lab can supply and is therefore
+ * never asked at all.
+ *
+ * (b) DEPTH. Two follow-ups now hang off `duration` — "when today" and "how
+ * has it gone since" — so the flow after an answer is a DIFFERENT flow and
+ * not merely a longer one, and the level-two department follow-ups declare
+ * `modes: ["detayli"]`, which makes 02 §2's mode filter the depth lever:
+ * Hızlı asks one level of follow-up, Detaylı asks two. Both are structural
+ * exactly as the rule above requires — a clock and a course, never a
+ * clinical significance.
  */
 import type { MessageKey } from "../i18n";
+import { baseLayerQuestions, measurementQuestions } from "./baseLayer";
 
 export interface IntakeOption {
   id: string;
   labelKey: MessageKey;
+  /**
+   * INT-282, invariant 22. The ON-SCREEN numeral for an option whose value
+   * IS a number — the pain score's `3`. `labelKey` stays the Turkish word
+   * (`Üç`), so no numeral ever enters the message catalogue and therefore
+   * none can reach a TTS path; the numeral exists only as this inline
+   * render. Render and label are fields of the SAME object, which is what
+   * makes invariant 22's *"a matching `inline` render on the same
+   * `work_id`"* true by construction — the same argument
+   * `talker/preemption.py` makes for the spoken side.
+   */
+  inline?: string;
 }
 
 /**
@@ -132,9 +161,45 @@ export interface IntakeProfile {
   deferred?: readonly string[];
 }
 
+/**
+ * How a step may be delivered (files/13 §13, INT-282). `voice` is the
+ * default and is left implicit. `text_first` is that section's own word for
+ * substance use, sexual and reproductive history and pregnancy/LMP.
+ * `text_only` means TEXT ONLY — *"no clip, no `speech_tr`, ever"* — which
+ * files/13 §9.5 makes a build-time guarantee rather than a runtime hope.
+ *
+ * INT-282 uses it for one further class the blueprint did not have to name:
+ * a step whose ANSWER is a number. Invariant 22 forbids a numeral reaching
+ * any TTS model, so a numeral-bearing step is `text_only` and `spokenPack`
+ * drops it — the guarantee is structural, not a formatting convention.
+ */
+export type Delivery = "voice" | "text_first" | "text_only";
+
+/**
+ * A guarded numeric control (INT-282, invariant 22 *"no free numeric text
+ * entry on the clinical critical path"*). The patient moves a stepper
+ * between authored bounds; there is no keyboard and no parser.
+ *
+ * `min`, `max`, `start` and the two step sizes are CONTROL BOUNDS, not
+ * clinical limits: nothing reads them, nothing outside them is "abnormal",
+ * and no threshold is expressed by them. A clinical bound would need the
+ * physician of record (HB-C1).
+ */
+export interface Measure {
+  /** The unit, as its own message key — `number + unit` is one atom. */
+  unitKey: MessageKey;
+  min: number;
+  max: number;
+  /** Where the control opens. Never committed until the patient moves it. */
+  start: number;
+  step: number;
+  /** The coarse step, so a value far from `start` is not fifty taps away. */
+  coarseStep: number;
+}
+
 export interface IntakeQuestion {
   id: string;
-  kind: "chips" | "single" | "text";
+  kind: "chips" | "single" | "text" | "measure";
   titleKey: MessageKey;
   hintKey?: MessageKey;
   /** Short label used for this answer's line in the HPI section. */
@@ -157,6 +222,10 @@ export interface IntakeQuestion {
   modes?: readonly IntakeMode[];
   /** Deferral unit this question belongs to (02 §33); absent = never deferred. */
   deferrableAs?: DeferralId;
+  /** files/13 §13 delivery class; absent = `voice`, the default. */
+  delivery?: Delivery;
+  /** The guarded numeric control; set iff `kind` is `measure`. */
+  measure?: Measure;
 }
 
 /** The slice of an answer the gate evaluator needs (note.ts Answer fits). */
@@ -194,6 +263,47 @@ const duration: IntakeQuestion = {
     { id: "days", labelKey: "intake.opt.days" },
     { id: "week", labelKey: "intake.opt.week" },
     { id: "month", labelKey: "intake.opt.month" },
+  ],
+};
+
+/**
+ * INT-282, the owner's second example: *"a duration of 'months' branches
+ * differently from 'today'"*. Two follow-ups on the SAME earlier answer,
+ * mutually exclusive by their gates, so the flow after `duration` is
+ * genuinely a different flow — not a longer one.
+ *
+ * Both are structural. "When today did it start" is a clock question; "how
+ * has it gone since" is the patient's own account of change over time, the
+ * same dimension `neuro_course` and `derm_course` already ask. Neither
+ * grades anything and neither is read to produce another answer.
+ */
+const onsetTodayWhen: IntakeQuestion = {
+  id: "onset_today_when",
+  kind: "single",
+  titleKey: "intake.q.onsetTodayWhen",
+  hpiLabelKey: "intake.hpi.onsetTodayWhen",
+  askIf: { questionId: "duration", includesAny: ["today"] },
+  options: [
+    { id: "morning", labelKey: "intake.opt.startedMorning" },
+    { id: "afternoon", labelKey: "intake.opt.startedAfternoon" },
+    { id: "evening", labelKey: "intake.opt.startedEvening" },
+    { id: "night", labelKey: "intake.opt.startedNight" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const durationCourse: IntakeQuestion = {
+  id: "duration_course",
+  kind: "single",
+  titleKey: "intake.q.durationCourse",
+  hpiLabelKey: "intake.hpi.durationCourse",
+  askIf: { questionId: "duration", includesAny: ["week", "month"] },
+  options: [
+    { id: "same", labelKey: "intake.opt.courseSame" },
+    { id: "increasing", labelKey: "intake.opt.courseIncreasing" },
+    { id: "decreasing", labelKey: "intake.opt.courseDecreasing" },
+    { id: "comes_goes", labelKey: "intake.opt.courseComesGoes" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
   ],
 };
 
@@ -273,6 +383,7 @@ const breathTiming: IntakeQuestion = {
 
 const breathLying: IntakeQuestion = {
   id: "breath_lying",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.breathLying",
   hpiLabelKey: "intake.hpi.breathLying",
@@ -338,6 +449,7 @@ const radiation: IntakeQuestion = {
 
 const radiationSide: IntakeQuestion = {
   id: "radiation_side",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.radiationSide",
   hpiLabelKey: "intake.hpi.radiationSide",
@@ -398,6 +510,8 @@ const cardioPalpitation: IntakeQuestion = {
 const cardioInternal: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   painCharacter,
   radiation,
@@ -430,6 +544,7 @@ const neuroHeadSide: IntakeQuestion = {
 
 const neuroHeadSame: IntakeQuestion = {
   id: "neuro_head_same",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.headSameSide",
   hpiLabelKey: "intake.hpi.headSameSide",
@@ -522,6 +637,8 @@ const neuroNumbWhere: IntakeQuestion = {
 const neuro: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   neuroHeadSide,
   neuroHeadSame,
@@ -553,6 +670,7 @@ const entPainWhere: IntakeQuestion = {
 
 const entSwallow: IntakeQuestion = {
   id: "ent_swallow",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.swallow",
   hpiLabelKey: "intake.hpi.swallow",
@@ -615,6 +733,8 @@ const entHearSide: IntakeQuestion = {
 const ent: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   entPainWhere,
   entSwallow,
@@ -689,6 +809,7 @@ const orthoSpread: IntakeQuestion = {
 
 const orthoSpreadFeel: IntakeQuestion = {
   id: "ortho_spread_feel",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.spreadFeel",
   hpiLabelKey: "intake.hpi.spreadFeel",
@@ -734,6 +855,8 @@ const orthoAssoc: IntakeQuestion = {
 const ortho: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   orthoMechanism,
   orthoFallHow,
   orthoRegion,
@@ -798,6 +921,7 @@ const dermItchWhen: IntakeQuestion = {
 
 const dermItchSleep: IntakeQuestion = {
   id: "derm_itch_sleep",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.itchSleep",
   hpiLabelKey: "intake.hpi.itchSleep",
@@ -868,6 +992,8 @@ const dermFeverOrder: IntakeQuestion = {
 const derm: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   dermLocation,
   dermCharacter,
   dermItchWhen,
@@ -928,6 +1054,8 @@ const pulmoAssoc: IntakeQuestion = {
 const pulmo: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   pulmoCharacter,
   breathTiming,
@@ -988,6 +1116,8 @@ const gynAssoc: IntakeQuestion = {
 const gyn: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   gynPainWhere,
   painCharacter,
@@ -1047,6 +1177,8 @@ const uroFlankSide: IntakeQuestion = {
 const uro: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   uroUrination,
   timeOfDay,
@@ -1136,6 +1268,8 @@ const eyeHeadacheLink: IntakeQuestion = {
 const eye: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   side,
   eyeCharacter,
@@ -1212,6 +1346,7 @@ const gastroBowel: IntakeQuestion = {
 
 const gastroBowelRelief: IntakeQuestion = {
   id: "gastro_bowel_relief",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.bowelRelief",
   hpiLabelKey: "intake.hpi.bowelRelief",
@@ -1247,6 +1382,8 @@ const gastroAssoc: IntakeQuestion = {
 const gastro: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   gastroLocation,
   gastroCharacter,
   gastroMeal,
@@ -1433,9 +1570,17 @@ const pmhConditions: IntakeQuestion = {
   // ("chronic-disease deltas (DM, HTN, COPD/asthma, CKD, thyroid)") — the
   // blueprint's own list, not a clinical selection made here. Anything the
   // list does not name reaches the note through the free-text step below.
+  // INT-282 adds the three the owner's HBYS schema names and 04 §2.1 does
+  // not — kalp-damar hastalıkları, kanser, kan hastalıkları — so the
+  // checklist covers the schema's seven `Kronik` rows (442–447 + 20110)
+  // without asking the patient about diabetes twice. Neither list is
+  // ordered by anything and no row is read to mean anything.
   options: [
     { id: "diabetes", labelKey: "intake.opt.pmhDiabetes" },
     { id: "blood_pressure", labelKey: "intake.opt.pmhBloodPressure" },
+    { id: "heart", labelKey: "intake.opt.pmhHeart" },
+    { id: "cancer", labelKey: "intake.opt.pmhCancer" },
+    { id: "blood", labelKey: "intake.opt.pmhBlood" },
     { id: "asthma_copd", labelKey: "intake.opt.pmhAsthmaCopd" },
     { id: "kidney", labelKey: "intake.opt.pmhKidney" },
     { id: "thyroid", labelKey: "intake.opt.pmhThyroid" },
@@ -1547,7 +1692,8 @@ const fhWho: IntakeQuestion = {
   options: [
     { id: "mother", labelKey: "intake.opt.fhMother" },
     { id: "father", labelKey: "intake.opt.fhFather" },
-    { id: "sibling", labelKey: "intake.opt.fhSibling" },
+    { id: "brother", labelKey: "intake.opt.fhBrother" },
+    { id: "sister", labelKey: "intake.opt.fhSister" },
     { id: "child", labelKey: "intake.opt.fhChild" },
     { id: "grandparent", labelKey: "intake.opt.fhGrandparent" },
     { id: "other", labelKey: "intake.opt.other" },
@@ -1563,10 +1709,14 @@ const fhDetail: IntakeQuestion = {
   deferrableAs: FAMILY_HISTORY_DEFERRAL,
   titleKey: "intake.q.fhDetail",
   lineLabelKey: "intake.note.fhDetail",
-  // Level two: they named the relatives, so ask what it is they have.
+  // Level two, narrowed by INT-282: the four relatives the owner's schema
+  // itself enumerates (anne · baba · erkek kardeş · kız kardeş) now get the
+  // schema's own per-relative CHECKLIST in ./baseLayer, so free text is
+  // left to the relatives the schema does not enumerate. A checklist and a
+  // free-text field asking the same thing would be one question too many.
   askIf: {
     questionId: "fh_who",
-    includesAny: ["mother", "father", "sibling", "child", "grandparent", "other"],
+    includesAny: ["child", "grandparent", "other"],
   },
 };
 
@@ -1651,13 +1801,38 @@ export function packForDepartment(department: string | undefined): IntakeQuestio
  *   asked more quietly and not moved to text; the clinician sees it as
  *   `eksik: ortam uygun değildi` on the note instead (buildNote).
  */
-export function historyForProfile(profile: IntakeProfile): IntakeQuestion[] {
+export function inProfile(question: IntakeQuestion, profile: IntakeProfile): boolean {
   const deferred = new Set(profile.deferred ?? []);
-  return historyQuestions.filter(
-    (q) =>
-      (q.modes === undefined || q.modes.includes(profile.mode)) &&
-      (q.deferrableAs === undefined || !deferred.has(q.deferrableAs)),
+  return (
+    (question.modes === undefined || question.modes.includes(profile.mode)) &&
+    (question.deferrableAs === undefined || !deferred.has(question.deferrableAs))
   );
+}
+
+export function historyForProfile(profile: IntakeProfile): IntakeQuestion[] {
+  return historyQuestions.filter((q) => inProfile(q, profile));
+}
+
+/**
+ * The HBYS base layer narrowed to one session profile (INT-282). Every
+ * question in it declares `modes: ["detayli"]`, because 02 §2 puts
+ * "PMH/FH/SH deltas" and "vitals entry" in the DETAILED column and leaves
+ * the fast column at meds/allergies confirm — so Hızlı stays short by the
+ * same lever that makes Detaylı deep, and no new mechanism was needed.
+ */
+export function baseLayerForProfile(profile: IntakeProfile): IntakeQuestion[] {
+  return [...baseLayerQuestions, ...measurementQuestions].filter((q) => inProfile(q, profile));
+}
+
+/**
+ * The steps a SPOKEN session may ask: files/13 §13's `text_only` class is
+ * dropped, exactly as the §9.5 compiler check drops their clips. INT-282's
+ * numeral-bearing steps declare it, so invariant 22's *"no numeral reaches
+ * any TTS model"* holds structurally here — there is no formatting rule to
+ * remember and no path by which a digit could be spoken.
+ */
+export function spokenPack(pack: readonly IntakeQuestion[]): IntakeQuestion[] {
+  return pack.filter((q) => q.delivery !== "text_only");
 }
 
 /**
@@ -1674,9 +1849,14 @@ export function packForVisit(
   profile: IntakeProfile,
 ): IntakeQuestion[] {
   const pack = packForDepartment(department);
-  const dimensions = pack.filter((q) => q.id !== extra.id);
+  const dimensions = pack.filter((q) => q.id !== extra.id && inProfile(q, profile));
   const closing = pack.filter((q) => q.id === extra.id);
-  return [...dimensions, ...historyForProfile(profile), ...closing];
+  return [
+    ...dimensions,
+    ...historyForProfile(profile),
+    ...baseLayerForProfile(profile),
+    ...closing,
+  ];
 }
 
 /**
@@ -1690,6 +1870,8 @@ export function packForVisit(
 export const allQuestions: readonly IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   // location and side
   orthoMechanism,
@@ -1758,6 +1940,9 @@ export const allQuestions: readonly IntakeQuestion[] = [
   severity,
   // the universal history block (04 §1 rows 5–6), composed by packForVisit
   ...historyQuestions,
+  // the HBYS base layer (INT-282), composed by packForVisit after it
+  ...baseLayerQuestions,
+  ...measurementQuestions,
   extra,
 ];
 

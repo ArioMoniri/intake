@@ -50,13 +50,27 @@ export interface ExtractFailure {
 
 export type ExtractResult = ExtractSuccess | ExtractFailure;
 
-/** The pack, as the daemon expects it: option ids for chips/single, null for text. */
+/**
+ * The pack, as the daemon expects it: option ids for chips/single, null for
+ * text.
+ *
+ * A `text_only` step (files/13 §13) never reaches the extractor. `spokenPack`
+ * already drops those before the dialogue lane is built, so this filter is
+ * defence in depth — but it is the layer that makes it a TYPE fact rather
+ * than a caller's promise, which is what keeps invariant 22's "no numeral
+ * reaches any TTS model" from depending on somebody remembering.
+ */
 export function toQuestionSpecs(pack: readonly IntakeQuestion[]): ExtractQuestionSpec[] {
-  return pack.map((q) => ({
-    id: q.id,
-    kind: q.kind,
-    options: q.options ? q.options.map((o) => o.id) : null,
-  }));
+  return pack
+    .filter(
+      (q): q is IntakeQuestion & { kind: "chips" | "single" | "text" } =>
+        q.kind !== "measure" && q.delivery !== "text_only",
+    )
+    .map((q) => ({
+      id: q.id,
+      kind: q.kind,
+      options: q.options ? q.options.map((o) => o.id) : null,
+    }));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
