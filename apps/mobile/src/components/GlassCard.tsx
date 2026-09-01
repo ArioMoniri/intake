@@ -7,17 +7,11 @@
  * and floating chrome only. The tab rail is native glass via NativeTabs.
  */
 import { type ReactNode } from "react";
-import {
-  StyleSheet,
-  View,
-  useColorScheme,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 
-import { useTheme } from "@/components/Themed";
+import { useScheme, useTheme } from "@/components/Themed";
 import { glassFallback, radius, spacing } from "@/lib/theme";
 
 let liquidGlass = false;
@@ -34,7 +28,7 @@ interface GlassCardProps {
 
 export function GlassCard({ children, style }: GlassCardProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const scheme = useScheme();
   if (liquidGlass) {
     return (
       <GlassView glassEffectStyle="regular" style={[styles.card, style]}>

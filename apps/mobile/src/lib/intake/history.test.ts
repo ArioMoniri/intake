@@ -116,7 +116,7 @@ describe("mode profiles (02 §2 — Hızlı confirms, Detaylı adds the deltas)"
     expect(ids(opening)).toEqual(["allergy_known", "meds_other", "meds_otc"]);
   });
 
-  it("Detaylı opens with seven — the same three plus the four delta openers", () => {
+  it("Detaylı opens with fifteen — the four delta openers, then the HBYS base layer", () => {
     const opening = applicableQuestions(packForVisit("Kardiyoloji", DETAYLI), []).filter(
       (q) => q.section !== undefined,
     );
@@ -128,6 +128,18 @@ describe("mode profiles (02 §2 — Hızlı confirms, Detaylı adds the deltas)"
       "pmh_surgery",
       "pmh_recent_change",
       "fh_known",
+      // INT-282: the patient-answerable rows of the owner's HBYS schema,
+      // also `pmh_fh_sh`, also Detaylı-only (02 §2 puts them in the
+      // detailed column). The measured block carries no 04 §1 section and
+      // so is not part of this count.
+      "smoking",
+      "alcohol",
+      "substance",
+      "occupation",
+      "disability",
+      "injury_history",
+      "blood_group",
+      "transfusion",
     ]);
   });
 });
@@ -282,9 +294,16 @@ describe("invariant 22 — no free numeric entry on the clinical critical path",
     join(__dirname, "..", "..", "components", "DialogueIntake.tsx"),
   ];
 
-  it("the pack model has no numeric question kind at all", () => {
+  it("a quantity is a guarded control, never a numeric question kind", () => {
+    // INT-282 added `measure` — a stepper between authored bounds, with no
+    // keyboard and no parser. That is what invariant 22 means by a guarded
+    // control; what it forbids is a FREE numeric entry, and there is still
+    // no question kind that offers one.
     for (const q of allQuestions) {
-      expect(["chips", "single", "text"], q.id).toContain(q.kind);
+      expect(["chips", "single", "text", "measure"], q.id).toContain(q.kind);
+      if (q.kind === "measure") {
+        expect(q.measure, q.id).toBeDefined();
+      }
     }
   });
 

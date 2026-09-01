@@ -311,3 +311,31 @@ class TestMutationProof:
         # mutation, the on-disk packs and the life-threat set are unchanged.
         assert outcomes  # force the mutation run before hashing
         assert _digests() == BASELINE_DIGESTS
+
+
+# ---------------------------------------------------------------------------
+# INT-255 — the translator drops nothing.
+#
+# `translate_life_threat_rule` projects the document onto a fixed list of DSL
+# field names, so a field the DSL gains and the projection does not is
+# silently dropped: the safety suite would then evaluate a rule the document
+# does not contain — the crisis rule without its crisis path, the airway rule
+# without its suppressed interrupt. Since INT-255 the whole document loads
+# through `load_life_threat_set`, which gives this a second, independent
+# reading of the same file to compare against.
+# ---------------------------------------------------------------------------
+
+
+def test_the_translator_carries_every_annotation_the_loader_does() -> None:
+    from protocols.compile import load_life_threat_set
+    from triage_goldens_corpus import (
+        LIFE_THREAT_PATH,
+        load_life_threat_document,
+        translate_life_threat_rule,
+    )
+
+    loaded = load_life_threat_set(LIFE_THREAT_PATH)
+    raw_rules = load_life_threat_document()["rules"]
+    assert len(raw_rules) == len(loaded.rules)
+    for raw, entry in zip(raw_rules, loaded.rules, strict=True):
+        assert translate_life_threat_rule(raw) == entry.rule, entry.rule.id

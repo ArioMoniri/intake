@@ -53,6 +53,8 @@ describe("department packs (INT-194): the intake is branch-aware", () => {
     expect(ids).toEqual([
       "complaint",
       "duration",
+      "onset_today_when",
+      "duration_course",
       "onset",
       "pain_character",
       "radiation",

@@ -18,7 +18,7 @@
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
@@ -106,7 +106,7 @@ export default function Notifications() {
 
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("notifications.title")}
         </AppText>
@@ -177,7 +177,7 @@ export default function Notifications() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.md },
   heroLine: { marginTop: spacing.xl, marginBottom: spacing.sm },
   section: { gap: spacing.sm, marginTop: spacing.sm },
   pill: {

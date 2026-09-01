@@ -40,6 +40,7 @@ from protocols.loader import PackRegistry
 from protocols.ops import SetVoiceOp
 from protocols.pack import ProtocolPack
 from protocols.types import (
+    CrisisNumber,
     Delivery,
     EK4Level,
     Maturity,
@@ -334,6 +335,49 @@ def test_refuses_an_on_site_action_that_offers_112(
     )
     codes = _refuse(_pack(red_flags=(_red_rule(action=action),)), life_threat, template)
     assert RefusalCode.ON_SITE_OFFERS_112 in codes
+
+
+@pytest.mark.parametrize(
+    "carrier",
+    ["numbers", "primary", "secondary"],
+    ids=["number list", "primary action code", "secondary action code"],
+)
+def test_refuses_every_other_on_site_112_carrier(
+    carrier: str, life_threat: LifeThreatSet, template: OperationalTemplate
+) -> None:
+    """INT-255. The flag is one carrier of three, and the compiler re-checks
+    all three on the COMPILED action — the DSL refuses each of them too, so
+    reaching here needs model_construct, which is exactly the state a rule
+    built by an emitter or a future op could be in. Removing one check must
+    not silently open the affordance (files/02 §5.3: absent, not below the
+    fold)."""
+    on_site = _on_site()
+    object.__setattr__(
+        on_site, carrier, (CrisisNumber.EMERGENCY,) if carrier == "numbers" else "CALL_112"
+    )
+    action = RedFlagAction.model_construct(remote=_remote(), on_site=on_site, unknown=_unknown())
+    codes = _refuse(_pack(red_flags=(_red_rule(action=action),)), life_threat, template)
+    assert RefusalCode.ON_SITE_OFFERS_112 in codes
+
+
+def test_an_on_site_action_with_no_112_carrier_raises_no_such_refusal(
+    life_threat: LifeThreatSet, template: OperationalTemplate
+) -> None:
+    """NEAR-MISS NEGATIVE for the three checks above: the ordinary ON_SITE
+    branch — in-house acil, a non-112 secondary, the social-services number —
+    must pass all three, or the gate is a blanket refusal."""
+    on_site = _on_site()
+    object.__setattr__(on_site, "secondary", "NOTIFY_STAFF")
+    object.__setattr__(on_site, "numbers", (CrisisNumber.SOCIAL_SERVICES,))
+    action = RedFlagAction.model_construct(remote=_remote(), on_site=on_site, unknown=_unknown())
+    # L0 so the compile refuses for a reason that is not this one, and the
+    # refusal list can be read rather than being empty.
+    codes = _refuse(
+        _pack(maturity=Maturity.L0, red_flags=(_red_rule(action=action),)),
+        life_threat,
+        template,
+    )
+    assert codes == (RefusalCode.PACK_NOT_SERVABLE,)
 
 
 @pytest.mark.parametrize(
@@ -728,7 +772,15 @@ def _life_threat_rule_yaml(**overrides: Any) -> dict[str, Any]:
 
 
 def _paediatric_rule_yaml() -> dict[str, Any]:
-    return _life_threat_rule_yaml(id="rf.sentetik_cocuk", age_band="paediatric")
+    # INT-255: a paediatric rule states subject_is_child rather than leaving
+    # it to be inferred, and a rule whose subject is a child is never told in
+    # the ALERT register (files/02 §5.3 Axis 2 CALM row).
+    return _life_threat_rule_yaml(
+        id="rf.sentetik_cocuk",
+        age_band="paediatric",
+        subject_is_child=True,
+        register="CALM",
+    )
 
 
 def _draft_life_threat_rule_yaml() -> dict[str, Any]:

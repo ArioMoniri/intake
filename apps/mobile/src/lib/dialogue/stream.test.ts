@@ -262,7 +262,7 @@ describe("dialogueStreamReducer — typed input is the same conversation", () =>
       answers: { complaint: { values: ["pain"], quote: "göğsümde baskı var" } },
     });
     let s = runCardio(before, { type: "typed", workId: 2, text: "aslında bir haftadır" });
-    expect(s.turn).toEqual({ phase: "speaking", step: 2, intent: "question" });
+    expect(s.turn).toEqual({ phase: "speaking", step: 4, intent: "question" });
     expect(s.asked).toEqual(["duration"]);
     s = runCardio(s, {
       type: "extract_settled",
@@ -300,7 +300,7 @@ describe("dialogueStreamReducer — confirm commits, panel confirm, completion",
       values: ["pain", "fatigue"],
       quote: "göğsümde baskı var",
     });
-    expect(after.turn).toEqual({ phase: "speaking", step: 2, intent: "question" });
+    expect(after.turn).toEqual({ phase: "speaking", step: 4, intent: "question" });
   });
 
   it("confirming the last unanswered question completes the previsit — even with work in flight", () => {
@@ -416,7 +416,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
     });
     const after = runCardio(before, { type: "confirm", values: ["fever"] });
     // trigger is next: both pain dimensions are skipped, not asked-and-empty
-    expect(after.turn).toEqual({ phase: "speaking", step: 8, intent: "question" });
+    expect(after.turn).toEqual({ phase: "speaking", step: 10, intent: "question" });
     expect(after.stream[after.stream.length - 1]).toEqual({
       kind: "agent_question",
       questionId: "trigger",
@@ -436,7 +436,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
       },
     });
     const after = runCardio(before, { type: "confirm", values: ["pain"] });
-    expect(after.turn).toEqual({ phase: "speaking", step: 3, intent: "question" });
+    expect(after.turn).toEqual({ phase: "speaking", step: 5, intent: "question" });
     expect(after.stream[after.stream.length - 1]).toEqual({
       kind: "agent_question",
       questionId: "pain_character",
@@ -447,7 +447,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
     const before = state({
       turn: {
         phase: "confirming",
-        step: 4,
+        step: 6,
         candidate: { values: ["arm"], quote: "koluma vuruyor" },
       },
       answers: {
@@ -511,7 +511,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
     const after = runCardio(before, { type: "confirm", values: ["pain"] });
     expect(after.turn).toEqual({
       phase: "speaking",
-      step: 4,
+      step: 6,
       intent: "confirm",
       candidate: { values: ["arm"], quote: "koluma vuruyor" },
     });

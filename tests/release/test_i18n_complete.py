@@ -40,6 +40,7 @@ import json
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Final
 
 import pytest
 from intake_voice_runtime.profiles import VoiceProfile
@@ -367,15 +368,47 @@ def test_no_value_is_empty(tr: dict[str, str], en: dict[str, str]) -> None:
         assert en[key].strip(), f"en[{key}] is empty"
 
 
+#: Keys whose two catalogues are IDENTICAL on purpose, each for a reason that
+#: is a property of the value rather than of the translation:
+#:
+#: - ``app.name`` and ``a11y.speaker.agent`` are the product's own name;
+#: - ``lang.tr`` / ``lang.en`` are endonyms — a language names itself the same
+#:   way in every catalogue, which is the whole point of an endonym;
+#: - the SI unit symbols (INT-282) are locale-invariant by definition. BIPM
+#:   fixes ``cm`` and ``kg`` as symbols, not abbreviations of a word, so a
+#:   "translated" unit would be WRONG rather than merely different — and the
+#:   symbol still lives in the catalogue because invariant 22 makes number and
+#:   unit one atom, which needs the unit to have a key.
+IDENTICAL_BY_NATURE: Final[frozenset[str]] = frozenset(
+    {
+        "app.name",
+        "a11y.speaker.agent",
+        "lang.tr",
+        "lang.en",
+        "intake.unit.cm",
+        "intake.unit.kg",
+    }
+)
+
+
 def test_no_english_value_is_left_in_turkish(en: dict[str, str], tr: dict[str, str]) -> None:
     """An untranslated mirror is a missing key that happens to have a value.
-    Product names and the endonym are the honest exceptions."""
+    Product names, endonyms and SI unit symbols are the honest exceptions."""
     untranslated = {
-        key
-        for key, value in en.items()
-        if value == tr[key] and key not in {"app.name", "a11y.speaker.agent", "lang.tr", "lang.en"}
+        key for key, value in en.items() if value == tr[key] and key not in IDENTICAL_BY_NATURE
     }
     assert not untranslated, f"en still carries the Turkish string for: {sorted(untranslated)}"
+
+
+def test_every_identical_by_nature_key_really_is_identical() -> None:
+    """The exemption list may not rot into a place to hide a missing
+    translation: a key that no longer needs the exemption loses it."""
+    tr_catalogue, en_catalogue = _catalogue("tr"), _catalogue("en")
+    for key in sorted(IDENTICAL_BY_NATURE):
+        assert key in tr_catalogue, f"{key} is exempted but no longer exists"
+        assert tr_catalogue[key] == en_catalogue[key], (
+            f"{key} now differs between catalogues; drop its exemption"
+        )
 
 
 def _orphans(tr: dict[str, str]) -> set[str]:
@@ -602,6 +635,75 @@ def test_no_short_in_flow_control_uses_the_doubled_polite_form(tr: dict[str, str
         f"doubled-polite imperative found: {offenders}. Until the register "
         "decision in PROSE_REGISTER_FINDINGS is taken, the catalogue is "
         "uniformly short-form; a lone `-iniz` is drift in the other direction."
+    )
+
+
+# --- mid-word truncation (00 §2, INT-260) ------------------------------------------------
+
+#: The negation and privative suffixes files/00_STATE.md §2 names, verbatim:
+#: "Never truncate mid-word in Turkish. Compile-time negation/privative
+#: no-truncate list: -m(ı|i|u|ü)yor, -maz/-mez, -sız/-siz/-suz/-süz,
+#: -madan/-meden. `word-break: break-all` banned app-wide."
+#:
+#: The hazard is not cosmetic and the row states it: `ağrımıyor` truncated to
+#: `ağrım…` turns "it doesn't hurt" into "my pain" — the negation is carried by
+#: the SUFFIX, so cutting the tail of a Turkish word can inverse a clinical
+#: fact. The row also says the scan found exactly one such token, "which is
+#: precisely why review will miss it and it must be a build gate". This is that
+#: gate; it did not exist before INT-260.
+_NO_TRUNCATE_SUFFIX = re.compile(
+    r"(?:m[ıiuü]yor|maz|mez|s[ıiuü]z|madan|meden)\b",
+    re.IGNORECASE,
+)
+
+#: Every prop or style that can cut a rendered string short. React Native has
+#: no CSS, so `word-break` is not reachable at all; what IS reachable is
+#: `numberOfLines` (with its implicit tail ellipsis), an explicit
+#: `ellipsizeMode`/`lineBreakMode`, and `adjustsFontSizeToFit`, which shrinks
+#: rather than cuts but is the same "make it fit by changing the words'
+#: appearance" move and is banned by 02 §8.2's no-harder-clamping rule.
+_TRUNCATION_AFFORDANCES = (
+    "numberOfLines",
+    "ellipsizeMode",
+    "lineBreakMode",
+    "adjustsFontSizeToFit",
+    "word-break",
+    "break-all",
+)
+
+
+def test_no_turkish_string_can_be_truncated_mid_word() -> None:
+    """files/00 §2's ruling, enforced by ABSENCE.
+
+    The app truncates nowhere, so no Turkish word can lose its negation suffix
+    — and that is a much stronger guarantee than auditing each render site,
+    because it cannot drift. A future screen that genuinely needs to shorten a
+    string has to come past this test and say why in review; there is no
+    correct way to ellipsize a Turkish clinical sentence, so the honest answers
+    are a shorter string or more room."""
+    offenders: dict[str, list[str]] = {}
+    for path in _shipped_sources():
+        code = _strip_comments(path.read_text(encoding="utf-8"))
+        hits = [token for token in _TRUNCATION_AFFORDANCES if token in code]
+        if hits:
+            offenders[path.relative_to(MOBILE).as_posix()] = hits
+    assert not offenders, (
+        f"truncation affordances reached: {offenders}. files/00 §2: 'Never "
+        "truncate mid-word in Turkish' — `ağrımıyor` cut to `ağrım…` inverts "
+        "the clinical fact. Give the string room or shorten the copy."
+    )
+
+
+def test_the_truncation_hazard_class_is_not_empty(tr: dict[str, str]) -> None:
+    """The gate above is only worth anything while the catalogue actually holds
+    words whose meaning lives in a suffix. This asserts the hazard is real, so
+    a future refactor cannot quietly empty the class and make the ban vacuous —
+    the same discipline `test_scripted_protocol_text_is_never_measured...`
+    applies to its own exclusion."""
+    at_risk = {key for key, value in tr.items() if _NO_TRUNCATE_SUFFIX.search(value)}
+    assert at_risk, (
+        "no negation or privative suffix appears anywhere in the catalogue; "
+        "either the copy changed shape or the pattern stopped matching Turkish"
     )
 
 
