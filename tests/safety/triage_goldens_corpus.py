@@ -137,10 +137,17 @@ class CorpusBuildError(ValueError):
 
 
 # Projection of the life-threat authoring schema onto the DSL field set.
-# Everything outside these keys is annotation the DSL does not model
-# (age_band, excluded_criteria, golden blocks, audio, …) — dropped, never
-# rewritten. The mapped names: gate→when, evidence→source (the file's own
-# schema_reconciliation item).
+# Everything outside these keys is the life-threat WRAPPER (age_band,
+# excluded_criteria, the golden blocks — carried by LifeThreatRule, not by
+# RedFlagRule) — dropped, never rewritten. The mapped names: gate→when,
+# evidence→source (the file's own schema_reconciliation item).
+#
+# Since INT-255 the delivery annotations below ARE modelled, so they are
+# projected: a rule evaluated here without its register audio, its suppressed
+# interrupt or its crisis path is not the rule the document contains, and the
+# safety suite would be asserting about a different object than the one the
+# compiler loads. `test_the_translator_carries_every_annotation_the_loader_
+# does` in test_triage_goldens.py pins the two readings equal.
 _RULE_KEYS = (
     "id",
     "label_tr",
@@ -150,6 +157,12 @@ _RULE_KEYS = (
     "route",
     "register",
     "distress_sensitive",
+    "subject_is_child",
+    "audio",
+    "suppress_attention_interrupt",
+    "consent_independent",
+    "offline_draft_path",
+    "abandonment_handler",
     "notify_clinic",
     "source_gap",
 )
@@ -167,12 +180,16 @@ _LOCATION_KEYS = (
     "primary",
     "secondary",
     "show_112",
+    "numbers",
+    "carry_child",
     "action_tr",
     "action_tr_ref",
     "do_nots_tr",
     "why_tr",
     "why_tr_ref",
     "notify_staff_immediate",
+    "open_question",
+    "note",
 )
 _UNKNOWN_KEYS = ("ask_one_tr", "on_yes", "on_no", "on_no_answer")
 

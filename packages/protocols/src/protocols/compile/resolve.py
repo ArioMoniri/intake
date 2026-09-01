@@ -49,7 +49,7 @@ from protocols.ops import (
     TightenRuleOp,
 )
 from protocols.pack import LIFE_THREAT_SET_ID, ProtocolPack
-from protocols.types import Delivery, Maturity, PackLayer, RuleStatus
+from protocols.types import CrisisNumber, Delivery, Maturity, PackLayer, RuleStatus
 from protocols.validator import FindingCode, resolve_red_flags, validate_packs
 
 __all__ = [
@@ -203,10 +203,73 @@ def _signoff_refusals(life_threat: LifeThreatSet) -> list[Refusal]:
     return refusals
 
 
+def _crisis_path_refusals(rule: RedFlagRule) -> list[Refusal]:
+    """HUMAN_BLOCKERS **HB-C8**, wired as a gate rather than a note.
+
+    files/04 §4.2 lists four defects — no responder, unhandled abandonment,
+    the consent hole, and a script missing means restriction and safety
+    planning — and states that running this pathway in production before that
+    escalation policy exists **is not defensible**. The policy does not
+    exist. So the DSL can express the crisis path (that is INT-255's job) and
+    the compiler still refuses to put it in a served pack.
+
+    HUMAN_BLOCKERS Rule 2 applies exactly: build the mechanism, wire the gate,
+    make it fail closed, leave the content empty. There is deliberately no
+    flag, no dev mode and no per-tenant escape — when the policy is written,
+    a human edits this gate.
+    """
+    if not rule.consent_independent:
+        return []
+    return [
+        _refusal(
+            RefusalCode.CRISIS_ESCALATION_POLICY_ABSENT,
+            rule.id,
+            "a consent-independent crisis rule is not compiled into a served pack "
+            "while the files/04 §4.2 escalation policy does not exist — responder, "
+            "abandonment handler, means restriction and safety planning "
+            "(HUMAN_BLOCKERS HB-C8). The rule's mechanism is built and its gate is "
+            "closed; the content is a clinician's to write",
+        )
+    ]
+
+
+def _open_question_refusals(rule: RedFlagRule) -> list[Refusal]:
+    """An action branch carrying an open CLINICIAN question is not servable.
+
+    Exemplar 3's is HUMAN_BLOCKERS **HB-C9**: Tebliğ MADDE 9(1) admits no
+    companion to the kırmızı alan as a rule, so a carer following an ON_SITE
+    instruction may be separated at the door, and what the proxy flows say
+    about that in advance is open for ClinicalAuthor. Recording the question
+    on the action is honest; serving the action while it is open is not.
+    """
+    action = rule.action
+    if action is None:
+        return []
+    refusals: list[Refusal] = []
+    for name, branch in (("REMOTE", action.remote), ("ON_SITE", action.on_site)):
+        if branch is None or branch.open_question is None:
+            continue
+        refusals.append(
+            _refusal(
+                RefusalCode.ACTION_OPEN_QUESTION,
+                rule.id,
+                f"the {name} action carries an open clinician question, so its text "
+                "is not final and the rule is not compiled into a served pack "
+                "(HUMAN_BLOCKERS HB-C9; files/02 §5.3, open for ClinicalAuthor)",
+            )
+        )
+    return refusals
+
+
 def _rule_refusals(rules: Sequence[RedFlagRule]) -> list[Refusal]:
     """Provenance and RED's three axes, re-checked on the COMPILED rule."""
     refusals: list[Refusal] = []
     for rule in rules:
+        # Both of these are serve interlocks on an OPEN human blocker, so they
+        # are collected for every rule — including a draft one, whose own
+        # refusal below would otherwise hide them.
+        refusals.extend(_crisis_path_refusals(rule))
+        refusals.extend(_open_question_refusals(rule))
         if rule.status is RuleStatus.DRAFT_NEEDS_SOURCE:
             refusals.append(
                 _refusal(
@@ -257,6 +320,32 @@ def _red_axis_refusals(rule: RedFlagRule) -> list[Refusal]:
                 "(files/04 §8.2 on_site_action_never_offers_112)",
             )
         )
+    # The other two carriers of the same affordance, re-checked here for the
+    # same reason the flag is: files/02 §5.3 says absent, and absent means no
+    # carrier at all — not the flag, not the number list, not an action code.
+    if CrisisNumber.EMERGENCY in action.on_site.numbers:
+        refusals.append(
+            _refusal(
+                RefusalCode.ON_SITE_OFFERS_112,
+                rule.id,
+                "the ON_SITE number list offers 112 — the affordance is absent under "
+                "ON_SITE in every carrier (files/02 §5.3; files/04 §8.2)",
+            )
+        )
+    for field, code in (
+        ("primary", action.on_site.primary),
+        ("secondary", action.on_site.secondary),
+    ):
+        if code is not None and str(CrisisNumber.EMERGENCY.value) in code:
+            refusals.append(
+                _refusal(
+                    RefusalCode.ON_SITE_OFFERS_112,
+                    rule.id,
+                    f"the ON_SITE {field} action code names 112 ({code}) — an action "
+                    "code carries the affordance like any other field "
+                    "(files/02 §5.3; files/04 §8.2)",
+                )
+            )
     if _question_count(action.unknown.ask_one_tr) != 1:
         refusals.append(
             _refusal(
