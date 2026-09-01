@@ -3084,7 +3084,7 @@
   title: "Base-layer questions from the HBYS schema, and department branching on the answers"
   depends_on: [INT-256]
   labels: [area:engine, risk:clinical]
-  status: doing
+  status: done
   acceptance:
     - "the source is committed verbatim at docs/sources/hbys_intake_schema.md and never edited; a test asserts the file is byte-identical to the recorded sha256"
     - "PATIENT-ANSWERABLE fields become base-layer questions, composed onto every department pack by packForVisit the way INT-256's history block is, NOT duplicated per department: smoking status (5 states), alcohol, substance use, the seven named chronic conditions as a checklist, injury history, declared blood group, disability status, occupation, and transfusion history"
