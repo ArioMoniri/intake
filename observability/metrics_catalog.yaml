@@ -573,8 +573,14 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "<= 300 ms (p99 pages)"
-    status: planned
-    description: Rules-engine RED preemption latency.
+    status: live
+    description: >-
+      Rules-engine RED preemption latency. Emitted by
+      intake_voice_runtime.talker.red_path (INT-093), measured from the
+      rules-engine determination to the moment the pre-positioned script
+      started on the device. Only patient-facing registers observe it: a
+      DEFERRED_CLINICIAN RED has no patient-facing latency to report, and
+      inventing a zero for it would flatter the p99 that pages.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter
