@@ -8,11 +8,12 @@
  * floats on a glass bar and the note scrolls under it.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -61,6 +62,11 @@ function ReviewAndSend() {
   const router = useRouter();
   const theme = useTheme();
   const headerOptions = useStackHeader();
+  // The bar reports its own height (INT-264); until it has, the clearance
+  // falls back to the one-CTA floor. Declared above every early return —
+  // hooks may not be conditional.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote, visits } = useSession();
   // Who is answering the carried-fact question — INT-133's derived
@@ -119,7 +125,12 @@ function ReviewAndSend() {
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
-        <ScrollView contentContainerStyle={[styles.content, sent ? null : styles.contentUnderBar]}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            sent ? null : { paddingBottom: barClearance },
+          ]}
+        >
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one
               that has to carry the heading semantic (SC 1.3.1, SC 2.4.2). */}
@@ -303,7 +314,7 @@ function ReviewAndSend() {
           ) : null}
         </ScrollView>
         {sent ? null : (
-          <GlassBar>
+          <GlassBar onHeight={setBarHeight}>
             <PrimaryButton
               label={t("review.send")}
               onPress={() => {
@@ -324,7 +335,6 @@ const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   actionRow: { flexDirection: "row", gap: spacing.xs, alignItems: "center" },
   scopeChip: {

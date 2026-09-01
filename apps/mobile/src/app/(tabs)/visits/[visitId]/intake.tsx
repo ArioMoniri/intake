@@ -33,7 +33,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import {
   AppText,
   Card,
@@ -219,6 +219,12 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       ? (initialAnswer?.values.join(" ") ?? initialPrefill?.values.join(" ") ?? "")
       : "",
   );
+  // The glass bar reports its own height (INT-264): the CTA label wraps at
+  // the large text steps, so the room reserved for it cannot be a constant —
+  // it was 128 against a bar that measures 136 at 2.0, and the last option
+  // chip was clipped by the bar with nowhere left to scroll.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
   const editing = requested !== undefined;
 
   const question = intakeQuestions.find((x) => x.id === currentId) ?? initialQuestion;
@@ -351,7 +357,10 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   return (
     <>
       <ScrollView
-        contentContainerStyle={[styles.content, floatingCta ? styles.contentUnderBar : null]}
+        contentContainerStyle={[
+          styles.content,
+          floatingCta ? { paddingBottom: barClearance } : null,
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
@@ -521,7 +530,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         ) : null}
       </ScrollView>
       {question.kind === "chips" ? (
-        <GlassBar>
+        <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
             disabled={selected.length === 0}
@@ -530,7 +539,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         </GlassBar>
       ) : null}
       {question.kind === "text" ? (
-        <GlassBar>
+        <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
             onPress={() => commit(text.trim().length > 0 ? [text.trim()] : [])}
@@ -608,7 +617,6 @@ const styles = StyleSheet.create({
   integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
   modeBlock: { gap: spacing.xs },
   modeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   modeChip: {

@@ -24,7 +24,12 @@ import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { getLocale } from "@/lib/i18n";
-import { effectiveFontScale, isLargeText, resolveScheme } from "@/lib/prefs/appearance";
+import {
+  CTA_MIN_HEIGHT,
+  effectiveFontScale,
+  isLargeText,
+  resolveScheme,
+} from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import {
   fonts,
@@ -390,8 +395,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: "center",
     // Touch target ≥48dp (02 §8.2); 56 with a body-size semibold label is
-    // the Oura CTA register (design pass 4).
-    minHeight: 56,
+    // the Oura CTA register (design pass 4). INT-264 moved the number to
+    // lib/prefs/appearance.ts, because the glass bar's clearance has to
+    // predict this height and a second copy of it would drift.
+    minHeight: CTA_MIN_HEIGHT,
     justifyContent: "center",
   },
   buttonLabel: { fontWeight: "600", letterSpacing: 0.2 },

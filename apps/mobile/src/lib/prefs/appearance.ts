@@ -34,7 +34,7 @@
  * value this file does not recognise, yields the device-following defaults.
  * ─────────────────────────────────────────────────────────────────────────
  */
-import type { ColorScheme } from "../theme";
+import { lineHeight, scaledSize, spacing, type ColorScheme } from "../theme";
 
 /**
  * The five sizes the control offers (design plan R5 — discrete, never a
@@ -133,6 +133,57 @@ const RAIL_WELL_PADDING = 16;
 export function railWellSize(effectiveScale: number, minimum: number): number {
   const clamped = Math.max(0.5, Math.min(effectiveScale, 2.0));
   return Math.max(minimum, Math.round(RAIL_GLYPH_BASE * clamped) + RAIL_WELL_PADDING);
+}
+
+/**
+ * The focal CTA's height floor at scale 1.0 — `primaryButton` in
+ * components/Themed.tsx, declared HERE so the bar's height and the scroll room
+ * reserved for it read the same number from the same place (INT-264).
+ */
+export const CTA_MIN_HEIGHT = 56;
+
+/**
+ * The floating glass bar's own height before it has laid itself out.
+ *
+ * Its anatomy, term by term, from components/GlassBar.tsx: `spacing.md` of
+ * padding above the children, one focal CTA, and a bottom padding that swallows
+ * the home indicator (host screens drop the bottom safe edge, so the bar owns
+ * that zone). A CTA is `spacing.md` of padding above and below one body line,
+ * and never shorter than the floor above.
+ *
+ * This is the pre-layout FLOOR, not the answer: a wrapped label, a second
+ * button or the dialogue's whole stack each make the real bar taller, and
+ * `glassBarClearance` prefers the measurement the moment there is one. The
+ * floor exists so the first frame is not wrong.
+ */
+export function glassBarFloor(effectiveScale: number, insetBottom: number): number {
+  const cta = Math.max(CTA_MIN_HEIGHT, spacing.md * 2 + lineHeight("body", effectiveScale));
+  return spacing.md + cta + Math.max(insetBottom, spacing.md);
+}
+
+/**
+ * Scroll-content bottom padding under the glass bar (INT-264).
+ *
+ * The defect this replaces is the one INT-260 fixed for the tab rail and did
+ * not reach here: `GLASS_BAR_CLEARANCE` was the constant `128`, sized when a
+ * body line was 17 pt, and `DIALOGUE_BAR_CLEARANCE` was that plus a guessed
+ * `176`. At the largest step the bar measures 136 on an iPhone 16 Pro and the
+ * last option chip is clipped by chrome with nowhere left to scroll — a
+ * reserved number and a rendered number, free to drift.
+ *
+ * `measured` comes from the bar's own `onLayout`, which is the only thing that
+ * knows whether the CTA label wrapped. The trailing body line is the same
+ * breathing term `useTabBarClearance` adds: the last row should clear the bar,
+ * not touch it.
+ */
+export function glassBarClearance(
+  measured: number | null,
+  effectiveScale: number,
+  insetBottom: number,
+): number {
+  const bar =
+    measured !== null && measured > 0 ? measured : glassBarFloor(effectiveScale, insetBottom);
+  return bar + scaledSize("body", effectiveScale);
 }
 
 /**
