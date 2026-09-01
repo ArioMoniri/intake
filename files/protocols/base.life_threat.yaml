@@ -115,6 +115,47 @@ clinical_signoff:
 #                      A default would be chosen once, by an engineer, for every future
 #                      rule — which is precisely how the paediatric airway case gets an
 #                      alarm and the alarm causes the deterioration.
+#                      The register is not decorative: the compiler now enforces the rest
+#                      of the 02 §5.3 row too (INT-255). A `distress_sensitive` rule, a
+#                      rule whose `subject_is_child`, and the consent-independent crisis
+#                      path are each REFUSED in the ALERT register.
+#
+#  distress_sensitive: true where alarm is the harm (02 §5.3). Forces a non-ALERT
+#                      register, and in a register that still takes the screen (ALERT or
+#                      CALM) forces `suppress_attention_interrupt` to be STATED.
+#
+#  subject_is_child:   the subject is a child and the user is therefore a proxy
+#                      (02 §5.3 CALM row). Three-valued: absent means NOT STATED, which
+#                      an `age_band: paediatric` rule may not leave — it decides the
+#                      register AND, through age_band, that a PAEDIATRICIAN signs (HB-C1).
+#
+#  audio:              OPTIONAL block; the Audio column of the 02 §5.3 register table,
+#                      stated instead of inferred. {spoken, prosody, alert_sound} — ALL
+#                      THREE REQUIRED once the block is written, `prosody: null` included,
+#                      because a written null is a decision and an absent one is not.
+#                      prosody is `urgent` | `soft` | null, and null iff spoken is false.
+#                      The compiler refuses a block that contradicts the register:
+#                      SILENT and DEFERRED_CLINICIAN carry no audio at all, CALM carries
+#                      no alert sound. Omit the block where the register table already
+#                      says it (exemplars 1 and 2 carry none).
+#
+#  suppress_attention_interrupt:
+#                      whether this rule runs the normal attention-grabbing interrupt at
+#                      all (04 §8.1 rule 6). NO DEFAULT: required on a distress_sensitive
+#                      rule in ALERT or CALM, and refused as `false` under SILENT or
+#                      DEFERRED_CLINICIAN, which have no interrupt to run. The DSL
+#                      requires the decision to be WRITTEN, not to have a value — which
+#                      of the two a given rule needs is clinical.
+#
+#  --- the 04 §4.2 crisis path. Declaring it forces the other legs to be written, and
+#      the compiler refuses to put ANY of it in a served pack while the 04 §4.2
+#      escalation policy does not exist (HB-C8). There is no flag that lifts that.
+#  consent_independent: runs regardless of wellbeing-lane consent (04 §4.2 defect 3).
+#                      Forces notify_clinic: always (defect 1) and a non-ALERT register.
+#  offline_draft_path: `forbidden` is the only value that parses (04 §8.2
+#                      crisis_items_have_no_offline_draft_path; §4.2 defect 2).
+#  abandonment_handler: `server_side_on_answer` is the only value that parses — the
+#                      mechanism 04 §4.2 defect 2 names.
 #
 #  action:             REQUIRED. Keyed by LOCATION (02 §5.3 Axis 3). ALL THREE KEYS —
 #                      REMOTE, ON_SITE, UNKNOWN — must be present and must resolve.
@@ -145,6 +186,27 @@ clinical_signoff:
 #                      instead of it (exemplar 1: CALL_112 + NEAREST_ACIL_ADDRESS_AS_TEXT).
 #    do_nots_tr:       explicit "lütfen yapmayın" list (04 §8.1 rule 6). Load-bearing.
 #    why_tr:           the explanation. Never a diagnosis.
+#    numbers:          OPTIONAL list from the CLOSED 04 §4.1 table — 112, 183, 191 and
+#                      nothing else. 182 does not parse: it is the MHRS APPOINTMENT line
+#                      and would route a suicidal patient to a booking queue. No model,
+#                      search tool or learning proposal may ever populate one (04 §4.1);
+#                      the Turkish that goes with them lives in docs/legal/strings.yaml
+#                      under PolicyGuard and is reached by `action_tr_ref`.
+#    carry_child:      the action tells the user to carry the patient (exemplar 3
+#                      ON_SITE). Only a rule whose `subject_is_child` may set it.
+#    open_question:    an OPEN CLINICIAN decision about this branch's text, recorded
+#                      rather than resolved by an engineer (exemplar 3: HB-C9, the
+#                      Tebliğ MADDE 9(1) companion separation). Never patient-facing —
+#                      and never inert: the compiler refuses to put a rule carrying one
+#                      into a served pack.
+#    note:             free-text commentary about this branch. Never patient-facing.
+#
+#  STOP. UNDER ON_SITE THE 112 AFFORDANCE IS ABSENT, IN EVERY CARRIER (02 §5.3: "not
+#     de-emphasised, not below the fold — absent"). There are three, and the compiler
+#     refuses all three: `show_112: true`; a `112` in `numbers`; and an action CODE
+#     naming 112 (`primary` or `secondary`). Turning the button off and leaving the
+#     number in the list IS de-emphasis, which is why the number is refused regardless
+#     of the flag.
 #
 #  notify_clinic:      always | never   — for every RED this is `always`, unconditional
 #                      and time-bound, regardless of connector presence (04 §4.2 defect 1).
@@ -182,6 +244,17 @@ clinical_signoff:
 #  golden_positive:    a case that MUST fire.
 #  golden_negative:    a NEAR MISS that must NOT fire. See the goldens block at the end
 #                      for why the negative is the more important of the two.
+#
+#  --- document level ---
+#  goldens_index:      the consolidated table at the end of this file. OPTIONAL, but
+#                      where it exists the compiler checks it in BOTH directions: every
+#                      row names a rule that exists and quotes that rule's own golden
+#                      ids, and every rule carrying goldens has a row. An index that
+#                      disagrees with its rules reads as coverage it has not got.
+#  TODO:               the what-is-missing block below. Carried by the compiler, not
+#                      discarded — discarding it would make this skeleton
+#                      indistinguishable from a finished set. A document that declares
+#                      `served: true` while still carrying one is REFUSED (invariant 17).
 # -------------------------------------------------------------------------------------
 
 rules:
@@ -798,8 +871,20 @@ TODO:
          `tense_anchor` is a REFERENCE in the `gate:` namespace, not a bare slot key —
          the engine unions the two — and rule `status` is required with no default, so the
          two sourced exemplars now carry `status: active` explicitly. `evidence.note:` and
-         `action.<LOC>.secondary:` are optional DSL fields. Eleven annotations this file
-         carries are still unmodelled and still refused: see docs/evidence/INT-254.md."
+         `action.<LOC>.secondary:` are optional DSL fields. Thirteen error locations
+         remained: see docs/evidence/INT-254.md."
+      - "INT-255 modelled the rest, and THIS DOCUMENT NOW LOADS. `subject_is_child`,
+         `audio{spoken,prosody,alert_sound}`, `suppress_attention_interrupt`,
+         `consent_independent`, `offline_draft_path`, `abandonment_handler`,
+         `action.<LOC>.{numbers,carry_child,open_question,note}`, `goldens_index` and this
+         what-is-missing block are all typed, with the 02 §5.3 register row and the
+         04 §4.2 crisis path ENFORCED rather than merely spelled. Loading is not serving:
+         the sign-off block (HB-C1), the two `draft_needs_source` exemplars, the crisis
+         escalation policy (HB-C8) and the open companion-separation question (HB-C9)
+         each still refuse. Also CLOSED here: the residual item 4 left open. A
+         112-bearing action CODE under ON_SITE is now refused — that needed no enumerated
+         action-code set, only a refusal of the one token invariant 21 forbids. See
+         docs/evidence/INT-255.md."
     items:
       - "`evidence:` (this file) vs `source:` (04 §8.1 rule 3, 12 §2.5). Same field, two
          names. The CI gate is literally called `every_red_rule_has_a_source_block`, so if
