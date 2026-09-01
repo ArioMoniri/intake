@@ -1,0 +1,92 @@
+Ön görüşme notu
+
+visit_id: visit-0001
+generated_at: 2026-09-02T09:30:00+00:00
+mode: detailed
+protocol_hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+model: synthetic-note-model@rev0
+prompt_version: note-v0
+legal_strings_version: synthetic-int084
+legal_strings_sha256: 3d9f232d1bba171bdbb5d4910cba7bc9763a886cad4ba01eeb53c3f811094811
+
+Triyaj
+  level: GREEN
+  [rule.synthetic.none] slot_a=no
+
+S — hasta beyanı
+Başvuru nedeni
+  [f01] hasta beyanı — sentetik yakınma
+  [f01] hasta beyanı — goal: sentetik hedef
+
+Şikâyet öyküsü
+  [f02] hasta beyanı — sentetik öykü
+  [f02] hasta beyanı — onset: iki gün
+  [f02] hasta beyanı — severity_nrs: 4
+
+Sistem sorgusu
+  [f03] hasta beyanı — sentetik-sistem: sentetik bulgu [absent]
+
+Özgeçmiş
+  [f04] hasta beyanı — Sentetik durum A [unconfirmed/patient]
+  [f05] belge: doc-0001 — Sentetik durum B [unconfirmed/record]
+
+İlaçlar
+  [f06] önceki kayıt: 2026-05-12 — Sentetikol · günde bir kez bir tablet [matches]
+
+Alerjiler
+  [f07] önceki kayıt: 2026-05-12 — Sentetisilin · döküntü
+
+Soygeçmiş ve sosyal öykü
+  [f08] yakın beyanı: anne — Sentetik kalıtsal durum
+  [f09] hasta beyanı — occupation: sentetik meslek
+
+Ölçümler
+  [f10] hasta beyanı — height: 172 cm
+  [f11] hasta beyanı — weight: 1234 kg
+
+Tarama
+  administration_mode: typed
+  proxy_reported: false
+  third_party_present: false
+
+O — dış kaynaklı veriler
+Dış kaynaklı bulgular
+  [f12] belge: doc-0002 — lab: sentetik tetkik [2026-05-12]
+
+A — hekim tarafından doldurulacak
+
+P — hekim tarafından doldurulacak
+
+Örüntüler
+  sentetik örüntü — sentetik gerekçe
+
+Odak sorular
+  sentetik odak sorusu
+
+Hasta onayladı
+  chief_complaint
+
+Aday bulgular (hekim değerlendirmesi için)
+  [aday — hekim değerlendirmesi için] sentetik aday bulgu — konusma-1: 40-58
+
+Eksikler
+  screening · phq2 — eksik: ortam uygun değildi
+  family_social · fh_father — eksik: hasta paylaşmak istemedi
+  ros_pertinent · ros_gi — eksik: görüşme tamamlanmadan bitti
+  pmh · pmh_surgery_detail — eksik: ön koşulu belirsiz kaldı, sorulamadı
+
+Kaynaklar
+  [f01] utterance:work-1:0-16
+  [f02] utterance:work-2:0-13
+  [f03] utterance:work-3:4-20
+  [f04] utterance:work-4:0-16
+  [f05] document:doc-0001:p2:0.1,0.2,0.3,0.4
+  [f06] earlier_visit:visit-0000:2026-05-12
+  [f07] earlier_visit:visit-0000:2026-05-12
+  [f08] utterance:work-5:0-23
+  [f09] utterance:work-6:0-15
+  [f10] utterance:work-7:0-3
+  [f11] utterance:work-8:0-4
+  [f12] document:doc-0002:p1
+
+Bu belge hastanın beyanına dayanır; hekim değerlendirmesinin yerine geçmez. İçerik yapay zekâ desteğiyle yapılandırılmıştır ve tanı niteliği taşımaz.
