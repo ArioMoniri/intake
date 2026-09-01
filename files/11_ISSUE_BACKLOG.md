@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**211 issues.** By phase: P0 122 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 85 · todo 115 · withdrawn 1.
+**211 issues.** By phase: P0 122 · P1 47 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 86 · todo 114 · withdrawn 1.
 
 ## P0
 
@@ -61,7 +61,7 @@
 | INT-059 | Triage golden suite >=200 + mutation tests | E03-protocols | INT-080 | area:protocols, risk:clinical | done |
 | INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | done |
 | INT-080 | Deterministic triage engine (levels, monotonic merge, action scripts) | E04-engines | INT-040 | area:safety, risk:clinical | done |
-| INT-081 | IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays | E04-engines | INT-080, INT-258 | area:engine | todo |
+| INT-081 | IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays | E04-engines | INT-080, INT-258 | area:engine | done |
 | INT-082 | Patient simulator: personas + scenarios IM-01..IM-14 headless | E04-engines | INT-081 | area:engine | todo |
 | INT-083 | Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set | E04-engines | INT-081, INT-015 | area:ai | todo |
 | INT-084 | Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer | E04-engines | INT-083, INT-033 | area:engine, risk:legal | todo |

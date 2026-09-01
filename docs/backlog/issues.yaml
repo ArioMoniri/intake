@@ -834,7 +834,8 @@
   title: "IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays"
   depends_on: [INT-080, INT-258]
   labels: [area:engine]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-081.md
   acceptance:
     - "no LLM inside; answered_pending + follow_up_tr semantics; delta mode driven by PatientOverlay; must_ask coverage computed"
   tests: [tests/engine/test_fsm.py]
