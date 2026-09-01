@@ -1,0 +1,30 @@
+# SENTETİK TEST VERİSİ — INT-258 overlay-mechanism fixture: an ADD-only
+# overlay. It declares one new rule id and touches nothing inherited. No
+# `extends:` — an overlay is applied TO a chain, it is not a member of one
+# (files/04 §2.3; files/12 §1). Mechanism only, no clinical meaning.
+kind: pack
+id: overlay.sentetik_ekleme
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik ekleyen bindirme"
+red_flags:
+  - id: rf.sentetik_bindirme_ek
+    label_tr: "Sentetik bindirme ek kuralı"
+    when: "oyku.sure_gun > 4"
+    tense: today
+    tense_anchor: sure_gun
+    level: SARI_K1
+    route: EXPEDITE
+    notify_clinic: never
+    status: active
+    source:
+      guideline_id: SYN-OVERLAY-B
+      guideline_title: "Sentetik bindirme kılavuzu B"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-overlay-b"
+      retrieved_on: 2026-08-28
+      quote: "sentetik alıntı metni"

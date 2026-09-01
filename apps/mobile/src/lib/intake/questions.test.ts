@@ -207,6 +207,27 @@ describe("askIf gates (INT-236/239 — serializable data, mirroring dsl.py ask_i
       questionId: "gastro_bowel",
       includesAny: ["constipation", "diarrhea", "alternating"],
     },
+    // INT-256 — the universal history block. Same rule, one section over: a
+    // gate here only ever asks for a further detail of something the patient
+    // has already said they have. None of them reads the chief complaint,
+    // none crosses a section boundary, and none encodes a clinical meaning.
+    allergy_kind: { questionId: "allergy_known", includesAny: ["yes"] },
+    allergy_reaction: { questionId: "allergy_known", includesAny: ["yes"] },
+    allergy_detail: {
+      questionId: "allergy_kind",
+      includesAny: ["medicine", "food", "sting", "latex", "pollen_dust", "other"],
+    },
+    meds_other_detail: { questionId: "meds_other", includesAny: ["yes"] },
+    meds_otc_detail: { questionId: "meds_otc", includesAny: ["yes"] },
+    pmh_conditions: { questionId: "pmh_known", includesAny: ["yes"] },
+    pmh_other_detail: { questionId: "pmh_conditions", includesAny: ["other"] },
+    pmh_surgery_detail: { questionId: "pmh_surgery", includesAny: ["yes"] },
+    pmh_recent_detail: { questionId: "pmh_recent_change", includesAny: ["yes"] },
+    fh_who: { questionId: "fh_known", includesAny: ["yes"] },
+    fh_detail: {
+      questionId: "fh_who",
+      includesAny: ["mother", "father", "sibling", "child", "grandparent", "other"],
+    },
   };
 
   it("exactly the declared structurally-obvious gates exist — nothing else is gated", () => {

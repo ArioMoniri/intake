@@ -12,6 +12,7 @@ dependencies = [
     "intake-voice-runtime",
     "intake-voice-clips",
     "intake-metrics",
+    "intake-learning",
 ]
 
 [tool.uv]
@@ -27,6 +28,7 @@ members = [
     "services/api",
     "services/voice-runtime",
     "services/metrics",
+    "services/learning",
 ]
 
 [tool.uv.sources]
@@ -38,6 +40,7 @@ intake-protocols = { workspace = true }
 intake-voice-runtime = { workspace = true }
 intake-voice-clips = { workspace = true }
 intake-metrics = { workspace = true }
+intake-learning = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -97,6 +100,7 @@ files = [
     "services/api/src",
     "services/voice-runtime/src",
     "services/metrics/src",
+    "services/learning/src",
 ]
 
 [[tool.mypy.overrides]]

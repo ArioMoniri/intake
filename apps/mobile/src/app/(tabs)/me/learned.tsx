@@ -14,7 +14,7 @@
 import { ScrollView, StyleSheet } from "react-native";
 
 import { CarriedFactLedger } from "@/components/CarriedFacts";
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
 import { t } from "@/lib/i18n";
@@ -26,7 +26,7 @@ export default function Learned() {
   const facts = account?.carriedFacts ?? [];
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("me.learned")}
         </AppText>
@@ -53,6 +53,6 @@ export default function Learned() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.xl },
   heroLine: { marginTop: spacing.xl },
 });

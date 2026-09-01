@@ -31,7 +31,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useReducer, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
 import {
@@ -40,6 +40,7 @@ import {
   PrimaryButton,
   Screen,
   useFontScale,
+  useScheme,
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
@@ -56,7 +57,7 @@ import { t } from "@/lib/i18n";
 import {
   applicableQuestions,
   nextApplicableQuestion,
-  packForDepartment,
+  packForVisit,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
 import {
@@ -65,6 +66,7 @@ import {
   voiceIntakeReducer,
   type PrefillMap,
 } from "@/lib/intake/voiceFirst";
+import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -76,9 +78,21 @@ export default function TypedIntake() {
   const headerOptions = useStackHeader();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, consents, visits, integrity } = useSession();
+  // INT-260: "Ziyarete başlarken" — the patient's own answer to whether a
+  // fresh visit opens by speaking or by typing. It can only ever narrow the
+  // existing eligibility rule; typed intake was already reachable from the
+  // gate, from inside the dialogue, and from any failure.
+  const { prefs } = useAppearance();
   const note = notes[visitId ?? ""];
   const visit = visits.find((v) => v.id === visitId);
-  const intakeQuestions = packForDepartment(visit?.department);
+  // The pack a visit runs = the department's dimensions + the universal
+  // history block, narrowed to this session's profile (INT-256): Hızlı asks
+  // meds/allergies, Detaylı adds the PMH/FH deltas, and a section the 02 §33
+  // self-check deferred is absent rather than asked quietly.
+  const intakeQuestions = packForVisit(visit?.department, {
+    mode: note?.mode ?? "hizli",
+    deferred: note?.deferred,
+  });
 
   // Voice goes FIRST on a fresh run: not edit mode, nothing answered yet,
   // voice consent ON, dev lane present. The ASR probe gates inside the flow.
@@ -88,6 +102,7 @@ export default function TypedIntake() {
   const integrityCompromised = !voiceAllowedForIntegrity(integrity);
   const voiceEligible =
     __DEV__ &&
+    prefs.startMode === "voice" &&
     consents?.voice === true &&
     !editing &&
     !integrityCompromised &&
@@ -149,7 +164,7 @@ export default function TypedIntake() {
             visitId={visitId}
             questions={intakeQuestions}
             packName={visit?.department ?? "general"}
-            onFailed={() => dispatchVoice({ type: "failure" })}
+            onFailed={(prefill) => dispatchVoice({ type: "failure", prefill })}
             onHandoff={(prefill) => dispatchVoice({ type: "candidates", prefill })}
           />
         ) : (
@@ -173,7 +188,7 @@ interface StepFlowProps {
 function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }: StepFlowProps) {
   const router = useRouter();
   const theme = useTheme();
-  const dark = useColorScheme() === "dark";
+  const dark = useScheme() === "dark";
   const fontScale = useFontScale();
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
@@ -324,6 +339,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   }
 
   const floatingCta = question.kind !== "single";
+  // INT-256: the text CTA used to read "Bitir" unconditionally, which was
+  // true only while `extra` was the one text step in the pack. The universal
+  // history block adds free-text steps mid-flow, so the label now follows
+  // the flow: "Bitir" when this is the last applicable question (or an edit
+  // returning to the review), "Devam" otherwise.
+  const isLastApplicable =
+    applicable.length > 0 && applicable[applicable.length - 1].id === question.id;
+  const ctaLabel = editing || isLastApplicable ? t("intake.finish") : t("intake.next");
 
   return (
     <>
@@ -500,7 +523,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       {question.kind === "chips" ? (
         <GlassBar>
           <PrimaryButton
-            label={editing ? t("intake.finish") : t("intake.next")}
+            label={ctaLabel}
             disabled={selected.length === 0}
             onPress={() => commit(selected)}
           />
@@ -509,7 +532,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       {question.kind === "text" ? (
         <GlassBar>
           <PrimaryButton
-            label={t("intake.finish")}
+            label={ctaLabel}
             onPress={() => commit(text.trim().length > 0 ? [text.trim()] : [])}
           />
         </GlassBar>

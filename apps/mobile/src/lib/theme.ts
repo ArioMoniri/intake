@@ -175,12 +175,39 @@ export type TypeRole = keyof typeof typeScale;
 /**
  * Dynamic type: sizes follow the user's fontScale up to 2.0 (02 §8.2 — full
  * operation at 200 %). The cap is a layout-survival bound, not a comfort
- * preference; screens that cannot survive 2.0 change FORM instead (the rail
- * collapses at ≥1.6 — 00 §2), they never clamp text harder.
+ * preference; screens that cannot survive 2.0 change FORM instead (00 §2),
+ * they never clamp text harder.
+ *
+ * INT-260 corrected the claim that used to sit here. For four design passes
+ * this comment named a collapse scale for the tab rail while
+ * `FloatingTabBar` contained no scale reference at all — and the number was
+ * wrong when something finally rendered against it, because the rail's
+ * captions stop fitting one step earlier than it said. The thresholds now
+ * live where a test can reach them, as
+ * `LARGE_TEXT_SCALE` (1.6, content) and `RAIL_LABEL_MAX_SCALE` (1.2, chrome)
+ * in lib/prefs/appearance.ts, and this file states no number it does not own.
  */
+function clampScale(fontScale: number): number {
+  return Math.max(0.5, Math.min(fontScale, 2.0));
+}
+
 export function scaledSize(role: TypeRole, fontScale: number): number {
-  const clamped = Math.max(0.5, Math.min(fontScale, 2.0));
-  return Math.round(typeScale[role] * clamped);
+  return Math.round(typeScale[role] * clampScale(fontScale));
+}
+
+/**
+ * A CONTROL's dimension at the user's scale — a rail glyph, a switch track,
+ * an icon well — under the same clamp as text (INT-260).
+ *
+ * It exists because of a defect the owner saw on the simulator and named
+ * exactly: "navbar and sizes dont match". Every string on the screen had
+ * doubled and the tab rail's icons had not, so the chrome read as a different
+ * app's navbar pasted under the content. Text and chrome are dimensions in the
+ * same coordinate system; they take the same multiplier, from the same clamp,
+ * declared once.
+ */
+export function scaledControl(base: number, fontScale: number): number {
+  return Math.round(base * clampScale(fontScale));
 }
 
 /**

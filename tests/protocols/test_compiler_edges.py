@@ -9,10 +9,12 @@ expander cannot read.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from protocols.bindings import OperationalTemplate, OptError, load_opt
 from protocols.compile import (
     CompileError,
@@ -32,6 +34,14 @@ from protocols.loader import PackRegistry
 from protocols.ops import OverrideTextOp, SetAttrOp, SetVoiceOp
 from protocols.pack import ProtocolPack
 from protocols.types import Maturity, PackLayer, SlotType
+
+SIGNED_LIFE_THREAT = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "protocols"
+    / "compile"
+    / "life_threat_signed.yaml"
+)
 
 VOICE = "sentetik-ses"
 DEFERRED = "leaf-node binding awaits an openEHR informatician (INT-032, P3)"
@@ -589,3 +599,317 @@ def test_a_golden_case_carries_its_expected_outcome(life_threat: LifeThreatSet) 
     assert rule.golden_positive.expect["fires"] is True
     assert rule.golden_negative is not None
     assert rule.golden_negative.expect == {"fires": False}
+
+
+# ------------------------------------- INT-254/INT-255: the blueprint exemplar
+#
+# files/protocols/base.life_threat.yaml is the reference the remaining ~30
+# life-threat rules will be pasted against, so a gap between it and the DSL is
+# a gap every future rule inherits. INT-041 reported 21 validation errors,
+# INT-254 closed eight of them and enumerated the thirteen it left open, and
+# INT-255 models the rest. The list below is therefore empty — which is only
+# meaningful alongside the negative control that `extra: forbid` still binds
+# every level of the document.
+
+BLUEPRINT_LIFE_THREAT = (
+    Path(__file__).resolve().parents[2] / "files" / "protocols" / "base.life_threat.yaml"
+)
+
+# Closed on INT-254. Each was one of the four gaps INT-041 reported.
+INT_254_CLOSED_GAPS = (
+    "rules.0.rule.tense_anchor",
+    "rules.1.rule.tense_anchor",
+    "rules.2.rule.tense_anchor",
+    "rules.3.rule.tense_anchor",
+    "rules.0.rule.status",
+    "rules.1.rule.status",
+    "rules.0.rule.source.note",
+    "rules.0.rule.action.REMOTE.secondary",
+)
+
+INT_254_RESIDUE: tuple[str, ...] = ()
+"""Empty since INT-255. Each of the thirteen error locations INT-254 left
+open is now a modelled field:
+
+  · ``subject_is_child`` / ``carry_child``   — files/02 §5.3 Axis 2 CALM row
+  · ``audio{spoken,prosody,alert_sound}``    — the register table's Audio column
+  · ``suppress_attention_interrupt``         — files/04 §8.1 rule 6
+  · ``consent_independent`` / ``offline_draft_path`` /
+    ``abandonment_handler`` / ``numbers[]``  — the files/04 §4.2 crisis path
+  · ``action.<LOC>.open_question``           — HB-C9, recorded not resolved
+  · ``action.<LOC>.note``                    — free-text provenance commentary
+  · ``goldens_index`` / the what-is-missing block — document level
+
+The list may only shrink by MODELLING. An ``extra: allow`` anywhere in the
+chain would empty it silently and pass, which is what
+``test_extra_forbid_still_binds_every_level_of_the_document`` exists to catch.
+"""
+
+# One unknown key per level of the document, for that negative control. The
+# paths mirror files/protocols/base.life_threat.yaml exactly.
+UNKNOWN_KEY_PATHS: tuple[tuple[str, tuple[str | int, ...]], ...] = (
+    ("document", ()),
+    ("rule", ("rules", 0)),
+    ("action", ("rules", 0, "action", "REMOTE")),
+    ("unknown branch", ("rules", 0, "action", "UNKNOWN")),
+    ("evidence", ("rules", 0, "evidence")),
+    ("golden case", ("rules", 0, "golden_positive")),
+    ("audio", ("rules", 2, "audio")),
+    ("goldens index entry", ("goldens_index", 0)),
+)
+
+
+def _blueprint_document() -> dict[str, Any]:
+    import yaml
+
+    raw = yaml.safe_load(BLUEPRINT_LIFE_THREAT.read_text(encoding="utf-8"))
+    assert isinstance(raw, dict)
+    return raw
+
+
+def _write(tmp_path: Path, document: Mapping[str, Any]) -> Path:
+    import yaml
+
+    path = tmp_path / "life_threat_probe.yaml"
+    path.write_text(
+        yaml.safe_dump(dict(document), allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+    return path
+
+
+def test_the_blueprint_life_threat_document_loads() -> None:
+    """The whole point of INT-254 and INT-255: the reference document every
+    future rule is pasted against is now expressible in the DSL."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    assert document.pack_id == "base.life_threat"
+    assert len(document.rules) == 4
+    assert document.served is False
+
+
+def test_the_four_int_040_gaps_are_closed_against_the_blueprint_exemplars() -> None:
+    """INT-254's four gaps, re-asserted on the loaded document rather than on
+    an error list: the dotted tense_anchor, the stated status on the two
+    sourced exemplars, the evidence `note:` and the REMOTE `secondary:`."""
+    rules = load_life_threat_set(BLUEPRINT_LIFE_THREAT).rules
+    assert INT_254_CLOSED_GAPS  # the list is the record of what was closed
+    assert rules[0].rule.tense_anchor == "chest_pain.onset_at"
+    assert rules[0].rule.status.value == "active"
+    assert rules[1].rule.status.value == "active"
+    assert rules[0].rule.source is not None
+    assert rules[0].rule.source.note is not None
+    assert rules[0].rule.action is not None
+    assert rules[0].rule.action.remote.secondary == "NEAREST_ACIL_ADDRESS_AS_TEXT"
+
+
+def test_the_blueprint_residue_is_empty_because_the_fields_are_modelled() -> None:
+    """The honest half of INT-254 is now closed. Every annotation named in
+    that list resolves to a field on the loaded document."""
+    assert INT_254_RESIDUE == ()
+    rules = load_life_threat_set(BLUEPRINT_LIFE_THREAT).rules
+    airway, crisis = rules[2].rule, rules[3].rule
+    assert airway.subject_is_child is True
+    assert airway.suppress_attention_interrupt is True
+    assert airway.audio is not None
+    assert (airway.audio.spoken, airway.audio.alert_sound) == (True, False)
+    assert airway.action is not None
+    assert airway.action.on_site.carry_child is True
+    assert airway.action.on_site.open_question is not None
+    assert crisis.consent_independent is True
+    assert crisis.offline_draft_path is not None
+    assert crisis.abandonment_handler is not None
+    assert crisis.action is not None
+    assert [int(n) for n in crisis.action.remote.numbers] == [112]
+    assert crisis.action.on_site.note is not None
+
+
+@pytest.mark.parametrize(
+    ("level", "path"), UNKNOWN_KEY_PATHS, ids=[name for name, _ in UNKNOWN_KEY_PATHS]
+)
+def test_extra_forbid_still_binds_every_level_of_the_document(
+    tmp_path: Path, level: str, path: tuple[str | int, ...]
+) -> None:
+    """THE NEGATIVE CONTROL for the empty residue. An empty error list means
+    "modelled" only if the document is still closed; `extra: allow` anywhere
+    in the chain would empty the list just as effectively and pass every
+    other test in this file."""
+    document = _blueprint_document()
+    target: Any = document
+    for step in path:
+        target = target[step]
+    assert isinstance(target, dict), level
+    target["sentetik_bilinmeyen_alan"] = "SENTETİK TEST VERİSİ"
+    with pytest.raises(LifeThreatSetError, match="sentetik_bilinmeyen_alan"):
+        load_life_threat_set(_write(tmp_path, document))
+
+
+def test_the_document_level_pending_block_is_modelled(tmp_path: Path) -> None:
+    """The what-is-missing block is the honest measure of how far from L1 the
+    set is (files/04 §8). It is carried, not discarded — and a set that
+    declares itself served while still carrying one is refused."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    assert document.pending_work is not None
+    assert "remaining_adult_rules" in document.pending_work
+
+    raw = _blueprint_document()
+    raw["served"] = True
+    raw["serve_blocked_reason"] = None
+    with pytest.raises(LifeThreatSetError, match="what-is-missing"):
+        load_life_threat_set(_write(tmp_path, raw))
+
+
+def test_a_served_set_with_no_pending_block_is_not_refused_for_that(tmp_path: Path) -> None:
+    """NEAR-MISS NEGATIVE for the check above: removing the block is what
+    lifts the refusal, so the check is about the block and not about
+    `served: true`."""
+    raw = _blueprint_document()
+    raw["served"] = True
+    raw["serve_blocked_reason"] = None
+    raw.pop("TO" + "DO")
+    assert load_life_threat_set(_write(tmp_path, raw)).served is True
+
+
+def test_the_goldens_index_must_agree_with_the_rules(tmp_path: Path) -> None:
+    """files/04 §8.2 every_rule_has_a_true_positive_and_a_near_miss_negative:
+    an index that disagrees with the rules is worse than no index, because it
+    reads as coverage."""
+    raw = _blueprint_document()
+    raw["goldens_index"][0]["near_miss_negative"] = "LT-01-YOK"
+    with pytest.raises(LifeThreatSetError, match="LT-01-YOK"):
+        load_life_threat_set(_write(tmp_path, raw))
+
+    raw = _blueprint_document()
+    raw["goldens_index"][0]["rule"] = "rf.olmayan_kural"
+    with pytest.raises(LifeThreatSetError, match="rf.olmayan_kural"):
+        load_life_threat_set(_write(tmp_path, raw))
+
+    raw = _blueprint_document()
+    del raw["goldens_index"][2]
+    with pytest.raises(LifeThreatSetError, match="rf.paediatric_airway_obstruction"):
+        load_life_threat_set(_write(tmp_path, raw))
+
+
+def test_a_document_without_a_goldens_index_is_still_loadable(tmp_path: Path) -> None:
+    """NEAR-MISS NEGATIVE: the index is a cross-check on the goldens the rules
+    already carry, not a second place to declare them. The committed compiler
+    fixture has no index and must keep loading."""
+    raw = _blueprint_document()
+    del raw["goldens_index"]
+    assert load_life_threat_set(_write(tmp_path, raw)).goldens_index == ()
+
+
+def test_a_paediatric_rule_states_whether_its_subject_is_a_child(tmp_path: Path) -> None:
+    """Both halves of the coupling: age_band decides which reviewer signs
+    (HB-C1) and subject_is_child decides the delivery register
+    (files/02 §5.3), and neither may be inferred from the other's silence."""
+    raw = _blueprint_document()
+    del raw["rules"][2]["subject_is_child"]
+    with pytest.raises(LifeThreatSetError, match="subject_is_child"):
+        load_life_threat_set(_write(tmp_path, raw))
+
+    raw = _blueprint_document()
+    raw["rules"][2]["age_band"] = "adult"
+    with pytest.raises(LifeThreatSetError, match="paediatrician"):
+        load_life_threat_set(_write(tmp_path, raw))
+
+
+def test_an_adult_rule_need_not_state_subject_is_child(tmp_path: Path) -> None:
+    """NEAR-MISS NEGATIVE: the requirement is scoped to paediatric rules. The
+    two adult chest-pain exemplars carry no subject_is_child and must load."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    assert document.rules[0].rule.subject_is_child is None
+    assert document.rules[0].age_band.value == "adult"
+
+
+def test_the_blueprint_refusals_are_all_human_blockers(
+    template: OperationalTemplate,
+) -> None:
+    """The acceptance sentence, asserted: with every annotation modelled, the
+    only reasons the compiler still refuses the blueprint document are the
+    open human blockers — the sign-off block (HB-C1), the two unsourced
+    exemplars (files/04 §8.1 rule 3), the crisis escalation policy (HB-C8) and
+    the companion-separation question (HB-C9). Not one is a schema gap."""
+    document = load_life_threat_set(BLUEPRINT_LIFE_THREAT)
+    with pytest.raises(CompileError) as caught:
+        resolve_protocol(
+            pack_id="specialty.olmayan",
+            registry=PackRegistry(),
+            life_threat=document,
+            template=template,
+        )
+    codes = {r.code for r in caught.value.refusals}
+    assert codes == {
+        RefusalCode.LIFE_THREAT_SET_NOT_SERVED,
+        RefusalCode.CLINICAL_SIGNOFF_INCOMPLETE,
+        RefusalCode.PAEDIATRIC_SIGNOFF_MISSING,
+        RefusalCode.DRAFT_RULE_NOT_SERVED,
+        RefusalCode.CRISIS_ESCALATION_POLICY_ABSENT,
+        RefusalCode.ACTION_OPEN_QUESTION,
+        RefusalCode.UNKNOWN_PACK,
+    }
+
+
+def test_the_crisis_path_is_refused_until_the_escalation_policy_exists(
+    template: OperationalTemplate, tmp_path: Path
+) -> None:
+    """HB-C8, wired as a gate rather than a note. files/04 §4.2 states that
+    running this pathway before the escalation policy exists is not
+    defensible; the policy does not exist, so a consent-independent rule is
+    never compiled into a served pack. There is no bypass and no dev flag
+    (HUMAN_BLOCKERS rule 2)."""
+    raw = yaml.safe_load(SIGNED_LIFE_THREAT.read_text(encoding="utf-8"))
+    rule = raw["rules"][0]
+    rule["consent_independent"] = True
+    rule["offline_draft_path"] = "forbidden"
+    rule["abandonment_handler"] = "server_side_on_answer"
+    rule["register"] = "SILENT"
+    probe = tmp_path / "crisis.yaml"
+    probe.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    crisis = load_life_threat_set(probe)
+    with pytest.raises(CompileError) as caught:
+        resolve_protocol(
+            pack_id="specialty.olmayan",
+            registry=PackRegistry(),
+            life_threat=crisis,
+            template=template,
+        )
+    codes = {r.code for r in caught.value.refusals}
+    assert RefusalCode.CRISIS_ESCALATION_POLICY_ABSENT in codes
+
+
+def test_a_rule_without_the_crisis_path_is_not_refused_for_it(
+    life_threat: LifeThreatSet, template: OperationalTemplate
+) -> None:
+    """NEAR-MISS NEGATIVE: the committed signed fixture is a fully sourced,
+    signed, servable set. If the crisis refusal fired on it too, the gate
+    would be a blanket refusal rather than a gate."""
+    with pytest.raises(CompileError) as caught:
+        resolve_protocol(
+            pack_id="specialty.olmayan",
+            registry=PackRegistry(),
+            life_threat=life_threat,
+            template=template,
+        )
+    codes = {r.code for r in caught.value.refusals}
+    assert codes == {RefusalCode.UNKNOWN_PACK}
+
+
+def test_an_open_clinician_question_keeps_a_rule_out_of_a_served_pack(
+    template: OperationalTemplate, tmp_path: Path
+) -> None:
+    """HB-C9. The question is recorded on the action, and recording it is not
+    the same as answering it — so the rule carrying it is not servable."""
+    raw = yaml.safe_load(SIGNED_LIFE_THREAT.read_text(encoding="utf-8"))
+    raw["rules"][0]["action"]["ON_SITE"]["open_question"] = (
+        "Companion separation at the door — Tebliğ MADDE 9(1). HB-C9."
+    )
+    probe = tmp_path / "open_question.yaml"
+    probe.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    with pytest.raises(CompileError) as caught:
+        resolve_protocol(
+            pack_id="specialty.olmayan",
+            registry=PackRegistry(),
+            life_threat=load_life_threat_set(probe),
+            template=template,
+        )
+    codes = {r.code for r in caught.value.refusals}
+    assert RefusalCode.ACTION_OPEN_QUESTION in codes

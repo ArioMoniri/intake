@@ -321,12 +321,25 @@
   title: "EHRbase export tier: OPT templates + client + roundtrip (P3 export per D8)"
   depends_on: [INT-031]
   labels: [area:data]
-  status: todo
+  status: done
   acceptance:
     - "intake composition template (OPT) uploaded on boot; write/read composition per session; contribution audit"
     - "integration test writes and reads a composition against EHRbase container"
   tests: [tests/integration/test_ehrbase_roundtrip.py]
   legal: "KSVY-5"
+  sec_row: "clinical-core"
+- id: INT-257
+  epic: E02-data
+  phase: P3
+  # Found by INT-032 against a live EHRbase 2.35.1: the committed OPT does not upload.
+  title: "openEHR OPT: the committed template has no occurrences and a live CDR rejects it"
+  depends_on: [INT-032]
+  labels: [area:data]
+  status: todo
+  acceptance:
+    - "every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"
+    - "OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"
+  tests: [tests/integration/test_ehrbase_roundtrip.py]
   sec_row: "clinical-core"
 - id: INT-033
   epic: E02-data
@@ -820,13 +833,21 @@
   tests: [tests/safety/test_triage_engine.py]
   legal: "1219-8,TCY-R11"
   sec_row: "triage"
+# INT-056 -> INT-258 re-point, made by the PR for INT-258 ("Overlay composition
+# mechanism + monotonicity property test"). INT-081's acceptance needs the
+# overlay *machinery* - "delta mode driven by PatientOverlay" is activation plus
+# composition, and INT-258 delivers both against synthetic fixtures - not the
+# eight authored overlays of 04 section 2.3, which are clinical content. INT-056
+# stays open and keeps that content; it still blocks anything that needs a real
+# overlay to exist. Only this one dependency moved.
 - id: INT-081
   epic: E04-engines
   phase: P0
   title: "IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays"
-  depends_on: [INT-080, INT-056]
+  depends_on: [INT-080, INT-258]
   labels: [area:engine]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-081.md
   acceptance:
     - "no LLM inside; answered_pending + follow_up_tr semantics; delta mode driven by PatientOverlay; must_ask coverage computed"
   tests: [tests/engine/test_fsm.py]
@@ -1581,7 +1602,7 @@
   title: "services/learning Inspector->Architect + proposal schema + evidence bundles + PR bot (open-not-merge)"
   depends_on: [INT-171, INT-004]
   labels: [area:learning, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "proposal_scope CI test blocks forbidden paths (red-flag levels, instruments, consent texts, Talker tools, PolicyGuard, residency routing); sandboxed job read-only creds no egress; signed proposals"
   tests: [tests/learning/test_proposal_scope.py]
@@ -2225,8 +2246,8 @@
   phase: P1
   title: "GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy"
   depends_on: [INT-002]
-  labels: [area:infra]
-  status: todo
+  labels: [area:infra, approval:human-infra, blocked:contract]
+  status: awaiting-human
   acceptance:
     - "runner heartbeats probed; CI uses synthetic fixtures only (scan)"
   tests: [tests/infra/test_ci_no_phi.py]
@@ -2425,7 +2446,7 @@
   title: "Store compliance: Apple health guidelines + Google Play Health policy + Data safety/privacy labels + IARC"
   depends_on: []
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  status: done
   acceptance:
     - "checklists as tests where automatable; labels generated from the data inventory (single source)"
   tests: [tests/legal/test_store_labels.py]
@@ -2472,7 +2493,23 @@
   title: "Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies"
   depends_on: [INT-015, INT-038]
   labels: [area:research, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-230.md
+  # NOTE 29 Aug 2026 — one deviation, stated rather than papered over. The
+  # acceptance says "anonymisation validated on corpus". Anonymisation is not
+  # what this pipeline can produce: the subject key is a keyed HMAC pseudonym,
+  # re-derivable by whoever holds the tokenization key, so it is personal data
+  # under KVKK and KSVY m.16(1)'s anonymisation route is unavailable. What is
+  # delivered instead, and validated on the INT-015 corpus, is an EXCLUSION
+  # rule — no corpus sentence and no bare corpus identifier can become an
+  # export value — with the artefact named PseudonymisedExtract throughout and
+  # a test forbidding the word "anonym" in any public name. The pipeline rides
+  # files/06 §75's other route ("All research consented (`research`) or
+  # anonymised per KSVY-16"): consent plus a recorded ethics id. Which limb of
+  # m.16 that actually is, is HB-L21 (counsel).
+  # The gate is shipped, tested and FAILING CLOSED: study_registry.yaml holds
+  # zero studies (HB-R1, site HB-L1) and research_extracts retention is
+  # draft_needs_source (HB-I8), so every export refuses today.
   acceptance:
     - "exports only with research consent + ethics id; anonymisation validated on corpus; register of research extracts"
   tests: [tests/research/test_export_gates.py]
@@ -2489,6 +2526,29 @@
     - "pre-registered analysis scripts; blinded exports; reproducible notebooks under tests"
   tests: [tests/research/test_notebooks_run.py]
   legal: "ETİK"
+- id: INT-262
+  epic: E15-research
+  phase: P2
+  title: "Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies)"
+  depends_on: [INT-230]
+  labels: [area:research, risk:legal, approval:human-legal]
+  status: todo
+  # Raised by INT-230, which states the gap in its own evidence rather than
+  # leaving it unrecorded. INT-230's k gate holds for ONE extract: every
+  # quasi-identifier combination carries at least k subjects. It does not
+  # compare a new request against the extracts already in the register, so an
+  # investigator who takes the same spec over 2026-W01..W12 and then over
+  # 2026-W01..W11 differences the two and recovers the twelfth week's cells —
+  # at any k. The register already holds what a gate would need (study, spec,
+  # window, subjects, k, content hash); what it does not hold is the POLICY,
+  # and the honest reason this is a separate issue is that the policy has a
+  # parameter no agent may pick: how much window overlap, and how many
+  # requests, a study may make. That is an ethics-committee decision.
+  acceptance:
+    - "the export gate reads the register for prior extracts of the same study+spec and refuses an overlapping window unless the study's registry row states an explicit query budget; the budget has no default and an absent one fails closed; golden test differences two extracts and proves the second is refused"
+  tests: [tests/research/test_differencing_gate.py]
+  legal: "KVKK-16,KSVY-16,ETİK"
+  sec_row: "learning-loops"
 - id: INT-240
   epic: E16-experience
   phase: P0
@@ -2724,6 +2784,87 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+- id: INT-254
+  epic: E03-protocols
+  phase: P0
+  title: 'DSL/life-threat reconciliation: tense_anchor is a slot reference, explicit
+    rule status, source note, secondary action — and the validator AttributeError
+    INT-041 routed around'
+  depends_on:
+  - INT-040
+  - INT-041
+  labels:
+  - area:protocols
+  sec_row: protocol-registry
+  status: done
+  evidence: docs/evidence/INT-254.md
+  acceptance:
+  - '`tense_anchor` is typed as a slot REFERENCE in the `when` grammar''s namespace,
+    not a bare slot key: `protocols.triage.engine` unions it into
+    `referenced_slots(when)` and `TriageContext.answers` is keyed "by the dotted
+    slot reference exactly as the when predicate spells it", so one pattern is
+    shared by the DSL and the tokenizer and a test asserts the two cannot drift.
+    Bare keys stay valid, so no existing pack changes'
+  - 'the two sourced exemplars in files/protocols/base.life_threat.yaml carry
+    `status: active` explicitly; `RedFlagRule.status` stays REQUIRED with no
+    default, because a default would make a forgotten status read `active` —
+    the unsafe direction (CLAUDE.md invariant 17)'
+  - '`SourceBlock.note` and `LocationAction.secondary` exist as optional fields
+    with tests; `secondary` carries the same action-code shape as `primary`, and
+    the ON_SITE/112 model validator is proven still to hold with it set'
+  - 'validator `_tr_texts` no longer dereferences a location branch without
+    checking it, and a structurally incomplete RED action produces a
+    `RED_ACTION_UNRESOLVED` Finding out of `validate_packs` instead of an
+    AttributeError — matching the guard `compile/resolve.py` already carries'
+  - 'the four named error classes are gone from `protocols compile --life-threat
+    files/protocols/base.life_threat.yaml`; every remaining error is listed in the
+    evidence with its class, and none of them is silently absorbed'
+  tests:
+  - tests/protocols/test_dsl_schema.py
+  - tests/protocols/test_validator.py
+  - tests/protocols/test_compiler_fail_closed.py
+- id: INT-255
+  epic: E03-protocols
+  phase: P0
+  title: 'Model the eleven life-threat delivery annotations the DSL still refuses
+    (audio/register, the crisis path, paediatric proxy, document-level blocks)'
+  depends_on:
+  - INT-254
+  labels:
+  - area:protocols
+  - risk:clinical
+  - approval:human-clinical
+  sec_row: protocol-registry
+  status: done
+  acceptance:
+  - 'after INT-254 the blueprint life-threat document still fails to load with 13
+    errors, pinned by `test_the_blueprint_residue_is_enumerated_and_still_refused`.
+    Each is an annotation files/protocols/base.life_threat.yaml carries and
+    `RedFlagRule`/`LocationAction`/`LifeThreatSet` do not model:
+    `subject_is_child`, `carry_child`, `audio: {spoken, prosody, alert_sound}`,
+    `suppress_attention_interrupt`, `consent_independent`, `offline_draft_path`,
+    `abandonment_handler`, `numbers: []`, `action.<LOC>.open_question`,
+    `action.<LOC>.note`, and the document-level `goldens_index` and `TODO` blocks'
+  - 'the delivery annotations are NOT plain optional fields: `audio` and
+    `suppress_attention_interrupt` carry the files/02 §5.3 register axis, and the
+    paediatric airway exemplar is KIRMIZI_K1 and CALM at once precisely because
+    alarm is the harm (files/04 §8.1 rule 6). A default chosen by an engineer here
+    is the failure invariant 21 names, so each field is modelled with no default
+    or is not modelled at all'
+  - '`consent_independent`, `offline_draft_path`, `abandonment_handler` and
+    `numbers` are the files/04 §4.2 crisis path: build the mechanism, wire the gate,
+    fail closed, leave the content empty (HUMAN_BLOCKERS rule 2, HB-C8). No model,
+    search tool or learning proposal may ever populate a crisis number (files/04
+    §4.1); the numbers stay in docs/legal/strings.yaml under PolicyGuard'
+  - 'the residue list in tests/protocols/test_compiler_edges.py shrinks to empty
+    only as fields are modelled — never by loosening `extra: forbid` anywhere in
+    the chain, which would empty it silently and pass'
+  - 'when the list is empty, `protocols compile --life-threat
+    files/protocols/base.life_threat.yaml` loads the blueprint document, and the
+    sign-off interlock (HB-C1) is then the only thing keeping it out of a bundle'
+  tests:
+  - tests/protocols/test_compiler_edges.py
+  - tests/protocols/test_dsl_schema.py
 - id: INT-246
   epic: E08-mobile
   phase: P0
@@ -2829,3 +2970,115 @@
     selection is cached per session and re-probed on failure'
   tests:
   - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+- id: INT-261
+  epic: E08-mobile
+  phase: P0
+  title: 'Voice intake mixes with the typed form: a clip that cannot be spoken ends
+    the whole conversation, and the spoken turn reads the typed form''s control copy'
+  depends_on:
+  - INT-239
+  - INT-249
+  labels:
+  - area:mobile
+  - area:voice
+  status: done
+  acceptance:
+  - 'reported from the field as "voice and text based dynamic questions gets mixed
+    up" and reproduced twice on the simulator with every dev lane answering its
+    health probe: answering the first spoken question drops the patient into the
+    typed form, which re-asks that same question from zero under a notice blaming
+    the voice feature, and in the second reproduction the turn instead sat on
+    "soru hazırlanıyor" indefinitely because nothing bounds a clip end to end
+    while lane admission, per-lane fallback and per-sentence synthesis each
+    bound only their own request and multiply; so a clip that cannot be
+    synthesised silences the agent for the session instead of ending the
+    conversation, since the question text, the microphone, the composer, the
+    extraction and the confirm turn need no agent audio, and the patient is told
+    once in tr that reading aloud stopped; a clip gets one lane admission plus
+    one synthesis per sentence and past that the turn continues without a voice,
+    with both figures taken from the committed constants rather than chosen;
+    a genuinely fatal dialogue hands the typed steps the same unconfirmed
+    suggestions a tidy hand-over does, so no exit loses what was said; and the
+    agent no longer speaks or renders the typed lane''s control copy, which
+    promised a multi-select grid and options on screen during a turn that
+    renders neither'
+  tests:
+  - apps/mobile/src/lib/dialogue/stream.test.ts
+  - apps/mobile/src/lib/dialogue/speech.test.ts
+  - apps/mobile/src/lib/dialogue/tts.test.ts
+  - apps/mobile/src/lib/intake/voiceFirst.test.ts
+  sec_row: "intake-voice"
+- id: INT-256
+  epic: E04-engines
+  phase: P1
+  # The universal history block only. Guideline-grounded, department-specific clinical
+  # content stays with INT-043 -> INT-044..051, which is awaiting-human (HB-C1).
+  title: "Universal history sections (allergy, medication, PMH, family) composed onto every department pack"
+  depends_on: [INT-247]
+  labels: [area:engine]
+  status: done
+  acceptance:
+    - "historyQuestions authored once in 04 section 1 order and COMPOSED onto every department pack by packForVisit(department, profile), never duplicated per department"
+    - "18 steps across allergies/medications/pmh/family_social; the pmh and family blocks are Detayli-only and the mode gating is asserted, not assumed"
+    - "carried facts render per kind: a carried allergy never appears in the medication list and never takes medication-shaped wording"
+    - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
+  tests: [apps/mobile/src/lib/intake/history.test.ts]
+  sec_row: "intake-typed"
+- id: INT-258
+  epic: E03-protocols
+  phase: P0
+  title: "Overlay composition mechanism + monotonicity property test (content stays with INT-056)"
+  depends_on: [INT-041]
+  labels: [area:protocols]
+  status: done
+  acceptance:
+    - "the overlay type, load path and compose step exist in packages/protocols: activate_overlays resolves the files/03 section 6 `overlays: [{id, when}]` declarations against confirmed PatientOverlay facts with the closed when grammar and three-valued evaluation, so a missing or stale fact reads Unknown and never activates; compose_overlay_rules applies overlay packs to a chain-resolved rule set add-and-tighten only"
+    - "a tighten_rule op in an overlay resolves its parent in the pack the overlay is applied TO, not in the overlay's own extends chain - without this an overlay is pinned to one branch and `overlay.oncology_patient` cannot reach a dermatology session, which 04 section 2.2/2.3 requires"
+    - "the compiler REFUSES, never warns: a pack applied as an overlay from another layer; an overlay that redeclares an inherited rule; a tighten that downgrades acuity, rewrites the parent predicate instead of disjoining it, or mints an id outside rf.X.<qualifier>; two overlays contributing one rule id with different bodies; an overlay claiming a base.life_threat rule id; an overlay suppressing a slot a surviving red flag reads"
+    - "tests/protocols/test_overlay_monotonicity.py asserts four properties over randomly generated compositions (hypothesis, already a dev dependency): every base rule survives byte-identical; a minted rule never lowers its parent's acuity and the parent stays live; any permutation of the same overlay set composes to the same rules and the same refusals; and generated relaxing overlays are refused - seven relaxation vectors, each asserted, so the test fails if the compiler silently accepts one"
+    - "NO clinical content: fixture overlays only, under tests/fixtures/, with synthetic names and values. The eight authored patient overlays of 04 section 2.3 stay with INT-056 and stay blocked on a licensed physician (HUMAN_BLOCKERS HB-C1, HB-C5, HB-C6)"
+  tests: [tests/protocols/test_overlay_monotonicity.py, tests/protocols/test_overlay_activation.py]
+  sec_row: "learning-loops"
+- id: INT-260
+  epic: E08-mobile
+  phase: P0
+  # Owner directive 2026-08-30: "make the chat page and voice page more sleek and
+  # minimalistic ... and also make text size and other settings adjustable".
+  # This issue is the settings half; the surface redesign is its own chain.
+  title: "Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something"
+  depends_on: [INT-144, INT-193]
+  labels: [area:mobile]
+  status: done
+  acceptance:
+    - "text size, theme, on-screen motion and visit start mode are adjustable in-app and persist device-locally; each control has a real consumer on the day it ships, and a fifth (spoken reading) is deliberately absent because its only consumer is a surface this issue does not touch"
+    - "useFontScale is redefined IN PLACE so a chosen step REPLACES the OS value rather than composing with it: no sibling hook, scaledSize/lineHeight/the clamp/AppText untouched, and the discriminating case (smallest step at OS 2.0 renders 0.9, which no composing build can produce) is asserted rather than described"
+    - "the ladder is five discrete steps [0.9, 1.0, 1.3, 1.6, 2.0] and never a slider - typeScale is seven fixed integers and scaledSize rounds - and the top step equals the clamp ceiling so the control can never shrink a patient already at OS 2.0"
+    - "two gaps the control makes reachable are closed in the same change: useStackHeader stopped hardcoding 17 pt with react-navigation's own multiplier left on, and FloatingTabBar implements the collapse theme.ts has claimed since INT-130 - icons only at MIN_TAP with a filled well, because the dropped caption was half the focus signal"
+    - "theme and reduced motion get a mechanism rather than a dead switch: useScheme resolves the stored override and every scheme consumer but one recorded exception takes it, and useReducedMotion ORs the app switch with the OS signal so it can add reduced motion and never remove it"
+    - "the controls are exemplary rather than adequate: radiogroup/radio with accessibilityState.selected, switch with its checked state, every target at MIN_TAP by box and never by slop, selection never carried by hue alone, and the screen proved on the simulator at both ends of its own ladder"
+    - "persistence is device-local and provably so - this device's keychain slot, excluded from backups, no network and no session reachable from the provider - carries the invariant 18 inventory annotation, and the stop-and-ask is FILED with its named owner rather than answered by the agent"
+  tests:
+    - apps/mobile/src/lib/prefs/appearance.test.ts
+    - apps/mobile/e2e/appearance.spec.ts
+  sec_row: "mobile"
+  evidence: docs/evidence/INT-260.md
+- id: INT-282
+  epic: E04-engines
+  phase: P1
+  # Owner supplied a real HBYS intake schema (docs/sources/hbys_intake_schema.md,
+  # 2026-09-02) with the directive: use it as BASE-LAYER questions, "as much as
+  # possible ... but not populate too much". The whole value of this issue is the
+  # split below; adding all 103 fields would be the wrong reading of it.
+  title: "Base-layer questions from the HBYS schema: the patient-answerable subset only"
+  depends_on: [INT-256]
+  labels: [area:engine, risk:clinical]
+  status: todo
+  acceptance:
+    - "the source is committed verbatim at docs/sources/hbys_intake_schema.md and never edited; a test asserts the file is byte-identical to the recorded sha256"
+    - "PATIENT-ANSWERABLE fields become base-layer questions, composed onto every department pack by packForVisit the way INT-256's history block is, NOT duplicated per department: smoking status (5 states), alcohol, substance use, the seven named chronic conditions as a checklist, injury history, declared blood group, disability status, occupation, and transfusion history"
+    - "family history gains the per-relative shape the schema uses (mother/father/brother/sister x HT, cardiac, cancer, diabetes, blood disorder) instead of one free-text field - the note mapper must not attribute a relative's condition to the patient"
+    - "CLINICIAN- OR LAB-ONLY fields are NEVER asked of a patient and a test asserts each is absent from every pack: respiratory rate, pulse, pulse rhythm, systolic and diastolic BP, lab blood group, fall risk, examination note, treatment note, and the clinician narrative fields (Oyku, Ozgecmis Notu)"
+    - "height, weight and the 0-10 pain score are collected through guarded controls, never free numeric text on the clinical critical path (invariant 22), and every numeral has an inline render on the same work_id"
+    - "no clinical threshold, cut-off or interpretation is authored: the schema's option lists are a vendor vocabulary, not a validated instrument, and a claim that any of it is validated requires the physician of record"
+  tests: [apps/mobile/src/lib/intake/history.test.ts]
+  sec_row: "intake-typed"

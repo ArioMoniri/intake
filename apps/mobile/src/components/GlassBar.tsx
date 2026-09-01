@@ -10,12 +10,12 @@
  * content's paddingBottom so the last element can scroll clear of the bar.
  */
 import { type ReactNode } from "react";
-import { StyleSheet, View, useColorScheme } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useTheme } from "@/components/Themed";
+import { useScheme, useTheme } from "@/components/Themed";
 import { glassFallback, spacing } from "@/lib/theme";
 
 let liquidGlass = false;
@@ -38,7 +38,7 @@ interface GlassBarProps {
 
 export function GlassBar({ children, floating = true }: GlassBarProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const scheme = useScheme();
   const insets = useSafeAreaInsets();
   const fallback = glassFallback(scheme);
   const barStyle = floating ? [styles.bar, styles.floating] : [styles.bar];

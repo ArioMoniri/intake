@@ -26,6 +26,7 @@ import { useEffect } from "react";
 
 import { screenAnimation } from "@/lib/a11y/motion";
 import { useReducedMotion } from "@/lib/a11y/prefs";
+import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
 import { SessionProvider, useSession } from "@/lib/session";
 import { clientTelemetry, installCrashHandler } from "@/lib/telemetry/expoTelemetry";
 
@@ -70,9 +71,14 @@ export default function RootLayout() {
     return null;
   }
   return (
-    <SessionProvider>
-      <StatusBar style="auto" />
-      <LocalizedStack />
-    </SessionProvider>
+    // INT-260: outermost, because the scheme, the text scale and the motion
+    // policy are read by the navigators themselves — a provider inside the
+    // session would leave the shell's own chrome on the OS values.
+    <AppearanceProvider>
+      <SessionProvider>
+        <StatusBar style="auto" />
+        <LocalizedStack />
+      </SessionProvider>
+    </AppearanceProvider>
   );
 }
