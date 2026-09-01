@@ -40,6 +40,7 @@ import {
   type FactReconciliation,
   type FactReview,
 } from "./carriedFacts";
+import { measurementLine, measurementQuestions } from "./baseLayer";
 import {
   allQuestions,
   askIfMet,
@@ -402,6 +403,34 @@ export function buildNote(
     if (lines.length > 0) {
       sections.push({ id: section.id, titleKey: section.titleKey, lines });
     }
+  }
+
+  // The measured block (INT-282): boy, kilo and the pain score. It is a
+  // MOBILE section id, like `device_health` and `deferred` above it, and
+  // deliberately not one of files/04 §5's — that file's `PreVisitNote` has
+  // no anthropometry field at all, and inventing one here would put a note
+  // key into the world that no schema owner authored. The gap is recorded
+  // in docs/evidence/INT-282.md instead.
+  //
+  // Every value renders through `measurementLine`, so invariant 22's
+  // display discipline (`useGrouping:false`, number and unit as one
+  // non-breaking atom) is the same code path lib/health already uses.
+  const measured: string[] = [];
+  for (const question of measurementQuestions) {
+    const answer = byId.get(question.id);
+    if (!hasContent(answer) || question.lineLabelKey === undefined) {
+      continue;
+    }
+    const stale = question.askIf !== undefined && !askIfMet(question.askIf, answers);
+    const line = `${t(question.lineLabelKey)}: ${measurementLine(question, answer.values)}`;
+    measured.push(stale ? `${line} (${t("review.hpi.staleCondition")})` : line);
+  }
+  if (measured.length > 0) {
+    sections.push({
+      id: "measurements",
+      titleKey: "review.section.measurements",
+      lines: measured,
+    });
   }
 
   // Device health block (INT-208): present only when the patient explicitly

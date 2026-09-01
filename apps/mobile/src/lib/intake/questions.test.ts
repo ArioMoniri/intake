@@ -63,10 +63,13 @@ describe("packForDepartment resolution", () => {
 describe("pack shape invariants", () => {
   const packs = branchPacks();
 
-  it("every branch pack has 9–13 steps, opens with the complaint, closes with the free note", () => {
+  it("every branch pack has 11–16 steps, opens with the complaint, closes with the free note", () => {
     for (const pack of packs) {
-      expect(pack.length).toBeGreaterThanOrEqual(9);
-      expect(pack.length).toBeLessThanOrEqual(13);
+      // INT-282 added the two duration-driven follow-ups to every pack, so
+      // both bounds moved by two. The floor moves with the ceiling: a bound
+      // that only ever rises stops being a bound.
+      expect(pack.length).toBeGreaterThanOrEqual(11);
+      expect(pack.length).toBeLessThanOrEqual(16);
       expect(pack[0].id).toBe("complaint");
       expect(pack[pack.length - 1].id).toBe("extra");
     }
@@ -174,6 +177,11 @@ describe("askIf gates (INT-236/239 — serializable data, mirroring dsl.py ask_i
    * those belong to the physician-gated compiled packs (INT-057/041/096).
    */
   const GATES: Record<string, AskIf> = {
+    // level one — gated on the DURATION (INT-282). Two follow-ups on one
+    // earlier answer, mutually exclusive, so "bugün" and "bir aydır" run
+    // different flows rather than longer and shorter versions of one.
+    onset_today_when: { questionId: "duration", includesAny: ["today"] },
+    duration_course: { questionId: "duration", includesAny: ["week", "month"] },
     // level one — gated on the opening complaint
     pain_character: { questionId: "complaint", includesAny: ["pain"] },
     radiation: { questionId: "complaint", includesAny: ["pain"] },
@@ -224,10 +232,22 @@ describe("askIf gates (INT-236/239 — serializable data, mirroring dsl.py ask_i
     pmh_surgery_detail: { questionId: "pmh_surgery", includesAny: ["yes"] },
     pmh_recent_detail: { questionId: "pmh_recent_change", includesAny: ["yes"] },
     fh_who: { questionId: "fh_known", includesAny: ["yes"] },
+    // INT-282 narrowed this: the four relatives the owner's HBYS schema
+    // enumerates now carry the schema's own per-relative checklist
+    // (./baseLayer), so free text is left to the relatives it does not.
     fh_detail: {
       questionId: "fh_who",
-      includesAny: ["mother", "father", "sibling", "child", "grandparent", "other"],
+      includesAny: ["child", "grandparent", "other"],
     },
+    // INT-282 — the HBYS base layer. Same rule again: a gate asks for a
+    // further detail of something the patient has already said.
+    smoking_quit_when: { questionId: "smoking", includesAny: ["former"] },
+    injury_detail: { questionId: "injury_history", includesAny: ["yes"] },
+    fh_mother_conditions: { questionId: "fh_who", includesAny: ["mother"] },
+    fh_father_conditions: { questionId: "fh_who", includesAny: ["father"] },
+    fh_brother_conditions: { questionId: "fh_who", includesAny: ["brother"] },
+    fh_sister_conditions: { questionId: "fh_who", includesAny: ["sister"] },
+    pain_score: { questionId: "pain_present", includesAny: ["yes"] },
   };
 
   it("exactly the declared structurally-obvious gates exist — nothing else is gated", () => {
@@ -495,6 +515,9 @@ describe("missingQuestions (checkpoint eksik list — applicable and unanswered 
       { questionId: "gastro_location", values: [""] },
     ];
     expect(missingQuestions(gastro, answers).map((q) => q.id)).toEqual([
+      // the duration answer is "week", so the course follow-up is open and
+      // unanswered — it is missing, and the time-of-day one is not asked
+      "duration_course",
       "gastro_location",
       "gastro_character",
       "gastro_meal",

@@ -40,6 +40,7 @@ import json
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Final
 
 import pytest
 from intake_voice_runtime.profiles import VoiceProfile
@@ -367,15 +368,47 @@ def test_no_value_is_empty(tr: dict[str, str], en: dict[str, str]) -> None:
         assert en[key].strip(), f"en[{key}] is empty"
 
 
+#: Keys whose two catalogues are IDENTICAL on purpose, each for a reason that
+#: is a property of the value rather than of the translation:
+#:
+#: - ``app.name`` and ``a11y.speaker.agent`` are the product's own name;
+#: - ``lang.tr`` / ``lang.en`` are endonyms — a language names itself the same
+#:   way in every catalogue, which is the whole point of an endonym;
+#: - the SI unit symbols (INT-282) are locale-invariant by definition. BIPM
+#:   fixes ``cm`` and ``kg`` as symbols, not abbreviations of a word, so a
+#:   "translated" unit would be WRONG rather than merely different — and the
+#:   symbol still lives in the catalogue because invariant 22 makes number and
+#:   unit one atom, which needs the unit to have a key.
+IDENTICAL_BY_NATURE: Final[frozenset[str]] = frozenset(
+    {
+        "app.name",
+        "a11y.speaker.agent",
+        "lang.tr",
+        "lang.en",
+        "intake.unit.cm",
+        "intake.unit.kg",
+    }
+)
+
+
 def test_no_english_value_is_left_in_turkish(en: dict[str, str], tr: dict[str, str]) -> None:
     """An untranslated mirror is a missing key that happens to have a value.
-    Product names and the endonym are the honest exceptions."""
+    Product names, endonyms and SI unit symbols are the honest exceptions."""
     untranslated = {
-        key
-        for key, value in en.items()
-        if value == tr[key] and key not in {"app.name", "a11y.speaker.agent", "lang.tr", "lang.en"}
+        key for key, value in en.items() if value == tr[key] and key not in IDENTICAL_BY_NATURE
     }
     assert not untranslated, f"en still carries the Turkish string for: {sorted(untranslated)}"
+
+
+def test_every_identical_by_nature_key_really_is_identical() -> None:
+    """The exemption list may not rot into a place to hide a missing
+    translation: a key that no longer needs the exemption loses it."""
+    tr_catalogue, en_catalogue = _catalogue("tr"), _catalogue("en")
+    for key in sorted(IDENTICAL_BY_NATURE):
+        assert key in tr_catalogue, f"{key} is exempted but no longer exists"
+        assert tr_catalogue[key] == en_catalogue[key], (
+            f"{key} now differs between catalogues; drop its exemption"
+        )
 
 
 def _orphans(tr: dict[str, str]) -> set[str]:
