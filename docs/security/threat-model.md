@@ -449,8 +449,12 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`audio_single_egress_guard`), 13, 16–19, 27, 28.
 - **Signals:** egress socket count per session and `lane.dropped_frames` (§9) land with
   INT-090/INT-110.
-- **Tests:** runtime invariants 1–11 with RT-01…08 land with INT-094; guards 12–19/27/28
-  land with INT-090, INT-110, INT-115.
+- **Tests:** the Work queue's own half — FIFO, single state Work in flight, serialised
+  engine writes, content-addressed dedupe and the derived-never-requested `preempt` — is
+  `tests/voice/test_work_queue.py` (INT-092), which also covers RT-05 and the
+  "[D] stalled Backend" threat by holding a handler open on one thread while `submit`
+  returns on another. Runtime invariants 1–11 with RT-01…08 land with INT-094; guards
+  12–19/27/28 land with INT-090, INT-110, INT-115.
 
 ## `triage` — deterministic RED/YELLOW only
 

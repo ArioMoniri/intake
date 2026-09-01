@@ -5,7 +5,11 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
+<<<<<<< HEAD
 **213 issues.** By phase: P0 123 · P1 48 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 88 · todo 114 · withdrawn 1.
+=======
+**212 issues.** By phase: P0 122 · P1 48 · P2 37 · P3 5. By status: awaiting-human 3 · doing 7 · done 89 · todo 112 · withdrawn 1.
+>>>>>>> origin/main
 
 ## P0
 
@@ -21,7 +25,7 @@
 | INT-013 | Tokenization service + identity vault (TCKN/phone never in clear) | E01-platform | INT-012, INT-017 | area:security, risk:security | done |
 | INT-014 | Envelope encryption (OpenBao Transit) + rotation + crypto-shredding | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-015 | De-identification service: Presidio + Turkish recognizers + leak-rate corpus | E01-platform | INT-011 | area:security, risk:security | done |
-| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | doing |
+| INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | done |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | doing |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | doing |
@@ -68,7 +72,7 @@
 | INT-085 | Patient summary (B1 Turkish) + reading-level check | E04-engines | INT-084 | area:engine | todo |
 | INT-090 | LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard | E05-voice | INT-001 | area:voice, risk:security | done |
 | INT-091 | Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player | E05-voice | INT-060, INT-090 | area:voice, risk:clinical | done |
-| INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | todo |
+| INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | done |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | todo |
 | INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | todo |
 | INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | todo |
@@ -186,7 +190,7 @@
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
-| INT-282 | Base-layer questions from the HBYS schema: the patient-answerable subset only | E04-engines | INT-256 | area:engine, risk:clinical | todo |
+| INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | doing |
 
 ## P2
 
