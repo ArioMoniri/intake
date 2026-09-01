@@ -521,6 +521,10 @@ class TestProvenanceShown:
         assert harness.facts()[0].shared is True
         assert harness.set_shared("oyku.belirti_var", shared=False) is True
         assert harness.facts()[0].shared is False
+        # and back on: re-sharing is not a withdrawal, so it counts as a
+        # mutation (the version moves) and as nothing else
+        assert harness.set_shared("oyku.belirti_var", shared=True) is True
+        assert harness.facts()[0].shared is True
         assert harness.set_shared("yok.olan_anahtar", shared=False) is False
 
     def test_the_overlay_is_versioned_and_the_version_only_goes_up(
