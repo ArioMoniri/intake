@@ -856,7 +856,8 @@
   title: "Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set"
   depends_on: [INT-081, INT-015]
   labels: [area:ai]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-083.md
   acceptance:
     - "transcripts wrapped as delimited data; output validated against slot schemas; recorded-fixture contract tests; Langfuse scores wiring (self-hosted)"
   tests: [tests/ai/test_extraction_contract.py]
