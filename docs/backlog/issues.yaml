@@ -1094,7 +1094,8 @@
   title: "Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only"
   depends_on: [INT-092, INT-038]
   labels: [area:lanes, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-110.md
   acceptance:
     - "lanes cannot write slots/triage (compile-time); stalled lanes never delay speech (fake clock); frames dropped under load with metric"
   tests: [tests/lanes/test_isolation.py]
@@ -1141,8 +1142,12 @@
   phase: P1
   title: "asr_quality lane: shadow-STT disagreement + confirm-by-card trigger"
   depends_on: [INT-110, INT-095]
-  labels: [area:lanes]
-  status: todo
+  labels: [area:lanes, approval:human-legal]
+  status: awaiting-human
+  # BLOCKED 2 Sep 2026 by HB-L22 (raised building INT-110). files/06 section 2's
+  # purpose list is closed and names no purpose covering this lane, so
+  # LaneRuntime.admit raises LaneConsentUndeclared rather than attaching it to a
+  # lawful basis nobody chose. See docs/backlog/blockers.md.
   acceptance:
     - "sampled turns compared; wer proxy metric; low-confidence medical terms trigger confirm cards"
   tests: [tests/lanes/test_asr_quality.py]
@@ -1151,8 +1156,10 @@
   phase: P1
   title: "engagement lane -> satisfaction proxies + pacing hints"
   depends_on: [INT-110]
-  labels: [area:lanes]
-  status: todo
+  labels: [area:lanes, approval:human-legal]
+  status: awaiting-human
+  # BLOCKED 2 Sep 2026 by HB-L22 (raised building INT-110), same reading as
+  # INT-113: no consent purpose in files/06 section 2 covers this lane.
   acceptance:
     - "answer latency, interruptions, silence ratio into engagement{} and metrics"
   tests: [tests/lanes/test_engagement.py]

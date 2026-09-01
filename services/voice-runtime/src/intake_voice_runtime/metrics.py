@@ -16,6 +16,7 @@ from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 __all__ = [
     "DELIVERY_INSERTION_WAIT_MS",
+    "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
     "WORK_FAILED_TOTAL",
@@ -74,4 +75,21 @@ WORK_FAILED_TOTAL = Counter(
     "work_failed_total",
     "Backend Work that ended in the failed state, by work type.",
     ["type"],
+)
+
+
+# --- observer lanes (INT-110) ---------------------------------------------------
+#
+# files/10 §9 names `lane.dropped_frames` among the observer-lane signals, and
+# files/03 §4.7.6 makes it *"a tracked metric that is also a recorded field on
+# every lane signal"* — so the same number appears here and as
+# `LaneObservation.dropped_frames_in_window`. The one label is the closed
+# `Lane` enumeration: no session id, no window id, no frame content
+# (invariant 6). A lane that was never admitted has no child at all, which is
+# how the exposition tells a refused lane apart from an idle one.
+
+LANE_DROPPED_FRAMES = Counter(
+    "lane_dropped_frames",
+    "Audio frames dropped by an observer lane under backpressure, by lane.",
+    ["lane"],
 )

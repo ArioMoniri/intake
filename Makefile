@@ -52,7 +52,7 @@ check-py:
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run pytest tests/voice --cov=packages/voice-clips/src --cov-branch --cov-fail-under=95 -q -o addopts=""
-	uv run pytest tests/voice tests/engine tests/ai --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
 
@@ -63,7 +63,7 @@ check-py:
 safety:
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run python scripts/safety/triage_mutation_report.py
-	uv run pytest tests/voice tests/engine tests/ai --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 check-ts:
 	pnpm -r lint
