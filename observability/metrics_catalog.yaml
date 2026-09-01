@@ -501,8 +501,11 @@ metrics:
     labels: [type]
     owner: voice-runtime
     unit: "count"
-    status: planned
-    description: Backend Work queue depth by work type.
+    status: live
+    description: >-
+      Backend Work queue depth by work type. Emitted by
+      intake_voice_runtime.clinical_agent.work_queue (INT-092); the label
+      domain is the closed WorkType enumeration.
   - name: work_latency_ms
     id: work.latency_ms
     type: histogram
@@ -510,16 +513,23 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "extract_slots p50 < 3 s"
-    status: planned
-    description: Backend Work latency by work type.
+    status: live
+    description: >-
+      Backend Work latency by work type. Emitted by
+      intake_voice_runtime.clinical_agent.work_queue (INT-092), measured from
+      the moment the Work was claimed to the moment its receipt was written.
   - name: work_failed_total
     id: work.failed_total
     type: counter
     labels: [type]
     owner: voice-runtime
     unit: "count"
-    status: planned
-    description: Failed Backend Work items by work type.
+    status: live
+    description: >-
+      Failed Backend Work items by work type. Emitted by
+      intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
+      fault, a refused preempt provenance and an invariant-22 numeric pair all
+      land here as receipts rather than as a crashed pump.
   - name: work_restart_failures
     id: work.restart_failures
     type: counter
