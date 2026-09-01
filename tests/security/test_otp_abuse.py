@@ -22,7 +22,7 @@ What this file proves:
 fakeredis + an injected clock keep every window deterministic (docs/TDD.md
 rule 6); SQLite carries the INT-030 schema exactly as tests/api does. The
 clock is seeded from the rate-limit window and never from the wall clock, so
-no assertion here depends on the minute the suite runs (INT-262).
+no assertion here depends on the minute the suite runs (INT-285).
 """
 
 from __future__ import annotations
@@ -160,7 +160,7 @@ def hashes_sha256() -> Any:
 # Where inside a rate-limit window the harness clock starts. Far enough past
 # the boundary not to be testing the boundary instant by accident, and far
 # enough before the next one for every sequence below (LONGEST_WINDOW_SEQUENCE_S)
-# — both pinned by the INT-262 tests.
+# — both pinned by the INT-285 tests.
 WINDOW_START_OFFSET_S = 60.0
 
 # The longest run of clock advances in this module that one window has to
@@ -353,7 +353,7 @@ def otp_locked_down(tmp_path: Path) -> Iterator[OtpHarness]:
     yield from _build(tmp_path, peek=False, attested_dev=False)
 
 
-# --- the harness clock (INT-262) ---------------------------------------------------
+# --- the harness clock (INT-285) ---------------------------------------------------
 #
 # `auth_store` counts requests in FIXED windows: the counter key carries
 # `floor(now / OTP_WINDOW_S)`. A sequence that steps across a boundary
@@ -465,7 +465,7 @@ def test_phone_formatting_does_not_fork_the_bucket(otp: OtpHarness) -> None:
 def test_per_phone_limit_three_per_hour(otp: OtpHarness) -> None:
     # LONGEST_WINDOW_SEQUENCE_S: the loop plus the refusal must land inside the
     # window the clock starts in, which is the whole reason that clock is not
-    # seeded from time.time() (INT-262).
+    # seeded from time.time() (INT-285).
     for _ in range(PHONE_LIMIT_PER_HOUR):
         assert otp.request_otp().status_code == 202
         otp.clock.advance(RESEND_COOLDOWN_S + 1)

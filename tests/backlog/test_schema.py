@@ -36,7 +36,7 @@ def test_ids_unique_and_well_formed() -> None:
     ids = [i["id"] for i in issues]
     assert len(ids) == len(set(ids))
     # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
-    # owner directive 2026-08-27) + INT-262/263 (the wall-clock-seeded OTP test
+    # owner directive 2026-08-27) + INT-285/263 (the wall-clock-seeded OTP test
     # clock, and the fixed-window budget deviation found while fixing it).
     # Grow this count only with a stated reason.
     assert len(ids) == 210
