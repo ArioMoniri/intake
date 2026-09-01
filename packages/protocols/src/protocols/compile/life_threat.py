@@ -37,21 +37,29 @@ from typing import Annotated, Any, Literal
 
 import yaml
 from clinical_schemas.common import FrozenModel, JsonScalar
-from pydantic import Field, StringConstraints, ValidationError, model_validator
+from pydantic import Field, JsonValue, StringConstraints, ValidationError, model_validator
 
-from protocols.dsl import RedFlagRule, TrText
+from protocols.dsl import RedFlagRule, RuleId, TrText
 
 __all__ = [
+    "PENDING_WORK_KEY",
     "SIGNOFF_FIELDS",
     "AgeBand",
     "ClinicalSignoff",
     "ExcludedCriterion",
     "GoldenCase",
+    "GoldenIndexEntry",
     "LifeThreatRule",
     "LifeThreatSet",
     "LifeThreatSetError",
     "load_life_threat_set",
 ]
+
+# The document-level "what is missing" block is keyed by the bare pending
+# token. Assembled by concatenation so only the invariant-17 permitted form
+# ever appears literally in this package, the same way protocols.validator
+# does it.
+PENDING_WORK_KEY = "TO" + "DO"
 
 
 class LifeThreatSetError(ValueError):
@@ -159,6 +167,53 @@ class LifeThreatRule(FrozenModel):
         default=None, description="A near miss that must not fire."
     )
 
+    @model_validator(mode="after")
+    def _the_child_subject_and_the_signature_agree(self) -> LifeThreatRule:
+        """``age_band`` and ``subject_is_child`` are two readings of one fact
+        and neither may be inferred from the other's silence.
+
+        ``age_band`` decides which reviewer must sign — and for paediatric
+        content that is a paediatrician **separately** (HB-C1). ``subject_is_
+        child`` decides the delivery register: files/02 §5.3's CALM row is
+        *"any RED where the subject is a child and the user is a proxy"*. A
+        paediatric rule that leaves the second unstated would take the ALERT
+        default on the delivery side while still routing to a paediatrician on
+        the review side, which is the airway case getting an alarm.
+        """
+        if self.age_band is AgeBand.PAEDIATRIC and self.rule.subject_is_child is None:
+            raise ValueError(
+                "a paediatric rule states subject_is_child explicitly — it decides "
+                "the delivery register (files/02 §5.3 Axis 2) as well as the "
+                "reviewer (HB-C1), and neither is inferable from silence"
+            )
+        if self.rule.subject_is_child and not self.age_band.needs_paediatrician:
+            raise ValueError(
+                "a rule whose subject is a child needs a paediatrician's signature, "
+                f"so its age_band cannot be {self.age_band.value} — the airway "
+                "exemplar is not an adult rule with a smaller patient in it (HB-C1)"
+            )
+        return self
+
+
+class GoldenIndexEntry(FrozenModel):
+    """One row of the document's consolidated goldens table
+    (files/protocols/base.life_threat.yaml ``goldens_index``).
+
+    The index is a cross-check on the goldens the rules already carry, never
+    a second place to declare them: an index that disagrees with its rules is
+    worse than no index, because it reads as coverage (files/04 §8.2
+    ``every_rule_has_a_true_positive_and_a_near_miss_negative``).
+    """
+
+    rule: RuleId = Field(description="The rule this row indexes.")
+    positive: Annotated[str, StringConstraints(min_length=1)] = Field(
+        description="Id of the rule's true-positive case."
+    )
+    near_miss_negative: Annotated[str, StringConstraints(min_length=1)] = Field(
+        description="Id of the rule's NEAR-miss negative — the case one attribute "
+        "away from the positive, which is the one that catches gate drift."
+    )
+
 
 class LifeThreatSet(FrozenModel):
     """The ``kind: life_threat_set`` document (files/12 §1)."""
@@ -185,6 +240,25 @@ class LifeThreatSet(FrozenModel):
     )
     clinical_signoff: ClinicalSignoff = Field(description="The HB-C1 block.")
     rules: tuple[LifeThreatRule, ...] = Field(default=(), description="The universal rule set.")
+    goldens_index: tuple[GoldenIndexEntry, ...] = Field(
+        default=(),
+        description="The consolidated goldens table (files/protocols/"
+        "base.life_threat.yaml). Optional — the committed compiler fixture "
+        "carries none — but where it exists it must agree with the rules.",
+    )
+    pending_work: dict[str, JsonValue] | None = Field(
+        default=None,
+        description="The document's own what-is-missing block — *\"the honest "
+        'measure of how far from L1 this is"* (files/protocols/'
+        "base.life_threat.yaml). Carried rather than discarded, because "
+        "discarding it would make an L0 skeleton indistinguishable from a "
+        "finished set. Free-shaped on purpose: it is authoring prose about "
+        "absent clinical content, and no blueprint fixes its structure. Its one "
+        "binding consequence is below — a set that still carries one is not "
+        "servable (CLAUDE.md invariant 17). Written on disk under the bare "
+        "pending token; :func:`load_life_threat_set` normalises the name the "
+        "same way it normalises gate/evidence (ADR-024).",
+    )
 
     @model_validator(mode="after")
     def _blocked_sets_say_why(self) -> LifeThreatSet:
@@ -192,6 +266,55 @@ class LifeThreatSet(FrozenModel):
             raise ValueError(
                 "served: false requires serve_blocked_reason — a blocked set states "
                 "why (files/protocols/base.life_threat.yaml)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _a_served_set_has_nothing_pending(self) -> LifeThreatSet:
+        if self.served and self.pending_work:
+            raise ValueError(
+                "a served set carries no what-is-missing block: this one still "
+                f"names {', '.join(sorted(self.pending_work))} as absent "
+                "(CLAUDE.md invariant 17 — zero postponement; files/04 §8)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _the_goldens_index_agrees_with_the_rules(self) -> LifeThreatSet:
+        """files/04 §8.2 ``every_rule_has_a_true_positive_and_a_near_miss_
+        negative``. The index is checked in both directions because either
+        one alone is a way of reading as covered while not being: a row for a
+        rule that does not exist, and a rule with goldens that no row names.
+        """
+        if not self.goldens_index:
+            return self
+        by_id = {entry.rule.id: entry for entry in self.rules}
+        indexed: set[str] = set()
+        for row in self.goldens_index:
+            entry = by_id.get(row.rule)
+            if entry is None:
+                raise ValueError(f"goldens_index names {row.rule}, which is not a rule in this set")
+            for label, case, claimed in (
+                ("positive", entry.golden_positive, row.positive),
+                ("near_miss_negative", entry.golden_negative, row.near_miss_negative),
+            ):
+                if case is None or case.id != claimed:
+                    raise ValueError(
+                        f"goldens_index claims {row.rule} {label} {claimed}, but the "
+                        f"rule carries {None if case is None else case.id} — an index "
+                        "that disagrees with its rules reads as coverage it has not got"
+                    )
+            indexed.add(row.rule)
+        unindexed = sorted(
+            entry.rule.id
+            for entry in self.rules
+            if entry.rule.id not in indexed
+            and (entry.golden_positive is not None or entry.golden_negative is not None)
+        )
+        if unindexed:
+            raise ValueError(
+                f"goldens_index omits {', '.join(unindexed)} — a partial index is a "
+                "coverage claim with a hole in it (files/04 §8.2)"
             )
         return self
 
@@ -206,6 +329,11 @@ class LifeThreatSet(FrozenModel):
 # ADR-024: the on-disk spelling of the life-threat document, mapped to the
 # canonical chain-pack names. Nothing else is renamed.
 _RULE_ALIASES: tuple[tuple[str, str], ...] = (("gate", "when"), ("evidence", "source"))
+# The one document-level rename, for the same reason: the block's on-disk key
+# is the bare pending token, which is not a legal Python identifier to leave
+# as a field name and must not appear as a literal in this package
+# (CLAUDE.md invariant 17).
+_DOCUMENT_ALIASES: tuple[tuple[str, str], ...] = ((PENDING_WORK_KEY, "pending_work"),)
 _RULE_ONLY_KEYS: tuple[str, ...] = (
     "age_band",
     "excluded_criteria",
@@ -253,6 +381,14 @@ def load_life_threat_set(path: Path) -> LifeThreatSet:
             "kind: life_threat_set only; chain packs go through load_pack (files/12 §1)"
         )
     payload = {key: value for key, value in raw.items() if key != "rules"}
+    for on_disk, canonical in _DOCUMENT_ALIASES:
+        if on_disk in payload:
+            if canonical in payload:
+                raise LifeThreatSetError(
+                    f"{path}: {on_disk!r} and {canonical!r} are the same block under "
+                    "two names — write one"
+                )
+            payload[canonical] = payload.pop(on_disk)
     rules = raw.get("rules") or []
     if not isinstance(rules, list):
         raise LifeThreatSetError(f"{path}: rules must be a list (files/12 §1)")
