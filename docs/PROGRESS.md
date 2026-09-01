@@ -704,3 +704,9 @@
 - Blocked on: nothing new. HB-C1 still owns everything this issue refused.
 - Next: the branch is pushed for review; no PR opened, per the task.
 - LOOP_STATUS: DONE
+## 2026-09-02 — INT-016 merged (PR #386)
+- The hash-chained audit log closes: verifier job, MinIO object-lock WORM copy driven end to end, patient-visible access-log view model, and four tamper cases beyond the first slice. Invariant 4's second half — every share audited — now has its enforcement. This issue was gating 23 others.
+- It was found by the watchdog, not by planning: seven commits sat unmerged AND 1,879 lines (the audit verifier plus its test suite) were STAGED BUT NEVER COMMITTED by an earlier session, one worktree operation away from being lost.
+- NEAR-MISS worth recording: the backlog repair script ran `git merge` without checking its exit code. The merge failed here (those staged files blocked it), the script saw no conflicts, concluded there was nothing to resolve, and repinned the counts to 203 against main's 212 — silently deleting nine issues, four merged the same day. Caught by eye, not by a check. The script now refuses when the merge exits non-zero leaving nothing unresolved, and when the branch is still behind origin/main afterwards; both fired on the retry, which is how the staged work surfaced. Third guard this script has grown from a real near-miss, after the lone trailing conflict marker and the duplicated entry.
+- CI still billing-blocked; verified by full local make check exit 0 on the merged tree.
+- LOOP_STATUS: CONTINUE

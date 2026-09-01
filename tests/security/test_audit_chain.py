@@ -34,7 +34,9 @@ from intake_platform.audit import (
     AuditChain,
     AuditEntry,
     InMemoryAuditStore,
+    build_worm_bundle,
     run_daily_verifier,
+    verify_entries,
     verify_worm_export,
 )
 
@@ -155,6 +157,30 @@ def test_tamper_plus_rehash_moves_the_break_to_the_next_link() -> None:
     assert "prev_hash" in result.reason
 
 
+def test_deleted_middle_entry_is_named_by_the_missing_seq() -> None:
+    store = InMemoryAuditStore()
+    chain = _chain(store)
+    _fill(chain, 5)
+    del store._entries[2]  # seq 3 vanishes; 1, 2, 4, 5 remain
+
+    result = chain.verify()
+    assert not result.ok
+    assert result.first_bad_seq == 3
+    assert "missing or reordered" in result.reason
+
+
+def test_reordered_pair_is_named_by_the_first_out_of_place_seq() -> None:
+    store = InMemoryAuditStore()
+    chain = _chain(store)
+    _fill(chain, 5)
+    entries = store._entries
+    entries[1], entries[2] = entries[2], entries[1]
+
+    result = chain.verify()
+    assert not result.ok
+    assert result.first_bad_seq == 2
+
+
 def test_rollback_of_the_store_is_detected_via_the_running_head() -> None:
     store = InMemoryAuditStore()
     chain = _chain(store)
@@ -188,6 +214,40 @@ def test_fork_truncate_and_reappend_is_detected_via_the_running_head() -> None:
     assert "running head" in result.reason
 
 
+def test_a_full_reforge_defeats_the_self_contained_walk_by_design() -> None:
+    """State the limit rather than paper over it (files/10 §2, corrected
+    25 Aug 2026). An attacker who edits a row **and recomputes every hash
+    forward** produces a chain that is flawless on its own terms; the walk
+    cannot tell it from history. Only a head recorded outside the attacker's
+    reach can, which is why ``verify_entries`` takes ``expected_head`` and why
+    the daily verifier refuses to report green without one (invariant 40)."""
+    store = InMemoryAuditStore()
+    honest = _chain(store)
+    _fill(honest, 5)
+    honest_head = honest.head
+
+    del store._entries[1:]  # keep seq 1, discard the rest
+    forger = _chain(store)
+    for i in range(2, 6):
+        forger.append(
+            actor="svc-api",
+            action="clinical.note.read",
+            resource_ref=f"note:{i:04d}-forged",
+            consent_scope_ref="consent:visit-notes:v1",
+        )
+
+    # Same length, same shape, every hash correct — the forgery passes.
+    assert len(store.entries()) == 5
+    assert verify_entries(store.entries()).ok
+    assert verify_entries(store.entries(), expected_head=forger.head).ok
+
+    # The externally recorded head is the only thing that still disagrees.
+    against_anchor = verify_entries(store.entries(), expected_head=honest_head)
+    assert not against_anchor.ok
+    assert against_anchor.first_bad_seq is None
+    assert "forked" in against_anchor.reason
+
+
 # --- WORM export ------------------------------------------------------------------
 
 
@@ -204,6 +264,16 @@ def test_worm_export_is_a_self_verifying_bundle() -> None:
 def test_worm_export_of_an_empty_chain_self_verifies() -> None:
     bundle = _chain(InMemoryAuditStore()).export_worm()
     assert verify_worm_export(bundle).ok
+
+
+def test_the_bundle_builder_is_reachable_without_a_writer() -> None:
+    """The daily verifier holds no INSERT capability, so it must be able to
+    build the WORM copy from entries and a head alone — byte-identical to
+    what the writer's ``export_worm`` produces."""
+    store = InMemoryAuditStore()
+    chain = _chain(store)
+    _fill(chain, 3)
+    assert build_worm_bundle(store.entries(), chain.head) == chain.export_worm()
 
 
 def test_worm_export_detects_an_edited_line() -> None:
