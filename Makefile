@@ -67,33 +67,35 @@ CHECKOV_VERSION := 3.3.15
 SBOM_OUT := .cache/intake-sbom.spdx.json
 
 security:
-	@echo "== [1/11] gitleaks (full history) =="
+	@echo "== [1/12] gitleaks (full history) =="
 	@command -v gitleaks >/dev/null 2>&1 || { echo "FAIL: gitleaks not installed — brew install gitleaks (invariant 14: never skip a gate)"; exit 1; }
 	gitleaks detect --source . --redact --no-banner
-	@echo "== [2/11] semgrep (p/ci, metrics off) =="
+	@echo "== [2/12] semgrep (p/ci, metrics off) =="
 	uvx --python 3.12 --with 'setuptools<81' semgrep@$(SEMGREP_VERSION) scan --config p/ci --error --metrics=off --exclude files --exclude pnpm-workspace.yaml --exclude pyproject.toml
-	@echo "== [3/11] bandit (first-party python) =="
+	@echo "== [3/12] bandit (first-party python) =="
 	uvx --python 3.12 bandit@$(BANDIT_VERSION) -r packages/intake_platform/src scripts -ll -ii
-	@echo "== [4/11] trivy fs (fail on CRITICAL,HIGH) =="
+	@echo "== [4/12] trivy fs (fail on CRITICAL,HIGH) =="
 	@command -v trivy >/dev/null 2>&1 || { echo "FAIL: trivy not installed — brew install trivy (invariant 14: never skip a gate)"; exit 1; }
 	trivy fs --scanners vuln --severity CRITICAL,HIGH --exit-code 1 --skip-dirs node_modules .
-	@echo "== [5/11] trivy config (IaC) =="
+	@echo "== [5/12] trivy config (IaC) =="
 	trivy config --severity CRITICAL,HIGH --exit-code 1 infra
-	@echo "== [6/11] osv-scanner (lockfiles) =="
+	@echo "== [6/12] osv-scanner (lockfiles) =="
 	@command -v osv-scanner >/dev/null 2>&1 || { echo "FAIL: osv-scanner not installed — brew install osv-scanner (invariant 14: never skip a gate)"; exit 1; }
-	osv-scanner scan source -r --skip-git .
-	@echo "== [7/11] checkov (infra/) =="
+	osv-scanner scan source -r .
+	@echo "== [7/12] checkov (infra/) =="
 	uvx --python 3.12 checkov@$(CHECKOV_VERSION) --directory infra --quiet --compact
-	@echo "== [8/11] licence allow-list (check_licenses.py) =="
+	@echo "== [8/12] licence allow-list (check_licenses.py) =="
 	uv run python scripts/ci/check_licenses.py
-	@echo "== [9/11] syft SBOM (spdx-json) =="
+	@echo "== [9/12] syft SBOM (spdx-json) =="
 	@command -v syft >/dev/null 2>&1 || { echo "FAIL: syft not installed — brew install syft (invariant 14: never skip a gate)"; exit 1; }
 	syft scan dir:. -o spdx-json=$(SBOM_OUT)
 	@echo "SBOM written to $(SBOM_OUT)"
-	@echo "== [10/11] PHI-pattern scan (phi_scan.sh) =="
+	@echo "== [10/12] PHI-pattern scan (phi_scan.sh) =="
 	scripts/ci/phi_scan.sh
-	@echo "== [11/11] accuracy-claims scan (claims_scan.sh) =="
+	@echo "== [11/12] accuracy-claims scan (claims_scan.sh) =="
 	scripts/ci/claims_scan.sh
+	@echo "== [12/12] gate self-test (every scanner rejects a planted case) =="
+	SEMGREP_VERSION=$(SEMGREP_VERSION) BANDIT_VERSION=$(BANDIT_VERSION) CHECKOV_VERSION=$(CHECKOV_VERSION) scripts/ci/gate_selftest.sh
 	@echo "security: all gates green"
 
 # INT-031: regenerate the committed schema exports (OpenAPI bundle, per-event

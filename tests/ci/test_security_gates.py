@@ -404,6 +404,105 @@ def test_claims_scan_clean_copy_passes(tmp_path: Path) -> None:
     assert run_script(CLAIMS_SCAN, str(f)).returncode == 0
 
 
+def test_claims_scan_catches_turkish_performance_claims(tmp_path: Path) -> None:
+    """Invariant 20 in the product's FIRST language.
+
+    An English-only pattern set left the gate unenforced for exactly the copy
+    that matters most: a Turkish regulatory or legal file says `duyarlılık`,
+    not `sensitivity`. Consonant softening (k -> ğ) is part of the word, so
+    `duyarlılığı` has to be caught as surely as `duyarlılık`.
+    """
+    for sample in (
+        "%94 duyarlılık",
+        "Duyarlılık %94",
+        "testin duyarlılığı %94 olarak ölçüldü",
+        "Özgüllük oranı %88",
+        "özgüllüğü %88 bulundu",
+        "Kesinlik %92",
+        "İsabet oranı %95",
+        "duyarlılık 0,94",
+    ):
+        f = tmp_path / "claims.md"
+        f.write_text(f"Ürün {sample} sağlar.\n", encoding="utf-8")
+        out = run_script(CLAIMS_SCAN, str(f))
+        assert out.returncode == 1, f"Turkish claim not caught: {sample}"
+
+
+def test_claims_scan_allows_ordinary_turkish_prose(tmp_path: Path) -> None:
+    """The near-miss control: the same nouns are ordinary Turkish legal words.
+
+    `bilgilerin doğruluğu` and `kültürel duyarlılık` are not performance
+    claims, and a gate that failed on them would be turned off within a week.
+    A claim is the vocabulary NEXT TO A FIGURE — the invariant's own noun.
+    """
+    for sample in (
+        "Bilgilerinizin doğruluğundan siz sorumlusunuz.",
+        "Kültürel duyarlılık ilkelerimiz arasındadır.",
+        "Verilerin doğruluğu KVKK 4. maddede düzenlenir.",
+        "Randevunuz 14:30 olarak ayarlandı.",
+    ):
+        f = tmp_path / "claims.md"
+        f.write_text(sample + "\n", encoding="utf-8")
+        out = run_script(CLAIMS_SCAN, str(f))
+        assert out.returncode == 0, f"false positive on ordinary Turkish prose: {sample}"
+
+
+def test_claims_scan_copy_tier_allows_clinical_symptom_vocabulary(tmp_path: Path) -> None:
+    """Patient copy has to be able to ask about photophobia.
+
+    `intake.opt.lightSensitivity` / "Işığa hassasiyet" is a SYMPTOM name, not a
+    claim about the product. Scanning the i18n catalogues at strict tier failed
+    on those labels, which is why the copy tier scores term-plus-figure only.
+    """
+    f = tmp_path / "app-en.json"
+    f.write_text(
+        '{"intake.opt.lightSensitivity": "Sensitivity to light",\n'
+        ' "intake.opt.soundSensitivity": "Sensitivity to sound"}\n',
+        encoding="utf-8",
+    )
+    out = run_script(CLAIMS_SCAN, "--copy", str(f))
+    assert out.returncode == 0, f"symptom vocabulary must not read as a claim:\n{out.stdout}"
+
+
+def test_claims_scan_copy_tier_still_catches_a_figure_claim(tmp_path: Path) -> None:
+    """…but the copy tier is a tier, not an exemption."""
+    for sample in (
+        '{"marketing.blurb": "Our triage has 94% sensitivity"}',
+        '{"marketing.tr": "Triyajımız %94 duyarlılık sağlar"}',
+        '{"marketing.auroc": "AUROC 0.94"}',
+    ):
+        f = tmp_path / "app.json"
+        f.write_text(sample + "\n", encoding="utf-8")
+        out = run_script(CLAIMS_SCAN, "--copy", str(f))
+        assert out.returncode == 1, f"copy-tier claim not caught: {sample}"
+
+
+def test_claims_scan_strict_tier_catches_bare_english_terms(tmp_path: Path) -> None:
+    """docs/regulatory and docs/legal are where claims get MADE.
+
+    "high sensitivity" carries no figure but is still a property claim about
+    the product, which invariant 20's last sentence forbids just as firmly.
+    """
+    f = tmp_path / "claims.md"
+    f.write_text("The system offers high sensitivity in triage.\n", encoding="utf-8")
+    out = run_script(CLAIMS_SCAN, str(f))
+    assert out.returncode == 1, "a bare property claim must fail at strict tier"
+
+
 def test_claims_scan_passes_the_real_trees() -> None:
     out = run_script(CLAIMS_SCAN)
     assert out.returncode == 0, f"performance claims in scanned trees:\n{out.stdout}{out.stderr}"
+
+
+def test_claims_scan_covers_patient_and_clinician_copy() -> None:
+    """Invariant 20 names "patient or clinician copy" alongside the regulatory
+    and legal trees. Those catalogues landed on main after this gate was first
+    written, so the default target set has to reach them or the invariant is
+    only enforced where no copy lives."""
+    trees = [p for p in (REPO / "apps").glob("*/src/locales") if p.is_dir()]
+    trees += [p for p in (REPO / "apps").glob("*/src/lib/i18n") if p.is_dir()]
+    assert trees, "no i18n catalogue found — update the claims-scan target set"
+    body = CLAIMS_SCAN.read_text(encoding="utf-8")
+    assert "COPY_GLOBS" in body and "src/locales" in body and "src/lib/i18n" in body, (
+        "claims_scan.sh does not scan the patient/clinician copy catalogues"
+    )
