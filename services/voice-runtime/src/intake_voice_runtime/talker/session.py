@@ -66,6 +66,12 @@ from intake_voice_runtime.talker.preemption import (
     Priority,
     authorise_preempt,
 )
+from intake_voice_runtime.talker.red_path import (
+    REGISTER_DELIVERY,
+    RedPathNotWired,
+    RedPreemption,
+    RedPreemptionOutcome,
+)
 from intake_voice_runtime.talker.speech import SpeechRouter
 from intake_voice_runtime.talker.tools import (
     BACKCHANNEL_LEXEMES,
@@ -132,6 +138,7 @@ class TalkerSession:
     memory: PatientMemoryStore
     clock: Clock
     policy_guard: PolicyGuard | None = None
+    preemption: RedPreemption | None = None
     guard: PolicyGuard = field(init=False)
     scheduler: InsertionScheduler = field(init=False)
     router: SpeechRouter = field(init=False)
@@ -141,6 +148,7 @@ class TalkerSession:
     _last_step: NextStep | None = field(default=None, init=False)
     _permissions: dict[str, PermissionRequest] = field(default_factory=dict, init=False)
     _playback: list[tuple[float, float]] = field(default_factory=list, init=False)
+    _red_stopped: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         self.guard = self.policy_guard or PolicyGuard(profile=self.config.profile)
@@ -305,6 +313,44 @@ class TalkerSession:
             now_ms=self.clock.now_ms(),
         )
 
+    async def deliver_preempt(
+        self, result: BackendResult, *, evaluated_at_ms: float
+    ) -> RedPreemptionOutcome:
+        """Run the RED preemption path for one rules-engine RED (INT-093).
+
+        ``evaluated_at_ms`` is the moment ``packages/protocols/triage``
+        produced the determination — files/02 §8.2 measures the 300 ms from
+        rule evaluation, and stamping it here instead would silently discount
+        the Layer B hop from the budget it is policing. There is no default
+        for the same reason invariant 21 permits no default register.
+
+        The provenance gate runs again before the path: it is cheap, and this
+        is the one entry point a future caller could reach without having gone
+        through :meth:`accept_result`.
+        """
+        authorise_preempt(result, rule_ids=self.config.rule_ids)
+        if self.preemption is None:
+            raise RedPathNotWired(
+                "a rules-engine RED arrived and no RED preemption path is bound to "
+                "this session; refusing rather than continuing the intake past a "
+                "life threat (CLAUDE.md invariant 21)"
+            )
+        triage = result.presentation.triage_update
+        register = getattr(triage, "register", None)
+        try:
+            return await self.preemption.trigger(result, evaluated_at_ms=evaluated_at_ms)
+        finally:
+            if register is not None and REGISTER_DELIVERY[register].stops_intake:
+                self._red_stopped = True
+
+    @property
+    def red_stopped(self) -> bool:
+        """True once a patient-facing RED stopped the intake (files/03 §4.6:
+        *Kırmızı (RED) = preempt, stop intake*). A ``DEFERRED_CLINICIAN`` RED
+        leaves it false: its whole definition is that the patient surface does
+        not change."""
+        return self._red_stopped
+
     def _note_undelivered(self, work_id: str) -> None:
         """The transactional note flag of files/12 §6.
 
@@ -321,6 +367,12 @@ class TalkerSession:
     async def take_turn(self, transcript: str | None) -> TurnOutcome:
         """One conversational turn. Nothing here awaits Backend Work."""
         started_ms = self.clock.now_ms()
+        if self._red_stopped:
+            # The intake stopped when the RED was delivered. Asking the next
+            # question after a life threat is the failure the preemption
+            # exists to prevent, so the loop yields an empty turn rather than
+            # relying on a caller to stop calling it.
+            return TurnOutcome(elapsed_ms=self.clock.now_ms() - started_ms)
         step = self.protocol_next()
 
         work_id: str | None = None

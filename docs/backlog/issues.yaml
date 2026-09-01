@@ -940,7 +940,8 @@
   title: "RED preemption path: stop <=150ms, e2e <=300ms (fake clocks)"
   depends_on: [INT-091, INT-092, INT-080]
   labels: [area:voice, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-093.md
   acceptance:
     - "only rules-engine RED carries priority preempt; playback cancel and script start measured on fake clock"
   tests: [tests/voice/test_red_preemption.py]
