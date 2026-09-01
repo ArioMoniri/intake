@@ -20,13 +20,17 @@ from clinical_schemas.triage import RedLocation, RedRegister
 __all__ = [
     "SLOT_KEY_PATTERN",
     "SLOT_REF_PATTERN",
+    "AbandonmentHandler",
     "AckStyle",
+    "CrisisNumber",
     "Delivery",
     "EK4Level",
     "Maturity",
     "NotifyClinic",
+    "OfflineDraftPath",
     "Pace",
     "PackLayer",
+    "Prosody",
     "RedFlagRoute",
     "RedLocation",
     "RedRegister",
@@ -166,6 +170,66 @@ class RuleStatus(enum.StrEnum):
 
     ACTIVE = "active"
     DRAFT_NEEDS_SOURCE = "draft_needs_source"
+
+
+class Prosody(enum.StrEnum):
+    """How a spoken RED is voiced (files/02 §5.3 Axis 2, Audio column):
+    ``ALERT`` is *"Spoken with urgent prosody, alert sound"* and ``CALM`` is
+    *"Spoken softly, no alert sound"*. Two members because the table names
+    two; a rule that speaks nothing carries no prosody at all rather than a
+    third "none" member, so the absence is visible in the type."""
+
+    URGENT = "urgent"
+    SOFT = "soft"
+
+
+class OfflineDraftPath(enum.StrEnum):
+    """Whether an item may enter the encrypted offline-resume cache
+    (files/02 §8). One member, because files/04 §8.2 names one value:
+    ``crisis_items_have_no_offline_draft_path``. files/04 §4.2 defect 2 gives
+    the reason — a disclosure cached for offline resume *"may never reach the
+    server at all"*. A second member is a clinician's decision to add, not an
+    engineer's; until then anything but ``forbidden`` fails to parse."""
+
+    FORBIDDEN = "forbidden"
+
+
+class AbandonmentHandler(enum.StrEnum):
+    """What happens when a patient force-quits after a disclosure — *"the
+    highest-risk state the product can enter"* (files/04 §4.2 defect 2). One
+    member, because that defect names one required mechanism: server-side
+    evaluation **on the answer**. Same reasoning as
+    :class:`OfflineDraftPath`: the set is closed until a human widens it."""
+
+    SERVER_SIDE_ON_ANSWER = "server_side_on_answer"
+
+
+class CrisisNumber(enum.IntEnum):
+    """The Turkish crisis numbers, as the files/04 §4.1 table states them —
+    a closed set, so no model, search tool or learning-loop proposal can ever
+    widen it (files/04 §4.1, binding).
+
+    182 is **not** a member and never will be: ALO 182 is the MHRS *hospital
+    appointment* line, and putting it in a crisis script routes a suicidal
+    patient to a booking queue. The claim that it is a 24/7 suicide line is
+    still in wide circulation, which is exactly why the set is enumerated
+    here rather than left as an integer. Türkiye has no 988 equivalent.
+
+    The numerals never reach a TTS model: these are screen affordances, and
+    the protocol compiler expands every spoken numeral to Turkish orthography
+    separately (CLAUDE.md invariant 22). The Turkish text that accompanies
+    them lives in docs/legal/strings.yaml under PolicyGuard, never here.
+    """
+
+    EMERGENCY = 112
+    """Single national emergency number since 1 Feb 2018; psychiatric
+    emergencies including suicide risk are in remit (files/04 §4.1)."""
+
+    SOCIAL_SERVICES = 183
+    """ALO 183 — violence, child abuse, neglect (files/04 §4.1)."""
+
+    SUBSTANCE_MISUSE = 191
+    """ALO 191 — substance misuse (files/04 §4.1)."""
 
 
 class Delivery(enum.StrEnum):

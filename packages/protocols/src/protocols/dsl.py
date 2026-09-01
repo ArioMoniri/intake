@@ -29,11 +29,15 @@ from pydantic import Field, StringConstraints, model_validator
 from protocols.types import (
     SLOT_KEY_PATTERN,
     SLOT_REF_PATTERN,
+    AbandonmentHandler,
     AckStyle,
+    CrisisNumber,
     Delivery,
     EK4Level,
     NotifyClinic,
+    OfflineDraftPath,
     Pace,
+    Prosody,
     RedFlagRoute,
     RedRegister,
     RuleStatus,
@@ -42,6 +46,7 @@ from protocols.types import (
 )
 
 __all__ = [
+    "AudioDelivery",
     "ClipManifestEntry",
     "Instrument",
     "InstrumentItem",
@@ -49,6 +54,7 @@ __all__ = [
     "OverlayActivation",
     "RedFlagAction",
     "RedFlagRule",
+    "RuleId",
     "Section",
     "Slot",
     "SourceBlock",
@@ -267,6 +273,57 @@ class SourceBlock(FrozenModel):
     )
 
 
+class AudioDelivery(FrozenModel):
+    """The Audio column of the files/02 §5.3 Axis 2 register table, stated on
+    the rule rather than derived.
+
+    **No field here has a default, and that is the whole point.** The
+    paediatric-airway rule is ``KIRMIZI_K1`` and ``CALM`` at once because a
+    child with stridor *"deteriorates when distressed"* — a full-screen red
+    alarm with urgent speech delivered to the parent standing next to that
+    child *"produces the deterioration the alert exists to prevent"*
+    (files/02 §5.3). A default chosen once, by an engineer, is exactly the
+    failure CLAUDE.md invariant 21 names, so an author who writes ``audio:``
+    writes all three legs of it or the rule does not load.
+
+    The block is optional on the rule: the register table already states the
+    audio for each register, and exemplars 1 and 2 carry no block at all.
+    What is refused is a **partial** or **register-contradicting** one —
+    see :meth:`RedFlagRule._delivery_invariants`.
+    """
+
+    spoken: bool = Field(
+        description="Whether the RED is spoken at all (files/02 §5.3 Axis 2 "
+        "Audio column). Required — every register must be fully comprehensible "
+        "with the sound off, so speech is an enhancement and never the carrier."
+    )
+    prosody: Prosody | None = Field(
+        description="How it is voiced — urgent (ALERT) or soft (CALM), and "
+        "``null`` where nothing is spoken (files/02 §5.3). Required AND "
+        "nullable: exemplar 4 writes ``prosody: null``, which is a decision; "
+        "an absent prosody is not."
+    )
+    alert_sound: bool = Field(
+        description="Whether an alert sound plays (files/02 §5.3 Axis 2). "
+        "Required: this is the leg that turns a CALM rule into the alarm the "
+        "register exists to prevent."
+    )
+
+    @model_validator(mode="after")
+    def _speech_and_prosody_agree(self) -> AudioDelivery:
+        if self.spoken and self.prosody is None:
+            raise ValueError(
+                "spoken audio carries a prosody — the files/02 §5.3 register "
+                "table gives one for every spoken register"
+            )
+        if not self.spoken and self.prosody is not None:
+            raise ValueError(
+                "unspoken audio carries none — a prosody on speech that never "
+                "happens is a delivery decision nothing will read (files/02 §5.3)"
+            )
+        return self
+
+
 class LocationAction(FrozenModel):
     """The action for one resolved location (REMOTE or ON_SITE), per the rule
     schema in files/protocols/base.life_threat.yaml and files/04 §8.1 rule 7."""
@@ -316,6 +373,41 @@ class LocationAction(FrozenModel):
         default=False,
         description="Under ON_SITE the inbox entry is the primary channel (files/04 §8.1 rule 7).",
     )
+    numbers: tuple[CrisisNumber, ...] = Field(
+        default=(),
+        description="The crisis numbers this action offers, from the closed "
+        "files/04 §4.1 table (files/protocols/base.life_threat.yaml exemplar 4 "
+        "``numbers: [112]``). Empty by default because an action that offers no "
+        "number is the safe reading of silence, and closed as an enum because "
+        "files/04 §4.1 is binding: no model, search tool or learning-loop "
+        "proposal may ever populate a crisis number, and 182 — the MHRS "
+        "appointment line — must be unwritable rather than merely discouraged. "
+        "The accompanying Turkish lives in docs/legal/strings.yaml under "
+        "PolicyGuard, reached through ``action_tr_ref``.",
+    )
+    carry_child: bool = Field(
+        default=False,
+        description="The action instructs the user to carry the patient — the "
+        "paediatric-airway ON_SITE branch, *çocuğunuzu kucağınızda tutun ve "
+        "Acil Servis'e götürün* (files/protocols/base.life_threat.yaml exemplar "
+        "3). Only a rule whose ``subject_is_child`` may set it.",
+    )
+    open_question: str | None = Field(
+        default=None,
+        description="An open CLINICIAN decision about this action's text, "
+        "recorded on the action instead of being resolved by an engineer — "
+        "exemplar 3's is the Tebliğ MADDE 9(1) companion-separation question "
+        "(HUMAN_BLOCKERS HB-C9, open for ClinicalAuthor). Never patient-facing, "
+        "and never silently ignorable: protocols.compile.resolve refuses to "
+        "compile a rule carrying one into a served pack.",
+    )
+    note: str | None = Field(
+        default=None,
+        description="Free-text commentary about this location branch — why the "
+        "channel is what it is (exemplar 4's ON_SITE note on staff "
+        "notification). Never patient-facing; the same class as "
+        "``SourceBlock.note`` and reached by the same invariant-17 scan.",
+    )
 
     @model_validator(mode="after")
     def _exactly_one_text_carrier(self) -> LocationAction:
@@ -359,10 +451,44 @@ class RedFlagAction(FrozenModel):
 
     @model_validator(mode="after")
     def _on_site_never_offers_112(self) -> RedFlagAction:
+        """Every carrier of the 112 affordance, closed under ON_SITE.
+
+        files/02 §5.3: *"The 112'yi ara affordance is not rendered under
+        ON_SITE at all. Not de-emphasised, not below the fold — absent."* A
+        patient already in the building must not be sent out of it. There are
+        three carriers, and closing one while leaving another open is the
+        failure the invariant names: the flag, the number list, and the action
+        codes. INT-254 recorded the third as open because closing it looked
+        like it needed an enumerated action-code set, which no blueprint
+        writes down — it does not. It needs a refusal of the one token
+        invariant 21 forbids.
+        """
         if self.on_site.show_112:
             raise ValueError(
                 "ON_SITE action never offers 112 — the affordance is absent, not "
                 "de-emphasised (CLAUDE.md invariant 21; files/04 §8.2)"
+            )
+        if CrisisNumber.EMERGENCY in self.on_site.numbers:
+            raise ValueError(
+                "the ON_SITE number list carries no 112 — the affordance is absent "
+                "under ON_SITE, in every carrier (CLAUDE.md invariant 21; "
+                "files/02 §5.3; files/04 §8.2 on_site_action_never_offers_112)"
+            )
+        for field, code in (
+            ("primary", self.on_site.primary),
+            ("secondary", self.on_site.secondary),
+        ):
+            if code is not None and str(CrisisNumber.EMERGENCY.value) in code:
+                raise ValueError(
+                    f"the ON_SITE {field} action code names 112 ({code}) — an action "
+                    "code is a carrier of the affordance like any other (CLAUDE.md "
+                    "invariant 21; files/02 §5.3)"
+                )
+        if CrisisNumber.EMERGENCY in self.remote.numbers and not self.remote.show_112:
+            raise ValueError(
+                "the 112 affordance has two carriers on this action and they "
+                "disagree: numbers lists 112 while show_112 is false "
+                "(CLAUDE.md invariant 21; files/04 §4.1)"
             )
         return self
 
@@ -415,6 +541,54 @@ class RedFlagRule(FrozenModel):
         default=False,
         description="Marks rules where alarm is the harm (files/02 §5.3; "
         "files/protocols/base.life_threat.yaml exemplar 3).",
+    )
+    subject_is_child: bool | None = Field(
+        default=None,
+        description="The rule's subject is a child and the user is therefore a "
+        "proxy (files/02 §5.3 Axis 2 CALM row; files/protocols/"
+        "base.life_threat.yaml exemplar 3). ``None`` means NOT STATED and is a "
+        "third value rather than a default: it decides both the delivery "
+        "register and, through ``age_band``, which reviewer must sign (HB-C1). "
+        "A paediatric life-threat rule must state it — see "
+        "protocols.compile.life_threat.LifeThreatRule.",
+    )
+    audio: AudioDelivery | None = Field(
+        default=None,
+        description="The register's Audio column, stated explicitly (files/02 "
+        "§5.3 Axis 2). Optional — the register table already states the audio "
+        "for each register and exemplars 1 and 2 carry no block — but a block "
+        "that is written is written whole and may not contradict the register.",
+    )
+    suppress_attention_interrupt: bool | None = Field(
+        default=None,
+        description="Whether this rule suppresses the normal attention-grabbing "
+        'interrupt (files/04 §8.1 rule 6: the airway rule *"must not run the '
+        'normal attention-grabbing interrupt at all"*). ``None`` means NOT '
+        "STATED, which is refused on a ``distress_sensitive`` rule in a register "
+        "that takes the screen — those are exactly the rules a forgotten flag "
+        "would give an interrupt to, and a default of False is the harm "
+        "direction.",
+    )
+    consent_independent: bool | None = Field(
+        default=None,
+        description="The rule runs regardless of wellbeing-lane consent "
+        "(files/04 §4.2 defect 3: consent-gating creates a hole exactly where it "
+        "matters, and the people most likely to decline are the people most "
+        "needing to be caught). Setting it declares the crisis path and forces "
+        "the other three legs of files/04 §4.2 to be written.",
+    )
+    offline_draft_path: OfflineDraftPath | None = Field(
+        default=None,
+        description="Whether the item may enter the encrypted offline-resume "
+        "cache (files/04 §8.2 crisis_items_have_no_offline_draft_path; §4.2 "
+        "defect 2). Required on the crisis path, where the only admissible "
+        "value is ``forbidden``.",
+    )
+    abandonment_handler: AbandonmentHandler | None = Field(
+        default=None,
+        description="What happens when a patient force-quits after a disclosure "
+        "(files/04 §4.2 defect 2). Required on the crisis path; the mechanism "
+        "the blueprint names is server-side evaluation on the answer.",
     )
     notify_clinic: NotifyClinic = Field(
         description="always|never; always for every RED, unconditional and "
@@ -479,6 +653,103 @@ class RedFlagRule(FrozenModel):
                     "for every RED, notify_clinic is always — unconditional and "
                     "time-bound (files/protocols/base.life_threat.yaml; files/04 §4.2)"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _delivery_invariants(self) -> RedFlagRule:
+        """The register axis, enforced rather than merely typed (INT-255).
+
+        files/02 §5.3 is a table, and until now only its Presentation column
+        reached the DSL as an enum. The rest of the row — who may be alarmed,
+        what audio the register admits, whether the screen is taken — was
+        prose the compiler could not read. Each clause below quotes the row it
+        comes from; none is an engineering preference.
+        """
+        register, audio = self.register, self.audio
+
+        if register is RedRegister.ALERT:
+            for flag, why in (
+                (
+                    self.distress_sensitive,
+                    "a distress_sensitive rule",
+                ),
+                (
+                    self.subject_is_child,
+                    "a rule whose subject is a child and whose user is a proxy",
+                ),
+                (
+                    self.consent_independent,
+                    "the consent-independent crisis path",
+                ),
+            ):
+                if flag:
+                    raise ValueError(
+                        f"{why} is never told in the ALERT register — alarm is the "
+                        "mechanism of harm here, not the delivery (files/02 §5.3 "
+                        "Axis 2 CALM/SILENT rows; files/04 §4.2)"
+                    )
+
+        if audio is not None and register is not None:
+            if register in (RedRegister.SILENT, RedRegister.DEFERRED_CLINICIAN):
+                if audio.spoken or audio.alert_sound:
+                    raise ValueError(
+                        f"the {register.value} register carries no audio at all "
+                        '(files/02 §5.3 Axis 2: SILENT is "No audio, ever" and '
+                        "DEFERRED_CLINICIAN leaves the patient screen unchanged)"
+                    )
+            elif register is RedRegister.CALM and audio.alert_sound:
+                raise ValueError(
+                    "the CALM register is spoken softly with no alert sound "
+                    "(files/02 §5.3 Axis 2) — the paediatric-airway case is CALM "
+                    "precisely because the alarm is the harm"
+                )
+
+        if register in (RedRegister.ALERT, RedRegister.CALM):
+            if self.distress_sensitive and self.suppress_attention_interrupt is None:
+                raise ValueError(
+                    "a distress_sensitive rule in a register that takes the screen "
+                    "must state suppress_attention_interrupt — the rule that must "
+                    "not run the interrupt AT ALL (files/04 §8.1 rule 6) is exactly "
+                    "the rule an omission would silently give one, so there is no "
+                    "permitted default"
+                )
+        elif register is not None and self.suppress_attention_interrupt is False:
+            raise ValueError(
+                f"the {register.value} register has no attention interrupt to run, "
+                "so suppress_attention_interrupt: false asserts a takeover the "
+                "register forbids (files/02 §5.3 Axis 2)"
+            )
+
+        if self.consent_independent:
+            if self.offline_draft_path is not OfflineDraftPath.FORBIDDEN:
+                raise ValueError(
+                    "a consent-independent crisis item has no offline draft path — "
+                    "it is evaluated server-side on the answer, or the disclosure "
+                    "may never reach the server at all (files/04 §4.2 defect 2; "
+                    "§8.2 crisis_items_have_no_offline_draft_path)"
+                )
+            if self.abandonment_handler is None:
+                raise ValueError(
+                    "a consent-independent crisis item must name its abandonment "
+                    "handler — a patient who force-quits after answering is the "
+                    "highest-risk state the product can enter (files/04 §4.2 defect 2)"
+                )
+            if self.notify_clinic is not NotifyClinic.ALWAYS:
+                raise ValueError(
+                    "clinician notification on the crisis path is unconditional and "
+                    "time-bound, never conditional on a connector being present "
+                    "(files/04 §4.2 defect 1)"
+                )
+
+        action = self.action
+        if action is not None:
+            for branch in (action.remote, action.on_site):
+                if branch is not None and branch.carry_child and not self.subject_is_child:
+                    raise ValueError(
+                        "carry_child instructs the user to carry the patient, which "
+                        "only a rule whose subject_is_child may do (files/02 §5.3; "
+                        "files/protocols/base.life_threat.yaml exemplar 3)"
+                    )
         return self
 
 
