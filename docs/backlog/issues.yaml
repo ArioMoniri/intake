@@ -965,7 +965,24 @@
   title: "Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke"
   depends_on: [INT-094, INT-018]
   labels: [area:voice, approval:human-infra, gpu]
-  status: todo
+  status: awaiting-human
+  # AWAITING-HUMAN 2 Sep 2026 on THREE rows, with the build complete and every gate closed.
+  # What shipped: the three Layer A <-> Layer B joints docs/evidence/INT-094.md found open
+  # (the extract_slots handler and its composition root, the ask ledger, the transcript
+  # vault), the ASR/TTS adapters with recorded-fixture contract tests, the files/03 4.9.1
+  # row -> registry pin resolver with its PHI-path licence gate, preemptive_generation, and
+  # `make live-smoke`, which ran ONE REAL TURN end to end against the self-hosted ASR,
+  # extraction and TTS lanes on 2 Sep 2026.
+  #   HB-I10 - rows 2 and 7 have no machine-readable pin: row 7 records its blob reading in
+  #            prose ("Apache-2.0 (LICENSE blob verified @c202236)") and row 2 records
+  #            UNVERIFIED. `require_phi_path_pin` refuses both, which is the fail-closed
+  #            state; the acceptance line "every pin ... recorded as model_id@revision +
+  #            sha256 with licence_verified_at" is satisfied by rows 10-11 alone.
+  #   HB-I11 - row 1 (nemotron, the PRIMARY ASR) is obtained nowhere; `resolve_pin` refuses.
+  #   HB-I4/HB-I5 - the acceptance closes only on a real turn ON THE TARGET GPU. There is no
+  #            pilot card and no signed capacity contract, so live-smoke records
+  #            target=dev-bridge and the issue stays open rather than closing on a laptop
+  #            forward.
   # CORRECTED 27 Aug 2026, not deleted. This issue was "Profile cascade_fast with Soniox STT v5 /
   # Soniox TTS v2 / ElevenLabs Flash". Under the all-self-hosted constraint (00 §0b) cascade_fast
   # ceases to exist and every vendor it named is unreachable by construction. The WORK survives —
@@ -978,6 +995,7 @@
     - "`make live-smoke PROFILE=residency_tr` runs one real turn on the target GPU and stores evidence (per-term latency, not a single round-trip number) — issue closes only with that evidence, never on laptop mocks"
     - "no PHI-path egress: the allow-list contains no external model or speech vendor, and the test that a call to an unlisted host is refused still passes"
   tests: [tests/voice/adapters/test_residency_contracts.py]
+  evidence: docs/evidence/INT-095.md
   legal: "KVKK-9"
   sec_row: "voice-runtime"
 - id: INT-096

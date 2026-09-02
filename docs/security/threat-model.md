@@ -463,15 +463,46 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   so the assertion cannot pass against a clock that never moves. (b) The "[E] tool-list
   growth" threat gains a composed form: a whole turn against a watched engine touches
   `snapshot` and nothing else. Guards 12–19/27/28 land with INT-090, INT-110, INT-115.
-- **Known-open joints (INT-094):** the Layer A ↔ Layer B loop does not close on this tree,
-  and the suite asserts each joint so it fails when one is wired. No module under
-  `services/` registers an `extract_slots` state handler (INT-092 left it to INT-083, which
-  built `run_extraction` and never registered it), `IntakeEngine.mark_asked` has no caller
-  outside tests, and `WorkRequest` carries `input_hash` rather than a transcript. The
-  security consequence is in the safe direction — a composed session raises
-  `UnregisteredWorkType` on the first transcript instead of silently dropping it, and the
-  queue stays PHI-free by construction — but the transcript route is a **data-boundary
-  decision** (invariant 14) and belongs with whoever closes it.
+- **Known-open joints (INT-094), closed by INT-095, and what the closing cost:** the three
+  joints were an unregistered `extract_slots` handler, an uncalled `mark_asked`, and a
+  `WorkRequest` with no transcript channel. Two are now wired and their assertions in
+  `tests/voice/test_invariants.py` were rewritten to their positive form (the class is
+  `TestTheLoopThatNowCloses`); the third is **deliberately unchanged**, and that is the
+  security-relevant part.
+  - **The transcript route (invariant 14, invariant 6).** The queue was PHI-free by
+    construction and stays PHI-free by construction: a transcript is deposited into
+    `intake_voice_runtime.transcript.SessionTranscripts`, a per-session in-memory vault keyed
+    by the same `sha256` the request already carried in `input_hash`, and the state handler
+    takes it back out by that digest. No `WorkRequest` field, no `WorkRecord` field, no log
+    line and no metric label changed — `test_the_work_request_still_has_no_transcript_channel`
+    is kept, not struck. The **boundary crossing moved earlier**: the vault stores
+    `PatientData`, so INT-083's refusal of a planted control token now happens *before* a
+    Work exists, and a handler cannot be handed a bare `str` at all. Three costs are recorded
+    rather than hidden: a Work is no longer replayable from its record alone (a restart finds
+    an empty vault and the Work fails `TranscriptNotHeld` instead of binding nothing); the
+    vault is a bounded FIFO whose eviction turns Layer-B starvation into a *visible* failed
+    Work; and it is process memory, so what applies is invariant 6 (nothing rendered, nothing
+    logged — swept **decoded**, because JSON escaping hides an escaped Turkish sentence) and
+    not invariant 3, which is about audio buffers.
+  - **The ask ledger (invariant 9).** `mark_asked` is a Layer-B *write* and the Talker holds
+    a read-only snapshot, so the fact travels rather than the lock: `AskLedger.note_asked`
+    takes only the cheap queue lock, and `BackendAgent.run_pending` applies the notes under
+    the engine lock *before* either lane runs. Taking the engine lock on the speech path
+    would have made a turn wait on whatever handler was running — an LLM call — which is
+    invariant 9's second clause broken inside the Talker. Measured against the live bridge:
+    a real extraction that took **29 106 ms** left `submit` at **0.6 ms**.
+  - **The composition root (invariant 19).** Registration lives in
+    `intake_voice_runtime.composition` and nowhere else — a test pins the file list — so
+    "which model is this session running?" is answered by reading one function rather than
+    by grepping. `intake_voice_runtime.adapters.pins` resolves a files/03 §4.9.1 row to a
+    registry pin and **refuses a PHI-path lane** whose licence has no dated blob reading;
+    rows 1, 2 and 7 all refuse today (HB-M1, HB-M2).
+  - **No public host reaches a speech lane (invariants 14, 19).** The ASR and TTS adapters
+    refuse any endpoint that is not loopback, a private/link-local address or a
+    cluster-internal name — default deny, deliberately **not** a vendor blocklist. A
+    blocklist of the four deleted vendors is one a fifth vendor walks past, and writing those
+    hostnames down is exactly what `scripts/ci/assert_no_vendor_calls.sh` exists to prevent;
+    that gate caught the first draft of this module and the design is better for it.
 - **Fixed activity-label table (INT-094):** `InlinePayload` carried a free-text
   `activity_label_tr` that any Layer-B handler could fill with a session id, a prompt or a
   chain of reasoning — the three things invariant 10 forbids reaching the client. It is now
