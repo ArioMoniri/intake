@@ -881,7 +881,8 @@
   title: "Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer"
   depends_on: [INT-083, INT-033]
   labels: [area:engine, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-084.md
   acceptance:
     - "every fact carries source span; fixed legal disclaimer text (06 §7 wording: hasta beyanina dayanir, hekim degerlendirmesinin yerine gecmez) rendered on note+PDF; golden note snapshots"
   tests: [tests/engine/test_note_golden.py]
@@ -939,7 +940,8 @@
   title: "RED preemption path: stop <=150ms, e2e <=300ms (fake clocks)"
   depends_on: [INT-091, INT-092, INT-080]
   labels: [area:voice, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-093.md
   acceptance:
     - "only rules-engine RED carries priority preempt; playback cancel and script start measured on fake clock"
   tests: [tests/voice/test_red_preemption.py]
