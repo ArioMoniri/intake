@@ -33,9 +33,9 @@ draft_refusal              2   draft_needs_source rules refuse to evaluate
 candidate_ceiling          3   LLM flags attach, level/action untouched
 register_tiebreak          3   equal-severity RED winner is total and stable
 green_baseline             1   the life set alone, empty context
-type_mismatch_unknown      4   cross-type comparison is Unknown, never False
+type_mismatch_unknown      6   cross-type comparison is Unknown, never False
 ======================  =====  ==================================================
-total                     206
+total                     208
 
 Rule levels available in merged content today: KIRMIZI_K2 (rf.synthetic_
 kirmizi, rf.synthetic_kirmizi.genis, rf.chest_pain_cardiac_features),
@@ -173,7 +173,7 @@ def _with_candidates(cases: list[GoldenCase]) -> list[GoldenCase]:
 
 
 # ---------------------------------------------------------------------------
-# Families 13/14 — green baseline (1) and cross-type Unknown (4).
+# Families 13/14 — green baseline (1) and cross-type Unknown (6).
 # ---------------------------------------------------------------------------
 
 
@@ -200,7 +200,7 @@ FAMILY_COUNTS: tuple[tuple[str, int], ...] = (
     ("candidate_ceiling", 3),
     ("register_tiebreak", 3),
     ("green_baseline", 1),
-    ("type_mismatch_unknown", 4),
+    ("type_mismatch_unknown", 6),
 )
 
 

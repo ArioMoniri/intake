@@ -75,12 +75,25 @@ class _ReEntry:
 
 
 def _same_value(left: JsonValue, right: JsonValue) -> bool:
-    """Exact identity of value *and* type.
+    """Did the patient re-state the prior value, or contradict it?
 
     ``True == 1`` in Python, and a confirm step that read a boolean
     re-confirmation as an unchanged integer would silently keep a prior
-    value the patient just contradicted.
+    value the patient just contradicted — so a boolean is never a number
+    here, and two values of different kinds never match.
+
+    Numbers compare by magnitude rather than by carrier (INT-303). A prior
+    fact loaded from stored JSON and a freshly extracted answer can be an
+    ``int``, a ``float`` or a :class:`~decimal.Decimal` for the same
+    quantity; treating those as a contradiction would re-ask a question the
+    patient had just confirmed, for no reason a patient could perceive. The
+    comparison runs on the canonical scalar the triage grammar uses, so this
+    gate and a red-flag predicate read one number the same way.
     """
+    left_numeric = isinstance(left, (int, float, Decimal)) and not isinstance(left, bool)
+    right_numeric = isinstance(right, (int, float, Decimal)) and not isinstance(right, bool)
+    if left_numeric or right_numeric:
+        return left_numeric and right_numeric and canonical_scalar(left) == canonical_scalar(right)
     return type(left) is type(right) and bool(left == right)
 
 
