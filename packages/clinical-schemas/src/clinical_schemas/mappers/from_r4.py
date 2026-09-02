@@ -18,7 +18,7 @@ import datetime
 from collections.abc import Sequence
 from typing import Literal
 
-from clinical_schemas.common import JsonValue
+from clinical_schemas.common import JsonScalar, JsonValue
 from clinical_schemas.mappers import codes
 from clinical_schemas.mappers.r4 import (
     AllergyIntolerance,
@@ -409,7 +409,9 @@ def risk_assessment_to_triage(assessment: RiskAssessment) -> RulesTriageResult:
 
 def _item_value(item: QrItem) -> JsonValue:
     if item.item:
-        out: dict[str, str | int | float | bool | None] = {}
+        # JsonScalar rather than a hand-spelled copy of it: the carrier gained
+        # Decimal in INT-303 and a duplicate spelling would have gone stale.
+        out: dict[str, JsonScalar] = {}
         for child in item.item:
             if child.answer is None or len(child.answer) != 1:
                 raise MappingError(f"nested item {child.link_id!r} must carry exactly one answer")

@@ -52,6 +52,7 @@ from intake_voice_runtime.clinical_agent import (
     build_plan,
     must_ask_coverage,
 )
+from intake_voice_runtime.clinical_agent.fsm import _same_value
 from intake_voice_runtime.steps import StepKind
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
@@ -694,6 +695,26 @@ class TestDeltaMode:
         assert step.step_id == "oyku.belirti_var"
         assert step.kind is StepKind.SCRIPTED
         assert step.text_tr == "Sentetik belirtiniz var mı?"
+
+    def test_a_re_stated_number_is_not_a_contradiction_whatever_carrier_it_arrives_in(
+        self,
+    ) -> None:
+        """INT-303. A prior fact loaded from stored JSON and a freshly
+        extracted answer can carry the same quantity as an ``int``, a
+        ``float`` or a ``Decimal``. Reading that as a contradiction would
+        re-open the full ask for a value the patient just confirmed, so the
+        confirm gate compares magnitudes rather than Python types."""
+        assert _same_value(Decimal("2.5"), 2.5)
+        assert _same_value(2, Decimal("2"))
+        assert _same_value(Decimal("2.50"), Decimal("2.5"))
+
+    def test_a_boolean_is_still_never_the_number_one(self) -> None:
+        """The distinction the old type check existed for is kept: a boolean
+        re-confirmation must not read as an unchanged integer."""
+        assert not _same_value(True, 1)
+        assert not _same_value(1, True)
+        assert not _same_value(Decimal("2.5"), Decimal("2.6"))
+        assert not _same_value("2.5", Decimal("2.5"))
 
     def test_a_stale_fact_is_withheld_and_never_pre_fills(self) -> None:
         stale = NOW - datetime.timedelta(days=400)
