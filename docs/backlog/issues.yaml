@@ -2894,7 +2894,7 @@
     - "the three vocabularies that meet in this brief - consent scope, legal basis, data category - are distinguished explicitly, because conflating them produces a wrong consent text"
   tests: [tests/legal/test_store_labels.py]
   legal: "KVKK-10,HHY-15"
-  sec_row: "legal-texts"
+  sec_row: "consent"
 - id: INT-246
   epic: E08-mobile
   phase: P0
