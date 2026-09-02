@@ -334,9 +334,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
   },
   smsField: { minHeight: 96, textAlignVertical: "top" },
+  // Wraps (INT-295): a row that pins one item to the far end has no way to
+  // keep it on the screen once the other one grows, and this app scrolls
+  // nowhere sideways.
   chosenRow: {
     alignItems: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     justifyContent: "space-between",
   },
