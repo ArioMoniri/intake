@@ -1006,11 +1006,12 @@
   title: "Profile typed (full parity fallback)"
   depends_on: [INT-081]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "entire intake completable typed; kill-switch target; parity simulator run"
   tests: [tests/voice/test_typed_parity.py]
   sec_row: "intake-typed"
+  evidence: docs/evidence/INT-096.md
 - id: INT-097
   epic: E05-voice
   phase: P3
