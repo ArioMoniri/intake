@@ -8,8 +8,9 @@ implementation on this branch and are wired fail-closed by
 
 - :class:`ClipStore` — the clip byte store is ``packages/voice-clips``
   (INT-060), which is not on ``main``;
-- :class:`SpeechSynthesizer` — the self-hosted streaming TTS adapter is
-  INT-095 (files/03 §4.9.1 rows 10–12);
+- :class:`SpeechSynthesizer` — implemented since INT-095 by
+  :mod:`intake_voice_runtime.adapters.speech`; what ``app`` still has no
+  binding for is an endpoint, which is a deployment's to set;
 - the room-token HTTP route the worker needs to join its session room —
   ``intake_platform.room_tokens`` mints the JWT (INT-090) but no route serves
   it (INT-103's finding).
@@ -36,6 +37,7 @@ from pydantic import Field
 from intake_voice_runtime.steps import Step
 
 __all__ = [
+    "AskLedger",
     "AudioSink",
     "Clock",
     "ClipStore",
@@ -193,6 +195,32 @@ class WorkSubmitter(Protocol):
     def cancel(self, work_id: str, reason: str) -> WorkTicket: ...
 
     def drain_results(self) -> tuple[object, ...]: ...
+
+
+@runtime_checkable
+class AskLedger(Protocol):
+    """Layer A tells Layer B which step it actually spoke. One member, and it
+    is not awaitable.
+
+    files/03 §4.5's *"ask ahead, reconcile behind"* needs somebody to record
+    the ask, and ``IntakeEngine.mark_asked`` is a **write** to Layer B state
+    while the Talker holds only a read-only
+    :class:`EngineSnapshotSource`. Taking the engine lock from the speech path
+    would make a turn wait on whatever state handler is running — an LLM call
+    — which is CLAUDE.md invariant 9's second clause broken in the Talker. So
+    the fact travels: the Talker notes the step, the Backend's own pump applies
+    it under the engine lock before it runs the next Work, and the Talker holds
+    its next question for one turn if the acknowledgement has not landed
+    (``TurnHold.AWAITING_ASK_ACK``).
+
+    This is a separate port from :class:`WorkSubmitter` on purpose. It is not a
+    Work, it never produces a result, and keeping it out of the submitter keeps
+    that port's three-member surface — the one
+    ``tests/voice/test_talker_never_awaits.py`` pins — exactly as INT-091 left
+    it.
+    """
+
+    def note_asked(self, step_id: str) -> None: ...
 
 
 # --- speech egress -------------------------------------------------------------------------

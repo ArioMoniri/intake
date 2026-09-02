@@ -14,9 +14,12 @@ have no implementation on this branch, and each is a named check that reports
 - ``clip_store`` — the clip byte store is ``packages/voice-clips`` (INT-060),
   which is not on ``origin/main``. The Talker resolves ``clip_id`` from the
   compiler's manifest today; the bytes behind it have nowhere to come from.
-- ``speech_synthesizer`` — the self-hosted streaming TTS adapter is INT-095
-  (files/03 §4.9.1 rows 10–12). CI never calls a vendor, and there is no
-  in-repo TTS to call instead.
+- ``speech_synthesizer`` — the adapter now exists (INT-095,
+  :mod:`intake_voice_runtime.adapters.speech`, files/03 §4.9.1 rows 10–12) and
+  builds from ``INTAKE_TTS_ENDPOINT`` or ``INTAKE_TTS_RECORDED_DIR``, neither
+  of which has a default. What is still absent is a *deployment* that sets
+  one, so the check stays and reports not-ready rather than constructing an
+  adapter pointed at a guess.
 - ``room_token`` — ``intake_platform.room_tokens`` mints the LiveKit JWT
   (INT-090), but no HTTP route serves one to a worker (INT-103's finding).
 

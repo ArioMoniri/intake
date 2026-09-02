@@ -256,18 +256,20 @@ def red_result(
 class Stack:
     """One session, wired the way files/03 §4.1 draws it, on one virtual clock.
 
-    The three layers are the shipped ones. What this class supplies is the two
-    joints the shipped code does not have a producer for, both recorded in
-    :class:`TestTheLoopThatDoesNotClose`:
+    The three layers are the shipped ones. What this class supplies is a
+    **table-driven** ``extract_slots`` handler in place of the production one
+    (``intake_voice_runtime.extraction.handler``, wired by
+    ``intake_voice_runtime.composition`` since INT-095): these tests are about
+    the composition — FIFO, preemption, insertion windows, lanes — and running
+    a real gateway underneath them would make every one of them a test of an
+    extraction as well. The production handler and its live turn are proved in
+    ``tests/voice/adapters/test_residency_contracts.py``.
 
-    * an ``extract_slots`` **state handler**. ``BackendAgent`` registers none
-      (INT-092 left the production handler to INT-083, which built the Work
-      body and never registered it), so a composed session refuses the very
-      first transcript. The handler here is the registration that is missing,
-      not a stand-in for a model: it takes the slot updates the caller states.
-    * a **transcript route**. ``WorkRequest`` carries ``input_hash``, never
-      text (INT-092 finding 3), so the handler is handed its updates through
-      this object rather than through the request.
+    It marks the step asked itself, because most tests here drive
+    ``submit_utterance`` directly without ever speaking; in production that
+    mark comes from the Talker's speech path through
+    :class:`~intake_voice_runtime.ports.AskLedger`, and a session that speaks
+    gets both (the second is refused by the frontier check and recorded).
     """
 
     def __init__(
@@ -330,7 +332,7 @@ class Stack:
     # --- the two missing joints ------------------------------------------------
 
     def _extract(self, context: StateContext) -> StateEffect:
-        """The registration INT-083 owes: mark the step asked, then bind."""
+        """Stand in for the question having been asked, then bind the answer."""
         step_id = context.request.step_id
         self.state_calls.append(step_id)
         if step_id in {step.step_id for step in context.engine.frontier()}:
@@ -1530,18 +1532,25 @@ class TestLatencyHarness:
 # =====================================================================================
 
 
-class TestTheLoopThatDoesNotClose:
-    """Three joints between Layer A and Layer B have no producer on this tree.
+class TestTheLoopThatNowCloses:
+    """The three joints INT-094 found open, and what INT-095 did with them.
 
-    Each is asserted rather than described, so the day one is wired the test
-    fails and the finding is struck from the record instead of quietly
-    becoming false.
+    Two of the three assertions here were written as "this does not exist"
+    and were **struck** when the joint was wired — that was their purpose, and
+    the record of what they used to say is docs/evidence/INT-094.md finding 1.
+    The third has not moved and must not: the queue's PHI-free-by-construction
+    property was the reason the transcript route was a data-boundary decision
+    rather than a field, and the route INT-095 chose kept it.
     """
 
-    def test_a_bare_backend_agent_refuses_the_first_transcript(self) -> None:
-        """No ``extract_slots`` handler is registered anywhere in ``services/``
-        — INT-092 left it to INT-083, which built ``run_extraction`` and never
-        registered it. A composed session therefore cannot take one turn."""
+    def test_a_bare_backend_agent_still_refuses_the_first_transcript(self) -> None:
+        """Registration is the composition root's, not the queue's.
+
+        ``intake_voice_runtime.composition`` registers the handler; a
+        ``BackendAgent`` built by hand has none, and refusing at ``submit``
+        beats queueing Work that could never run. That half of INT-092's
+        fail-closed design is unchanged.
+        """
         clock = FakeClock()
         engine = IntakeEngine(protocol=_protocol(), reference_time=NOW)
         agent = BackendAgent(session_id=SESSION, engine=engine, clock=clock)
@@ -1551,27 +1560,39 @@ class TestTheLoopThatDoesNotClose:
         with pytest.raises(UnregisteredWorkType, match="extract_slots"):
             clock.run(session.take_turn("sentetik yanit"))
 
-    def test_no_module_under_services_registers_a_production_handler(self) -> None:
+    def test_exactly_one_module_under_services_registers_the_handler(self) -> None:
+        """Struck (INT-095). Was: ``assert hits == []``."""
         services = REPO / "services"
-        hits = [
-            path
+        hits = sorted(
+            path.relative_to(REPO).as_posix()
             for path in services.rglob("*.py")
             if "register_state(" in path.read_text(encoding="utf-8")
             and path.name != "work_queue.py"
-        ]
-        assert hits == []
+        )
+        assert hits == ["services/voice-runtime/src/intake_voice_runtime/composition.py"]
 
-    def test_mark_asked_has_no_caller_outside_tests(self) -> None:
+    def test_mark_asked_has_exactly_one_caller(self) -> None:
+        """Struck (INT-095). Was: ``assert hits == []``.
+
+        The caller is the queue's ask-note pump, fed by the Talker's speech
+        path — "asked" means **spoken**, and the extraction handler holds no
+        call to it, which is what makes the other reading unreachable.
+        """
         roots = (REPO / "services", REPO / "packages")
-        hits = [
-            path
+        hits = sorted(
+            path.relative_to(REPO).as_posix()
             for root in roots
             for path in root.rglob("*.py")
             if ".mark_asked(" in path.read_text(encoding="utf-8")
+        )
+        assert hits == [
+            "services/voice-runtime/src/intake_voice_runtime/clinical_agent/work_queue.py"
         ]
-        assert hits == []
 
-    def test_the_work_request_has_no_transcript_channel(self) -> None:
+    def test_the_work_request_still_has_no_transcript_channel(self) -> None:
+        """**Not** struck, and must not be. INT-095 routed the transcript
+        through a per-session vault keyed by this very digest, so the queue
+        carries exactly what it carried before (CLAUDE.md invariants 6, 14)."""
         from intake_voice_runtime.ports import WorkRequest
 
         assert "transcript" not in WorkRequest.model_fields
