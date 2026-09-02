@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**219 issues.** By phase: P0 129 · P1 48 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 104 · todo 102 · withdrawn 1.
+**219 issues.** By phase: P0 129 · P1 48 · P2 37 · P3 5. By status: awaiting-human 8 · doing 4 · done 104 · todo 102 · withdrawn 1.
 
 ## P0
 
@@ -24,7 +24,7 @@
 | INT-016 | Hash-chained audit log + WORM export + daily verifier | E01-platform | INT-014 | area:security | done |
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | done |
-| INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | doing |
+| INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | awaiting-human |
 | INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | doing |
 | INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | doing |
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | done |

@@ -207,7 +207,23 @@
   title: "security.yml CI job: full gate set + signing"
   depends_on: [INT-002]
   labels: [area:ci, risk:security]
-  status: doing
+  status: awaiting-human
+  evidence: docs/evidence/INT-019.md
+  # MECHANISM SHIPPED, THREE LINES AWAITING THE OWNER (3 Sep 2026, HB-O5).
+  # The gate set runs and the scanners bite: gate_selftest.sh feeds every tool a
+  # planted violation AND a clean control, 21/21. The five CI checks this session
+  # could reach are fixed at the source and no allow-list was widened.
+  # What is left is inside .github/workflows/security.yml, which is hook-protected:
+  #   (a) the gitleaks job needs `pull-requests: read` — the action crashes on a 403,
+  #       and it is NOT a licence (it logs "no license key is required") or a version;
+  #   (b) the osv-scanner `uses:` points at the repo root, which has no `runs:` section;
+  #       the runnable action is the osv-scanner-action/ subdirectory, and `--skip-git`
+  #       must go because osv-scanner 2.5.1 does not define that flag;
+  #   (c) the trivy step needs `trivyignores: .trivyignore.yaml` — trivy 0.74 does not
+  #       auto-detect the YAML form.
+  # Separately and NOT suppressed: osv-scanner reports 8 real npm advisories
+  # (1 Critical, 3 High) that no gate has ever seen, so `make security` fails at
+  # [6/12] on purpose. Bumping vitest 2->3 and vite 5->6 is its own issue.
   acceptance:
     - "gitleaks, semgrep+bandit, eslint-security, trivy fs/image/IaC + osv-scanner fail on critical/high, checkov, license allow-list (AGPL flagged), syft SBOM artifact, cosign keyless signing + SLSA provenance for images and protocol bundles on tags, schemathesis fuzz, PHI-pattern scan of fixtures"
     - "`make security` runs the same list locally; planted secret, planted critical CVE and planted PHI each fail (proved in evidence, then reverted)"
