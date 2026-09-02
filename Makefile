@@ -279,6 +279,22 @@ siem:
 siem-down:
 	scripts/security/siem_up.sh --down
 
+# INT-018: the forward egress proxy. `egress-conf` re-renders squid.conf from
+# infra/security/egress-allowlist.yaml — the allow-list is the only file anyone
+# edits, and tests/infra/test_egress_proxy.py fails when the render is stale.
+.PHONY: egress egress-down egress-conf egress-conf-check
+
+egress-conf:
+	uv run python scripts/security/render_egress_proxy_conf.py
+
+egress-conf-check:
+	uv run python scripts/security/render_egress_proxy_conf.py --check
+
+egress:
+	docker compose -f infra/docker-compose.egress.yml --profile egress up -d --wait
+
+egress-down:
+	docker compose -f infra/docker-compose.egress.yml --profile egress down
 # INT-016: the daily audit-chain verification job (files/10 §3 schedules it
 # daily). The anchored head is an INPUT, never a default: without it the
 # command exits 3 rather than reporting a chain that merely agrees with itself
