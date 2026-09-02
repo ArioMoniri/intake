@@ -564,11 +564,30 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §3 — Presidio with Turkish recognizers (TC Kimlik checksum,
   phone, IBAN, addresses, date shifting) before any text egress; §4 — egress allow-list with
   per-call logging as transfer evidence; inv. 25 — consent texts and allow-list held in
-  agreement by CI.
-- **Signals:** egress denials — a hard alert (§7) — land with INT-018.
+  agreement by CI. **Landed with INT-018 (ADR-025):** `infra/security/egress-allowlist.yaml`
+  is the single source both enforcement points read —`intake_platform.egress` in process and
+  the generated `infra/security/squid/squid.conf` at the dev forward proxy
+  (`infra/docker-compose.egress.yml`, profile `egress`). Default deny; a row is bound to one
+  `purpose_id` and the caller must declare a matching purpose and its `DataClass`, so an
+  allow-listed host addressed for the wrong reason is refused; personal data — pseudonymous
+  included — needs `phi_allowed` plus `INTAKE_ALLOW_PHI_EGRESS=explicit-yes`; an authorised
+  host is resolved once, refused if any answer falls in `DENIED_RANGES`, and connected to by
+  the pinned address with `Host`/SNI intact, so DNS rebinding has no second lookup to win;
+  every redirect hop is re-authorised and `guarded_client` disables redirects by default.
+  The `phi_path` tier is empty (00_STATE D11) and the compose topology says so in Docker's
+  own terms — the `phi` network is `internal: true` and the proxy is not attached to it.
+- **Signals:** egress denials — a hard alert (§7) — emitted as `sec.egress_denied_total`
+  (catalogued `live`, `target: 0 (any increase pages)`) and as a `sec.egress_denied` log
+  record, with `TransferRecord {ts, host, port, purpose, data_class, bytes_out, decision,
+  reason, tier}` as the vendor-transfer register's feed. The register's auto-fill from that
+  feed is INT-189 (Compliance module).
 - **Tests:** tests/security/test_deid_ner.py; tests/security/test_deid_leak_rate.py (the
-  measured results live in docs/evidence/ with date and corpus, per ADR-022); egress policy
-  tests land with INT-018.
+  measured results live in docs/evidence/ with date and corpus, per ADR-022);
+  tests/security/test_egress_allowlist.py (the bypass lane: IP literals, answers inside
+  denied ranges, DNS rebinding, redirects, right-host-wrong-purpose);
+  tests/security/test_egress_policy.py (the policy shape); tests/infra/test_egress_proxy.py
+  (the dev proxy topology, and an eleven-host table decided through both enforcement points
+  so they cannot drift).
 
 ## `records` — patient document upload and ingestion
 

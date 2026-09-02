@@ -965,8 +965,15 @@ metrics:
     owner: security
     unit: "count"
     target: "0 (any increase pages)"
-    status: planned
-    description: Denied egress attempts from the PHI path.
+    status: live
+    description: >-
+      Denied egress attempts from the PHI path. Emitted by
+      intake_platform.egress on every refusal, whichever layer caught it — an
+      unlisted host, a wrong declared purpose, personal data bound for a row
+      that may not receive it, or a hostname that resolved into a
+      private/link-local/metadata range (INT-018). Unlabelled deliberately: a
+      host label would let a caller write chosen strings into the metric store
+      and make the cardinality of an attack unbounded.
   - name: sec_injection_suspected_total
     id: sec.injection_suspected_total
     type: counter
