@@ -60,3 +60,5 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-021 All models self-hosted, licence from the raw blob](adr/ADR-021-all-models-self-hosted.md)
 - [ADR-022 No accuracy claims](adr/ADR-022-no-accuracy-claims.md)
 - [ADR-023 RED three axes](adr/ADR-023-red-three-axes.md)
+- [ADR-024 life_threat schema reconciliation](adr/ADR-024-life-threat-schema-reconciliation.md)
+- [ADR-025 One egress allow-list, two enforcers, a purpose on every call](adr/ADR-025-egress-one-list-two-enforcers.md)

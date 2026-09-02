@@ -497,3 +497,47 @@ components:
       and a rules repo relicensing would not show up in the engine's LICENSE.
       Falco is a CNCF graduated project; the driver ships as modern eBPF here,
       so no out-of-tree kernel module is built on the host.
+
+  # INT-018 — the forward egress proxy (files/10 §4). Not on the PHI path in
+  # the sense of *carrying* clinical data: the `phi` network in
+  # infra/docker-compose.egress.yml is `internal: true` and this container is
+  # deliberately not attached to it. It is on the PHI path in the sense that
+  # matters for this registry — it is the boundary control that decides what
+  # may leave the trust boundary at all, so a release that ships it broken
+  # ships the boundary broken.
+  - component: egress-proxy
+    self_hostable: true
+    self_hosted_now: false
+    host: "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py"
+    license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see licence_note; the blob alone would read GPL-2.0-only)"
+    # No HTTP health endpoint: squid answers a proxy request or nothing, and a
+    # forward proxy that returns 200 to an unauthenticated GET would be a
+    # finding rather than a probe. tcp_connect is what can be asserted without
+    # sending traffic through the boundary being tested.
+    probe: tcp_connect
+    budget_ms: 1000
+    # A failed proxy means no egress, which is the correct failure direction:
+    # dev tooling stops, nothing leaks. There is nothing to fall back TO
+    # without reopening the boundary.
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/squid-cache/squid/e8118a7381213f5cfcdeb4cec1d2d854bfd261c8/COPYING"
+    licence_blob_sha256: "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    licence_note: >-
+      Read at commit e8118a7381213f5cfcdeb4cec1d2d854bfd261c8 (tag SQUID_6_6),
+      2026-08-29: 339 lines, the stock GNU GPL version 2 text, sha256
+      8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643. The
+      blob says nothing about "or later" — reading only the blob would have
+      recorded GPL-2.0-**only**, which is the laundered-claim shape files/03
+      §4.9.0 rule 3 warns about, here in the direction that understates our
+      rights. The "+" is in the per-file headers: every source file carries
+      "Squid software is distributed under GPLv2+ license and includes
+      contributions from numerous individuals and organizations. Please see
+      the COPYING and CONTRIBUTORS files for details." (verified in src/main.cc
+      at the same commit). GPLv2+ is a distribution licence and we do not
+      distribute squid — it runs as an unmodified upstream container behind a
+      config file of our own, which is data, not a derivative work. Re-read
+      the blob AND a source header on every version bump: a project that
+      states its "+" only in headers can drop it in a header sweep without
+      touching COPYING at all.
