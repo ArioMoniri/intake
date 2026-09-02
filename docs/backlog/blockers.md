@@ -35,6 +35,7 @@ This is not INT-254's content to fix and it does not block the work, which is co
 2. **HB-C15 — confirm or overturn the note's definition of "missing".** The engine counts a `must_ask` step whose gate is TRUE *or UNKNOWN* as obliged; mobile keeps gate-TRUE only. INT-084 took the engine's definition (`NoteGapReason.UNRESOLVED_PRECONDITION` exists) because under-reporting what is absent is the dangerous direction on a checkpointed note. Live the moment INT-096 puts compiled packs behind both surfaces.
 
 Neither blocks this issue: the mechanism ships, the enum is closed, and both choices are recorded in `docs/evidence/INT-084.md`.
+
 ## INT-208 — the deferral filed here on 2 Sep was against work that had already merged
 
 **Raised:** 2 Sep 2026 · **Retracted:** 2 Sep 2026 · **Named human:** none — this was never a blocker
