@@ -3215,6 +3215,41 @@
     - apps/mobile/src/lib/intake/history.test.ts
     - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
+- id: INT-286
+  epic: E08-mobile
+  phase: P0
+  # Owner defect report, verbatim: "still ... it goes completly written and
+  # option based but should be voice and open end questios (still with the
+  # dyanmicness and standardized versions) as much as possible", against a
+  # photograph of "Nefes darlığınız ne zaman oluyor?" rendered as a title over
+  # two tappable cards. The constraint in the parenthesis is half the issue:
+  # the patient answers in their OWN WORDS, and the answer still lands on the
+  # SAME standardised value a clinician reads and a gate branches on.
+  #
+  # No clinical content is authored. Not one scripted question changes: the
+  # titles in the shipped packs are already open interrogatives, and what was
+  # closed was the INTERACTION - the agent read the option list aloud and the
+  # screen offered nothing but cards. Deciding what an answer MEANS stays with
+  # the physician of record (INT-043 -> INT-044..051, HB-C1).
+  title: "Open-ended asking: the pack declares how each question is asked, and the option list becomes the value space rather than the interaction"
+  depends_on: [INT-083, INT-239, INT-256, INT-282]
+  labels: [area:mobile, area:voice]
+  status: done
+  evidence: docs/evidence/INT-286.md
+  acceptance:
+    - "the asking style is DECLARED, not defaulted: every choice step in every shipped pack carries ask: open | closed, there is no default, and a test pins the closed set to exactly the recorded list with a reason for each member - the same discipline invariant 21 puts on a RED register"
+    - "the three refusals are type-level and not conventions, each with a compile-time control that must fail to compile: an instrument item can never be ask: open (invariant 10; files/13 SS4 'Instruments verbatim, explicit option selection'), a guarded numeric measure can never carry an ask at all (invariant 22), and a step whose delivery is text_first or text_only can never be ask: open (files/13 SS13)"
+    - "an open question is never enumerated aloud: questionAsideTr speaks the authored open invitation instead of the option list, at every list length, while a closed question keeps today's <= 4-option enumeration byte for byte (files/13 SS5.3 'branch, don't enumerate'; Cowan ~4 chunks)"
+    - "the option list survives in both places the report asks for - as the spoken CONFIRMATION read-back, unchanged, and as the typed fallback under the open answer field - and every open question is asserted to still carry its options, so the standardised value space is never traded away for the open form"
+    - "a free-text answer NEVER becomes a slot value: the patient's own words are recorded as Answer.words and never enter Answer.values, askIfMet reads only values, and a test asserts that words alone open no gate - so free text is not a route around the rules engine (invariant 1) and the branching and mode depth INT-282 authored are unchanged"
+    - "the words reach the clinician: an answer carrying words renders them quoted after its coded labels in the note, an answer with words and no coded value still counts as answered by missingQuestions, and both the confirmed dialogue candidate and the typed prefill commit their existing verbatim quote through the same field"
+    - "no second extraction path is added: free speech reaches declared option ids only through the INT-083 boundary the dialogue already uses (extract.ts re-validates every id against the pack and drops an ambiguous single-select), and the typed lane resolves nothing locally - it keeps the words and offers the same options"
+    - "no scripted protocol text is rewritten (invariant 10) and no new numeral, threshold, cut-off or clinical meaning is authored; make check exits 0 and make safety is green"
+  tests:
+    - apps/mobile/src/lib/intake/openAsk.test.ts
+    - apps/mobile/src/lib/dialogue/speech.test.ts
+    - apps/mobile/src/lib/intake/note.test.ts
+  sec_row: "intake-typed"
 - id: INT-291
   epic: E05-voice
   phase: P0

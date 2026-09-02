@@ -38,11 +38,10 @@ def test_ids_unique_and_well_formed() -> None:
     # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
     # owner directive 2026-08-27) + INT-257 (INT-224 found that the marketing
     # claims-control gate files/01 §3b calls a P1 deliverable had no issue at
-    # all) + INT-291 (owner defect report: the patient could not interrupt the
-    # agent by speaking at all — the microphone was closed during agent speech,
-    # so files/02 §8.2's barge-in budget had nothing to measure).
-    # Grow this count only with a stated reason.
-    assert len(ids) == 217
+    # all) + INT-286 (owner defect report: the intake reads as written and
+    # option-based where it should ask openly). Grow this count only with a
+    # stated reason.
+    assert len(ids) == 218
     import re
 
     for i in ids:

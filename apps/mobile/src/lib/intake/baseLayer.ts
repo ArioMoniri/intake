@@ -56,6 +56,10 @@ const DETAYLI = ["detayli"] as const;
 const smoking: IntakeQuestion = {
   id: "smoking",
   kind: "single",
+  // INT-286: closed. The scripted question names the list — "hangisi en iyi
+  // anlatıyor" — so an open form would need new scripted text, and rewriting a
+  // scripted question is a pack change under invariant 10, not a delivery one.
+  ask: "closed",
   section: "pmh_fh_sh",
   noteSection: "family_social",
   modes: DETAYLI,
@@ -76,6 +80,7 @@ const smoking: IntakeQuestion = {
 const smokingQuitWhen: IntakeQuestion = {
   id: "smoking_quit_when",
   kind: "single",
+  ask: "open",
   section: "pmh_fh_sh",
   noteSection: "family_social",
   modes: DETAYLI,
@@ -96,6 +101,7 @@ const smokingQuitWhen: IntakeQuestion = {
 const alcohol: IntakeQuestion = {
   id: "alcohol",
   kind: "single",
+  ask: "open",
   section: "pmh_fh_sh",
   noteSection: "family_social",
   modes: DETAYLI,
@@ -111,6 +117,10 @@ const alcohol: IntakeQuestion = {
 const substance: IntakeQuestion = {
   id: "substance",
   kind: "single",
+  // INT-286: closed, and the type would refuse anything else. files/13 §13
+  // puts substance use in `text_first` so the answer does not travel on the
+  // voice channel; an open ask makes speaking the primary act.
+  ask: "closed",
   section: "pmh_fh_sh",
   noteSection: "family_social",
   modes: DETAYLI,
@@ -140,6 +150,10 @@ const occupation: IntakeQuestion = {
 const disability: IntakeQuestion = {
   id: "disability",
   kind: "single",
+  // INT-286: closed. Row 1352_LS is an administrative register the patient is
+  // placed in, not a narrative answer, and its seven states have no words
+  // outside the list to map onto.
+  ask: "closed",
   section: "pmh_fh_sh",
   noteSection: "family_social",
   modes: DETAYLI,
@@ -166,6 +180,7 @@ const disability: IntakeQuestion = {
 const injuryHistory: IntakeQuestion = {
   id: "injury_history",
   kind: "single",
+  ask: "open",
   section: "pmh_fh_sh",
   noteSection: "pmh",
   modes: DETAYLI,
@@ -193,6 +208,7 @@ const injuryDetail: IntakeQuestion = {
 const bloodGroup: IntakeQuestion = {
   id: "blood_group",
   kind: "single",
+  ask: "open",
   section: "pmh_fh_sh",
   noteSection: "pmh",
   modes: DETAYLI,
@@ -219,6 +235,7 @@ const bloodGroup: IntakeQuestion = {
 const transfusion: IntakeQuestion = {
   id: "transfusion",
   kind: "single",
+  ask: "open",
   section: "pmh_fh_sh",
   noteSection: "pmh",
   modes: DETAYLI,
@@ -258,6 +275,11 @@ function familyConditions(
   return {
     id: `fh_${relative}_conditions`,
     kind: "chips",
+    // INT-286: closed. A named-condition checklist, per relative. files/13 §4
+    // quotes Bent et al., Ann Intern Med 2006 (randomised, N = 214): a
+    // checklist elicited 238 findings in 77 % of patients, an open question 11
+    // in 14 %, p < 0.001. Opening a checklist is a measured loss of yield.
+    ask: "closed",
     section: "pmh_fh_sh",
     noteSection: "family_social",
     modes: DETAYLI,
@@ -281,6 +303,7 @@ function familyConditions(
 const painPresent: IntakeQuestion = {
   id: "pain_present",
   kind: "single",
+  ask: "open",
   modes: DETAYLI,
   titleKey: "intake.q.painPresent",
   lineLabelKey: "intake.note.painPresent",
@@ -308,6 +331,10 @@ const PAIN_SCORE_LABELS: readonly MessageKey[] = [
 const painScore: IntakeQuestion = {
   id: "pain_score",
   kind: "single",
+  // INT-286: closed, and the type would refuse anything else. files/13 §13
+  // makes this `text_only` and invariant 22 forbids free numeric entry on the
+  // clinical path, so the closed set of authored values IS the control.
+  ask: "closed",
   modes: DETAYLI,
   delivery: "text_only",
   titleKey: "intake.q.painScore",
