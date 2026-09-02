@@ -25,21 +25,24 @@ const duration = cardio.find((q) => q.id === "duration")!;
 const severity = cardio.find((q) => q.id === "severity")!;
 const complaint = cardio.find((q) => q.id === "complaint")!;
 const extra = cardio.find((q) => q.id === "extra")!;
+const breathTiming = allQuestions.find((q) => q.id === "breath_timing")!;
+/** The shipped CLOSED step with a list short enough to enumerate (INT-286). */
+const substance = allQuestions.find((q) => q.id === "substance")!;
 
 describe("questionSpeechTr", () => {
-  it("speaks the tr question text with enumerated hints when the options fit (≤ four)", () => {
-    const speech = questionSpeechTr(duration);
-    expect(speech).toContain(tr["intake.q.duration"]);
+  it("speaks the tr question text with enumerated hints when a CLOSED list fits (≤ four)", () => {
+    // INT-286: enumeration is what a CLOSED question gets. `substance` is
+    // closed because files/13 §13 makes it `text_first`.
+    expect(substance.ask).toBe("closed");
+    const speech = questionSpeechTr(substance);
+    expect(speech).toContain(tr["intake.q.substance"]);
     expect(speech).toContain(tr["dialogue.optionsIntro"]);
-    expect(speech).toContain(tr["intake.opt.today"]);
-    expect(speech).toContain(tr["intake.opt.days"]);
-    expect(speech).toContain(tr["intake.opt.week"]);
-    expect(speech).toContain(tr["intake.opt.month"]);
+    expect(speech).toContain(tr["intake.opt.no"]);
+    expect(speech).toContain(tr["intake.opt.yes"]);
+    expect(speech).toContain(tr["intake.opt.notStated"]);
     // ordinality-preserving list: forward order, "veya" before the last item
-    expect(speech).toContain(`${tr["dialogue.or"]} ${tr["intake.opt.month"]}`);
-    expect(speech.indexOf(tr["intake.opt.today"])).toBeLessThan(
-      speech.indexOf(tr["intake.opt.days"]),
-    );
+    expect(speech).toContain(`${tr["dialogue.or"]} ${tr["intake.opt.notStated"]}`);
+    expect(speech.indexOf(tr["intake.opt.no"])).toBeLessThan(speech.indexOf(tr["intake.opt.yes"]));
   });
 
   it("asks openly instead of enumerating when the list exceeds the spoken bound", () => {
@@ -47,6 +50,64 @@ describe("questionSpeechTr", () => {
     const speech = questionSpeechTr(complaint);
     expect(speech).toContain(tr["intake.q.complaint"]);
     expect(speech).not.toContain(tr["intake.opt.headache"]);
+  });
+});
+
+// INT-286 — the owner's report: "it goes completly written and option based
+// but should be voice and open end questios (still with the dyanmicness and
+// standardized versions) as much as possible".
+//
+// A question the pack declares `ask: "open"` is never enumerated, at ANY list
+// length. The photographed case is exactly here: `breath_timing` has four
+// options, which fits the Cowan bound, so the agent read
+// "Seçenekler: hareket ya da eforla, dinlenirken de oluyor, …" — a
+// multiple-choice question delivered by voice. Now the agent asks the
+// scripted question verbatim and invites the patient's own words; the option
+// list survives as the CONFIRMATION read-back, and on the typed screen.
+describe("an open question is asked, never enumerated (INT-286)", () => {
+  it("the photographed four-option question is no longer read out as a list", () => {
+    expect(breathTiming.ask).toBe("open");
+    expect(breathTiming.options!.length).toBeLessThanOrEqual(MAX_SPOKEN_OPTION_HINTS);
+    const speech = questionSpeechTr(breathTiming);
+    expect(speech).toContain(tr["intake.q.breathTiming"]);
+    expect(speech).not.toContain(tr["dialogue.optionsIntro"]);
+    expect(speech).not.toContain(tr["intake.opt.exertion"]);
+    expect(speech).not.toContain(tr["intake.opt.rest"]);
+  });
+
+  it("the aside becomes the authored invitation to answer in the patient's own words", () => {
+    expect(questionAsideTr(breathTiming)).toBe(tr["dialogue.openInvite"]);
+    expect(questionSpeechTr(duration)).toBe(
+      `${tr["intake.q.duration"]} ${tr["dialogue.openInvite"]}`,
+    );
+  });
+
+  it("no open question in any pack enumerates its options", () => {
+    for (const question of allQuestions) {
+      if (question.ask !== "open") {
+        continue;
+      }
+      const speech = questionSpeechTr(question);
+      expect(speech, question.id).not.toContain(tr["dialogue.optionsIntro"]);
+      for (const option of question.options) {
+        expect(speech, `${question.id}:${option.id}`).not.toContain(tr[option.labelKey]);
+      }
+    }
+  });
+
+  it("the options survive as the spoken confirmation — the read-back is unchanged", () => {
+    const speech = confirmSpeechTr(breathTiming, ["exertion"]);
+    expect(speech).toContain(tr["dialogue.confirmIntro"]);
+    expect(speech).toContain(tr["intake.opt.exertion"]);
+    expect(speech).toContain(tr["dialogue.confirmAsk"]);
+  });
+
+  it("the invitation is one sentence and adds no second question", () => {
+    // files/03 §4.2: ≤ 2 sentences and ONE question per turn. The aside
+    // replaces an aside, so the turn's shape is exactly what it was.
+    expect(tr["dialogue.openInvite"]).not.toContain("?");
+    expect(en["dialogue.openInvite"]).not.toContain("?");
+    expect(tr["dialogue.openInvite"].split(".").filter((s) => s.trim().length > 0)).toHaveLength(1);
   });
 });
 
@@ -91,18 +152,22 @@ describe("questionSpeechTr — the typed lane's control copy never crosses (INT-
   });
 
   it("the aside is the ONLY thing the agent adds, and the bubble can render it", () => {
-    // ≤ four options: the spoken enumeration, which IS part of asking.
-    expect(questionAsideTr(duration)).toBe(
-      `${tr["dialogue.optionsIntro"]} ${tr["intake.opt.today"]}, ${tr["intake.opt.days"]}, ${tr["intake.opt.week"]} ${tr["dialogue.or"]} ${tr["intake.opt.month"]}.`,
+    // A CLOSED list of ≤ four: the spoken enumeration, which IS part of
+    // asking that question (INT-286 narrowed this to the closed form).
+    expect(questionAsideTr(substance)).toBe(
+      `${tr["dialogue.optionsIntro"]} ${tr["intake.opt.no"]}, ${tr["intake.opt.yes"]} ${tr["dialogue.or"]} ${tr["intake.opt.notStated"]}.`,
     );
-    // Above the bound, and for free text: nothing to add.
-    expect(questionAsideTr(complaint)).toBeNull();
+    // An open question: the invitation, at every list length.
+    expect(questionAsideTr(complaint)).toBe(tr["dialogue.openInvite"]);
+    // Free text is already the patient's own words: nothing to add.
     expect(questionAsideTr(extra)).toBeNull();
     // Speech is exactly question + aside, so the two channels cannot drift.
+    expect(questionSpeechTr(substance)).toBe(
+      `${tr["intake.q.substance"]} ${questionAsideTr(substance)}`,
+    );
     expect(questionSpeechTr(duration)).toBe(
       `${tr["intake.q.duration"]} ${questionAsideTr(duration)}`,
     );
-    expect(questionSpeechTr(complaint)).toBe(tr["intake.q.complaint"]);
   });
 });
 
@@ -162,6 +227,8 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
     "dialogue.confirmIntro",
     "dialogue.confirmAsk",
     "dialogue.confirmTextGeneric",
+    // INT-286 — what an OPEN question is asked with instead of its list.
+    "dialogue.openInvite",
     "dialogue.confirm",
     "dialogue.speakCorrection",
     "dialogue.typeThisStep",

@@ -1084,6 +1084,14 @@ export const tr = {
   "a11y.measure.increase": "Bir artır",
   "a11y.measure.increaseMore": "Daha çok artır",
   "intake.measure.untouched": "Değeri ayarladığınızda kaydedilir.",
+  // --- INT-286 · open-ended asking ------------------------------------------
+  // What an OPEN question is asked with instead of its option list. The agent
+  // speaks the scripted question verbatim and adds this; the typed screen
+  // puts the same invitation over the answer field and keeps the options
+  // under it as the fallback.
+  "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
+  "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
+  "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

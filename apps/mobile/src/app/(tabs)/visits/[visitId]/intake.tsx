@@ -57,6 +57,7 @@ import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
 import {
   applicableQuestions,
+  isOpenAsk,
   nextApplicableQuestion,
   packForVisit,
   spokenPack,
@@ -221,10 +222,15 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const [selected, setSelected] = useState<string[]>(
     initialKind === "text" ? [] : (initialAnswer?.values ?? initialPrefill?.values ?? []),
   );
+  // The free-text box: the whole answer on a `text` step, and the patient's
+  // OWN WORDS on an open step (INT-286), where the coded value still comes
+  // from the options underneath. An edit reopens with what they wrote; a
+  // prefill's quote is NOT poured in here — it is already on screen above as
+  // provenance, and a suggestion is not something the patient typed.
   const [text, setText] = useState(
     initialKind === "text"
       ? (initialAnswer?.values.join(" ") ?? initialPrefill?.values.join(" ") ?? "")
-      : "",
+      : (initialAnswer?.words ?? ""),
   );
   // The glass bar reports its own height (INT-284): the CTA label wraps at
   // the large text steps, so the room reserved for it cannot be a constant —
@@ -265,9 +271,16 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const detayli = mode === "detayli";
   const privacy = note?.privacy ?? "unchecked";
 
-  const commit = (values: string[]) => {
+  /**
+   * Commit one answer. `words` is the patient's own sentence for an open step
+   * (INT-286) — recorded beside the coded values, never inside them, so no
+   * free text can open a gate or reach a rule (invariant 1). The typed lane
+   * resolves nothing locally: there is exactly one route from words to a
+   * declared option id and it is the INT-083 boundary the dialogue uses.
+   */
+  const commit = (values: string[], words?: string) => {
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId: question.id, values });
+      updateNote(visitId, { type: "answer", questionId: question.id, values, words });
     }
     if (editing) {
       // an edit returns straight to the review; a fresh run continues
@@ -278,7 +291,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     // answer just opened (or closed) is honoured immediately.
     const nextAnswers = [
       ...answers.filter((a) => a.questionId !== question.id),
-      { questionId: question.id, values },
+      { questionId: question.id, values, words },
     ];
     const nextQuestion = nextApplicableQuestion(intakeQuestions, nextAnswers, question.id);
     if (nextQuestion === null) {
@@ -290,6 +303,24 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     setText(nextQuestion.kind === "text" ? (nextPrefill?.values.join(" ") ?? "") : "");
     setMeasure(null);
     setCurrentId(nextQuestion.id);
+  };
+
+  /**
+   * The patient's own words to record with the answer being committed
+   * (INT-286): what they typed or dictated into the open field, or — when
+   * they are confirming a voice suggestion and wrote nothing — the verbatim
+   * quote that suggestion came from. Undefined on a closed step, so nothing
+   * changes for one.
+   */
+  const openWords = (confirmingSuggestion: boolean): string | undefined => {
+    if (!isOpenAsk(question)) {
+      return undefined;
+    }
+    const typed = text.trim();
+    if (typed.length > 0) {
+      return typed;
+    }
+    return confirmingSuggestion ? suggestion?.quote : undefined;
   };
 
   const toggleChip = (id: string) => {
@@ -362,7 +393,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     );
   }
 
-  const floatingCta = question.kind !== "single";
+  // INT-286 — the owner's report: the screen was "completly written and
+  // option based". On an OPEN step the answer field comes first and the
+  // options move under it as the fallback, so the patient's own words are
+  // the primary act on this lane too. A single-select step therefore grows a
+  // CTA it never had: without one, words typed and no card tapped would have
+  // no way to be committed.
+  const openAsk = isOpenAsk(question);
+  const floatingCta = question.kind !== "single" || openAsk;
   // INT-256: the text CTA used to read "Bitir" unconditionally, which was
   // true only while `extra` was the one text step in the pack. The universal
   // history block adds free-text steps mid-flow, so the label now follows
@@ -420,7 +458,16 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <AppText role="hero" heading>
           {t(question.titleKey)}
         </AppText>
-        {question.hintKey ? (
+        {/* On an open step the invitation replaces the pack's control hint
+            here: "Birden fazla seçebilirsiniz" describes the chips grid, and
+            the grid is now below the answer field, so the hint travels down
+            with the control it describes (the same rule INT-261 applied to
+            the spoken turn). */}
+        {openAsk ? (
+          <AppText role="body" color="inkSoft">
+            {t("intake.open.hint")}
+          </AppText>
+        ) : question.hintKey ? (
           <AppText role="body" color="inkSoft">
             {t(question.hintKey)}
           </AppText>
@@ -437,6 +484,50 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
               “{suggestion.quote}”
             </AppText>
           </Card>
+        ) : null}
+
+        {/* INT-286 — the open answer, first. What the patient writes or
+            dictates here is recorded as their own words and is NEVER put in
+            `values`: the typed lane resolves nothing locally, because the
+            only route from words to a declared option id is the INT-083
+            extraction boundary and there is not going to be a second one.
+            So an answer given only in words carries no coded value, opens no
+            gate, and reaches the clinician as the sentence they said. */}
+        {openAsk ? (
+          <>
+            <TextInput
+              accessibilityLabel={t(question.titleKey)}
+              accessibilityHint={t("intake.open.hint")}
+              allowFontScaling={false}
+              value={text}
+              onChangeText={setText}
+              multiline
+              style={[
+                styles.textField,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.ink,
+                  fontSize: scaledSize("body", fontScale),
+                },
+              ]}
+            />
+            {__DEV__ && consents?.voice === true ? (
+              <VoiceNote
+                onTranscript={(spoken) =>
+                  setText((prev) => (prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken))
+                }
+              />
+            ) : null}
+            <AppText role="caption" color="inkFaint">
+              {t("intake.open.orChoose")}
+            </AppText>
+            {question.hintKey ? (
+              <AppText role="caption" color="inkFaint">
+                {t(question.hintKey)}
+              </AppText>
+            ) : null}
+          </>
         ) : null}
 
         {question.kind === "chips" ? (
@@ -501,6 +592,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                         suggestion,
                         suggested ? { type: "confirm" } : { type: "change", values: [o.id] },
                       ),
+                      // INT-286 — the provenance that belongs to THIS value:
+                      // what the patient wrote in the open field if they
+                      // wrote anything, otherwise the quote behind a
+                      // suggestion they are confirming. Never the quote
+                      // behind a suggestion they just overrode: those words
+                      // were not said about this card.
+                      openWords(suggested),
                     )
                   }
                 >
@@ -524,11 +622,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         ) : null}
 
         {question.kind === "measure" ? (
-          <MeasureStepper
-            question={question}
-            value={measure}
-            onChange={setMeasure}
-          />
+          <MeasureStepper question={question} value={measure} onChange={setMeasure} />
         ) : null}
 
         {question.kind === "text" ? (
@@ -564,8 +658,23 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
-            disabled={selected.length === 0}
-            onPress={() => commit(selected)}
+            // INT-286: on an open step, words are an answer — the CTA opens
+            // on either, so a patient who described it in a sentence is not
+            // held at the screen until they also tap a chip.
+            disabled={selected.length === 0 && !(openAsk && text.trim().length > 0)}
+            onPress={() => commit(selected, openWords(false))}
+          />
+        </GlassBar>
+      ) : null}
+      {question.kind === "single" && openAsk ? (
+        <GlassBar onHeight={setBarHeight}>
+          <PrimaryButton
+            label={ctaLabel}
+            // A card tap commits on its own (above); this bar exists for the
+            // answer given only in words. Disabled until there are some, so
+            // it can never record an empty answer by being tapped through.
+            disabled={text.trim().length === 0}
+            onPress={() => commit([], openWords(false))}
           />
         </GlassBar>
       ) : null}

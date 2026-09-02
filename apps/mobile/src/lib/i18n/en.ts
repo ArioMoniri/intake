@@ -1042,4 +1042,8 @@ export const en: Record<MessageKey, string> = {
   "a11y.measure.increase": "Increase by one",
   "a11y.measure.increaseMore": "Increase by more",
   "intake.measure.untouched": "It is recorded once you adjust the value.",
+  // --- INT-286 · open-ended asking ------------------------------------------
+  "dialogue.openInvite": "You can tell me in your own words.",
+  "intake.open.hint": "You can write it, or say it, in your own words.",
+  "intake.open.orChoose": "Or choose from below.",
 };

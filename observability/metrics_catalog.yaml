@@ -424,8 +424,12 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "<= 150 ms"
-    status: planned
-    description: Time to stop playback after a barge-in.
+    status: live
+    description: >-
+      Time to stop agent playback after the patient started speaking. Emitted by
+      intake_voice_runtime.talker.barge_in on every onset the path accepts
+      (INT-291). Separate from preempt.red_latency_ms on purpose: one series per
+      cause, so the 150 ms target stays readable (docs/evidence/INT-093.md).
   - name: voice_interruption_rate
     id: voice.interruption_rate
     type: gauge
