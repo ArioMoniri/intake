@@ -168,3 +168,111 @@ describe("matchOptionsInWords — what it refuses", () => {
     expect(matchOptionsInWords(duration!, "Aniden başladı")).toBeNull();
   });
 });
+
+/**
+ * INT-293 follow-up — the negation guard.
+ *
+ * Turkish negation is POST-POSED: the word that cancels the sentence arrives
+ * after the thing it cancels. A matcher that reads whole words in sequence
+ * and stops there therefore reads *"Ateş yok"* — "I have no fever" — as the
+ * `fever` option, and `DialogueIntake` pre-ticks that suggestion and commits
+ * it into the clinician's note in one tap. A dropped answer is visibly
+ * missing; an inverted one looks like data, so this is the worse of the two
+ * failures and it is the one the guard exists to stop.
+ *
+ * The guard REFUSES; it does not interpret. Turkish `-ma-/-me-` collides with
+ * real stems (`Kanama` is a noun, not a negated verb — the lesson INT-248
+ * recorded for the converbs), so every failure mode here has to fall toward
+ * NOT matching: the worst case is the behaviour the surface had before the
+ * matcher existed, and the extract lane still receives the same utterance and
+ * can place it properly.
+ */
+describe("matchOptionsInWords — post-posed negation is refused, never read", () => {
+  const associated = question("associated");
+
+  it("'Ateş yok' is not the `fever` option", () => {
+    expect(matchOptionsInWords(question("complaint"), "Ateş yok")).toBeNull();
+  });
+
+  it("'Terleme var, bulantı yok' is not one flat set of all three", () => {
+    // The mixed sentence cannot be a flat set at all: sweating is asserted,
+    // nausea is denied, and `none` denies both. There is no correct subset to
+    // pick here, so nothing is picked.
+    expect(matchOptionsInWords(associated, "Terleme var, bulantı yok")).toBeNull();
+  });
+
+  it("a denial with no `none` option to land on is refused too", () => {
+    expect(matchOptionsInWords(associated, "Bulantı yok")).toBeNull();
+    expect(matchOptionsInWords(associated, "Terleme yok")).toBeNull();
+  });
+
+  it("the verbal negative is refused across its tense forms", () => {
+    expect(matchOptionsInWords(associated, "Bulantı hissetmedim")).toBeNull();
+    expect(matchOptionsInWords(associated, "Terleme olmuyor")).toBeNull();
+    expect(matchOptionsInWords(associated, "Bulantı olmaz")).toBeNull();
+    expect(matchOptionsInWords(associated, "Terleme olmamış")).toBeNull();
+  });
+
+  it("'değil' and 'hayır' are refused", () => {
+    expect(matchOptionsInWords(associated, "Bulantı değil")).toBeNull();
+    expect(matchOptionsInWords(question("complaint"), "Hayır, ateş çıkmadı")).toBeNull();
+  });
+
+  /**
+   * files/04 §8.2 `turkish_negation_adversarial_set`, verbatim — the
+   * committed source, so a test built from it is a near-miss negative control
+   * by construction. Each phrase is run against EVERY option-bearing authored
+   * question: a phrase that inverts anywhere in the vocabulary inverts.
+   */
+  const ADVERSARIAL_SET = [
+    "ağrım yok değil hani",
+    "bayılmadım ama bayılacak gibi oldum",
+    "kanama yoktu, sadece siyahtı",
+  ] as const;
+
+  const optionBearing = [...allQuestions, ...baseLayerQuestions, ...measurementQuestions].filter(
+    (q): q is IntakeQuestion & { options: NonNullable<IntakeQuestion["options"]> } =>
+      q.options !== undefined && q.options.length > 0,
+  );
+
+  it("no phrase in the adversarial set binds any option of any question", () => {
+    const bound: string[] = [];
+    for (const phrase of ADVERSARIAL_SET) {
+      for (const q of optionBearing) {
+        const matched = matchOptionsInWords(q, phrase);
+        if (matched !== null) {
+          bound.push(`"${phrase}" → ${q.id} ${JSON.stringify(matched)}`);
+        }
+      }
+    }
+    expect(bound).toEqual([]);
+  });
+});
+
+describe("matchOptionsInWords — what the guard still accepts", () => {
+  it("a bare 'Yok' is the `none` option, because the word IS that label", () => {
+    // The negation marker here is not evidence against a reading — it is the
+    // declared label itself, spoken alone. Refusing it would refuse the
+    // answer the pack authored.
+    expect(matchOptionsInWords(question("associated"), "Yok")).toEqual(["none"]);
+    expect(matchOptionsInWords(question("associated"), "Şu an yok")).toEqual(["none"]);
+  });
+
+  it("a bare 'Hayır' is the `no` option", () => {
+    expect(matchOptionsInWords(question("pain_present"), "Hayır")).toEqual(["no"]);
+  });
+
+  it("a label that carries its own negation word still binds: 'Belirli bir düzeni yok'", () => {
+    expect(matchOptionsInWords(question("trigger"), "Belirli bir düzeni yok")).toEqual([
+      "no_pattern",
+    ]);
+  });
+
+  it("plain affirmatives are untouched", () => {
+    expect(matchOptionsInWords(question("complaint"), "Ateş ve ağrı var")).toEqual([
+      "pain",
+      "fever",
+    ]);
+    expect(matchOptionsInWords(question("duration"), "Bugun basladi")).toEqual(["today"]);
+  });
+});

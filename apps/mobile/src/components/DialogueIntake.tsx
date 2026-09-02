@@ -285,7 +285,13 @@ export function DialogueIntake({
       return;
     }
     const rowQuestion = questions.find((q) => q.id === questionId);
-    if (visitId && rowQuestion !== undefined) {
+    if (rowQuestion === undefined) {
+      // No question, no write — and therefore no confirm either. Confirming
+      // here would clear the row off the panel and out of the hand-over while
+      // the note kept nothing, which is the INT-293 defect with an extra step.
+      return;
+    }
+    if (visitId) {
       updateNote(visitId, {
         type: "answer",
         questionId,

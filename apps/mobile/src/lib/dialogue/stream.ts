@@ -476,12 +476,16 @@ export function dialogueStreamReducer(
           !known.has(questionId) ||
           questionId === currentId || // the live turn owns its own question
           state.answers[questionId] !== undefined ||
-          // A newer utterance already spoke — and `>=` rather than `>`
-          // because this utterance's OWN local read (INT-293) is already
-          // recorded under this work id: the patient's literal words outrank
-          // the model's reading of the same sentence, exactly as the
-          // verbatim transcript does for a free-text step.
-          (seq[questionId] ?? -1) >= action.workId
+          // A NEWER utterance already spoke — `>` and not `>=`, so the
+          // extractor is never locked out of the utterance it was given.
+          // The local read (INT-293) records its own candidate under this
+          // same work id, and it is a floor, not an authority: it recognises
+          // a declared label's own words and refuses everything else, so on
+          // the sentences it refuses — every negated one — the extractor's
+          // reading of THIS utterance is the only reading there is. Letting
+          // the local candidate outrank it at equal work ids would trade a
+          // dropped answer for a wrong one.
+          (seq[questionId] ?? -1) > action.workId
         ) {
           continue;
         }

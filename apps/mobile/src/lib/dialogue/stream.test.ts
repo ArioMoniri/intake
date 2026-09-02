@@ -922,6 +922,53 @@ describe("dialogueStreamReducer — an answer given here reaches the note (INT-2
     expect(s.stream.at(-2)).toEqual({ kind: "agent_unclear", questionId: "complaint" });
   });
 
+  // ---- the negation guard, at the surface ---------------------------------
+  //
+  // The matcher's own refusals are pinned in `intake/answerMatch.test.ts`;
+  // these two say what the refusal COSTS and what it buys, at the only place
+  // the cost is visible. `DialogueIntake` pre-ticks a pending candidate and
+  // commits it in one tap, so a candidate that reaches `pending` is one tap
+  // from the clinician's note.
+
+  it("a denied symptom never becomes a pending suggestion", () => {
+    // "I have no fever" — one tap from writing FEVER into the note.
+    let s = state({
+      turn: { phase: "listening", step: 0 },
+      stream: [{ kind: "agent_question", questionId: "complaint" }],
+    });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "Ateş yok" });
+    expect(suggestionFor(general, s, "complaint")).toBeNull();
+    expect(s.answers.complaint).toBeUndefined();
+    // and the question is not left behind: the extractor still has the words,
+    // and an utterance neither could place comes back to be asked again.
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    expect(s.asked).not.toContain("complaint");
+  });
+
+  it("the extractor is not locked out of the utterance the local read already saw", () => {
+    // The spoken path: the transcript lands its local read on the question it
+    // answered without moving the live turn, so `extract_settled` for the
+    // SAME work id is the extractor's verdict on the SAME sentence. It has to
+    // be able to correct the local reading — that is what makes refusing
+    // cheap and a wrong match expensive.
+    let s = state({
+      turn: { phase: "listening", step: 0 },
+      stream: [{ kind: "agent_question", questionId: "complaint" }],
+    });
+    s = runGeneral(s, { type: "utterance", workId: 1 });
+    s = runGeneral(s, { type: "transcript_ready", workId: 1, text: "Ateş var" });
+    expect(s.pending.complaint).toEqual({ values: ["fever"], quote: "Ateş var" });
+    s = runGeneral(s, {
+      type: "extract_settled",
+      workId: 1,
+      candidates: { complaint: { values: ["fever", "cough"], quote: "Ateş var, öksürük de" } },
+    });
+    expect(s.pending.complaint).toEqual({
+      values: ["fever", "cough"],
+      quote: "Ateş var, öksürük de",
+    });
+  });
+
   it("the note counter is truthful: three answered turns are three filled sections", () => {
     let s = initialDialogueStreamState(cardio);
     s = runCardio(s, { type: "speech_done" });
