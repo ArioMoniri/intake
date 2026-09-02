@@ -47,7 +47,7 @@ Neither blocks this issue: the mechanism ships, the enum is closed, and both cho
 
 **Raised:** 2 Sep 2026 · **Named human:** physician of record
 
-**HB-C16 — may a RED patient keep a patient summary?** INT-085 refused to render one.
+**HB-C20 — may a RED patient keep a patient summary?** (filed as HB-C16; renumbered 3 Sep when INT-112 was found to hold that id) INT-085 refused to render one.
 Invariant 21 makes RED three axes (route × register × location) with its script
 pre-positioned on the device and triggered over the data channel; a card set is none of
 those three, and a RED sentence whose register is decided by page layout is the default
