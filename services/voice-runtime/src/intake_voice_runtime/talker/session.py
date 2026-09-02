@@ -34,6 +34,7 @@ What this module deliberately does **not** contain:
 
 from __future__ import annotations
 
+import enum
 import hashlib
 from dataclasses import dataclass, field
 
@@ -58,7 +59,12 @@ from intake_voice_runtime.ports import (
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.steps import NextStep
 from intake_voice_runtime.talker.clips import ClipCatalogue
-from intake_voice_runtime.talker.delivery import DeliveryDeadlines, DuplexState
+from intake_voice_runtime.talker.delivery import (
+    ADAPTIVE_JITTER_THRESHOLD_MS,
+    DeliveryDeadlines,
+    DuplexState,
+    TurnYieldPolicy,
+)
 from intake_voice_runtime.talker.insertion import InsertionScheduler, PendingSpeech, Speak
 from intake_voice_runtime.talker.policy_guard import FormOfAddress, PolicyGuard
 from intake_voice_runtime.talker.preemption import (
@@ -89,7 +95,26 @@ from intake_voice_runtime.talker.tools import (
     normalise_tr,
 )
 
-__all__ = ["TalkerConfig", "TalkerSession", "TurnOutcome"]
+__all__ = ["UNMEASURED_JITTER", "TalkerConfig", "TalkerSession", "TurnHold", "TurnOutcome"]
+
+
+class TurnHold(enum.StrEnum):
+    """Why a turn asked nothing. ``None`` on a turn that spoke."""
+
+    #: files/03 §4.4b — an open patient turn has not yielded the floor.
+    PATIENT_HOLDS_FLOOR = "patient_holds_floor"
+    #: files/03 §4.6 — a patient-facing RED stopped the intake.
+    INTAKE_STOPPED = "intake_stopped"
+
+
+#: files/03 §4.2 keys the yield floor off *measured* uplink jitter: *"150 ms
+#: when measured uplink jitter p95 < 30 ms, and 250 ms otherwise."* A session
+#: nothing has measured is therefore in the *otherwise* branch, not in the fast
+#: one — which is why this constant sits exactly **on** the threshold rather
+#: than below it. Defaulting the other way would cut patients off in the
+#: waiting room, which §4.5.2 names as the reason the drop is conditional at
+#: all.
+UNMEASURED_JITTER = TurnYieldPolicy(uplink_jitter_p95_ms=ADAPTIVE_JITTER_THRESHOLD_MS)
 
 
 class TalkerConfig(FrozenModel):
@@ -121,6 +146,12 @@ class TurnOutcome(FrozenModel):
     work_id: str | None = Field(default=None)
     drained_results: int = Field(default=0, ge=0)
     delivered_work_ids: tuple[str, ...] = Field(default=())
+    held: TurnHold | None = Field(
+        default=None,
+        description="Set when the turn deliberately asked nothing. A held turn is not "
+        "a failed turn: Layer B still ran, results were still drained, and anything "
+        "the insertion scheduler judged deliverable was still delivered.",
+    )
     elapsed_ms: float = Field(ge=0.0)
 
 
@@ -144,6 +175,7 @@ class TalkerSession:
     router: SpeechRouter = field(init=False)
     preempts: tuple[BackendResult, ...] = field(default=(), init=False)
     duplex: DuplexState = field(init=False)
+    yield_policy: TurnYieldPolicy = field(default=UNMEASURED_JITTER, init=False)
     undelivered: list[str] = field(default_factory=list, init=False)
     _last_step: NextStep | None = field(default=None, init=False)
     _permissions: dict[str, PermissionRequest] = field(default_factory=dict, init=False)
@@ -372,7 +404,9 @@ class TalkerSession:
             # question after a life threat is the failure the preemption
             # exists to prevent, so the loop yields an empty turn rather than
             # relying on a caller to stop calling it.
-            return TurnOutcome(elapsed_ms=self.clock.now_ms() - started_ms)
+            return TurnOutcome(
+                held=TurnHold.INTAKE_STOPPED, elapsed_ms=self.clock.now_ms() - started_ms
+            )
         step = self.protocol_next()
 
         work_id: str | None = None
@@ -390,9 +424,19 @@ class TalkerSession:
                 await self._speak_backend(decision)
                 delivered.append(decision.item.work_id)
 
+        # files/03 §4.4b: a handover gap is a turn boundary, never silence and
+        # never an answer. Asking over an open patient turn is the mirror of
+        # that defect — it binds an answer to a question they did not hear —
+        # so the question waits and everything else about the turn proceeds.
+        held = (
+            TurnHold.PATIENT_HOLDS_FLOOR
+            if self.duplex.patient_holds_floor(self.yield_policy)
+            else None
+        )
+
         spoken = ""
         from_clip = False
-        if step is not None:
+        if step is not None and held is None:
             outcome = await self.speak_step(step)
             spoken, from_clip = outcome.spoken_text, outcome.from_clip
 
@@ -403,6 +447,7 @@ class TalkerSession:
             work_id=work_id,
             drained_results=len(drained),
             delivered_work_ids=tuple(delivered),
+            held=held,
             elapsed_ms=self.clock.now_ms() - started_ms,
         )
 
@@ -476,6 +521,14 @@ class TalkerSession:
 
     # --- duplex state --------------------------------------------------------------------
 
-    def observe_duplex(self, state: DuplexState) -> None:
-        """The VAD/turn-detector view, refreshed by the transport adapter."""
+    def observe_duplex(self, state: DuplexState, policy: TurnYieldPolicy | None = None) -> None:
+        """The VAD/turn-detector view, refreshed by the transport adapter.
+
+        ``policy`` carries the measured uplink jitter the adaptive floor keys
+        off (files/03 §4.2). It arrives here rather than in
+        :class:`TalkerConfig` because it is measured *during* the session and
+        changes with the network, which is the whole point of §4.5b.
+        """
         self.duplex = state
+        if policy is not None:
+            self.yield_policy = policy
