@@ -1416,7 +1416,38 @@
   title: "Review & send + Doctor Link QR + CSAT prompt"
   depends_on: [INT-084, INT-240]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Five of the six clauses in the
+  # acceptance line are delivered and evidenced: section-level scope UI,
+  # the consent summary (what / with whom / which expiry anchor), send,
+  # the after-send status timeline, and never-blocks-send - the last held
+  # structurally and proved non-vacuous by three reverted mutants.
+  #
+  # The sixth is delivered as a MECHANISM that is shut. The CSAT prompt
+  # exists, is gated on the files/06 §2 `satisfaction` acika riza, and
+  # renders nothing without it - and nothing can grant it, because
+  # docs/legal/consents/satisfaction.tr.md does not exist until INT-210.
+  # That is the correct state (build the gate, fail closed, leave the
+  # content empty), not a working prompt. Two further gaps are filed
+  # rather than worked around: INT-304 (the spec calls the prompt one-tap
+  # and csat.v1 requires a reason, so one tap cannot form an event and no
+  # reason is defaulted) and INT-303 (the API's SectionId names three
+  # sections against the note's eight, so a withheld allergy list cannot
+  # be recorded in the share scope). The answer also has no transport:
+  # the device holds a visitId, not the IntakeSession id INT-240's route
+  # is keyed on, and INT-142 owns mobile sync.
+  #
+  # The Doctor Link QR in the title is NOT in the acceptance line and is
+  # deliberately not built. INT-150 owns the token, its OTP, expiry, view
+  # limit, revoke, watermark and access log, and is still todo; there is
+  # no redemption route to point a code at, and no QR or barcode
+  # dependency has had the invariant 19 licence audit. review.tsx says so
+  # and e2e/review_send.spec.ts §6 fails the build if a link, scheme,
+  # token or serialised payload appears.
+  #
+  # Reopen against INT-210 (the consent text) and INT-150 (the QR); see
+  # docs/evidence/INT-137.md §"What is not met".
   status: todo
+  evidence: docs/evidence/INT-137.md
   acceptance:
     - "section-level scope UI; consent summary; send; status timeline; one-tap CSAT with reason chips; never blocks send"
   tests: [apps/mobile/e2e/review_send.spec.ts]
@@ -3627,3 +3658,63 @@
   tests:
   - tests/legal/test_locale_binding.py
   sec_row: "consent"
+- id: INT-303
+  epic: E08-mobile
+  phase: P0
+  title: 'The share scope can express three sections and the note has eight, so a
+    withheld section is not recorded anywhere'
+  depends_on:
+  - INT-137
+  labels:
+  - area:mobile
+  - area:api
+  - risk:legal
+  status: todo
+  acceptance:
+  - '`SectionId` in services/api (`schemas.py`) is widened from the three names
+    it carries today - chief_complaint, hpi, medications - to the full set the
+    note actually emits, which `buildNote` fixes at eight including allergies,
+    pmh, family_social, measurements, device_health and the deferral marker;
+    the set is derived from ONE declaration shared by the note builder and the
+    schema rather than restated, because two lists is how they drifted'
+  - 'a patient who scopes a section off has that choice recorded in the
+    share consent scope and in the hash-chained audit entry for the share
+    (invariant 4): a test scopes off `allergies`, sends, and asserts the
+    recorded scope names it - today that assertion cannot even be written,
+    because the field has no value that means allergies'
+  - 'the mobile consent summary and the server-side scope check read the same
+    section ids, so the summary a patient reads before Gonder is the set the
+    audit records afterwards'
+  tests:
+  - tests/api/test_note_scopes.py
+  - apps/mobile/e2e/review_send.spec.ts
+  legal: "KVKK-5"
+  sec_row: "review-send"
+- id: INT-304
+  epic: E16-experience
+  phase: P1
+  title: 'One-tap CSAT cannot form a csat.v1 event, because the schema requires a
+    reason the first tap has not given'
+  depends_on:
+  - INT-240
+  - INT-137
+  labels:
+  - area:experience
+  - area:mobile
+  status: todo
+  acceptance:
+  - 'the contradiction is RESOLVED in one direction and recorded, not papered
+    over: either files/02 §5.4 stops calling the prompt one-tap, or `reason`
+    becomes optional in csat.v1 and the rollups handle its absence - and
+    whichever is chosen, the other file changes in the same PR'
+  - 'no reason is ever defaulted, inferred from the score, or filled from the
+    chip a patient hovered: a fabricated reason is the patient''s words put in
+    their mouth and is indistinguishable from a real one in the rollup'
+  - 'a score recorded without a reason is either a complete event or is not
+    recorded at all - there is no third state where the device holds an answer
+    the patient believes was sent'
+  tests:
+  - tests/experience/test_csat_flow.py
+  - apps/mobile/src/lib/intake/csat.test.ts
+  legal: "KVKK-5-satisfaction"
+  sec_row: "experience"
