@@ -22,9 +22,29 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
-import { t } from "@/lib/i18n";
+import { t, type Locale, type MessageKey } from "@/lib/i18n";
+import { offerableAppLocales } from "@/lib/i18n/locale";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
+
+/**
+ * INT-296 — the chooser renders what the locale registry OFFERS, never a
+ * hardcoded pair. `lang.en` stays referenced here on purpose, and the reason
+ * is the distinction this issue exists to draw: an English catalogue existing
+ * (INT-253's reviewer mirror of the Turkish source of truth) is not the same
+ * thing as English being a language a patient may be offered. The registry
+ * holds exactly `tr` until HB-O5 names another and HB-C19 signs its clinical
+ * text, so this row currently shows one pill — which is the honest state.
+ */
+const LANGUAGE_LABEL = {
+  tr: "lang.tr",
+  en: "lang.en",
+} satisfies Record<Locale, MessageKey>;
+
+/** An offered locale this app also carries a catalogue for. */
+function isCatalogued(code: string): code is Locale {
+  return code in LANGUAGE_LABEL;
+}
 
 /**
  * Tonal state pill (Oura tag register: filled, borderless; the label always
@@ -164,16 +184,18 @@ export default function Me() {
             label={t("me.language")}
             trailing={
               <View style={styles.langGroup}>
-                {(["tr", "en"] as const).map((code) => (
-                  <StatePill
-                    key={code}
-                    label={code === "tr" ? t("lang.tr") : t("lang.en")}
-                    context={t("me.language")}
-                    active={locale === code}
-                    activeColor="primary"
-                    onPress={() => switchLocale(code)}
-                  />
-                ))}
+                {offerableAppLocales()
+                  .filter(isCatalogued)
+                  .map((code) => (
+                    <StatePill
+                      key={code}
+                      label={t(LANGUAGE_LABEL[code])}
+                      context={t("me.language")}
+                      active={locale === code}
+                      activeColor="primary"
+                      onPress={() => switchLocale(code)}
+                    />
+                  ))}
               </View>
             }
           />
