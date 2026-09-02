@@ -530,6 +530,25 @@ metrics:
       intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
       fault, a refused preempt provenance and an invariant-22 numeric pair all
       land here as receipts rather than as a crashed pump.
+  # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
+  # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
+  # recorded field on every lane signal, so the same number appears here and on
+  # LaneObservation.dropped_frames_in_window. A low value is not a target: a
+  # lane that never drops a frame under load would be one that made speech wait.
+  - name: lane_dropped_frames
+    id: lane.dropped_frames
+    type: counter
+    labels: [lane]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Audio frames dropped by an observer lane under backpressure, by lane.
+      Emitted by intake_voice_runtime.observers.runtime (INT-110) when a lane's
+      bounded ring evicts an older frame rather than making the audio path
+      wait. The single label is the closed Lane enumeration; a lane that was
+      never admitted has no child series at all, which is how a refused lane is
+      told apart from an idle one.
   - name: work_restart_failures
     id: work.restart_failures
     type: counter
@@ -573,8 +592,14 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "<= 300 ms (p99 pages)"
-    status: planned
-    description: Rules-engine RED preemption latency.
+    status: live
+    description: >-
+      Rules-engine RED preemption latency. Emitted by
+      intake_voice_runtime.talker.red_path (INT-093), measured from the
+      rules-engine determination to the moment the pre-positioned script
+      started on the device. Only patient-facing registers observe it: a
+      DEFERRED_CLINICIAN RED has no patient-facing latency to report, and
+      inventing a zero for it would flatter the p99 that pages.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter
@@ -983,8 +1008,16 @@ metrics:
     labels: []
     owner: security
     unit: "count"
-    status: planned
-    description: Suspected prompt-injection attempts.
+    status: live
+    description: >-
+      Suspected prompt-injection attempts (files/10 §5 LLM01; files/10 §9 row
+      llm-boundary, whose signals line names INT-083). Emitted by
+      intake_voice_runtime.extraction.boundary when a transcript carries the
+      data-block control marker and is therefore refused rather than escaped.
+      Deliberately unlabelled and value-free: the refused string is exactly
+      what must not reach a metric, a log or an exception message (invariant
+      6), so the counter records that a refusal happened and nothing about
+      what it refused.
   - name: sec_policyguard_spike
     id: sec.policyguard_spike
     type: gauge
@@ -1582,6 +1615,33 @@ metrics:
       evidence-bundle completeness; this is it. A bundle is incomplete while
       any artefact in intake_learning.evidence.REQUIRED_CHECKS is unavailable,
       and an incomplete bundle cannot open a pull request.
+  # --- INT-170: Loop 1, the per-patient learning store. files/08 §4 names no
+  # id for it (group L is prose), so the names are ours — the INT-171/INT-172
+  # precedent. Label sets are minimal for the reason those two record: a label
+  # carrying a fact key or a patient would publish that cohort to Prometheus,
+  # which retains it (inv. 6). `source` is one of the three closed
+  # LearnedFactSource members and `action` one of two verbs.
+  - name: overlay_facts_confirmed_total
+    type: counter
+    labels: [source]
+    owner: learning
+    unit: "count"
+    description: >-
+      PatientOverlay facts committed after a patient or clinician confirmation,
+      by confirmed provenance class (confirmed_intake_extraction,
+      clinician_accepted_note, confirmed_imported_record). Emitted by
+      intake_platform.overlay.store; an unconfirmed value has no provenance to
+      label with and no row to be counted in (CLAUDE.md invariant 12).
+  - name: overlay_facts_withdrawn_total
+    type: counter
+    labels: [action]
+    owner: learning
+    unit: "count"
+    description: >-
+      PatientOverlay facts a patient took back, by action (deleted, unshared).
+      files/09 §3 gives the patient both verbs over anything the system learned
+      about them; read against overlay_facts_confirmed_total it is how often
+      the learning loop got it wrong enough to be corrected.
   # --- INT-230: the research export gate. Same posture as the INT-171 pair
   # above and for the same reason — a refusal labelled with the study cohort,
   # the window or a dimension value would publish to Prometheus exactly what

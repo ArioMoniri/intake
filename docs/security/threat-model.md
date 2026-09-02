@@ -503,10 +503,23 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   fail-closed study gate); inv. 12–29 as catalogued in §9.1 — single egress, no lane
   transport, diarization gate, ephemeral embeddings, zeroization incl. consent withdrawal,
   closed InteractionState at M1.
-- **Signals:** lane consent rates, `lane.dropped_frames`, `acoustic.window_yield` (a low
-  yield is a correct outcome, not an incident — §9), withdrawal-to-zeroization latency — land
-  with INT-110/INT-115.
-- **Tests:** invariants 12–29 land with INT-110, INT-111, INT-112, INT-115.
+- **Signals:** `lane.dropped_frames{lane}` is **live** with INT-110 — emitted by
+  `intake_voice_runtime.observers.runtime` when a lane's bounded ring evicts a frame rather
+  than making the audio path wait; a lane that was never admitted has no child series at all,
+  which is how the exposition tells a refused lane from an idle one. Lane consent rates,
+  `acoustic.window_yield` (a low yield is a correct outcome, not an incident — §9) and
+  withdrawal-to-zeroization latency are still owed: the first belongs to the consent surface,
+  the second to INT-115's diarization gate, and the third to the audio-buffer work.
+- **Tests:** `tests/lanes/test_isolation.py` (INT-110) lands CLAUDE.md invariant 11 whole —
+  read-only at type level, the fake-clock stall with a positive control, backpressure with its
+  metric, per-lane consent through the one evaluator, and the `acoustic` study assertion
+  (inv. 23) against the INT-230 study registry with no grace day and a protocol-amendment
+  close. It also lands inv. 13's static half (no observer module imports an audio transport),
+  inv. 29 (every lane declares a reviewed `intended_purpose`, one statement per module), the
+  `ObserverState` half of inv. 22 (there is no `affect` field for a label to cross M1 in) and
+  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows. Invariants 12, 14,
+  15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-112, INT-115 and the
+  audio-buffer and consent-withdrawal issues.
 
 ## `clinical-content` — packs, rules and safety strings
 
@@ -581,10 +594,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   outputs, six non-clinical Talker tools, deterministic triage, PolicyGuard, no cross-patient
   context, output validated and never rendered as HTML, per-session budgets and circuit
   breakers.
-- **Signals:** `security.injection_suspected` events (§5), PolicyGuard spikes, budget
-  exhaustion (§7) — land with INT-083, INT-101, INT-102.
-- **Tests:** adversarial suite RT-09…14 in `make safety` plus the nightly red-team job land
-  with INT-102; schema-validation tests with INT-083.
+- **Signals:** `security.injection_suspected` (§5) is **live** — INT-083 emits
+  `sec_injection_suspected_total` from `intake_voice_runtime.extraction.boundary` when a
+  transcript carries the data-block control marker, and `injection_event()` builds the
+  `SecurityV1` row (ids and closed enumerations only; the refused string is never
+  recorded). PolicyGuard spikes and budget exhaustion (§7) land with INT-101, INT-102.
+- **Tests:** schema-validation tests landed with INT-083 —
+  `tests/ai/test_extraction_contract.py`, which pins the four structural facts this row
+  turns on: the instruction region takes no transcript parameter, the transcript travels
+  delimited in its own message role, the output schema has no property a triage level
+  could occupy, and `ExtractionResult` has no `level` field at all (invariant 1 as a
+  `TypeError` at the call site rather than a check). A planted Turkish injection —
+  INT-175's symptom sentence with an instruction welded onto it — is refused without the
+  refusal echoing a fragment of it. The adversarial suite RT-09…14 in `make safety` plus
+  the nightly red-team job still land with INT-102.
 
 ## `cloud-boundary` — what may leave, and in what form
 
@@ -907,7 +930,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary;
   **[Nc/L] an export taken under a care consent rather than the `research` one, or under an
   approval that has lapsed; [I] a direct identifier riding out inside an id-shaped field;
-  [Dd] linkage of two studies' extracts by an investigator holding both**.
+  [Dd] linkage of two studies' extracts by an investigator holding both**; **[T/Nr] an
+  unconfirmed model output entering a patient's overlay and, from there, a session or a
+  rule; [I] a fact value leaking through the store, a log or a metric label; [Nc] an erasure
+  that sweeps the notes and leaves the learning object standing (INT-170)**.
 - **Controls (files/10):** §9 learning row — proposal-only with evidence bundles, k ≥ 10,
   sandboxed agent with read-only credentials, PR bot least privilege, canary and rollback;
   PatientOverlay facts require patient or clinician confirmation at type level. **INT-230
@@ -916,7 +942,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `approval_valid_until` (invariant 35); a closed per-dimension vocabulary with the INT-015
   pattern tier adding refusals on top; a study-scoped keyed pseudonym so two extracts do not
   join; the `research_extracts` retention row gating creation; and an append-only register
-  carrying the ethics id and the content hash and no patient reference.**
+  carrying the ethics id and the content hash and no patient reference.** **INT-170 adds:
+  the confirmation as a type rather than a check — `FactCandidate` has no `source` and no
+  `confirmed_at` field, `confirm()` is the only producer of a `LearnedFact`, and
+  `OverlayStore` has no write path that accepts one; no table for unconfirmed candidates at
+  all, so an unconfirmed value has nowhere to be written and nothing to read it back; the
+  fact value under field-level envelope encryption (invariant 14) with `fact_key` in the
+  clear like `slots.slot_id`; `/v1/me/learned` behind the one `ensure_consent` path under
+  `core`, patient-only, with every read and change on the hash chain carrying ids only; and
+  the DSAR erasure extended to crypto-shred and remove both overlay tables.**
 - **Signals:** k-anonymity refusals landed with INT-171 —
   `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
   whose labels carry a view name and a reason class only, because a refusal labelled with
@@ -926,14 +960,19 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `learning_proposals_refused_total{signal,reason}` and
   `learning_evidence_bundles_total{view,status}`, labelled the same way and for the same
   reason: `target` is one of ten class names and `reason` is a refusal class, never a pack,
-  a clinic or a cohort. Rollbacks land with INT-173.
+  a clinic or a cohort. Rollbacks land with INT-173. **INT-170 adds
+  `overlay_facts_confirmed_total{source}` and `overlay_facts_withdrawn_total{action}` on the
+  same terms: `source` is one of three closed provenance classes and `action` one of two
+  verbs, never a fact key, a patient or a tenant.**
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);
   `proposal_scope` landed with INT-172 (`tests/learning/test_proposal_scope.py`, plus
   `tests/learning/test_inspector_architect.py` and
-  `tests/learning/test_evidence_bundle.py`); overlay monotonicity property test with
-  INT-056.
+  `tests/learning/test_evidence_bundle.py`); `learned_fact_provenance` landed with INT-170
+  (`tests/learning/test_overlay_provenance.py`, plus `tests/api/test_learned.py` for the
+  consent gate, the audit entries, the erasure path and the PHI sweep); overlay
+  monotonicity property test with INT-056.
 - **Over-reach is unreachable, not rejected (INT-172):** `proposal_scope` walks the
   *transitive* first-party import closure of `services/learning` with `ast` and asserts it
   reaches none of `packages/protocols`, `services/voice-runtime`, `intake_platform.legal`,

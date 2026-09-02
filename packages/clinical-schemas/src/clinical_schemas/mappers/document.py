@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import html
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
 from clinical_schemas.common import JsonValue
 from clinical_schemas.mappers import codes
@@ -173,6 +173,13 @@ def _section_lines(note: PreVisitNote, section_id: str) -> list[str]:
         if social.living_situation:
             lines.append(f"living_situation: {social.living_situation}")
         return lines
+    if section_id == "measurements":
+        # invariant 22: no grouping, and number + unit is one non-breaking
+        # atom. Decimal's own str() never groups, so the atom is the whole
+        # guarantee here rather than a locale setting.
+        return [
+            f"{item.code.value}: {item.magnitude}{_NBSP}{item.unit}" for item in note.measurements
+        ]
     if section_id == "konusma_ozellikleri":
         return _konusma_lines(note.konusma_ozellikleri) if note.konusma_ozellikleri else []
     if section_id == "imported_objective":
@@ -193,10 +200,22 @@ def _section_lines(note: PreVisitNote, section_id: str) -> list[str]:
     return []
 
 
-def previsit_note_to_document_bundle(note: PreVisitNote, *, patient_id: str) -> Bundle:
+def previsit_note_to_document_bundle(
+    note: PreVisitNote,
+    *,
+    patient_id: str,
+    fact_provenance: Sequence[str] = (),
+) -> Bundle:
     """The PreVisitNote as a FHIR document: Composition first (bdl-11),
     urn:uuid fullUrls resolved entirely inside the Bundle, identifier +
-    timestamp per bdl-9/bdl-10. Deterministic: same note, same bytes."""
+    timestamp per bdl-9/bdl-10. Deterministic: same note, same bytes.
+
+    ``fact_provenance`` (INT-084) carries one opaque line per composed fact —
+    ``ref|section|attribution|subject|locator`` — as repeated Composition
+    extensions. They are extensions and not sections on purpose: the section
+    codes are exactly ``NOTE_SECTION_IDS`` (files/04 §5 keys) and a
+    provenance section would put a code in that vocabulary that no note field
+    backs. Empty by default, so INT-033's own callers are unchanged."""
 
     def full_url(name: str) -> str:
         return f"urn:uuid:{uuid.uuid5(_NAMESPACE, f'{note.meta.visit_id}:{name}')}"
@@ -266,6 +285,10 @@ def previsit_note_to_document_bundle(note: PreVisitNote, *, patient_id: str) -> 
             Extension(url=codes.EXT_MODE, value_string=note.meta.mode),
             Extension(url=codes.EXT_MODEL, value_string=note.meta.model),
             Extension(url=codes.EXT_PROMPT_VERSION, value_string=note.meta.prompt_version),
+            *(
+                Extension(url=codes.EXT_FACT_PROVENANCE, value_string=line)
+                for line in fact_provenance
+            ),
         ),
         text=_div([codes.DOCUMENT_TITLE_TR]),
         status="final",

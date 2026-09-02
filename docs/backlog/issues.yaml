@@ -868,7 +868,8 @@
   title: "Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set"
   depends_on: [INT-081, INT-015]
   labels: [area:ai]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-083.md
   acceptance:
     - "transcripts wrapped as delimited data; output validated against slot schemas; recorded-fixture contract tests; Langfuse scores wiring (self-hosted)"
   tests: [tests/ai/test_extraction_contract.py]
@@ -880,7 +881,8 @@
   title: "Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer"
   depends_on: [INT-083, INT-033]
   labels: [area:engine, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-084.md
   acceptance:
     - "every fact carries source span; fixed legal disclaimer text (06 §7 wording: hasta beyanina dayanir, hekim degerlendirmesinin yerine gecmez) rendered on note+PDF; golden note snapshots"
   tests: [tests/engine/test_note_golden.py]
@@ -938,7 +940,8 @@
   title: "RED preemption path: stop <=150ms, e2e <=300ms (fake clocks)"
   depends_on: [INT-091, INT-092, INT-080]
   labels: [area:voice, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-093.md
   acceptance:
     - "only rules-engine RED carries priority preempt; playback cancel and script start measured on fake clock"
   tests: [tests/voice/test_red_preemption.py]
@@ -1093,7 +1096,8 @@
   title: "Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only"
   depends_on: [INT-092, INT-038]
   labels: [area:lanes, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-110.md
   acceptance:
     - "lanes cannot write slots/triage (compile-time); stalled lanes never delay speech (fake clock); frames dropped under load with metric"
   tests: [tests/lanes/test_isolation.py]
@@ -1140,8 +1144,12 @@
   phase: P1
   title: "asr_quality lane: shadow-STT disagreement + confirm-by-card trigger"
   depends_on: [INT-110, INT-095]
-  labels: [area:lanes]
-  status: todo
+  labels: [area:lanes, approval:human-legal]
+  status: awaiting-human
+  # BLOCKED 2 Sep 2026 by HB-L22 (raised building INT-110). files/06 section 2's
+  # purpose list is closed and names no purpose covering this lane, so
+  # LaneRuntime.admit raises LaneConsentUndeclared rather than attaching it to a
+  # lawful basis nobody chose. See docs/backlog/blockers.md.
   acceptance:
     - "sampled turns compared; wer proxy metric; low-confidence medical terms trigger confirm cards"
   tests: [tests/lanes/test_asr_quality.py]
@@ -1150,8 +1158,10 @@
   phase: P1
   title: "engagement lane -> satisfaction proxies + pacing hints"
   depends_on: [INT-110]
-  labels: [area:lanes]
-  status: todo
+  labels: [area:lanes, approval:human-legal]
+  status: awaiting-human
+  # BLOCKED 2 Sep 2026 by HB-L22 (raised building INT-110), same reading as
+  # INT-113: no consent purpose in files/06 section 2 covers this lane.
   acceptance:
     - "answer latency, interruptions, silence ratio into engagement{} and metrics"
   tests: [tests/lanes/test_engagement.py]
@@ -1579,7 +1589,8 @@
   title: "PatientOverlay: store, confirmation rules, /me/learned API, engine integration"
   depends_on: [INT-031, INT-081]
   labels: [area:learning]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-170.md
   acceptance:
     - "facts commit only with patient/clinician confirmation (type-level); 12-month reconfirm; provenance shown; delta-mode works in simulator"
   tests: [tests/learning/test_overlay_provenance.py]
@@ -3025,6 +3036,42 @@
     - "no clinical value, threshold or interpretation is authored - every such decision is listed with its owner in the evidence refusals section"
   tests: [apps/mobile/src/lib/intake/history.test.ts]
   sec_row: "intake-typed"
+- id: INT-285
+  epic: E08-mobile
+  phase: P0
+  # A flaky gate is a broken gate: this one reddened an unrelated INT-016 run.
+  # docs/TDD.md rule 6 (fake clocks) and rule 7 (48 h to fix a flake).
+  title: "The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts"
+  depends_on: [INT-131]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-285.md
+  acceptance:
+    - "the flake is reproduced before it is fixed rather than asserted: test_per_phone_limit_three_per_hour advances 183 s across three admitted requests and then asserts a refusal, while auth_store counts in FIXED windows keyed on floor(now / OTP_WINDOW_S), so the evidence records the module failing at every wall-clock phase >= OTP_WINDOW_S - 183 s and passing below it - 183 s of every 3600, about 5 % of runs"
+    - "the harness clock is seeded from the window and not from time.time(): Clock starts a fixed offset past a window boundary, so every window-relative assertion in the module is independent of when CI runs, and the headroom is asserted against a constant computed from PHONE_LIMIT_PER_HOUR and RESEND_COOLDOWN_S rather than written as a number"
+    - "the whole module is checked and not only the failing test: every clock advance in the file is enumerated in the evidence against the window or TTL it lives in, the per-IP and per-device sequences are shown to advance the clock not at all, and the repo is swept for any other wall-clock-seeded test clock with the result recorded"
+    - "the fixed-window semantics are documented where they are implemented and pinned rather than left implicit: a near-miss control admits 2 x PHONE_LIMIT_PER_HOUR requests across a boundary within a span shorter than a rolling hour, which makes the comment in auth_store.py falsifiable. The limiter's behaviour is NOT changed here - INT-263 owns that"
+    - "no test is skipped, quarantined or deleted (docs/TDD.md rule 7); make check is green"
+  tests: [tests/security/test_otp_abuse.py]
+  sec_row: "onboarding"
+- id: INT-263
+  epic: E08-mobile
+  phase: P0
+  # Found while fixing INT-285. Filed, not fixed: changing a rate limiter is a
+  # semantics change on the abuse path, and CLAUDE.md forbids doing that in
+  # passing inside another issue's PR.
+  title: "OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
+  depends_on: [INT-131, INT-285]
+  labels: [area:api, risk:security]
+  status: todo
+  acceptance:
+    - "the deviation is stated first: auth_store._window_key buckets on floor(now / OTP_WINDOW_S), so a caller who spends its budget just before a boundary is given a fresh budget just after it. INT-285 pinned the worst case as 2 x PHONE_LIMIT_PER_HOUR codes to one phone inside about six minutes, against the files/10 §2 wording '3 requests/hour/phone'"
+    - "the budgets are counted so that no more than PHONE_LIMIT_PER_HOUR requests per phone, IP_LIMIT_PER_HOUR per IP and DEVICE_LIMIT_PER_HOUR per device are admitted in ANY OTP_WINDOW_S span rather than in each fixed window; the retry-after the caller is told is the true one for that bound, not the time to the next boundary"
+    - "the INT-285 near-miss control is inverted rather than deleted: the boundary sequence that admits 2 x the limit today must refuse, and the tests that pin the ordinary limits keep passing unchanged"
+    - "the implementation stays clock-injectable so tests advance time instead of sleeping (docs/TDD.md rule 6) and stays O(1) per request against Redis with a bounded key set - a per-request timestamp list that grows with traffic is not acceptable on an abuse path"
+    - "whatever bound is implemented is the bound written down: the docs/security/threat-model.md onboarding row states it, and any wording in files/10 §2 that the implementation cannot honour is corrected there rather than left as an aspiration"
+  tests: [tests/security/test_otp_abuse.py]
+  sec_row: "onboarding"
 - id: INT-258
   epic: E03-protocols
   phase: P0
@@ -3113,7 +3160,7 @@
   title: "Base-layer questions from the HBYS schema, and department branching on the answers"
   depends_on: [INT-256]
   labels: [area:engine, risk:clinical]
-  status: doing
+  status: done
   acceptance:
     - "the source is committed verbatim at docs/sources/hbys_intake_schema.md and never edited; a test asserts the file is byte-identical to the recorded sha256"
     - "PATIENT-ANSWERABLE fields become base-layer questions, composed onto every department pack by packForVisit the way INT-256's history block is, NOT duplicated per department: smoking status (5 states), alcohol, substance use, the seven named chronic conditions as a checklist, injury history, declared blood group, disability status, occupation, and transfusion history"

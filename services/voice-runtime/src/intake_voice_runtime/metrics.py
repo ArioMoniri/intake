@@ -16,7 +16,9 @@ from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 __all__ = [
     "DELIVERY_INSERTION_WAIT_MS",
+    "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
+    "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -74,4 +76,42 @@ WORK_FAILED_TOTAL = Counter(
     "work_failed_total",
     "Backend Work that ended in the failed state, by work type.",
     ["type"],
+)
+
+
+# --- observer lanes (INT-110) ---------------------------------------------------
+#
+# files/10 §9 names `lane.dropped_frames` among the observer-lane signals, and
+# files/03 §4.7.6 makes it *"a tracked metric that is also a recorded field on
+# every lane signal"* — so the same number appears here and as
+# `LaneObservation.dropped_frames_in_window`. The one label is the closed
+# `Lane` enumeration: no session id, no window id, no frame content
+# (invariant 6). A lane that was never admitted has no child at all, which is
+# how the exposition tells a refused lane apart from an idle one.
+
+LANE_DROPPED_FRAMES = Counter(
+    "lane_dropped_frames",
+    "Audio frames dropped by an observer lane under backpressure, by lane.",
+    ["lane"],
+)
+
+# --- the RED preemption path (INT-093) --------------------------------------------
+#
+# files/08 §4 C names exactly one id for this path — ``preempt.red_latency_ms``
+# (≤ 300, p99 alert) — so exactly one family is emitted. The stop leg is
+# deliberately NOT folded into ``voice.barge_in_stop_ms``: that series is the
+# patient's barge-in and conflating two causes in one histogram would make the
+# ≤ 150 ms target unreadable for both. A missed stop is a raised
+# ``RedPathViolation`` instead, which is louder than a percentile.
+#
+# No labels, matching the catalogue row: a RED carries a session and a rule id
+# and neither belongs on a series (invariant 6).
+
+#: Rule evaluation → the pre-positioned script starting on the device. Buckets
+#: bracket the two budgets of files/02 §8.2 (150 ms stop, 300 ms end to end)
+#: and the p99 alert threshold of files/08 §5.
+PREEMPT_RED_LATENCY_MS = Histogram(
+    "preempt_red_latency_ms",
+    "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
+    buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
 )

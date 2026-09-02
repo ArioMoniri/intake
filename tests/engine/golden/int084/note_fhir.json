@@ -1,0 +1,491 @@
+{
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:903bf043-f840-5149-85bb-d64096dca32d",
+      "resource": {
+        "author": [
+          {
+            "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+          }
+        ],
+        "date": "2026-09-02T09:30:00+00:00",
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:protocol-hash",
+            "valueString": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:intake-mode",
+            "valueString": "detailed"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:note-model",
+            "valueString": "synthetic-note-model@rev0"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:prompt-version",
+            "valueString": "note-v0"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f01|chief_complaint|patient_self|patient|utterance:work-1:0-16"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f02|hpi|patient_self|patient|utterance:work-2:0-13"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f03|ros_pertinent|patient_self|patient|utterance:work-3:4-20"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f04|pmh|patient_self|patient|utterance:work-4:0-16"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f05|pmh|record|patient|document:doc-0001:p2:0.1,0.2,0.3,0.4"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f06|medications|carried|patient|earlier_visit:visit-0000:2026-05-12"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f07|allergies|carried|patient|earlier_visit:visit-0000:2026-05-12"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f08|family_social|relative|mother|utterance:work-5:0-23"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f09|family_social|patient_self|patient|utterance:work-6:0-15"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f10|measurements|patient_self|patient|utterance:work-7:0-3"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f11|measurements|patient_self|patient|utterance:work-8:0-4"
+          },
+          {
+            "url": "urn:intake:fhir:StructureDefinition:fact-provenance",
+            "valueString": "f12|imported_objective|record|patient|document:doc-0002:p1"
+          }
+        ],
+        "resourceType": "Composition",
+        "section": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "triage",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:0741067e-fc5b-5c42-be92-d8e5927ab4cc"
+              }
+            ],
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>level: GREEN</p><p>rule rule.synthetic.none: slot_a=no</p></div>",
+              "status": "generated"
+            },
+            "title": "triage"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "chief_complaint",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik yakınma</p><p>goal: sentetik hedef</p></div>",
+              "status": "generated"
+            },
+            "title": "chief_complaint"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "hpi",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik öykü</p><p>onset: iki gün</p><p>severity_nrs: 4</p></div>",
+              "status": "generated"
+            },
+            "title": "hpi"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "ros_pertinent",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik-sistem: sentetik bulgu (-)</p></div>",
+              "status": "generated"
+            },
+            "title": "ros_pertinent"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "pmh",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:3b72d52d-0bec-5b76-9927-19847c5c9dc6"
+              },
+              {
+                "reference": "urn:uuid:9932c8eb-ecbe-5077-862b-668c96e60f08"
+              }
+            ],
+            "title": "pmh"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "medications",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:25bc880b-81aa-5b75-b9a1-29e46e8e7926"
+              }
+            ],
+            "title": "medications"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "allergies",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "urn:uuid:8d79ac60-bd4f-5574-a646-319911c81ab4"
+              }
+            ],
+            "title": "allergies"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "family_social",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>family: mother: Sentetik kalıtsal durum</p><p>occupation: sentetik meslek</p></div>",
+              "status": "generated"
+            },
+            "title": "family_social"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "measurements",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>height: 172 cm</p><p>weight: 1234 kg</p></div>",
+              "status": "generated"
+            },
+            "title": "measurements"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "imported_objective",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>lab: sentetik tetkik (2026-05-12)</p></div>",
+              "status": "generated"
+            },
+            "title": "imported_objective"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "data_gaps",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>screening:deferred_environment:phq2</p><p>family_social:declined:fh_father</p><p>ros_pertinent:session_ended:ros_gi</p><p>pmh:unresolved_precondition:pmh_surgery_detail</p></div>",
+              "status": "generated"
+            },
+            "title": "data_gaps"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "suggested_focus_questions",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik odak sorusu</p></div>",
+              "status": "generated"
+            },
+            "title": "suggested_focus_questions"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "considerations",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>sentetik örüntü: sentetik gerekçe</p></div>",
+              "status": "generated"
+            },
+            "title": "considerations"
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "code": "patient_confirmed_sections",
+                  "system": "urn:intake:fhir:CodeSystem:note-section"
+                }
+              ]
+            },
+            "text": {
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>chief_complaint</p></div>",
+              "status": "generated"
+            },
+            "title": "patient_confirmed_sections"
+          }
+        ],
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+        },
+        "text": {
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Ön görüşme notu</p></div>",
+          "status": "generated"
+        },
+        "title": "Ön görüşme notu",
+        "type": {
+          "coding": [
+            {
+              "code": "previsit_note",
+              "system": "urn:intake:fhir:CodeSystem:document-type"
+            }
+          ],
+          "text": "previsit_note"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595",
+      "resource": {
+        "id": "pt-0001",
+        "resourceType": "Patient"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:0741067e-fc5b-5c42-be92-d8e5927ab4cc",
+      "resource": {
+        "method": {
+          "coding": [
+            {
+              "code": "rules",
+              "system": "urn:intake:fhir:CodeSystem:triage-method"
+            }
+          ]
+        },
+        "prediction": [
+          {
+            "qualitativeRisk": {
+              "coding": [
+                {
+                  "code": "GREEN",
+                  "system": "urn:intake:fhir:CodeSystem:triage-level"
+                }
+              ]
+            }
+          }
+        ],
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "code": "rule.synthetic.none",
+                "system": "urn:intake:fhir:CodeSystem:triage-rule"
+              }
+            ],
+            "text": "slot_a=no"
+          }
+        ],
+        "resourceType": "RiskAssessment",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3b72d52d-0bec-5b76-9927-19847c5c9dc6",
+      "resource": {
+        "code": {
+          "text": "Sentetik durum A"
+        },
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:pmh-source",
+            "valueString": "patient"
+          }
+        ],
+        "resourceType": "Condition",
+        "subject": {
+          "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "code": "unconfirmed",
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:9932c8eb-ecbe-5077-862b-668c96e60f08",
+      "resource": {
+        "code": {
+          "text": "Sentetik durum B"
+        },
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:pmh-source",
+            "valueString": "record"
+          }
+        ],
+        "resourceType": "Condition",
+        "subject": {
+          "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "code": "unconfirmed",
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:25bc880b-81aa-5b75-b9a1-29e46e8e7926",
+      "resource": {
+        "dosage": [
+          {
+            "text": "günde bir kez bir tablet"
+          }
+        ],
+        "extension": [
+          {
+            "url": "urn:intake:fhir:StructureDefinition:reconciliation",
+            "valueString": "matches"
+          }
+        ],
+        "medicationCodeableConcept": {
+          "text": "Sentetikol"
+        },
+        "resourceType": "MedicationStatement",
+        "status": "unknown",
+        "subject": {
+          "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:8d79ac60-bd4f-5574-a646-319911c81ab4",
+      "resource": {
+        "clinicalStatus": {
+          "coding": [
+            {
+              "code": "active",
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+            }
+          ]
+        },
+        "code": {
+          "text": "Sentetisilin"
+        },
+        "patient": {
+          "reference": "urn:uuid:8558aab8-5158-531a-b21b-6a9a16d29595"
+        },
+        "reaction": [
+          {
+            "manifestation": [
+              {
+                "text": "döküntü"
+              }
+            ]
+          }
+        ],
+        "resourceType": "AllergyIntolerance",
+        "verificationStatus": {
+          "coding": [
+            {
+              "code": "confirmed",
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "identifier": {
+    "system": "urn:intake:fhir:NamingSystem:visit",
+    "value": "visit-0001"
+  },
+  "resourceType": "Bundle",
+  "timestamp": "2026-09-02T09:30:00+00:00",
+  "type": "document"
+}

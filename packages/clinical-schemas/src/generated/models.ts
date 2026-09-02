@@ -185,6 +185,8 @@ export interface LlmCandidateTriage {
   "candidate_flags": CandidateFlag[];
 }
 
+export type MeasureCode = "height" | "weight";
+
 export interface MedicationItem {
   "name": string;
   "atc"?: string | null;
@@ -267,6 +269,7 @@ export interface PreVisitNote {
   "medications"?: MedicationItem[];
   "allergies"?: AllergyItem[];
   "family_social": FamilySocial;
+  "measurements"?: SelfReportedMeasure[];
   "screening": ScreeningBlock;
   "konusma_ozellikleri"?: KonusmaOzellikleri | null;
   "imported_objective"?: ImportedObjectiveItem[];
@@ -347,6 +350,12 @@ export interface SecurityV1 {
   "resource_ref"?: string | null;
   "correlation_id": string;
   "attributes"?: Record<string, string>;
+}
+
+export interface SelfReportedMeasure {
+  "code": MeasureCode;
+  "magnitude": string;
+  "unit": string;
 }
 
 export interface SessionBudget {

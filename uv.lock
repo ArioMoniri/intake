@@ -934,6 +934,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "intake-clinical-schemas" },
     { name = "minio" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-sdk" },
@@ -957,6 +958,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=43.0" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
     { name = "minio", specifier = ">=7.2.9" },
     { name = "opentelemetry-api", specifier = ">=1.27" },
     { name = "opentelemetry-sdk", specifier = ">=1.27" },
@@ -1051,6 +1053,7 @@ version = "0.1.0"
 source = { editable = "services/voice-runtime" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "intake-clinical-schemas" },
     { name = "intake-platform" },
     { name = "intake-protocols" },
@@ -1061,6 +1064,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
     { name = "intake-platform", editable = "packages/intake_platform" },
     { name = "intake-protocols", editable = "packages/protocols" },

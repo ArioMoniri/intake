@@ -1,0 +1,55 @@
+---
+legal_strings_version: synthetic-int084
+---
+# SYNTHETIC fixture (files/04 §7), not legal copy and never loaded in production.
+# The production catalogue is docs/legal/strings.yaml, authored by counsel under
+# INT-210 (files/06 §7); it does not exist yet and every renderer that needs it
+# fails closed. This file exists so the golden snapshots can pin the note's
+# STRUCTURE — section order, attribution markers, gap markers, provenance refs
+# and the footer's placement — without any string being authored into
+# docs/legal/. Only one value here is real repo text: previsit_note.footer is
+# the files/06 §7 wording the acceptance names, quoted the same way
+# tests/legal/test_store_labels.py already quotes it, so the tests can prove
+# where it lands. Everything else is a synthetic heading.
+previsit_note.title: "Ön görüşme notu"
+previsit_note.footer: "Bu belge hastanın beyanına dayanır; hekim değerlendirmesinin yerine geçmez. İçerik yapay zekâ desteğiyle yapılandırılmıştır ve tanı niteliği taşımaz."
+previsit_note.soap.subjective: "S — hasta beyanı"
+previsit_note.soap.objective: "O — dış kaynaklı veriler"
+previsit_note.soap.assessment: "A — hekim tarafından doldurulacak"
+previsit_note.soap.plan: "P — hekim tarafından doldurulacak"
+previsit_note.heading.triage: "Triyaj"
+previsit_note.heading.candidates: "Aday bulgular (hekim değerlendirmesi için)"
+previsit_note.heading.gaps: "Eksikler"
+previsit_note.heading.provenance: "Kaynaklar"
+previsit_note.heading.considerations: "Örüntüler"
+previsit_note.heading.focus_questions: "Odak sorular"
+previsit_note.heading.confirmed: "Hasta onayladı"
+previsit_note.section.chief_complaint: "Başvuru nedeni"
+previsit_note.section.hpi: "Şikâyet öyküsü"
+previsit_note.section.ros_pertinent: "Sistem sorgusu"
+previsit_note.section.pmh: "Özgeçmiş"
+previsit_note.section.medications: "İlaçlar"
+previsit_note.section.allergies: "Alerjiler"
+previsit_note.section.family_social: "Soygeçmiş ve sosyal öykü"
+previsit_note.section.measurements: "Ölçümler"
+previsit_note.section.screening: "Tarama"
+previsit_note.section.konusma_ozellikleri: "Konuşma özellikleri"
+previsit_note.section.imported_objective: "Dış kaynaklı bulgular"
+previsit_note.attribution.patient_self: "hasta beyanı"
+previsit_note.attribution.relative: "yakın beyanı"
+previsit_note.attribution.carried: "önceki kayıt"
+previsit_note.attribution.record: "belge"
+previsit_note.attribution.rules_engine: "kural"
+previsit_note.attribution.llm_candidate: "aday — hekim değerlendirmesi için"
+previsit_note.subject.patient: "hasta"
+previsit_note.subject.mother: "anne"
+previsit_note.subject.father: "baba"
+previsit_note.subject.brother: "erkek kardeş"
+previsit_note.subject.sister: "kız kardeş"
+previsit_note.subject.child: "çocuk"
+previsit_note.subject.grandparent: "büyük ebeveyn"
+previsit_note.subject.other_relative: "diğer yakın"
+previsit_note.gap.deferred_environment: "eksik: ortam uygun değildi"
+previsit_note.gap.declined: "eksik: hasta paylaşmak istemedi"
+previsit_note.gap.session_ended: "eksik: görüşme tamamlanmadan bitti"
+previsit_note.gap.unresolved_precondition: "eksik: ön koşulu belirsiz kaldı, sorulamadı"

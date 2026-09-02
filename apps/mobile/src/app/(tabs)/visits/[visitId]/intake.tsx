@@ -226,14 +226,12 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       ? (initialAnswer?.values.join(" ") ?? initialPrefill?.values.join(" ") ?? "")
       : "",
   );
-<<<<<<< HEAD
   // The glass bar reports its own height (INT-284): the CTA label wraps at
   // the large text steps, so the room reserved for it cannot be a constant —
-  // it was 128 against a bar that measures 136 at 2.0, and the last option
+  // it was 128 against a bar that measures 131 at 2.0, and the last option
   // chip was clipped by the bar with nowhere left to scroll.
   const [barHeight, setBarHeight] = useState<number | null>(null);
   const barClearance = useGlassBarClearance(barHeight);
-=======
   // The guarded measure (INT-282, invariant 22). `null` means the patient
   // has not moved the control yet: the stepper shows where it OPENS, but
   // nothing is committed and the CTA stays disabled, so a value can never
@@ -244,7 +242,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       ? Number(initialAnswer.values[0])
       : null,
   );
->>>>>>> origin/main
   const editing = requested !== undefined;
 
   const question = intakeQuestions.find((x) => x.id === currentId) ?? initialQuestion;
