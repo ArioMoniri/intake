@@ -181,6 +181,17 @@ export const en: Record<MessageKey, string> = {
   "learned.guide.title": "Nothing is learned silently",
   "learned.guide.body":
     "Vizite keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
+  // INT-140 — where each fact came from, where it is held, who sees it and
+  // how it goes. Re-confirmation is asked during visit preparation.
+  "learned.shareLabel": "Share with your doctor",
+  "learned.origin.record": "Kept in your record",
+  "learned.origin.device": "On this phone only",
+  "learned.value.unreadable": "A recorded answer",
+  "learned.forget": "Delete this detail",
+  "learned.forget.confirm": "Confirm the deletion",
+  "learned.reconfirm.footer":
+    "This detail is over a year old; it is asked again during visit preparation.",
+  "learned.unsaved": "This change did not reach your record.",
   // INT-260 — Appearance: text size, theme, on-screen motion and how a visit
   // starts. The settings stay on this device; nothing is sent to a server.
   "appearance.title": "Appearance",
@@ -203,6 +214,36 @@ export const en: Record<MessageKey, string> = {
   "appearance.start.voice": "By speaking",
   "appearance.start.typed": "By typing",
   "appearance.deviceOnly": "These settings are kept on this phone only.",
+  // INT-140 — Your data: a copy of the record, and its erasure. Every line
+  // here names a control; information notices come only from docs/legal/,
+  // so none of them is written here (invariant 18).
+  "me.data": "Your data",
+  "data.entry.sub": "You can ask for a copy of your record, or for its erasure.",
+  "data.guide.kicker": "You are in control",
+  "data.guide.title": "Your record is yours",
+  "data.guide.body":
+    "You can ask for a copy of your record. You can also ask for your record to be erased.",
+  "data.export": "Ask for a copy of your record",
+  "data.export.notYet":
+    "Your copy cannot be downloaded in the app yet. Your request is added to the list below.",
+  "data.due": "Answer due by",
+  "data.delete": "Ask for your record to be erased",
+  "data.delete.confirm": "Confirm the erasure request",
+  "data.delete.withdraw": "Withdraw the erasure request",
+  "data.delete.graceEnds": "Erasure day",
+  "data.delete.sharesCancelled": "Open shares have been closed.",
+  "data.requests": "Your requests",
+  "data.kind.export": "Copy request",
+  "data.kind.delete": "Erasure request",
+  "data.kind.rectify": "Correction request",
+  "data.status.received": "Received",
+  "data.status.scheduled": "Scheduled",
+  "data.status.completed": "Completed",
+  "data.status.cancelled": "Withdrawn",
+  "data.status.overdue": "Past its date",
+  "data.empty": "You have no requests yet.",
+  "data.unsent": "This request could not be sent.",
+  "data.deviceOnly": "Your appearance settings and health readings stay on this phone only.",
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
@@ -714,6 +755,13 @@ export const en: Record<MessageKey, string> = {
   "a11y.otp.digit": "Verification code digit",
   "a11y.consent.rowHint": "Double tap to open the consent text and details.",
   "a11y.consent.switchHint": "Double tap to turn this consent on or off.",
+  // INT-140 — hints state the RESULT of the action (iOS HIG): a screen-reader
+  // user knows what will happen before they act.
+  "a11y.data.exportHint": "Double tapping sends your copy request.",
+  "a11y.data.deleteHint": "Double tapping starts your erasure request.",
+  "a11y.data.withdrawHint": "Double tapping withdraws your erasure request.",
+  "a11y.learned.shareHint": "Double tapping changes who this detail is shared with.",
+  "a11y.learned.forgetHint": "Double tapping deletes this detail from your record.",
   "a11y.ladder.reached": "done",
   "a11y.ladder.pending": "not yet done",
   "a11y.speaker.agent": "Vizite",

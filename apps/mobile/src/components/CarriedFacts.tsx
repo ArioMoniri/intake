@@ -1,15 +1,16 @@
 /**
  * Carried-forward facts on screen (INT-247).
  *
- * Two renderings of the same data, because the two screens answer different
- * questions:
+ * `CarriedFactReview` sits inside the review screen's medications section and
+ * asks one question: "is this still true, for THIS visit?". Three answers,
+ * and no default. Until the patient picks one the note says the item is
+ * unconfirmed (invariant 12), and the block says so on screen too.
  *
- * - `CarriedFactReview` — inside the review screen's medications section:
- *   "is this still true, for THIS visit?". Three answers, and no default.
- *   Until the patient picks one the note says the item is unconfirmed
- *   (invariant 12), and the block says so on screen too.
- * - `CarriedFactLedger` — Me → Hakkımda öğrendikleri: the transparency list
- *   files/09 §3 asks for, every item showing where it came from and when.
+ * The other rendering — the Me → Hakkımda öğrendikleri transparency list —
+ * moved to `LearnedLedger` in INT-140, where it grew the share scope and the
+ * delete control files/09 §3 asks for and started reading the patient's own
+ * overlay rather than only what this device carries. The provenance line is
+ * still the one below, so both surfaces say "where from" the same way.
  *
  * Register is `siz` throughout; the three answers are the patient's own
  * words in the first person, the way the companion screen's options are.
@@ -142,27 +143,6 @@ export function CarriedFactReview({
           </View>
         );
       })}
-    </View>
-  );
-}
-
-/** Me → Hakkımda öğrendikleri: read-only, provenance-first (files/09 §3). */
-export function CarriedFactLedger({ facts }: { facts: readonly CarriedFact[] }) {
-  if (facts.length === 0) {
-    return (
-      <AppText role="body" color="inkSoft">
-        {t("carried.empty")}
-      </AppText>
-    );
-  }
-  return (
-    <View style={styles.block}>
-      {facts.map((fact) => (
-        <View key={fact.id} style={styles.fact}>
-          <AppText role="body">{fact.text}</AppText>
-          <Provenance fact={fact} />
-        </View>
-      ))}
     </View>
   );
 }

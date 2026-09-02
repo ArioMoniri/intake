@@ -61,3 +61,33 @@ It does not block: the RED patient still gets the RED script over the channel th
 register, and reversing the decision is one catalogue key plus one deleted raise. Recorded
 because it is a product decision taken inside an engineering issue.
 | — | resolved (no action) | coordinator | **Branch names do not identify their issue.** `int-200-health-connectors` carries INT-208 (done, merged 28 Aug as PR #239) and `int-201-design-pass5` carries INT-209 (done, PrepGauge and mobile-ui.md verified present on main). Both branch names point at *unrelated* todo issues — INT-200 is the residency compose profile, INT-201 is k8s. Squash-merged branches stay ahead of `main` by reachability forever, so a commit count proves nothing. **Check the issue the branch's evidence file names, not the number in the branch name**, and confirm content presence on main before treating a branch as unmerged. Sending an agent to "rescue" INT-208 cost about an hour. |
+
+## INT-140 — the export ANSWER cannot be delivered, so the issue stays open
+
+**Raised:** 3 Sep 2026 · **Named human:** none new — this is INT-210's content
+
+INT-140 delivers two of the three obligations in its acceptance line: the erasure
+flow (file, grace, withdraw, tracker) and the learned-fact ledger (provenance,
+per-field share scope, delete). The third — handing the patient the copy of their
+record — is not delivered, and the client deliberately never calls
+`GET /v1/me/dsar/export/{id}`.
+
+Three facts make the call wrong today rather than merely unbuilt. The route marks
+the KVKK m.13 obligation **completed at the moment of delivery**, so calling it
+without handing anything over would record an answer nobody received. It cannot
+succeed in any case: the document renders only from the hash-bound fixed strings
+in `docs/legal/strings.yaml`, which does not exist, so the route answers
+`503 legal_strings_missing`. And the app has no path that hands a file to a
+patient — building one is a security decision needing its own files/10 §9 row and
+a licence-audited dependency.
+
+**Nothing is owed by a human that is not already owed:** INT-210 (`status: todo`,
+`approval:human-legal`) owns the strings. When they land, the remaining work is
+one unit — retrieval plus a delivery channel — and INT-140 closes on it.
+
+One product finding for the **clinical copy owner**, flagged rather than fixed: an
+overlay key (`chronic.hipertansiyon`) has no patient-readable Turkish label
+anywhere in the repo. The ledger renders the fact's own recorded phrase where the
+value is one and a catalogue label where it is not, and never the slot ref — every
+other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
+is clinical copy against the packs' slot definitions.
