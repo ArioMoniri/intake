@@ -1,0 +1,106 @@
+# SENTETİK TEST VERİSİ — INT-082 patient-simulator fixture, Detaylı Mod.
+#
+# Mechanism only. Every id, section, slot, choice and Turkish string in this
+# file is INVENTED and carries NO clinical meaning whatsoever (files/04 §7).
+# Nothing here is ever served, and nothing here may be read as a clinical
+# determination. In particular: the sections below are shaped LIKE a review of
+# systems and a history delta because files/02 §2's Content row says Detaylı
+# adds those, and they contain no review of systems and no history.
+#
+# WHY A visit_type PACK AND NOT A FLAG. files/02 §2 heads the table "The two
+# intake modes (same engine, different protocol profile)" and closes it with
+# "Both modes run the Protocol Registry: base.intake -> specialty.* ->
+# visit_type.* -> patient overlays". The mode is therefore a resolution, not a
+# parameter — and it has to be, because the IntakeEngine takes no mode: files/13
+# §9.5's GuardExpr whitelist (which is where a `mode` function would live) is
+# REFUSED at plan build by INT-081, so a `mode` gate cannot be read at all. A
+# simulator that carried its own mode flag would be testing a mechanism the
+# product does not have.
+#
+# WHAT IT ADDS, AND WHAT IT DELIBERATELY DOES NOT.
+#   - It ADDS two sections. It removes nothing and overrides nothing: files/02
+#     §2's Content row is written as "+", and files/04 §2.3 forbids a later
+#     layer removing a question a clinician marked must_ask.
+#   - Every added slot is CODE or BOOLEAN with spoken choices_tr. Not one is
+#     free text: files/02 §3's low-literacy path is a property of the product,
+#     not of the short mode, and the mode that adds questions is the one that
+#     could quietly add an unreadable one (CLAUDE.md invariant 22 forbids free
+#     numeric entry on the clinical critical path outright).
+#   - It adds NO red_flags. Detaylı must not be able to move a triage level
+#     that Hızlı could not reach on the same answers; the suite asserts the two
+#     modes agree on the determination, and a rule here would make that
+#     assertion pass or fail for the wrong reason.
+#   - No numeral appears in any spoken string (CLAUDE.md invariant 22).
+kind: pack
+id: visit_type.sentetik_detayli
+layer: visit_type
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik simülatör detaylı mod paketi"
+extends: base.sentetik_simulator
+visit_types:
+  - first
+sections:
+  sistem_sorgusu:
+    delivery: voice
+    voice:
+      allow_paraphrase: false
+      backchannel_ok: true
+      ack_style: brief
+      pace: normal
+    slots:
+      birinci_alan:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot (files/12 §8 makes the pair exclusive and exhaustive)
+        ask_tr: "Sentetik birinci alanda bir değişiklik var mı?"
+        follow_up_tr: "Sentetik birinci alandaki durumu belirtebilir misiniz?"
+        choices_tr: ["evet", "hayir"]
+      ikinci_alan:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik ikinci alanda bir değişiklik var mı?"
+        follow_up_tr: "Sentetik ikinci alandaki durumu belirtebilir misiniz?"
+        choices_tr: ["evet", "hayir"]
+      ucuncu_alan:
+        type: code
+        valueset: vs.sentetik_alan_durumu
+        required: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik üçüncü alan nasıl: aynı mı, azalıyor mu, artıyor mu?"
+        follow_up_tr: "Aynı, azalıyor ya da artıyor seçeneklerinden birini söyleyebilirsiniz."
+        choices_tr: ["sentetik_ayni", "sentetik_azaliyor", "sentetik_artiyor"]
+  gecmis_delta:
+    delivery: text_first
+    slots:
+      onceki_kayit_degisti:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik önceki kaydınızda değişen bir şey oldu mu?"
+        confirm_tr: "Sentetik önceki kaydınız aynı, doğru mu?"
+        follow_up_tr: "Sentetik kaydınızda bir değişiklik olup olmadığını belirtebilirsiniz."
+        choices_tr: ["evet", "hayir"]
+      yakin_oykusu_degisti:
+        type: boolean
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik yakın öykünüzde değişen bir şey oldu mu?"
+        follow_up_tr: "Sentetik yakın öykünüzdeki değişikliği belirtebilirsiniz."
+        choices_tr: ["evet", "hayir"]

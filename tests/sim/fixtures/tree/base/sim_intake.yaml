@@ -1,0 +1,229 @@
+# SENTETİK TEST VERİSİ — INT-082 patient-simulator fixture.
+#
+# Mechanism only. Every id, section, slot, choice, rule, threshold and Turkish
+# string in this file is INVENTED for the simulator and carries NO clinical
+# meaning whatsoever (files/04 §7: "packs and goldens contain synthetic data
+# only; simulator transcripts are synthetic"). Nothing here is ever served,
+# and nothing here may be read as a clinical determination.
+#
+# WHY A SYNTHETIC PACK AND NOT THE REAL TREE. `packages/protocols/base` and
+# every `specialty/*` pack in this repository is `maturity: L0`,
+# `status: awaiting-clinical-review`, with every red-flag family
+# `status: draft_needs_source` (HUMAN_BLOCKERS HB-C1, HB-C2, HB-C7). The
+# triage engine refuses a draft rule outright (DraftRuleError), so no real
+# pack can drive a simulated session at all. Authoring clinical content here
+# to get round that would be exactly the bypass HUMAN_BLOCKERS Rule 2
+# forbids. The simulator therefore exercises the MECHANISM on synthetic
+# content and leaves the clinical content empty and gated — see
+# tests/sim/scenarios.py, where every IM scenario's `clinical_truth` is None
+# behind a gate that raises.
+kind: pack
+id: base.sentetik_simulator
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik simülatör temel paketi"
+voice:
+  allow_paraphrase: false
+  backchannel_ok: true
+  ack_style: brief
+  pace: normal
+instruments:
+  - id: SYN-OLCEK
+    voice:
+      allow_paraphrase: false
+    items:
+      - id: syn_madde_bir
+        text_tr: "Sentetik ölçek maddesi bir."
+        allow_paraphrase: false
+      - id: syn_madde_iki
+        text_tr: "Sentetik ölçek maddesi iki."
+        allow_paraphrase: false
+sections:
+  ziyaret:
+    delivery: voice
+    voice:
+      allow_paraphrase: false
+      backchannel_ok: true
+      ack_style: brief
+      pace: normal
+    slots:
+      bildiren_rol:
+        type: code
+        valueset: vs.sentetik_bildiren_rol
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot (files/12 §8 makes the pair exclusive and exhaustive)
+        ask_tr: "Soruları kendiniz için mi yanıtlıyorsunuz, yoksa bir yakınınız için mi?"
+        confirm_tr: "Yakınınız adına yanıtlıyorsunuz, doğru mu?"
+        follow_up_tr: "Kimin adına yanıtladığınızı söyleyebilir misiniz?"
+        choices_tr: ["kendim", "yakinim"]
+      basvuru_nedeni:
+        type: code
+        valueset: vs.sentetik_basvuru_nedeni
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Bugün sizi buraya getiren nedir?"
+        confirm_tr: "Geçen sefer belirttiğiniz neden hâlâ geçerli mi?"
+        follow_up_tr: "Sizi en çok rahatsız eden şeyi seçebilir misiniz?"
+        choices_tr: ["sentetik_sakin", "sentetik_tetik", "sentetik_yakin_tetik"]
+      olay_tarihi:
+        type: date
+        required: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Bu durum hangi gün başladı?"
+        follow_up_tr: "Yaklaşık olarak hangi gün başladığını söyleyebilir misiniz?"
+  oyku:
+    delivery: voice
+    voice:
+      allow_paraphrase: false
+      backchannel_ok: true
+      ack_style: brief
+      pace: normal
+    slots:
+      belirti_var:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik belirtiniz şu anda var mı?"
+        confirm_tr: "Sentetik belirti hâlâ sürüyor, doğru mu?"
+        follow_up_tr: "Sentetik belirtinin şu anda olup olmadığını söyleyebilir misiniz?"
+        choices_tr: ["evet", "hayir"]
+      siddet_derece:
+        type: code
+        valueset: vs.sentetik_siddet
+        must_ask: true
+        ask_if: "oyku.belirti_var"
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik belirtiniz hangi ölçüde: hafif mi, orta mı, ağır mı?"
+        follow_up_tr: "Hafif, orta ya da ağır seçeneklerinden birini söyleyebilir misiniz?"
+        choices_tr: ["sentetik_hafif", "sentetik_orta", "sentetik_agir"]
+      seyir:
+        type: code
+        valueset: vs.sentetik_seyir
+        required: true
+        must_ask: true
+        ask_if: "oyku.belirti_var"
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Sentetik belirtiniz nasıl gidiyor: aynı mı, azalıyor mu, artıyor mu?"
+        follow_up_tr: "Aynı, azalıyor ya da artıyor seçeneklerinden birini söyleyebilir misiniz?"
+        choices_tr: ["sentetik_ayni", "sentetik_azaliyor", "sentetik_artiyor"]
+      ek_bilgi:
+        type: string
+        skip_if: "!oyku.belirti_var"
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Eklemek istediğiniz sentetik bir bilgi var mı?"
+        follow_up_tr: "Eklemek istediğiniz bir şey varsa söyleyebilirsiniz."
+  ilac:
+    delivery: text_first
+    slots:
+      ilac_kullanimi:
+        type: boolean
+        required: true
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Düzenli kullandığınız sentetik bir ilaç var mı?"
+        confirm_tr: "Kayıtlı sentetik ilacınız hâlâ aynı mı?"
+        follow_up_tr: "Düzenli bir ilaç kullanıp kullanmadığınızı söyleyebilir misiniz?"
+        choices_tr: ["evet", "hayir"]
+  beklenti:
+    delivery: voice
+    voice:
+      allow_paraphrase: true
+      backchannel_ok: true
+      ack_style: warm
+      pace: normal
+    slots:
+      beklenti_metni:
+        type: string
+        openehr_deferred_reason: >-
+          synthetic simulator fixture; no archetype path is claimed for an
+          invented slot
+        ask_tr: "Bugünkü görüşmeden ne bekliyorsunuz?"
+  tarama:
+    delivery: text_only
+    questionnaires: [SYN-OLCEK]
+    slots:
+      tarama_onayi:
+        type: boolean
+        required: true
+        must_ask: true
+        openehr_deferred_reason: >-
+          screening content is text_only (files/13 §13) and this synthetic
+          fixture claims no openEHR binding for it
+        ask_tr: "Sentetik tarama bölümüne geçmemizi ister misiniz?"
+        follow_up_tr: "Sentetik tarama bölümünü isteyip istemediğinizi belirtebilirsiniz."
+        choices_tr: ["evet", "hayir"]
+red_flags:
+  - id: rf.sentetik_sim_kirmizi
+    label_tr: "Sentetik simülatör kırmızı kuralı"
+    when: "ziyaret.basvuru_nedeni == 'sentetik_tetik' && oyku.belirti_var"
+    tense: today
+    tense_anchor: ziyaret.olay_tarihi
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-SIM
+      guideline_title: "Sentetik kılavuz SIM"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-sim"
+      retrieved_on: 2026-08-28
+      quote: "sentetik simülatör alıntısı"
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr: "Hemen yardım isteyin."
+        do_nots_tr:
+          - "Yalnız kalmayın."
+        why_tr: "Bu bir sentetik test metnidir."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr: "Görevlilere haber verin."
+        why_tr: "Bu bir sentetik test metnidir."
+      UNKNOWN:
+        ask_one_tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+  - id: rf.sentetik_sim_sari
+    label_tr: "Sentetik simülatör sarı kuralı"
+    when: "oyku.siddet_derece == 'sentetik_agir'"
+    tense: today
+    tense_anchor: ziyaret.olay_tarihi
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-SIM
+      guideline_title: "Sentetik kılavuz SIM"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-sim"
+      retrieved_on: 2026-08-28
+      quote: "sentetik simülatör alıntısı"
