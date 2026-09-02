@@ -1,0 +1,102 @@
+# =====================================================================================
+# The Turkish lexicons of the `linguistic` observer lane (files/03 §4.7.5) — complete
+# in structure, empty in clinical value.
+#
+# files/03 §4.7.5 gives the lane *"deterministic Turkish lexicons (negative affect,
+# hopelessness, anhedonia, somatic worry)"* and a crisis family whose hits *"bypass the
+# lane"* and reach the deterministic triage detector regardless of wellbeing consent
+# (files/04 §4.2 defect 3).
+#
+# ⛔ NOT ONE TERM IS AUTHORED HERE, AND NONE MAY BE ADDED BY AN AGENT.
+# A list of Turkish words asserted to mean hopelessness is a clinical judgement in
+# exactly the way a threshold is: it decides what counts as a signal, on what evidence,
+# in what dialect, at what reading level, and — for the crisis family — it decides who
+# gets caught. HUMAN_BLOCKERS rule 1 forbids inventing such a value, and a plausible
+# invented word list is worse than an empty one, because there is no diff that makes it
+# look wrong. Each family therefore ships `status: draft_needs_source`, `terms: []` and
+# a written `source_gap`, and `protocols.lexicon.compile_lexicon` refuses to build a
+# matcher for it — the same shape `base.life_threat`'s unsigned rules take, and the
+# same shape the compiler's `draft_needs_source` refusal takes.
+#
+# Owner: HUMAN_BLOCKERS **HB-C16** (the four marker families) and **HB-C17** (the
+# crisis family, which additionally needs HB-C8's escalation policy and is entangled
+# with HB-L2's C-SSRS licence).
+# =====================================================================================
+kind: lexicon
+language: tr
+version: 1
+
+families:
+  # -----------------------------------------------------------------------------------
+  # The four marker families of files/03 §4.7.5. Their output is `linguistic_markers{}`
+  # — read-only, per section, and never a level (CLAUDE.md invariant 11).
+  # -----------------------------------------------------------------------------------
+  - id: negative_affect
+    kind: marker
+    status: draft_needs_source
+    terms: []
+    source_gap: >-
+      Unsupplied by any clinician: which Turkish expressions count as negative affect,
+      in which registers and dialects, and against what published Turkish word norm.
+      No Turkish affective-norm list is committed under packages/protocols/sources/,
+      and files/00 §2 records that no Turkish vocal-biomarker model exists to calibrate
+      one against. An English list translated is not a Turkish list.
+      Owner: physician of record with a Turkish-speaking clinical psychologist
+      (HUMAN_BLOCKERS HB-C16).
+
+  - id: hopelessness
+    kind: marker
+    status: draft_needs_source
+    terms: []
+    source_gap: >-
+      Unsupplied by any clinician: the Turkish hopelessness vocabulary, and whether it
+      may be stated as a word list at all rather than as a rated item. The Beck
+      Hopelessness Scale is the usual anchor and is licence-encumbered; nothing in
+      packages/protocols/sources/ vouches for a free-standing Turkish term list.
+      Owner: physician of record (HUMAN_BLOCKERS HB-C16).
+
+  - id: anhedonia
+    kind: marker
+    status: draft_needs_source
+    terms: []
+    source_gap: >-
+      Unsupplied by any clinician: the Turkish anhedonia vocabulary. PHQ-9 item 1 states
+      the construct as a rated item, not as words, and lifting words out of a validated
+      item is not the item (files/04 header, instrument fidelity).
+      Owner: physician of record (HUMAN_BLOCKERS HB-C16).
+
+  - id: somatic_worry
+    kind: marker
+    status: draft_needs_source
+    terms: []
+    source_gap: >-
+      Unsupplied by any clinician: which Turkish somatic complaints count as worry
+      rather than as symptom report. This family is the one most likely to double-count
+      the intake's own clinical content — a patient describing chest tightness is
+      answering a question, not displaying a marker — and where that line falls is a
+      clinical judgement. Owner: physician of record (HUMAN_BLOCKERS HB-C16).
+
+  # -----------------------------------------------------------------------------------
+  # The crisis family. Its hits do NOT enter `linguistic_markers`: they leave the lane
+  # entirely as a presence fact and are read by the deterministic triage detector
+  # (files/03 §4.7.5; CLAUDE.md invariants 1 and 11). It is deliberately the only
+  # `kind: crisis` family — the matcher exposes crisis and marker families through
+  # different methods so a caller typed to one cannot read the other.
+  # -----------------------------------------------------------------------------------
+  - id: crisis_disclosure
+    kind: crisis
+    status: draft_needs_source
+    terms: []
+    source_gap: >-
+      Unsupplied, and blocked three times over. (a) The Turkish phrases that should
+      trigger a consent-independent signposting response are a clinical judgement no
+      agent may make, and this is the family where a wrong list costs a life in either
+      direction — a miss, or a false trigger that teaches a patient the system
+      overreacts. (b) files/04 §4.2's escalation policy does not exist — no responder,
+      no abandonment handler, no means restriction, no safety planning — and running
+      this pathway before it does is stated there as not defensible (HB-C8).
+      (c) files/04 §4.2 defect 3 asks for signposting, not a screener; the C-SSRS
+      cascade the backlog names as the destination is licence-BLOCKED (HB-L2) and is
+      not in any pack. So the matcher is built, the gate is closed, and the content is
+      a clinician's to write. Owner: physician of record plus counsel
+      (HUMAN_BLOCKERS HB-C17, HB-C8, HB-L2).

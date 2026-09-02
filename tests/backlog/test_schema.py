@@ -37,7 +37,7 @@ def test_ids_unique_and_well_formed() -> None:
     assert len(ids) == len(set(ids))
     # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
     # owner directive 2026-08-27). Grow this count only with a stated reason.
-    assert len(ids) == 207
+    assert len(ids) == 219
     import re
 
     for i in ids:

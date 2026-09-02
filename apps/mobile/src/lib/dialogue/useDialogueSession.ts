@@ -21,6 +21,24 @@
  * playback halts in the same JS tick as the tap; one player ref, always
  * cleared before the next clip, means no overlapping audio ever.
  *
+ * INT-291 gives that guarantee a second cause: the patient's VOICE. Until it,
+ * the speaking driver set `allowsRecording: false` and started no recorder, so
+ * while the agent talked there was NO MICROPHONE AT ALL and speaking over it
+ * did nothing — a tap or a typed message were the only interrupts, and neither
+ * is what a patient in pain reaches for. files/02 §8.2 budgets a barge-in stop
+ * at 150 ms; before this there was no barge-in to budget unless a finger was
+ * involved. Now the mic opens when the agent STARTS speaking rather than when
+ * it stops, a level watcher feeds bargeIn.ts's onset detector, and an onset
+ * calls the same `bargeIn` the tap calls: one reducer action, two causes, no
+ * second state machine.
+ *
+ * The recording that hears the interruption IS the patient's answer. That is
+ * the design, not an optimisation — a barge-in whose opening words are lost is
+ * a patient made to repeat themselves — and it is also why nothing new reaches
+ * disk: one `prepareToRecordAsync` per turn, exactly as before, started
+ * earlier. The watcher reads the platform's own level meter, never a buffer,
+ * so invariant 3's posture is unchanged.
+ *
  * Audio hygiene: clips under cacheDirectory/dialogue/ are AGENT-voice
  * audio synthesized from catalog tr strings, deleted wholesale on
  * unmount AND on session end. PATIENT recordings keep lib/voice.ts's
@@ -37,6 +55,7 @@ import {
 } from "expo-audio";
 
 import { configuredServiceCandidates } from "../dev/expoHosts";
+import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
@@ -48,7 +67,7 @@ import {
   type DialogueStreamAction,
   type DialogueStreamState,
 } from "./stream";
-import { clipName, type ClipStore } from "./tts";
+import { clipDeadlineMs, clipName, withDeadline, type ClipStore } from "./tts";
 import type { DialogueCandidate } from "./turn";
 
 export interface DialogueSessionOptions {
@@ -57,8 +76,10 @@ export interface DialogueSessionOptions {
   packName: string;
   /** Every question answered — the caller routes onward. Clips gone. */
   onDone: () => void;
-  /** Hard service failure — the caller lands in the manual steps. */
-  onFailed: () => void;
+  /** Hard service failure — the caller lands in the manual steps, carrying
+   * the same unconfirmed suggestions a tidy hand-over would (INT-261): both
+   * exits go to the same place, so both must arrive with what was said. */
+  onFailed: (leftovers: Record<string, DialogueCandidate>) => void;
   /** Dialogue settled with questions left: the caller hands the manual
    * steps whatever suggestions remain unconfirmed (may be empty). */
   onHandoff: (leftovers: Record<string, DialogueCandidate>) => void;
@@ -104,7 +125,9 @@ export function useDialogueSession({
   onFailed,
   onHandoff,
 }: DialogueSessionOptions): DialogueSession {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // Metering is what the onset detector reads. HIGH_QUALITY leaves it off,
+  // and without it every level comes back `undefined` and barge-in is deaf.
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const [state, dispatch] = useReducer(
     (s: DialogueStreamState, a: DialogueStreamAction) => dialogueStreamReducer(questions, s, a),
     questions,
@@ -123,6 +146,15 @@ export function useDialogueSession({
   const finishingRef = useRef(false);
   /** Monotonic work id — the reconcile-behind address space. */
   const workRef = useRef(0);
+  /** The level watch armed for the clip currently playing, if any. */
+  const watchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearBargeInWatch = () => {
+    if (watchRef.current !== null) {
+      clearInterval(watchRef.current);
+      watchRef.current = null;
+    }
+  };
 
   const sessionSignal = () => {
     abortRef.current ??= new AbortController();
@@ -164,6 +196,74 @@ export function useDialogueSession({
         // already released — nothing left to stop
       }
     }
+  };
+
+  /**
+   * Open the microphone. One `prepareToRecordAsync` per turn, wherever the
+   * turn started it — the speaking driver when the clip begins, the listening
+   * driver when there was no clip.
+   */
+  const openMicrophone = async () => {
+    await AudioModule.setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      shouldRouteThroughEarpiece: false,
+    });
+    await recorder.prepareToRecordAsync();
+    recorder.record();
+  };
+
+  /**
+   * Watch the level while the agent speaks and interrupt on a real onset.
+   *
+   * Every decision about WHETHER a level pattern is a barge-in lives in
+   * `bargeIn.ts`, where it is a pure function and therefore testable without a
+   * microphone; this closure only supplies samples and stops on `"fired"`.
+   * `getStatus()` returns the platform's own meter reading — no buffer is read
+   * here, and nothing new is written (invariant 3).
+   *
+   * The watch is torn down by the same `stale` flag the clip is: the effect's
+   * cleanup runs on every turn change, so a timer can never outlive the clip
+   * it was watching.
+   */
+  const armBargeInWatch = async (isStale: () => boolean) => {
+    clearBargeInWatch(); // at most one watch is ever referenced
+    if (!recorder.isRecording) {
+      // A mic denial already ended the session upstream; a failure to open it
+      // HERE costs barge-in and nothing else, so the turn goes on silently
+      // interruptible by tap, which is where the product was before INT-291.
+      try {
+        await openMicrophone();
+      } catch {
+        return;
+      }
+    }
+    if (isStale()) {
+      // The turn moved on while the microphone was opening. Arming now would
+      // leave a timer watching a clip that is no longer playing — it would
+      // stop itself on its first tick, but only after the next turn's watch
+      // had already been created, and then two detectors would be live.
+      return;
+    }
+    const detector = createSpeechOnsetDetector();
+    const timer = setInterval(() => {
+      if (stateRef.current.turn.phase !== "speaking") {
+        clearInterval(timer);
+        return;
+      }
+      let level: number | undefined;
+      try {
+        level = recorder.getStatus().metering;
+      } catch {
+        clearInterval(timer);
+        return;
+      }
+      if (detector.sample(level, Date.now()) === "fired") {
+        clearInterval(timer);
+        bargeIn();
+      }
+    }, BARGE_IN_SAMPLE_MS);
+    watchRef.current = timer;
   };
 
   const stopAndDiscardRecording = async () => {
@@ -222,7 +322,19 @@ export function useDialogueSession({
   // Speaking driver: ensure the clip (pre-warm makes this a cache hit),
   // then play it; end of clip hands the turn over. Reconcile updates keep
   // the turn object's identity, so they never restart a clip.
+  //
+  // INT-261 splits the two failures this loop can have, because they are not
+  // the same failure. `clipStore()` asks for the MICROPHONE before it builds
+  // anything, and a patient who has refused it cannot hold a conversation —
+  // that is `failure`, and the typed steps take over. Everything after it is
+  // about AUDIO OUTPUT: a TTS ladder that cannot admit a lane inside the turn
+  // budget, a clip that comes back empty, a player that will not start. None
+  // of that stops the patient answering, so it raises `speech_unavailable`
+  // instead: the turn advances, the session is silent from here, and the
+  // screen says so once. Before this, a clip failure on question two ended
+  // the whole intake and the typed form re-asked question one.
   const speaking = state.turn.phase === "speaking" ? state.turn : null;
+  const voiceMuted = state.voiceMuted;
   useEffect(() => {
     if (speaking === null) {
       return;
@@ -230,8 +342,26 @@ export function useDialogueSession({
     const question = questions[speaking.step];
     let stale = false;
     (async () => {
+      let store: ClipStore;
       try {
-        const store = await clipStore();
+        store = await clipStore();
+      } catch {
+        // No microphone: this is the one that ends the conversation.
+        if (!stale) {
+          dispatch({ type: "failure" });
+        }
+        return;
+      }
+      if (stale) {
+        return;
+      }
+      if (voiceMuted) {
+        // Already silent — do not spend another ladder probe per turn to
+        // rediscover it. The question text is on screen; move the turn on.
+        dispatch({ type: "speech_done" });
+        return;
+      }
+      try {
         const speech =
           speaking.intent === "question"
             ? questionSpeechTr(question)
@@ -242,11 +372,23 @@ export function useDialogueSession({
             : question.kind === "text"
               ? clipName("confirm", question.id) // generic clip — free text never names a file
               : clipName("confirm", question.id, speaking.candidate.values);
-        const uri = await store.ensure(name, speech);
+        // INT-261: the ladder may take as long as it likes; the patient may
+        // not be made to wait more than this clip's own worth of work.
+        const uri = await withDeadline(store.ensure(name, speech), clipDeadlineMs(speech));
         if (stale) {
           return;
         }
-        await AudioModule.setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+        // `allowsRecording: true` while the agent speaks is the whole change.
+        // On iOS this is the `.playAndRecord` category, which is the only one
+        // that admits simultaneous play and capture; `shouldRouteThroughEarpiece:
+        // false` is stated rather than left to the default because the same
+        // category is what puts audio on the receiver, and answering "the voice
+        // sounds bad" with a quieter voice would be its own defect.
+        await AudioModule.setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+          shouldRouteThroughEarpiece: false,
+        });
         if (stale) {
           return;
         }
@@ -261,17 +403,20 @@ export function useDialogueSession({
         });
         player.play();
         setPlaying(true);
+        await armBargeInWatch(() => stale);
       } catch {
+        // Audio output only — the conversation is unaffected and goes on.
         if (!stale) {
-          dispatch({ type: "failure" });
+          dispatch({ type: "speech_unavailable" });
         }
       }
     })();
     return () => {
       stale = true;
+      clearBargeInWatch();
       setPlaying(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session, and voiceMuted is a latch the same dispatch sets alongside the turn, so this closure always reads the current value
   }, [speaking]);
 
   // Listening driver: the mic opens when the machine says listen.
@@ -284,15 +429,16 @@ export function useDialogueSession({
     let stale = false;
     (async () => {
       try {
-        await AudioModule.setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-        if (stale) {
+        // Usually a no-op now: the speaking driver already opened this
+        // recorder, and the words the patient said while interrupting are in
+        // it. Re-preparing here would throw those words away, which is the
+        // exact failure a barge-in exists to avoid — so the recorder is only
+        // started when nothing is running (a `typed` turn, a clip that never
+        // played, a session whose voice went silent).
+        if (recorder.isRecording) {
           return;
         }
-        await recorder.prepareToRecordAsync();
-        if (stale) {
-          return;
-        }
-        recorder.record();
+        await openMicrophone();
       } catch {
         if (!stale) {
           dispatch({ type: "failure" });
@@ -318,7 +464,7 @@ export function useDialogueSession({
       abortRef.current?.abort();
       void stopAndDiscardRecording();
       void clearDialogueClips();
-      onFailed();
+      onFailed(stateRef.current.pending);
     } else if (state.turn.phase === "handoff") {
       closedRef.current = true;
       abortRef.current?.abort();
@@ -331,6 +477,7 @@ export function useDialogueSession({
   // Unmount: stop audio both ways and delete the whole agent-clip cache.
   useEffect(() => {
     return () => {
+      clearBargeInWatch();
       stopPlayback();
       abortRef.current?.abort();
       if (!closedRef.current && stateRef.current.turn.phase === "listening") {
@@ -450,12 +597,14 @@ export function useDialogueSession({
   };
 
   const bargeIn = () => {
+    clearBargeInWatch();
     stopPlayback(); // synchronous — playback halts before anything else runs
     dispatch({ type: "barge_in" });
   };
 
   const leave = async () => {
     closedRef.current = true;
+    clearBargeInWatch();
     stopPlayback();
     abortRef.current?.abort();
     if (stateRef.current.turn.phase === "listening") {

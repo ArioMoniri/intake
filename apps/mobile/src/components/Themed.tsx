@@ -25,6 +25,13 @@ import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { getLocale } from "@/lib/i18n";
 import {
+  CTA_MIN_HEIGHT,
+  effectiveFontScale,
+  isLargeText,
+  resolveScheme,
+} from "@/lib/prefs/appearance";
+import { useAppearance } from "@/lib/prefs/AppearanceProvider";
+import {
   fonts,
   lineHeight,
   palette,
@@ -32,6 +39,7 @@ import {
   scaledSize,
   shadow,
   spacing,
+  type ColorScheme,
   type ThemeColors,
   type TypeRole,
 } from "@/lib/theme";
@@ -73,30 +81,67 @@ function sansFamily(weight: TextStyle["fontWeight"]): string {
   }
 }
 
-export function useTheme(): ThemeColors {
-  const scheme = useColorScheme();
-  return palette[scheme === "dark" ? "dark" : "light"];
+/**
+ * The scheme to render (INT-260). This is the ONLY place the app asks the OS,
+ * so the patient's own Tema choice has somewhere to be applied; every other
+ * component takes this hook. `useColorScheme` imported anywhere else is a
+ * control that silently does nothing on that surface, which is why
+ * e2e/appearance.spec.ts pins the import site.
+ */
+export function useScheme(): ColorScheme {
+  const os = useColorScheme();
+  const { prefs } = useAppearance();
+  return resolveScheme(prefs.theme, os);
 }
 
+export function useTheme(): ThemeColors {
+  return palette[useScheme()];
+}
+
+/**
+ * The app's text scale (INT-260).
+ *
+ * Redefined in place rather than joined by a sibling hook, and the stored step
+ * REPLACES the OS value instead of multiplying it. Two multipliers is exactly
+ * what `allowFontScaling={false}` below exists to prevent, and composition
+ * under theme.ts's [0.5, 2.0] clamp would hand a patient already at OS 2.0 a
+ * control where every step renders the same size. `scaledSize`, `lineHeight`,
+ * the clamp and `AppText` are untouched: one input changed, so "text scales
+ * once, never twice" stays true by construction.
+ */
 export function useFontScale(): number {
-  return useWindowDimensions().fontScale;
+  const os = useWindowDimensions().fontScale;
+  const { prefs } = useAppearance();
+  return effectiveFontScale(prefs.textStep, os);
 }
 
 type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
 
 /**
- * Oura-register top bar for pushed screens (design pass 5): centred 17 pt
- * semibold sans title, "‹" back with no label, ground-coloured and
+ * Oura-register top bar for pushed screens (design pass 5): centred
+ * body-sized semibold sans title, "‹" back with no label, ground-coloured and
  * shadowless so it reads as part of the page, not chrome. Screens that use
  * it drop the top safe edge — the header owns that inset.
+ *
+ * INT-260: the size was a hardcoded 17 while react-navigation's own
+ * `allowFontScaling` defaulted ON — so six screen titles ignored the app's
+ * scale and doubled the OS one. Both halves are fixed together: sizing from
+ * `scaledSize` without turning the platform multiplier off is the doubled
+ * scale a11y.spec.ts already forbids for TextInput.
  */
 export function useStackHeader(): (title: string) => StackScreenOptions {
   const theme = useTheme();
+  const fontScale = useFontScale();
   return (title: string) => ({
     headerShown: true,
     title,
     headerTitleAlign: "center",
-    headerTitleStyle: { fontFamily: fonts.sansSemiBold, fontSize: 17, color: theme.ink },
+    headerTitleStyle: {
+      fontFamily: fonts.sansSemiBold,
+      fontSize: scaledSize("body", fontScale),
+      color: theme.ink,
+    },
+    headerTitleAllowFontScaling: false,
     headerStyle: { backgroundColor: theme.background },
     headerShadowVisible: false,
     headerTintColor: theme.ink,
@@ -171,7 +216,7 @@ export function AppText({
 /**
  * Screens under the floating tab rail (design pass 4) drop the bottom safe
  * edge so content scrolls UNDER the pill to the physical edge (Oura chrome);
- * they pad their scroll content with TAB_BAR_CLEARANCE instead.
+ * they pad their scroll content with `useTabBarClearance()` instead.
  */
 export const RAIL_EDGES: readonly Edge[] = ["top", "left", "right"];
 
@@ -203,13 +248,22 @@ interface CardProps {
 }
 
 export function Card({ children, style, wash = "none" }: CardProps) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const scheme = useScheme();
   const theme = palette[scheme];
   const depth = shadow[scheme];
+  // INT-260: at the large-text scale a card gives its MEASURE priority over
+  // its air. 00 §2's own arithmetic is that a long Turkish word can need more
+  // width than a 200 % line has, and React Native breaks a word it cannot fit
+  // — "İç Hastalıkları" rendered as "Hastalıkla / rı" on the visit card, which
+  // is the mid-word break that ruling exists to prevent. Sixteen points back
+  // from each side is the cheapest width there is, and unlike shrinking the
+  // text it takes nothing away from the patient who chose the size.
+  const tight = isLargeText(useFontScale());
   return (
     <View
       style={[
         styles.card,
+        tight ? styles.cardTight : null,
         {
           backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface,
           // Dark cards are borderless — tonal surface against near-black
@@ -329,6 +383,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
+  cardTight: { padding: spacing.md },
   hairline: {
     height: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
@@ -340,8 +395,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: "center",
     // Touch target ≥48dp (02 §8.2); 56 with a body-size semibold label is
-    // the Oura CTA register (design pass 4).
-    minHeight: 56,
+    // the Oura CTA register (design pass 4). INT-284 moved the number to
+    // lib/prefs/appearance.ts, because the glass bar's clearance has to
+    // predict this height and a second copy of it would drift.
+    minHeight: CTA_MIN_HEIGHT,
     justifyContent: "center",
   },
   buttonLabel: { fontWeight: "600", letterSpacing: 0.2 },

@@ -720,3 +720,437 @@ def test_on_site_still_never_offers_112_when_a_secondary_action_is_set() -> None
     assert isinstance(action, dict)
     action["ON_SITE"] = _location(secondary="NEAREST_ACIL_ADDRESS_AS_TEXT", show_112=True)
     _expect_rule_rejected("ON_SITE action never offers 112", action=action)
+
+
+# ---------------------------------------------------------------------------
+# INT-255 — the eleven life-threat delivery annotations.
+#
+# RED has three axes (CLAUDE.md invariant 21): route x register x location.
+# INT-040 modelled route, register and the three location branches. The
+# annotations below are the rest of the register axis (files/02 §5.3 Axis 2)
+# and the files/04 §4.2 crisis path, which files/protocols/base.life_threat.yaml
+# has carried since it was written and the DSL refused until now.
+#
+# None of them is a plain optional bool. `audio` and
+# `suppress_attention_interrupt` decide whether the paediatric-airway rule
+# alarms the parent standing next to the child — the case where the alert is
+# correct, timely and harmful (files/02 §5.3). So each is modelled with no
+# engineer-chosen default: either the field is required, or "not stated" is a
+# distinct value the compiler refuses wherever the blueprint requires a
+# decision.
+# ---------------------------------------------------------------------------
+
+
+def _audio(**overrides: object) -> dict[str, object]:
+    base: dict[str, object] = {"spoken": True, "prosody": "soft", "alert_sound": False}
+    base.update(overrides)
+    return base
+
+
+def _calm_rule(**overrides: object) -> dict[str, object]:
+    """The exemplar-3 shape: KIRMIZI and CALM at the same time."""
+    payload = _rule_payload(register="CALM", distress_sensitive=True)
+    payload["suppress_attention_interrupt"] = True
+    payload.update(overrides)
+    return payload
+
+
+def _validated(payload: dict[str, object]) -> object:
+    from protocols import RedFlagRule
+
+    return RedFlagRule.model_validate(payload)
+
+
+# --- the audio block (files/02 §5.3 Axis 2 register table) -----------------
+
+
+@pytest.mark.parametrize("omitted", ["spoken", "prosody", "alert_sound"])
+def test_audio_block_has_no_defaults(omitted: str) -> None:
+    """Every leg of `audio` is written or the block does not validate — a
+    default here is chosen once, by an engineer, for every future rule."""
+    from pydantic import ValidationError
+
+    audio = _audio()
+    del audio[omitted]
+    with pytest.raises(ValidationError, match=rf"{omitted}\n  Field required"):
+        _validated(_calm_rule(audio=audio))
+
+
+def test_prosody_is_written_even_when_it_is_null() -> None:
+    """`prosody: null` is a decision (exemplar 4 writes it); an ABSENT
+    prosody is not, which is why the field is required and nullable rather
+    than optional."""
+    rule = _validated(_calm_rule(register="SILENT", audio=_audio(spoken=False, prosody=None)))
+    assert rule.audio is not None  # type: ignore[attr-defined]
+    assert rule.audio.prosody is None  # type: ignore[attr-defined]
+
+
+def test_spoken_audio_carries_a_prosody() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="spoken audio carries a prosody"):
+        _validated(_calm_rule(audio=_audio(spoken=True, prosody=None)))
+
+
+def test_unspoken_audio_carries_no_prosody() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="unspoken audio carries none"):
+        _validated(_calm_rule(register="SILENT", audio=_audio(spoken=False, prosody="soft")))
+
+
+@pytest.mark.parametrize("field", ["spoken", "alert_sound"])
+def test_the_silent_register_carries_no_audio_at_all(field: str) -> None:
+    """files/02 §5.3: SILENT is "No audio, ever"."""
+    from pydantic import ValidationError
+
+    audio = _audio(spoken=False, prosody=None)
+    audio[field] = True
+    if field == "spoken":
+        audio["prosody"] = "soft"
+    with pytest.raises(ValidationError, match="carries no audio at all"):
+        _validated(_calm_rule(register="SILENT", audio=audio))
+
+
+def test_the_calm_register_carries_no_alert_sound() -> None:
+    """files/02 §5.3: CALM is "Spoken softly, no alert sound". This is the
+    paediatric-airway case — the alarm is the harm."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="no alert sound"):
+        _validated(_calm_rule(audio=_audio(alert_sound=True)))
+
+
+def test_the_deferred_clinician_register_carries_no_audio() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="carries no audio at all"):
+        _validated(
+            _calm_rule(register="DEFERRED_CLINICIAN", audio=_audio(spoken=True, prosody="soft"))
+        )
+
+
+def test_the_alert_register_still_carries_an_alert_sound() -> None:
+    """NEAR-MISS NEGATIVE for the whole audio/register check: ALERT is the
+    row of the same table that DOES alarm ("Spoken with urgent prosody,
+    alert sound"). A check that refused every audio block would pass every
+    test above and be wrong."""
+    payload = _rule_payload(audio=_audio(spoken=True, prosody="urgent", alert_sound=True))
+    rule = _validated(payload)
+    assert rule.audio.alert_sound is True  # type: ignore[attr-defined]
+    assert rule.register.value == "ALERT"  # type: ignore[attr-defined]
+
+
+def test_a_rule_without_an_audio_block_still_validates() -> None:
+    """NEAR-MISS NEGATIVE: exemplars 1 and 2 carry no `audio` at all — the
+    register table already states the audio for their register. Requiring
+    the block would have refused the document just as loudly."""
+    assert _validated(_rule_payload()).audio is None  # type: ignore[attr-defined]
+
+
+# --- suppress_attention_interrupt (files/04 §8.1 rule 6) -------------------
+
+
+def test_a_distress_sensitive_takeover_states_the_interrupt() -> None:
+    """The rule that "must not run the normal attention-grabbing interrupt
+    AT ALL" is exactly the rule an omission would silently give one."""
+    from pydantic import ValidationError
+
+    payload = _calm_rule()
+    del payload["suppress_attention_interrupt"]
+    with pytest.raises(ValidationError, match="must state suppress_attention_interrupt"):
+        _validated(payload)
+
+
+def test_the_interrupt_decision_may_be_written_either_way() -> None:
+    """NEAR-MISS NEGATIVE: the DSL requires the decision to be STATED, not to
+    have a particular value — whether a given distress_sensitive rule
+    suppresses the interrupt is clinical, and picking `true` for all of them
+    is the same engineering default the field exists to prevent."""
+    for decision in (True, False):
+        rule = _validated(_calm_rule(suppress_attention_interrupt=decision))
+        assert rule.suppress_attention_interrupt is decision  # type: ignore[attr-defined]
+
+
+def test_a_silent_rule_has_no_interrupt_to_run() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="no attention interrupt to run"):
+        _validated(_calm_rule(register="SILENT", suppress_attention_interrupt=False))
+
+
+def test_a_rule_that_is_not_distress_sensitive_need_not_state_the_interrupt() -> None:
+    """NEAR-MISS NEGATIVE: exemplar 1's shape. The requirement is scoped to
+    the rules files/02 §5.3 scopes it to, not to every RED."""
+    assert _validated(_rule_payload()).suppress_attention_interrupt is None  # type: ignore[attr-defined]
+
+
+# --- the register axis actually binds (files/02 §5.3 Axis 2) ---------------
+
+
+def test_a_distress_sensitive_rule_is_never_told_in_the_alert_register() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="never told in the ALERT register"):
+        _validated(_rule_payload(register="ALERT", distress_sensitive=True))
+
+
+def test_a_child_subject_is_never_told_in_the_alert_register() -> None:
+    """files/02 §5.3 CALM row: "any RED where the subject is a child and the
+    user is a proxy"."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="never told in the ALERT register"):
+        _validated(_rule_payload(register="ALERT", subject_is_child=True))
+
+
+def test_an_adult_rule_that_is_not_distress_sensitive_may_be_alert() -> None:
+    """NEAR-MISS NEGATIVE: ALERT is the DEFAULT register for adults where
+    alarm aids action (files/02 §5.3). A check that refused ALERT outright
+    would pass the two tests above and break every adult rule."""
+    rule = _validated(_rule_payload(register="ALERT"))
+    assert rule.register.value == "ALERT"  # type: ignore[attr-defined]
+    assert rule.subject_is_child is None  # type: ignore[attr-defined]
+
+
+# --- subject_is_child / carry_child ----------------------------------------
+
+
+def test_carry_child_requires_a_child_subject() -> None:
+    """You cannot instruct a user to carry the patient in a rule whose
+    subject is not a child (exemplar 3 ON_SITE)."""
+    from pydantic import ValidationError
+
+    payload = _calm_rule()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(carry_child=True)
+    with pytest.raises(ValidationError, match="carry_child instructs the user"):
+        _validated(payload)
+
+
+def test_carry_child_is_accepted_when_the_subject_is_a_child() -> None:
+    """NEAR-MISS NEGATIVE: the exemplar-3 ON_SITE branch must still validate."""
+    payload = _calm_rule(subject_is_child=True)
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(carry_child=True)
+    rule = _validated(payload)
+    assert rule.action.on_site.carry_child is True  # type: ignore[attr-defined]
+
+
+# --- the files/04 §4.2 crisis path ----------------------------------------
+
+
+def _crisis_rule(**overrides: object) -> dict[str, object]:
+    payload = _rule_payload(register="SILENT", distress_sensitive=True)
+    payload["audio"] = _audio(spoken=False, prosody=None, alert_sound=False)
+    payload["consent_independent"] = True
+    payload["offline_draft_path"] = "forbidden"
+    payload["abandonment_handler"] = "server_side_on_answer"
+    payload.update(overrides)
+    return payload
+
+
+def test_the_crisis_shape_validates_when_every_leg_is_written() -> None:
+    """NEAR-MISS NEGATIVE for the four checks below: exemplar 4's own shape
+    must load, or the checks are refusing the document rather than gating it."""
+    rule = _validated(_crisis_rule())
+    assert rule.consent_independent is True  # type: ignore[attr-defined]
+    assert rule.offline_draft_path.value == "forbidden"  # type: ignore[attr-defined]
+    assert rule.abandonment_handler.value == "server_side_on_answer"  # type: ignore[attr-defined]
+
+
+def test_a_crisis_item_has_no_offline_draft_path() -> None:
+    """files/04 §4.2 defect 2 / §8.2 crisis_items_have_no_offline_draft_path:
+    an offline-cached disclosure may never reach the server at all."""
+    from pydantic import ValidationError
+
+    payload = _crisis_rule()
+    del payload["offline_draft_path"]
+    with pytest.raises(ValidationError, match="has no offline draft path"):
+        _validated(payload)
+
+
+def test_the_offline_draft_path_admits_no_other_value() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Input should be 'forbidden'"):
+        _validated(_crisis_rule(offline_draft_path="allowed"))
+
+
+def test_a_crisis_item_names_its_abandonment_handler() -> None:
+    from pydantic import ValidationError
+
+    payload = _crisis_rule()
+    del payload["abandonment_handler"]
+    with pytest.raises(ValidationError, match="must name its abandonment handler"):
+        _validated(payload)
+
+
+def test_the_abandonment_handler_admits_no_other_value() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Input should be 'server_side_on_answer'"):
+        _validated(_crisis_rule(abandonment_handler="client_side_on_resume"))
+
+
+def test_a_crisis_item_notifies_the_clinic_unconditionally() -> None:
+    """files/04 §4.2 defect 1: notification is unconditional and time-bound,
+    never "notify if a connector is present"."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="unconditional and time-bound"):
+        _validated(_crisis_rule(notify_clinic="never"))
+
+
+def test_a_crisis_item_is_never_told_in_the_alert_register() -> None:
+    from pydantic import ValidationError
+
+    payload = _crisis_rule(register="ALERT", distress_sensitive=False)
+    payload["audio"] = _audio(spoken=True, prosody="urgent", alert_sound=True)
+    with pytest.raises(ValidationError, match="never told in the ALERT register"):
+        _validated(payload)
+
+
+# --- crisis numbers (files/04 §4.1; CLAUDE.md invariant 22) ----------------
+
+
+@pytest.mark.parametrize("number", [112, 183, 191])
+def test_the_sourced_crisis_numbers_are_admitted(number: int) -> None:
+    """NEAR-MISS NEGATIVE for the closed set: the three numbers files/04 §4.1
+    tabulates must still be writable, or the field is a ban rather than a set."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112", show_112=True, notify_staff_immediate=False, numbers=[number]
+    )
+    rule = _validated(payload)
+    assert int(rule.action.remote.numbers[0]) == number  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize("number", [182, 155, 988, 11])
+def test_a_number_outside_the_sourced_table_is_refused(number: int) -> None:
+    """182 is the MHRS APPOINTMENT line and routes a suicidal patient to a
+    booking queue (files/04 §4.1); Türkiye has no 988 equivalent. The set is
+    closed so no model, search tool or learning proposal can widen it."""
+    from pydantic import ValidationError
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112", show_112=True, notify_staff_immediate=False, numbers=[number]
+    )
+    with pytest.raises(ValidationError, match="Input should be 112, 183 or 191"):
+        _validated(payload)
+
+
+def test_the_112_affordance_may_not_disagree_with_itself() -> None:
+    """`show_112` and `numbers` are two carriers of one affordance."""
+    from pydantic import ValidationError
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["REMOTE"] = _location(
+        primary="CALL_112", show_112=False, notify_staff_immediate=False, numbers=[112]
+    )
+    with pytest.raises(ValidationError, match="the 112 affordance has two carriers"):
+        _validated(payload)
+
+
+# --- ON_SITE: the 112 affordance is ABSENT, not de-emphasised --------------
+
+
+def test_on_site_carries_no_112_in_its_number_list() -> None:
+    """The second carrier. Turning the button off and leaving the number in
+    the list IS de-emphasis — the exact thing files/02 §5.3 rules out — so
+    the ON_SITE branch refuses the number regardless of the flag."""
+    from pydantic import ValidationError
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(show_112=False, numbers=[112])
+    with pytest.raises(ValidationError, match="number list carries no 112"):
+        _validated(payload)
+
+
+@pytest.mark.parametrize("field", ["primary", "secondary"])
+def test_on_site_carries_no_112_bearing_action_code(field: str) -> None:
+    """INT-254 recorded this open: `primary`/`secondary` are open
+    SCREAMING_SNAKE strings, so a 112-BEARING code under ON_SITE was not
+    structurally excluded. Closing it needs no enumerated action-code set —
+    only a refusal of the one token invariant 21 forbids."""
+    from pydantic import ValidationError
+
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(**{field: "CALL_112"})
+    with pytest.raises(ValidationError, match="action code names 112"):
+        _validated(payload)
+
+
+def test_on_site_still_admits_a_non_112_code_and_a_non_112_number() -> None:
+    """NEAR-MISS NEGATIVE: ON_SITE is not a ban on action codes or on crisis
+    numbers — it is a ban on the ambulance affordance. 183 (violence, abuse,
+    neglect) is unaffected by the patient standing in the building."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(
+        primary="GO_TO_IN_HOUSE_ACIL", secondary="NOTIFY_STAFF", numbers=[183]
+    )
+    rule = _validated(payload)
+    assert int(rule.action.on_site.numbers[0]) == 183  # type: ignore[attr-defined]
+
+
+def test_the_on_site_action_has_no_112_carrier_of_any_kind() -> None:
+    """ABSENCE, asserted over the whole serialized action rather than one
+    flag: no field of the ON_SITE branch carries 112 in any form — not the
+    flag, not the number list, not an action code, not a Turkish string.
+    "Not de-emphasised, not below the fold — absent" (files/02 §5.3)."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    action["ON_SITE"] = _location(
+        primary="GO_TO_IN_HOUSE_ACIL",
+        secondary="NOTIFY_STAFF",
+        numbers=[183],
+        do_nots_tr=["Poliklinik sırasında beklemeyin."],
+        why_tr="Acil serviste durumunuz girişte değerlendirilir.",
+    )
+    rule = _validated(payload)
+    dumped = rule.action.on_site.model_dump(mode="json")  # type: ignore[attr-defined]
+    assert dumped["show_112"] is False
+    assert 112 not in dumped["numbers"]
+    for key, value in dumped.items():
+        for text in value if isinstance(value, list) else [value]:
+            assert "112" not in str(text), f"ON_SITE.{key} carries a 112 affordance"
+
+
+# --- the two free-text action annotations ---------------------------------
+
+
+def test_a_location_action_carries_an_optional_open_question() -> None:
+    """HB-C9: Tebliğ MADDE 9(1) admits no companion to the kırmızı alan as a
+    rule. What the proxy flows say about that in advance is an open clinician
+    decision, recorded on the action rather than resolved by an engineer."""
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    assert _validated(payload).action.on_site.open_question is None  # type: ignore[attr-defined]
+    action["ON_SITE"] = _location(open_question="Companion separation at the door — HB-C9.")
+    assert _validated(payload).action.on_site.open_question is not None  # type: ignore[attr-defined]
+
+
+def test_a_location_action_carries_an_optional_note() -> None:
+    payload = _rule_payload()
+    action = payload["action"]
+    assert isinstance(action, dict)
+    assert _validated(payload).action.on_site.note is None  # type: ignore[attr-defined]
+    action["ON_SITE"] = _location(note="Staff notification is the primary channel here.")
+    assert _validated(payload).action.on_site.note is not None  # type: ignore[attr-defined]

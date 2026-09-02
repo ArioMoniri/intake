@@ -29,9 +29,13 @@
  *   PATIENT recordings keep lib/voice.ts's delete-after-upload posture
  *   (invariant 3 governs those, and it is untouched here).
  * - Any hard service failure lands in the existing manual steps via the
- *   outer machine, committed answers intact; a settled dialogue with
- *   questions left hands ONLY those to the manual steps, suggestions
- *   riding along as prefill.
+ *   outer machine, committed answers intact AND the unconfirmed suggestions
+ *   riding as prefill (INT-261 — the same thing a hand-over carries, since
+ *   both exits go to the same place); a settled dialogue with questions left
+ *   hands ONLY those to the manual steps, suggestions riding along.
+ * - A TTS outage is NOT such a failure (INT-261). The agent goes silent for
+ *   the session, the transcript says so once, and every turn continues:
+ *   the question text was never waiting on audio in the first place.
  *
  * DEV-TIER: this is the honest in-app dev dialogue over the HTTP bridges;
  * the production path is the LiveKit Talker (files/03 §4.9, files/13).
@@ -52,7 +56,7 @@ import {
 } from "react-native";
 import { SymbolView } from "expo-symbols";
 
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
@@ -67,6 +71,7 @@ import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
+import { questionAsideTr } from "@/lib/dialogue/speech";
 import type { StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
@@ -75,20 +80,29 @@ import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
-/** The dialogue bar stacks the strip, up to two CTAs and the composer. */
-const DIALOGUE_BAR_CLEARANCE = GLASS_BAR_CLEARANCE + 176;
-
 interface DialogueIntakeProps {
   visitId: string | undefined;
   questions: readonly IntakeQuestion[];
   /** The pack label the extract daemon receives (the visit's department). */
   packName: string;
   /** Hard service failure — the manual steps show the honest notice.
-   * Prior answers are already committed per confirm. */
-  onFailed: () => void;
+   * Prior answers are already committed per confirm; the unconfirmed
+   * suggestions ride along as prefill exactly as in a hand-over (INT-261). */
+  onFailed: (prefill: PrefillMap) => void;
   /** Dialogue over with questions left (or left by choice): the manual
    * steps take ONLY those, unconfirmed suggestions riding as prefill. */
   onHandoff: (prefill: PrefillMap) => void;
+}
+
+/** Candidate map → the prefill shape the typed steps take. Both dialogue
+ * exits — the tidy hand-over and a hard failure — hand over the same thing
+ * (INT-261), so they build it the same way. */
+function toPrefill(leftovers: Record<string, { values: readonly string[]; quote: string }>) {
+  const prefill: PrefillMap = {};
+  for (const [questionId, candidate] of Object.entries(leftovers)) {
+    prefill[questionId] = { values: [...candidate.values], quote: candidate.quote };
+  }
+  return prefill;
 }
 
 /** Option ids → catalog labels; free text passes through verbatim. */
@@ -154,15 +168,11 @@ export function DialogueIntake({
     questions,
     packName,
     onDone: () => router.replace(`/(tabs)/visits/${visitId}/review`),
-    onFailed,
+    onFailed: (leftovers) => onFailed(toPrefill(leftovers)),
     onHandoff: (leftovers) => {
       // Confirmed answers are already in the note; the rest of the pack
       // goes to the manual steps with the suggestions as prefill.
-      const prefill: PrefillMap = {};
-      for (const [questionId, candidate] of Object.entries(leftovers)) {
-        prefill[questionId] = { values: [...candidate.values], quote: candidate.quote };
-      }
-      onHandoff(prefill);
+      onHandoff(toPrefill(leftovers));
     },
   });
   const { state } = session;
@@ -173,6 +183,14 @@ export function DialogueIntake({
   const [draft, setDraft] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  // INT-284: the bar reports its own height. This one stacks the section
+  // strip, up to two CTAs and the composer, and which of those are present
+  // depends on the turn — so the room reserved for it used to be the typed
+  // steps' constant plus a literal 176, a guess with a plus sign in it. Only
+  // the measurement sees a wrapped label or a second button, and it is the
+  // same hook the typed steps now use.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
 
   // Seed the chips when a confirm turn opens (candidate pre-selected).
   const seedKeyRef = useRef("");
@@ -244,7 +262,17 @@ export function DialogueIntake({
     }
     const values = question.kind === "text" ? [...turn.candidate.values] : [...selected];
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId: question.id, values });
+      // INT-286: the quote travels WITH the answer now. It was already the
+      // patient's verbatim words behind this candidate and it was already on
+      // screen as provenance; dropping it at the commit was what made an
+      // open-ended turn read, in the note, exactly like a tapped card. A
+      // `text` step's value IS the words, so it carries none separately.
+      updateNote(visitId, {
+        type: "answer",
+        questionId: question.id,
+        values,
+        words: question.kind === "text" ? undefined : turn.candidate.quote,
+      });
     }
     session.confirm(values);
   };
@@ -256,8 +284,14 @@ export function DialogueIntake({
     if (candidate === undefined) {
       return;
     }
+    const rowQuestion = questions.find((q) => q.id === questionId);
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId, values: [...candidate.values] });
+      updateNote(visitId, {
+        type: "answer",
+        questionId,
+        values: [...candidate.values],
+        words: rowQuestion?.kind === "text" ? undefined : candidate.quote,
+      });
     }
     session.confirmPending(questionId);
   };
@@ -271,11 +305,7 @@ export function DialogueIntake({
   const exitToSteps = async () => {
     const leftovers = state.pending;
     await session.leave();
-    const prefill: PrefillMap = {};
-    for (const [questionId, candidate] of Object.entries(leftovers)) {
-      prefill[questionId] = { values: [...candidate.values], quote: candidate.quote };
-    }
-    onHandoff(prefill);
+    onHandoff(toPrefill(leftovers));
   };
 
   if (turn.phase === "done" || turn.phase === "failed" || turn.phase === "handoff") {
@@ -303,13 +333,21 @@ export function DialogueIntake({
       if (q === undefined) {
         return null;
       }
-      said = [t(q.titleKey), q.hintKey ? t(q.hintKey) : ""];
+      // The bubble shows what the agent SAYS — the question and its aside
+      // (speech.ts). It used to show the pack's `hintKey` instead, which is
+      // the TYPED lane's control copy: "Birden fazla seçebilirsiniz" under a
+      // spoken question with no chips on screen was the reported defect
+      // (INT-261). One composition now feeds the clip and the bubble, so
+      // they cannot say different things — which is what makes a silenced
+      // session readable rather than lossy.
+      const aside = questionAsideTr(q);
+      said = [t(q.titleKey), aside ?? ""];
       body = (
         <>
           <AppText role="body">{t(q.titleKey)}</AppText>
-          {q.hintKey ? (
+          {aside !== null ? (
             <AppText role="caption" color="inkSoft">
-              {t(q.hintKey)}
+              {aside}
             </AppText>
           ) : null}
         </>
@@ -438,11 +476,31 @@ export function DialogueIntake({
         // user knows the scroller they landed in is the transcript and not
         // the page.
         accessibilityLabel={t("a11y.dialogue.transcript")}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
         <Kicker label={t("dialogue.kicker")} tone="accent" />
+
+        {state.voiceMuted ? (
+          // INT-261: the agent lost its voice and the conversation carried
+          // on. Saying so once is the whole apology — the patient can see
+          // the questions and answer them; what they cannot see is WHY the
+          // sound stopped, and silence with no explanation reads as broken.
+          //
+          // NOT a live region, deliberately. This screen announces exactly
+          // one thing through useLiveAnnouncement (the turn state), and the
+          // a11y suite pins that there is no second channel. It also does
+          // not need one here: a screen-reader user never heard the agent
+          // clip in the first place — VoiceOver was already reading them
+          // the bubble — so the mute changes nothing for them. It stands at
+          // the head of the transcript as a condition of the session.
+          <View accessible>
+            <AppText role="caption" color="inkFaint">
+              {t("dialogue.voiceMuted")}
+            </AppText>
+          </View>
+        ) : null}
 
         {state.stream.map(renderEntry)}
 
@@ -547,7 +605,7 @@ export function DialogueIntake({
       </ScrollView>
 
       <View style={styles.bottomStack}>
-        <GlassBar floating={false}>
+        <GlassBar floating={false} onHeight={setBarHeight}>
           <SectionStrip
             filled={model.filled}
             total={model.total}
@@ -653,11 +711,7 @@ export function DialogueIntake({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: {
-    gap: spacing.md,
-    padding: spacing.screen,
-    paddingBottom: DIALOGUE_BAR_CLEARANCE,
-  },
+  content: { gap: spacing.md, padding: spacing.screen },
   bubble: {
     maxWidth: "84%",
     borderRadius: radius.group,

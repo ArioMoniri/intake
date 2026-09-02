@@ -19,6 +19,9 @@ from clinical_schemas.common import FrozenModel
 from pydantic import Field
 
 __all__ = [
+    "ADAPTIVE_FLOOR_HIGH_MS",
+    "ADAPTIVE_FLOOR_LOW_MS",
+    "ADAPTIVE_JITTER_THRESHOLD_MS",
     "YELLOW_DEADLINES",
     "DeadlinesNotConfiguredError",
     "Deadlines",
@@ -27,6 +30,7 @@ __all__ = [
     "DeliveryStage",
     "DuplexState",
     "NoteFlagFailed",
+    "TurnYieldPolicy",
 ]
 
 
@@ -123,6 +127,42 @@ class DeliveryDeadlines(FrozenModel):
         return deadlines
 
 
+#: files/03 §4.2 / §4.5b: ``min_silence_duration`` is **adaptive** — *"150 ms
+#: when measured uplink jitter p95 < 30 ms, and 250 ms otherwise"*. Two
+#: constants and a threshold rather than one number, because §4.5.2 is explicit
+#: that the drop is conditional: *"you do not cut patients off in the waiting
+#: room."*
+ADAPTIVE_FLOOR_LOW_MS = 150.0
+ADAPTIVE_FLOOR_HIGH_MS = 250.0
+ADAPTIVE_JITTER_THRESHOLD_MS = 30.0
+
+
+class TurnYieldPolicy(FrozenModel):
+    """How much silence counts as the patient handing the floor back.
+
+    The turn detector reports the boundary; this is the floor underneath it,
+    and it is the *same* quantity §4.2 calls ``min_silence_duration``. It lives
+    beside :class:`DuplexState` rather than inside the Talker so that the two
+    consumers — the turn loop and any future adaptive controller — read one
+    definition.
+    """
+
+    uplink_jitter_p95_ms: float = Field(
+        ge=0.0,
+        description="The measured figure §4.2 keys the floor off. Unmeasured "
+        "sessions pass 0.0 only if something measured it as 0.0; the caller has "
+        "no default here for the same reason the register has none.",
+    )
+
+    @property
+    def floor_ms(self) -> float:
+        return (
+            ADAPTIVE_FLOOR_LOW_MS
+            if self.uplink_jitter_p95_ms < ADAPTIVE_JITTER_THRESHOLD_MS
+            else ADAPTIVE_FLOOR_HIGH_MS
+        )
+
+
 class DuplexState(FrozenModel):
     """The conversation, as the scheduler sees it at one tick."""
 
@@ -134,3 +174,25 @@ class DuplexState(FrozenModel):
     at_sentence_boundary: bool = Field(
         default=False, description="The agent's current utterance can be cut here."
     )
+    patient_speaking: bool = Field(
+        default=False,
+        description="The turn detector has an OPEN patient turn — they started and "
+        "have not yielded. Distinct from `patient_silence_ms == 0`, which is also "
+        "true at session start when nobody has spoken at all.",
+    )
+
+    def patient_holds_floor(self, policy: TurnYieldPolicy) -> bool:
+        """True while an open patient turn has not yet yielded (files/03 §4.4b).
+
+        *"A handover gap must be treated as a turn boundary, never as silence
+        and never as an answer — this is the failure mode that silently
+        corrupts data rather than visibly breaking."* Asking the next question
+        over a patient who is mid-aside is the same failure from the other
+        side: it produces an answer bound to a question they did not hear.
+
+        Both conjuncts are load-bearing. Without ``patient_speaking`` a session
+        that has not started yet — zero milliseconds of silence because nobody
+        has said anything — would look identical to a patient mid-sentence, and
+        the Talker would never ask its first question.
+        """
+        return self.patient_speaking and self.patient_silence_ms < policy.floor_ms

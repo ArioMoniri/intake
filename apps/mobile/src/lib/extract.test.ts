@@ -85,6 +85,8 @@ describe("toQuestionSpecs", () => {
     expect(specs.map((s) => s.id)).toEqual([
       "complaint",
       "duration",
+      "onset_today_when",
+      "duration_course",
       "onset",
       "pain_character",
       "radiation",

@@ -11,13 +11,24 @@
  */
 import { describe, expect, it, vi } from "vitest";
 
-import { encodeWav, parseWav, SENTENCE_GAP_MS } from "./speechShaping";
+import {
+  encodeWav,
+  KEEP_HEAD_MS,
+  KEEP_TAIL_MS,
+  parseWav,
+  SENTENCE_GAP_MS,
+  TURN_YIELD_TAIL_MS,
+} from "./speechShaping";
 import {
   assertSpeakableTr,
   bytesToBase64,
+  clipDeadlineMs,
   clipName,
   createClipStore,
   synthesizeClip,
+  SYNTHESIZE_TIMEOUT_MS,
+  TURN_ROUND_TRIP_BUDGET_MS,
+  withDeadline,
   synthesizeWav,
   TTS_PORT,
   type ClipFs,
@@ -167,13 +178,25 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
   });
 
   it("joins the parts with a real inter-sentence gap", async () => {
+    // INT-291: both halves must clear MIN_CHUNK_CHARS or delivery merges them
+    // into one request, and there is no gap to find. "Bir cümle. İki cümle."
+    // — the old fixture — is two nine-character sentences, which is exactly
+    // the shape the measured floor now refuses to send.
     const { impl } = recordingFetch();
-    const two = await synthesizeClip("http://x", "Bir cümle. İki cümle.", { fetchImpl: impl });
-    const one = await synthesizeClip("http://x", "Bir cümle.", { fetchImpl: impl });
+    const two = await synthesizeClip(
+      "http://x",
+      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
+      { fetchImpl: impl },
+    );
+    const one = await synthesizeClip("http://x", "Söyledikleriniz ekrana yazıldı.", {
+      fetchImpl: impl,
+    });
     const gap = Math.round((SR * SENTENCE_GAP_MS) / 1000);
-    const joined = parseWav(two).samples.length;
-    const single = parseWav(one).samples.length;
-    expect(joined).toBe(single * 2 + gap);
+    const yieldTail = Math.round((SR * TURN_YIELD_TAIL_MS) / 1000);
+    // every turn now ends with the yield tail, so one part is the single
+    // clip minus that tail
+    const part = parseWav(one).samples.length - yieldTail;
+    expect(parseWav(two).samples.length).toBe(part * 2 + gap + yieldTail);
   });
 
   it("still refuses a digit before any network call", async () => {
@@ -200,7 +223,16 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
     })) as unknown as typeof fetch;
 
     const out = parseWav(await synthesizeClip("http://x", "Tek cümle.", { fetchImpl: impl }));
-    expect(out.samples.length).toBeLessThan(padded.length);
+    // The 300 ms of ragged lead is gone and the shape is the contract's:
+    // kept head + speech + kept tail + the turn-yield tail (INT-291). The
+    // silence scan works on 10 ms frames, so allow one frame either way.
+    const expected = Math.round(
+      (SR * (KEEP_HEAD_MS + 200 + KEEP_TAIL_MS + TURN_YIELD_TAIL_MS)) / 1000,
+    );
+    expect(Math.abs(out.samples.length - expected)).toBeLessThanOrEqual(Math.round(SR * 0.02));
+    // and the head really is silence, not a faded first phoneme
+    const head = Math.round((SR * KEEP_HEAD_MS) / 1000);
+    expect(Math.max(...Array.from(out.samples.slice(0, head), Math.abs))).toBe(0);
   });
 });
 
@@ -282,5 +314,72 @@ describe("createClipStore (one synthesis per clip per session)", () => {
     await expect(store.ensure("q_bad.wav", "5 dakika bekleyin")).rejects.toThrow();
     expect(synth).not.toHaveBeenCalled();
     expect(fs.files.size).toBe(0);
+  });
+});
+
+// INT-261 — the patient's turn has a deadline; the TTS ladder does not.
+//
+// Reported from the simulator with all five dev lanes healthy and reachable:
+// "Soru hazırlanıyor…" and a spinner, pixel-identical a minute apart. Not
+// unreachable — unbounded. `selectTtsLane` walks every (tier, host) pair in
+// sequence, and each pair costs up to a health timeout plus a full probe
+// synthesis; `synthesizeWithFallback` may then invalidate and re-walk that
+// ladder once per candidate; and `synthesizeClipWith` runs that whole thing
+// once per SENTENCE. Multiply it out and a clip can legitimately take
+// minutes while every /health returns two hundred.
+//
+// Every one of those layers is defensible on its own, which is why the fix
+// does not live in any of them: it lives where the patient is waiting. A
+// clip gets one lane admission plus one synthesis per sentence — both
+// numbers already committed and sourced (files/03 §4.4) — and past that the
+// turn goes on without a voice. Nothing here invents a duration.
+describe("clipDeadlineMs / withDeadline — a turn cannot wait forever (INT-261)", () => {
+  it("allows one lane admission plus one synthesis per REQUEST", () => {
+    const one = "Sizi bugün hekime getiren nedir?";
+    expect(clipDeadlineMs(one)).toBe(TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS);
+    const three =
+      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın. Bir haftadan uzun süredir.";
+    expect(clipDeadlineMs(three)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 3 * SYNTHESIZE_TIMEOUT_MS);
+  });
+
+  it("counts the requests delivery will MAKE, not the sentences the text has", () => {
+    // INT-291: "Şimdi nasıl?" is 11 non-space characters, under the measured
+    // floor, so it is merged rather than sent — two requests, not three. A
+    // budget that counted sentences would buy the patient a third of a minute
+    // of spinner for a request nobody is going to make.
+    const merged = "Ağrınız ne kadar sürdü? Nerede başladı? Şimdi nasıl?";
+    expect(clipDeadlineMs(merged)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 2 * SYNTHESIZE_TIMEOUT_MS);
+  });
+
+  it("never returns less than a single-sentence budget", () => {
+    expect(clipDeadlineMs("Merhaba")).toBeGreaterThanOrEqual(
+      TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS,
+    );
+  });
+
+  it("passes a result that arrives in time straight through", async () => {
+    await expect(withDeadline(Promise.resolve("clip.wav"), 50)).resolves.toBe("clip.wav");
+  });
+
+  it("passes a rejection through unchanged — the deadline never masks a real error", async () => {
+    await expect(withDeadline(Promise.reject(new Error("tts_unavailable")), 50)).rejects.toThrow(
+      "tts_unavailable",
+    );
+  });
+
+  it("rejects with tts_deadline when the work never settles", async () => {
+    // The hang exactly as reported: a promise that simply never resolves.
+    await expect(withDeadline(new Promise<string>(() => {}), 10)).rejects.toThrow("tts_deadline");
+  });
+
+  it("does not keep the process alive waiting on a timer it no longer needs", async () => {
+    vi.useFakeTimers();
+    try {
+      const cleared = vi.spyOn(globalThis, "clearTimeout");
+      await withDeadline(Promise.resolve("done"), 60_000);
+      expect(cleared).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

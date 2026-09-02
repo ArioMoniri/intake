@@ -40,6 +40,7 @@ import {
   type FactReconciliation,
   type FactReview,
 } from "./carriedFacts";
+import { measurementLine, measurementQuestions } from "./baseLayer";
 import {
   allQuestions,
   askIfMet,
@@ -53,6 +54,20 @@ import {
 export interface Answer {
   questionId: string;
   values: string[];
+  /**
+   * The patient's own sentence behind this answer (INT-286) — the verbatim
+   * quote the dialogue already carries as provenance, and what the typed
+   * open field collects. Two rules make it safe to record:
+   *
+   * - it is never in `values`, so it can never open a gate, reach a rule or
+   *   become a slot value (CLAUDE.md invariant 1); `askIfMet` reads `values`
+   *   and nothing else;
+   * - it is provenance FOR a value and is replaced with it, so a later
+   *   answer never inherits words that were said about an earlier one.
+   *
+   * Absent for every answer given by tapping alone, which is most of them.
+   */
+  words?: string;
 }
 
 /**
@@ -126,7 +141,7 @@ export interface NoteState {
 }
 
 export type NoteAction =
-  | { type: "answer"; questionId: string; values: string[] }
+  | { type: "answer"; questionId: string; values: string[]; words?: string }
   | { type: "scope"; sectionId: string; shared: boolean }
   | { type: "attachHealth"; lines: string[] }
   | { type: "send" }
@@ -155,10 +170,14 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
   switch (action.type) {
     case "answer": {
       const rest = state.answers.filter((a) => a.questionId !== action.questionId);
-      return {
-        ...state,
-        answers: [...rest, { questionId: action.questionId, values: action.values }],
-      };
+      // INT-286: `words` is written only when the action carries it, so a
+      // re-answer with no words drops the old sentence rather than leaving a
+      // quote attached to a value it was never said about.
+      const answer: Answer = { questionId: action.questionId, values: action.values };
+      if (action.words !== undefined && action.words.trim().length > 0) {
+        answer.words = action.words.trim();
+      }
+      return { ...state, answers: [...rest, answer] };
     }
     case "scope":
       return { ...state, scopes: { ...state.scopes, [action.sectionId]: action.shared } };
@@ -220,15 +239,33 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
   }
 }
 
+/**
+ * One answer as the clinician reads it: the coded labels first, then — when
+ * the patient answered in their own words (INT-286) — the sentence they said,
+ * quoted, as the last element.
+ *
+ * Quoted rather than labelled, and last rather than instead: a coded value
+ * and an utterance are different kinds of evidence, and the quotation marks
+ * are what tell a clinician which one they are reading. When extraction
+ * resolved nothing the quote stands alone, which is the honest rendering of
+ * an answer we have but could not code — nothing is invented in its place.
+ */
 function answerLines(answer: Answer): string[] {
-  return answer.values.map((v) => {
+  const coded = answer.values.map((v) => {
     const key = optionLabelKey(answer.questionId, v);
     return key ? t(key) : v;
   });
+  const words = answer.words?.trim() ?? "";
+  return words.length > 0 ? [...coded, `\u201C${words}\u201D`] : coded;
 }
 
 function hasContent(answer: Answer | undefined): answer is Answer {
-  return answer !== undefined && answer.values.some((v) => v.trim().length > 0);
+  if (answer === undefined) {
+    return false;
+  }
+  // INT-286: an answer given only in words is an answer. The patient said
+  // something about this question and the clinician should read it.
+  return answer.values.some((v) => v.trim().length > 0) || (answer.words ?? "").trim().length > 0;
 }
 
 /**
@@ -402,6 +439,34 @@ export function buildNote(
     if (lines.length > 0) {
       sections.push({ id: section.id, titleKey: section.titleKey, lines });
     }
+  }
+
+  // The measured block (INT-282): boy, kilo and the pain score. It is a
+  // MOBILE section id, like `device_health` and `deferred` above it, and
+  // deliberately not one of files/04 §5's — that file's `PreVisitNote` has
+  // no anthropometry field at all, and inventing one here would put a note
+  // key into the world that no schema owner authored. The gap is recorded
+  // in docs/evidence/INT-282.md instead.
+  //
+  // Every value renders through `measurementLine`, so invariant 22's
+  // display discipline (`useGrouping:false`, number and unit as one
+  // non-breaking atom) is the same code path lib/health already uses.
+  const measured: string[] = [];
+  for (const question of measurementQuestions) {
+    const answer = byId.get(question.id);
+    if (!hasContent(answer) || question.lineLabelKey === undefined) {
+      continue;
+    }
+    const stale = question.askIf !== undefined && !askIfMet(question.askIf, answers);
+    const line = `${t(question.lineLabelKey)}: ${measurementLine(question, answer.values)}`;
+    measured.push(stale ? `${line} (${t("review.hpi.staleCondition")})` : line);
+  }
+  if (measured.length > 0) {
+    sections.push({
+      id: "measurements",
+      titleKey: "review.section.measurements",
+      lines: measured,
+    });
   }
 
   // Device health block (INT-208): present only when the patient explicitly

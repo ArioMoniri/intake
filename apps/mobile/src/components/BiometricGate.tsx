@@ -7,7 +7,7 @@
  * state with retry (Oura register: quiet card, one CTA).
  */
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 
 import { AppText, PrimaryButton, Screen } from "@/components/Themed";
 import { requireBiometric } from "@/lib/auth/biometrics";
@@ -35,19 +35,25 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     return <Screen>{null}</Screen>;
   }
   return (
-    <Screen style={styles.locked}>
-      <View style={styles.card}>
+    <Screen>
+      {/* INT-284: the locked card used to be centred in a `flex: 1` box with
+          nothing to scroll. Centring does not clip when the content outgrows
+          the box — it pushes the overflow out of BOTH ends, past the safe-area
+          inset — and at the largest text step this card is a title, a
+          paragraph and a CTA. The card is the only way back into the app, so
+          it may not be the thing that goes under the notch. */}
+      <ScrollView contentContainerStyle={styles.locked}>
         <AppText role="title">{t("auth.biometric.locked")}</AppText>
         <AppText role="body" color="inkSoft">
           {t("auth.biometric.prompt")}
         </AppText>
         <PrimaryButton label={t("auth.biometric.retry")} onPress={() => void attempt()} />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  locked: { justifyContent: "center" },
-  card: { gap: spacing.md },
+  // `flexGrow`, never `flex`: centred while it fits, scrolled once it does not.
+  locked: { flexGrow: 1, justifyContent: "center", gap: spacing.md },
 });

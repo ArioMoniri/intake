@@ -23,7 +23,7 @@
  * primitive. See speechShaping.ts for the shaping contract and
  * docs/evidence/INT-237.md for the measurements.
  */
-import { assembleClip, shapeForSpeech } from "./speechShaping";
+import { assembleClip, shapeForDelivery } from "./speechShaping";
 
 export const TTS_PORT = 8803;
 
@@ -74,6 +74,57 @@ export const TURN_ROUND_TRIP_BUDGET_MS = 1684;
  * whole dialogue to the manual steps (docs/evidence/INT-249.md).
  */
 export const SYNTHESIZE_TIMEOUT_MS = 2364;
+
+/**
+ * The longest a patient may be left looking at "Soru hazırlanıyor…" for one
+ * clip (INT-261).
+ *
+ * Both caps above bound ONE request. Nothing bounded the WHOLE clip, and the
+ * layers between them multiply: `selectTtsLane` walks every (tier, host)
+ * pair in sequence, each costing a health timeout plus a full probe
+ * synthesis; `synthesizeWithFallback` may invalidate and re-walk that ladder
+ * once per candidate; and `synthesizeClipWith` runs all of it once per
+ * SENTENCE. Reported from the simulator with all five dev lanes answering
+ * /health in milliseconds: a spinner, pixel-identical a minute apart. Every
+ * layer was behaving exactly as designed.
+ *
+ * So this is the patient's bound rather than a lane's: ONE lane admission
+ * plus ONE synthesis per sentence — the ladder's own two committed figures,
+ * multiplied by the work the clip actually contains. No new duration is
+ * invented here, and a clip that exceeds it is not slow, it is thrashing.
+ * Past it the turn continues without a voice (stream.ts `speech_unavailable`),
+ * which is the same trade INT-249 already made one level down.
+ */
+export function clipDeadlineMs(text: string): number {
+  // INT-291: count the requests DELIVERY will make, not the sentences the
+  // text has — merging below the floor means fewer requests, and a budget
+  // that overcounts them buys the patient a longer spinner for nothing.
+  const sentences = Math.max(1, shapeForDelivery(text).length);
+  return TURN_ROUND_TRIP_BUDGET_MS + sentences * SYNTHESIZE_TIMEOUT_MS;
+}
+
+/**
+ * `work`, or `tts_deadline` — whichever comes first.
+ *
+ * The abandoned work is NOT cancelled, deliberately: it is a clip synthesis
+ * the clip store is already deduplicating by name, so letting it finish
+ * lands the file in the cache for a later turn. What it may not do is hold
+ * the turn. A rejection passes through untouched so the deadline never
+ * masks the real reason a lane said no.
+ */
+export async function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("tts_deadline")), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Throws unless the text is safe to hand to the TTS: non-empty and free of
@@ -195,13 +246,15 @@ export async function synthesizeClipWith(
   text: string,
 ): Promise<Uint8Array> {
   assertSpeakableTr(text);
-  const chunks = shapeForSpeech(text);
+  // INT-291: shapeForDelivery, not shapeForSpeech. The extra stage merges any
+  // sentence below the lane's measured floor back into its neighbour — the
+  // RED imperatives are the shortest strings in the product and the lane
+  // invents a word in each when they are sent alone — and puts the turn-yield
+  // tail on the last chunk. The single-chunk case is no longer special: it
+  // carries that tail like any other last chunk.
+  const chunks = shapeForDelivery(text);
   if (chunks.length === 0) {
     throw new Error("tts_empty_text");
-  }
-  if (chunks.length === 1) {
-    // one sentence: nothing to join, but still trim and fade the edges
-    return assembleClip([await synthesizeSentence(chunks[0].spoken)], [0]);
   }
   // sequential, not parallel: the daemon synthesizes under a single lock,
   // so concurrent requests would queue anyway and only cost us timeouts.

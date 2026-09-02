@@ -424,8 +424,12 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "<= 150 ms"
-    status: planned
-    description: Time to stop playback after a barge-in.
+    status: live
+    description: >-
+      Time to stop agent playback after the patient started speaking. Emitted by
+      intake_voice_runtime.talker.barge_in on every onset the path accepts
+      (INT-291). Separate from preempt.red_latency_ms on purpose: one series per
+      cause, so the 150 ms target stays readable (docs/evidence/INT-093.md).
   - name: voice_interruption_rate
     id: voice.interruption_rate
     type: gauge
@@ -501,8 +505,11 @@ metrics:
     labels: [type]
     owner: voice-runtime
     unit: "count"
-    status: planned
-    description: Backend Work queue depth by work type.
+    status: live
+    description: >-
+      Backend Work queue depth by work type. Emitted by
+      intake_voice_runtime.clinical_agent.work_queue (INT-092); the label
+      domain is the closed WorkType enumeration.
   - name: work_latency_ms
     id: work.latency_ms
     type: histogram
@@ -510,16 +517,42 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "extract_slots p50 < 3 s"
-    status: planned
-    description: Backend Work latency by work type.
+    status: live
+    description: >-
+      Backend Work latency by work type. Emitted by
+      intake_voice_runtime.clinical_agent.work_queue (INT-092), measured from
+      the moment the Work was claimed to the moment its receipt was written.
   - name: work_failed_total
     id: work.failed_total
     type: counter
     labels: [type]
     owner: voice-runtime
     unit: "count"
-    status: planned
-    description: Failed Backend Work items by work type.
+    status: live
+    description: >-
+      Failed Backend Work items by work type. Emitted by
+      intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
+      fault, a refused preempt provenance and an invariant-22 numeric pair all
+      land here as receipts rather than as a crashed pump.
+  # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
+  # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
+  # recorded field on every lane signal, so the same number appears here and on
+  # LaneObservation.dropped_frames_in_window. A low value is not a target: a
+  # lane that never drops a frame under load would be one that made speech wait.
+  - name: lane_dropped_frames
+    id: lane.dropped_frames
+    type: counter
+    labels: [lane]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Audio frames dropped by an observer lane under backpressure, by lane.
+      Emitted by intake_voice_runtime.observers.runtime (INT-110) when a lane's
+      bounded ring evicts an older frame rather than making the audio path
+      wait. The single label is the closed Lane enumeration; a lane that was
+      never admitted has no child series at all, which is how a refused lane is
+      told apart from an idle one.
   - name: work_restart_failures
     id: work.restart_failures
     type: counter
@@ -563,8 +596,14 @@ metrics:
     owner: voice-runtime
     unit: "ms"
     target: "<= 300 ms (p99 pages)"
-    status: planned
-    description: Rules-engine RED preemption latency.
+    status: live
+    description: >-
+      Rules-engine RED preemption latency. Emitted by
+      intake_voice_runtime.talker.red_path (INT-093), measured from the
+      rules-engine determination to the moment the pre-positioned script
+      started on the device. Only patient-facing registers observe it: a
+      DEFERRED_CLINICIAN RED has no patient-facing latency to report, and
+      inventing a zero for it would flatter the p99 that pages.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter
@@ -965,16 +1004,31 @@ metrics:
     owner: security
     unit: "count"
     target: "0 (any increase pages)"
-    status: planned
-    description: Denied egress attempts from the PHI path.
+    status: live
+    description: >-
+      Denied egress attempts from the PHI path. Emitted by
+      intake_platform.egress on every refusal, whichever layer caught it — an
+      unlisted host, a wrong declared purpose, personal data bound for a row
+      that may not receive it, or a hostname that resolved into a
+      private/link-local/metadata range (INT-018). Unlabelled deliberately: a
+      host label would let a caller write chosen strings into the metric store
+      and make the cardinality of an attack unbounded.
   - name: sec_injection_suspected_total
     id: sec.injection_suspected_total
     type: counter
     labels: []
     owner: security
     unit: "count"
-    status: planned
-    description: Suspected prompt-injection attempts.
+    status: live
+    description: >-
+      Suspected prompt-injection attempts (files/10 §5 LLM01; files/10 §9 row
+      llm-boundary, whose signals line names INT-083). Emitted by
+      intake_voice_runtime.extraction.boundary when a transcript carries the
+      data-block control marker and is therefore refused rather than escaped.
+      Deliberately unlabelled and value-free: the refused string is exactly
+      what must not reach a metric, a log or an exception message (invariant
+      6), so the counter records that a refusal happened and nothing about
+      what it refused.
   - name: sec_policyguard_spike
     id: sec.policyguard_spike
     type: gauge
@@ -989,8 +1043,13 @@ metrics:
     labels: []
     owner: security
     unit: "bool (0/1)"
-    status: planned
-    description: Daily audit hash-chain verification (1 = intact).
+    description: >-
+      Daily audit hash-chain verification (1 = intact). Emitted by
+      intake_platform.audit_verifier.job.run_daily_verification (INT-016).
+      1 means the chain verified against the EXTERNALLY ANCHORED head
+      (files/10 §2 (b)); a run with no anchor sets 0, because a chain that
+      merely agrees with itself survives both a truncation and a full
+      re-forge, and reporting 1 there would be a pass by omission.
   - name: sec_image_signature_failures
     id: sec.image_signature_failures
     type: counter
@@ -1517,6 +1576,117 @@ metrics:
       and were served, by view name. Read against
       analytics_view_refused_total it is the refusal rate the learning loop is
       operating at.
+
+  # --- INT-172: the Inspector -> Architect pipeline itself. files/10 §9's
+  # learning row names "proposals, rejections, k-anonymity refusals,
+  # rollbacks" as the console signals; the first two are here, the third is
+  # analytics_view_refused_total above, and rollbacks arrive with INT-173's
+  # canary controller. Label sets stay minimal for INT-171's reason: a
+  # proposal labelled with the pack or the clinic it concerns would publish
+  # that cohort to Prometheus, which retains it (inv. 6). `target` is a class
+  # name from intake_learning.proposals.PROPOSAL_TARGETS — a closed set of
+  # ten, not a pack id.
+  - name: learning_findings_total
+    type: counter
+    labels: [signal]
+    owner: learning
+    unit: "count"
+    description: >-
+      Case-level findings written by a Loop 2 Inspector, by files/09 §4 signal
+      (step_skip_rate, session_abandonment). Emitted by
+      intake_learning.inspector; a finding is derived from a k-gated
+      Measurement and never from a session row.
+  - name: learning_proposals_total
+    type: counter
+    labels: [signal, target]
+    owner: learning
+    unit: "count"
+    description: >-
+      Loop 2 proposals the Architect emitted, by signal and proposal-target
+      type. A proposal is data: this counts what was written down for a
+      clinician to review, never what changed (CLAUDE.md invariant 12).
+  - name: learning_proposals_refused_total
+    type: counter
+    labels: [signal, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      Findings the Architect declined to promote, by signal and reason class
+      (not_recurring, below_effect_floor, below_subject_floor,
+      below_tenant_floor, no_stated_target_mapping). This is files/10 §9's
+      "rejections" signal; the reason is a class and never a cohort.
+  - name: learning_evidence_bundles_total
+    type: counter
+    labels: [view, status]
+    owner: learning
+    unit: "count"
+    description: >-
+      Evidence bundles built for a Loop 2 proposal, by analytics view and
+      completeness (complete/incomplete). files/08 §4 group L asks for
+      evidence-bundle completeness; this is it. A bundle is incomplete while
+      any artefact in intake_learning.evidence.REQUIRED_CHECKS is unavailable,
+      and an incomplete bundle cannot open a pull request.
+  # --- INT-170: Loop 1, the per-patient learning store. files/08 §4 names no
+  # id for it (group L is prose), so the names are ours — the INT-171/INT-172
+  # precedent. Label sets are minimal for the reason those two record: a label
+  # carrying a fact key or a patient would publish that cohort to Prometheus,
+  # which retains it (inv. 6). `source` is one of the three closed
+  # LearnedFactSource members and `action` one of two verbs.
+  - name: overlay_facts_confirmed_total
+    type: counter
+    labels: [source]
+    owner: learning
+    unit: "count"
+    description: >-
+      PatientOverlay facts committed after a patient or clinician confirmation,
+      by confirmed provenance class (confirmed_intake_extraction,
+      clinician_accepted_note, confirmed_imported_record). Emitted by
+      intake_platform.overlay.store; an unconfirmed value has no provenance to
+      label with and no row to be counted in (CLAUDE.md invariant 12).
+  - name: overlay_facts_withdrawn_total
+    type: counter
+    labels: [action]
+    owner: learning
+    unit: "count"
+    description: >-
+      PatientOverlay facts a patient took back, by action (deleted, unshared).
+      files/09 §3 gives the patient both verbs over anything the system learned
+      about them; read against overlay_facts_confirmed_total it is how often
+      the learning loop got it wrong enough to be corrected.
+  # --- INT-230: the research export gate. Same posture as the INT-171 pair
+  # above and for the same reason — a refusal labelled with the study cohort,
+  # the window or a dimension value would publish to Prometheus exactly what
+  # the refusal withheld, and Prometheus retains it (inv. 6). `spec` is the
+  # extract spec's declared name, never a study id or a recipient; `reason` is
+  # a closed class. Neither series counts subjects: a count of extracts is a
+  # count of extracts. files/08 §4 names no id for either, so the names are
+  # ours (the INT-171 precedent).
+  - name: research_extract_refused_total
+    type: counter
+    labels: [spec, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      Research export requests refused, by extract spec name and reason class
+      (unknown_study, approval_not_in_force, approval_lapsed,
+      recipient_not_approved, retention_unset, value_not_id_shaped,
+      value_carries_identifier, value_outside_vocabulary,
+      dimension_set_mismatch, measure_not_a_count, order_statistic_measure,
+      spec_field_not_id_shaped, below_k). Emitted by
+      intake_platform.research.extract. Today every request refuses:
+      study_registry.yaml is empty (HB-L1, HB-R1) and the research_extracts
+      retention class is draft_needs_source (HB-I8).
+  - name: research_extract_served_total
+    type: counter
+    labels: [spec]
+    owner: learning
+    unit: "count"
+    description: >-
+      Pseudonymised research extracts served, by extract spec name. A count of
+      extracts, never of subjects — and pseudonymised rather than anonymised,
+      because the subject key is a keyed derivation and remains personal data
+      under KVKK (KSVY m.16(1)'s anonymisation route is not the one this
+      pipeline takes).
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
@@ -1533,8 +1703,12 @@ metrics:
 # - group K, compliance: consent coverage by version, vendor notifications
 #   due/overdue, DSAR SLA, residency attestation per tenant, retention job
 #   success (sec_audit_chain_ok covers the daily integrity check).
-# - group L, learning loops: proposals opened/approved/rejected, canary
-#   outcomes, rollback count, evidence-bundle completeness, GEPA experiment
-#   deltas on held-out sets. ("k-anonymity rejections" left this list with
-#   INT-171: analytics_view_refused_total above is that KPI, catalogued under
-#   a name of ours because 08 §4 states the row without an id.)
+# - group L, learning loops: proposals approved, canary outcomes, rollback
+#   count, GEPA experiment deltas on held-out sets. ("k-anonymity rejections"
+#   left this list with INT-171: analytics_view_refused_total above is that
+#   KPI, catalogued under a name of ours because 08 §4 states the row without
+#   an id. "Proposals opened/rejected" and "evidence-bundle completeness" left
+#   it with INT-172: learning_proposals_total, learning_proposals_refused_total
+#   and learning_evidence_bundles_total above. What remains needs someone
+#   outside this repo — an approval is a clinician's action in GitHub, and
+#   canary/rollback arrive with INT-173.)

@@ -31,15 +31,16 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useReducer, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import {
   AppText,
   Card,
   PrimaryButton,
   Screen,
   useFontScale,
+  useScheme,
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
@@ -53,10 +54,13 @@ import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
+import { measurementLine } from "@/lib/intake/baseLayer";
 import {
   applicableQuestions,
+  isOpenAsk,
   nextApplicableQuestion,
   packForVisit,
+  spokenPack,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
 import {
@@ -65,6 +69,7 @@ import {
   voiceIntakeReducer,
   type PrefillMap,
 } from "@/lib/intake/voiceFirst";
+import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -76,6 +81,11 @@ export default function TypedIntake() {
   const headerOptions = useStackHeader();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, consents, visits, integrity } = useSession();
+  // INT-260: "Ziyarete başlarken" — the patient's own answer to whether a
+  // fresh visit opens by speaking or by typing. It can only ever narrow the
+  // existing eligibility rule; typed intake was already reachable from the
+  // gate, from inside the dialogue, and from any failure.
+  const { prefs } = useAppearance();
   const note = notes[visitId ?? ""];
   const visit = visits.find((v) => v.id === visitId);
   // The pack a visit runs = the department's dimensions + the universal
@@ -95,6 +105,7 @@ export default function TypedIntake() {
   const integrityCompromised = !voiceAllowedForIntegrity(integrity);
   const voiceEligible =
     __DEV__ &&
+    prefs.startMode === "voice" &&
     consents?.voice === true &&
     !editing &&
     !integrityCompromised &&
@@ -154,9 +165,14 @@ export default function TypedIntake() {
           // any unconfirmed suggestions riding along as prefill.
           <DialogueIntake
             visitId={visitId}
-            questions={intakeQuestions}
+            // files/13 §13: the spoken lane asks the speakable steps only.
+            // INT-282's numeral-bearing steps declare `text_only`, so no
+            // digit can reach a voice profile (invariant 22) — they are
+            // asked in the typed lane below, which is where the guarded
+            // controls live.
+            questions={spokenPack(intakeQuestions)}
             packName={visit?.department ?? "general"}
-            onFailed={() => dispatchVoice({ type: "failure" })}
+            onFailed={(prefill) => dispatchVoice({ type: "failure", prefill })}
             onHandoff={(prefill) => dispatchVoice({ type: "candidates", prefill })}
           />
         ) : (
@@ -180,7 +196,7 @@ interface StepFlowProps {
 function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }: StepFlowProps) {
   const router = useRouter();
   const theme = useTheme();
-  const dark = useColorScheme() === "dark";
+  const dark = useScheme() === "dark";
   const fontScale = useFontScale();
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
@@ -206,10 +222,31 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const [selected, setSelected] = useState<string[]>(
     initialKind === "text" ? [] : (initialAnswer?.values ?? initialPrefill?.values ?? []),
   );
+  // The free-text box: the whole answer on a `text` step, and the patient's
+  // OWN WORDS on an open step (INT-286), where the coded value still comes
+  // from the options underneath. An edit reopens with what they wrote; a
+  // prefill's quote is NOT poured in here — it is already on screen above as
+  // provenance, and a suggestion is not something the patient typed.
   const [text, setText] = useState(
     initialKind === "text"
       ? (initialAnswer?.values.join(" ") ?? initialPrefill?.values.join(" ") ?? "")
-      : "",
+      : (initialAnswer?.words ?? ""),
+  );
+  // The glass bar reports its own height (INT-284): the CTA label wraps at
+  // the large text steps, so the room reserved for it cannot be a constant —
+  // it was 128 against a bar that measures 131 at 2.0, and the last option
+  // chip was clipped by the bar with nowhere left to scroll.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
+  // The guarded measure (INT-282, invariant 22). `null` means the patient
+  // has not moved the control yet: the stepper shows where it OPENS, but
+  // nothing is committed and the CTA stays disabled, so a value can never
+  // be recorded by tapping through. There is no prefill path — a measure
+  // step is `text_only` and the voice lane never sees it.
+  const [measure, setMeasure] = useState<number | null>(
+    initialKind === "measure" && initialAnswer !== undefined
+      ? Number(initialAnswer.values[0])
+      : null,
   );
   const editing = requested !== undefined;
 
@@ -234,9 +271,16 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const detayli = mode === "detayli";
   const privacy = note?.privacy ?? "unchecked";
 
-  const commit = (values: string[]) => {
+  /**
+   * Commit one answer. `words` is the patient's own sentence for an open step
+   * (INT-286) — recorded beside the coded values, never inside them, so no
+   * free text can open a gate or reach a rule (invariant 1). The typed lane
+   * resolves nothing locally: there is exactly one route from words to a
+   * declared option id and it is the INT-083 boundary the dialogue uses.
+   */
+  const commit = (values: string[], words?: string) => {
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId: question.id, values });
+      updateNote(visitId, { type: "answer", questionId: question.id, values, words });
     }
     if (editing) {
       // an edit returns straight to the review; a fresh run continues
@@ -247,7 +291,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     // answer just opened (or closed) is honoured immediately.
     const nextAnswers = [
       ...answers.filter((a) => a.questionId !== question.id),
-      { questionId: question.id, values },
+      { questionId: question.id, values, words },
     ];
     const nextQuestion = nextApplicableQuestion(intakeQuestions, nextAnswers, question.id);
     if (nextQuestion === null) {
@@ -257,7 +301,26 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     const nextPrefill = prefill[nextQuestion.id];
     setSelected(nextQuestion.kind === "text" ? [] : (nextPrefill?.values ?? []));
     setText(nextQuestion.kind === "text" ? (nextPrefill?.values.join(" ") ?? "") : "");
+    setMeasure(null);
     setCurrentId(nextQuestion.id);
+  };
+
+  /**
+   * The patient's own words to record with the answer being committed
+   * (INT-286): what they typed or dictated into the open field, or — when
+   * they are confirming a voice suggestion and wrote nothing — the verbatim
+   * quote that suggestion came from. Undefined on a closed step, so nothing
+   * changes for one.
+   */
+  const openWords = (confirmingSuggestion: boolean): string | undefined => {
+    if (!isOpenAsk(question)) {
+      return undefined;
+    }
+    const typed = text.trim();
+    if (typed.length > 0) {
+      return typed;
+    }
+    return confirmingSuggestion ? suggestion?.quote : undefined;
   };
 
   const toggleChip = (id: string) => {
@@ -330,7 +393,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     );
   }
 
-  const floatingCta = question.kind !== "single";
+  // INT-286 — the owner's report: the screen was "completly written and
+  // option based". On an OPEN step the answer field comes first and the
+  // options move under it as the fallback, so the patient's own words are
+  // the primary act on this lane too. A single-select step therefore grows a
+  // CTA it never had: without one, words typed and no card tapped would have
+  // no way to be committed.
+  const openAsk = isOpenAsk(question);
+  const floatingCta = question.kind !== "single" || openAsk;
   // INT-256: the text CTA used to read "Bitir" unconditionally, which was
   // true only while `extra` was the one text step in the pack. The universal
   // history block adds free-text steps mid-flow, so the label now follows
@@ -343,7 +413,10 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   return (
     <>
       <ScrollView
-        contentContainerStyle={[styles.content, floatingCta ? styles.contentUnderBar : null]}
+        contentContainerStyle={[
+          styles.content,
+          floatingCta ? { paddingBottom: barClearance } : null,
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
@@ -385,7 +458,16 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <AppText role="hero" heading>
           {t(question.titleKey)}
         </AppText>
-        {question.hintKey ? (
+        {/* On an open step the invitation replaces the pack's control hint
+            here: "Birden fazla seçebilirsiniz" describes the chips grid, and
+            the grid is now below the answer field, so the hint travels down
+            with the control it describes (the same rule INT-261 applied to
+            the spoken turn). */}
+        {openAsk ? (
+          <AppText role="body" color="inkSoft">
+            {t("intake.open.hint")}
+          </AppText>
+        ) : question.hintKey ? (
           <AppText role="body" color="inkSoft">
             {t(question.hintKey)}
           </AppText>
@@ -402,6 +484,50 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
               “{suggestion.quote}”
             </AppText>
           </Card>
+        ) : null}
+
+        {/* INT-286 — the open answer, first. What the patient writes or
+            dictates here is recorded as their own words and is NEVER put in
+            `values`: the typed lane resolves nothing locally, because the
+            only route from words to a declared option id is the INT-083
+            extraction boundary and there is not going to be a second one.
+            So an answer given only in words carries no coded value, opens no
+            gate, and reaches the clinician as the sentence they said. */}
+        {openAsk ? (
+          <>
+            <TextInput
+              accessibilityLabel={t(question.titleKey)}
+              accessibilityHint={t("intake.open.hint")}
+              allowFontScaling={false}
+              value={text}
+              onChangeText={setText}
+              multiline
+              style={[
+                styles.textField,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.ink,
+                  fontSize: scaledSize("body", fontScale),
+                },
+              ]}
+            />
+            {__DEV__ && consents?.voice === true ? (
+              <VoiceNote
+                onTranscript={(spoken) =>
+                  setText((prev) => (prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken))
+                }
+              />
+            ) : null}
+            <AppText role="caption" color="inkFaint">
+              {t("intake.open.orChoose")}
+            </AppText>
+            {question.hintKey ? (
+              <AppText role="caption" color="inkFaint">
+                {t(question.hintKey)}
+              </AppText>
+            ) : null}
+          </>
         ) : null}
 
         {question.kind === "chips" ? (
@@ -466,6 +592,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                         suggestion,
                         suggested ? { type: "confirm" } : { type: "change", values: [o.id] },
                       ),
+                      // INT-286 — the provenance that belongs to THIS value:
+                      // what the patient wrote in the open field if they
+                      // wrote anything, otherwise the quote behind a
+                      // suggestion they are confirming. Never the quote
+                      // behind a suggestion they just overrode: those words
+                      // were not said about this card.
+                      openWords(suggested),
                     )
                   }
                 >
@@ -475,12 +608,21 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                         {t("voiceFirst.suggested")}
                       </AppText>
                     ) : null}
-                    <AppText role="body">{t(o.labelKey)}</AppText>
+                    <AppText role="body">
+                      {/* invariant 22: the numeral is an INLINE render
+                          beside the word it renders, on the same option
+                          object — never a numeral inside the string. */}
+                      {o.inline === undefined ? t(o.labelKey) : `${o.inline} — ${t(o.labelKey)}`}
+                    </AppText>
                   </Card>
                 </Pressable>
               );
             })}
           </View>
+        ) : null}
+
+        {question.kind === "measure" ? (
+          <MeasureStepper question={question} value={measure} onChange={setMeasure} />
         ) : null}
 
         {question.kind === "text" ? (
@@ -513,19 +655,46 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         ) : null}
       </ScrollView>
       {question.kind === "chips" ? (
-        <GlassBar>
+        <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
-            disabled={selected.length === 0}
-            onPress={() => commit(selected)}
+            // INT-286: on an open step, words are an answer — the CTA opens
+            // on either, so a patient who described it in a sentence is not
+            // held at the screen until they also tap a chip.
+            disabled={selected.length === 0 && !(openAsk && text.trim().length > 0)}
+            onPress={() => commit(selected, openWords(false))}
+          />
+        </GlassBar>
+      ) : null}
+      {question.kind === "single" && openAsk ? (
+        <GlassBar onHeight={setBarHeight}>
+          <PrimaryButton
+            label={ctaLabel}
+            // A card tap commits on its own (above); this bar exists for the
+            // answer given only in words. Disabled until there are some, so
+            // it can never record an empty answer by being tapped through.
+            disabled={text.trim().length === 0}
+            onPress={() => commit([], openWords(false))}
           />
         </GlassBar>
       ) : null}
       {question.kind === "text" ? (
-        <GlassBar>
+        <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
             onPress={() => commit(text.trim().length > 0 ? [text.trim()] : [])}
+          />
+        </GlassBar>
+      ) : null}
+      {question.kind === "measure" ? (
+        <GlassBar onHeight={setBarHeight}>
+          <PrimaryButton
+            label={ctaLabel}
+            // Disabled until the control has been MOVED: where a stepper
+            // opens is an affordance, not an answer, and tapping through
+            // must not be able to record one.
+            disabled={measure === null}
+            onPress={() => commit(measure === null ? [] : [String(measure)])}
           />
         </GlassBar>
       ) : null}
@@ -595,12 +764,80 @@ function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeB
   );
 }
 
+/**
+ * The guarded numeric control of invariant 22 (INT-282): a stepper between
+ * the question's authored bounds. There is no keyboard, no parser and no
+ * free numeral — the only way to produce a value is to move the control,
+ * and the only way to read one back is `measurementLine`, which is the same
+ * `useGrouping:false` + non-breaking number+unit render the note uses.
+ *
+ * Two step sizes rather than one, because a single ±1 would put a plausible
+ * height forty taps away and a control nobody can face is a control people
+ * work around.
+ */
+function MeasureStepper({
+  question,
+  value,
+  onChange,
+}: {
+  question: IntakeQuestion;
+  value: number | null;
+  onChange: (next: number) => void;
+}) {
+  const theme = useTheme();
+  const measure = question.measure;
+  if (measure === undefined) {
+    return null;
+  }
+  const shown = value ?? measure.start;
+  const move = (delta: number) =>
+    onChange(Math.min(measure.max, Math.max(measure.min, shown + delta)));
+
+  const button = (delta: number, label: string, a11y: string) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+      onPress={() => move(delta)}
+      style={[styles.stepButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+    >
+      <AppText role="label" color="ink">
+        {label}
+      </AppText>
+    </Pressable>
+  );
+
+  return (
+    <View style={styles.measureBlock}>
+      <View style={styles.measureRow}>
+        {button(-measure.coarseStep, "−−", t("a11y.measure.decreaseMore"))}
+        {button(-measure.step, "−", t("a11y.measure.decrease"))}
+        <View style={styles.measureValue}>
+          <AppText
+            role="title"
+            // Until the control is moved, the reading is where it OPENS and
+            // is shown as such: faint, and not yet an answer.
+            color={value === null ? "inkFaint" : "ink"}
+          >
+            {measurementLine(question, [String(shown)])}
+          </AppText>
+        </View>
+        {button(measure.step, "+", t("a11y.measure.increase"))}
+        {button(measure.coarseStep, "++", t("a11y.measure.increaseMore"))}
+      </View>
+      {value === null ? (
+        <AppText role="caption" color="inkFaint">
+          {t("intake.measure.untouched")}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
   modeBlock: { gap: spacing.xs },
   modeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   modeChip: {
@@ -627,6 +864,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionColumn: { gap: spacing.sm },
+  measureBlock: { gap: spacing.xs },
+  measureRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  measureValue: { flex: 1, alignItems: "center" },
+  stepButton: {
+    borderRadius: radius.control,
+    borderWidth: 1,
+    minWidth: MIN_TAP,
+    minHeight: MIN_TAP,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   textField: {
     borderRadius: radius.control,
     borderWidth: 1,

@@ -10,10 +10,10 @@
  * labelled element, and the chevron is an affordance, not a state.
  */
 import { type ReactNode } from "react";
-import { Pressable, StyleSheet, View, useColorScheme } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SymbolView } from "expo-symbols";
 
-import { AppText, Hairline, useTheme } from "@/components/Themed";
+import { AppText, Hairline, useScheme, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { palette, radius, shadow, spacing } from "@/lib/theme";
 
@@ -21,7 +21,7 @@ import { palette, radius, shadow, spacing } from "@/lib/theme";
 const SECONDARY_ACTION = "secondary";
 
 export function ListGroup({ children, footer }: { children: ReactNode; footer?: string }) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const scheme = useScheme();
   const theme = palette[scheme];
   const depth = shadow[scheme];
   const rows: ReactNode[] = [];

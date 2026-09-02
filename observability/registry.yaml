@@ -15,9 +15,11 @@
 # Licences here are findings, never claims: UNVERIFIED stays UNVERIFIED until
 # a raw LICENSE blob has been read (files/03 §4.9.0 rule 3).
 #
-# EHRbase is intentionally absent: openEHR was cut from P0/P1 and kept as a
-# P3 export tier (files/00_STATE.md §3 D8) — it joins this registry with
-# INT-032, not before.
+# EHRbase joined with INT-032, and not before: openEHR was cut from P0/P1 and
+# kept as a P3 export tier (files/00_STATE.md §3 D8). Its row carries
+# self_hosted_now: false because the container sits behind the compose
+# `export` profile — the tier is built, licence-verified and probed, and is
+# not running in any deployment.
 
 components:
   - component: postgres
@@ -63,6 +65,33 @@ components:
     fallback: "component:backups"
     phi_path: true
 
+  - component: ehrbase
+    self_hostable: true
+    # false on purpose: the container is behind the compose `export` profile
+    # and no deployment runs it. INT-032 built the tier; nothing serves from
+    # it yet, and the release gate must not treat it as enabled.
+    self_hosted_now: false
+    host: "dev compose 127.0.0.1:8092 — ehrbase/ehrbase:2.35.1 (openEHR CDR, profile `export`)"
+    license: "Apache-2.0"
+    probe: http_health
+    # /rest/status is a JDBC round trip on a cold pool; HAPI's 3 s is the
+    # nearest precedent and EHRbase is the heavier of the two.
+    budget_ms: 5000
+    fallback: "component:hapi"
+    phi_path: true
+    licence_verified_at: "2026-08-29"
+    licence_blob_url: "https://raw.githubusercontent.com/ehrbase/ehrbase/v2.35.1/LICENSE"
+    licence_blob_sha256: "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    licence_note: >-
+      Read from the raw LICENSE blob at the v2.35.1 tag, not from a badge or a
+      repository language tag (invariant 19): 11 357 bytes, the verbatim Apache
+      License 2.0 text with the unfilled "Copyright [yyyy] [name of copyright
+      owner]" appendix. Commercially usable, self-hostable, no field-of-use
+      restriction. The same blob is served at master with an identical digest.
+      The database image ehrbase/ehrbase-v2-postgres:16.2 is the vendor's
+      preconfigured PostgreSQL 16.2 (PostgreSQL Licence); it carries no
+      separate LICENSE blob of its own and is covered by the same repository.
+
   - component: openbao
     self_hostable: true
     self_hosted_now: true
@@ -106,6 +135,21 @@ components:
     # patient's own words live in csat_texts, which this service never reads
     phi_path: false
 
+  - component: learning
+    self_hostable: true
+    self_hosted_now: false
+    host: "this package (services/learning) — INT-172 lands the Inspector -> Architect pipeline; the weekly schedule and the PR-bot identity land with the deployment issues"
+    license: "proprietary (repo LICENSE)"
+    probe: http_health
+    budget_ms: 800
+    fallback: "none"
+    # files/09 §7: read-only credentials on the de-identified analytics views
+    # (INT-171's svc_learning_reader holds SELECT and nothing else), never a
+    # raw table. The pipeline's import closure reaches no HTTP client, no
+    # protocol pack and no patient content — tests/learning/
+    # test_proposal_scope.py asserts it — so this sits off the PHI path
+    phi_path: false
+
   - component: voice-runtime
     self_hostable: true
     self_hosted_now: false
@@ -137,6 +181,33 @@ components:
     budget_ms: 200
     fallback: "none"
     phi_path: true
+
+  # --- INT-206: continuous integration ---------------------------------------
+
+  - component: ci-runners
+    self_hostable: true
+    # files/08 §6's CI row wants self-hosted runners in the TR DC. None exist —
+    # and the reason is a decision, not capacity. HB-I7 (the spend) sits with the
+    # owner and HB-L11 (physical residency is not legal residency; the Istanbul
+    # Local Zone's operator is AWS EMEA SARL) sits with counsel. HB-I5 looks like
+    # it applies and does not: that row is GPU supply, and a CI runner needs CPU,
+    # which files/00_STATE.md §2 records as GA in-country since May 2026.
+    # infra/ci/runners.yaml therefore declares zero pools and the probe reports
+    # those rows rather than a result. Flips true when a pool is declared and beats.
+    self_hosted_now: false
+    host: "infra/ci/runners.yaml — zero pools declared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). CI runs on GitHub-hosted runners meanwhile, which files/08 §6 records as the fallback precisely because no PHI is ever in CI"
+    license: "GitHub Actions Runner — MIT (the runner agent); the hosted service is a vendor product, which is why the self-hosted pool is the target state"
+    probe: runner_heartbeat
+    budget_ms: 2000
+    # files/08 §6 names the fallback in full: "GitHub-hosted runners (no PHI in
+    # CI ever)". It is not a registry component — there is nothing of ours to
+    # probe on it — so the row records it in `host` and carries `none` here.
+    fallback: "none"
+    # That parenthesis is the whole reason the fallback is acceptable, and it is
+    # enforced rather than asserted: intake_platform.ci checks fixtures, env,
+    # logs, artefacts, cache and runners, and tests/infra/test_ci_no_phi.py
+    # fails the build when any of them carries a patient-shaped value.
+    phi_path: false
 
   # --- INT-175: the self-hosted LLM-trace tier -------------------------------
 
@@ -426,3 +497,47 @@ components:
       and a rules repo relicensing would not show up in the engine's LICENSE.
       Falco is a CNCF graduated project; the driver ships as modern eBPF here,
       so no out-of-tree kernel module is built on the host.
+
+  # INT-018 — the forward egress proxy (files/10 §4). Not on the PHI path in
+  # the sense of *carrying* clinical data: the `phi` network in
+  # infra/docker-compose.egress.yml is `internal: true` and this container is
+  # deliberately not attached to it. It is on the PHI path in the sense that
+  # matters for this registry — it is the boundary control that decides what
+  # may leave the trust boundary at all, so a release that ships it broken
+  # ships the boundary broken.
+  - component: egress-proxy
+    self_hostable: true
+    self_hosted_now: false
+    host: "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py"
+    license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see licence_note; the blob alone would read GPL-2.0-only)"
+    # No HTTP health endpoint: squid answers a proxy request or nothing, and a
+    # forward proxy that returns 200 to an unauthenticated GET would be a
+    # finding rather than a probe. tcp_connect is what can be asserted without
+    # sending traffic through the boundary being tested.
+    probe: tcp_connect
+    budget_ms: 1000
+    # A failed proxy means no egress, which is the correct failure direction:
+    # dev tooling stops, nothing leaks. There is nothing to fall back TO
+    # without reopening the boundary.
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/squid-cache/squid/e8118a7381213f5cfcdeb4cec1d2d854bfd261c8/COPYING"
+    licence_blob_sha256: "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    licence_note: >-
+      Read at commit e8118a7381213f5cfcdeb4cec1d2d854bfd261c8 (tag SQUID_6_6),
+      2026-08-29: 339 lines, the stock GNU GPL version 2 text, sha256
+      8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643. The
+      blob says nothing about "or later" — reading only the blob would have
+      recorded GPL-2.0-**only**, which is the laundered-claim shape files/03
+      §4.9.0 rule 3 warns about, here in the direction that understates our
+      rights. The "+" is in the per-file headers: every source file carries
+      "Squid software is distributed under GPLv2+ license and includes
+      contributions from numerous individuals and organizations. Please see
+      the COPYING and CONTRIBUTORS files for details." (verified in src/main.cc
+      at the same commit). GPLv2+ is a distribution licence and we do not
+      distribute squid — it runs as an unmodified upstream container behind a
+      config file of our own, which is data, not a derivative work. Re-read
+      the blob AND a source header on every version bump: a project that
+      states its "+" only in headers can drop it in a header sweep without
+      touching COPYING at all.

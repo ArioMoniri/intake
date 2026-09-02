@@ -64,7 +64,12 @@ export default function FirstRunConsent() {
   };
 
   return (
-    <Screen edges={["top", "left", "right"]}>
+    <Screen edges={["top", "left", "right", "bottom"]}>
+      {/* INT-284: the bottom safe edge is DROPPED only where something else
+          owns that zone — the floating tab rail, or a glass bar. This flow has
+          neither, and at the largest text step it is long enough to reach the
+          physical bottom, so the last control was left under the home
+          indicator. */}
       <ScrollView contentContainerStyle={styles.content}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("me.consents")}

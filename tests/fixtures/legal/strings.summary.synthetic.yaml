@@ -1,0 +1,39 @@
+---
+legal_strings_version: synthetic-int085
+---
+# SYNTHETIC fixture (files/04 §7), not patient copy and never loaded in production.
+# The production catalogue is docs/legal/strings.yaml, authored by counsel and the
+# clinical author (files/06 §7, invariant 18); it does not exist yet and the
+# patient summary fails closed without it. This file exists so the tests can pin
+# the summary's STRUCTURE — which cards exist, which markers a line carries, where
+# a relative's condition and a carried fact's date land — without a single
+# patient-facing Turkish sentence being authored into docs/legal/.
+#
+# It is a SEPARATE file from strings.synthetic.yaml on purpose: the note goldens
+# pin `legal_strings_sha256`, so adding a key to that file would rewrite another
+# issue's snapshots.
+#
+# Every value here also has to pass the summary's own B1 gate, which is the point
+# — a fixture that could not be bound would not prove the gate is wired.
+patient_summary.card.story: "Anlattıklarınız"
+patient_summary.card.history: "Geçmiş hastalıklarınız"
+patient_summary.card.medications: "İlaçlarınız"
+patient_summary.card.allergies: "Alerjileriniz"
+patient_summary.card.family: "Ailenizde olanlar"
+patient_summary.card.measurements: "Ölçümleriniz"
+patient_summary.card.documents: "Belgelerinizden gelenler"
+patient_summary.attribution.patient_self: "sizin sözünüz"
+patient_summary.attribution.relative: "yakınınızın sözü"
+patient_summary.attribution.carried: "önceki kayıt"
+patient_summary.attribution.record: "belge"
+patient_summary.subject.mother: "anne"
+patient_summary.subject.father: "baba"
+patient_summary.subject.brother: "erkek kardeş"
+patient_summary.subject.sister: "kız kardeş"
+patient_summary.subject.child: "çocuk"
+patient_summary.subject.grandparent: "büyük ebeveyn"
+patient_summary.subject.other_relative: "diğer yakın"
+patient_summary.bring.medications: "İlaç kutularınızı getirin."
+patient_summary.bring.documents: "Belgelerinizin çıktısını getirin."
+patient_summary.triage_message.green: "Randevunuza kadar yeni bir durum olursa bize yazın."
+patient_summary.triage_message.yellow: "Randevunuzdan önce durumunuz değişirse bize yazın."
