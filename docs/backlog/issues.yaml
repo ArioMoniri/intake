@@ -2879,6 +2879,23 @@
   tests:
   - tests/protocols/test_compiler_edges.py
   - tests/protocols/test_dsl_schema.py
+- id: INT-245
+  epic: E14-legal
+  phase: P0
+  # Filed retroactively: the branch built the brief and never filed its entry,
+  # so sec_row_linkage had nothing to check the PR against.
+  title: "Counsel factual annex for INT-210: what the software actually does"
+  depends_on: []
+  labels: [area:legal, risk:legal]
+  status: done
+  acceptance:
+    - "docs/legal/COUNSEL_BRIEF.md states every fact with the file and line it came from, so the Turkish consent texts are drafted against the code rather than a description written from memory"
+    - "it contains NO aydinlatma metni, NO acik riza wording, NO privacy policy and NO terms - drafting patient-facing Turkish copy is INT-210 and is human legal work"
+    - "where the code says awaiting-human the brief says awaiting-human rather than filling the cell in"
+    - "the three vocabularies that meet in this brief - consent scope, legal basis, data category - are distinguished explicitly, because conflating them produces a wrong consent text"
+  tests: [tests/legal/test_store_labels.py]
+  legal: "KVKK-10,HHY-15"
+  sec_row: "consent"
 - id: INT-246
   epic: E08-mobile
   phase: P0
