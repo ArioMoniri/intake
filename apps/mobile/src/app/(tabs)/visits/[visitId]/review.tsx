@@ -8,11 +8,12 @@
  * floats on a glass bar and the note scrolls under it.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -27,8 +28,9 @@ import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
 import { buildNote } from "@/lib/intake/note";
-import { missingQuestions, packForDepartment } from "@/lib/intake/questions";
+import { missingQuestions, packForVisit } from "@/lib/intake/questions";
 import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -46,10 +48,25 @@ export default function ReviewAndSendGated() {
 // With the top bar shown, the header owns the top inset (design pass 6).
 const FLOW_EDGES = ["left", "right"] as const;
 
+/**
+ * Which carried-fact kind each note section reviews (INT-256). A section not
+ * listed here shows no review block at all, so a fact can never be answered
+ * under the wrong heading.
+ */
+const CARRIED_IN_SECTION: Record<string, CarriedFactKind | undefined> = {
+  medications: "medication",
+  allergies: "allergy",
+};
+
 function ReviewAndSend() {
   const router = useRouter();
   const theme = useTheme();
   const headerOptions = useStackHeader();
+  // The bar reports its own height (INT-284); until it has, the clearance
+  // falls back to the one-CTA floor. Declared above every early return —
+  // hooks may not be conditional.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote, visits } = useSession();
   // Who is answering the carried-fact question — INT-133's derived
@@ -90,7 +107,13 @@ function ReviewAndSend() {
   // unanswered only — a gate-skipped question is skipped, not missing.
   const visit = visits.find((v) => v.id === visitId);
   const missing = checkpointed
-    ? missingQuestions(packForDepartment(visit?.department), note.answers)
+    ? missingQuestions(
+        // The same pack the flow ran (INT-256): a question this session's
+        // mode never asks, or one the environment deferred, is not `eksik` —
+        // the deferral has its own marker section and says why.
+        packForVisit(visit?.department, { mode: note.mode, deferred: note.deferred }),
+        note.answers,
+      )
     : [];
 
   return (
@@ -102,7 +125,9 @@ function ReviewAndSend() {
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
-        <ScrollView contentContainerStyle={[styles.content, sent ? null : styles.contentUnderBar]}>
+        <ScrollView
+          contentContainerStyle={[styles.content, sent ? null : { paddingBottom: barClearance }]}
+        >
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one
               that has to carry the heading semantic (SC 1.3.1, SC 2.4.2). */}
@@ -246,24 +271,28 @@ function ReviewAndSend() {
                   </Pressable>
                 ) : null}
                 {section.id === "medications" ? (
-                  <>
-                    <AppText role="caption" color="inkFaint">
-                      {t("review.medsNote")}
-                    </AppText>
-                    {/* INT-247: the answer that makes a carried fact current
-                        — or records that the patient stopped it. Nothing
-                        here is preselected (invariant 12). */}
-                    <CarriedFactReview
-                      facts={account.carriedFacts}
-                      review={note.factReview}
-                      asserter={{ role: "patient", attribution: companion.attribution }}
-                      disabled={sent}
-                      onDecide={(factId, decision) =>
-                        visitId && updateNote(visitId, { type: "fact", factId, decision })
-                      }
-                    />
-                  </>
+                  <AppText role="caption" color="inkFaint">
+                    {t("review.medsNote")}
+                  </AppText>
                 ) : null}
+                {/* INT-247: the answer that makes a carried fact current —
+                    or records that the patient retracted it. Nothing here is
+                    preselected (invariant 12). INT-256 files each kind under
+                    its own section, so an allergy is never reviewed inside
+                    the medication list. */}
+                {CARRIED_IN_SECTION[section.id] === undefined ? null : (
+                  <CarriedFactReview
+                    facts={account.carriedFacts.filter(
+                      (fact) => fact.kind === CARRIED_IN_SECTION[section.id],
+                    )}
+                    review={note.factReview}
+                    asserter={{ role: "patient", attribution: companion.attribution }}
+                    disabled={sent}
+                    onDecide={(factId, decision) =>
+                      visitId && updateNote(visitId, { type: "fact", factId, decision })
+                    }
+                  />
+                )}
                 {section.id === "device_health" ? (
                   <AppText role="caption" color="inkFaint">
                     {t("review.healthProvenance")}
@@ -282,7 +311,7 @@ function ReviewAndSend() {
           ) : null}
         </ScrollView>
         {sent ? null : (
-          <GlassBar>
+          <GlassBar onHeight={setBarHeight}>
             <PrimaryButton
               label={t("review.send")}
               onPress={() => {
@@ -303,9 +332,20 @@ const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  actionRow: { flexDirection: "row", gap: spacing.xs, alignItems: "center" },
+  // INT-284: the eyebrow and the scope chips are the card's two ends, and RN
+  // flex children do not shrink by default — so at the largest text step the
+  // chips were pushed off the right edge, where "Paylaşılıyor" was clipped and
+  // "Düzenleyin" could not be tapped at all. Wrapping drops the chips onto
+  // their own line instead; at every smaller step the row is unchanged,
+  // because there is nothing to wrap.
+  sectionHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, alignItems: "center" },
   scopeChip: {
     borderRadius: radius.chip,
     paddingHorizontal: spacing.sm + 2,

@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -25,22 +25,36 @@ check: check-py check-ts check-i18n
 check-i18n:
 	uv run pytest tests/release -q -o addopts=""
 
+# INT-206: the no-PHI-in-CI policy over the six surfaces a patient-shaped value
+# can reach CI through — fixtures, env, logs, artefacts, cache and runners
+# (CLAUDE.md invariant 6; files/06 §5 "CI: no PHI, synthetic fixtures, TR-DC
+# runners"). check-py collects the same policy through tests/infra; this target
+# is the form the CI job calls, and `--scan-environment` adds the one surface a
+# test cannot see from here — the runner's own environment.
+#
+# It is deliberately NOT part of `make security`: the full gate set (gitleaks,
+# Semgrep, Trivy, cosign, SBOM) is INT-019, which calls this rather than
+# reimplementing it.
+ci-policy:
+	uv run python -m intake_platform.ci --scan-environment
+
 check-integration:
-	docker compose -f infra/docker-compose.dev.yml --profile clamav up -d --wait postgres openbao minio clamav hapi
+	docker compose -f infra/docker-compose.dev.yml --profile clamav --profile export up -d --wait postgres openbao minio clamav hapi ehrbase-db ehrbase
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
 	OPENBAO_TOKEN=$${OPENBAO_TOKEN:-intake-dev-root} uv run pytest -m integration --no-header -q -p no:cacheprovider -o addopts=""
 
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src services/api/src services/voice-runtime/src services/metrics/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run pytest tests/voice --cov=packages/voice-clips/src --cov-branch --cov-fail-under=95 -q -o addopts=""
-	uv run pytest tests/voice --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
@@ -49,7 +63,7 @@ check-py:
 safety:
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run python scripts/safety/triage_mutation_report.py
-	uv run pytest tests/voice --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 check-ts:
 	pnpm -r lint
@@ -281,3 +295,19 @@ egress:
 
 egress-down:
 	docker compose -f infra/docker-compose.egress.yml --profile egress down
+# INT-016: the daily audit-chain verification job (files/10 §3 schedules it
+# daily). The anchored head is an INPUT, never a default: without it the
+# command exits 3 rather than reporting a chain that merely agrees with itself
+# (files/10 §2 (b); HB-I8 owns where that head gets published).
+#
+#   make audit-verify ANCHOR=<64-hex>            # verify only
+#   make audit-verify ANCHOR=<64-hex> WORM=1     # verify, then archive
+#
+# Not part of `make check`: it needs a live chain and an external anchor, and a
+# gate that passes because neither exists is the verifier this issue exists to
+# avoid.
+.PHONY: audit-verify
+
+audit-verify:
+	uv run python -m intake_platform.audit_verifier \
+	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)

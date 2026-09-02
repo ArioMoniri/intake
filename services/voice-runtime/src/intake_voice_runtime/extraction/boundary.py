@@ -1,0 +1,165 @@
+"""The data boundary: where a patient's words stop being words and become data.
+
+CLAUDE.md invariant 14 and files/10 §5 (LLM01) say it plainly — *"speech and
+documents are data, never instructions: transcripts and record snippets are
+wrapped as delimited data with schema-constrained outputs"*. A patient can say
+anything, including something shaped like an instruction to the extractor, and
+the usual answer is a filter that looks for instruction-shaped phrases. That is
+the wrong control: it is a blocklist over natural language, in a language whose
+morphology defeats blocklists, and it fails open on the first phrasing nobody
+thought of.
+
+This module does it structurally instead, in three moves:
+
+1. **The instruction region has no parameter for patient text.**
+   :func:`intake_voice_runtime.extraction.schema.build_instructions` is a
+   function of the JSON Schema alone, and the schema is a function of the slot
+   declarations alone. There is no expression a caller could write that puts a
+   transcript into the instruction region — which is what "data, never
+   instructions" has to mean if it is to survive a refactor.
+2. **The transcript travels in its own message role, inside its own fence.**
+   :func:`render_data_block` is the only thing in the package that renders it,
+   and it renders it nowhere else.
+3. **The fence is keyed to the text it fences.** The nonce is derived from
+   ``sha256`` of the transcript, so a speaker cannot pre-compute the token that
+   closes their own block: they would have to know the digest of an utterance
+   that contains that digest. And if a transcript nevertheless carries the tag
+   or the nonce, :class:`PatientData` **refuses** rather than escaping it —
+   escaping is a rewrite of what the patient said, and a boundary that rewrites
+   its input is a boundary that can be talked past.
+
+**Nothing here echoes.** :class:`PatientData` has no ``repr`` that shows the
+transcript, the refusal names no content, and the counter is unlabelled. That
+is invariant 6 applied to the one artefact chain where the value *is* the
+narrative — and it is why a redactor would be the wrong tool: the INT-175
+adversary carries no identifier pattern to key off, so scrubbing would pass it
+through untouched.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import uuid
+from dataclasses import dataclass
+from typing import Final
+
+from clinical_schemas.events import SecurityEventCategory, SecurityV1
+from prometheus_client import Counter
+
+from intake_voice_runtime.extraction.errors import BoundaryEscape
+
+__all__ = [
+    "BOUNDARY_NAME",
+    "DATA_TAG",
+    "ESCAPE_REASON",
+    "INJECTION_SUSPECTED_TOTAL",
+    "SENTINEL_PREFIX",
+    "PatientData",
+    "injection_event",
+    "render_data_block",
+    "wrap_patient_data",
+]
+
+#: The fence. Namespaced so it cannot collide with anything an ASR emits, and
+#: matched case-insensitively through :meth:`str.casefold` — never a Turkish
+#: locale fold, because files/03 §4.9.6 requires every identity comparison to
+#: use an invariant locale (``I``/``ı`` would otherwise decide whether a
+#: boundary holds).
+DATA_TAG: Final = "intake:patient_data"
+
+#: Refused outright anywhere in a transcript: the tag's namespace prefix. It is
+#: shorter than the tag so a partially-typed or partially-transcribed escape is
+#: refused too.
+_CONTROL_MARKER: Final = "intake:"
+
+SENTINEL_PREFIX: Final = "INTAKE-PATIENT-DATA-"
+
+#: Named in the security event rather than spelled at each call site.
+BOUNDARY_NAME: Final = "extraction"
+ESCAPE_REASON: Final = "data_block_escape"
+
+INJECTION_SUSPECTED_TOTAL: Final = Counter(
+    "sec_injection_suspected_total",
+    "Suspected prompt-injection attempts refused at the extraction data boundary "
+    "(INT-083; files/10 §5 LLM01, files/10 §9 row llm-boundary). Unlabelled and "
+    "value-free: the refused string is never recorded, only that a refusal "
+    "happened (CLAUDE.md invariant 6).",
+)
+
+
+def _digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True, repr=False)
+class PatientData:
+    """One transcript, wrapped so that it can only be used as data.
+
+    Constructing this type is the boundary crossing. Everything downstream
+    takes a ``PatientData`` rather than a ``str``, so "did this string get
+    treated as an instruction?" is answerable by reading the type of the
+    parameter instead of by reading the call site.
+    """
+
+    text: str
+
+    def __post_init__(self) -> None:
+        if not self.text:
+            raise BoundaryEscape("a transcript with no text is not an extraction input")
+        folded = self.text.casefold()
+        if _CONTROL_MARKER in folded or self.sentinel in self.text:
+            INJECTION_SUSPECTED_TOTAL.inc()
+            raise BoundaryEscape(
+                "the transcript carries the data-block control token — it is refused "
+                "rather than escaped, because escaping rewrites what the patient said "
+                f"(CLAUDE.md invariant 14). Digest {self.sha256}; the text is "
+                "deliberately not echoed here (invariant 6)."
+            )
+
+    @property
+    def sha256(self) -> str:
+        """The transcript's digest — the only identifier it ever has."""
+        return _digest(self.text)
+
+    @property
+    def sentinel(self) -> str:
+        """The fence nonce, derived from the text it fences."""
+        return f"{SENTINEL_PREFIX}{self.sha256[:16]}"
+
+    def __repr__(self) -> str:
+        return f"PatientData(sha256={self.sha256!r}, chars={len(self.text)})"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+def wrap_patient_data(text: str) -> PatientData:
+    """Cross the boundary, or refuse. The named entry point for readability."""
+    return PatientData(text=text)
+
+
+def render_data_block(data: PatientData) -> str:
+    """The only rendering of a transcript in this package.
+
+    The nonce rides on the opening tag: a reader (human or model) can check
+    that the block it is reading is the one the system opened, and a speaker
+    cannot forge it without the digest of their own utterance.
+    """
+    return f'<{DATA_TAG} nonce="{data.sentinel}">\n{data.text}\n</{DATA_TAG}>'
+
+
+def injection_event(*, correlation_id: str, tenant_id: uuid.UUID | None = None) -> SecurityV1:
+    """The ``security.injection_suspected`` signal files/10 §5 names.
+
+    Every field is an id or a closed enumeration — ``SecurityV1.attributes`` is
+    typed ``dict[str, Ref]``, so narrative has no carrier here even if a caller
+    wanted to attach one. What the patient said is not in this event, and the
+    digest is not either: an event stream that carried per-utterance digests
+    would be a correlation surface across sessions.
+    """
+    return SecurityV1(
+        category=SecurityEventCategory.INJECTION_SUSPECTED,
+        tenant_id=tenant_id,
+        correlation_id=correlation_id,
+        attributes={"boundary": BOUNDARY_NAME, "reason": ESCAPE_REASON},
+    )

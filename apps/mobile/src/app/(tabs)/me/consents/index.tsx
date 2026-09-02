@@ -17,7 +17,7 @@ import { useEffect } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
 import { ConsentList } from "@/components/ConsentList";
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
 import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
@@ -30,6 +30,8 @@ export default function Consents() {
   const router = useRouter();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // Hoisted above the early return: hooks run in the same order every render.
+  const tabBarClearance = useTabBarClearance();
 
   useEffect(() => {
     if (account !== null) {
@@ -68,7 +70,7 @@ export default function Consents() {
 
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("me.consents")}
         </AppText>
@@ -87,6 +89,6 @@ export default function Consents() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.md },
   heroLine: { marginTop: spacing.xl },
 });

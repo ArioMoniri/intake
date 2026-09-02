@@ -33,6 +33,15 @@
  *   leftovers go to the manual steps (with any remaining suggestions as
  *   prefill), and only those.
  *
+ * SILENCE IS NOT FAILURE (INT-261): the agent's audio is an OUTPUT, not
+ * the conversation. The question TEXT is in its bubble the moment the turn
+ * opens, the mic records, the composer sends, extraction reconciles and the
+ * confirm turn commits — none of that reads a byte of agent audio. So a clip
+ * that cannot be synthesized raises `speech_unavailable`, which moves the
+ * turn exactly where `speech_done` would have and latches `voiceMuted` for
+ * the rest of the session; it never ends the conversation. `failure` is
+ * reserved for what genuinely does end it: no microphone, no ASR.
+ *
  * Invariant 1 posture: candidates are SUGGESTIONS — the only commit
  * paths are the confirm turn, the panel-row confirm and the manual steps
  * after handoff. Nothing auto-commits. Quotes are display-only
@@ -84,10 +93,24 @@ export interface DialogueStreamState {
   seq: Record<string, number>;
   /** The chat transcript, oldest first. */
   stream: readonly StreamEntry[];
+  /**
+   * The agent has lost its voice for the rest of this session (INT-261).
+   * Latched by `speech_unavailable` and never cleared: re-probing the TTS
+   * ladder on every subsequent turn would spend the turn budget twice per
+   * question to arrive at the same answer, so once is enough. The surface
+   * says so once; the conversation carries on in text.
+   */
+  voiceMuted: boolean;
 }
 
 export type DialogueStreamAction =
   | { type: "speech_done" }
+  /**
+   * The agent could not produce audio for this turn (INT-261). The turn
+   * proceeds exactly as `speech_done` would have — the question is already
+   * on screen — and the session goes silent from here.
+   */
+  | { type: "speech_unavailable" }
   | { type: "barge_in" }
   /** From the confirm card: the patient speaks the correction instead. */
   | { type: "speak" }
@@ -115,6 +138,7 @@ export function initialDialogueStreamState(pack: readonly IntakeQuestion[]): Dia
     inflight: [],
     seq: {},
     stream: pack.length > 0 ? [{ kind: "agent_question", questionId: pack[0].id }] : [],
+    voiceMuted: false,
   };
 }
 
@@ -211,6 +235,9 @@ function takeUtterance(
     inflight: [...state.inflight, entry.workId],
     seq: state.seq,
     stream: [...state.stream, entry],
+    // The mute is a session latch, so it has to survive every rebuild of
+    // the state that is not a spread of the whole thing — this is the one.
+    voiceMuted: state.voiceMuted,
   };
   if (state.turn.phase === "settling") {
     // No live question — the note keeps enriching while the end settles.
@@ -232,16 +259,26 @@ export function dialogueStreamReducer(
   }
   switch (action.type) {
     case "speech_done":
+    case "speech_unavailable": {
+      // A clip that failed and a clip that finished leave the turn in the
+      // same place: the patient has the question either way (it is rendered
+      // from the same catalog string the clip was synthesized from), so the
+      // only difference the failure makes is that the session is now silent.
+      const voiceMuted = state.voiceMuted || action.type === "speech_unavailable";
       if (turn.phase !== "speaking") {
-        return state;
+        // Pre-warm and confirm clips can fail while the patient is talking;
+        // latch the mute without touching a turn that is not the agent's.
+        return voiceMuted === state.voiceMuted ? state : { ...state, voiceMuted };
       }
       return {
         ...state,
+        voiceMuted,
         turn:
           turn.intent === "question"
             ? { phase: "listening", step: turn.step }
             : { phase: "confirming", step: turn.step, candidate: turn.candidate },
       };
+    }
     case "barge_in":
       // DISTURBABLE: only agent speech can be interrupted; interrupting
       // the confirm clip means "let me say it myself" — candidate dropped.

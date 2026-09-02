@@ -1,0 +1,34 @@
+# SENTETİK TEST VERİSİ — INT-258 overlay-mechanism fixture: a TIGHTENING
+# overlay. This is the case files/04 §2.3 exists for ("overlays … may only
+# add/tighten red flags") and the case that did not compile before INT-258:
+# the tighten parent lives in the pack the overlay is applied TO, not in the
+# overlay's own (absent) extends chain. Mechanism only, no clinical meaning.
+kind: pack
+id: overlay.sentetik_sikilastirma
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik sıkılaştıran bindirme"
+ops:
+  - op: tighten_rule
+    parent_rule_id: rf.sentetik_sari
+    rule:
+      id: rf.sentetik_sari.bindirme
+      label_tr: "Sentetik sıkılaştırılmış sarı kural"
+      when: "(oyku.belirti_var) || (oyku.sure_gun > 6)"
+      tense: now
+      tense_anchor: sure_gun
+      level: SARI_K1
+      route: EXPEDITE
+      notify_clinic: never
+      status: active
+      source:
+        guideline_id: SYN-OVERLAY-C
+        guideline_title: "Sentetik bindirme kılavuzu C"
+        version_or_date: "sürüm bir"
+        url: "https://example.invalid/syn-overlay-c"
+        retrieved_on: 2026-08-28
+        quote: "sentetik alıntı metni"

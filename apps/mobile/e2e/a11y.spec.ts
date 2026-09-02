@@ -29,6 +29,7 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { MIN_TAP } from "../src/lib/a11y/target";
+import { CTA_MIN_HEIGHT } from "../src/lib/prefs/appearance";
 
 const MOBILE = join(__dirname, "..");
 const SRC = join(MOBILE, "src");
@@ -446,9 +447,24 @@ function styleRules(source: string): Map<string, string> {
   return rules;
 }
 
+/**
+ * Named floors the tree is allowed to state instead of a literal, resolved to
+ * the value the app actually renders. INT-284 moved the focal CTA's 56 into
+ * lib/prefs/appearance.ts so the glass bar's height and the scroll room
+ * reserved for it read one number; resolving the name here keeps this gate
+ * reading a real height rather than falling through to 0 — and if anyone
+ * lowers either constant under MIN_TAP, the comparison below reddens.
+ */
+const NAMED_FLOORS: Record<string, number> = {
+  MIN_TAP,
+  CTA_MIN_HEIGHT,
+};
+
 function declaredHeight(body: string): number {
-  if (/\b(?:minHeight|height)\s*:\s*MIN_TAP\b/.test(body)) {
-    return MIN_TAP;
+  for (const [name, value] of Object.entries(NAMED_FLOORS)) {
+    if (new RegExp(`\\b(?:minHeight|height)\\s*:\\s*${name}\\b`).test(body)) {
+      return value;
+    }
   }
   const heights = [...body.matchAll(/\b(?:minHeight|height)\s*:\s*(\d+)/g)].map((m) =>
     Number(m[1]),

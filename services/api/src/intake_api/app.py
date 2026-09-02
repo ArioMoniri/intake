@@ -38,6 +38,7 @@ from intake_api import (
     documents,
     dsar,
     experience,
+    learned,
     notes,
     notification_prefs,
     otp_routes,
@@ -294,4 +295,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)
     app.include_router(experience.router)
+    app.include_router(learned.router)
     return app

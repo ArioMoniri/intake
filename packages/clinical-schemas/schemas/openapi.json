@@ -1105,6 +1105,15 @@
         "title": "LlmCandidateTriage",
         "type": "object"
       },
+      "MeasureCode": {
+        "description": "What a patient can measure about themselves and be believed about.\n\nfiles/02 §2 lists \"vitals entry (manual/HealthKit/Health Connect)\" in the\ndetailed column, but INT-282 asserted by name that pulse (174_TC), blood\npressure (173_TC/354_TC) and respiration (49_TC) are *clinician-measured*\nrows the patient is never asked. A field called ``vitals`` would invite a\npatient-typed blood pressure to sit in a clinician note beside\nclinic-measured ones; this code set names only what the intake surface\nactually collects. Adding a measured vital here is a clinical-safety\ndecision and not a schema one (docs/evidence/INT-084.md; HB-C14).",
+        "enum": [
+          "height",
+          "weight"
+        ],
+        "title": "MeasureCode",
+        "type": "string"
+      },
       "MedicationItem": {
         "additionalProperties": false,
         "description": "files/04 §5 ``PreVisitNote.medications[]``.",
@@ -1606,6 +1615,15 @@
             ],
             "default": null,
             "description": "Objective speech measures, sibling of screening (files/04 §5 change note); None when not rendered — the caveat/range rule makes partial rendering unrepresentable."
+          },
+          "measurements": {
+            "default": [],
+            "description": "Self-reported anthropometry (files/04 §5 PreVisitNote.measurements, added 2 Sep 2026 by INT-084). A sibling of family_social and deliberately NOT named `vitals`: the measured vitals of files/02 §2 are clinician-taken and have no home here (see MeasureCode).",
+            "items": {
+              "$ref": "#/components/schemas/SelfReportedMeasure"
+            },
+            "title": "Measurements",
+            "type": "array"
           },
           "medications": {
             "default": [],
@@ -2165,6 +2183,35 @@
           "correlation_id"
         ],
         "title": "SecurityV1",
+        "type": "object"
+      },
+      "SelfReportedMeasure": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.measurements[]`` (added 2 Sep 2026, INT-084).\n\nThe 04 §5 sketch had no anthropometry key at all, so INT-282 rendered\nheight and weight into a *mobile* section id rather than invent one\n(docs/evidence/INT-282.md). This is that gap closed at the schema layer:\na self-report, typed as one, so no renderer can read it as a measurement\ntaken in clinic. The magnitude is an exact ``Decimal`` — invariant 22 does\nnot let a float cross a representation boundary — and the unit is the one\nthe patient's control was labelled with, never converted.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/MeasureCode",
+            "description": "Which self-reported measure this is (files/04 §5 measurements.code)."
+          },
+          "magnitude": {
+            "description": "Exact decimal magnitude (CLAUDE.md invariant 22 — no float crosses a representation boundary).",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Magnitude",
+            "type": "string"
+          },
+          "unit": {
+            "description": "Unit as the patient's control was labelled (files/04 §5 measurements.unit); never silently converted (invariant 22).",
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "magnitude",
+          "unit"
+        ],
+        "title": "SelfReportedMeasure",
         "type": "object"
       },
       "SessionBudget": {

@@ -56,6 +56,7 @@ function state(overrides: Partial<DialogueStreamState>): DialogueStreamState {
     inflight: [],
     seq: {},
     stream: [],
+    voiceMuted: false,
     ...overrides,
   };
 }
@@ -68,7 +69,7 @@ const suddenCandidate: DialogueCandidate = { values: ["sudden"], quote: "aniden 
 describe("dialogueStreamReducer — ask-ahead: the next question never waits", () => {
   it("starts by speaking the first question and logging it", () => {
     expect(initialDialogueStreamState(general)).toEqual(
-      state({ stream: [{ kind: "agent_question", questionId: "complaint" }] }),
+      state({ stream: [{ kind: "agent_question", questionId: "complaint" }], voiceMuted: false }),
     );
   });
 
@@ -261,7 +262,7 @@ describe("dialogueStreamReducer — typed input is the same conversation", () =>
       answers: { complaint: { values: ["pain"], quote: "göğsümde baskı var" } },
     });
     let s = runCardio(before, { type: "typed", workId: 2, text: "aslında bir haftadır" });
-    expect(s.turn).toEqual({ phase: "speaking", step: 2, intent: "question" });
+    expect(s.turn).toEqual({ phase: "speaking", step: 4, intent: "question" });
     expect(s.asked).toEqual(["duration"]);
     s = runCardio(s, {
       type: "extract_settled",
@@ -299,7 +300,7 @@ describe("dialogueStreamReducer — confirm commits, panel confirm, completion",
       values: ["pain", "fatigue"],
       quote: "göğsümde baskı var",
     });
-    expect(after.turn).toEqual({ phase: "speaking", step: 2, intent: "question" });
+    expect(after.turn).toEqual({ phase: "speaking", step: 4, intent: "question" });
   });
 
   it("confirming the last unanswered question completes the previsit — even with work in flight", () => {
@@ -415,7 +416,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
     });
     const after = runCardio(before, { type: "confirm", values: ["fever"] });
     // trigger is next: both pain dimensions are skipped, not asked-and-empty
-    expect(after.turn).toEqual({ phase: "speaking", step: 8, intent: "question" });
+    expect(after.turn).toEqual({ phase: "speaking", step: 10, intent: "question" });
     expect(after.stream[after.stream.length - 1]).toEqual({
       kind: "agent_question",
       questionId: "trigger",
@@ -435,7 +436,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
       },
     });
     const after = runCardio(before, { type: "confirm", values: ["pain"] });
-    expect(after.turn).toEqual({ phase: "speaking", step: 3, intent: "question" });
+    expect(after.turn).toEqual({ phase: "speaking", step: 5, intent: "question" });
     expect(after.stream[after.stream.length - 1]).toEqual({
       kind: "agent_question",
       questionId: "pain_character",
@@ -446,7 +447,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
     const before = state({
       turn: {
         phase: "confirming",
-        step: 4,
+        step: 6,
         candidate: { values: ["arm"], quote: "koluma vuruyor" },
       },
       answers: {
@@ -510,7 +511,7 @@ describe("dialogueStreamReducer — answer-driven advance (INT-239)", () => {
     const after = runCardio(before, { type: "confirm", values: ["pain"] });
     expect(after.turn).toEqual({
       phase: "speaking",
-      step: 4,
+      step: 6,
       intent: "confirm",
       candidate: { values: ["arm"], quote: "koluma vuruyor" },
     });
@@ -613,7 +614,11 @@ describe("dialogueStreamReducer — late work cannot re-block a live turn (INT-2
 
   it("keeps the very same turn object when a transcript lands behind", () => {
     const before = live();
-    const after = runCardio(before, { type: "transcript_ready", workId: 1, text: "göğsüm ağrıyor" });
+    const after = runCardio(before, {
+      type: "transcript_ready",
+      workId: 1,
+      text: "göğsüm ağrıyor",
+    });
     expect(after.turn).toBe(before.turn);
   });
 
@@ -635,5 +640,88 @@ describe("dialogueStreamReducer — late work cannot re-block a live turn (INT-2
       { type: "extract_settled", workId: 1, candidates: { complaint: painCandidate } },
     );
     expect(after.turn).toBe(before.turn);
+  });
+});
+
+// INT-261 — the agent losing its VOICE is not the conversation ending.
+//
+// The field report was "voice and text based dynamic questions gets mixed
+// up", and the reproduction is one screen: answer the first spoken question,
+// and the app drops into the typed form — which asks that same question
+// again, from zero, under a notice saying the voice feature was unavailable.
+// What actually happened is that the NEXT question's clip could not be
+// synthesized: the ladder is admitted on a real short synthesis against
+// TURN_ROUND_TRIP_BUDGET_MS (1684 ms), and measured on the dev host VoxCPM2
+// takes 2.78 s — over budget by construction — while Freya's 1.01 s is close
+// enough to the line that a cold first call trips it too. `store.ensure`
+// then throws `tts_unreachable`, and the speaking driver escalated that to
+// `failure`, which is terminal for the whole intake.
+//
+// It is the wrong escalation. Nothing in this conversation needs the agent's
+// audio: the question TEXT is in the bubble the moment the turn opens, the
+// mic still records, the composer still sends, extraction still reconciles
+// and the confirm turn still commits. Losing the voice must cost the VOICE.
+// So a clip failure silences the agent for the rest of the session — one
+// latch, one honest line on screen — and the turn proceeds exactly as if the
+// clip had finished playing.
+describe("dialogueStreamReducer — a clip that cannot be spoken silences the agent (INT-261)", () => {
+  it("a question whose clip fails still opens the mic, and latches the mute", () => {
+    const before = initialDialogueStreamState(general);
+    expect(before.voiceMuted).toBe(false);
+    const after = runGeneral(before, { type: "speech_unavailable" });
+    // Exactly where `speech_done` would have gone: the turn is not lost.
+    expect(after.turn).toEqual({ phase: "listening", step: 0 });
+    expect(after.voiceMuted).toBe(true);
+  });
+
+  it("a confirm clip that cannot be spoken still shows the confirm turn", () => {
+    const before = state({
+      turn: { phase: "speaking", step: 0, intent: "confirm", candidate: painCandidate },
+      asked: ["complaint"],
+    });
+    const after = runCardio(before, { type: "speech_unavailable" });
+    expect(after.turn).toEqual({ phase: "confirming", step: 0, candidate: painCandidate });
+    expect(after.voiceMuted).toBe(true);
+  });
+
+  it("the mute is a session latch — later turns never un-mute", () => {
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    s = runGeneral(s, { type: "utterance", workId: 1 });
+    expect(s.turn).toEqual({ phase: "speaking", step: 1, intent: "question" });
+    expect(s.voiceMuted).toBe(true);
+    s = runGeneral(s, { type: "speech_done" });
+    expect(s.voiceMuted).toBe(true);
+  });
+
+  it("the whole conversation still completes with no agent audio at all", () => {
+    // Every turn silent: ask → answer → suggestion → confirm, three questions.
+    let s = initialDialogueStreamState(general); // complaint → duration → extra
+    s = runGeneral(s, { type: "speech_unavailable" }); // complaint, silent
+    s = runGeneral(s, { type: "typed", workId: 1, text: "göğsümde baskı var" });
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: { complaint: painCandidate } });
+    s = runGeneral(s, { type: "speech_unavailable" }); // duration, silent
+    s = runGeneral(s, { type: "typed", workId: 2, text: "birkaç gündür" });
+    // complaint's suggestion is owed a confirm turn, silent like the rest
+    expect(s.turn).toEqual({
+      phase: "speaking",
+      step: 0,
+      intent: "confirm",
+      candidate: painCandidate,
+    });
+    s = runGeneral(s, { type: "speech_unavailable" });
+    expect(s.turn).toEqual({ phase: "confirming", step: 0, candidate: painCandidate });
+    s = runGeneral(s, { type: "confirm", values: ["pain"] });
+    expect(s.answers.complaint).toEqual({ values: ["pain"], quote: "göğsümde baskı var" });
+    // and it never became a failure along the way
+    expect(s.turn.phase).not.toBe("failed");
+    expect(s.voiceMuted).toBe(true);
+  });
+
+  it("a mute outside a speaking turn latches without disturbing the turn", () => {
+    // The pre-warm and a late clip can both fail while the patient is talking.
+    const listening = state({ turn: { phase: "listening", step: 0 } });
+    const after = runGeneral(listening, { type: "speech_unavailable" });
+    expect(after.turn).toBe(listening.turn);
+    expect(after.voiceMuted).toBe(true);
   });
 });
