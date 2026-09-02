@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**221 issues.** By phase: P0 130 · P1 49 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 104 · todo 104 · withdrawn 1.
+**229 issues.** By phase: P0 135 · P1 52 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 107 · todo 109 · withdrawn 1.
 
 ## P0
 
@@ -62,7 +62,7 @@
 | INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | done |
 | INT-080 | Deterministic triage engine (levels, monotonic merge, action scripts) | E04-engines | INT-040 | area:safety, risk:clinical | done |
 | INT-081 | IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays | E04-engines | INT-080, INT-258 | area:engine | done |
-| INT-082 | Patient simulator: personas + scenarios IM-01..IM-14 headless | E04-engines | INT-081 | area:engine | todo |
+| INT-082 | Patient simulator: personas + scenarios IM-01..IM-14 headless | E04-engines | INT-081 | area:engine | done |
 | INT-083 | Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set | E04-engines | INT-081, INT-015 | area:ai | done |
 | INT-084 | Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer | E04-engines | INT-083, INT-033 | area:engine, risk:legal | done |
 | INT-085 | Patient summary (B1 Turkish) + reading-level check | E04-engines | INT-084 | area:engine | done |
@@ -71,7 +71,7 @@
 | INT-092 | Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent | E05-voice | INT-081, INT-035 | area:voice | done |
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | done |
 | INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | done |
-| INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | todo |
+| INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | done |
 | INT-101 | Session budgets + cost metering per component/profile | E05-voice | INT-092 | area:voice | todo |
 | INT-110 | Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only | E06-lanes | INT-092, INT-038 | area:lanes, risk:clinical | done |
 | INT-112 | linguistic lane: TR lexicons + prosody stats + crisis bypass to triage | E06-lanes | INT-110, INT-080 | area:lanes, risk:clinical, approval:human-clinical | awaiting-human |
@@ -124,6 +124,7 @@
 | INT-238 | Kaynaklar ingest defect: the virus scanner slot was never wired, so every upload stuck in quarantine | E02-data | INT-120, INT-034 | area:data | done |
 | INT-239 | Dialogue-only intake with answer-driven dev packs: delete the two-button chooser, branch every department on prior answers | E08-mobile | INT-235, INT-236 | area:mobile | done |
 | INT-243 | Serve the intended production TTS tier (VoxCPM2) behind a licence-verified registry row, with the fallback voice kept | E05-voice | INT-237 | area:voice | done |
+| INT-244 | Name the physician of record in the clinical blocker ledger, and record what a name does and does not unlock | E00-governance | — | area:governance | done |
 | INT-254 | DSL/life-threat reconciliation: tense_anchor is a slot reference, explicit rule status, source note, secondary action — and the validator AttributeError INT-041 routed around | E03-protocols | INT-040, INT-041 | area:protocols | done |
 | INT-255 | Model the eleven life-threat delivery annotations the DSL still refuses (audio/register, the crisis path, paediatric proxy, document-level blocks) | E03-protocols | INT-254 | area:protocols, risk:clinical, approval:human-clinical | done |
 | INT-245 | Counsel factual annex for INT-210: what the software actually does | E14-legal | — | area:legal, risk:legal | done |
@@ -141,6 +142,10 @@
 | INT-294 | TTS lane admission consumes the clip deadline, and the resulting mute latches for the session | E08-mobile | INT-243, INT-249, INT-261 | area:mobile, area:voice | todo |
 | INT-286 | Open-ended asking: the pack declares how each question is asked, and the option list becomes the value space rather than the interaction | E08-mobile | INT-083, INT-239, INT-256, INT-282 | area:mobile, area:voice | done |
 | INT-291 | The patient cannot interrupt by speaking: voice barge-in, a measured chunk floor, and a turn-yielding contour | E05-voice | INT-237, INT-249 | area:voice, area:mobile | done |
+| INT-296 | Session locale: one language per session, chosen rather than detected, and a resource layer that refuses an incomplete one | E01-platform | — | area:platform, area:i18n | todo |
+| INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | todo |
+| INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | todo |
+| INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
 
 ## P1
 
@@ -195,6 +200,9 @@
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
 | INT-295 | The Detayli mode bar clips 'Siraniz geldi' off-screen at default text size | E08-mobile | INT-284 | area:mobile, area:a11y | todo |
+| INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | todo |
+| INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
+| INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
 
 ## P2
 

@@ -41,7 +41,7 @@ def test_ids_unique_and_well_formed() -> None:
     # all) + INT-286 (owner defect report: the intake reads as written and
     # option-based where it should ask openly). Grow this count only with a
     # stated reason.
-    assert len(ids) == 221
+    assert len(ids) == 229
     import re
 
     for i in ids:

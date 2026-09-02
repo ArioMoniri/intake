@@ -27,7 +27,12 @@ from intake_voice_runtime.simulator.budgets import (
     displaced_baseline_dynamic,
     published_budget,
 )
-from intake_voice_runtime.simulator.report import ScenarioReport, TurnRecord, render_report
+from intake_voice_runtime.simulator.report import (
+    ParityTrace,
+    ScenarioReport,
+    TurnRecord,
+    render_report,
+)
 from intake_voice_runtime.simulator.scenarios import (
     SCENARIOS,
     RuntimeScenario,
@@ -45,6 +50,7 @@ __all__ = [
     "VENDOR_HOP_SAVING_P95_MS",
     "BudgetNotPublished",
     "NetworkProfile",
+    "ParityTrace",
     "PublishedBudget",
     "RuntimeScenario",
     "ScenarioNotRunnable",

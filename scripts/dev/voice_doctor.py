@@ -24,8 +24,10 @@ Lanes, and what "expected" means for each:
   fails, an answer given in the pack's own option words is still recognised on
   the device (``lib/intake/answerMatch.ts``, INT-293), and anything neither can
   place is asked again rather than dropped. What is lost with this lane down is
-  the reading of free narrative onto slots — not the answer. Exiting non-zero on a lane
-  the product tolerates would teach people to ignore the exit code.
+  the reading of free narrative onto slots — and, because the local read
+  refuses every negated sentence rather than guessing at it, the reading of
+  those too. Not the answer. Exiting non-zero on a lane the product tolerates
+  would teach people to ignore the exit code.
 
 Ports and hosts are the app's own, read from ``apps/mobile/app.json`` and
 pinned against the TypeScript constants by tests/mobile/test_voice_doctor.py.

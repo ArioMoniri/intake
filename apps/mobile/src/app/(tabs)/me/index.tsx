@@ -204,6 +204,17 @@ export default function Me() {
             hint={t("a11y.openHint")}
             onPress={() => router.push("/(tabs)/me/learned")}
           />
+          {/* Verileriniz (INT-140): the KVKK m.11 controls — a copy of the
+              record, and its erasure. Last in the group and one tap away,
+              which is where a right the patient rarely exercises belongs:
+              always reachable, never the loudest thing on the screen. */}
+          <ListRow
+            label={t("me.data")}
+            sublabel={t("data.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/data")}
+          />
         </ListGroup>
         <SecondaryButton label={t("me.signOut")} onPress={signOut} />
       </ScrollView>
