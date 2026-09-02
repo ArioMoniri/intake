@@ -47,6 +47,7 @@ __all__ = [
     "PatientMemoryStore",
     "PatientRecord",
     "RoomTokenSource",
+    "ScreenSink",
     "SpeechSynthesizer",
     "SystemClock",
     "WorkRequest",
@@ -254,6 +255,29 @@ class AudioSink(Protocol):
     def play(self, frames: bytes, *, label: str = "") -> Awaitable[None]: ...
 
     def cancel(self) -> Awaitable[None]: ...
+
+
+@runtime_checkable
+class ScreenSink(Protocol):
+    """Where agent *text* goes: the data channel the client renders (INT-096).
+
+    The counterpart of :class:`AudioSink` for the ``typed`` profile, and the
+    thing a ``residency_tr`` session must also hold to be a kill-switch
+    target — the switch has to have somewhere to render before it is allowed
+    to take the audio away.
+
+    Outbound only, like the sink, and for a stronger reason: the patient's own
+    typing reaches Layer A through ``submit_utterance`` and the transcript
+    vault, exactly as a spoken answer does. Nothing about the typed profile
+    gives Layer A a second inbound path.
+
+    There is no ``cancel``. files/03 §4.6 invariant 4's cancellation is of
+    *playback*, and a sentence already on the screen has not been "in flight"
+    since the frame it was drawn in; the typed transport therefore has nothing
+    to stop, which is a fact about screens rather than a gap in this port.
+    """
+
+    def render(self, text_tr: str, *, label: str = "") -> Awaitable[None]: ...
 
 
 class RoomTokenSource(Protocol):

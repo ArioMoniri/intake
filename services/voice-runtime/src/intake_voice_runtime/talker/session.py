@@ -38,7 +38,7 @@ import enum
 from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from intake_voice_runtime.ports import (
     AskLedger,
@@ -49,6 +49,7 @@ from intake_voice_runtime.ports import (
     PatientMemoryKey,
     PatientMemoryStore,
     PatientRecord,
+    ScreenSink,
     SpeechSynthesizer,
     WorkRequest,
     WorkSubmitter,
@@ -65,6 +66,7 @@ from intake_voice_runtime.talker.delivery import (
     DuplexState,
     TurnYieldPolicy,
 )
+from intake_voice_runtime.talker.egress import TurnEgress, text_for
 from intake_voice_runtime.talker.insertion import InsertionScheduler, PendingSpeech, Speak
 from intake_voice_runtime.talker.policy_guard import FormOfAddress, PolicyGuard
 from intake_voice_runtime.talker.preemption import (
@@ -96,10 +98,18 @@ from intake_voice_runtime.talker.tools import (
     normalise_tr,
 )
 from intake_voice_runtime.transcript import SessionTranscripts, TranscriptDeposit
+from intake_voice_runtime.typed.egress import TypedEgress
+from intake_voice_runtime.typed.switch import (
+    KillSwitchNotArmed,
+    LaneSwitch,
+    LaneSwitchReason,
+    LaneSwitchRecord,
+)
 
 __all__ = [
     "UNMEASURED_JITTER",
     "AskLedgerNotWired",
+    "ProfileNotWired",
     "TalkerConfig",
     "TalkerSession",
     "TurnHold",
@@ -152,11 +162,36 @@ class _UnwiredAskLedger:
         )
 
 
+class ProfileNotWired(ValueError):
+    """The session's ports do not match the profile it claims to be.
+
+    Both directions are refused and both are fail-closed. A ``typed`` session
+    holding an audio sink is a session that *could* speak, which is not what
+    the kill switch moved anybody to; a ``residency_tr`` session with no
+    synthesizer is one that will discover it cannot speak on its first
+    question rather than at construction.
+    """
+
+
 class TalkerConfig(FrozenModel):
-    """Everything about one session that does not change during it."""
+    """Everything about one session that does not change during it.
+
+    ``profile`` is the exception the name admits to: the kill switch replaces
+    this whole object (files/03 §4.5b T9), because "which transport is in
+    force" is precisely the one thing about a session that may change during
+    it, and a mutable field on a frozen model would be a worse lie than a
+    replacement.
+    """
 
     session_id: str = Field(min_length=1)
-    voice_id: str = Field(min_length=1)
+    voice_id: str | None = Field(
+        default=None,
+        min_length=1,
+        description="The pinned voice. ``None`` on ``typed``, which synthesises "
+        "nothing — files/03 §4.4 gives that profile a dash in every column but "
+        "the input one, and a voice id it can never use would eventually be read "
+        "as permission to use one.",
+    )
     profile: VoiceProfile
     protocol_hash: str = Field(min_length=1, description="The session's pinned pack hash.")
     rule_ids: frozenset[str] = Field(
@@ -168,8 +203,31 @@ class TalkerConfig(FrozenModel):
         default=None,
         description="The cached bridge played when PolicyGuard drops a whole turn "
         "(files/03 §4.2). Unset: its Turkish is clinical copy awaiting sign-off, "
-        "and silence is safer than an invented sentence (CLAUDE.md).",
+        "and silence is safer than an invented sentence (CLAUDE.md). Always unset "
+        "on ``typed`` — it names a clip, and a screen has no player.",
     )
+
+    @model_validator(mode="after")
+    def _the_profile_and_its_voice_agree(self) -> TalkerConfig:
+        speaks = self.profile is not VoiceProfile.TYPED
+        if speaks and self.voice_id is None:
+            raise ValueError(
+                f"profile {self.profile.value!r} synthesises speech and no voice_id "
+                "is pinned; files/03 §4.4 pins one voice per session and §4.9.1 row "
+                "11 forbids swapping it mid-session, so it cannot be chosen later"
+            )
+        if not speaks and self.voice_id is not None:
+            raise ValueError(
+                f"profile 'typed' carries voice_id {self.voice_id!r}; it synthesises "
+                "nothing (files/03 §4.4) and an unusable voice id is a field that "
+                "will eventually be read as permission to use one"
+            )
+        if not speaks and self.safe_bridge_clip_id is not None:
+            raise ValueError(
+                "profile 'typed' carries a safe_bridge_clip_id; the bridge is a "
+                "cached audio clip (files/03 §4.2) and a screen has no player"
+            )
+        return self
 
 
 class TurnOutcome(FrozenModel):
@@ -197,12 +255,22 @@ class TalkerSession:
     config: TalkerConfig
     engine: EngineSnapshotSource
     backend: WorkSubmitter
-    catalogue: ClipCatalogue
-    clip_store: ClipStore
-    synthesizer: SpeechSynthesizer
-    sink: AudioSink
     memory: PatientMemoryStore
     clock: Clock
+    #: The four speech ports. Every one is optional, and every one is absent
+    #: on ``typed`` — that is what makes CLAUDE.md invariant 3 a property of
+    #: the typed path's *shape* rather than of its behaviour: there is no
+    #: buffer to zero because there is no object that could hold one. The
+    #: kill switch drops all four (see :meth:`fall_back_to_typed`), so the
+    #: guarantee is the same whether a session started typed or arrived there.
+    catalogue: ClipCatalogue | None = None
+    clip_store: ClipStore | None = None
+    synthesizer: SpeechSynthesizer | None = None
+    sink: AudioSink | None = None
+    #: Where the questions are drawn in ``typed``. A ``residency_tr`` session
+    #: may carry one too, and must if it is to be a kill-switch target: the
+    #: switch has to have somewhere to render before it may take the audio.
+    screen: ScreenSink | None = None
     policy_guard: PolicyGuard | None = None
     preemption: RedPreemption | None = None
     #: Where a deposited transcript lives while its Work is queued. Layer A
@@ -216,7 +284,13 @@ class TalkerSession:
     ask_ledger: AskLedger = field(init=False)
     guard: PolicyGuard = field(init=False)
     scheduler: InsertionScheduler = field(init=False)
-    router: SpeechRouter = field(init=False)
+    #: The one thing a profile changes (INT-096). Typed as the port rather
+    #: than as either implementation, so nothing above this line can reach a
+    #: sink, a clip or a synthesizer without going through the seam.
+    router: TurnEgress = field(init=False)
+    #: Which transport is in force, and the record of the flip if there was
+    #: one. Latched: there is no route back (files/03 §4.5b T9).
+    lane_switch: LaneSwitch = field(init=False)
     preempts: tuple[BackendResult, ...] = field(default=(), init=False)
     duplex: DuplexState = field(init=False)
     yield_policy: TurnYieldPolicy = field(default=UNMEASURED_JITTER, init=False)
@@ -243,13 +317,127 @@ class TalkerSession:
         self.scheduler = InsertionScheduler(
             deadlines=self.config.deadlines, note_flag=self._note_undelivered
         )
-        self.router = SpeechRouter(
-            voice_id=self.config.voice_id,
-            clip_store=self.clip_store,
-            synthesizer=self.synthesizer,
-            sink=self.sink,
-        )
+        self.lane_switch = LaneSwitch(profile=self.config.profile)
+        self.router = self._build_egress()
         self.duplex = DuplexState(patient_silence_ms=0.0, talker_idle=True, pending_response=False)
+
+    def _build_egress(self) -> TurnEgress:
+        """The one place a profile becomes a transport (INT-096).
+
+        Both branches refuse rather than degrade, and both refusals are of the
+        *ports*, not of the profile name: a session is typed because it has a
+        screen and no sink, and is ``residency_tr`` because it has the three
+        speech ports. Checking the wiring here means a mis-wired session is a
+        construction error rather than a first-question one.
+        """
+        if self.config.profile is VoiceProfile.TYPED:
+            audio = {
+                "clip_store": self.clip_store,
+                "synthesizer": self.synthesizer,
+                "sink": self.sink,
+                "catalogue": self.catalogue,
+            }
+            bound = sorted(name for name, port in audio.items() if port is not None)
+            if bound:
+                raise ProfileNotWired(
+                    f"a 'typed' session was handed {bound}; the profile's whole "
+                    "content is that it has no audio egress (files/03 §4.4), and a "
+                    "typed session that could speak is not the state the kill switch "
+                    "moves anybody to (CLAUDE.md invariants 3 and 19)"
+                )
+            if self.screen is None:
+                raise ProfileNotWired(
+                    "a 'typed' session needs a ScreenSink: it is the profile's only "
+                    "egress, and one without it could ask no question at all"
+                )
+            return TypedEgress(screen=self.screen)
+        voice_id, clips, tts, sink = (
+            self.config.voice_id,
+            self.clip_store,
+            self.synthesizer,
+            self.sink,
+        )
+        missing = sorted(
+            name
+            for name, port in (
+                ("voice_id", voice_id),
+                ("clip_store", clips),
+                ("synthesizer", tts),
+                ("sink", sink),
+                ("catalogue", self.catalogue),
+            )
+            if port is None
+        )
+        if missing or voice_id is None or clips is None or tts is None or sink is None:
+            raise ProfileNotWired(
+                f"profile {self.config.profile.value!r} speaks and is missing {missing}; "
+                "refusing at construction rather than on the first question"
+            )
+        return SpeechRouter(voice_id=voice_id, clip_store=clips, synthesizer=tts, sink=sink)
+
+    # --- the kill switch (files/08 §8.2 T1; files/03 §4.5b T3, T9) -------------------
+
+    def fall_back_to_typed(self, reason: LaneSwitchReason) -> LaneSwitchRecord:
+        """Move this live session to the keyboard. One actor, one direction.
+
+        files/08 §0c F17: *"The kill switch moves the system to the **safer**
+        state (typed mode). Requiring a second approver at 03:00 to make the
+        product safer is an availability control placed on a safety control."*
+        So there is no approver argument here and no gate but one — the
+        session must have a screen — and that gate exists because the failure
+        it prevents is going silent mid-intake, which is worse than the
+        degraded voice the switch was leaving.
+
+        **What it touches is the list that makes the parity claim true.** One
+        field: the egress. Not the engine, not the Work queue, not the
+        transcript vault, not the ask ledger, not the insertion scheduler, not
+        PolicyGuard's learned form of address. files/03 §4.5b T3 asks the
+        switch to *"keep the session and every slot"*, and the way that is
+        guaranteed is that there is no expression here that could drop one.
+
+        The four speech ports are dropped rather than left unused. An unused
+        sink is a rule someone has to keep; ``None`` is a fact.
+        """
+        if self.screen is None:
+            raise KillSwitchNotArmed(
+                "this session has no ScreenSink bound, so the kill switch has "
+                "nowhere to put the remaining questions; the voice profile stays in "
+                "force rather than the session going silent mid-intake"
+            )
+        record = self.lane_switch.to_typed(reason, now_ms=self.clock.now_ms())
+        if self.config.profile is VoiceProfile.TYPED:
+            # Idempotent: the latch already returned the first record, and the
+            # ports were dropped the first time round.
+            return record
+        self.config = self.config.model_copy(
+            update={
+                "profile": VoiceProfile.TYPED,
+                "voice_id": None,
+                "safe_bridge_clip_id": None,
+            }
+        )
+        self.clip_store = None
+        self.synthesizer = None
+        self.sink = None
+        self.catalogue = None
+        # The guard follows the profile so its metric label is not stale, and
+        # keeps its `form_of_address`: the register the patient mirrored is a
+        # fact about the patient, not about the channel (files/03 §4.2).
+        self.guard.profile = VoiceProfile.TYPED
+        self.router = self._build_egress()
+        return record
+
+    @property
+    def modality_degraded(self) -> bool:
+        """files/03 §4.5b T9 — the clinician is told the answers were not
+        elicited the way the pack was authored for."""
+        return self.lane_switch.modality_degraded
+
+    @property
+    def modality_switch(self) -> LaneSwitchRecord | None:
+        """The flip, if there was one. ``None`` for a session that never left
+        voice and for one that started typed."""
+        return self.lane_switch.record
 
     # --- the six tools, as methods -------------------------------------------------
 
@@ -328,12 +516,23 @@ class TalkerSession:
         step = self._last_step or self.protocol_next()
         if step is None:
             raise LookupError("there is no current step to repeat")
-        cached = self.catalogue.get(step.text_tr)
         return RepeatDirective(
             text_tr=step.text_tr,
-            clip_id=cached.clip_id if cached else None,
+            clip_id=self._clip_for(step.text_tr),
             reason=reason,
         )
+
+    def _clip_for(self, text_tr: str) -> str | None:
+        """The cached clip for this exact Turkish, if this profile has clips.
+
+        ``None`` on ``typed`` because the catalogue is ``None`` there — the
+        one lookup both profiles share, rather than a branch on the profile
+        name at each of the two call sites.
+        """
+        if self.catalogue is None:
+            return None
+        cached = self.catalogue.get(text_tr)
+        return cached.clip_id if cached else None
 
     def patient_memory(
         self, op: MemoryOp, key: str | PatientMemoryKey, value: str | None = None
@@ -596,50 +795,67 @@ class TalkerSession:
         self.speculation.speculate(step_id, partial_transcript)
 
     async def speak_step(self, step: NextStep | None, paraphrase: str | None = None) -> TurnOutcome:
-        """Speak one step: clip cache first, verbatim TTS second."""
+        """Deliver one step: clip cache first, verbatim TTS second — or, on
+        ``typed``, the same string to the screen.
+
+        Every line above the last is profile-independent, which is the parity
+        claim in one method: the paraphrase permission, PolicyGuard, the
+        bridge decision and the playback record are the same code on both
+        transports, and only :meth:`TurnEgress.emit` differs.
+        """
         started_ms = self.clock.now_ms()
         if step is None:
             return TurnOutcome(elapsed_ms=0.0)
-        text = self.router.text_for(step, paraphrase)
+        text = text_for(step, paraphrase)
         verdict = self.guard.filter(text, scripted=not step.allow_paraphrase)
         if verdict.bridge_required:
             return await self._speak_bridge(step, started_ms)
-        cached = self.catalogue.get(verdict.text_tr)
-        spoken = await self.router.speak(
-            verdict.text_tr, clip_id=cached.clip_id if cached else None, label=step.step_id
+        emitted = await self.router.emit(
+            verdict.text_tr, clip_id=self._clip_for(verdict.text_tr), label=step.step_id
         )
         self._record_playback(started_ms)
         return TurnOutcome(
             step_id=step.step_id,
-            spoken_text=spoken.text_tr,
-            from_clip=spoken.from_clip,
+            spoken_text=emitted.text_tr,
+            from_clip=emitted.from_clip,
             elapsed_ms=self.clock.now_ms() - started_ms,
         )
 
     async def _speak_bridge(self, step: NextStep, started_ms: float) -> TurnOutcome:
         """PolicyGuard dropped the whole turn. Play the cached bridge if one
-        has been signed off; otherwise say nothing — never improvise copy."""
+        has been signed off; otherwise say nothing — never improvise copy.
+
+        On ``typed`` the config validator has already refused a bridge clip
+        id, so this always takes the silent branch — which is the same
+        behaviour a voice session has today, the bridge's Turkish being copy
+        no human has signed off (docs/evidence/INT-091.md).
+        """
         clip_id = self.config.safe_bridge_clip_id
         if clip_id is None:
             return TurnOutcome(step_id=step.step_id, elapsed_ms=self.clock.now_ms() - started_ms)
-        frames = self.clip_store.fetch(clip_id)
-        await self.sink.play(frames, label="safe_bridge")
+        await self.router.emit("", clip_id=clip_id, label="safe_bridge")
         self._record_playback(started_ms)
         return TurnOutcome(step_id=step.step_id, elapsed_ms=self.clock.now_ms() - started_ms)
 
     async def _speak_backend(self, decision: Speak) -> None:
-        """Speak Layer B's material at the window it earned."""
+        """Deliver Layer B's material at the window it earned.
+
+        The scheduler is the same on both profiles and so is this method: the
+        files/12 §6 ladder, the ``work_id`` dedupe and the undelivered note
+        are clinical delivery semantics, not audio ones. A YELLOW that expires
+        unheard must reach the note whether the patient was listening or
+        reading, which is why none of it is skipped on ``typed``.
+        """
         started_ms = self.clock.now_ms()
         if decision.cancel_non_red_playback:
-            await self.sink.cancel()
+            await self.router.cancel()
         text = decision.item.presentation.speech_tr or ""
         verdict = self.guard.filter(text, scripted=False)
         if not verdict.text_tr:
             return
-        cached = self.catalogue.get(verdict.text_tr)
-        await self.router.speak(
+        await self.router.emit(
             verdict.text_tr,
-            clip_id=cached.clip_id if cached else None,
+            clip_id=self._clip_for(verdict.text_tr),
             label=decision.item.work_id,
         )
         self._record_playback(started_ms)
