@@ -114,6 +114,18 @@ class FakeEngine:
             self._steps.pop(0)
         self._version += 1
 
+    def mark_asked(self, step_id: str) -> None:
+        """The ask-ahead mark (INT-095), in the double's own terms.
+
+        The real ``IntakeEngine`` moves the step to ``ASKED_PENDING`` and bumps
+        its snapshot version, which takes it off the frontier; here the
+        frontier *is* the list, so the step is popped and the version bumped.
+        Without this the double would keep offering a step it had already been
+        told was spoken, and every turn after the first would hold.
+        """
+        if self._steps and self._steps[0].step_id == step_id:
+            self.advance()
+
     def invalidate(self, step_id: str) -> None:
         self._version += 1
         self._invalidated = (step_id,)
@@ -134,9 +146,14 @@ class StalledBackend:
 
     clock: FakeClock
     stall_s: float = 10.0
+    #: The engine the ask notes are applied to, the way ``BackendAgent`` holds
+    #: the real one. ``None`` records the notes and applies nothing, which is
+    #: what a queue with no engine would do.
+    engine: FakeEngine | None = None
     results: list[BackendResult] = field(default_factory=list)
     submitted: list[WorkRequest] = field(default_factory=list)
     cancelled: list[str] = field(default_factory=list)
+    noted: list[str] = field(default_factory=list)
     _ready: list[BackendResult] = field(default_factory=list)
 
     def submit(self, request: WorkRequest) -> WorkTicket:
@@ -146,6 +163,17 @@ class StalledBackend:
     def cancel(self, work_id: str, reason: str) -> WorkTicket:
         self.cancelled.append(work_id)
         return WorkTicket(work_id=work_id, state=WorkState.CANCELLED)
+
+    def note_asked(self, step_id: str) -> None:
+        """The ``AskLedger`` half (INT-095). Records; never blocks; no engine.
+
+        A double that lacked this method would fall through to
+        ``_UnwiredAskLedger`` and raise on the first spoken step, which is the
+        intended fail-closed behaviour — so it is here rather than absent.
+        """
+        self.noted.append(step_id)
+        if self.engine is not None:
+            self.engine.mark_asked(step_id)
 
     def drain_results(self) -> tuple[BackendResult, ...]:
         drained = tuple(self._ready)
@@ -241,8 +269,16 @@ def build_session(
     memory: InMemoryPatientMemory | None = None,
     rule_ids: frozenset[str] = frozenset(),
 ) -> TalkerSession:
-    """One fully wired Talker over doubles — the shape services/voice-runtime
-    will be given by its LiveKit Agents entrypoint once INT-095 lands."""
+    """One fully wired Talker over doubles — the same shape
+    ``intake_voice_runtime.composition.build_residency_tr_session`` builds for
+    real (INT-095), with every port replaced by a recorded double."""
+    engine = FakeEngine(steps)
+    backend = backend or StalledBackend(clock=clock, stall_s=10.0)
+    if isinstance(backend, StalledBackend) and backend.engine is None:
+        # The ask ledger and the engine are one object in production; wiring
+        # them together here keeps the double from re-offering a step it has
+        # already been told was spoken.
+        backend.engine = engine
     return TalkerSession(
         config=TalkerConfig(
             session_id="11111111-2222-4333-8444-555555555555",
@@ -252,8 +288,8 @@ def build_session(
             rule_ids=rule_ids,
             deadlines=DeliveryDeadlines(triage_yellow=YELLOW_DEADLINES),
         ),
-        engine=FakeEngine(steps),
-        backend=backend or StalledBackend(clock=clock, stall_s=10.0),
+        engine=engine,
+        backend=backend,
         catalogue=catalogue or ClipCatalogue.empty(VOICE_ID),
         clip_store=clip_store or RecordedClipStore(),
         synthesizer=synthesizer or RecordingSynthesizer(),

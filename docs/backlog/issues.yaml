@@ -953,10 +953,11 @@
   title: "Runtime invariants 1-11 + RT-01..08 + latency harness"
   depends_on: [INT-093, INT-110]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "all invariant tests incl. lanes-stalled-30s; harness reports per-turn budgets per profile"
   tests: [tests/voice/test_invariants.py]
+  evidence: docs/evidence/INT-094.md
   sec_row: "voice-runtime"
 - id: INT-095
   epic: E05-voice
@@ -964,7 +965,24 @@
   title: "Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke"
   depends_on: [INT-094, INT-018]
   labels: [area:voice, approval:human-infra, gpu]
-  status: todo
+  status: awaiting-human
+  # AWAITING-HUMAN 2 Sep 2026 on THREE rows, with the build complete and every gate closed.
+  # What shipped: the three Layer A <-> Layer B joints docs/evidence/INT-094.md found open
+  # (the extract_slots handler and its composition root, the ask ledger, the transcript
+  # vault), the ASR/TTS adapters with recorded-fixture contract tests, the files/03 4.9.1
+  # row -> registry pin resolver with its PHI-path licence gate, preemptive_generation, and
+  # `make live-smoke`, which ran ONE REAL TURN end to end against the self-hosted ASR,
+  # extraction and TTS lanes on 2 Sep 2026.
+  #   HB-I10 - rows 2 and 7 have no machine-readable pin: row 7 records its blob reading in
+  #            prose ("Apache-2.0 (LICENSE blob verified @c202236)") and row 2 records
+  #            UNVERIFIED. `require_phi_path_pin` refuses both, which is the fail-closed
+  #            state; the acceptance line "every pin ... recorded as model_id@revision +
+  #            sha256 with licence_verified_at" is satisfied by rows 10-11 alone.
+  #   HB-I11 - row 1 (nemotron, the PRIMARY ASR) is obtained nowhere; `resolve_pin` refuses.
+  #   HB-I4/HB-I5 - the acceptance closes only on a real turn ON THE TARGET GPU. There is no
+  #            pilot card and no signed capacity contract, so live-smoke records
+  #            target=dev-bridge and the issue stays open rather than closing on a laptop
+  #            forward.
   # CORRECTED 27 Aug 2026, not deleted. This issue was "Profile cascade_fast with Soniox STT v5 /
   # Soniox TTS v2 / ElevenLabs Flash". Under the all-self-hosted constraint (00 §0b) cascade_fast
   # ceases to exist and every vendor it named is unreachable by construction. The WORK survives —
@@ -977,6 +995,7 @@
     - "`make live-smoke PROFILE=residency_tr` runs one real turn on the target GPU and stores evidence (per-term latency, not a single round-trip number) — issue closes only with that evidence, never on laptop mocks"
     - "no PHI-path egress: the allow-list contains no external model or speech vendor, and the test that a call to an unlisted host is refused still passes"
   tests: [tests/voice/adapters/test_residency_contracts.py]
+  evidence: docs/evidence/INT-095.md
   legal: "KVKK-9"
   sec_row: "voice-runtime"
 - id: INT-096
@@ -2895,6 +2914,23 @@
   tests:
   - tests/protocols/test_compiler_edges.py
   - tests/protocols/test_dsl_schema.py
+- id: INT-245
+  epic: E14-legal
+  phase: P0
+  # Filed retroactively: the branch built the brief and never filed its entry,
+  # so sec_row_linkage had nothing to check the PR against.
+  title: "Counsel factual annex for INT-210: what the software actually does"
+  depends_on: []
+  labels: [area:legal, risk:legal]
+  status: done
+  acceptance:
+    - "docs/legal/COUNSEL_BRIEF.md states every fact with the file and line it came from, so the Turkish consent texts are drafted against the code rather than a description written from memory"
+    - "it contains NO aydinlatma metni, NO acik riza wording, NO privacy policy and NO terms - drafting patient-facing Turkish copy is INT-210 and is human legal work"
+    - "where the code says awaiting-human the brief says awaiting-human rather than filling the cell in"
+    - "the three vocabularies that meet in this brief - consent scope, legal basis, data category - are distinguished explicitly, because conflating them produces a wrong consent text"
+  tests: [tests/legal/test_store_labels.py]
+  legal: "KVKK-10,HHY-15"
+  sec_row: "consent"
 - id: INT-246
   epic: E08-mobile
   phase: P0
@@ -3196,3 +3232,113 @@
     - apps/mobile/src/lib/intake/history.test.ts
     - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
+- id: INT-286
+  epic: E08-mobile
+  phase: P0
+  # Owner defect report, verbatim: "still ... it goes completly written and
+  # option based but should be voice and open end questios (still with the
+  # dyanmicness and standardized versions) as much as possible", against a
+  # photograph of "Nefes darlığınız ne zaman oluyor?" rendered as a title over
+  # two tappable cards. The constraint in the parenthesis is half the issue:
+  # the patient answers in their OWN WORDS, and the answer still lands on the
+  # SAME standardised value a clinician reads and a gate branches on.
+  #
+  # No clinical content is authored. Not one scripted question changes: the
+  # titles in the shipped packs are already open interrogatives, and what was
+  # closed was the INTERACTION - the agent read the option list aloud and the
+  # screen offered nothing but cards. Deciding what an answer MEANS stays with
+  # the physician of record (INT-043 -> INT-044..051, HB-C1).
+  title: "Open-ended asking: the pack declares how each question is asked, and the option list becomes the value space rather than the interaction"
+  depends_on: [INT-083, INT-239, INT-256, INT-282]
+  labels: [area:mobile, area:voice]
+  status: done
+  evidence: docs/evidence/INT-286.md
+  acceptance:
+    - "the asking style is DECLARED, not defaulted: every choice step in every shipped pack carries ask: open | closed, there is no default, and a test pins the closed set to exactly the recorded list with a reason for each member - the same discipline invariant 21 puts on a RED register"
+    - "the three refusals are type-level and not conventions, each with a compile-time control that must fail to compile: an instrument item can never be ask: open (invariant 10; files/13 SS4 'Instruments verbatim, explicit option selection'), a guarded numeric measure can never carry an ask at all (invariant 22), and a step whose delivery is text_first or text_only can never be ask: open (files/13 SS13)"
+    - "an open question is never enumerated aloud: questionAsideTr speaks the authored open invitation instead of the option list, at every list length, while a closed question keeps today's <= 4-option enumeration byte for byte (files/13 SS5.3 'branch, don't enumerate'; Cowan ~4 chunks)"
+    - "the option list survives in both places the report asks for - as the spoken CONFIRMATION read-back, unchanged, and as the typed fallback under the open answer field - and every open question is asserted to still carry its options, so the standardised value space is never traded away for the open form"
+    - "a free-text answer NEVER becomes a slot value: the patient's own words are recorded as Answer.words and never enter Answer.values, askIfMet reads only values, and a test asserts that words alone open no gate - so free text is not a route around the rules engine (invariant 1) and the branching and mode depth INT-282 authored are unchanged"
+    - "the words reach the clinician: an answer carrying words renders them quoted after its coded labels in the note, an answer with words and no coded value still counts as answered by missingQuestions, and both the confirmed dialogue candidate and the typed prefill commit their existing verbatim quote through the same field"
+    - "no second extraction path is added: free speech reaches declared option ids only through the INT-083 boundary the dialogue already uses (extract.ts re-validates every id against the pack and drops an ambiguous single-select), and the typed lane resolves nothing locally - it keeps the words and offers the same options"
+    - "no scripted protocol text is rewritten (invariant 10) and no new numeral, threshold, cut-off or clinical meaning is authored; make check exits 0 and make safety is green"
+  tests:
+    - apps/mobile/src/lib/intake/openAsk.test.ts
+    - apps/mobile/src/lib/dialogue/speech.test.ts
+    - apps/mobile/src/lib/intake/note.test.ts
+  sec_row: "intake-typed"
+- id: INT-291
+  epic: E05-voice
+  phase: P0
+  # Owner defect report, verbatim: "the voice is too robotic and non disruptble
+  # at middle and no emotions", after an earlier "tts is so awkward". Three
+  # defects in one sentence about one surface — the spoken turn — so one issue.
+  # The first is a safety property and the rest of the row is subordinate to it.
+  title: 'The patient cannot interrupt by speaking: voice barge-in, a measured
+    chunk floor, and a turn-yielding contour'
+  depends_on:
+  - INT-237
+  - INT-249
+  labels:
+  - area:voice
+  - area:mobile
+  status: done
+  acceptance:
+  - 'speaking over the agent does something: while a clip plays the dialogue set
+    an audio mode that forbade recording and started no recorder at all, so
+    there was no microphone during agent speech and the only two interrupts were
+    a tap on the bubble and a typed message; the microphone now opens when the
+    agent starts speaking rather than when it stops, a level watch feeds a pure
+    onset detector, and an onset calls the same reducer action the tap calls, so
+    one state machine serves both causes'
+  - 'the stop is measured rather than asserted: the runtime gains a barge-in path
+    measured on the shared virtual clock the RED preemption path uses, from the
+    moment patient speech was DETECTED rather than the moment the runtime heard
+    about it, holding the stop budget the product spec states; a missed budget is
+    recorded on the outcome instead of raised, because unlike a missed emergency
+    budget it must not take the conversation away from the patient who just
+    asked for it'
+  - 'the series the spec already names moves from planned to live and stays its
+    own series, never folded into the emergency preemption histogram, because
+    two causes in one histogram make one target unreadable for both'
+  - 'an emergency script is not interruptible: a barge-in arriving while one is
+    in flight is refused explicitly and on the record, and the refusal lifts the
+    moment the script finishes rather than latching for the session'
+  - 'the barge-in path cannot become a preemption: it never reaches the work
+    queue, carries no priority, is unreachable from a backend result, and holds
+    no audio - asserted against the module''s own parsed source with docstrings
+    stripped, because a name merely unused today is imported tomorrow'
+  - 'the self-echo problem is answered by measurement, not by a constant: with
+    the microphone open on a speakerphone the agent hears itself, so the trigger
+    threshold is calibrated per clip against the level actually observed while
+    the agent speaks, floored absolutely, and held - and every failure mode of
+    that ladder is toward NOT interrupting, so the worst case is the behaviour
+    the product already had'
+  - 'the previous shaping pass split at EVERY sentence boundary and a
+    measurement of the shipped lane shows that corrupts short ones: synthesise
+    then transcribe with the independent recogniser, every request below a
+    measured floor of thirteen non-space characters came back carrying a token
+    nobody authored, four of four, and the strings this bites are the shortest
+    and most safety-critical in the product; delivery now merges below that
+    floor and keeps the split wherever both sides clear it'
+  - 'the turn has a contour instead of one flat pause everywhere: the gap
+    between the agent''s own sentences drops below the end-of-turn silence
+    floor the runtime spec mandates, so a pause inside a question can no longer
+    read as the agent having finished, and the last chunk gains a deliberate
+    yield tail above that floor - which costs no interaction latency because the
+    microphone is open through the clip'
+  - 'a clip that arrives head-clipped is padded rather than shaved: the previous
+    pass trimmed to a fixed head and faded into it, which on a lane that returns
+    zero leading silence put the fade on the first phoneme'
+  - 'no word is added anywhere: the delivery stage is proved unable to originate
+    a token, over every string in the Turkish catalog, so the reassurance
+    language the policy guard forbids cannot arrive through prosody work'
+  - 'the two lanes are compared on quality and not only on latency, with a date
+    and a named corpus, described as measurements of two daemons on one host on
+    one day and never as properties of either model'
+  tests:
+  - tests/voice/test_barge_in.py
+  - apps/mobile/src/lib/dialogue/bargeIn.test.ts
+  - apps/mobile/src/lib/dialogue/speechShaping.test.ts
+  - apps/mobile/e2e/bargeIn.spec.ts
+  sec_row: "intake-voice"

@@ -42,6 +42,7 @@ from clinical_schemas.triage import CandidateFlag, RulesTriageResult, TriageLeve
 from pydantic import Field, model_validator
 
 from intake_voice_runtime.ports import WorkState
+from intake_voice_runtime.talker.activity import ActivityLabel
 from intake_voice_runtime.talker.delivery import DeliveryClass
 
 __all__ = [
@@ -78,10 +79,12 @@ class InlinePayload(FrozenModel):
         default_factory=dict,
         description="slot key → rendered value, exactly as the rail shows it.",
     )
-    activity_label_tr: str | None = Field(
+    activity: ActivityLabel | None = Field(
         default=None,
-        description="Generic activity label from the fixed table (files/03 §4.6 "
-        "invariant 10) — never a prompt, an id or model internals.",
+        description="A label id from the fixed table (files/03 §4.6 invariant 10; "
+        "intake_voice_runtime.talker.activity) — the client renders it from its own "
+        "tr/en catalogue. Being an id rather than free text is what makes 'no session "
+        "ids, prompts, or reasoning reach the client' a property of the type.",
     )
 
 
