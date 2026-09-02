@@ -33,7 +33,7 @@ draft_refusal              2   draft_needs_source rules refuse to evaluate
 candidate_ceiling          3   LLM flags attach, level/action untouched
 register_tiebreak          3   equal-severity RED winner is total and stable
 green_baseline             1   the life set alone, empty context
-type_mismatch_unknown      4   cross-type comparison is Unknown, never False
+type_mismatch_unknown      6   cross-type comparison is Unknown, never False
 ======================  =====  ==================================================
 total                     208
 
