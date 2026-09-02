@@ -3629,3 +3629,89 @@
   tests:
   - tests/legal/test_locale_binding.py
   sec_row: "consent"
+- id: INT-303
+  epic: E03-protocols
+  phase: P0
+  # Found by reading the seam rather than by a failing test, which is the point:
+  # three subsystems each declared their own type for a numeric slot value, and
+  # the disagreement is invisible at every boundary because every boundary
+  # answers it with silence. `canonical_scalar` returned None for a Decimal and
+  # its own docstring says "None reads Unknown", so a rule gating on a measured
+  # quantity would simply not fire and nothing would report it (invariant 1).
+  #
+  # Honest scope, because an overstated safety claim in an evidence file is its
+  # own defect (invariant 20 exists for this habit): the red-flag half is
+  # LATENT — SlotAnswer/TriageContext have no constructor outside tests, and no
+  # merged rule compares a number at all. The extraction -> IntakeEngine half is
+  # LIVE (extraction/handler.py calls apply_extraction(**as_engine_call())), but
+  # what crossed there was a float, not a silently-Unknown Decimal. So this is
+  # one seam with two defects: a latent silent-Unknown and a live float.
+  title: 'One numeric carrier end to end: a Decimal slot value that reads Unknown
+    to every gate that compares it, and the float it crossed the seam as'
+  depends_on:
+  - INT-080
+  - INT-083
+  labels:
+  - area:protocols
+  - area:voice
+  status: done
+  acceptance:
+  - 'the three subsystems agree on one numeric type: the extraction reader builds
+    a Decimal on purpose (`json.loads(raw, parse_float=Decimal)`) and the protocol
+    compiler emits `Decimal | None` for a numeric slot, but the carrier those two
+    meet in - `clinical_schemas.common.JsonScalar` - declared `str | int | float |
+    bool | None` and no Decimal; the carrier now declares Decimal, ahead of float,
+    so the type the producers produce is the type the comparison reads'
+  - 'the silent reading is gone at its source: `canonical_scalar` fell through a
+    Decimal to `return None`, and its own docstring says "None reads Unknown", so
+    a red-flag rule gating on a measured quantity would have evaluated Unknown and
+    not fired - the worst failure this system can have, because nothing reports it
+    (invariant 1); a Decimal now canonicalises to itself with its declared scale
+    intact, exactly as files/13 §9.5 requires'
+  - 'Unknown and uncomparable stop being the same outcome: null and collections
+    still read Unknown, because that is a reading the grammar defines and a rule
+    must survive it, while a value outside the declared carrier raises
+    `UncomparableSlotValue` - which names the offending TYPE and never the value,
+    since an exception that interpolated a slot value would put what the patient
+    said into a log (invariant 6)'
+  - 'the raise is safe to put inside triage evaluation because the fix removes
+    everything that could legitimately reach it: with Decimal admitted to the
+    carrier, no value any producer in the repository builds is outside it, so the
+    raise is an assertion about callers rather than a new way for a live session
+    to crash on patient data - the loudness is placed where the bad value is
+    already unrepresentable rather than where it would be caught late'
+  - 'the live half is the float, and it is removed: `ExtractionResult.as_engine_
+    call()` cast a fractional Decimal to `float` before handing it to the engine
+    (`extraction/handler.py` calls that on every landed extraction, so this path
+    runs today) - the crossing files/13 §9.5 forbids outright and invariant 22
+    calls unguarded, and one that drops the declared scale, since 38.50 and 38.5
+    are the same float and are not the same Decimal'
+  - 'the near-miss negative control is on the FIRING side, because a naive fix
+    that keeps a float in the path fails in the direction that produces a RED the
+    rules never authorised: `Decimal("37.999999999999999999")` is exactly below a
+    `>= 38` gate and its float image is exactly 38.0 - and this case really did
+    report RED before the fix, so the control is a recorded observation and not a
+    hypothetical'
+  - 'the second near-miss is the numeral that must not be coerced: the same
+    magnitude written as the string "38.5" stays a string and reads Unknown, never
+    True - files/03 §4.9.6 refuses a numeric string rather than parsing it, since
+    a separator cannot be resolved without an expected magnitude; and a boolean is
+    still never the number one, so `true` cannot satisfy a threshold of 1'
+  - 'the confirm gate stops reading a re-stated number as a contradiction: a prior
+    fact loaded from stored JSON and a freshly extracted answer can carry the same
+    quantity as an int, a float or a Decimal, and `_same_value` compared Python
+    types - which after this change would have re-opened the full ask for a value
+    the patient had just confirmed, for no reason a patient could perceive'
+  - 'the live-or-latent finding is recorded honestly rather than as a safety
+    headline: the red-flag half is LATENT (no non-test constructor of SlotAnswer
+    or TriageContext exists, and no merged rule compares a number, so the "38.5
+    derece ateşim var" scenario has no gate to miss today), the extraction ->
+    engine half is LIVE, and the evidence file names the file:line for each
+    boundary rather than asserting a patient-facing consequence it cannot show'
+  tests:
+  - tests/safety/test_numeric_carrier.py
+  - tests/safety/triage_goldens_answers.py
+  - tests/engine/test_fsm.py
+  - tests/ai/test_extraction_contract.py
+  evidence: docs/evidence/INT-303.md
+  sec_row: "triage"
