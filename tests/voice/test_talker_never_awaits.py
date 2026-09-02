@@ -94,10 +94,20 @@ def test_the_turn_stays_inside_the_scripted_budget_while_stalled() -> None:
 
 def test_a_result_that_lands_later_is_delivered_on_a_later_turn() -> None:
     """The Talker does not wait for the result; it picks it up when it exists.
-    Nothing is lost by not waiting — that is the other half of RT-03."""
+    Nothing is lost by not waiting — that is the other half of RT-03.
+
+    **Two steps, not one** (INT-095). Before the ask ledger existed nothing
+    marked a step asked, so the frontier re-offered the same question every
+    turn and this comparison held over a session that asked one question
+    twice. It compares two turns, so it needs two questions.
+    """
     clock = FakeClock()
     backend = StalledBackend(clock=clock, stall_s=1.0)
-    session = build_session(clock, steps=[scripted_step()], backend=backend)
+    session = build_session(
+        clock,
+        steps=[scripted_step(), scripted_step("s2", "Başka bir şikâyetiniz var mı?")],
+        backend=backend,
+    )
 
     async def scenario() -> tuple[TurnOutcome, TurnOutcome]:
         work = asyncio.ensure_future(backend.work())

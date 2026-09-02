@@ -415,13 +415,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Trust boundaries:** patient's room (who else is present?) ↔ the session; device ↔ SFU.
 - **Threats (STRIDE/LINDDUN):** [I] eavesdropping and third-party presence during sensitive
   sections; [S] a different speaker answering for the patient; [D] network loss at the worst
-  moment (during a RED).
+  moment (during a RED); **[D] the patient cannot stop or correct the agent** — until
+  INT-291 the only interrupts were a screen tap and a typed message, so a patient who
+  needed to correct a question mid-sentence had no voice route at all.
 - **Controls (files/10):** §5 voice transport — per-session room tokens with minimal grants
   and 10-min TTL, DTLS-SRTP, ephemeral rooms, no SFU recording; inv. 26 — on
   `third_party_present` before a sensitive section, typed/keypad is offered; CLAUDE.md
-  invariant 21 — the RED script is pre-positioned on the device, data channel only.
-- **Signals:** round-trip latency and vendor errors (§9 voice row) land with INT-135/INT-103.
-- **Tests:** RT-01…RT-12 scenarios land with INT-094 and INT-102.
+  invariant 21 — the RED script is pre-positioned on the device, data channel only, and a
+  barge-in arriving while it plays is **refused** (INT-291), because inside RED ambiguity is
+  the harm; the barge-in path carries no priority and never reaches the Work queue, so
+  invariant 9's single preemption is unchanged; invariant 3 is untouched — the onset signal
+  is an id and a timestamp, never frames.
+- **Signals:** round-trip latency and vendor errors (§9 voice row) land with INT-135/INT-103;
+  `voice.barge_in_stop_ms` (≤ 150 ms, files/08 §4 group B) is **live** with INT-291, and
+  stays a separate series from `preempt.red_latency_ms` so one target is readable per cause.
+- **Tests:** RT-01…RT-12 scenarios land with INT-094 and INT-102. The barge-in stop, its
+  refusal under RED and its non-preemption are `tests/voice/test_barge_in.py` (INT-291) on
+  the same virtual clock INT-093 uses; the onset rule itself is
+  `apps/mobile/src/lib/dialogue/bargeIn.test.ts`, pure so that it is provable without a
+  microphone.
 
 ## `intake-typed` — the typed parity path
 
@@ -463,15 +475,46 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   so the assertion cannot pass against a clock that never moves. (b) The "[E] tool-list
   growth" threat gains a composed form: a whole turn against a watched engine touches
   `snapshot` and nothing else. Guards 12–19/27/28 land with INT-090, INT-110, INT-115.
-- **Known-open joints (INT-094):** the Layer A ↔ Layer B loop does not close on this tree,
-  and the suite asserts each joint so it fails when one is wired. No module under
-  `services/` registers an `extract_slots` state handler (INT-092 left it to INT-083, which
-  built `run_extraction` and never registered it), `IntakeEngine.mark_asked` has no caller
-  outside tests, and `WorkRequest` carries `input_hash` rather than a transcript. The
-  security consequence is in the safe direction — a composed session raises
-  `UnregisteredWorkType` on the first transcript instead of silently dropping it, and the
-  queue stays PHI-free by construction — but the transcript route is a **data-boundary
-  decision** (invariant 14) and belongs with whoever closes it.
+- **Known-open joints (INT-094), closed by INT-095, and what the closing cost:** the three
+  joints were an unregistered `extract_slots` handler, an uncalled `mark_asked`, and a
+  `WorkRequest` with no transcript channel. Two are now wired and their assertions in
+  `tests/voice/test_invariants.py` were rewritten to their positive form (the class is
+  `TestTheLoopThatNowCloses`); the third is **deliberately unchanged**, and that is the
+  security-relevant part.
+  - **The transcript route (invariant 14, invariant 6).** The queue was PHI-free by
+    construction and stays PHI-free by construction: a transcript is deposited into
+    `intake_voice_runtime.transcript.SessionTranscripts`, a per-session in-memory vault keyed
+    by the same `sha256` the request already carried in `input_hash`, and the state handler
+    takes it back out by that digest. No `WorkRequest` field, no `WorkRecord` field, no log
+    line and no metric label changed — `test_the_work_request_still_has_no_transcript_channel`
+    is kept, not struck. The **boundary crossing moved earlier**: the vault stores
+    `PatientData`, so INT-083's refusal of a planted control token now happens *before* a
+    Work exists, and a handler cannot be handed a bare `str` at all. Three costs are recorded
+    rather than hidden: a Work is no longer replayable from its record alone (a restart finds
+    an empty vault and the Work fails `TranscriptNotHeld` instead of binding nothing); the
+    vault is a bounded FIFO whose eviction turns Layer-B starvation into a *visible* failed
+    Work; and it is process memory, so what applies is invariant 6 (nothing rendered, nothing
+    logged — swept **decoded**, because JSON escaping hides an escaped Turkish sentence) and
+    not invariant 3, which is about audio buffers.
+  - **The ask ledger (invariant 9).** `mark_asked` is a Layer-B *write* and the Talker holds
+    a read-only snapshot, so the fact travels rather than the lock: `AskLedger.note_asked`
+    takes only the cheap queue lock, and `BackendAgent.run_pending` applies the notes under
+    the engine lock *before* either lane runs. Taking the engine lock on the speech path
+    would have made a turn wait on whatever handler was running — an LLM call — which is
+    invariant 9's second clause broken inside the Talker. Measured against the live bridge:
+    a real extraction that took **29 106 ms** left `submit` at **0.6 ms**.
+  - **The composition root (invariant 19).** Registration lives in
+    `intake_voice_runtime.composition` and nowhere else — a test pins the file list — so
+    "which model is this session running?" is answered by reading one function rather than
+    by grepping. `intake_voice_runtime.adapters.pins` resolves a files/03 §4.9.1 row to a
+    registry pin and **refuses a PHI-path lane** whose licence has no dated blob reading;
+    rows 1, 2 and 7 all refuse today (HB-M1, HB-M2).
+  - **No public host reaches a speech lane (invariants 14, 19).** The ASR and TTS adapters
+    refuse any endpoint that is not loopback, a private/link-local address or a
+    cluster-internal name — default deny, deliberately **not** a vendor blocklist. A
+    blocklist of the four deleted vendors is one a fifth vendor walks past, and writing those
+    hostnames down is exactly what `scripts/ci/assert_no_vendor_calls.sh` exists to prevent;
+    that gate caught the first draft of this module and the design is better for it.
 - **Fixed activity-label table (INT-094):** `InlinePayload` carried a free-text
   `activity_label_tr` that any Layer-B handler could fill with a session id, a prompt or a
   chain of reasoning — the three things invariant 10 forbids reaching the client. It is now
@@ -537,7 +580,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   which is how the exposition tells a refused lane from an idle one. Lane consent rates,
   `acoustic.window_yield` (a low yield is a correct outcome, not an incident — §9) and
   withdrawal-to-zeroization latency are still owed: the first belongs to the consent surface,
-  the second to INT-115's diarization gate, and the third to the audio-buffer work.
+  the second to INT-115's diarization gate, and the third to the audio-buffer work. INT-112
+  added **no** metric and the omission is deliberate: a `crisis_signposts_total` counter would
+  increment exactly when a patient discloses suicidal ideation, which is re-identifying in a
+  small tenant — the invariant-6 harm with a metric name on it. `crisis.path_completion` stays
+  `planned` for INT-116, which owns path completion end to end.
 - **Tests:** `tests/lanes/test_isolation.py` (INT-110) lands CLAUDE.md invariant 11 whole —
   read-only at type level, the fake-clock stall with a positive control, backpressure with its
   metric, per-lane consent through the one evaluator, and the `acoustic` study assertion
@@ -545,9 +592,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   close. It also lands inv. 13's static half (no observer module imports an audio transport),
   inv. 29 (every lane declares a reviewed `intended_purpose`, one statement per module), the
   `ObserverState` half of inv. 22 (there is no `affect` field for a label to cross M1 in) and
-  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows. Invariants 12, 14,
-  15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-112, INT-115 and the
-  audio-buffer and consent-withdrawal issues.
+  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows.
+  `tests/lanes/test_crisis_bypass.py` (INT-112) lands the first lane *model* and the crisis
+  path's read-only half: the presence fact carries a family id and a count with no field,
+  property or open map a level could occupy; the router port is declared and **unimplemented**,
+  so the crisis path is absent rather than idle (HB-C8, HB-L2); the lane's declared input type
+  has no `match_crisis`, so a crisis hit has no route into `ObserverState`; INT-110's AST gate
+  is re-run with the triage names this issue could have reached for; the detection is not
+  consent-gated (files/04 §4.2 defect 3) and still runs when `lane:linguistic` is refused; and
+  the CLAUDE.md invariant 22 whole-token rule is carried into lexicon matching with `üre`/`üreme`
+  and `sarı tebeşir`/`sarı tebeşirlik` as near-miss negative controls. It also re-runs the
+  fake-clock latency proof with a real lane and 200 in-turn crisis scans (0.0 virtual ms) against
+  the same positive control. `tests/protocols/test_lexicon.py` holds the content gate: five
+  families, zero terms, and a compiler that refuses every `draft_needs_source` one.
+  Invariants 12, 14, 15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-115
+  and the audio-buffer and consent-withdrawal issues.
 
 ## `clinical-content` — packs, rules and safety strings
 
