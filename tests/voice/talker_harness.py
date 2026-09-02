@@ -208,6 +208,46 @@ class RecordingSink:
 
 
 @dataclass
+class RecordingScreen:
+    """The ``typed`` egress stand-in: the data channel, as a list.
+
+    It has no ``cancel`` because :class:`~intake_voice_runtime.ports.
+    ScreenSink` has none, and it charges no virtual time because a data-channel
+    write is not playback — which is the one honest difference the latency
+    harness sees between the two profiles.
+    """
+
+    rendered: list[tuple[str, str]] = field(default_factory=list)
+
+    async def render(self, text_tr: str, *, label: str = "") -> None:
+        self.rendered.append((label, text_tr))
+
+    @property
+    def texts(self) -> list[str]:
+        return [text for _, text in self.rendered]
+
+
+@dataclass
+class RefusingSink:
+    """An audio sink that fails the run if anything reaches it.
+
+    Used to prove the kill switch structurally: bind it to a voice session,
+    pull the switch, and drive on. A recording double could only show that
+    nothing *was* played; this one shows that nothing *could* be.
+    """
+
+    touched: list[str] = field(default_factory=list)
+
+    async def play(self, frames: bytes, *, label: str = "") -> None:
+        self.touched.append(f"play:{label}")
+        raise AssertionError(f"agent audio left a typed session (label={label!r})")
+
+    async def cancel(self) -> None:
+        self.touched.append("cancel")
+        raise AssertionError("a typed session cancelled audio playback")
+
+
+@dataclass
 class RecordedClipStore:
     """The clip cache stand-in: deterministic synthetic agent speech."""
 
@@ -265,13 +305,21 @@ def build_session(
     catalogue: ClipCatalogue | None = None,
     clip_store: RecordedClipStore | None = None,
     synthesizer: RecordingSynthesizer | None = None,
-    sink: RecordingSink | None = None,
+    sink: Any = None,
     memory: InMemoryPatientMemory | None = None,
     rule_ids: frozenset[str] = frozenset(),
+    profile: VoiceProfile = VoiceProfile.RESIDENCY_TR,
+    screen: RecordingScreen | None = None,
 ) -> TalkerSession:
     """One fully wired Talker over doubles — the same shape
-    ``intake_voice_runtime.composition.build_residency_tr_session`` builds for
-    real (INT-095), with every port replaced by a recorded double."""
+    ``intake_voice_runtime.composition`` builds for real (INT-095), with every
+    port replaced by a recorded double.
+
+    ``profile`` selects the transport and *only* the transport (INT-096): a
+    typed session is handed a screen and none of the four speech ports, and
+    every other argument means the same thing on both. A voice session is
+    given a screen too, because it is a kill-switch target.
+    """
     engine = FakeEngine(steps)
     backend = backend or StalledBackend(clock=clock, stall_s=10.0)
     if isinstance(backend, StalledBackend) and backend.engine is None:
@@ -279,21 +327,23 @@ def build_session(
         # them together here keeps the double from re-offering a step it has
         # already been told was spoken.
         backend.engine = engine
+    speaks = profile is not VoiceProfile.TYPED
     return TalkerSession(
         config=TalkerConfig(
             session_id="11111111-2222-4333-8444-555555555555",
-            voice_id=VOICE_ID,
-            profile=VoiceProfile.RESIDENCY_TR,
+            voice_id=VOICE_ID if speaks else None,
+            profile=profile,
             protocol_hash="a" * 64,
             rule_ids=rule_ids,
             deadlines=DeliveryDeadlines(triage_yellow=YELLOW_DEADLINES),
         ),
         engine=engine,
         backend=backend,
-        catalogue=catalogue or ClipCatalogue.empty(VOICE_ID),
-        clip_store=clip_store or RecordedClipStore(),
-        synthesizer=synthesizer or RecordingSynthesizer(),
-        sink=sink or RecordingSink(clock=clock),
+        catalogue=(catalogue or ClipCatalogue.empty(VOICE_ID)) if speaks else None,
+        clip_store=(clip_store or RecordedClipStore()) if speaks else None,
+        synthesizer=(synthesizer or RecordingSynthesizer()) if speaks else None,
+        sink=(sink or RecordingSink(clock=clock)) if speaks else None,
+        screen=screen or RecordingScreen(),
         memory=memory or InMemoryPatientMemory(),
         clock=clock,
     )

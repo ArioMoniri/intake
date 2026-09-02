@@ -42,7 +42,7 @@ def test_ids_unique_and_well_formed() -> None:
     # option-based where it should ask openly) + INT-295 (the INT-293
     # walkthrough found the in-hospital checkpoint control drawn off the
     # screen). Grow this count only with a stated reason.
-    assert len(ids) == 219
+    assert len(ids) == 227
     import re
 
     for i in ids:

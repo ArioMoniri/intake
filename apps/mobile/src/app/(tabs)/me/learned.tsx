@@ -3,30 +3,56 @@
  * durable fact the system holds about the patient appears here with where it
  * came from; nothing is learned silently (00 principles, files/09 §3).
  *
- * INT-247 fills the shell with what the app is actually holding today — the
- * facts carried out of earlier visits, each with its provenance and the day
- * it was recorded. Whether one of them is still TRUE is a question about a
- * visit, not about the ledger, so it is answered in that visit's review step
- * (invariant 12); this screen says where, rather than offering a second,
- * competing place to answer it. Editing and deleting a learned fact are the
- * DSAR-backed operations of INT-140, on the store this screen will read.
+ * INT-247 filled the shell with the facts this device carries out of earlier
+ * visits. INT-140 makes the screen the thing files/09 §3 actually asks for:
+ * the ledger reads the patient's own overlay through `/v1/me/learned`
+ * (INT-170), each fact keeps its provenance, its share scope is per field,
+ * and deleting one deletes it — from the record when the record holds it,
+ * from this phone when this phone does.
+ *
+ * What the screen still does NOT do, and why: it does not answer the
+ * twelve-month re-confirmation question. Answering needs the origin and the
+ * observed instant of the candidate behind a fact, which the ledger does not
+ * hold; minting either would be minting a provenance (invariant 12). Whether
+ * a fact is still TRUE is a question about a visit, so it stays in that
+ * visit's review step and the ledger says so.
  */
+import { useEffect } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
-import { CarriedFactLedger } from "@/components/CarriedFacts";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
+import { LearnedLedger } from "@/components/LearnedLedger";
 import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
 import { t } from "@/lib/i18n";
+import {
+  forgetFact,
+  loadLearnedLedger,
+  seedLearnedLedger,
+  setFactShared,
+  useLearnedLedger,
+} from "@/lib/learned/store";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 
 export default function Learned() {
   const { account } = useSession();
-  const facts = account?.carriedFacts ?? [];
+  const { facts, unsaved } = useLearnedLedger();
+  const tabBarClearance = useTabBarClearance();
+  const accountId = account?.id ?? null;
+  const carried = account?.carriedFacts;
+
+  useEffect(() => {
+    if (accountId === null) {
+      return;
+    }
+    seedLearnedLedger(accountId, carried ?? []);
+    void loadLearnedLedger();
+  }, [accountId, carried]);
+
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("me.learned")}
         </AppText>
@@ -42,11 +68,16 @@ export default function Learned() {
             {facts.length === 0 ? t("me.learnedEmpty") : t("carried.ledger.body")}
           </AppText>
         </Card>
-        {facts.length === 0 ? null : (
-          <Card>
-            <CarriedFactLedger facts={facts} />
-          </Card>
-        )}
+        <LearnedLedger
+          facts={facts}
+          onShare={(id, shared) => void setFactShared(id, shared)}
+          onForget={(id) => void forgetFact(id)}
+        />
+        {unsaved ? (
+          <AppText role="caption" color="inkSoft">
+            {t("learned.unsaved")}
+          </AppText>
+        ) : null}
       </ScrollView>
     </Screen>
   );
