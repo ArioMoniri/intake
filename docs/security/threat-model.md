@@ -554,7 +554,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** `instrument.licence_status` and `instrument.administrations_total` (named in
   §9) land with INT-116.
 - **Tests:** `instrument_licence_gate` (inv. 45) lands with INT-116 and the protocol
-  compiler (INT-040).
+  compiler (INT-040). The [Dd] clause — a screening output reaching a surface that did
+  not ask for it — is held on the patient summary by INT-085:
+  `tests/engine/test_patient_summary.py::TestWellbeingSignalsCannotReachTheSummary`,
+  which asserts the note's fields are *partitioned* rather than filtered, so a scored
+  note and an unscored one build the same summary.
 
 ## `observer-lanes` — read-only paralinguistic lanes
 

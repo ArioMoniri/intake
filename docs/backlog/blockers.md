@@ -43,4 +43,21 @@ This is not INT-254's content to fix and it does not block the work, which is co
 Neither blocks this issue: the mechanism ships, the enum is closed, and both choices are recorded in `docs/evidence/INT-084.md`.
 | INT-208 | deferred (merge ordering, not a blocker) | coordinator | `int-200-health-connectors` carries device-local Apple Health / Health Connect and is nine source conflicts behind main, including `apps/mobile/src/lib/intake/note.ts` and its tests — which INT-084's note composer is rewriting right now. Resolving those conflicts against a file being rewritten would produce a merge nobody can review. Package it AFTER INT-084 lands, then re-resolve from the new note shape. Branch is intact at `13feef7`; nothing is lost. |
 
+## INT-085 — one patient-facing decision the summary refused to take
+
+**Raised:** 2 Sep 2026 · **Named human:** physician of record
+
+**HB-C16 — may a RED patient keep a patient summary?** INT-085 refused to render one.
+Invariant 21 makes RED three axes (route × register × location) with its script
+pre-positioned on the device and triggered over the data channel; a card set is none of
+those three, and a RED sentence whose register is decided by page layout is the default
+the invariant forbids. So `SUMMARY_TRIAGE_LEVELS` is `(GREEN, YELLOW)`, there is no
+`patient_summary.triage_message.red` key, and `build_patient_summary` raises.
+
+**The one sentence the physician of record must answer:** should a patient whose session
+produced a RED still see the "Anlattıklarınız" card set, and if so under which register?
+
+It does not block: the RED patient still gets the RED script over the channel that has a
+register, and reversing the decision is one catalogue key plus one deleted raise. Recorded
+because it is a product decision taken inside an engineering issue.
 | — | resolved (no action) | coordinator | **Branch names do not identify their issue.** `int-200-health-connectors` carries INT-208 (done, merged 28 Aug as PR #239) and `int-201-design-pass5` carries INT-209 (done, PrepGauge and mobile-ui.md verified present on main). Both branch names point at *unrelated* todo issues — INT-200 is the residency compose profile, INT-201 is k8s. Squash-merged branches stay ahead of `main` by reachability forever, so a commit count proves nothing. **Check the issue the branch's evidence file names, not the number in the branch name**, and confirm content presence on main before treating a branch as unmerged. Sending an agent to "rescue" INT-208 cost about an hour. |
