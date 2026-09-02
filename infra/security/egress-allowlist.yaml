@@ -1,22 +1,36 @@
 # INT-018 — vendor egress allow-list (files/10 §4; CLAUDE.md invariants 14 & 19).
 #
-# This file is DATA, not code: `intake_platform.egress` loads and validates it,
-# and the deployed proxy tier (INT-203) will consume the same file. Default
-# deny — a host absent from the active tier is unreachable. Globs match only
-# when an entry says `glob: true`, and only in the leading "*.label" form.
+# This file is DATA, not code, and it is the ONLY source both enforcement
+# points read: `intake_platform.egress` loads and validates it in process, and
+# `scripts/security/render_egress_proxy_conf.py` renders it into the dev
+# forward proxy's squid.conf (infra/docker-compose.egress.yml, profile
+# `egress`). One CI test fails when the rendered config is stale; another
+# decides a table of hosts through both paths, so the two cannot drift.
+# Default deny — a host absent from the active tier is unreachable. Globs
+# match only when an entry says `glob: true`, and only in the leading
+# "*.label" form.
+#
+# `purpose_id` is a closed vocabulary (intake_platform.egress.EgressPurpose),
+# not prose: a caller declares the purpose it is calling for, and an
+# allow-listed host addressed for a different purpose is refused as firmly as
+# an unlisted one. The prose `purpose:` line stays as the human and KVKK
+# statement of the same thing, and `basis:` as the lawful basis.
 #
 # Every change here is a security-relevant change: files/10 §4 makes the list
 # tier-2 configuration, files/10 §5 pages on egress-allow-list changes, and
-# the file is hook-protected (07 §3.8) so it changes only deliberately.
+# the file is hook-protected (07 §3.8) so it changes only deliberately. The
+# `purpose_id` column was added under ADR-025.
 version: 1
 tiers:
   # Dev/build tooling: package and model registries. None of these ever sees
-  # personal data — phi_allowed stays false on every row, enforced by test.
+  # personal data — phi_allowed stays false on every row, enforced by test,
+  # which is also what refuses a PHI-classed call to any of them.
   dev:
     - name: pytorch-wheel-index
       host: download.pytorch.org
       port: 443
       protocol: https
+      purpose_id: package_registry
       purpose: CPU torch wheels for the deid NER tier (uv index, pyproject)
       phi_allowed: false
       basis: no-personal-data; public package registry pull
@@ -24,6 +38,7 @@ tiers:
       host: pypi.org
       port: 443
       protocol: https
+      purpose_id: package_registry
       purpose: Python package index metadata (uv/pip resolution)
       phi_allowed: false
       basis: no-personal-data; public package registry pull
@@ -31,6 +46,7 @@ tiers:
       host: files.pythonhosted.org
       port: 443
       protocol: https
+      purpose_id: package_registry
       purpose: Python package artefact downloads
       phi_allowed: false
       basis: no-personal-data; public package registry pull
@@ -38,6 +54,7 @@ tiers:
       host: registry.npmjs.org
       port: 443
       protocol: https
+      purpose_id: package_registry
       purpose: Node package downloads (pnpm workspaces)
       phi_allowed: false
       basis: no-personal-data; public package registry pull
@@ -45,6 +62,7 @@ tiers:
       host: github.com
       port: 443
       protocol: https
+      purpose_id: source_control
       purpose: git fetch/push of this repository
       phi_allowed: false
       basis: no-personal-data; source code only (invariant 6 keeps PHI out of the repo)
@@ -52,6 +70,7 @@ tiers:
       host: objects.githubusercontent.com
       port: 443
       protocol: https
+      purpose_id: source_control
       purpose: GitHub release/LFS artefact downloads
       phi_allowed: false
       basis: no-personal-data; build artefact pull
@@ -59,6 +78,7 @@ tiers:
       host: api.github.com
       port: 443
       protocol: https
+      purpose_id: issue_tracking
       purpose: gh CLI (issues/PR sync per LOOP.md)
       phi_allowed: false
       basis: no-personal-data; issue metadata only
@@ -66,6 +86,7 @@ tiers:
       host: huggingface.co
       port: 443
       protocol: https
+      purpose_id: model_weights
       purpose: model weight pulls, pinned by model_id@revision + sha256 (invariant 14)
       phi_allowed: false
       basis: no-personal-data; open-weights model pull (invariant 19)
@@ -73,6 +94,7 @@ tiers:
       host: cdn-lfs.huggingface.co
       port: 443
       protocol: https
+      purpose_id: model_weights
       purpose: model weight LFS payloads for huggingface-hub pulls
       phi_allowed: false
       basis: no-personal-data; open-weights model pull (invariant 19)
@@ -81,6 +103,7 @@ tiers:
       glob: true
       port: 443
       protocol: https
+      purpose_id: model_weights
       purpose: regional LFS CDN (cdn-lfs-*.hf.co) for huggingface-hub pulls
       phi_allowed: false
       basis: no-personal-data; open-weights model pull (invariant 19)
@@ -89,8 +112,12 @@ tiers:
   # 07 §F: "no external model or speech vendor on the list at all"): every
   # model and service that touches clinical data runs inside our boundary, so
   # there is NO vendor host a PHI-path service may reach and this list stays
-  # empty. Adding a row here requires a phi_exception_approval naming a
-  # recorded human decision AND INTAKE_ALLOW_PHI_EGRESS=explicit-yes at
-  # runtime — and never one of the anthropic/openai/google API hosts, which
-  # assert_dev_only_vendors() refuses outright.
+  # empty. infra/docker-compose.egress.yml says the same thing in the only
+  # language Docker enforces — the `phi` network is `internal: true` and the
+  # proxy is not attached to it, so an empty tier is a topology fact rather
+  # than a promise. Adding a row here requires a phi_exception_approval
+  # naming a recorded human decision AND INTAKE_ALLOW_PHI_EGRESS=explicit-yes
+  # at runtime AND a deliberate change to that topology — and never one of the
+  # anthropic/openai/google API hosts, which assert_dev_only_vendors()
+  # refuses outright.
   phi_path: []

@@ -56,8 +56,61 @@ export const KEEP_TAIL_MS = 15;
 /** Raised-cosine fade on each trimmed edge, so a cut cannot click. */
 export const FADE_MS = 8;
 
-/** Gap inserted between sentences — the break the daemon cannot express. */
-export const SENTENCE_GAP_MS = 280;
+/**
+ * Gap inserted between the agent's own sentences — the break the daemon
+ * cannot express.
+ *
+ * INT-291 lowered this from INT-237's 280 ms. files/03 §4.2 mandates
+ * `min_silence_duration >= 250 ms` for end-of-turn detection, so a pause
+ * INSIDE the agent's turn that exceeds 250 ms is, by the runtime's own
+ * definition, indistinguishable from the agent having finished. With barge-in
+ * armed (bargeIn.ts) that is not a cosmetic point: it invites the patient into
+ * the middle of a two-sentence question. 200 ms is under that floor and still
+ * well above the daemon's fixed 120 ms clause gap, which is what INT-237
+ * needed the number for in the first place.
+ */
+export const SENTENCE_GAP_MS = 200;
+
+/**
+ * Silence appended after the agent's LAST sentence, before the turn is the
+ * patient's.
+ *
+ * This is the contour, and it is the whole of what "no emotions" is
+ * addressable as at this seam. INT-237 trimmed every edge to a flat 15 ms, so
+ * the agent stopped identically at a sentence boundary and at the end of its
+ * own turn — the single most machine-like property of the delivery, because a
+ * person does neither. Above the 250 ms end-of-turn floor for exactly the
+ * reason SENTENCE_GAP_MS is below it: here, "the turn ended" is what the agent
+ * means.
+ *
+ * It costs no interaction latency. The microphone is already open through the
+ * whole clip (bargeIn.ts), so the patient can answer into this silence.
+ */
+export const TURN_YIELD_TAIL_MS = 300;
+
+/**
+ * The shortest text this seam will send as one TTS request, in non-space
+ * characters.
+ *
+ * MEASURED, docs/evidence/INT-291.md, 2 Sep 2026, Freya lane
+ * (`freyavoice/Freya-TTS` @ d124e07, normalizer disabled), synthesise ->
+ * transcribe with the independent ASR daemon: every request under 13
+ * non-space characters came back carrying a token nobody authored —
+ * `"Tutun."` -> *"Tutun, atun."*, `"Arayın."` -> *"Arayın, arayın."*,
+ * `"Bakmayın."` -> *"Bakmayın, ha!"*, `"Onaylayın."` -> *"Onaylayın, hı!"*,
+ * 4 of 4. The shortest fragment that round-tripped clean was 13.
+ *
+ * That is not a prosody defect. A model that invents a word breaks CLAUDE.md
+ * invariant 10 at the acoustic layer: the patient does not hear the string the
+ * protocol authored. And the strings this bites are the shortest in the
+ * product — the RED action imperatives, where invariant 21 says ambiguity is
+ * the harm.
+ *
+ * INT-237 split at EVERY sentence boundary, which is how a safety script
+ * became three sub-floor requests. `shapeForDelivery` keeps that split
+ * wherever both sides clear the floor, and merges where they do not.
+ */
+export const MIN_CHUNK_CHARS = 13;
 
 export interface SpeechChunk {
   /** Exact substring of the whitespace-collapsed input. */
@@ -227,8 +280,9 @@ export function encodeWav(clip: PcmClip): Uint8Array {
   return out;
 }
 
-/** First and last sample index whose analysis frame is above the floor. */
-function speechBounds(samples: Int16Array, sampleRate: number): [number, number] {
+/** First and last sample index whose analysis frame is above the floor, or
+ * null when the whole clip is under it. */
+function speechBounds(samples: Int16Array, sampleRate: number): [number, number] | null {
   const hop = Math.max(1, Math.round((sampleRate * ANALYSIS_FRAME_MS) / 1000));
   const frames = Math.floor(samples.length / hop);
   const floor = Math.pow(10, SILENCE_FLOOR_DBFS / 20) * 32768;
@@ -247,7 +301,7 @@ function speechBounds(samples: Int16Array, sampleRate: number): [number, number]
     }
   }
   if (first < 0) {
-    return [0, samples.length]; // all quiet: leave it alone
+    return null; // all quiet: leave it alone
   }
   return [first, Math.min(last, samples.length)];
 }
@@ -258,12 +312,25 @@ function speechBounds(samples: Int16Array, sampleRate: number): [number, number]
  */
 export function trimAndFade(clip: PcmClip): PcmClip {
   const { samples, sampleRate } = clip;
-  const [rawStart, rawEnd] = speechBounds(samples, sampleRate);
+  const bounds = speechBounds(samples, sampleRate);
+  if (bounds === null) {
+    return { sampleRate, samples: samples.slice() };
+  }
+  const [rawStart, rawEnd] = bounds;
   const head = Math.round((sampleRate * KEEP_HEAD_MS) / 1000);
   const tail = Math.round((sampleRate * KEEP_TAIL_MS) / 1000);
   const start = Math.max(0, rawStart - head);
   const end = Math.min(samples.length, rawEnd + tail);
-  const out = samples.slice(start, end);
+  // INT-291: a clip that arrives with LESS lead than KEEP_HEAD_MS is PADDED,
+  // not shaved. Measured (docs/evidence/INT-291.md) the VoxCPM2 lane returned
+  // zero leading silence on 6 of 14 probes; trimming to a 15 ms head and then
+  // fading 8 ms in put the fade on the first phoneme rather than on silence.
+  // Padding puts the fade on silence this function inserted, so the fade can
+  // never eat speech regardless of what the lane sent.
+  const padHead = Math.max(0, head - (rawStart - start));
+  const padTail = Math.max(0, tail - (end - rawEnd));
+  const out = new Int16Array(padHead + (end - start) + padTail);
+  out.set(samples.slice(start, end), padHead);
 
   const fade = Math.round((sampleRate * FADE_MS) / 1000);
   if (fade > 0 && out.length > fade * 2) {
@@ -292,9 +359,11 @@ export function joinClips(parts: PcmClip[], gapsMs: number[]): PcmClip {
     }
   }
 
-  const gapSamples = parts.map((_, i) =>
-    i === parts.length - 1 ? 0 : Math.round((sampleRate * (gapsMs[i] ?? 0)) / 1000),
-  );
+  // INT-291: the LAST gap is honoured too, because it is no longer a discard.
+  // `shapeForDelivery` puts the turn-yield tail there, and a caller that means
+  // "nothing after the last part" passes 0 — which is what INT-237's callers
+  // already did.
+  const gapSamples = parts.map((_, i) => Math.round((sampleRate * (gapsMs[i] ?? 0)) / 1000));
   const total =
     parts.reduce((n, p) => n + p.samples.length, 0) + gapSamples.reduce((n, g) => n + g, 0);
 
@@ -311,4 +380,64 @@ export function joinClips(parts: PcmClip[], gapsMs: number[]): PcmClip {
 export function assembleClip(parts: Uint8Array[], gapsMs: number[]): Uint8Array {
   const clips = parts.map((bytes) => trimAndFade(parseWav(bytes)));
   return encodeWav(joinClips(clips, gapsMs));
+}
+
+// ---------------------------------------------------------------------------
+// The delivery stage (INT-291). `shapeForSpeech` answers "where are the
+// sentence boundaries"; this answers "what may I actually send to a TTS, and
+// how does the turn end". The two are separate because the floor below is a
+// property of the LANE, measured on it, not a property of Turkish sentences —
+// and `shapeForSpeech`'s invariant-10 pin over the whole catalog must keep
+// testing the splitter on its own terms.
+// ---------------------------------------------------------------------------
+
+/** Non-space characters, which is what the lane's failure sorted on. */
+function weight(text: string): number {
+  return text.replace(/\s+/gu, "").length;
+}
+
+/**
+ * Sentence chunks, merged up to `MIN_CHUNK_CHARS` and carrying the turn
+ * contour. This is what the clip path sends.
+ *
+ * INVARIANT 10 is preserved through the merge, not weakened by it: chunks are
+ * joined with the single space that already separated them in the
+ * whitespace-collapsed input, so every `text` is still an exact substring of
+ * that input, the chunks are still in order, and they still cover it
+ * completely. Merging can only make a chunk longer; it can never make one that
+ * is not in the source.
+ */
+export function shapeForDelivery(text: string): SpeechChunk[] {
+  const sentences = shapeForSpeech(text);
+  if (sentences.length === 0) {
+    return [];
+  }
+
+  // Accumulate forward until the running chunk clears the floor.
+  const merged: string[] = [];
+  let pending = "";
+  for (const sentence of sentences) {
+    pending = pending === "" ? sentence.text : `${pending} ${sentence.text}`;
+    if (weight(pending) >= MIN_CHUNK_CHARS) {
+      merged.push(pending);
+      pending = "";
+    }
+  }
+  if (pending !== "") {
+    // A short tail merges BACKWARDS. There is nothing after it to grow into,
+    // and sending it alone is the defect the floor exists for. When it is the
+    // only chunk there is nothing to merge with either — the honest limit:
+    // this stage may not pad a short turn with words nobody authored.
+    if (merged.length === 0) {
+      merged.push(pending);
+    } else {
+      merged[merged.length - 1] = `${merged[merged.length - 1]} ${pending}`;
+    }
+  }
+
+  return merged.map((chunkText, index) => ({
+    text: chunkText,
+    spoken: TERMINALS.includes(chunkText[chunkText.length - 1]) ? chunkText : `${chunkText}.`,
+    gapMs: index === merged.length - 1 ? TURN_YIELD_TAIL_MS : SENTENCE_GAP_MS,
+  }));
 }

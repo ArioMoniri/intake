@@ -1,0 +1,91 @@
+# INT-018 — the forward egress proxy, files/10 §4 ("egress proxy with an
+# allow-list — only contracted vendors are reachable from the PHI path").
+#
+#   docker compose -f infra/docker-compose.egress.yml --profile egress up -d
+#   (or `make egress`)
+#
+# ── Its own file, on purpose ────────────────────────────────────────────────
+# infra/docker-compose.dev.yml is the hottest shared file in the repo; INT-202,
+# INT-175 and INT-205 each took their own file and asserted the dev tier stays
+# untouched. The service here is gated behind the `egress` profile, so
+# composing this file in changes nothing about `make dev`.
+#
+# ── The config is GENERATED, and that is the point ──────────────────────────
+# infra/security/squid/squid.conf is rendered from
+# infra/security/egress-allowlist.yaml by
+# scripts/security/render_egress_proxy_conf.py (`make egress-conf`). The same
+# file is what `intake_platform.egress` enforces in process. Two enforcement
+# points, one list: tests/infra/test_egress_proxy.py fails when the render is
+# stale, and decides a table of hosts through both so their semantics cannot
+# drift. Editing the rendered file by hand is the failure this arrangement
+# exists to make impossible to miss.
+#
+# ── The PHI network has no route out at all ─────────────────────────────────
+# 00_STATE D11 and CLAUDE.md invariant 19: the PHI path is self-hosted end to
+# end, so the `phi_path` tier of the allow-list is empty. The honest topology
+# for an empty tier is not "PHI services may reach the proxy for a short list"
+# — it is that they cannot reach anything. `phi` is `internal: true` and the
+# proxy is deliberately NOT attached to it. `build` carries the dev and build
+# tooling that legitimately pulls packages and open weights; only the proxy
+# straddles `build` and `egress`, and only over the allow-list.
+#
+# ── Not booted here ─────────────────────────────────────────────────────────
+# HB-I1 (free 80–100 GB of disk) and HB-I2 (the security + observability tiers
+# need 22 GB) are both open, so this tier is validated statically by
+# tests/infra/test_egress_proxy.py rather than exercised. A tier trimmed until
+# it booted on a laptop would be a different control wearing this one's name.
+#
+# ── Licence (invariant 19; raw COPYING blob read 2026-08-29) ────────────────
+#   squid 6.6   GPL-2.0-**or-later**. The COPYING blob at tag SQUID_6_6
+#               (commit e8118a7381213f5cfcdeb4cec1d2d854bfd261c8, 339 lines,
+#               sha256 8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643)
+#               is the bare GPLv2 text with no "or later" in it; the "+" comes
+#               from the per-file headers ("Squid software is distributed under
+#               GPLv2+ license"). Reading only the blob would have recorded
+#               GPL-2.0-only, which is the laundered-claim shape files/03
+#               §4.9.0 rule 3 warns about — in the direction that understates
+#               our rights rather than overstating them. Recorded in
+#               observability/registry.yaml.
+name: intake-egress
+
+services:
+  egress-proxy:
+    # Canonical's squid build on the 24.04 LTS base. Tag-pinned: `latest` and
+    # `edge` are moving targets and this container is a security boundary.
+    image: ubuntu/squid:6.6-24.04_edge
+    profiles: ["egress"]
+    # Read-only, and the config cannot be edited from inside the container.
+    volumes:
+      - ./security/squid/squid.conf:/etc/squid/squid.conf:ro
+    ports:
+      # Loopback only, like every other published port in this repo.
+      - "127.0.0.1:3128:3128"
+    networks:
+      # NOT `phi` — see the topology note above.
+      - build
+      - egress
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # `squid -k check` returns 0 only while a squid process is running; it
+      # needs no shell, no curl and no credential.
+      test: ["CMD", "squid", "-k", "check"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+networks:
+  # Services that touch clinical data. No gateway, no proxy, no route out —
+  # `internal: true` is the only statement Docker actually enforces, and it is
+  # what makes the empty `phi_path` tier a fact rather than a promise.
+  phi:
+    internal: true
+  # Dev and build tooling: package pulls, open-weights pulls, git. Reaches the
+  # outside world only by asking the proxy, which answers only for the
+  # allow-list.
+  build:
+    internal: true
+  # The one network with a route off the host, and the proxy is the only thing
+  # on it.
+  egress: {}

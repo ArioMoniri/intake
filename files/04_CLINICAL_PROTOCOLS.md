@@ -184,6 +184,7 @@ Gate: `third_party_disclosure_response` (`10 §9.1`, inv. 26). The speaker embed
     "medications": [{"name":"","atc":"","dose":"","adherence":"","source":"","reconciliation":"matches|new|stopped|conflict"}],
     "allergies": [{"substance":"","reaction":"","severity":""}],
     "family_social": {"family":[], "smoking":{}, "alcohol":{}, "occupation":"", "living_situation":""},
+    "measurements": [{"code":"height|weight","magnitude":0,"unit":""}],
     "screening": {"phq2":null,"gad2":null,"phq9":null,"gad7":null,"cssrs":null,
                   "provenance":{"administration_mode":"voice|typed|keypad","proxy_reported":false,"third_party_present":false,"qualifier_tr":""}},
     "konusma_ozellikleri": {"speech_rate_syll_s":0,"pause_ratio":0,"f0_mean_hz":0,"f0_sd_hz":0,"response_latency_ms_mean":0,
@@ -195,6 +196,8 @@ Gate: `third_party_disclosure_response` (`10 §9.1`, inv. 26). The speaker embed
   "PatientSummary": {"cards":[{"title_tr":"","lines":[]}], "questions_for_doctor":[], "bring_list":[], "triage_message_tr":""}
 }
 ```
+
+> **One schema change, 2 Sep 2026 (INT-084).** `PreVisitNote` gains **`measurements`**, a sibling of `family_social`: an array of self-reported anthropometry `{code, magnitude, unit}` with `code` ∈ {`height`,`weight`}. It exists because the sketch had **no anthropometry key at all** while `02 §2` promises vitals entry in Detaylı, so INT-282 was forced to render height and weight into a *mobile-only* section id rather than invent an 04 §5 key — a value the patient entered that no renderer, PDF or FHIR bundle could carry. Three deliberate limits. **(a)** It is not called `vitals`: the measured vitals of `02 §2` — nabız `174_TC`, KB `173_TC`/`354_TC`, solunum `49_TC` — are the rows INT-282 asserted **by name** are never asked of a patient, and a field with that name invites a patient-typed blood pressure to sit in a clinician note beside clinic-measured ones. **(b)** The pain score is **not** here: `hpi.oldcarts.severity_nrs` already exists and is where a 0–10 self-report belongs. **(c)** `magnitude` is an exact decimal and `unit` is the unit the patient's control was labelled with, never converted (invariant 22); the renderers bind number to unit with a non-breaking space and never group. **Whether a patient-entered *measured* vital may appear in a clinician note at all is a clinical-safety decision and is NOT taken here — HUMAN_BLOCKERS.md HB-C14.**
 
 > **Two schema changes, 25 Aug 2026.** `screening.affect_summary` is **deleted**, not renamed: an interpretive sentence about the patient's emotional state rendered to a clinician is the device function (`03 §4.7.1`, `06 §0.3`). In its place, `screening.provenance` carries the factual qualifiers, and **`konusma_ozellikleri` is a sibling of `screening`, deliberately not a child of it** — the objective speech measures must not be filed under a heading that implies a screening result. Every measure ships with a population reference range and a recording-condition caveat, or it is not rendered. There is **no** field anywhere in `PreVisitNote` for the `acoustic` module's output; that output goes to the sealed research store (`03 §4.7.4`).
 

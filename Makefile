@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor ci-policy
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim live-smoke
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -52,7 +52,7 @@ check-py:
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run pytest tests/voice --cov=packages/voice-clips/src --cov-branch --cov-fail-under=95 -q -o addopts=""
-	uv run pytest tests/voice tests/engine tests/ai --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
 
@@ -63,7 +63,7 @@ check-py:
 safety:
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run python scripts/safety/triage_mutation_report.py
-	uv run pytest tests/voice tests/engine tests/ai --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 
 check-ts:
 	pnpm -r lint
@@ -194,6 +194,37 @@ backlog-render:
 voice-doctor:
 	uv run python scripts/dev/voice_doctor.py $(if $(HOST),--host $(HOST),)
 
+# INT-094: the fake-clock latency harness (files/03 §7). Runs one RT scenario
+# against the composed runtime on the shared virtual clock and prints the
+# per-turn server-side cost beside what files/02 §8.1 publishes as the budget
+# for that profile and network profile. SCENARIO and PROFILE are required and
+# have no defaults: a scenario is written for particular profiles and picking
+# one for the caller is how a run silently reports the wrong thing.
+#
+# It calls nothing. `MEASURE=1` adds an opt-in, dev-only timing of a real
+# synthesis on the local TTS ladder — a measurement of that bridge on that day,
+# never a property of the product (CLAUDE.md invariant 20).
+runtime-sim:
+	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1]"; exit 2; }
+	uv run python scripts/voice/runtime_sim.py --scenario $(SCENARIO) --profile $(PROFILE) \
+	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,)
+
+# INT-095: one REAL residency_tr turn against the self-hosted lanes, timed per
+# term. PROFILE is required and has no default; `typed` is refused (it has no
+# speech lane to smoke). All three endpoints come from the environment and none
+# is guessed — INTAKE_ASR_ENDPOINT, INTAKE_TTS_ENDPOINT,
+# INTAKE_EXTRACTION_ENDPOINT — and a recorded lane is refused outright, because
+# the acceptance closes on on-hardware evidence and never on laptop mocks.
+#
+# What it prints is a measurement of one bridge on one day against a named
+# synthetic corpus. It is never a property of the product and never an NFR
+# (CLAUDE.md invariant 20). The acceptance asks for the TARGET GPU; HB-I4 and
+# HB-I5 are open, so `--target` records what was actually run against.
+live-smoke:
+	@test -n "$(PROFILE)" || { echo "usage: make live-smoke PROFILE=residency_tr [TARGET=<host>]"; exit 2; }
+	uv run python scripts/voice/live_smoke.py --profile $(PROFILE) \
+	  $(if $(TARGET),--target $(TARGET),) $(if $(VOICE),--voice $(VOICE),)
+
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache
 
@@ -321,6 +352,22 @@ siem:
 siem-down:
 	scripts/security/siem_up.sh --down
 
+# INT-018: the forward egress proxy. `egress-conf` re-renders squid.conf from
+# infra/security/egress-allowlist.yaml — the allow-list is the only file anyone
+# edits, and tests/infra/test_egress_proxy.py fails when the render is stale.
+.PHONY: egress egress-down egress-conf egress-conf-check
+
+egress-conf:
+	uv run python scripts/security/render_egress_proxy_conf.py
+
+egress-conf-check:
+	uv run python scripts/security/render_egress_proxy_conf.py --check
+
+egress:
+	docker compose -f infra/docker-compose.egress.yml --profile egress up -d --wait
+
+egress-down:
+	docker compose -f infra/docker-compose.egress.yml --profile egress down
 # INT-016: the daily audit-chain verification job (files/10 §3 schedules it
 # daily). The anchored head is an INPUT, never a default: without it the
 # command exits 3 rather than reporting a chain that merely agrees with itself
