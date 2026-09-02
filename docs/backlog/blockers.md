@@ -26,4 +26,12 @@ CLAUDE.md, Clinical content rules: *"Any change under `packages/protocols/**` re
 
 This is not INT-254's content to fix and it does not block the work, which is complete and green. It blocks only the *merge decision*, and it is recorded here because the requirement is currently unenforceable repo-wide rather than just on this PR. Related: the same PR found that `make check-golden` and `make security` are named in CLAUDE.md and absent from the Makefile, and that of the invariant-14 scanner set only gitleaks and semgrep run — as pre-commit hooks, not in `ci.yml`.
 
+## INT-084 — two note-schema decisions the composer refused to take
+
+**Raised:** 2 Sep 2026 · **Named human:** physician of record / note-schema owner
+
+1. **HB-C14 — may a patient-entered *measured* vital appear in the clinician note, and under which field?** INT-084 added `PreVisitNote.measurements` for the anthropometry the intake surface actually collects (height, weight) because `04 §5` had no key for it at all and INT-282 was forced to render those values into a mobile-only section. It stopped there: `02 §2` promises "vitals entry" in Detaylı while INT-282 asserted by name that pulse, blood pressure and respiration are clinician-measured rows a patient is never asked. `MeasureCode` has exactly two members and widening it is the decision.
+2. **HB-C15 — confirm or overturn the note's definition of "missing".** The engine counts a `must_ask` step whose gate is TRUE *or UNKNOWN* as obliged; mobile keeps gate-TRUE only. INT-084 took the engine's definition (`NoteGapReason.UNRESOLVED_PRECONDITION` exists) because under-reporting what is absent is the dangerous direction on a checkpointed note. Live the moment INT-096 puts compiled packs behind both surfaces.
+
+Neither blocks this issue: the mechanism ships, the enum is closed, and both choices are recorded in `docs/evidence/INT-084.md`.
 | INT-208 | deferred (merge ordering, not a blocker) | coordinator | `int-200-health-connectors` carries device-local Apple Health / Health Connect and is nine source conflicts behind main, including `apps/mobile/src/lib/intake/note.ts` and its tests — which INT-084's note composer is rewriting right now. Resolving those conflicts against a file being rewritten would produce a merge nobody can review. Package it AFTER INT-084 lands, then re-resolve from the new note shape. Branch is intact at `13feef7`; nothing is lost. |
