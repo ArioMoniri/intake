@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**217 issues.** By phase: P0 127 · P1 48 · P2 37 · P3 5. By status: awaiting-human 5 · doing 5 · done 101 · todo 105 · withdrawn 1.
+**217 issues.** By phase: P0 127 · P1 48 · P2 37 · P3 5. By status: awaiting-human 6 · doing 5 · done 101 · todo 104 · withdrawn 1.
 
 ## P0
 
@@ -143,7 +143,7 @@
 
 | id | title | epic | depends on | labels | status |
 |---|---|---|---|---|---|
-| INT-095 | Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke | E05-voice | INT-094, INT-018 | area:voice, approval:human-infra, gpu | todo |
+| INT-095 | Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke | E05-voice | INT-094, INT-018 | area:voice, approval:human-infra, gpu | awaiting-human |
 | INT-099 | Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI | E05-voice | INT-095 | area:voice | todo |
 | INT-100 | Vendor failover + circuit breakers + typed fallback <=2s + chaos test | E05-voice | INT-095, INT-024 | area:voice | todo |
 | INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | todo |
