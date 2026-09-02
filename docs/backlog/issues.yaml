@@ -1452,7 +1452,17 @@
   title: "Me: consents, connectors, language, security, export/delete, learned facts"
   depends_on: [INT-037, INT-170]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Two of the three obligations in the
+  # acceptance line are delivered and evidenced: the erasure flow (file,
+  # grace, withdraw, tracker) and the learned-fact ledger (provenance,
+  # per-field share scope, delete). The third is not: the export ANSWER is
+  # not delivered in the app, because issuing it marks the KVKK m.13
+  # obligation completed and there is nothing to answer with until the fixed
+  # strings in docs/legal/ exist (INT-210). The client deliberately never
+  # calls GET /v1/me/dsar/export/{id} and a test asserts the absence.
+  # Reopen against INT-210; see docs/evidence/INT-140.md §"What is not met".
   status: todo
+  evidence: docs/evidence/INT-140.md
   acceptance:
     - "export/delete flows wired to DSAR; learned facts editable/deletable with provenance"
   tests: [apps/mobile/e2e/me.spec.ts]
@@ -2836,6 +2846,28 @@
     measurements on a named corpus with a date, never as a quality claim'
   tests:
   - tests/observability/test_probe_registry.py
+- id: INT-244
+  epic: E00-governance
+  phase: P0
+  title: 'Name the physician of record in the clinical blocker ledger, and record
+    what a name does and does not unlock'
+  depends_on: []
+  labels:
+  - area:governance
+  status: done
+  acceptance:
+  - 'the clinical sign-off section addressed an anonymous role, so eleven open rows
+    had no addressee: the owner names the physician of record and every row whose
+    who column read physician of record or clinician is addressed to him, while the
+    same edit records that he is a signing clinician rather than a repository user
+    (the signature is the recorded sign-off fields, attributable in the repository,
+    not a code review, and the signer needs no account), that most of the rows are
+    authorship rather than signature so naming the signer produces no content, that
+    the paediatric row still needs a paediatrician unless he holds that specialty,
+    and that the sign-off block stays empty until there is content to sign and the
+    remaining fields are supplied'
+  tests:
+  - tests/backlog/test_schema.py
 - id: INT-254
   epic: E03-protocols
   phase: P0
@@ -3345,3 +3377,254 @@
   - apps/mobile/src/lib/dialogue/speechShaping.test.ts
   - apps/mobile/e2e/bargeIn.spec.ts
   sec_row: "intake-voice"
+- id: INT-296
+  epic: E01-platform
+  phase: P0
+  # Owner directive, verbatim: "the user can use turkish or other langugae have
+  # a subagent also working on that or addding it as issue or roadmap section".
+  # Filed as a set rather than one issue, because "another language" is not one
+  # change: it reaches the DSL, the guard, the note's attribution, the model
+  # pins, the legal texts and the clinical sign-off, and each of those has a
+  # different owner. This issue is the only one of the six that can be built
+  # without a human first supplying content, so it is the one that goes first.
+  # Turkish is NOT demoted: invariant 5 is unchanged, `tr` stays the source of
+  # truth and the default, and every other locale is additive and fails closed.
+  title: 'Session locale: one language per session, chosen rather than detected,
+    and a resource layer that refuses an incomplete one'
+  depends_on: []
+  labels:
+  - area:platform
+  - area:i18n
+  status: todo
+  acceptance:
+  - 'a session carries exactly one locale, fixed at the start and changed only
+    by an explicit act: the locale is a session field rather than a per-string
+    lookup, so no turn can be assembled from two languages, and the value is
+    recorded on the session so the note, the audit entry and every metric label
+    agree on which language the patient was actually asked in'
+  - 'the language is chosen by the patient, never inferred from speech: a
+    detector that is wrong delivers a red-flag script in a language the patient
+    cannot read, and a failed escalation is the one failure this product may not
+    have - so detection may at most OFFER a switch the patient confirms, and the
+    offer is unreachable while a red-flag script is in flight'
+  - 'a locale is offered only when it is complete, and completeness is a build
+    property rather than a runtime hope: the `tr` lint generalises to every
+    ENABLED locale (invariant 5 unchanged - `tr` remains required and remains
+    the source of truth), a key missing from an enabled locale fails the build,
+    and a locale that is not complete is simply absent from the chooser rather
+    than falling back'
+  - 'there is no per-string fallback, and a test asserts its absence over the
+    whole tree: a sentence half in Arabic and half in Turkish is worse than a
+    sentence in Turkish, and a fallback chain is how that happens - so the
+    resolver has no fallback parameter, takes no default, and raises on a miss'
+  - 'the chooser offers a locale only when the pack that will be served carries
+    signed content for it: an enabled locale with a complete UI catalogue but no
+    clinician-signed clinical text may render the app and may not run an intake,
+    and the two conditions are separate fields rather than one flag'
+  - 'no locale is enabled by this issue except `tr`: the mechanism ships with
+    exactly one locale registered and the registry empty of others, because
+    which languages to support is a product decision (HB-O5) and what they say
+    is a clinical one (HB-C19) - the gate is wired, fails closed, and the
+    content is left empty'
+  tests:
+  - tests/platform/test_session_locale.py
+  - apps/mobile/src/lib/i18n/locale.test.ts
+  sec_row: "intake-typed"
+- id: INT-297
+  epic: E03-protocols
+  phase: P1
+  title: 'The DSL''s `*_tr` fields become per-locale maps, mechanically and with
+    `tr` still required'
+  depends_on:
+  - INT-296
+  labels:
+  - area:protocols
+  - area:i18n
+  status: todo
+  acceptance:
+  - '`text_tr`, `ask_tr`, `follow_up_tr`, `choices_tr` and `why_tr` become maps
+    keyed by locale, with `tr` required by the schema so no pack can lose its
+    Turkish, and the compiler rejects a pack whose `tr` entry is absent exactly
+    as it rejects a missing field today'
+  - 'the migration is mechanical and reversible: every one of the packs under
+    `packages/protocols/**` is rewritten by a script committed alongside, the
+    script is idempotent, and a test compiles the pre-migration and
+    post-migration trees to byte-identical served bundles for `tr` - a migration
+    that changes what Turkish patients hear is a content change wearing a
+    refactor''s clothes'
+  - 'invariant 10 is restated per locale rather than weakened: scripted
+    questions, red-flag action scripts and validated instruments are spoken
+    verbatim from the locale''s own entry, `allow_paraphrase` is per locale, and
+    a locale whose entry is absent cannot be selected for that pack'
+  - 'the clip manifest and `make clips` key on (locale, voice) so a Turkish clip
+    can never be served for another locale''s string, and the manifest test
+    fails on a collision rather than preferring one'
+  - 'the golden tests gain a near-miss negative control for the migration
+    itself: a pack whose `tr` entry was dropped, and one whose locale map has a
+    key the schema does not know, both fail'
+  tests:
+  - tests/protocols/test_locale_maps.py
+  - tests/protocols/test_migration_is_identity_for_tr.py
+  sec_row: "protocol-registry"
+- id: INT-298
+  epic: E04-engines
+  phase: P0
+  title: 'PolicyGuard refuses a locale it has no signed lexicon for, at the type
+    level'
+  depends_on:
+  - INT-296
+  labels:
+  - area:engine
+  - area:safety
+  - area:i18n
+  status: todo
+  acceptance:
+  - 'the guard is constructed per locale and cannot be constructed without a
+    signed lexicon for it: invariant 2''s content - the diagnosis, treatment and
+    prognosis vocabulary, the B1 bound, the one-question-per-turn rule and the
+    `siz` register with its `-in` and `-iniz` split - is Turkish and transfers
+    to no other language, so a guard that ran its Turkish lexicon over Arabic
+    text would report clean on anything'
+  - 'the refusal is type-level rather than a runtime check: there is no
+    constructor that takes a locale and no lexicon, so unguarded patient text in
+    an unsigned locale is unrepresentable rather than merely untested - asserted
+    against the module''s own parsed source, because a permissive constructor
+    merely unused today is called tomorrow'
+  - 'the lexicon carries the same sign-off shape the packs use - a named
+    reviewer, a licence number, a specialty, a signed commit and a date - and an
+    unsigned lexicon compiles to nothing rather than to an empty term list,
+    because an empty list reads as "checked, nothing found"'
+  - 'no lexicon is authored by this issue: only `tr` ships signed, every other
+    locale is absent, and authoring one is a clinical task recorded as HB-C19'
+  tests:
+  - tests/engines/test_policyguard_locale.py
+  sec_row: "clinical-core"
+- id: INT-299
+  epic: E04-engines
+  phase: P0
+  title: 'A translated answer is not the patient''s words: the note gains a
+    `translated` attribution class and keeps the original verbatim'
+  depends_on:
+  - INT-296
+  - INT-084
+  labels:
+  - area:engine
+  - area:clinical
+  - area:i18n
+  status: todo
+  acceptance:
+  - 'the clinician reads Turkish and the patient may not have spoken it, so a
+    line built from a translated answer carries `translated` rather than
+    `hasta beyanı`: printing the clinician''s phrase for a direct patient
+    statement over a machine translation attributes to the patient a sentence
+    they did not say'
+  - 'the original is retained verbatim beside the rendering, with its source
+    locale, and is reachable from the clinician surface: the translation is the
+    convenience and the original is the record, not the other way round'
+  - 'the translator is identified the way a model is: name, `model_id@revision`
+    and `sha256`, recorded on the line, so a note can be read against the
+    translator that produced it - and a line whose translator cannot be
+    identified raises rather than rendering unattributed'
+  - 'INT-085''s patient summary refuses a translated line whose original the
+    patient can no longer see, because a summary that shows a patient a machine
+    version of their own words with no way back to them is worse than showing
+    nothing'
+  - 'the attribution vocabulary gains exactly one member and the addition is
+    closed: a test walks the enum and asserts the set, so a later locale cannot
+    quietly introduce a second translated-ish class'
+  tests:
+  - tests/engines/test_note_translated_attribution.py
+  sec_row: "notes"
+- id: INT-300
+  epic: E05-voice
+  phase: P1
+  title: 'A locale without pinned, licence-verified speech models is text-only,
+    and a locale without a number expander cannot speak a numeral at all'
+  depends_on:
+  - INT-296
+  - INT-297
+  labels:
+  - area:voice
+  - area:i18n
+  status: todo
+  acceptance:
+  - 'the voice profile is per locale and inherits invariant 19 unchanged: ASR
+    and TTS for a locale are open-weights, commercially usable and verified from
+    the raw LICENSE blob with `licence_verified_at`, and a locale without both
+    pinned resolves to `typed` rather than to a Turkish voice'
+  - 'invariant 22 is per locale: the compiler''s expansion of digits, units,
+    dose forms and drug names to orthography is Turkish, so a locale without its
+    own expander may not emit a numeral to any TTS model - the expander''s
+    absence makes numeric strings unspeakable rather than spoken wrongly, and a
+    test plants a numeral in an expander-less locale and asserts the refusal'
+  - 'no model is added by this issue: `residency_tr` and `typed` remain the only
+    profiles (invariant 19), the registry gains the per-locale shape and no
+    rows, and choosing a second language''s models is HB-O5 followed by the
+    licence work HB-I10/HB-I11 already describe for Turkish'
+  tests:
+  - tests/voice/test_locale_profile.py
+  - tests/protocols/test_number_expansion_locale.py
+  sec_row: "voice-runtime"
+- id: INT-301
+  epic: E08-mobile
+  phase: P1
+  title: 'Language choice at first run and inside a visit, the switch that does
+    not lose the session, and right-to-left'
+  depends_on:
+  - INT-296
+  labels:
+  - area:mobile
+  - area:a11y
+  - area:i18n
+  status: todo
+  acceptance:
+  - 'the chooser lists only locales the registry reports complete AND signed for
+    the pack in play, shows each language in its own name and script, and is
+    reachable both at first run and from the Me screen without ending a visit in
+    progress'
+  - 'switching mid-visit re-renders the surface and does NOT re-ask what has
+    been answered: answers are values, not strings, so a switch changes the
+    presentation and keeps the session - and a switch while a red-flag script is
+    in flight is refused with the same explicit refusal barge-in uses'
+  - 'right-to-left is a layout property rather than a per-screen fix: the shared
+    anatomy from the five design passes is direction-aware, and the enlarged
+    text steps hold in both directions - the defect INT-295 found at the DEFAULT
+    text size is the reason this is asserted rather than assumed'
+  - 'no locale is added to the chooser by this issue: with only `tr` registered
+    the chooser is absent rather than a one-item list, because a chooser with
+    one choice teaches a patient the feature does not work'
+  tests:
+  - apps/mobile/src/lib/i18n/chooser.test.ts
+  - apps/mobile/e2e/locale.spec.ts
+  sec_row: "mobile"
+- id: INT-302
+  epic: E14-legal
+  phase: P0
+  title: 'Which language binds: the legal status of a translated aydınlatma
+    metni, and what the app may show when they differ'
+  depends_on:
+  - INT-296
+  - INT-210
+  labels:
+  - area:legal
+  - area:i18n
+  - approval:human-legal
+  status: todo
+  acceptance:
+  - 'the mechanism records, per legal document and per locale, whether that
+    rendering is the BINDING text or an informational translation of a binding
+    Turkish original - and the hash binding invariant 18 requires is per
+    (document, locale) so a translation cannot inherit the original''s hash'
+  - 'an informational translation is shown with the binding original reachable
+    in the same view, never instead of it, and consent is recorded against the
+    binding document''s hash whichever rendering the patient read'
+  - 'a locale with no legal rendering at all cannot reach a consent step:
+    `device_functions` and every consented purpose fail closed for it, exactly
+    as they do today for a tenant with no CE certificate'
+  - 'no legal text is authored or translated by this issue: `docs/legal/` gains
+    the per-locale shape and no new content, because whether a Turkish original
+    remains binding for a patient who read Arabic is counsel''s answer and is
+    recorded as HB-L23'
+  tests:
+  - tests/legal/test_locale_binding.py
+  sec_row: "consent"
