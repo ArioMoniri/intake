@@ -788,6 +788,10 @@
             "type": "integer"
           },
           {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "type": "string"
+          },
+          {
             "type": "number"
           },
           {
