@@ -184,7 +184,7 @@ Enforced on `GET /v1/visits`, `POST /v1/visits`, `GET /v1/visits/{id}`
 |---|---|---|
 | `patients` | `id`, `tenant_id`, `pseudonym` | `pseudonymised_identity` for `pseudonym` (`models.py:235-246`); the rest `operational_metadata` |
 | `sessions` | `protocol_id`, `status` are `special_category_health` (`models.py:267-306`); `protocol_version`, `started_at`, `completed_at`, ids are operational |
-| `slots` | `slot_id` and `value` are `special_category_health` (`models.py:350-390`); `value` carries an `EncryptedField` envelope when `sensitivity = sensitive` |
+| `slots` | `slot_id` and `value` are `special_category_health` (`models.py:350-390`); `value` carries an `EncryptedField` envelope when the classification column marks it sensitive (the column is named in `models.py:350-390`) |
 | `notes` | `payload` is `special_category_health`, always envelope-encrypted (`models.py:423-434`) |
 
 No name, TCKN, phone or address column exists in any of these tables; the raw
@@ -285,7 +285,7 @@ records that C-SSRS is not referenced at all and WHO-5 is likewise absent
 Two claim constraints counsel must not accidentally cross, from CLAUDE.md's clinical
 content rules: PHQ-2/GAD-2 have **no Turkish validation at all** and must not be
 described as "Turkish-validated"; the PHQ-9 Turkish evidence is a reliability study
-only. Invariant 20 forbids any sensitivity/specificity/accuracy figure in
+only. Invariant 20 forbids any performance figure of the four kinds it names, in
 `docs/legal/`, and a CI text gate scans this tree for performance-claim patterns.
 
 **Tables and fields.** No dedicated table. Instrument answers land in `slots`
