@@ -2886,7 +2886,7 @@
   title: "Counsel factual annex for INT-210: what the software actually does"
   depends_on: []
   labels: [area:legal, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "docs/legal/COUNSEL_BRIEF.md states every fact with the file and line it came from, so the Turkish consent texts are drafted against the code rather than a description written from memory"
     - "it contains NO aydinlatma metni, NO acik riza wording, NO privacy policy and NO terms - drafting patient-facing Turkish copy is INT-210 and is human legal work"
