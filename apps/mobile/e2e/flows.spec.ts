@@ -48,14 +48,22 @@ describe("typed intake fixtures (one question per screen)", () => {
 describe("department packs (INT-194): the intake is branch-aware", () => {
   it("cardiology/internal medicine gets onset, character, radiation, trigger, associated, severity", () => {
     const ids = packForDepartment("Kardiyoloji").map((q) => q.id);
+    // INT-239: the answer-gated follow-ups live in the same pack; which of
+    // them a patient meets is decided by their answers, not by this list.
     expect(ids).toEqual([
       "complaint",
       "duration",
+      "onset_today_when",
+      "duration_course",
       "onset",
       "pain_character",
       "radiation",
+      "radiation_side",
+      "breath_timing",
+      "breath_lying",
       "trigger",
       "associated",
+      "cardio_palpitation",
       "severity",
       "extra",
     ]);
@@ -129,14 +137,27 @@ describe("note builder + reducer (pure)", () => {
     { questionId: "extra", values: ["Merdiven çıkarken artıyor."] },
   ];
 
-  it("builds the standardized brief: chief complaint → HPI → medications", () => {
+  it("builds the standardized brief: chief complaint → HPI → carried history", () => {
     const sections = buildNote(answered, ayse);
-    expect(sections.map((s) => s.id)).toEqual(["chief_complaint", "hpi", "medications"]);
+    // INT-256: Ayşe carries an allergy as well as a medication, and each
+    // files under its own files/04 §5 section — never one list of both.
+    expect(sections.map((s) => s.id)).toEqual([
+      "chief_complaint",
+      "hpi",
+      "medications",
+      "allergies",
+    ]);
     const hpi = sections.find((s) => s.id === "hpi")!;
     expect(hpi.lines[0]).toMatch(/^Süre: /);
     expect(hpi.lines[1]).toMatch(/^Hasta notu: Merdiven/);
     const meds = sections.find((s) => s.id === "medications")!;
     expect(meds.lines.join(" ")).toContain("Metoprolol");
+    // INT-247: carried out of the earlier visit and not answered for this
+    // one, so it prints as unconfirmed — never as a current medication.
+    expect(meds.lines.join(" ")).toContain("bu ziyarette onaylanmadı");
+    const allergies = sections.find((s) => s.id === "allergies")!;
+    expect(allergies.lines.join(" ")).toContain("Penisilin");
+    expect(allergies.lines.join(" ")).toContain("bu ziyarette onaylanmadı");
   });
 
   it("resume: saving answers keeps progress in state", () => {
@@ -162,7 +183,7 @@ describe("note builder + reducer (pure)", () => {
   it("scope-off never blocks send (02 §5.1: sending is the patient's call)", () => {
     let state = emptyNoteState();
     state = noteReducer(state, { type: "answer", questionId: "complaint", values: ["pain"] });
-    for (const id of ["chief_complaint", "hpi", "medications"]) {
+    for (const id of ["chief_complaint", "hpi", "medications", "allergies"]) {
       state = noteReducer(state, { type: "scope", sectionId: id, shared: false });
     }
     state = noteReducer(state, { type: "send" });

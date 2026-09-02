@@ -1,0 +1,200 @@
+# INTAKE branch taxonomy — the source of truth named by files/09 §1
+# ("packages/protocols/taxonomy/branches.yaml, seeded from the MHRS branch
+# registry"). Every branch below is copied from the files/09 §1 cluster
+# table, never invented; the nine clusters are that table's nine rows.
+#
+# verify_live_list (HB-A11): the seed derives from the MoH statement of
+# 26 Nov 2025 ("79 registered branches", Memişoğlu via Anadolu Ajansı) as
+# transcribed in files/09 §1; the live MHRS/SKRS clinic list is synced at
+# onboarding and on each release. The flag stays `true` until the owner
+# confirms the live list from an e-Devlet/MHRS login — an unbooked branch is
+# a silently unrouted patient. Confirming HB-A11 is what removes the flag.
+#
+# Expansion notes (documented, not invented):
+# - Slash-joined items in the files/09 §1 table are seeded as their
+#   separately bookable clinics: "Diyabet / Obezite / Sigara Bırakma / Uyku /
+#   Yaşlı Sağlığı poliklinikleri" (medical row; hospital-specific clinics per
+#   the §1 lead-in) and "AMATEM/ÇEMATEM" (mental_health row).
+# - The child_health row's yan dal shorthand "(Kardiyoloji, Nöroloji, …)"
+#   expands to the booked "Çocuk …" branch names; the live sync corrects any
+#   naming drift (verify_live_list above).
+# - Parenthetical visit annotations become visit_types: "Anesteziyoloji
+#   (preop polikliniği)" → [preop]; "Sağlık Kurulu (rapor)" and "Adli Tıp
+#   (rapor)" → [report]. "Nükleer Tıp (konsültasyon)" is a naming note in
+#   files/09 §1, not a visit-type restriction.
+# - Visit types are orthogonal to branch (files/09 §1), so every other
+#   branch carries the full ten-value set (&all_visit_types below).
+# - Acil Tıp (cluster `excluded`) books no pre-visit intake at all — RED
+#   routing only (files/09 §1; files/12 §1 `cluster.excluded`) — so it
+#   carries no visit types and its cluster binds no intake pack.
+#
+# Resolution (files/03 §6, files/09 §1-2; CLAUDE.md invariant 13): a branch
+# serves its own L1+ pack `specialty.<branch_id>` when one exists, else its
+# cluster's pack below — a real, reviewed protocol, not a fallback. L0 packs
+# are never served; no patient ever runs on bare base.intake.
+
+verify_live_list: true
+
+clusters:
+  # files/09 §1 "Clusters (9)" — ids verbatim from the table's first column.
+  - {id: medical, pack: cluster.medical}
+  - {id: surgical, pack: cluster.surgical}
+  - {id: sensory, pack: cluster.sensory}
+  - {id: womens_health, pack: cluster.womens_health}
+  - {id: child_health, pack: cluster.child_health}
+  - {id: mental_health, pack: cluster.mental_health}
+  - {id: dental, pack: cluster.dental}
+  - {id: allied_and_reports, pack: cluster.allied_and_reports}
+  # "Acil Tıp (pre-visit intake is never used for emergencies; RED routing
+  # only)" — no intake pack exists or may exist for this cluster.
+  - {id: excluded, intake: false}
+
+# files/09 §1: "Visit types (orthogonal to branch): first, followup, preop,
+# report (sağlık kurulu), pregnancy_followup, chronic_review, post_discharge,
+# screening, second_opinion, teleconsult."
+_all_visit_types: &all_visit_types
+  - first
+  - followup
+  - preop
+  - report
+  - pregnancy_followup
+  - chronic_review
+  - post_discharge
+  - screening
+  - second_opinion
+  - teleconsult
+
+branches:
+  # ------------------------------------------------------------------
+  # cluster: medical — files/09 §1 row 1
+  # ------------------------------------------------------------------
+  - {id: ic_hastaliklari, name_tr: "İç Hastalıkları", cluster: medical, visit_types: *all_visit_types}
+  - {id: endokrinoloji_ve_metabolizma, name_tr: "Endokrinoloji ve Metabolizma", cluster: medical, visit_types: *all_visit_types}
+  - {id: gastroenteroloji, name_tr: "Gastroenteroloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: nefroloji, name_tr: "Nefroloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: romatoloji, name_tr: "Romatoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: hematoloji, name_tr: "Hematoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: tibbi_onkoloji, name_tr: "Tıbbi Onkoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: geriatri, name_tr: "Geriatri", cluster: medical, visit_types: *all_visit_types}
+  - {id: immunoloji_ve_alerji, name_tr: "İmmünoloji ve Alerji", cluster: medical, visit_types: *all_visit_types}
+  - {id: gogus_hastaliklari, name_tr: "Göğüs Hastalıkları", cluster: medical, visit_types: *all_visit_types}
+  - {id: kardiyoloji, name_tr: "Kardiyoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: noroloji, name_tr: "Nöroloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: enfeksiyon_hastaliklari, name_tr: "Enfeksiyon Hastalıkları", cluster: medical, visit_types: *all_visit_types}
+  - {id: deri_ve_zuhrevi_hastaliklari, name_tr: "Deri ve Zührevi Hastalıkları", cluster: medical, visit_types: *all_visit_types}
+  - {id: fiziksel_tip_ve_rehabilitasyon, name_tr: "Fiziksel Tıp ve Rehabilitasyon", cluster: medical, visit_types: *all_visit_types}
+  - {id: aile_hekimligi, name_tr: "Aile Hekimliği", cluster: medical, visit_types: *all_visit_types}
+  - {id: tibbi_genetik, name_tr: "Tıbbi Genetik", cluster: medical, visit_types: *all_visit_types}
+  # "Nükleer Tıp (konsültasyon)" — files/09 §1 medical row.
+  - {id: nukleer_tip, name_tr: "Nükleer Tıp", cluster: medical, visit_types: *all_visit_types}
+  - {id: radyasyon_onkolojisi, name_tr: "Radyasyon Onkolojisi", cluster: medical, visit_types: *all_visit_types}
+  - {id: algoloji, name_tr: "Algoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: klinik_norofizyoloji, name_tr: "Klinik Nörofizyoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: spor_hekimligi, name_tr: "Spor Hekimliği", cluster: medical, visit_types: *all_visit_types}
+  - {id: sualti_ve_hiperbarik_tip, name_tr: "Sualtı ve Hiperbarik Tıp", cluster: medical, visit_types: *all_visit_types}
+  - {id: hava_ve_uzay_hekimligi, name_tr: "Hava ve Uzay Hekimliği", cluster: medical, visit_types: *all_visit_types}
+  - {id: tibbi_ekoloji_ve_hidroklimatoloji, name_tr: "Tıbbi Ekoloji ve Hidroklimatoloji", cluster: medical, visit_types: *all_visit_types}
+  - {id: is_ve_meslek_hastaliklari, name_tr: "İş ve Meslek Hastalıkları", cluster: medical, visit_types: *all_visit_types}
+  - {id: halk_sagligi, name_tr: "Halk Sağlığı", cluster: medical, visit_types: *all_visit_types}
+  - {id: getat, name_tr: "GETAT", cluster: medical, visit_types: *all_visit_types}
+  # "Diyabet / Obezite / Sigara Bırakma / Uyku / Yaşlı Sağlığı poliklinikleri"
+  # — the hospital-specific clinics of the files/09 §1 medical row.
+  - {id: diyabet_poliklinigi, name_tr: "Diyabet polikliniği", cluster: medical, visit_types: *all_visit_types}
+  - {id: obezite_poliklinigi, name_tr: "Obezite polikliniği", cluster: medical, visit_types: *all_visit_types}
+  - {id: sigara_birakma_poliklinigi, name_tr: "Sigara Bırakma polikliniği", cluster: medical, visit_types: *all_visit_types}
+  - {id: uyku_poliklinigi, name_tr: "Uyku polikliniği", cluster: medical, visit_types: *all_visit_types}
+  - {id: yasli_sagligi_poliklinigi, name_tr: "Yaşlı Sağlığı polikliniği", cluster: medical, visit_types: *all_visit_types}
+
+  # ------------------------------------------------------------------
+  # cluster: surgical — files/09 §1 row 2
+  # ------------------------------------------------------------------
+  - {id: genel_cerrahi, name_tr: "Genel Cerrahi", cluster: surgical, visit_types: *all_visit_types}
+  - {id: gastroenteroloji_cerrahisi, name_tr: "Gastroenteroloji Cerrahisi", cluster: surgical, visit_types: *all_visit_types}
+  - {id: cerrahi_onkoloji, name_tr: "Cerrahi Onkoloji", cluster: surgical, visit_types: *all_visit_types}
+  - {id: beyin_ve_sinir_cerrahisi, name_tr: "Beyin ve Sinir Cerrahisi", cluster: surgical, visit_types: *all_visit_types}
+  - {id: kalp_ve_damar_cerrahisi, name_tr: "Kalp ve Damar Cerrahisi", cluster: surgical, visit_types: *all_visit_types}
+  - {id: gogus_cerrahisi, name_tr: "Göğüs Cerrahisi", cluster: surgical, visit_types: *all_visit_types}
+  - {id: ortopedi_ve_travmatoloji, name_tr: "Ortopedi ve Travmatoloji", cluster: surgical, visit_types: *all_visit_types}
+  - {id: el_cerrahisi, name_tr: "El Cerrahisi", cluster: surgical, visit_types: *all_visit_types}
+  - {id: uroloji, name_tr: "Üroloji", cluster: surgical, visit_types: *all_visit_types}
+  - {id: plastik_rekonstruktif_ve_estetik_cerrahi, name_tr: "Plastik, Rekonstrüktif ve Estetik Cerrahi", cluster: surgical, visit_types: *all_visit_types}
+  # "Anesteziyoloji (preop polikliniği)" — preop is the visit it books.
+  - {id: anesteziyoloji, name_tr: "Anesteziyoloji", cluster: surgical, visit_types: [preop]}
+
+  # ------------------------------------------------------------------
+  # cluster: sensory — files/09 §1 row 3
+  # ------------------------------------------------------------------
+  - {id: goz_hastaliklari, name_tr: "Göz Hastalıkları", cluster: sensory, visit_types: *all_visit_types}
+  - {id: kulak_burun_bogaz_hastaliklari, name_tr: "Kulak Burun Boğaz Hastalıkları", cluster: sensory, visit_types: *all_visit_types}
+  - {id: odyoloji, name_tr: "Odyoloji", cluster: sensory, visit_types: *all_visit_types}
+
+  # ------------------------------------------------------------------
+  # cluster: womens_health — files/09 §1 row 4
+  # ------------------------------------------------------------------
+  - {id: kadin_hastaliklari_ve_dogum, name_tr: "Kadın Hastalıkları ve Doğum", cluster: womens_health, visit_types: *all_visit_types}
+  - {id: perinatoloji, name_tr: "Perinatoloji", cluster: womens_health, visit_types: *all_visit_types}
+  - {id: jinekolojik_onkoloji, name_tr: "Jinekolojik Onkoloji", cluster: womens_health, visit_types: *all_visit_types}
+  - {id: ureme_endokrinolojisi_ve_infertilite, name_tr: "Üreme Endokrinolojisi ve İnfertilite", cluster: womens_health, visit_types: *all_visit_types}
+  - {id: gebe_poliklinigi, name_tr: "Gebe polikliniği", cluster: womens_health, visit_types: *all_visit_types}
+
+  # ------------------------------------------------------------------
+  # cluster: child_health — files/09 §1 row 5 (yan dal shorthand expanded)
+  # ------------------------------------------------------------------
+  - {id: cocuk_sagligi_ve_hastaliklari, name_tr: "Çocuk Sağlığı ve Hastalıkları", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_kardiyolojisi, name_tr: "Çocuk Kardiyolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_norolojisi, name_tr: "Çocuk Nörolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_endokrinolojisi, name_tr: "Çocuk Endokrinolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_gastroenterolojisi, name_tr: "Çocuk Gastroenterolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_hematolojisi_ve_onkolojisi, name_tr: "Çocuk Hematolojisi ve Onkolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_enfeksiyon_hastaliklari, name_tr: "Çocuk Enfeksiyon Hastalıkları", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_immunolojisi_ve_alerjisi, name_tr: "Çocuk İmmünolojisi ve Alerjisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_nefrolojisi, name_tr: "Çocuk Nefrolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_romatolojisi, name_tr: "Çocuk Romatolojisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_gogus_hastaliklari, name_tr: "Çocuk Göğüs Hastalıkları", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_metabolizma_hastaliklari, name_tr: "Çocuk Metabolizma Hastalıkları", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_genetik_hastaliklari, name_tr: "Çocuk Genetik Hastalıkları", cluster: child_health, visit_types: *all_visit_types}
+  - {id: neonatoloji, name_tr: "Neonatoloji", cluster: child_health, visit_types: *all_visit_types}
+  - {id: gelisimsel_pediatri, name_tr: "Gelişimsel Pediatri", cluster: child_health, visit_types: *all_visit_types}
+  - {id: sosyal_pediatri, name_tr: "Sosyal Pediatri", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_cerrahisi, name_tr: "Çocuk Cerrahisi", cluster: child_health, visit_types: *all_visit_types}
+  - {id: cocuk_urolojisi, name_tr: "Çocuk Ürolojisi", cluster: child_health, visit_types: *all_visit_types}
+
+  # ------------------------------------------------------------------
+  # cluster: mental_health — files/09 §1 row 6 (AMATEM/ÇEMATEM expanded)
+  # ------------------------------------------------------------------
+  - {id: ruh_sagligi_ve_hastaliklari, name_tr: "Ruh Sağlığı ve Hastalıkları", cluster: mental_health, visit_types: *all_visit_types}
+  - {id: cocuk_ve_ergen_ruh_sagligi, name_tr: "Çocuk ve Ergen Ruh Sağlığı", cluster: mental_health, visit_types: *all_visit_types}
+  - {id: amatem, name_tr: "AMATEM", cluster: mental_health, visit_types: *all_visit_types}
+  - {id: cematem, name_tr: "ÇEMATEM", cluster: mental_health, visit_types: *all_visit_types}
+  - {id: klinik_psikoloji_poliklinigi, name_tr: "Klinik Psikoloji polikliniği", cluster: mental_health, visit_types: *all_visit_types}
+
+  # ------------------------------------------------------------------
+  # cluster: dental — files/09 §1 row 7 (names verbatim as booked)
+  # ------------------------------------------------------------------
+  - {id: agiz_dis_ve_cene_cerrahisi, name_tr: "Ağız, Diş ve Çene Cerrahisi", cluster: dental, visit_types: *all_visit_types}
+  - {id: dis_hekimligi, name_tr: "Diş Hekimliği", cluster: dental, visit_types: *all_visit_types}
+  - {id: ortodonti, name_tr: "Ortodonti", cluster: dental, visit_types: *all_visit_types}
+  - {id: periodontoloji, name_tr: "Periodontoloji", cluster: dental, visit_types: *all_visit_types}
+  - {id: endodonti, name_tr: "Endodonti", cluster: dental, visit_types: *all_visit_types}
+  - {id: pedodonti, name_tr: "Pedodonti", cluster: dental, visit_types: *all_visit_types}
+  - {id: protetik, name_tr: "Protetik", cluster: dental, visit_types: *all_visit_types}
+  - {id: restoratif, name_tr: "Restoratif", cluster: dental, visit_types: *all_visit_types}
+  - {id: agiz_dis_cene_radyolojisi, name_tr: "Ağız-Diş-Çene Radyolojisi", cluster: dental, visit_types: *all_visit_types}
+
+  # ------------------------------------------------------------------
+  # cluster: allied_and_reports — files/09 §1 row 8
+  # ------------------------------------------------------------------
+  # "Sağlık Kurulu (rapor)" — the report visit is what it books.
+  - {id: saglik_kurulu, name_tr: "Sağlık Kurulu", cluster: allied_and_reports, visit_types: [report]}
+  - {id: beslenme_ve_diyet, name_tr: "Beslenme ve Diyet", cluster: allied_and_reports, visit_types: *all_visit_types}
+  - {id: fizyoterapi, name_tr: "Fizyoterapi", cluster: allied_and_reports, visit_types: *all_visit_types}
+  - {id: hemsirelik_egitim_poliklinikleri, name_tr: "Hemşirelik/eğitim poliklinikleri", cluster: allied_and_reports, visit_types: *all_visit_types}
+  - {id: asi, name_tr: "Aşı", cluster: allied_and_reports, visit_types: *all_visit_types}
+  - {id: evde_saglik, name_tr: "Evde Sağlık", cluster: allied_and_reports, visit_types: *all_visit_types}
+  # "Adli Tıp (rapor)"
+  - {id: adli_tip, name_tr: "Adli Tıp", cluster: allied_and_reports, visit_types: [report]}
+
+  # ------------------------------------------------------------------
+  # cluster: excluded — files/09 §1 row 9 (RED routing only, no intake)
+  # ------------------------------------------------------------------
+  - {id: acil_tip, name_tr: "Acil Tıp", cluster: excluded, visit_types: []}

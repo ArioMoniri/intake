@@ -1,0 +1,86 @@
+# SENTETİK TEST VERİSİ — INT-040 golden fixture (valid child pack).
+# Extends base.synthetic; adds a slot and a rule; tightens an inherited rule
+# via the only permitted mechanism (files/12 §4 layer 2: tighten_rule mints a
+# NEW id and its `when` is a syntactic disjunction containing the parent).
+kind: pack
+id: specialty.synthetic_dal
+layer: specialty
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik uzmanlık paketi"
+extends: base.synthetic
+applies_when:
+  department: [SENTETIK_DAL]
+visit_types: [first, followup]
+sections:
+  dal_bolumu:
+    slots:
+      ek_soru:
+        type: boolean
+        required: true
+        ask_tr: "Örnek dal sorusu: ek belirti var mı?"
+        follow_up_tr: "Evet ya da hayır diyebilir misiniz?"
+red_flags:
+  - id: rf.synthetic_dal_sari
+    label_tr: "Sentetik dal sarı kuralı"
+    when: "ek_soru == true"
+    tense: today
+    tense_anchor: olay_zamani
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    register: CALM
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: SYN-GUIDE-B
+      guideline_title: "Sentetik kılavuz B"
+      version_or_date: "sürüm iki"
+      url: "https://example.invalid/syn-guide-b"
+      retrieved_on: 2026-08-28
+      quote: "dal paketi sentetik alıntısı"
+overlays:
+  - id: overlay.synthetic_ek
+    when: "records.synthetic_fact == true"
+ops:
+  - op: tighten_rule
+    parent_rule_id: rf.synthetic_kirmizi
+    rule:
+      id: rf.synthetic_kirmizi.genis
+      label_tr: "Sentetik kırmızı kural — genişletilmiş"
+      when: >-
+        (renk_tercihi == 'kirmizi' || bekleme_suresi_asildi == true)
+        || ek_soru == true
+      tense: now
+      tense_anchor: olay_zamani
+      level: KIRMIZI_K2
+      route: EMERGENCY_NOW
+      register: ALERT
+      notify_clinic: always
+      status: active
+      source:
+        guideline_id: SYN-GUIDE-B
+        guideline_title: "Sentetik kılavuz B"
+        version_or_date: "sürüm iki"
+        url: "https://example.invalid/syn-guide-b"
+        retrieved_on: 2026-08-28
+        quote: "sıkılaştırma sentetik alıntısı"
+      action:
+        REMOTE:
+          primary: CALL_112
+          show_112: true
+          action_tr: "Hemen yardım isteyin."
+          why_tr: "Bu bir sentetik test metnidir."
+        ON_SITE:
+          primary: GO_TO_IN_HOUSE_ACIL
+          show_112: false
+          notify_staff_immediate: true
+          action_tr: "Görevlilere haber verin ve bekleyin."
+          why_tr: "Bu bir sentetik test metnidir."
+        UNKNOWN:
+          ask_one_tr: "Şu anda hastanede misiniz?"
+          on_yes: ON_SITE
+          on_no: REMOTE
+          on_no_answer: REMOTE

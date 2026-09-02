@@ -58,19 +58,37 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 
 - **Assets:** workflow definitions, runner credentials, build artefacts, SBOMs, signing
   identity, the gate set itself.
-- **Trust boundaries:** GitHub-hosted (later TR self-hosted, INT-206) runners ↔ repo ↔
-  registries; PR author ↔ required checks.
+- **Trust boundaries:** GitHub-hosted runners ↔ repo ↔ registries; PR author ↔ required
+  checks. INT-206 adds the self-hosted TR-DC pool as a *declared* boundary
+  (`infra/ci/runners.yaml`) — and the pool list is empty, so today the boundary is the
+  GitHub-hosted one. HB-I7 (spend) and HB-L11 (physical residency is not legal residency)
+  own that — **not HB-I5, which is GPU supply and does not bind a CPU CI runner** — and no
+  facility, provider or label is invented to close the gap.
 - **Threats (STRIDE/LINDDUN):** [T] a repointed action tag or poisoned artefact (ci.yml pins
   actions to commit SHAs for exactly this reason); [E] workflow permission escalation;
-  [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14).
+  [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
+  [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
+  the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
+  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided.
 - **Controls (files/10):** §8 in full — OSV/Trivy/Checkov fail-on high, licence check, Syft
   SBOM, cosign keyless signing with SLSA provenance, schemathesis, MobSF; CI carries no
-  secrets and never calls a vendor (ci.yml header; CLAUDE.md).
+  secrets and never calls a vendor (ci.yml header; CLAUDE.md). **INT-206 adds the
+  no-PHI-in-CI policy** (`intake_platform.ci`, declared in `infra/ci/no-phi-policy.yaml`,
+  run by `make ci-policy`): every identifier-shaped value in a scanned tree must sit inside
+  a synthetic corpus a human declared *and pinned by sha256*, so a new identifier can only
+  arrive through a reviewed diff; env names as well as values are scanned; a declared
+  corpus may not be printed into the job log, uploaded as an artefact or cached; every
+  `runs-on` must resolve to a known hosted label or a declared pool, failing closed
+  otherwise. The gate's own report carries digests, never values — it runs in a job whose
+  stdout is retained 30 d hot / 1 y cold (files/10 §6).
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
-  with INT-019 (security.yml) and INT-187/INT-192 (console surfaces).
+  with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
+  `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
+  Skipped naming HB-I7 while no pool is declared — never as healthy.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
-  tests/security/test_threat_model.py (the sec_row linkage gate); full gate job lands with
-  INT-019.
+  tests/security/test_threat_model.py (the sec_row linkage gate);
+  tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
+  heartbeat probe); full gate job lands with INT-019.
 
 ## `secrets` — OpenBao and service credentials
 
@@ -216,8 +234,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [Nc] restores never exercised, discovered during the incident.
 - **Controls (files/10):** §3 backups & DR — encrypted PITR to a second in-country location,
   immutable copies, RPO 15 min / RTO 4 h, quarterly restore drills with console evidence.
-- **Signals:** backup freshness and last-drill age (§9 row) land with INT-202.
-- **Tests:** automated restore drill lands with INT-202.
+  INT-202 lands the repository configuration (`infra/backup/pgbackrest.conf`,
+  `repo1-cipher-type=aes-256-cbc`, passphrase from OpenBao and never from a file), the
+  replication plan (`infra/backup/minio-replication.yaml` — object-lock preserved on the
+  audit replica, deletions never propagated, which is the ransomware defence) and the drill
+  itself. The **second location is not named anywhere in files/**, so
+  `INTAKE_DR_S3_ENDPOINT` has no default and the DR object store has no registry row —
+  HB-I8(b), and HB-I5 for why no in-country provider is contracted.
+- **Signals:** backup freshness (`services/probes` `backup_freshness` over
+  `INTAKE_BACKUP_DIR`, bounded at `INTAKE_BACKUP_MAX_AGE_S=900` — the 15-min RPO) and
+  last-drill age. `sec.backup_age_min` and `sec.restore_drill_age_days` stay `planned` in
+  the catalogue: nothing emits them yet, and a `live` entry nothing emits is the dishonest
+  direction the INT-025 gate exists to catch.
+- **Tests:** `tests/infra/test_restore_drill.py` (INT-202) — the repository is encrypted,
+  no credential literal is committed, replication keeps object-lock and propagates no
+  deletion, the drill refuses a restore target inside the workspace, and its evidence record
+  has no field an identifier could occupy. The **execution** half (`make backup-drill`) is
+  scripted, wired and unexercised on the recorded host: HB-I1 (disk) and HB-I2 (container
+  memory) block it, and the retention window the expire step needs is HB-I8(a). The drill
+  refuses rather than shrinking to fit.
 
 ## `resilience` — degradation without harm
 
@@ -323,8 +358,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §4 (b) — every export serialiser fuzzed for formula,
   control-character and CRLF payloads, text-typed cells; §3 — crypto-shredding with 30-day
   grace; the SLA tracker (backlog INT-037).
-- **Signals:** deletion SLA and export volumes (§9 share row) land with INT-037.
-- **Tests:** `export_injection_guard` (inv. 47) and deletion-proof tests land with INT-037.
+- **Signals:** `admin.dsar_delete_total{subject_count}`, emitted once per erasure run by
+  `intake_api.dsar.shred.execute_due_shreds` (INT-037). The tenant-wide queue over the
+  same rows, and the alerting on a subject count above one, are the compliance console's
+  (INT-189).
+- **Tests:** `tests/legal/test_dsar_flows.py` — `export_injection_guard` (inv. 47: formula
+  leads neutralised, control characters and CRLF collapsed), the export failing closed
+  while `docs/legal/strings.yaml` is unauthored, share cancellation on erasure, the
+  30-day grace, and the crypto-shred proof (a shredded field can never be decrypted
+  again). `tests/security/test_crypto_shred.py` pins the envelope operation itself.
 
 ## `retention` — retention and destruction automation
 
@@ -407,8 +449,12 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`audio_single_egress_guard`), 13, 16–19, 27, 28.
 - **Signals:** egress socket count per session and `lane.dropped_frames` (§9) land with
   INT-090/INT-110.
-- **Tests:** runtime invariants 1–11 with RT-01…08 land with INT-094; guards 12–19/27/28
-  land with INT-090, INT-110, INT-115.
+- **Tests:** the Work queue's own half — FIFO, single state Work in flight, serialised
+  engine writes, content-addressed dedupe and the derived-never-requested `preempt` — is
+  `tests/voice/test_work_queue.py` (INT-092), which also covers RT-05 and the
+  "[D] stalled Backend" threat by holding a handler open on one thread while `submit`
+  returns on another. Runtime invariants 1–11 with RT-01…08 land with INT-094; guards
+  12–19/27/28 land with INT-090, INT-110, INT-115.
 
 ## `triage` — deterministic RED/YELLOW only
 
@@ -457,10 +503,23 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   fail-closed study gate); inv. 12–29 as catalogued in §9.1 — single egress, no lane
   transport, diarization gate, ephemeral embeddings, zeroization incl. consent withdrawal,
   closed InteractionState at M1.
-- **Signals:** lane consent rates, `lane.dropped_frames`, `acoustic.window_yield` (a low
-  yield is a correct outcome, not an incident — §9), withdrawal-to-zeroization latency — land
-  with INT-110/INT-115.
-- **Tests:** invariants 12–29 land with INT-110, INT-111, INT-112, INT-115.
+- **Signals:** `lane.dropped_frames{lane}` is **live** with INT-110 — emitted by
+  `intake_voice_runtime.observers.runtime` when a lane's bounded ring evicts a frame rather
+  than making the audio path wait; a lane that was never admitted has no child series at all,
+  which is how the exposition tells a refused lane from an idle one. Lane consent rates,
+  `acoustic.window_yield` (a low yield is a correct outcome, not an incident — §9) and
+  withdrawal-to-zeroization latency are still owed: the first belongs to the consent surface,
+  the second to INT-115's diarization gate, and the third to the audio-buffer work.
+- **Tests:** `tests/lanes/test_isolation.py` (INT-110) lands CLAUDE.md invariant 11 whole —
+  read-only at type level, the fake-clock stall with a positive control, backpressure with its
+  metric, per-lane consent through the one evaluator, and the `acoustic` study assertion
+  (inv. 23) against the INT-230 study registry with no grace day and a protocol-amendment
+  close. It also lands inv. 13's static half (no observer module imports an audio transport),
+  inv. 29 (every lane declares a reviewed `intended_purpose`, one statement per module), the
+  `ObserverState` half of inv. 22 (there is no `affect` field for a label to cross M1 in) and
+  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows. Invariants 12, 14,
+  15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-112, INT-115 and the
+  audio-buffer and consent-withdrawal issues.
 
 ## `clinical-content` — packs, rules and safety strings
 
@@ -490,8 +549,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   as enforced).
 - **Controls (files/10):** typed schemas with the mapper coverage floor (CLAUDE.md invariant
   8); roundtrip tests; magnitude-outranks-unit with a flag on disagreement (§9.2 rule 1).
-- **Signals:** land with INT-032.
-- **Tests:** OPT template roundtrip lands with INT-032.
+- **Signals:** INT-032 landed the export tier and it emits **no metric**, because nothing runs
+  it: the `ehrbase` registry row is `self_hosted_now: false` behind the compose `export`
+  profile, and no service imports the client yet. What exists today is the `ehrbase` synthetic
+  probe — wired only when `INTAKE_EHRBASE_HEALTH_URL` names a target, so an unrun tier reports
+  SKIPPED rather than a false green — and the client's typed refusals:
+  `EhrbaseTemplateRejectedError` for an OPT the CDR will not parse, `OpenEhrExportBlocked` for
+  an answer with no leaf binding. A counter for [I] over-broad export lands with the issue that
+  wires the tier into a service, not before.
+- **Tests:** `tests/integration/test_ehrbase_roundtrip.py` (INT-032) — OPT upload → fetch →
+  parse → archetype-root identity against the committed template; composition envelope write →
+  read → identity; the CONTRIBUTION audit. `tests/schemas/test_openehr_export.py` holds [T]
+  shut from the other side: an answered slot with no leaf binding is refused, never dropped and
+  never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
+  `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an
+  exception message.
 
 ## `protocol-registry` — signed bundles and the clip cache
 
@@ -522,10 +594,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   outputs, six non-clinical Talker tools, deterministic triage, PolicyGuard, no cross-patient
   context, output validated and never rendered as HTML, per-session budgets and circuit
   breakers.
-- **Signals:** `security.injection_suspected` events (§5), PolicyGuard spikes, budget
-  exhaustion (§7) — land with INT-083, INT-101, INT-102.
-- **Tests:** adversarial suite RT-09…14 in `make safety` plus the nightly red-team job land
-  with INT-102; schema-validation tests with INT-083.
+- **Signals:** `security.injection_suspected` (§5) is **live** — INT-083 emits
+  `sec_injection_suspected_total` from `intake_voice_runtime.extraction.boundary` when a
+  transcript carries the data-block control marker, and `injection_event()` builds the
+  `SecurityV1` row (ids and closed enumerations only; the refused string is never
+  recorded). PolicyGuard spikes and budget exhaustion (§7) land with INT-101, INT-102.
+- **Tests:** schema-validation tests landed with INT-083 —
+  `tests/ai/test_extraction_contract.py`, which pins the four structural facts this row
+  turns on: the instruction region takes no transcript parameter, the transcript travels
+  delimited in its own message role, the output schema has no property a triage level
+  could occupy, and `ExtractionResult` has no `level` field at all (invariant 1 as a
+  `TypeError` at the call site rather than a check). A planted Turkish injection —
+  INT-175's symptom sentence with an instruction welded onto it — is refused without the
+  refusal echoing a fragment of it. The adversarial suite RT-09…14 in `make safety` plus
+  the nightly red-team job still land with INT-102.
 
 ## `cloud-boundary` — what may leave, and in what form
 
@@ -686,8 +768,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   İYS consent record (CLAUDE.md invariant 18); [D] reminder volume driving opt-outs.
 - **Controls (files/10):** §9 notifications row — content-free pushes, quiet hours, opt-out;
   §4 mobile — no PHI in push or deep links; transactional-only default.
-- **Signals:** delivery and opt-out rates (§9) land with INT-141.
-- **Tests:** content tests (no clinical terms in payloads) land with INT-141.
+- **Signals:** `notification_dispatch_total{channel,message_class,status}` carries both
+  the delivery rate and the opt-out rate off one status label, and
+  `notification_preference_changed_total{change}` the opt-out flow (INT-141; both
+  catalogued in `observability/metrics_catalog.yaml` — files/08 §4 names no id for this
+  row, so they enter the catalogue without one).
+- **Tests:** `tests/legal/test_notifications.py` — content-freedom as vocabulary closure
+  (every token of a payload must already be in the committed template corpus, so any
+  interpolation at all fails) plus an adversarial patient whose branch label shares a
+  word with the generic copy; the four İYS locks (no commercial template; an abstract
+  `IysConsentRecord` with no concrete subclass in the tree; a registry that refuses; the
+  `commercial_messaging` safety flag); quiet hours with no invented default; opt-out.
+  `tests/api/test_notification_prefs.py` — the persisted register, its route declaration
+  and its survival across a restart. `apps/mobile/e2e/notifications.spec.ts` — the app
+  never assembles a body and grows no marketing switch.
 
 ## `mobile` — the patient app (MASVS)
 
@@ -714,11 +808,63 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   free-text feedback ↔ analytics pipelines (PHI can arrive uninvited).
 - **Threats (STRIDE/LINDDUN):** [L] linking satisfaction data to clinical content beyond
   need; [I] patient-typed free text carrying identifiers into analytics; [U] respondents
-  unaware of how feedback is used.
+  unaware of how feedback is used; **[U/E] an unsolicited survey invitation reaching a
+  patient as a consent-free "service message"** — 6563 gives marketing-class messages a
+  consent requirement, and a survey routed through the transactional dispatcher would
+  bypass it (INT-242).
 - **Controls (files/10):** invariant 6 (ids only in analytics); k-anonymity floor on
-  aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion.
-- **Signals:** land with INT-240 (events and rollups).
-- **Tests:** land with INT-240.
+  aggregates (k ≥ 10, §9 admin row); redaction baseline (§3) applied to free-text ingestion;
+  **invitations classified commercial and gated on İYS** (invariant 18) with the
+  `satisfaction_prompts` safety flag shut, opt-out and quiet hours decided by INT-141's own
+  evaluation, and no survey member in `ReminderKind` or template in the catalogue.
+- **Signals:** `csat.score`, `csat.reason`, `nps.monthly`, `clinician.pulse` — catalogued
+  `live` and emitted by `intake_metrics.metrics`, published only for a named cohort over a
+  stated window and only at or above the k ≥ 10 floor. No tenant, clinic or clinician label
+  on any of them, so no dashboard can re-slice a satisfaction series down to one person.
+  Wait times (INT-241, files/08 §4 group G) join them on the same terms: `wait.records_processing_s`
+  is `live` because both of its instants exist in this repo, its only label is the closed ingest
+  content-type enumeration, and it is published from a rollup rather than observed raw — a
+  histogram scraped after one observation would expose that patient's exact wait through `_sum`
+  over `_count`. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`,
+  `wait.doctor_link_first_open_h` and `wait.checkin_to_seen_min` stay `planned`: each is missing
+  one of its two instants, and `intake_platform.wait_times.WAIT_SOURCES` records which, so the
+  catalogue status and the writer cannot drift from the truth (invariant 13).
+- **Controls added by INT-241:** the aggregate excludes patients who refused
+  `learning:service_improvement` (files/06 §2 — the de-identified-aggregate purpose), decided by
+  the same platform evaluator the route guard uses; a per-`document_type` breakdown is suppressed
+  **whole** when any cell falls below the floor, because a total plus all-but-one cell hands the
+  reader the missing cell; the rollup type carries no minimum and no maximum at any cohort size;
+  the SDS-01 style export (`GET /v1/admin/experience/wait-times.csv`) has no clinic, branch,
+  clinician or patient column, carries the window bounds and measurement instant on every row,
+  and runs every cell through the one committed injection guard,
+  `intake_platform.export_safety.sanitise_cell` (invariant 47; files/08 §0c F13). Tenant scope on
+  both admin reads comes from the principal — there is no `?tenant=` parameter to pass
+  (files/08 §8, §0c F9).
+  `survey_invitation_total{kind,channel,message_class,status}` (INT-242) is the scheduling
+  side: closed enumerations only, and its `status` label is the standing record of why no
+  invitation is sent — `blocked_iys_consent_absent` for the 6563 gate,
+  `refused_schedule_unset` for the first-prompt value nobody has supplied.
+- **Tests:** `tests/experience/test_csat_flow.py` (the split: scores to `events`, the sentence
+  to the envelope-encrypted `csat_texts`; the §3 redaction baseline on ingestion; the response,
+  the audit entry and the event payload all free of the patient's words; both FK cascades, so
+  a DSAR erasure and the files/06 §3 `satisfaction` clock each reach the text) ·
+  `tests/experience/test_rollups.py` (`test_a_rollup_of_adversarial_responses_exposes_none_of_it`
+  — a symptom sentence, a phone number and a clinician's name forced into the very rows the
+  rollup reads, exposed nowhere in the rollup or the exposition; k ≥ 10 suppression) ·
+  `tests/experience/test_metrics_service.py` (invariant 15 for `services/metrics`; invariant 20:
+  no CSAT/NPS figure in docs/regulatory/ or docs/legal/) ·
+  `tests/experience/test_wait_metrics.py` (catalogue status held against the source registry in
+  both directions; recording an unmeasurable kind fails closed; complementary breakdown
+  suppression; no minimum or maximum on the rollup type; the opt-out honoured end to end; the
+  export's column set, its suppressed-row marking and a formula lead neutralised in a registry
+  note; the admin routes' declared scope, admin-only access and absent tenant parameter).
+  `tests/experience/test_survey_cadence.py` (INT-242: the İYS gate blocks a patient NPS
+  invitation and opening the safety flag does not unblock it; a stub registry that *does*
+  answer clears it, so the gate is a real check and not a constant; no survey `ReminderKind`
+  and no survey template; opt-out and quiet hours agree with `ReminderDispatcher` on a
+  48-case grid; the only numeric literals in `intake_platform.surveys` are 1, 3 and 12,
+  with a near-miss control module carrying a sampling rate, a 90-day cool-off and an
+  invented send hour to prove the scan bites).
 
 ---
 
@@ -774,19 +920,114 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 ## `learning-loops` — proposal-only learning
 
 - **Assets:** evidence bundles, proposal PRs, de-identified analytics views, PatientOverlay
-  facts.
+  facts, **research extracts and the register that records them (INT-230)**.
 - **Trust boundaries:** learning agent ↔ everything it may not touch (red-flag levels,
   instruments, consent texts, the Talker tool list, PolicyGuard, profile routing — CLAUDE.md
-  invariant 12); aggregates ↔ individuals (k ≥ 10).
+  invariant 12); aggregates ↔ individuals (k ≥ 10); **the consented clinical context ↔ a
+  research recipient outside it (INT-230: a separate consent purpose, a separate ethics
+  approval, a separate retention clock)**.
 - **Threats (STRIDE/LINDDUN):** [T] poisoning through crafted proposals; [Dd/L]
-  de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary.
+  de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary;
+  **[Nc/L] an export taken under a care consent rather than the `research` one, or under an
+  approval that has lapsed; [I] a direct identifier riding out inside an id-shaped field;
+  [Dd] linkage of two studies' extracts by an investigator holding both**; **[T/Nr] an
+  unconfirmed model output entering a patient's overlay and, from there, a session or a
+  rule; [I] a fact value leaking through the store, a log or a metric label; [Nc] an erasure
+  that sweeps the notes and leaves the learning object standing (INT-170)**.
 - **Controls (files/10):** §9 learning row — proposal-only with evidence bundles, k ≥ 10,
   sandboxed agent with read-only credentials, PR bot least privilege, canary and rollback;
-  PatientOverlay facts require patient or clinician confirmation at type level.
-- **Signals:** proposals, rejections, k-anonymity refusals, rollbacks (§9) land with
-  INT-172/INT-173.
-- **Tests:** `proposal_scope` and `k_anonymity` land with INT-172/INT-171; overlay
+  PatientOverlay facts require patient or clinician confirmation at type level. **INT-230
+  adds: the `research` scope evaluated through the one consent evaluator with a refuser
+  DROPPED rather than flagged; a signed-off study registry with no grace day past
+  `approval_valid_until` (invariant 35); a closed per-dimension vocabulary with the INT-015
+  pattern tier adding refusals on top; a study-scoped keyed pseudonym so two extracts do not
+  join; the `research_extracts` retention row gating creation; and an append-only register
+  carrying the ethics id and the content hash and no patient reference.** **INT-170 adds:
+  the confirmation as a type rather than a check — `FactCandidate` has no `source` and no
+  `confirmed_at` field, `confirm()` is the only producer of a `LearnedFact`, and
+  `OverlayStore` has no write path that accepts one; no table for unconfirmed candidates at
+  all, so an unconfirmed value has nowhere to be written and nothing to read it back; the
+  fact value under field-level envelope encryption (invariant 14) with `fact_key` in the
+  clear like `slots.slot_id`; `/v1/me/learned` behind the one `ensure_consent` path under
+  `core`, patient-only, with every read and change on the hash chain carrying ids only; and
+  the DSAR erasure extended to crypto-shred and remove both overlay tables.**
+- **Signals:** k-anonymity refusals landed with INT-171 —
+  `analytics_view_refused_total{view,reason}` and `analytics_view_materialised_total{view}`,
+  whose labels carry a view name and a reason class only, because a refusal labelled with
+  the branch or the week it withheld would publish that cell to Prometheus. Proposals and
+  rejections landed with INT-172 — `learning_findings_total{signal}`,
+  `learning_proposals_total{signal,target}`,
+  `learning_proposals_refused_total{signal,reason}` and
+  `learning_evidence_bundles_total{view,status}`, labelled the same way and for the same
+  reason: `target` is one of ten class names and `reason` is a refusal class, never a pack,
+  a clinic or a cohort. Rollbacks land with INT-173. **INT-170 adds
+  `overlay_facts_confirmed_total{source}` and `overlay_facts_withdrawn_total{action}` on the
+  same terms: `source` is one of three closed provenance classes and `action` one of two
+  verbs, never a fact key, a patient or a tenant.**
+- **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
+  `tests/learning/test_analytics_views.py` and its integration lane, which proves the
+  `svc_learning_reader` grant reaches the `analytics` views and no base table);
+  `proposal_scope` landed with INT-172 (`tests/learning/test_proposal_scope.py`, plus
+  `tests/learning/test_inspector_architect.py` and
+  `tests/learning/test_evidence_bundle.py`); `learned_fact_provenance` landed with INT-170
+  (`tests/learning/test_overlay_provenance.py`, plus `tests/api/test_learned.py` for the
+  consent gate, the audit entries, the erasure path and the PHI sweep); overlay
   monotonicity property test with INT-056.
+- **Over-reach is unreachable, not rejected (INT-172):** `proposal_scope` walks the
+  *transitive* first-party import closure of `services/learning` with `ast` and asserts it
+  reaches none of `packages/protocols`, `services/voice-runtime`, `intake_platform.legal`,
+  `intake_platform.consent`, `intake_platform.profiles`, `services/api` or
+  `packages/voice-clips` — so the [E] threat has no code path rather than a guard on one.
+  Three further gates make the rest structural: the pipeline's own imports are allow-listed
+  (no HTTP client, no process spawner, no filesystem module — files/09 §7's "no egress" as a
+  property of the source, with the sandbox as the second layer rather than the only one); no
+  module in the package holds a write-capable call, which is why keeping a proposal out of a
+  protocol pack needs no path allow-list; and the proposal vocabulary is a closed tuple of
+  ten frozen dataclasses in which no field can carry a triage level or a path.
+  `CandidateRedFlag` has no `level` field at all — invariant 1's YELLOW_REVIEW cap as a
+  class constant rather than a validator, the same move `LlmCandidateTriage` makes in
+  `clinical_schemas.triage`.
+- **What a bundle carries, and the one thing refused (INT-172):** ids, counts and
+  citations. Citations are members of a closed enumeration; every id arrived through
+  INT-171's id-shape gate, and `EvidenceBundle.build` re-runs `materialise` on the way in
+  rather than trusting a `Measurement` handed to it, so the k floor and the shape check
+  apply again to the artefact that leaves the sandbox. The only prose is the analytics
+  registry's own committed `cohort_description`, byte for byte — an attacker-supplied cohort
+  is refused without being echoed. files/09 §4's "de-identified exemplars" are **absent, not
+  empty**: that is the claim HB-L6 records as one Turkish NLP cannot support, and the
+  evidence bundle is the last place to re-make it. Signing is HMAC-SHA256 over the canonical
+  digest — the primitive and the canonical form the audit chain and `room_tokens` already
+  use — with the key handed in rather than fetched, so the package holds no secrets client
+  either.
+  the branch or the week it withheld would publish that cell to Prometheus. **INT-230 adds
+  `research_extract_refused_total{spec,reason}` and `research_extract_served_total{spec}` on
+  the same rule — a spec name and a reason class, never a study id, a recipient, a window or
+  a subject count.** Proposals, rejections and rollbacks land with INT-172/INT-173.
+- **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
+  `tests/learning/test_analytics_views.py` and its integration lane, which proves the
+  `svc_learning_reader` grant reaches the `analytics` views and no base table);
+  **`export_gates` landed with INT-230 (`tests/research/test_export_gates.py`), including
+  the corpus lane that drives every INT-015 fixture sentence AND every bare fixture
+  identifier through the export value check**; `proposal_scope` lands with INT-172; overlay
+  monotonicity property test with INT-056.
+- **Named for what it is (INT-230): pseudonymisation, not anonymisation.** KSVY m.16(1)
+  permits scientific work on health data *anonim hâle getirilen* by the controller, under
+  the KVKK m.28/1(b) exemption. A keyed HMAC pseudonym is re-derivable by whoever holds the
+  key and is therefore personal data, so that route is unavailable and the pipeline takes
+  the other one files/06 §75 states in the same sentence — consent plus a recorded ethics
+  id. No type, function or constant in `intake_platform.research` carries the word
+  "anonymised", and a test asserts it. Whether KSVY m.16(2)'s separate limb (scientific
+  processing under KVKK m.28/1(c)) would additionally apply is a counsel question and is
+  asserted nowhere.
+- **Stated narrowly, because the wide claim is false (INT-171):** the views are aggregate
+  and structured — protocol pack and version, slot id, attribution, ISO week, and counts of
+  sessions, subjects and tenants. They carry no narrative, redacted or otherwise, and no
+  pseudonym survives the `GROUP BY`. Turkish clinical free text is not de-identifiable to a
+  standard this repo will assert (files/10 §3 on realistic Turkish recall; HB-L6 on the
+  claim itself), so narrative is **excluded rather than scrubbed**. The grant is the
+  narrative boundary; the k ≥ 10 gate at the query layer is the small-cell boundary; and
+  the gate refuses the whole artefact rather than suppressing a cell, because a reader
+  holding every cell but one recovers it by subtraction.
 
 ## `incident-response` — detect, contain, notify, learn
 

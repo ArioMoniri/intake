@@ -3,17 +3,44 @@ name = "intake"
 version = "0.1.0"
 description = "INTAKE workspace root (virtual): Turkish-first, patient-owned pre-visit intelligence"
 requires-python = ">=3.12"
-dependencies = ["intake-platform[ner]", "intake-probes"]
+dependencies = [
+    "intake-platform[ner]",
+    "intake-probes",
+    "intake-clinical-schemas",
+    "intake-api",
+    "intake-protocols",
+    "intake-voice-runtime",
+    "intake-voice-clips",
+    "intake-metrics",
+    "intake-learning",
+]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["packages/intake_platform", "services/probes"]
+members = [
+    "packages/intake_platform",
+    "packages/clinical-schemas",
+    "packages/protocols",
+    "packages/voice-clips",
+    "services/probes",
+    "services/api",
+    "services/voice-runtime",
+    "services/metrics",
+    "services/learning",
+]
 
 [tool.uv.sources]
 intake-platform = { workspace = true }
 intake-probes = { workspace = true }
+intake-clinical-schemas = { workspace = true }
+intake-api = { workspace = true }
+intake-protocols = { workspace = true }
+intake-voice-runtime = { workspace = true }
+intake-voice-clips = { workspace = true }
+intake-metrics = { workspace = true }
+intake-learning = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -35,6 +62,16 @@ dev = [
     "httpx>=0.27",
     "fakeredis[lua]>=2.23",
     "psycopg[binary]>=3.2",
+    # INT-031 roundtrip tests validate exported JSON Schemas; MIT (LICENSE
+    # blob verified in docs/evidence/INT-031.md), test-only, never on the
+    # PHI path.
+    "jsonschema>=4.23",
+    # the services/api unit lane carries the INT-030 schema on SQLite
+    "aiosqlite>=0.20",
+    # INT-033 roundtrip property tests ("hypothesis roundtrip" is in the
+    # acceptance). MPL-2.0 (LICENSE.txt blob verified in
+    # docs/evidence/INT-033.md), test-only, never on the PHI path.
+    "hypothesis>=6.112",
 ]
 
 [tool.ruff]
@@ -54,12 +91,30 @@ select = ["E", "F", "W", "I", "UP", "B", "S"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["packages/intake_platform/src", "services/probes/src"]
+files = [
+    "packages/intake_platform/src",
+    "packages/clinical-schemas/src",
+    "packages/protocols/src",
+    "packages/voice-clips/src",
+    "services/probes/src",
+    "services/api/src",
+    "services/voice-runtime/src",
+    "services/metrics/src",
+    "services/learning/src",
+]
 
 [[tool.mypy.overrides]]
 # optional exporter, imported only when OTEL_EXPORTER_OTLP_ENDPOINT is set;
 # the package is deliberately not a dependency (local-only default posture)
 module = "opentelemetry.exporter.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# INT-060: soundfile ships no py.typed and typeshed carries no stubs. It is
+# reached from exactly one module (protocols.clips.audio), which wraps it in
+# two functions with annotated returns, so the untyped surface stops there
+# instead of spreading through the clip builder.
+module = "soundfile"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -75,3 +130,9 @@ addopts = "-q -m 'not integration'"
 markers = [
     "integration: needs the docker-compose dev tier (its own CI job; 05 §3)",
 ]
+
+[tool.coverage.run]
+# SQLAlchemy's asyncio layer runs Core through greenlet_spawn; without the
+# greenlet tracer every line the API executes past its first awaited DB call
+# vanishes from the report (measured under-count, not a real gap — INT-197).
+concurrency = ["thread", "greenlet"]

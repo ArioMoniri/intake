@@ -1,0 +1,2516 @@
+{
+  "components": {
+    "schemas": {
+      "AllergyItem": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.allergies[]``.",
+        "properties": {
+          "reaction": {
+            "default": "",
+            "description": "files/04 §5 allergies.reaction.",
+            "title": "Reaction",
+            "type": "string"
+          },
+          "severity": {
+            "default": "",
+            "description": "files/04 §5 allergies.severity.",
+            "title": "Severity",
+            "type": "string"
+          },
+          "substance": {
+            "description": "files/04 §5 allergies.substance.",
+            "title": "Substance",
+            "type": "string"
+          }
+        },
+        "required": [
+          "substance"
+        ],
+        "title": "AllergyItem",
+        "type": "object"
+      },
+      "AnswerState": {
+        "description": "The seven answer states of files/13 §9.3. ASKED_ABSENT is the only\nstate that may enter ``ros_pertinent``; CONTESTED keeps both answers.",
+        "enum": [
+          "NOT_ASKED",
+          "ASKED_PENDING",
+          "ASKED_PRESENT",
+          "ASKED_ABSENT",
+          "UNCLEAR",
+          "DECLINED",
+          "CONTESTED"
+        ],
+        "title": "AnswerState",
+        "type": "string"
+      },
+      "AuditV1": {
+        "additionalProperties": false,
+        "description": "One hash-chain audit entry as an event — field for field the INT-016\n``AuditEntry`` (packages/intake_platform/src/intake_platform/audit.py),\nwhich is the source of truth for this shape (invariant 4: every read/\nshare audited; the chain makes editing detectable).",
+        "properties": {
+          "action": {
+            "description": "Dotted action name, e.g. note.read (INT-016 AuditEntry.action).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "description": "Acting principal id (INT-016 AuditEntry.actor).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Actor",
+            "type": "string"
+          },
+          "consent_scope_ref": {
+            "description": "Consent scope that authorised the action (INT-016 AuditEntry.consent_scope_ref; invariant 4).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Consent Scope Ref",
+            "type": "string"
+          },
+          "entry_hash": {
+            "description": "SHA-256 of this entry (INT-016 AuditEntry.entry_hash).",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Entry Hash",
+            "type": "string"
+          },
+          "prev_hash": {
+            "description": "SHA-256 of the predecessor entry (INT-016 AuditEntry.prev_hash).",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Prev Hash",
+            "type": "string"
+          },
+          "resource_ref": {
+            "description": "Resource acted on, as an id (INT-016 AuditEntry.resource_ref).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Resource Ref",
+            "type": "string"
+          },
+          "schema_id": {
+            "const": "intake.clinical.audit.v1",
+            "default": "intake.clinical.audit.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "seq": {
+            "description": "Chain position (INT-016 AuditEntry.seq).",
+            "minimum": 1,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "timestamp_utc": {
+            "description": "ISO-8601 UTC instant exactly as hashed (INT-016 AuditEntry.timestamp_utc — part of the hashed material, so it travels verbatim, never reformatted).",
+            "minLength": 1,
+            "title": "Timestamp Utc",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "timestamp_utc",
+          "actor",
+          "action",
+          "resource_ref",
+          "consent_scope_ref",
+          "prev_hash",
+          "entry_hash"
+        ],
+        "title": "AuditV1",
+        "type": "object"
+      },
+      "CandidateFlag": {
+        "additionalProperties": false,
+        "description": "One LLM candidate flag (files/04 §5 ``triage.llm_candidates[{text,evidence}]``;\nfiles/03 §4.6: extraction may emit candidate_flags[], at most YELLOW_REVIEW).",
+        "properties": {
+          "evidence": {
+            "description": "Transcript/document evidence for the candidate (files/04 §5).",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "text": {
+            "description": "Candidate concern as clinician-facing text (files/04 §5 llm_candidates.text).",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "evidence"
+        ],
+        "title": "CandidateFlag",
+        "type": "object"
+      },
+      "ChiefComplaint": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.chief_complaint``.",
+        "properties": {
+          "patient_goals": {
+            "default": [],
+            "description": "What the patient wants from the visit (files/04 §5 chief_complaint.patient_goals).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Patient Goals",
+            "type": "array"
+          },
+          "text": {
+            "description": "Presenting complaint (files/04 §5 chief_complaint.text).",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "ChiefComplaint",
+        "type": "object"
+      },
+      "ClinicianPulseV1": {
+        "additionalProperties": false,
+        "description": "Quarterly clinician pulse (INT-240; files/08 §4 group F:\nclinician.pulse, quarterly 1-5).",
+        "properties": {
+          "clinician_ref": {
+            "description": "Clinician as an id — never a name (invariant 6; files/08 §4 group F).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Clinician Ref",
+            "type": "string"
+          },
+          "schema_id": {
+            "const": "intake.clinical.clinician_pulse.v1",
+            "default": "intake.clinical.clinician_pulse.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "score": {
+            "description": "Pulse score 1-5 (files/08 §4 group F clinician.pulse).",
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Score",
+            "type": "integer"
+          },
+          "tenant_id": {
+            "description": "Owning tenant (INT-030 events.tenant_id).",
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "clinician_ref",
+          "score"
+        ],
+        "title": "ClinicianPulseV1",
+        "type": "object"
+      },
+      "CodeSystem": {
+        "description": "files/03 §4.6: LOINC for labs, ATC for meds, ICD-10 for diagnoses.",
+        "enum": [
+          "loinc",
+          "atc",
+          "icd10"
+        ],
+        "title": "CodeSystem",
+        "type": "string"
+      },
+      "ConsentChannel": {
+        "description": "Collection channel (files/06 §1 KVKK-10 row: layered aydınlatma per\nchannel — app, kiosk, clinician, admin, web).",
+        "enum": [
+          "app",
+          "kiosk",
+          "clinician",
+          "admin",
+          "web"
+        ],
+        "title": "ConsentChannel",
+        "type": "string"
+      },
+      "ConsentPurpose": {
+        "description": "The closed purpose list of files/06 §2.1 — no more, no fewer.",
+        "enum": [
+          "core",
+          "voice",
+          "wellbeing",
+          "lane:affect",
+          "lane:linguistic",
+          "documents",
+          "learning:personal",
+          "learning:service_improvement",
+          "satisfaction",
+          "share",
+          "research"
+        ],
+        "title": "ConsentPurpose",
+        "type": "string"
+      },
+      "ConsentScope": {
+        "additionalProperties": false,
+        "description": "One granted consent scope — the thing every clinical read/share checks\n(invariant 4) and every audit entry references by id (INT-016).",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/ConsentChannel",
+            "description": "Which surface collected the grant (files/06 §2.1 channel; §1 KVKK-10)."
+          },
+          "evidence": {
+            "description": "Id of the acceptance evidence record (files/06 §2.1 evidence) — an id, never the evidence itself (invariant 6).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "granted_at": {
+            "description": "Grant instant (files/06 §2.1 ts; INT-030 consents.granted_at).",
+            "format": "date-time",
+            "title": "Granted At",
+            "type": "string"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/ConsentPurpose",
+            "description": "Consent purpose id from the closed files/06 §2.1 list."
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Withdrawal instant; None while the grant stands (INT-030 consents.revoked_at; files/06 §2.1 withdrawal as easy as grant).",
+            "title": "Revoked At"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShareScope"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Share parameters — required exactly when purpose is ``share`` (files/06 §2.1 share:{recipient,visit,sections,expiry})."
+          },
+          "text_hash": {
+            "description": "SHA-256 of the exact consent text shown (files/06 §2.1 text_hash; texts render only from docs/legal/ with hash binding — invariant 18).",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Text Hash",
+            "type": "string"
+          },
+          "version": {
+            "description": "Version of the consent text presented (files/06 §2.1; INT-030 consents.version, hash-bound to docs/legal — invariant 18).",
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "version",
+          "text_hash",
+          "granted_at",
+          "channel",
+          "evidence"
+        ],
+        "title": "ConsentScope",
+        "type": "object"
+      },
+      "Consideration": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.considerations[]`` — patterns for the\nclinician, never diagnoses (invariant 2).",
+        "properties": {
+          "pattern": {
+            "description": "files/04 §5 considerations.pattern.",
+            "title": "Pattern",
+            "type": "string"
+          },
+          "why": {
+            "description": "files/04 §5 considerations.why.",
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern",
+          "why"
+        ],
+        "title": "Consideration",
+        "type": "object"
+      },
+      "CsatReason": {
+        "description": "The CSAT reason distribution of files/08 §4 group F: too long /\ndidn't understand me / felt rushed / helpful / felt heard.",
+        "enum": [
+          "too_long",
+          "didnt_understand_me",
+          "felt_rushed",
+          "helpful",
+          "felt_heard"
+        ],
+        "title": "CsatReason",
+        "type": "string"
+      },
+      "CsatV1": {
+        "additionalProperties": false,
+        "description": "Session satisfaction (INT-240 acceptance: \"csat.v1 (1-5 + reason enum\n+ optional text)\"; emitted via POST /sessions/{id}/csat, files/03 §6).",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/CsatReason",
+            "description": "Reason category (INT-240 reason enum; files/08 §4 group F csat.reason distribution)."
+          },
+          "schema_id": {
+            "const": "intake.clinical.csat.v1",
+            "default": "intake.clinical.csat.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "score": {
+            "description": "CSAT 1-5 (files/08 §4 group F: csat.score, target >= 4.3).",
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Score",
+            "type": "integer"
+          },
+          "session_id": {
+            "description": "Session the rating refers to (INT-030 events.session_id; POST /sessions/{id}/csat, files/03 §6).",
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "tenant_id": {
+            "description": "Owning tenant (INT-030 events.tenant_id).",
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional free text (INT-240). Patient-authored: treat as sensitive content — rendered to service owners only, never into logs or traces (invariant 6).",
+            "title": "Text"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "session_id",
+          "score",
+          "reason"
+        ],
+        "title": "CsatV1",
+        "type": "object"
+      },
+      "DocumentKind": {
+        "description": "The ``document_type`` breakdown files/08 §4 G asks of\n``wait.records_processing_s``.\n\nThese are the THREE content types the ingest allow-list already accepts\n(``intake_platform.documents.ALLOWED_CONTENT_TYPES``), renamed to a label\nvalue. It is deliberately not a clinical document taxonomy — lab report,\ndischarge summary, prescription — because this repo has none and inventing\none here would be a value chosen once by an engineer for every future\nreader. ``intake_platform.wait_times`` holds the mapping and a test fails\nthe build if the allow-list gains a type this enum does not cover.",
+        "enum": [
+          "pdf",
+          "jpeg",
+          "png"
+        ],
+        "title": "DocumentKind",
+        "type": "string"
+      },
+      "EvidenceBundle": {
+        "additionalProperties": false,
+        "description": "The attached evidence bundle, keys verbatim from the files/07 Loop-2\nsketch; every artefact is referenced by id — nothing identifiable rides\nin a proposal (files/09 §4 forbidden list).",
+        "properties": {
+          "exemplars_deid": {
+            "description": "Ids of de-identified exemplar traces (files/07 evidence.exemplars_deid; de-identification per invariant 6).",
+            "items": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Exemplars Deid",
+            "type": "array"
+          },
+          "goldens": {
+            "description": "Triage golden suite run id (files/07 evidence.goldens; files/04 §7).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Goldens",
+            "type": "string"
+          },
+          "langfuse_experiment": {
+            "description": "Langfuse experiment link id (files/07 evidence.langfuse_experiment; files/09 §4 tooling).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Langfuse Experiment",
+            "type": "string"
+          },
+          "latency": {
+            "description": "Latency harness run id (files/07 evidence.latency; make runtime-sim).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Latency",
+            "type": "string"
+          },
+          "shadow_replay": {
+            "description": "Shadow replay id over de-identified transcripts (files/07 evidence.shadow_replay; files/09 §4 path to production).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Shadow Replay",
+            "type": "string"
+          },
+          "simulator_run": {
+            "description": "Simulator run id (files/07 evidence.simulator_run; files/04 §6).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Simulator Run",
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/EvidenceStats",
+            "description": "Aggregate stats (files/07 evidence.stats)."
+          }
+        },
+        "required": [
+          "stats",
+          "exemplars_deid",
+          "simulator_run",
+          "goldens",
+          "latency",
+          "shadow_replay",
+          "langfuse_experiment"
+        ],
+        "title": "EvidenceBundle",
+        "type": "object"
+      },
+      "EvidenceStats": {
+        "additionalProperties": false,
+        "description": "Aggregate evidence behind a proposal. The Architect's thresholds\n(files/09 §4: ≥ 10 patients, ≥ 2 clinics, stable over 2 weeks) are the\nfield constraints — an under-evidenced stats block is unrepresentable.",
+        "properties": {
+          "clinics": {
+            "description": "Distinct clinics showing the pattern (files/09 §4: >= 2 clinics).",
+            "minimum": 2,
+            "title": "Clinics",
+            "type": "integer"
+          },
+          "patients": {
+            "description": "Distinct patients behind the pattern (files/09 §4: k >= 10; the k-anonymity helper refuses smaller patterns, files/09 §7).",
+            "minimum": 10,
+            "title": "Patients",
+            "type": "integer"
+          },
+          "weeks_stable": {
+            "description": "Weeks the effect size and direction stayed stable (files/09 §4: stable over 2 weeks).",
+            "minimum": 2,
+            "title": "Weeks Stable",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "patients",
+          "clinics",
+          "weeks_stable"
+        ],
+        "title": "EvidenceStats",
+        "type": "object"
+      },
+      "ExtractedRecordItem": {
+        "additionalProperties": false,
+        "description": "One structured item extracted from an uploaded document or record\n(files/03 §4.6). Unconfirmed items never reach a clinical decision.",
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordCode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Normalised code when one resolved (files/03 §4.6: LOINC/ATC/ICD-10); None when no code resolved — never a guessed code."
+          },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Clinical date of the source item when legible (files/04 §5 imported_objective.date is its note-side rendering).",
+            "title": "Date"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RecordItemKind",
+            "description": "What the item is: lab|imaging|procedure|medication|diagnosis|allergy (files/03 §4.6)."
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/RecordProvenance",
+            "description": "Where in which document the item came from (files/03 §4.6)."
+          },
+          "summary": {
+            "description": "Human-readable content of the item (files/03 §4.6; rendered for patient confirmation).",
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Unit as normalised on ingestion (files/03 §4.6 unit normalisation).",
+            "title": "Unit"
+          },
+          "unit_conflict": {
+            "default": false,
+            "description": "True when the magnitude and the printed unit token disagree — the flag raised instead of converting silently (CLAUDE.md invariant 22).",
+            "title": "Unit Conflict",
+            "type": "boolean"
+          },
+          "value_magnitude": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Numeric magnitude for labs, exact decimal — no floats across a representation boundary (CLAUDE.md invariant 22).",
+            "title": "Value Magnitude"
+          },
+          "verification_status": {
+            "$ref": "#/components/schemas/VerificationStatus",
+            "default": "unconfirmed",
+            "description": "files/03 §4.6: enters unconfirmed; confirmed only by the patient (POST /records/items/{id}/confirm, files/03 §6)."
+          }
+        },
+        "required": [
+          "kind",
+          "summary",
+          "provenance"
+        ],
+        "title": "ExtractedRecordItem",
+        "type": "object"
+      },
+      "FamilySocial": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.family_social``.",
+        "properties": {
+          "alcohol": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "files/04 §5 family_social.alcohol (open map).",
+            "title": "Alcohol",
+            "type": "object"
+          },
+          "family": {
+            "default": [],
+            "description": "files/04 §5 family_social.family.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Family",
+            "type": "array"
+          },
+          "living_situation": {
+            "default": "",
+            "description": "files/04 §5 family_social.living_situation.",
+            "title": "Living Situation",
+            "type": "string"
+          },
+          "occupation": {
+            "default": "",
+            "description": "files/04 §5 family_social.occupation.",
+            "title": "Occupation",
+            "type": "string"
+          },
+          "smoking": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "files/04 §5 family_social.smoking (open map).",
+            "title": "Smoking",
+            "type": "object"
+          }
+        },
+        "title": "FamilySocial",
+        "type": "object"
+      },
+      "Hpi": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.hpi``.",
+        "properties": {
+          "associated": {
+            "default": [],
+            "description": "files/04 §5 hpi.associated.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Associated",
+            "type": "array"
+          },
+          "narrative": {
+            "description": "files/04 §5 hpi.narrative.",
+            "title": "Narrative",
+            "type": "string"
+          },
+          "negatives": {
+            "default": [],
+            "description": "Elicited negatives only (files/04 §5 hpi.negatives; files/13 §9.3 — only ASKED_ABSENT may enter a pertinent-negative list).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Negatives",
+            "type": "array"
+          },
+          "oldcarts": {
+            "$ref": "#/components/schemas/Oldcarts",
+            "description": "files/04 §5 hpi.oldcarts."
+          }
+        },
+        "required": [
+          "narrative",
+          "oldcarts"
+        ],
+        "title": "Hpi",
+        "type": "object"
+      },
+      "ImportedObjectiveItem": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.imported_objective[]``.",
+        "properties": {
+          "date": {
+            "default": "",
+            "description": "Date as printed on the source record (files/04 §5 imported_objective.date).",
+            "title": "Date",
+            "type": "string"
+          },
+          "provenance": {
+            "default": "",
+            "description": "Source trail, e.g. document id + page (files/04 §5 imported_objective.provenance; files/03 §4.6 Provenance with page/bbox).",
+            "title": "Provenance",
+            "type": "string"
+          },
+          "summary": {
+            "description": "files/04 §5 imported_objective.summary.",
+            "title": "Summary",
+            "type": "string"
+          },
+          "type": {
+            "description": "files/04 §5 imported_objective.type: lab|imaging|procedure.",
+            "enum": [
+              "lab",
+              "imaging",
+              "procedure"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "summary"
+        ],
+        "title": "ImportedObjectiveItem",
+        "type": "object"
+      },
+      "InteractionState": {
+        "additionalProperties": false,
+        "description": "M1's only egress — the closed record of files/03 §4.7.1, verbatim six\nfields. The emotion inference exists inside M1 and dies there.",
+        "properties": {
+          "break_offer": {
+            "description": "Whether to offer a break (files/03 §4.7.1 InteractionState.break_offer).",
+            "title": "Break Offer",
+            "type": "boolean"
+          },
+          "confirm_by_card": {
+            "description": "Confirm answers by card instead of voice (files/03 §4.7.1; fed by asr_quality, files/03 §4.7.5).",
+            "title": "Confirm By Card",
+            "type": "boolean"
+          },
+          "modality": {
+            "description": "Input modality to offer (files/03 §4.7.1 InteractionState.modality).",
+            "enum": [
+              "voice",
+              "typed",
+              "keypad"
+            ],
+            "title": "Modality",
+            "type": "string"
+          },
+          "pace": {
+            "description": "Conversation pacing (files/03 §4.7.1 InteractionState.pace).",
+            "enum": [
+              "slow",
+              "normal"
+            ],
+            "title": "Pace",
+            "type": "string"
+          },
+          "repeat_request": {
+            "description": "A repeat was requested (files/03 §4.7.1 InteractionState.repeat_request).",
+            "title": "Repeat Request",
+            "type": "boolean"
+          },
+          "third_party_present": {
+            "description": "A second voice is audible — a fact, not an identity claim (files/03 §4.7.1; files/04 §4.3).",
+            "title": "Third Party Present",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pace",
+          "modality",
+          "break_offer",
+          "confirm_by_card",
+          "repeat_request",
+          "third_party_present"
+        ],
+        "title": "InteractionState",
+        "type": "object"
+      },
+      "JsonScalar": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "JsonValue": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/JsonScalar"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/JsonScalar"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonScalar"
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "KonusmaOzellikleri": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.konusma_ozellikleri`` — objective speech\nmeasures, a sibling of screening by design (files/04 §5 change note;\nfiles/03 §4.7.6). Every measure ships with a population reference range\nand a recording-condition caveat, or the block is not rendered.",
+        "properties": {
+          "f0_mean_hz": {
+            "description": "Mean F0 in Hz (files/04 §5; files/03 §4.7.6).",
+            "minimum": 0,
+            "title": "F0 Mean Hz",
+            "type": "number"
+          },
+          "f0_sd_hz": {
+            "description": "F0 SD in Hz (files/04 §5; files/03 §4.7.6).",
+            "minimum": 0,
+            "title": "F0 Sd Hz",
+            "type": "number"
+          },
+          "pause_ratio": {
+            "description": "Pause ratio 0-1 (files/04 §5; files/03 §4.7.6).",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Pause Ratio",
+            "type": "number"
+          },
+          "recording_conditions_caveat_tr": {
+            "description": "Recording-condition caveat — required, or the block is not rendered (files/04 §5 change note).",
+            "minLength": 1,
+            "title": "Recording Conditions Caveat Tr",
+            "type": "string"
+          },
+          "reference_ranges": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Population reference range per measure — required, or the block is not rendered (files/04 §5 change note).",
+            "minProperties": 1,
+            "title": "Reference Ranges",
+            "type": "object"
+          },
+          "response_latency_ms_mean": {
+            "description": "Mean response latency in ms (files/04 §5; files/03 §4.7.6).",
+            "minimum": 0,
+            "title": "Response Latency Ms Mean",
+            "type": "number"
+          },
+          "speech_rate_syll_s": {
+            "description": "Speech rate, syllables/s (files/04 §5; files/03 §4.7.6).",
+            "minimum": 0,
+            "title": "Speech Rate Syll S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "speech_rate_syll_s",
+          "pause_ratio",
+          "f0_mean_hz",
+          "f0_sd_hz",
+          "response_latency_ms_mean",
+          "reference_ranges",
+          "recording_conditions_caveat_tr"
+        ],
+        "title": "KonusmaOzellikleri",
+        "type": "object"
+      },
+      "Lane": {
+        "description": "The five observer lanes (invariant 11; files/03 §4.7.5). Diarization\nis a gate, not a lane — its product crosses M1 as\n``InteractionState.third_party_present`` (files/03 §4.7.3).",
+        "enum": [
+          "affect",
+          "acoustic",
+          "linguistic",
+          "asr_quality",
+          "engagement"
+        ],
+        "title": "Lane",
+        "type": "string"
+      },
+      "LaneSignal": {
+        "additionalProperties": false,
+        "description": "The recorded lane-signal shape of files/03 §4.8, field for field.",
+        "properties": {
+          "confidence": {
+            "description": "Signal confidence — the gate reads confidence >= tau AND dropped_frames_in_window <= D (files/03 §4.8 property 3).",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "consent_version": {
+            "description": "Version of the lane consent in force (files/03 §4.8 consent_version; each lane is a separate consent purpose, files/03 §4.7).",
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "dropped_frames_in_window": {
+            "description": "Recorded, not eliminated, non-determinism (files/03 §4.8 property 3; lane.dropped_frames is also a metric, files/03 §4.7.6).",
+            "minimum": 0,
+            "title": "Dropped Frames In Window",
+            "type": "integer"
+          },
+          "gate_state": {
+            "description": "State of the lane's admission gate when the window closed (files/03 §4.8 gate_state; §4.7.3 single-speaker gate).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Gate State",
+            "type": "string"
+          },
+          "lane": {
+            "$ref": "#/components/schemas/Lane",
+            "description": "Which lane produced the signal (files/03 §4.8)."
+          },
+          "model_ref": {
+            "description": "model_id@revision that produced the signal (files/03 §4.8: model revision in the log is IEC 62304 change control for free).",
+            "minLength": 1,
+            "title": "Model Ref",
+            "type": "string"
+          },
+          "model_sha256": {
+            "description": "Pinned weight digest (files/03 §4.8 'model_id@revision + sha256'; invariant 14 pinning).",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Model Sha256",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Lane-specific aggregate payload (files/03 §4.8; §4.7.5 outputs are per-section aggregates, never raw audio).",
+            "title": "Payload",
+            "type": "object"
+          },
+          "sampling_rate_hz": {
+            "description": "Adaptive sampling rate in effect (files/03 §4.8 sampling_rate_hz).",
+            "minimum": 0,
+            "title": "Sampling Rate Hz",
+            "type": "number"
+          },
+          "seq": {
+            "description": "Consumption order — signals apply by seq at decision points, never by wall time (files/03 §4.8 property 2).",
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "session_id": {
+            "description": "Owning session (files/03 §4.8 LaneSignal.session_id).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "t_monotonic_ms": {
+            "description": "Monotonic capture time in ms (files/03 §4.8 t_monotonic_ms).",
+            "minimum": 0,
+            "title": "T Monotonic Ms",
+            "type": "integer"
+          },
+          "t_wall": {
+            "description": "Wall-clock capture time (files/03 §4.8 t_wall).",
+            "format": "date-time",
+            "title": "T Wall",
+            "type": "string"
+          },
+          "tombstoned": {
+            "default": false,
+            "description": "Withdrawn signals are tombstoned, not deleted — deleting breaks the hash chain; tombstoned signals are non-consumable on replay (files/03 §4.8; files/06 §2.2).",
+            "title": "Tombstoned",
+            "type": "boolean"
+          },
+          "window_id": {
+            "description": "Analysis window id (files/03 §4.8 window_id).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Window Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lane",
+          "session_id",
+          "seq",
+          "t_monotonic_ms",
+          "t_wall",
+          "window_id",
+          "confidence",
+          "model_ref",
+          "model_sha256",
+          "sampling_rate_hz",
+          "dropped_frames_in_window",
+          "gate_state",
+          "consent_version"
+        ],
+        "title": "LaneSignal",
+        "type": "object"
+      },
+      "LearnedFact": {
+        "additionalProperties": false,
+        "description": "One learned fact with provenance and confidence (files/09 §3).",
+        "properties": {
+          "confidence": {
+            "description": "Confidence carried with the fact (files/09 §3: 'with provenance and confidence').",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "confirmed_at": {
+            "description": "When the confirmation happened — drives the 12-month re-confirmation rule (files/09 §3 guardrails).",
+            "format": "date-time",
+            "title": "Confirmed At",
+            "type": "string"
+          },
+          "key": {
+            "description": "Fact identifier, e.g. chronic.hipertansiyon (files/09 §3: every PatientOverlay field is inspectable in Me → Hakkımda öğrendikleri).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "shared": {
+            "default": true,
+            "description": "Per-field share scope (files/09 §3 guardrails); default-on to match the app's section scopes (files/02 §5.1).",
+            "title": "Shared",
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LearnedFactSource",
+            "description": "Confirmed provenance — the type admits nothing unconfirmed (files/09 §3; invariant 12)."
+          },
+          "source_ref": {
+            "description": "Id of the confirming artefact (note, confirmed item, intake) — the 'where from' every fact must show (files/09 §3 guardrails).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Source Ref",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/JsonValue",
+            "description": "The learned value (files/09 §3: baselines, medication list, communication preferences, companion relationships, cross-specialty facts)."
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "source",
+          "source_ref",
+          "confidence",
+          "confirmed_at"
+        ],
+        "title": "LearnedFact",
+        "type": "object"
+      },
+      "LearnedFactSource": {
+        "description": "The only three provenances a learned fact may carry (files/09 §3;\ninvariant 12). There is deliberately no unconfirmed/LLM member.",
+        "enum": [
+          "confirmed_intake_extraction",
+          "clinician_accepted_note",
+          "confirmed_imported_record"
+        ],
+        "title": "LearnedFactSource",
+        "type": "string"
+      },
+      "LlmCandidateTriage": {
+        "additionalProperties": false,
+        "description": "LLM candidate output. The type can express exactly one level:\n``YELLOW_REVIEW`` — the ceiling of files/03 §4.6 and invariant 1, kept out\nof ``TriageLevel`` per files/12 §2.3 (clinician-only, never routing).",
+        "properties": {
+          "candidate_flags": {
+            "description": "The candidate concerns with evidence (files/03 §4.6 candidate_flags[]).",
+            "items": {
+              "$ref": "#/components/schemas/CandidateFlag"
+            },
+            "minItems": 1,
+            "title": "Candidate Flags",
+            "type": "array"
+          },
+          "level": {
+            "const": "YELLOW_REVIEW",
+            "default": "YELLOW_REVIEW",
+            "description": "Type-level maximum for LLM candidates (files/03 §4.6; files/12 §2.3).",
+            "title": "Level",
+            "type": "string"
+          },
+          "source": {
+            "const": "llm_candidate",
+            "default": "llm_candidate",
+            "description": "Provenance discriminator: an LLM produced this (invariant 1).",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_flags"
+        ],
+        "title": "LlmCandidateTriage",
+        "type": "object"
+      },
+      "MeasureCode": {
+        "description": "What a patient can measure about themselves and be believed about.\n\nfiles/02 §2 lists \"vitals entry (manual/HealthKit/Health Connect)\" in the\ndetailed column, but INT-282 asserted by name that pulse (174_TC), blood\npressure (173_TC/354_TC) and respiration (49_TC) are *clinician-measured*\nrows the patient is never asked. A field called ``vitals`` would invite a\npatient-typed blood pressure to sit in a clinician note beside\nclinic-measured ones; this code set names only what the intake surface\nactually collects. Adding a measured vital here is a clinical-safety\ndecision and not a schema one (docs/evidence/INT-084.md; HB-C14).",
+        "enum": [
+          "height",
+          "weight"
+        ],
+        "title": "MeasureCode",
+        "type": "string"
+      },
+      "MedicationItem": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.medications[]``.",
+        "properties": {
+          "adherence": {
+            "default": "",
+            "description": "files/04 §5 medications.adherence.",
+            "title": "Adherence",
+            "type": "string"
+          },
+          "atc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ATC code when known (files/04 §5 medications.atc).",
+            "title": "Atc"
+          },
+          "dose": {
+            "default": "",
+            "description": "Dose as Turkish orthography text (files/04 §5 medications.dose; CLAUDE.md invariant 22 — numbers never cross a boundary unguarded).",
+            "title": "Dose",
+            "type": "string"
+          },
+          "name": {
+            "description": "files/04 §5 medications.name.",
+            "title": "Name",
+            "type": "string"
+          },
+          "reconciliation": {
+            "description": "files/04 §5 medications.reconciliation: matches|new|stopped|conflict.",
+            "enum": [
+              "matches",
+              "new",
+              "stopped",
+              "conflict"
+            ],
+            "title": "Reconciliation",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "description": "files/04 §5 medications.source.",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "reconciliation"
+        ],
+        "title": "MedicationItem",
+        "type": "object"
+      },
+      "NoteMeta": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.meta``.",
+        "properties": {
+          "generated_at": {
+            "description": "When the note was composed (files/04 §5 meta.generated_at).",
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "language": {
+            "const": "tr",
+            "default": "tr",
+            "description": "Note language (files/04 §5 meta.language; invariant 5).",
+            "title": "Language",
+            "type": "string"
+          },
+          "mode": {
+            "description": "Intake mode (files/04 §5 meta.mode: fast|detailed).",
+            "enum": [
+              "fast",
+              "detailed"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "model": {
+            "description": "Note-composition model reference (files/04 §5 meta.model; pinned per files/03 §4.9.1).",
+            "minLength": 1,
+            "title": "Model",
+            "type": "string"
+          },
+          "prompt_version": {
+            "description": "Versioned prompt id (files/04 §5 meta.prompt_version; files/03 §4.3 prompts are versioned).",
+            "minLength": 1,
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "protocol_hash": {
+            "description": "Resolved protocol pack hash pinned per session (files/04 §5 meta.protocol_hash; files/04 §7 signed packs).",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Protocol Hash",
+            "type": "string"
+          },
+          "visit_id": {
+            "description": "Visit this note belongs to (files/04 §5 meta.visit_id).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Visit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "visit_id",
+          "protocol_hash",
+          "mode",
+          "generated_at",
+          "model",
+          "prompt_version"
+        ],
+        "title": "NoteMeta",
+        "type": "object"
+      },
+      "NoteTriage": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.triage`` — rules and LLM candidates side by\nside, never merged (invariant 1).",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/TriageLevel",
+            "description": "Rules-engine level RED|YELLOW|GREEN (files/04 §5 triage.level)."
+          },
+          "llm_candidates": {
+            "default": [],
+            "description": "LLM candidate flags, clinician-review material only (files/04 §5 triage.llm_candidates; ceiling YELLOW_REVIEW, files/03 §4.6).",
+            "items": {
+              "$ref": "#/components/schemas/CandidateFlag"
+            },
+            "title": "Llm Candidates",
+            "type": "array"
+          },
+          "rules": {
+            "default": [],
+            "description": "Fired rules with evidence (files/04 §5 triage.rules).",
+            "items": {
+              "$ref": "#/components/schemas/RuleFire"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "title": "NoteTriage",
+        "type": "object"
+      },
+      "NpsV1": {
+        "additionalProperties": false,
+        "description": "Net promoter score (INT-240; files/08 §4 group F nps.monthly; emitted\nvia POST /feedback/nps, files/03 §6). Standard NPS 0-10 scale.",
+        "properties": {
+          "schema_id": {
+            "const": "intake.clinical.nps.v1",
+            "default": "intake.clinical.nps.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "score": {
+            "description": "NPS 0-10 (files/08 §4 group F nps.monthly).",
+            "maximum": 10,
+            "minimum": 0,
+            "title": "Score",
+            "type": "integer"
+          },
+          "tenant_id": {
+            "description": "Owning tenant (INT-030 events.tenant_id).",
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "score"
+        ],
+        "title": "NpsV1",
+        "type": "object"
+      },
+      "ObserverState": {
+        "additionalProperties": false,
+        "description": "What the lanes may write — and the only thing they may write\n(invariant 11). Aggregates per files/03 §4.7.5; merged into the Backend\nAgent at section boundaries as a wellbeing_signal Work item (files/03\n§4.7).",
+        "properties": {
+          "asr_quality": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Transcript quality aggregates (files/03 §4.7.5 asr_quality{}).",
+            "title": "Asr Quality",
+            "type": "object"
+          },
+          "engagement": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Timing-event aggregates (files/03 §4.7.5 engagement{}).",
+            "title": "Engagement",
+            "type": "object"
+          },
+          "interaction": {
+            "$ref": "#/components/schemas/InteractionState",
+            "description": "M1's closed egress record (files/03 §4.7.1)."
+          },
+          "linguistic_markers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Deterministic lexicon/timing markers (files/03 §4.7.5 linguistic_markers{}); crisis lexicon hits bypass the lane entirely.",
+            "title": "Linguistic Markers",
+            "type": "object"
+          },
+          "session_id": {
+            "description": "Owning session (files/03 §4.7).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "interaction"
+        ],
+        "title": "ObserverState",
+        "type": "object"
+      },
+      "Oldcarts": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.hpi.oldcarts``.",
+        "properties": {
+          "aggravating": {
+            "default": [],
+            "description": "files/04 §5 oldcarts.aggravating.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Aggravating",
+            "type": "array"
+          },
+          "character": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.character.",
+            "title": "Character",
+            "type": "string"
+          },
+          "duration": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.duration.",
+            "title": "Duration",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.location.",
+            "title": "Location",
+            "type": "string"
+          },
+          "onset": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.onset.",
+            "title": "Onset",
+            "type": "string"
+          },
+          "radiation": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.radiation.",
+            "title": "Radiation",
+            "type": "string"
+          },
+          "relieving": {
+            "default": [],
+            "description": "files/04 §5 oldcarts.relieving.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Relieving",
+            "type": "array"
+          },
+          "severity_nrs": {
+            "anyOf": [
+              {
+                "maximum": 10,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Numeric rating scale 0-10 (files/04 §5 oldcarts.severity_nrs); None when not elicited — an absent score is never rendered as 0.",
+            "title": "Severity Nrs"
+          },
+          "timing": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.timing.",
+            "title": "Timing",
+            "type": "string"
+          },
+          "trajectory": {
+            "default": "",
+            "description": "files/04 §5 oldcarts.trajectory.",
+            "title": "Trajectory",
+            "type": "string"
+          }
+        },
+        "title": "Oldcarts",
+        "type": "object"
+      },
+      "PatientOverlay": {
+        "additionalProperties": false,
+        "description": "The per-patient learning object (files/09 §3): patient-owned,\nversioned, exported/deletable; may only add/tighten red flags via the\noverlays it activates, never relax them (invariant 7).",
+        "properties": {
+          "facts": {
+            "default": [],
+            "description": "The learned facts, each with confirmed provenance (files/09 §3).",
+            "items": {
+              "$ref": "#/components/schemas/LearnedFact"
+            },
+            "title": "Facts",
+            "type": "array"
+          },
+          "patient_ref": {
+            "description": "Pseudonymised patient (INT-030 patients.pseudonym; the overlay is patient-owned and exportable/deletable, files/09 §3).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Patient Ref",
+            "type": "string"
+          },
+          "version": {
+            "description": "Overlay version — the object is versioned (files/09 §3).",
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "patient_ref",
+          "version"
+        ],
+        "title": "PatientOverlay",
+        "type": "object"
+      },
+      "PatientSummary": {
+        "additionalProperties": false,
+        "description": "The patient-facing summary (files/04 §5). Everything here passes\nPolicyGuard (invariant 2); its annotation closure never reaches\nclinician-only material (files/12 §2.3), which tests walk and assert.",
+        "properties": {
+          "bring_list": {
+            "default": [],
+            "description": "files/04 §5 PatientSummary.bring_list.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Bring List",
+            "type": "array"
+          },
+          "cards": {
+            "default": [],
+            "description": "files/04 §5 PatientSummary.cards.",
+            "items": {
+              "$ref": "#/components/schemas/SummaryCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "questions_for_doctor": {
+            "default": [],
+            "description": "files/04 §5 PatientSummary.questions_for_doctor.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Questions For Doctor",
+            "type": "array"
+          },
+          "triage_message_tr": {
+            "default": "",
+            "description": "Patient-safe triage message (files/04 §5 triage_message_tr; never alarming beyond the triage action — CLAUDE.md clinical content rules).",
+            "title": "Triage Message Tr",
+            "type": "string"
+          }
+        },
+        "title": "PatientSummary",
+        "type": "object"
+      },
+      "PmhItem": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.pmh[]``.",
+        "properties": {
+          "condition": {
+            "description": "files/04 §5 pmh.condition.",
+            "title": "Condition",
+            "type": "string"
+          },
+          "icd10": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ICD-10 code when known (files/04 §5 pmh.icd10).",
+            "title": "Icd10"
+          },
+          "source": {
+            "description": "files/04 §5 pmh.source: patient|record.",
+            "enum": [
+              "patient",
+              "record"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "description": "files/04 §5 pmh.status: confirmed|unconfirmed.",
+            "enum": [
+              "confirmed",
+              "unconfirmed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "condition",
+          "status",
+          "source"
+        ],
+        "title": "PmhItem",
+        "type": "object"
+      },
+      "PreVisitNote": {
+        "additionalProperties": false,
+        "description": "The clinician-ready pre-visit note (files/04 §5, authoritative JSON).\nPersisted only as field-level-encrypted payload (INT-030 notes.payload;\ninvariant 14).",
+        "properties": {
+          "allergies": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.allergies.",
+            "items": {
+              "$ref": "#/components/schemas/AllergyItem"
+            },
+            "title": "Allergies",
+            "type": "array"
+          },
+          "chief_complaint": {
+            "$ref": "#/components/schemas/ChiefComplaint",
+            "description": "files/04 §5 PreVisitNote.chief_complaint."
+          },
+          "considerations": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.considerations.",
+            "items": {
+              "$ref": "#/components/schemas/Consideration"
+            },
+            "title": "Considerations",
+            "type": "array"
+          },
+          "data_gaps": {
+            "default": [],
+            "description": "Visible gaps, e.g. a dropped OCR item (files/04 §5 data_gaps; files/03 §4.6 — a missing value the clinician can see is safe).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Gaps",
+            "type": "array"
+          },
+          "family_social": {
+            "$ref": "#/components/schemas/FamilySocial",
+            "description": "files/04 §5 PreVisitNote.family_social."
+          },
+          "hpi": {
+            "$ref": "#/components/schemas/Hpi",
+            "description": "files/04 §5 PreVisitNote.hpi."
+          },
+          "imported_objective": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.imported_objective.",
+            "items": {
+              "$ref": "#/components/schemas/ImportedObjectiveItem"
+            },
+            "title": "Imported Objective",
+            "type": "array"
+          },
+          "konusma_ozellikleri": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KonusmaOzellikleri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Objective speech measures, sibling of screening (files/04 §5 change note); None when not rendered — the caveat/range rule makes partial rendering unrepresentable."
+          },
+          "measurements": {
+            "default": [],
+            "description": "Self-reported anthropometry (files/04 §5 PreVisitNote.measurements, added 2 Sep 2026 by INT-084). A sibling of family_social and deliberately NOT named `vitals`: the measured vitals of files/02 §2 are clinician-taken and have no home here (see MeasureCode).",
+            "items": {
+              "$ref": "#/components/schemas/SelfReportedMeasure"
+            },
+            "title": "Measurements",
+            "type": "array"
+          },
+          "medications": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.medications.",
+            "items": {
+              "$ref": "#/components/schemas/MedicationItem"
+            },
+            "title": "Medications",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/NoteMeta",
+            "description": "files/04 §5 PreVisitNote.meta."
+          },
+          "patient_confirmed_sections": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.patient_confirmed_sections.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Patient Confirmed Sections",
+            "type": "array"
+          },
+          "pmh": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.pmh.",
+            "items": {
+              "$ref": "#/components/schemas/PmhItem"
+            },
+            "title": "Pmh",
+            "type": "array"
+          },
+          "ros_pertinent": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.ros_pertinent.",
+            "items": {
+              "$ref": "#/components/schemas/RosItem"
+            },
+            "title": "Ros Pertinent",
+            "type": "array"
+          },
+          "screening": {
+            "$ref": "#/components/schemas/ScreeningBlock",
+            "description": "files/04 §5 PreVisitNote.screening."
+          },
+          "suggested_focus_questions": {
+            "default": [],
+            "description": "files/04 §5 PreVisitNote.suggested_focus_questions.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Focus Questions",
+            "type": "array"
+          },
+          "triage": {
+            "$ref": "#/components/schemas/NoteTriage",
+            "description": "files/04 §5 PreVisitNote.triage."
+          }
+        },
+        "required": [
+          "meta",
+          "triage",
+          "chief_complaint",
+          "hpi",
+          "family_social",
+          "screening"
+        ],
+        "title": "PreVisitNote",
+        "type": "object"
+      },
+      "Proposal": {
+        "additionalProperties": false,
+        "description": "One Loop-2 proposal: a diff plus its evidence, never a direct change\n(files/09 §4; invariant 12).",
+        "properties": {
+          "diff": {
+            "description": "The proposed change as a unified diff — proposals are PRs, not writes (files/09 §4 path to production).",
+            "minLength": 1,
+            "title": "Diff",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/EvidenceBundle",
+            "description": "The evidence bundle; a proposal without one fails CI (files/09 §6 proposal_scope)."
+          },
+          "target_path": {
+            "description": "Repo path the diff applies to — only packages/protocols/** or packages/llm-evals/prompts/** (files/09 §4); anything else fails validation and the CI proposal_scope test.",
+            "title": "Target Path",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ProposalType",
+            "description": "Which allowed change class this is (files/09 §4 proposal types)."
+          }
+        },
+        "required": [
+          "type",
+          "target_path",
+          "diff",
+          "evidence"
+        ],
+        "title": "Proposal",
+        "type": "object"
+      },
+      "ProposalType": {
+        "description": "The allowed proposal types, one per clause of files/09 §4.",
+        "enum": [
+          "reword_question",
+          "reorder_questions",
+          "add_follow_up_tr",
+          "add_choices_tr",
+          "add_ask_if",
+          "add_skip_if",
+          "add_stt_vocabulary",
+          "promote_pack_maturity",
+          "add_candidate_red_flag",
+          "prompt_improvement_extraction",
+          "prompt_improvement_note"
+        ],
+        "title": "ProposalType",
+        "type": "string"
+      },
+      "RecordCode": {
+        "additionalProperties": false,
+        "description": "A coded concept on an extracted item (files/03 §4.6 code normalisation).",
+        "properties": {
+          "code": {
+            "description": "The code value (files/03 §4.6).",
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "system": {
+            "$ref": "#/components/schemas/CodeSystem",
+            "description": "Coding system: loinc|atc|icd10 (files/03 §4.6 pipeline)."
+          }
+        },
+        "required": [
+          "system",
+          "code"
+        ],
+        "title": "RecordCode",
+        "type": "object"
+      },
+      "RecordItemKind": {
+        "description": "files/03 §4.6: labs, meds, diagnoses, imaging/procedures/allergies.",
+        "enum": [
+          "lab",
+          "imaging",
+          "procedure",
+          "medication",
+          "diagnosis",
+          "allergy"
+        ],
+        "title": "RecordItemKind",
+        "type": "string"
+      },
+      "RecordProvenance": {
+        "additionalProperties": false,
+        "description": "files/03 §4.6: a Provenance carrying page and bbox, pointing at the\nstored document (INT-030 documents.object_ref/sha256 own the bytes trail).",
+        "properties": {
+          "bbox": {
+            "anyOf": [
+              {
+                "maxItems": 4,
+                "minItems": 4,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Normalised source bounding box (files/03 §4.6 Provenance bbox).",
+            "title": "Bbox"
+          },
+          "document_ref": {
+            "description": "Id of the ingested document row (files/03 §4.6; INT-030 documents).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Document Ref",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "1-based source page (files/03 §4.6 Provenance page).",
+            "title": "Page"
+          }
+        },
+        "required": [
+          "document_ref"
+        ],
+        "title": "RecordProvenance",
+        "type": "object"
+      },
+      "RedLocation": {
+        "description": "What a RED tells the patient to do (files/02 §5.3 Axis 3: REMOTE |\nON_SITE | UNKNOWN; a geofence misfire yields UNKNOWN, files/02 §3).",
+        "enum": [
+          "REMOTE",
+          "ON_SITE",
+          "UNKNOWN"
+        ],
+        "title": "RedLocation",
+        "type": "string"
+      },
+      "RedRegister": {
+        "description": "How a RED is told (files/02 §5.3 register axis; CLAUDE.md invariant 21).",
+        "enum": [
+          "ALERT",
+          "CALM",
+          "SILENT",
+          "DEFERRED_CLINICIAN"
+        ],
+        "title": "RedRegister",
+        "type": "string"
+      },
+      "RosItem": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.ros_pertinent[]``.",
+        "properties": {
+          "finding": {
+            "description": "files/04 §5 ros_pertinent.finding.",
+            "title": "Finding",
+            "type": "string"
+          },
+          "present": {
+            "description": "files/04 §5 ros_pertinent.present.",
+            "title": "Present",
+            "type": "boolean"
+          },
+          "system": {
+            "description": "files/04 §5 ros_pertinent.system.",
+            "title": "System",
+            "type": "string"
+          }
+        },
+        "required": [
+          "system",
+          "finding",
+          "present"
+        ],
+        "title": "RosItem",
+        "type": "object"
+      },
+      "RuleFire": {
+        "additionalProperties": false,
+        "description": "One fired rules-engine rule (files/04 §5 ``triage.rules[{id,evidence}]``).",
+        "properties": {
+          "evidence": {
+            "description": "Which slot values satisfied the rule (files/04 §5 triage.rules.evidence).",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "id": {
+            "description": "Rule id from packages/protocols/triage (files/04 §5; invariant 1).",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "evidence"
+        ],
+        "title": "RuleFire",
+        "type": "object"
+      },
+      "RulesTriageResult": {
+        "additionalProperties": false,
+        "description": "A triage determination produced by ``packages/protocols/triage`` rules —\nthe only producer of RED/YELLOW (invariant 1).",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/TriageLevel",
+            "description": "Patient-routing level GREEN|YELLOW|RED (files/04 §5 triage.level)."
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RedLocation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "RED location axis — required on RED with no permitted default (CLAUDE.md invariant 21; files/02 §5.3 Axis 3); absent on GREEN/YELLOW."
+          },
+          "register": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RedRegister"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "RED register axis — required on RED with no permitted default (CLAUDE.md invariant 21; files/02 §5.3); absent on GREEN/YELLOW."
+          },
+          "rules": {
+            "default": [],
+            "description": "Rules that fired, with evidence (files/04 §5 triage.rules); non-GREEN levels must name at least one (invariant 1).",
+            "items": {
+              "$ref": "#/components/schemas/RuleFire"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "source": {
+            "const": "rules",
+            "default": "rules",
+            "description": "Provenance discriminator: this level came from the rules engine (invariant 1).",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "title": "RulesTriageResult",
+        "type": "object"
+      },
+      "ScreeningBlock": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.screening``. Scores are None until an\nattested self-report exists (files/12 §2.2: InstrumentNotScored is never\na number).",
+        "properties": {
+          "cssrs": {
+            "$ref": "#/components/schemas/JsonValue",
+            "default": null,
+            "description": "C-SSRS outcome; shape not fixed by files/04 §5 (sketch: null) and the instrument licence is BLOCKED (HUMAN_BLOCKERS.md HB-L2), so this stays an open JSON slot until the licence lands."
+          },
+          "gad2": {
+            "anyOf": [
+              {
+                "maximum": 6,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "GAD-2 total 0-6 (files/04 §5 screening.gad2).",
+            "title": "Gad2"
+          },
+          "gad7": {
+            "anyOf": [
+              {
+                "maximum": 21,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "GAD-7 total 0-21 (files/04 §5 screening.gad7).",
+            "title": "Gad7"
+          },
+          "phq2": {
+            "anyOf": [
+              {
+                "maximum": 6,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "PHQ-2 total 0-6 (files/04 §5 screening.phq2).",
+            "title": "Phq2"
+          },
+          "phq9": {
+            "anyOf": [
+              {
+                "maximum": 27,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "PHQ-9 total 0-27 (files/04 §5 screening.phq9).",
+            "title": "Phq9"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ScreeningProvenance",
+            "description": "files/04 §5 screening.provenance — required with any score."
+          }
+        },
+        "required": [
+          "provenance"
+        ],
+        "title": "ScreeningBlock",
+        "type": "object"
+      },
+      "ScreeningProvenance": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``screening.provenance`` — the factual qualifiers that\nreplaced the deleted ``affect_summary`` (files/04 §5 change note, 25 Aug\n2026; files/04 §4.3 third-party qualifier).",
+        "properties": {
+          "administration_mode": {
+            "description": "files/04 §5 provenance.administration_mode: voice|typed|keypad.",
+            "enum": [
+              "voice",
+              "typed",
+              "keypad"
+            ],
+            "title": "Administration Mode",
+            "type": "string"
+          },
+          "proxy_reported": {
+            "description": "files/04 §5 provenance.proxy_reported; files/12 §2.2 reporter rules.",
+            "title": "Proxy Reported",
+            "type": "boolean"
+          },
+          "qualifier_tr": {
+            "default": "",
+            "description": "Strictly factual Turkish qualifier rendered with every score (files/04 §4.3: 'başka bir konuşmacı duyuldu', never an identity claim).",
+            "title": "Qualifier Tr",
+            "type": "string"
+          },
+          "third_party_present": {
+            "description": "files/04 §5 provenance.third_party_present; files/04 §4.3 — a second voice was audible, worded strictly factually.",
+            "title": "Third Party Present",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "administration_mode",
+          "proxy_reported",
+          "third_party_present"
+        ],
+        "title": "ScreeningProvenance",
+        "type": "object"
+      },
+      "SecurityEventCategory": {
+        "description": "Security signal families, one per named signal in files/10 §5.",
+        "enum": [
+          "failed_login",
+          "otp_anomaly",
+          "impossible_travel",
+          "new_device_login",
+          "token_reuse",
+          "waf_block",
+          "admin_action",
+          "break_glass",
+          "consent_scope_denial",
+          "egress_denial",
+          "injection_suspected",
+          "policyguard_spike",
+          "integrity_failure"
+        ],
+        "title": "SecurityEventCategory",
+        "type": "string"
+      },
+      "SecurityV1": {
+        "additionalProperties": false,
+        "description": "One security event, separated from application logs (files/10 §2).\nEvery value is id-shaped — structured JSON with ids only (files/10 §2,\n§5 Logging; invariant 6): narrative has no carrier here.",
+        "properties": {
+          "actor_ref": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Acting principal id when one exists (files/10 §5: admin actions, break-glass per actor); None for e.g. integrity failures.",
+            "title": "Actor Ref"
+          },
+          "attributes": {
+            "additionalProperties": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+              "type": "string"
+            },
+            "description": "Additional context as id-shaped values only — the value type enforces the ids-only logging rule (files/10 §2; invariant 6).",
+            "title": "Attributes",
+            "type": "object"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SecurityEventCategory",
+            "description": "Signal family (files/10 §5 signals list)."
+          },
+          "correlation_id": {
+            "description": "Correlation id linking the event to its trace/log context (files/10 §5 Logging: correlation ids; files/08 §8 SafeError {error_code, correlation_id}).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "resource_ref": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Affected resource id when one exists (files/10 §5).",
+            "title": "Resource Ref"
+          },
+          "schema_id": {
+            "const": "intake.clinical.security.v1",
+            "default": "intake.clinical.security.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Owning tenant when tenant-scoped; None for platform-level events (files/10 §6 tenant_id propagation).",
+            "title": "Tenant Id"
+          }
+        },
+        "required": [
+          "category",
+          "correlation_id"
+        ],
+        "title": "SecurityV1",
+        "type": "object"
+      },
+      "SelfReportedMeasure": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.measurements[]`` (added 2 Sep 2026, INT-084).\n\nThe 04 §5 sketch had no anthropometry key at all, so INT-282 rendered\nheight and weight into a *mobile* section id rather than invent one\n(docs/evidence/INT-282.md). This is that gap closed at the schema layer:\na self-report, typed as one, so no renderer can read it as a measurement\ntaken in clinic. The magnitude is an exact ``Decimal`` — invariant 22 does\nnot let a float cross a representation boundary — and the unit is the one\nthe patient's control was labelled with, never converted.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/MeasureCode",
+            "description": "Which self-reported measure this is (files/04 §5 measurements.code)."
+          },
+          "magnitude": {
+            "description": "Exact decimal magnitude (CLAUDE.md invariant 22 — no float crosses a representation boundary).",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Magnitude",
+            "type": "string"
+          },
+          "unit": {
+            "description": "Unit as the patient's control was labelled (files/04 §5 measurements.unit); never silently converted (invariant 22).",
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "magnitude",
+          "unit"
+        ],
+        "title": "SelfReportedMeasure",
+        "type": "object"
+      },
+      "SessionBudget": {
+        "additionalProperties": false,
+        "description": "Turn budget (files/13 §9.4 budget governor; ``turns_used`` /\n``turns_remaining`` are GuardExpr whitelist functions, files/13 §9.5).",
+        "properties": {
+          "turns_remaining": {
+            "description": "Turns left before the governor filters classes 6-8 (files/13 §9.4-9.5); the budget yields to the safety set, never the reverse.",
+            "minimum": 0,
+            "title": "Turns Remaining",
+            "type": "integer"
+          },
+          "turns_used": {
+            "description": "Turns consumed so far (files/13 §9.5).",
+            "minimum": 0,
+            "title": "Turns Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turns_used",
+          "turns_remaining"
+        ],
+        "title": "SessionBudget",
+        "type": "object"
+      },
+      "SessionState": {
+        "additionalProperties": false,
+        "description": "One intake session's engine state snapshot (files/03 §4.3; files/13 §9).",
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/SessionBudget",
+            "description": "Turn budget (files/13 §9.4)."
+          },
+          "mode": {
+            "description": "Intake mode (files/04 §5 meta.mode; GuardExpr ``mode``, files/13 §9.5).",
+            "enum": [
+              "fast",
+              "detailed"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "protocol_hash": {
+            "description": "Resolved pack hash the fold was initialised with (files/13 §9.2; files/04 §7 — pinned per session).",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Protocol Hash",
+            "type": "string"
+          },
+          "protocol_id": {
+            "description": "Which protocol pack ran (INT-030 sessions.protocol_id).",
+            "minLength": 1,
+            "title": "Protocol Id",
+            "type": "string"
+          },
+          "protocol_version": {
+            "description": "Exact pack version for reproducibility and re-triage sweeps (INT-030 sessions.protocol_version).",
+            "minLength": 1,
+            "title": "Protocol Version",
+            "type": "string"
+          },
+          "reference_time": {
+            "description": "The session's 'now', stamped at SessionStarted — no wall clock, so replay is exact (files/13 §9.2 purity).",
+            "format": "date-time",
+            "title": "Reference Time",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Session id (files/03 §4.3: one Backend context per session, intake:<session_id>:backend).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "slots": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Slot values keyed by slot id; every write serialised through the FIFO Work queue (files/03 §4.3; persisted per INT-030 slots with envelope encryption for sensitive classes).",
+            "title": "Slots",
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus",
+            "description": "Lifecycle state (INT-030 sessions.status: created|active|completed|cancelled)."
+          },
+          "step_states": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AnswerState"
+            },
+            "description": "Answer state per protocol step id (files/13 §9.3 seven states).",
+            "title": "Step States",
+            "type": "object"
+          },
+          "triage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RulesTriageResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Latest rules-engine determination (files/03 §4.3 evaluate_triage). Typed to exclude LLM candidates — no LLM path into routing state (invariant 1)."
+          }
+        },
+        "required": [
+          "session_id",
+          "protocol_id",
+          "protocol_version",
+          "protocol_hash",
+          "mode",
+          "status",
+          "reference_time",
+          "budget"
+        ],
+        "title": "SessionState",
+        "type": "object"
+      },
+      "SessionStatus": {
+        "description": "Session lifecycle, mirroring INT-030 ``SessionStatus``.",
+        "enum": [
+          "created",
+          "active",
+          "completed",
+          "cancelled"
+        ],
+        "title": "SessionStatus",
+        "type": "string"
+      },
+      "ShareScope": {
+        "additionalProperties": false,
+        "description": "Parameters of a share grant (files/06 §2.1:\n``share:{recipient,visit,sections,expiry}``).",
+        "properties": {
+          "expiry": {
+            "description": "Hard expiry of the share (files/06 §2.1 share.expiry; INT-030 shares.expires_at, ≤ 72 h default per files/06 §3).",
+            "format": "date-time",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "recipient": {
+            "description": "Who receives the share, as an id (files/06 §2.1 share.recipient).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Recipient",
+            "type": "string"
+          },
+          "sections": {
+            "description": "Note section ids exposed by the share (files/06 §2.1 share.sections; INT-030 shares.scope_sections carries section ids only).",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          },
+          "visit": {
+            "description": "The visit being shared (files/06 §2.1 share.visit).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Visit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient",
+          "visit",
+          "sections",
+          "expiry"
+        ],
+        "title": "ShareScope",
+        "type": "object"
+      },
+      "SummaryCard": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PatientSummary.cards[]``.",
+        "properties": {
+          "lines": {
+            "default": [],
+            "description": "files/04 §5 cards.lines.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "title_tr": {
+            "description": "Card title, ≤ B1 Turkish (files/04 §5; invariant 2).",
+            "title": "Title Tr",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title_tr"
+        ],
+        "title": "SummaryCard",
+        "type": "object"
+      },
+      "TriageLevel": {
+        "description": "Patient-routing levels, rules-engine only (files/04 §5 ``triage.level``:\nRED|YELLOW|GREEN; files/03 §4.3 result shape).",
+        "enum": [
+          "GREEN",
+          "YELLOW",
+          "RED"
+        ],
+        "title": "TriageLevel",
+        "type": "string"
+      },
+      "TriageResult": {
+        "discriminator": {
+          "mapping": {
+            "llm_candidate": "#/components/schemas/LlmCandidateTriage",
+            "rules": "#/components/schemas/RulesTriageResult"
+          },
+          "propertyName": "source"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/RulesTriageResult"
+          },
+          {
+            "$ref": "#/components/schemas/LlmCandidateTriage"
+          }
+        ]
+      },
+      "VerificationStatus": {
+        "description": "files/03 §4.6: items enter as unconfirmed; the patient confirms in-app\nbefore any clinical use.",
+        "enum": [
+          "unconfirmed",
+          "confirmed"
+        ],
+        "title": "VerificationStatus",
+        "type": "string"
+      },
+      "WaitKind": {
+        "description": "The wait intervals files/08 §4 group G names and INT-241's acceptance\nenumerates. A closed set: a kind outside group G has no catalogue row, so\nit has no honest way to be emitted (invariant 13).",
+        "enum": [
+          "time_to_first_question",
+          "note_ready_after_wrapup",
+          "doctor_link_first_open",
+          "checkin_to_seen",
+          "records_processing"
+        ],
+        "title": "WaitKind",
+        "type": "string"
+      },
+      "WaitV1": {
+        "additionalProperties": false,
+        "description": "One completed wait interval (INT-241; files/08 §4 group G).\n\n**A duration, not two instants.** The interval is reduced to a scalar\nbefore it is written: instants plus a session id are a queue position that\ncorrelates to a person, a duration is not. The row's own ``created_at``\nstill owns event time (the module convention above), which is what puts\nthe observation inside a rollup window.\n\n**No free text and no minimum unit of one.** ``kind`` and\n``document_type`` are closed enumerations; ``duration_ms`` is a count of\nmilliseconds. There is nowhere for an identifier or a sentence to ride\n(invariant 6), which is what lets the rollups read the payload directly.",
+        "properties": {
+          "document_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentKind"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Ingest content kind, for wait.records_processing_s only (files/08 §4 G: 'by document type'). None for every other kind."
+          },
+          "duration_ms": {
+            "description": "Elapsed milliseconds between the interval's two instants, measured on a monotonic clock. A count, never a wall-clock pair.",
+            "minimum": 0,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WaitKind",
+            "description": "Which files/08 §4 group G interval this measures (closed set)."
+          },
+          "schema_id": {
+            "const": "intake.clinical.wait.v1",
+            "default": "intake.clinical.wait.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "tenant_id": {
+            "description": "Owning tenant (INT-030 events.tenant_id).",
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "kind",
+          "duration_ms"
+        ],
+        "title": "WaitV1",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Canonical clinical object and event schemas (INT-031). Generated by clinical_schemas.codegen — regenerate with `make schemas-codegen`, never edit by hand.",
+    "title": "INTAKE clinical schemas",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {}
+}

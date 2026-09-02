@@ -1,164 +1,123 @@
 /**
- * INT-199 voice-first intake: pure state machine for the entry flow
- * (offer → record → transcribe → extract → prefilled confirm steps), the
- * transcript→prefill mapping for a pack, and the per-question
- * confirm/change/skip resolution. Every failure or skip lands in the exact
- * manual flow — never a dead end. Candidates are ANSWER SUGGESTIONS only
- * (invariant 1 posture: no triage, no diagnosis leaves this module).
+ * INT-239 intake entry: the spoken dialogue (karşılıklı konuşma) is the
+ * ONLY voice entry. The machine holds exactly three phases — probe the
+ * voice lane, run the dialogue, run the typed steps — so there is no
+ * chooser to land on and no one-shot "record it all at once" path left.
+ * Typed intake stays reachable from every phase (accessibility, and the
+ * `typed` profile in files/03 §4.9.1), and every failure or skip lands in
+ * the exact manual flow — never a dead end. Candidates are ANSWER
+ * SUGGESTIONS only (invariant 1 posture: no triage, no diagnosis).
  */
 import { describe, expect, it } from "vitest";
 
 import { en } from "../i18n/en";
 import { tr, type MessageKey } from "../i18n/tr";
-import { toQuestionSpecs, validateExtractResponse } from "../extract";
-import { packForDepartment } from "./questions";
 import {
   initialVoiceIntakeState,
-  prefillForPack,
   resolveAnswer,
   voiceIntakeReducer,
   type VoiceIntakeAction,
   type VoiceIntakeState,
 } from "./voiceFirst";
 
-const cardio = packForDepartment("Kardiyoloji");
-
 function run(state: VoiceIntakeState, ...actions: VoiceIntakeAction[]): VoiceIntakeState {
   return actions.reduce(voiceIntakeReducer, state);
 }
 
-describe("voiceIntakeReducer", () => {
-  it("ineligible sessions start straight in the manual steps", () => {
-    expect(initialVoiceIntakeState(false)).toEqual({
-      phase: "steps",
-      prefill: {},
-      failed: false,
-    });
-  });
+const STEPS: VoiceIntakeState = { phase: "steps", prefill: {}, failed: false };
 
-  it("eligible sessions gate on the ASR probe, then offer voice first", () => {
+describe("voiceIntakeReducer — the dialogue is the only voice entry (INT-239)", () => {
+  it("a ready voice lane goes STRAIGHT into the dialogue — no offer, no chooser", () => {
     const gate = initialVoiceIntakeState(true);
     expect(gate).toEqual({ phase: "gate" });
-    expect(run(gate, { type: "voice_ready" })).toEqual({ phase: "offer" });
+    expect(run(gate, { type: "voice_ready" })).toEqual({ phase: "dialogue" });
+  });
+
+  it("the machine has exactly three reachable phases", () => {
+    const actions: VoiceIntakeAction[] = [
+      { type: "voice_ready" },
+      { type: "voice_unavailable" },
+      { type: "candidates", prefill: {} },
+      { type: "failure", prefill: {} },
+      { type: "skip" },
+    ];
+    const seen = new Set<string>();
+    const frontier: VoiceIntakeState[] = [initialVoiceIntakeState(true)];
+    while (frontier.length > 0) {
+      const state = frontier.pop()!;
+      if (seen.has(state.phase)) {
+        continue;
+      }
+      seen.add(state.phase);
+      for (const action of actions) {
+        frontier.push(voiceIntakeReducer(state, action));
+      }
+    }
+    expect([...seen].sort()).toEqual(["dialogue", "gate", "steps"]);
+  });
+
+  it("ineligible sessions start straight in the manual steps", () => {
+    expect(initialVoiceIntakeState(false)).toEqual(STEPS);
   });
 
   it("a failed probe falls back to the manual steps without a failure notice", () => {
-    expect(run(initialVoiceIntakeState(true), { type: "voice_unavailable" })).toEqual({
+    expect(run(initialVoiceIntakeState(true), { type: "voice_unavailable" })).toEqual(STEPS);
+  });
+
+  it("typed intake stays reachable from the probe and from inside the dialogue", () => {
+    expect(run({ phase: "gate" }, { type: "skip" })).toEqual(STEPS);
+    expect(run({ phase: "dialogue" }, { type: "skip" })).toEqual(STEPS);
+  });
+
+  it("a dialogue failure lands in the manual steps WITH the notice — answers are already committed", () => {
+    expect(run({ phase: "dialogue" }, { type: "failure", prefill: {} })).toEqual({
       phase: "steps",
       prefill: {},
-      failed: false,
+      failed: true,
     });
   });
 
-  it("walks the happy path: offer → recording → transcribing → extracting → prefilled steps", () => {
-    const prefill = { complaint: { values: ["pain"], quote: "ağrım var" } };
-    let state = run(initialVoiceIntakeState(true), { type: "voice_ready" });
-    state = run(state, { type: "record" });
-    expect(state).toEqual({ phase: "recording" });
-    state = run(state, { type: "stop" });
-    expect(state).toEqual({ phase: "transcribing" });
-    state = run(state, { type: "transcript" });
-    expect(state).toEqual({ phase: "extracting" });
-    state = run(state, { type: "candidates", prefill });
-    expect(state).toEqual({ phase: "steps", prefill, failed: false });
+  // INT-261. A failure and a hand-over land the patient in the SAME typed
+  // steps, so they must arrive carrying the same thing. Before this issue the
+  // failure branch hard-coded `prefill: {}`, which meant a suggestion the
+  // dialogue had already extracted from the patient's own words survived a
+  // tidy exit and was thrown away by an unlucky one — the patient then
+  // answered, in text, a question they had already answered out loud.
+  it("a failure carries the leftover suggestions too — nothing said is lost", () => {
+    const prefill = { complaint: { values: ["pain"], quote: "göğsümde baskı var" } };
+    expect(run({ phase: "dialogue" }, { type: "failure", prefill })).toEqual({
+      phase: "steps",
+      prefill,
+      failed: true,
+    });
   });
 
-  it("failure from any voice phase lands in the manual steps with the notice", () => {
-    for (const phase of [
-      { phase: "recording" },
-      { phase: "transcribing" },
-      { phase: "extracting" },
-    ] as const) {
-      expect(run(phase, { type: "failure" })).toEqual({
-        phase: "steps",
-        prefill: {},
-        failed: true,
-      });
-    }
-  });
-
-  it("skip from any voice phase lands in the manual steps quietly", () => {
-    for (const phase of [
-      { phase: "offer" },
-      { phase: "recording" },
-      { phase: "extracting" },
-    ] as const) {
-      expect(run(phase, { type: "skip" })).toEqual({ phase: "steps", prefill: {}, failed: false });
-    }
+  it("the ask-ahead hand-over lands in steps with the leftover suggestions as prefill", () => {
+    const prefill = { duration: { values: ["days"], quote: "birkaç gündür böyle" } };
+    expect(run({ phase: "dialogue" }, { type: "candidates", prefill })).toEqual({
+      phase: "steps",
+      prefill,
+      failed: false,
+    });
+    // Empty leftovers are NOT a failure: the dialogue committed what it
+    // could and the patient answers the remaining questions fresh, quietly.
+    expect(run({ phase: "dialogue" }, { type: "candidates", prefill: {} })).toEqual(STEPS);
   });
 
   it("steps is absorbing: late async results never yank the patient out of the flow", () => {
-    const steps: VoiceIntakeState = { phase: "steps", prefill: {}, failed: false };
-    expect(run(steps, { type: "transcript" })).toEqual(steps);
     expect(
-      run(steps, { type: "candidates", prefill: { complaint: { values: ["pain"], quote: "q" } } }),
-    ).toEqual(steps);
-    expect(run(steps, { type: "failure" })).toEqual(steps);
-    expect(run(steps, { type: "voice_ready" })).toEqual(steps);
+      run(STEPS, { type: "candidates", prefill: { a: { values: ["x"], quote: "q" } } }),
+    ).toEqual(STEPS);
+    expect(run(STEPS, { type: "failure", prefill: {} })).toEqual(STEPS);
+    expect(run(STEPS, { type: "voice_ready" })).toEqual(STEPS);
   });
 
-  it("out-of-order actions are no-ops (stop before record, candidates before extracting)", () => {
-    const offer: VoiceIntakeState = { phase: "offer" };
-    expect(run(offer, { type: "stop" })).toEqual(offer);
-    expect(run(offer, { type: "transcript" })).toEqual(offer);
-    expect(run(offer, { type: "candidates", prefill: {} })).toEqual(offer);
-  });
-});
-
-describe("prefillForPack (transcript → intake state, cardio pack fixture)", () => {
-  const candidates = {
-    complaint: { values: ["pain", "dyspnoea"], quote: "Göğsümde baskı var, nefesim daralıyor" },
-    duration: { values: ["days"], quote: "birkaç gündür böyle" },
-    onset: { values: ["sudden"], quote: "aniden başladı" },
-    // derm_character belongs to another pack — must be dropped, not reordered.
-    derm_character: { values: ["itchy"], quote: "kaşınıyor" },
-    extra: { values: ["Merdiven çıkarken artıyor"], quote: "merdiven çıkarken artıyor" },
-  };
-
-  it("keeps only questions that exist in the pack, in pack order", () => {
-    const prefill = prefillForPack(cardio, candidates);
-    expect(Object.keys(prefill)).toEqual(["complaint", "duration", "onset", "extra"]);
-  });
-
-  it("carries values and the verbatim quote as provenance", () => {
-    const prefill = prefillForPack(cardio, candidates);
-    expect(prefill.complaint).toEqual({
-      values: ["pain", "dyspnoea"],
-      quote: "Göğsümde baskı var, nefesim daralıyor",
-    });
-    expect(prefill.extra).toEqual({
-      values: ["Merdiven çıkarken artıyor"],
-      quote: "merdiven çıkarken artıyor",
-    });
-  });
-
-  it("copies values — mutating the prefill never touches the wire result", () => {
-    const prefill = prefillForPack(cardio, candidates);
-    prefill.complaint.values.push("fever");
-    expect(candidates.complaint.values).toEqual(["pain", "dyspnoea"]);
-  });
-
-  it("composes with the validated wire response end-to-end", () => {
-    const specs = toQuestionSpecs(cardio);
-    const validated = validateExtractResponse(
-      {
-        candidates: {
-          complaint: { values: ["pain", "not_an_option"], quote: "göğsümde baskı var" },
-          duration: { values: ["days", "week"], quote: "birkaç gündür, belki daha uzun" },
-          extra: { values: ["Merdiven çıkarken artıyor"], quote: "merdiven çıkarken artıyor" },
-        },
-        dropped: [],
-        model: "qwen3.5-9b",
-      },
-      specs,
-    );
-    expect(validated.ok).toBe(true);
-    if (validated.ok) {
-      const prefill = prefillForPack(cardio, validated.candidates);
-      // the ambiguous single was dropped by validation, never guessed
-      expect(Object.keys(prefill)).toEqual(["complaint", "extra"]);
-      expect(prefill.complaint.values).toEqual(["pain"]);
-    }
+  it("out-of-order actions are no-ops", () => {
+    const gate: VoiceIntakeState = { phase: "gate" };
+    expect(run(gate, { type: "candidates", prefill: {} })).toEqual(gate);
+    const dialogue: VoiceIntakeState = { phase: "dialogue" };
+    expect(run(dialogue, { type: "voice_ready" })).toEqual(dialogue);
+    expect(run(dialogue, { type: "voice_unavailable" })).toEqual(dialogue);
   });
 });
 
@@ -188,48 +147,55 @@ describe("resolveAnswer (per-question confirm / change / skip)", () => {
   });
 });
 
-describe("voice-first copy (tr source of truth + en mirror, invariant 5)", () => {
-  const newKeys = [
-    "voiceFirst.kicker",
-    "voiceFirst.title",
-    "voiceFirst.body",
+describe("intake entry copy (tr source of truth + en mirror, invariant 5)", () => {
+  const entryKeys = [
+    "dialogue.kicker",
+    "dialogue.entryTitle",
+    "dialogue.entryBody",
     "voiceFirst.checking",
-    "voiceFirst.start",
     "voiceFirst.listening",
     "voiceFirst.stop",
-    "voiceFirst.transcribing",
     "voiceFirst.preparing",
-    "voiceFirst.preparingHint",
     "voiceFirst.typeInstead",
-    "voiceFirst.cancel",
     "voiceFirst.saidLabel",
     "voiceFirst.suggested",
     "voiceFirst.failed",
+    "dialogue.voiceMuted",
+    "intake.progress.answered",
+    "intake.progress.grows",
   ] as const satisfies readonly MessageKey[];
 
   it("every key exists non-empty in tr and in the en mirror", () => {
-    for (const key of newKeys) {
+    for (const key of entryKeys) {
       expect(tr[key]?.trim().length, key).toBeGreaterThan(0);
       expect(en[key]?.trim().length, key).toBeGreaterThan(0);
     }
   });
 
-  it("no numeral reaches the patient-facing voice copy (invariant 22 posture)", () => {
-    for (const key of newKeys) {
+  it("no numeral reaches the patient-facing entry copy (invariant 22 posture)", () => {
+    for (const key of entryKeys) {
       expect(tr[key], key).not.toMatch(/[0-9]/u);
       expect(en[key], key).not.toMatch(/[0-9]/u);
     }
   });
 
-  it("the opener asks for the patient's own words and provenance is 'Söylediğiniz'", () => {
-    expect(tr["voiceFirst.title"]).toBe("Şikâyetinizi kendi cümlelerinizle anlatın");
+  it("the entry names the conversation and offers typing as the quiet second door", () => {
+    expect(tr["dialogue.kicker"]).toBe("Karşılıklı konuşma");
+    expect(tr["voiceFirst.typeInstead"]).toBe("Yazarak devam edin");
     expect(tr["voiceFirst.saidLabel"].startsWith("Söylediğiniz")).toBe(true);
+  });
+
+  it("the one-shot 'record it all at once' copy is gone from both catalogs", () => {
+    const removed = ["voiceFirst.title", "voiceFirst.start", "voiceFirst.cancel", "dialogue.start"];
+    for (const key of removed) {
+      expect((tr as Record<string, string>)[key], key).toBeUndefined();
+      expect((en as Record<string, string>)[key], key).toBeUndefined();
+    }
   });
 
   it("candidates are framed as suggestions to confirm, never findings (invariant 1 posture)", () => {
     expect(tr["voiceFirst.suggested"].toLocaleLowerCase("tr-TR")).toContain("öneri");
-    expect(tr["voiceFirst.body"].toLocaleLowerCase("tr-TR")).toContain("onay");
-    for (const key of newKeys) {
+    for (const key of entryKeys) {
       expect(tr[key].toLocaleLowerCase("tr-TR"), key).not.toContain("tanı");
       expect(tr[key].toLocaleLowerCase("tr-TR"), key).not.toContain("teşhis");
     }

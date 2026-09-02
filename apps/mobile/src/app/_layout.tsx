@@ -16,19 +16,31 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from "@expo-google-fonts/inter";
 import {
   Newsreader_400Regular,
+  Newsreader_500Medium,
   Newsreader_500Medium_Italic,
-  Newsreader_600SemiBold,
   useFonts,
 } from "@expo-google-fonts/newsreader";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
+import { screenAnimation } from "@/lib/a11y/motion";
+import { useReducedMotion } from "@/lib/a11y/prefs";
+import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
 import { SessionProvider, useSession } from "@/lib/session";
+import { clientTelemetry, installCrashHandler } from "@/lib/telemetry/expoTelemetry";
+
+/** Evaluated when the root module loads — the earliest clock this app has. */
+const APP_START_MS = Date.now();
 
 function LocalizedStack() {
   const { locale } = useSession();
+  const reduceMotion = useReducedMotion();
   return (
-    <Stack key={locale} screenOptions={{ headerShown: false, animation: "fade" }}>
+    <Stack
+      key={locale}
+      screenOptions={{ headerShown: false, animation: screenAnimation(reduceMotion) }}
+    >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
     </Stack>
@@ -38,19 +50,35 @@ function LocalizedStack() {
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Newsreader_400Regular,
+    Newsreader_500Medium,
     Newsreader_500Medium_Italic,
-    Newsreader_600SemiBold,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
   });
+  // INT-145: one launch is one session, and cold start ends at the first
+  // frame the patient could actually read — after the faces resolve, since
+  // until then this component returns null. Inert unless a GlitchTip DSN is
+  // configured (app.json `extra.glitchtipDsn`, empty by default).
+  useEffect(() => {
+    if (!fontsLoaded) {
+      return;
+    }
+    installCrashHandler();
+    clientTelemetry().noteColdStart(Date.now() - APP_START_MS);
+  }, [fontsLoaded]);
   if (!fontsLoaded) {
     return null;
   }
   return (
-    <SessionProvider>
-      <StatusBar style="auto" />
-      <LocalizedStack />
-    </SessionProvider>
+    // INT-260: outermost, because the scheme, the text scale and the motion
+    // policy are read by the navigators themselves — a provider inside the
+    // session would leave the shell's own chrome on the OS values.
+    <AppearanceProvider>
+      <SessionProvider>
+        <StatusBar style="auto" />
+        <LocalizedStack />
+      </SessionProvider>
+    </AppearanceProvider>
   );
 }

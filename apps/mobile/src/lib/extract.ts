@@ -50,13 +50,27 @@ export interface ExtractFailure {
 
 export type ExtractResult = ExtractSuccess | ExtractFailure;
 
-/** The pack, as the daemon expects it: option ids for chips/single, null for text. */
+/**
+ * The pack, as the daemon expects it: option ids for chips/single, null for
+ * text.
+ *
+ * A `text_only` step (files/13 §13) never reaches the extractor. `spokenPack`
+ * already drops those before the dialogue lane is built, so this filter is
+ * defence in depth — but it is the layer that makes it a TYPE fact rather
+ * than a caller's promise, which is what keeps invariant 22's "no numeral
+ * reaches any TTS model" from depending on somebody remembering.
+ */
 export function toQuestionSpecs(pack: readonly IntakeQuestion[]): ExtractQuestionSpec[] {
-  return pack.map((q) => ({
-    id: q.id,
-    kind: q.kind,
-    options: q.options ? q.options.map((o) => o.id) : null,
-  }));
+  return pack
+    .filter(
+      (q): q is IntakeQuestion & { kind: "chips" | "single" | "text" } =>
+        q.kind !== "measure" && q.delivery !== "text_only",
+    )
+    .map((q) => ({
+      id: q.id,
+      kind: q.kind,
+      options: q.options ? q.options.map((o) => o.id) : null,
+    }));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -169,7 +183,10 @@ export async function requestExtract(
   }
 }
 
-/** Probe the candidate bases, then run the extract against the first live one. */
+/** Probe the candidate bases, then run the extract against the first live one.
+ * One short retry rides out the dev daemon's fast-restart window (its
+ * supervisor relaunches within ~5s after an external kill); an abort is
+ * never retried. */
 export async function extractFromCandidates(
   candidates: readonly string[],
   transcript: string,
@@ -177,9 +194,24 @@ export async function extractFromCandidates(
   questions: readonly IntakeQuestion[],
   options: ExtractRequestOptions = {},
 ): Promise<ExtractResult> {
-  const base = await reachableBaseUrl(candidates, { fetchImpl: options.fetchImpl });
-  if (base === null) {
-    return { ok: false, reason: "unreachable" };
+  const specs = toQuestionSpecs(questions);
+  const attempt = async (): Promise<ExtractResult> => {
+    const base = await reachableBaseUrl(candidates, { fetchImpl: options.fetchImpl });
+    if (base === null) {
+      return { ok: false, reason: "unreachable" };
+    }
+    return requestExtract(base, transcript, pack, specs, options);
+  };
+  const first = await attempt();
+  if (first.ok || first.reason === "aborted") {
+    return first;
   }
-  return requestExtract(base, transcript, pack, toQuestionSpecs(questions), options);
+  await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+  if (options.signal?.aborted) {
+    return { ok: false, reason: "aborted" };
+  }
+  return attempt();
 }
+
+/** Delay before the single retry — longer than the supervisor's restart gap. */
+const RETRY_DELAY_MS = 8000;

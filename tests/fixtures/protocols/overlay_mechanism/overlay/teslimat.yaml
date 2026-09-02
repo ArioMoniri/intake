@@ -1,0 +1,21 @@
+# SENTETİK TEST VERİSİ — INT-258 overlay-mechanism fixture: a DELIVERY-only
+# overlay. files/04 §2.3 lets an overlay "change delivery" (the low-literacy
+# and cognitive-impairment cases are pacing changes, not rule changes), so the
+# mechanism must accept an overlay that carries no rules at all.
+# Mechanism only, no clinical meaning.
+kind: pack
+id: overlay.sentetik_teslimat
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+title_tr: "Sentetik teslimat bindirmesi"
+ops:
+  - op: set_voice
+    pointer: /sections/oyku
+    voice:
+      pace: slow
+      ack_style: warm
+      allow_paraphrase: false

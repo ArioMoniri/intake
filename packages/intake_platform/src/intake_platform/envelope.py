@@ -11,6 +11,16 @@ Two KEK providers behind one interface:
 - :class:`TransitKekProvider` — OpenBao Transit (prod/dev tier).
 - :class:`FileKekProvider` — local keys for the unit lane ("file-KEK provider
   for tests" is in the acceptance verbatim; nothing docker-shaped in unit CI).
+
+Crypto-shredding has two granularities and INT-037 needs the finer one.
+Destroying a tenant KEK erases the whole tenant, which is right for a tenant
+offboarding and wrong for one patient exercising KVKK m.11 — so the
+subject-granular operation is :func:`shred_field`: destroy the wrapped DEK
+beside the ciphertext, the only copy of the key that opens that field. The
+bytes stay, unopenable by anyone including us, and no other subject is
+touched. :meth:`EnvelopeCipher.decrypt_field` refuses a shredded field with
+:class:`CryptoShredError` rather than reporting it as tampering — an erased
+field is a completed obligation, not an integrity failure.
 """
 
 from __future__ import annotations
@@ -33,6 +43,8 @@ __all__ = [
     "FileKekProvider",
     "TamperError",
     "TransitKekProvider",
+    "is_shredded",
+    "shred_field",
 ]
 
 
@@ -81,6 +93,28 @@ class EncryptedField:
             nonce=base64.b64decode(nonce),
             ciphertext=base64.b64decode(ct),
         )
+
+
+def shred_field(field: EncryptedField) -> EncryptedField:
+    """Crypto-shred one field: destroy its wrapped DEK, keep the ciphertext.
+
+    Idempotent, so a re-run of a destruction job is safe. The ciphertext is
+    deliberately left intact — it is the evidence that a row existed and was
+    erased, and it is unreadable without the DEK (files/06 §3).
+    """
+    if is_shredded(field):
+        return field
+    return EncryptedField(
+        key_version=field.key_version,
+        wrapped_dek=b"",
+        nonce=field.nonce,
+        ciphertext=field.ciphertext,
+    )
+
+
+def is_shredded(field: EncryptedField) -> bool:
+    """True once the wrapped DEK is gone — the field can never be opened."""
+    return not field.wrapped_dek
 
 
 class KekProvider(Protocol):
@@ -240,6 +274,13 @@ class EnvelopeCipher:
     def decrypt_field(
         self, tenant_id: str, field: EncryptedField, aad: bytes | None = None
     ) -> bytes:
+        if is_shredded(field):
+            # a DSAR erasure, not a fault: say so in its own type so callers
+            # never mistake a completed obligation for tampering (INT-037)
+            raise CryptoShredError(
+                "field was crypto-shredded (wrapped DEK destroyed): the "
+                "ciphertext is unopenable by design"
+            )
         dek = self._kek.unwrap(tenant_id, field.key_version, field.wrapped_dek)
         try:
             return AESGCM(dek).decrypt(field.nonce, field.ciphertext, aad)

@@ -1,0 +1,154 @@
+# INT-205 — the SIEM tier: Wazuh (SIEM/XDR) + Falco (runtime), files/10 §7.
+#
+#   scripts/security/siem_up.sh --run          (or `make siem`)
+#   docker compose -f infra/docker-compose.siem.yml --profile siem up -d
+#
+# ── Its own file, on purpose ────────────────────────────────────────────────
+# infra/docker-compose.dev.yml is the hottest shared file in the repo. INT-202
+# set the precedent, INT-175 followed it, and a test in each asserts the dev
+# tier stays untouched. Every service here is gated behind the `siem` profile,
+# so composing this file in changes nothing about `make dev`.
+#
+# ── This does not run on the owner's laptop, and it is not shrunk to fit ────
+# files/05 sizes Wazuh alone at "12 GB + a part-time SRE". HB-I1 (free 80–100 GB
+# of disk) and HB-I2 ("the security + observability tiers alone need 22 GB")
+# are both open. scripts/security/siem_up.sh refuses `--run` here and names
+# both rows; tests/infra/test_siem_feed.py validates the configuration
+# statically. A tier trimmed until it booted would be a different control
+# wearing this one's name.
+#
+# ── No dashboard ────────────────────────────────────────────────────────────
+# Wazuh ships one, and it is deliberately absent. files/10 §7 puts the
+# dashboards in the console's Security module (files/08 §3); a second web
+# console over the alert store is the parallel authorization plane files/08
+# §0b F1 names, where tenant_id is a label rather than an RLS boundary. The
+# console reads the scrubbed feed (intake_platform.siem.feed); nothing else
+# gets a login page.
+#
+# ── PHI ─────────────────────────────────────────────────────────────────────
+# A monitor reads everything: every log line, every file name, every command
+# line on the PHI path. That is the point of it and it is also the risk. The
+# control is NOT a setting in this file — it is the scrub boundary in
+# intake_platform.siem.normalise, which reads a closed key set out of a vendor
+# alert and never the `output`, `full_log`, `proc.cmdline` or `data` fields.
+# A control that lives in a vendor's configuration is a control the vendor's
+# next upgrade resets.
+#
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# Invariant 14: no credential literal and no `${X:-default}` on a secret. Every
+# value below is interpolated from the caller's environment, which
+# scripts/security/siem_secrets.sh fills from OpenBao. env.example stays the
+# OpenBao pointer it is (tests/security/test_openbao_wiring.py).
+#
+# ── Licences (invariant 19; raw LICENSE blobs read 2026-08-29) ───────────────
+#   wazuh-manager 4.14.7   GPL-2.0-only + OpenSSL exception + an extended
+#                          derivative-work clause that also covers decoders and
+#                          rules. Full finding, blob url and sha256 in the
+#                          `wazuh-manager` row of observability/registry.yaml.
+#   wazuh-indexer 4.14.7   Apache-2.0, stock, 201 lines, no rider.
+#   falco 0.44.1           Apache-2.0, 202 lines, "Copyright 2019 The Falco
+#                          Authors", no rider. Its ruleset is Apache-2.0 too.
+name: intake-siem
+
+services:
+  wazuh-manager:
+    # GPL-2.0-only. We self-host and redistribute nothing, so the extended
+    # derivative-work clause in the LICENSE is not triggered — recorded in the
+    # registry row rather than assumed, because "we might ship an appliance"
+    # is a decision someone could take without re-reading a licence.
+    image: wazuh/wazuh-manager:4.14.7
+    profiles: ["siem"]
+    environment:
+      INDEXER_URL: https://wazuh-indexer:9200
+      INDEXER_USERNAME: ${INDEXER_USERNAME}
+      INDEXER_PASSWORD: ${INDEXER_PASSWORD}
+      API_USERNAME: ${WAZUH_API_USERNAME}
+      API_PASSWORD: ${WAZUH_API_PASSWORD}
+      # The manager phones cti.wazuh.com on start unless told not to; ossec.conf
+      # turns it off too, and this is the belt to that braces.
+      SSL_VERIFICATION_MODE: full
+    ports:
+      # 55000 is the manager API the console's server side will call. 1514/1515
+      # are agent enrolment and event ports — no agent enrols in the dev tier,
+      # and publishing them on a laptop would be a listener nobody is watching.
+      - "127.0.0.1:55000:55000"
+    volumes:
+      - ./security/wazuh/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro
+      - ./security/wazuh/rules:/wazuh-config-mount/etc/rules:ro
+      # Falco writes here; the manager's logcollector reads it. One file, two
+      # containers, no forwarder image and no port between them.
+      - falco_events:/var/log/falco:ro
+      # The manager's own alert stream. intake_platform.siem.feed reads this
+      # path and scrubs it; nothing else is allowed to render it.
+      - wazuh_alerts:/var/ossec/logs/alerts
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+    healthcheck:
+      test: ["CMD-SHELL", "/var/ossec/bin/wazuh-control status | grep -q 'wazuh-analysisd is running'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+
+  wazuh-indexer:
+    # Apache-2.0 (an OpenSearch fork). Stores what the manager ships.
+    image: wazuh/wazuh-indexer:4.14.7
+    profiles: ["siem"]
+    environment:
+      OPENSEARCH_JAVA_OPTS: "-Xms2g -Xmx2g"
+      INDEXER_PASSWORD: ${INDEXER_PASSWORD}
+      # No index lifecycle policy and no rollover age: files/06 §3's retention
+      # matrix has no row for SIEM alert storage and INT-212 owns the answer.
+      # Expiring nothing loses no evidence; guessing a number would be
+      # inventing a value (CLAUDE.md).
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+    ulimits:
+      memlock: {soft: -1, hard: -1}
+      nofile: {soft: 65536, hard: 65536}
+    ports:
+      - "127.0.0.1:9201:9200"
+    volumes:
+      - indexer_data:/var/lib/wazuh-indexer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk -u admin:$${INDEXER_PASSWORD} https://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
+  falco:
+    # Apache-2.0. Needs the host kernel: modern eBPF rather than the kernel
+    # module, so nothing is compiled on the host at start.
+    image: falcosecurity/falco:0.44.1
+    profiles: ["siem"]
+    privileged: true
+    command: ["falco", "-o", "engine.kind=modern_ebpf"]
+    environment:
+      HOST_ROOT: /host
+    ports:
+      # /healthz and Prometheus only (see falco.yaml). Invariant 15's probe
+      # reaches this port; the `falco` registry row names it.
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - ./security/falco/falco.yaml:/etc/falco/falco.yaml:ro
+      - ./security/falco/rules:/etc/falco/rules.d:ro
+      - falco_events:/var/log/falco
+      # Read-only host views. Falco needs them to resolve processes and
+      # containers; every one is `:ro` so a compromised agent cannot write
+      # through them.
+      - /proc:/host/proc:ro
+      - /etc:/host/etc:ro
+      - /var/run/docker.sock:/host/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8765/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  falco_events:
+  wazuh_alerts:
+  wazuh_etc:
+  wazuh_logs:
+  indexer_data:

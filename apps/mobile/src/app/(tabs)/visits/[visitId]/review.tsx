@@ -7,36 +7,87 @@
  * with a hairline under the header row (Oura card anatomy); the send CTA
  * floats on a glass bar and the note scrolls under it.
  */
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { BiometricGate } from "@/components/BiometricGate";
+import { CarriedFactReview } from "@/components/CarriedFacts";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
   Card,
   Hairline,
   PrimaryButton,
-  RAIL_EDGES,
   Screen,
+  useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
+import { verticalSlop } from "@/lib/a11y/target";
+import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
 import { buildNote } from "@/lib/intake/note";
+import { missingQuestions, packForVisit } from "@/lib/intake/questions";
+import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
-export default function ReviewAndSend() {
+export default function ReviewAndSendGated() {
+  // Note/share screen: capture blocking + biometric re-gate (10 §2, INT-131).
+  useClinicalScreenPrivacy();
+  return (
+    <BiometricGate>
+      <ReviewAndSend />
+    </BiometricGate>
+  );
+}
+
+// With the top bar shown, the header owns the top inset (design pass 6).
+const FLOW_EDGES = ["left", "right"] as const;
+
+/**
+ * Which carried-fact kind each note section reviews (INT-256). A section not
+ * listed here shows no review block at all, so a fact can never be answered
+ * under the wrong heading.
+ */
+const CARRIED_IN_SECTION: Record<string, CarriedFactKind | undefined> = {
+  medications: "medication",
+  allergies: "allergy",
+};
+
+function ReviewAndSend() {
   const router = useRouter();
   const theme = useTheme();
+  const headerOptions = useStackHeader();
+  // The bar reports its own height (INT-284); until it has, the clearance
+  // falls back to the one-CTA floor. Declared above every early return —
+  // hooks may not be conditional.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const { account, notes, updateNote } = useSession();
+  const { account, notes, updateNote, visits } = useSession();
+  // Who is answering the carried-fact question — INT-133's derived
+  // attribution, the same value the note's own provenance uses.
+  const companion = useCompanionOutcome();
   const note = notes[visitId ?? ""];
 
   const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
-  if (!account || !note || (note.answers.length === 0 && !hasHealthBlock)) {
+  // A checkpointed session (02 §34) or a recorded deferral (02 §33) is a
+  // valid partial note even with zero answers — v2-partial is a product,
+  // not a failure (02 §2 "Partial value").
+  const checkpointed = note?.checkpointed === true;
+  const hasDeferral = (note?.deferred.length ?? 0) > 0;
+  if (
+    !account ||
+    !note ||
+    (note.answers.length === 0 && !hasHealthBlock && !checkpointed && !hasDeferral)
+  ) {
     return (
-      <Screen>
+      <Screen edges={FLOW_EDGES}>
+        <Stack.Screen options={headerOptions("")} />
         <AppText role="body" color="inkSoft">
           {t("review.empty")}
         </AppText>
@@ -44,19 +95,87 @@ export default function ReviewAndSend() {
     );
   }
 
-  const sections = buildNote(note.answers, account, note.healthLines);
+  const sections = buildNote(
+    note.answers,
+    account,
+    note.healthLines,
+    note.deferred,
+    note.factReview,
+  );
   const sent = note.status === "sent";
+  // Eksik list for the checkpointed partial (02 §34): applicable and
+  // unanswered only — a gate-skipped question is skipped, not missing.
+  const visit = visits.find((v) => v.id === visitId);
+  const missing = checkpointed
+    ? missingQuestions(
+        // The same pack the flow ran (INT-256): a question this session's
+        // mode never asks, or one the environment deferred, is not `eksik` —
+        // the deferral has its own marker section and says why.
+        packForVisit(visit?.department, { mode: note.mode, deferred: note.deferred }),
+        note.answers,
+      )
+    : [];
 
   return (
-    <Screen style={styles.screenFlush} edges={RAIL_EDGES}>
+    <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
+      {/* Design pass 6: back-only top bar (every Oura flow carries a
+          top-left way out — Mobbin 11265937, b67baac0); the serif line in
+          the body stays the title, so the bar is untitled. */}
+      <Stack.Screen options={headerOptions("")} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
-        <ScrollView contentContainerStyle={[styles.content, sent ? null : styles.contentUnderBar]}>
-          <AppText role="hero">{t("review.title")}</AppText>
+        <ScrollView
+          contentContainerStyle={[styles.content, sent ? null : { paddingBottom: barClearance }]}
+        >
+          {/* The top bar is deliberately untitled (design pass 6), so this
+              serif line is the screen's only title — and therefore the one
+              that has to carry the heading semantic (SC 1.3.1, SC 2.4.2). */}
+          <AppText role="hero" heading>
+            {t("review.title")}
+          </AppText>
           <AppText role="body" color="inkSoft">
             {t("review.intro")}
           </AppText>
+          {checkpointed && !sent ? (
+            // v2-partial (02 §34): the note as it stands, with an explicit
+            // eksik list naming what was not asked, and resume offered —
+            // the session ended by the clinic's clock, not the patient's.
+            <Card>
+              <Kicker label={t("review.eksik.title")} />
+              <Hairline />
+              <AppText role="caption" color="inkSoft">
+                {t("review.checkpointInfo")}
+              </AppText>
+              {missing.length > 0 ? (
+                <>
+                  <AppText role="caption" color="inkFaint">
+                    {t("review.eksik.intro")}
+                  </AppText>
+                  {missing.map((q) => (
+                    <AppText key={q.id} role="body" color="inkSoft">
+                      {t(q.titleKey)}
+                    </AppText>
+                  ))}
+                </>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("review.resume")}
+                hitSlop={verticalSlop(18)}
+                onPress={() => {
+                  if (visitId) {
+                    updateNote(visitId, { type: "resume" });
+                    router.push(`/(tabs)/visits/${visitId}/intake`);
+                  }
+                }}
+              >
+                <AppText role="caption" color="primary">
+                  {t("review.resume")}
+                </AppText>
+              </Pressable>
+            </Card>
+          ) : null}
           {sections.map((section) => {
             const shared = note.scopes[section.id] !== false;
             // which intake question the pencil reopens; medications come from
@@ -75,11 +194,17 @@ export default function ReviewAndSend() {
                     {!sent && editTarget ? (
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`${t("review.edit")}: ${t(section.titleKey)}`}
+                        // Visible word first (SC 2.5.3): a voice-control
+                        // user says "Düzenleyin", and the section name is
+                        // the context the eye gets from the card header.
+                        accessibilityLabel={withContext(t("review.edit"), t(section.titleKey))}
+                        hitSlop={verticalSlop(26)}
                         onPress={() =>
                           visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
                         }
-                        style={[styles.scopeChip, { borderColor: theme.border }]}
+                        // Oura tag register (design pass 6): chips are
+                        // filled and borderless, never outlined.
+                        style={[styles.scopeChip, { backgroundColor: theme.surfaceRaised }]}
                       >
                         <AppText role="caption" color="inkSoft">
                           {t("review.edit")}
@@ -88,7 +213,17 @@ export default function ReviewAndSend() {
                     ) : null}
                     <Pressable
                       accessibilityRole="switch"
-                      accessibilityState={{ checked: shared }}
+                      // Before INT-144 this control's whole name was
+                      // "Paylaşılıyor" — the same three controls, one per
+                      // section, indistinguishable in the rotor. The
+                      // section it governs is now part of the name.
+                      accessibilityLabel={withContext(
+                        shared ? t("review.shared") : t("review.notShared"),
+                        t(section.titleKey),
+                      )}
+                      accessibilityHint={t("a11y.shareHint")}
+                      accessibilityState={{ checked: shared, disabled: sent }}
+                      hitSlop={verticalSlop(26)}
                       disabled={sent}
                       onPress={() =>
                         visitId &&
@@ -100,9 +235,12 @@ export default function ReviewAndSend() {
                       }
                       style={[
                         styles.scopeChip,
+                        // Filled tonal state chip (design pass 6): shared
+                        // keeps the accent wash, off sits on the raised
+                        // tone — the label carries the state (02 §8.2),
+                        // the outline is gone (Oura tags are borderless).
                         {
-                          backgroundColor: shared ? theme.primarySoft : theme.background,
-                          borderColor: shared ? theme.primary : theme.border,
+                          backgroundColor: shared ? theme.primarySoft : theme.surfaceRaised,
                         },
                       ]}
                     >
@@ -121,6 +259,8 @@ export default function ReviewAndSend() {
                 {section.id === "hpi" && !sent ? (
                   <Pressable
                     accessibilityRole="button"
+                    accessibilityLabel={withContext(t("review.edit"), t("review.hpi.patientNote"))}
+                    hitSlop={verticalSlop(18)}
                     onPress={() =>
                       visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=extra`)
                     }
@@ -135,6 +275,24 @@ export default function ReviewAndSend() {
                     {t("review.medsNote")}
                   </AppText>
                 ) : null}
+                {/* INT-247: the answer that makes a carried fact current —
+                    or records that the patient retracted it. Nothing here is
+                    preselected (invariant 12). INT-256 files each kind under
+                    its own section, so an allergy is never reviewed inside
+                    the medication list. */}
+                {CARRIED_IN_SECTION[section.id] === undefined ? null : (
+                  <CarriedFactReview
+                    facts={account.carriedFacts.filter(
+                      (fact) => fact.kind === CARRIED_IN_SECTION[section.id],
+                    )}
+                    review={note.factReview}
+                    asserter={{ role: "patient", attribution: companion.attribution }}
+                    disabled={sent}
+                    onDecide={(factId, decision) =>
+                      visitId && updateNote(visitId, { type: "fact", factId, decision })
+                    }
+                  />
+                )}
                 {section.id === "device_health" ? (
                   <AppText role="caption" color="inkFaint">
                     {t("review.healthProvenance")}
@@ -153,7 +311,7 @@ export default function ReviewAndSend() {
           ) : null}
         </ScrollView>
         {sent ? null : (
-          <GlassBar>
+          <GlassBar onHeight={setBarHeight}>
             <PrimaryButton
               label={t("review.send")}
               onPress={() => {
@@ -174,12 +332,22 @@ const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  contentUnderBar: { paddingBottom: GLASS_BAR_CLEARANCE },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  actionRow: { flexDirection: "row", gap: spacing.xs, alignItems: "center" },
+  // INT-284: the eyebrow and the scope chips are the card's two ends, and RN
+  // flex children do not shrink by default — so at the largest text step the
+  // chips were pushed off the right edge, where "Paylaşılıyor" was clipped and
+  // "Düzenleyin" could not be tapped at all. Wrapping drops the chips onto
+  // their own line instead; at every smaller step the row is unchanged,
+  // because there is nothing to wrap.
+  sectionHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, alignItems: "center" },
   scopeChip: {
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
   },

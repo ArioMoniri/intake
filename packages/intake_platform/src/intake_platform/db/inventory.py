@@ -63,12 +63,32 @@ CAT_PSEUDONYM = "pseudonymised_identity"
 CAT_HEALTH = "special_category_health"
 CAT_CONSENT = "consent_record"
 CAT_AUDIT = "audit_trail"
+# INT-223: a guardian↔minor relationship is a family-status fact about two
+# people, not a consent row and not a health fact — it gets its own category
+# so the VERBİS export never files it under either.
+CAT_GUARDIANSHIP = "guardianship_link"
 
 # --- lawful bases (KVKK m.5/m.6) ------------------------------------------------------
 
 BASIS_CONTRACT = "KVKK m.5/2-c — processing necessary for the service contract"
 BASIS_HEALTH_CONSENT = "KVKK m.6 — special-category health data under açık rıza per consent scope"
 BASIS_LEGAL_OBLIGATION = "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
+# INT-224: crash and error diagnostics are the one off-schema flow whose KVKK
+# ground no file in this repo states. The reporter ships inert (no default DSN)
+# and the basis is refused rather than assumed — counsel names it before the
+# flow may be declared active (HUMAN_BLOCKERS.md HB-L21).
+BASIS_AWAITING_HUMAN_DIAGNOSTICS = (
+    "awaiting-human — no file states the KVKK m.5 ground for crash and error "
+    "diagnostics; counsel names it (HB-L21) before the reporter is given an endpoint"
+)
+# INT-223: persisting a guardian↔minor link is a new personal-data category,
+# which CLAUDE.md makes a stop-and-ask. No ground is asserted here — the table
+# ships behind the closed guardian_link gate until counsel names one
+# (intake_platform.consent.minors POLICY_TABLE row ``guardian_link_basis``).
+BASIS_AWAITING_HUMAN_GUARDIAN = (
+    "awaiting-human — the KVKK m.5/m.6 ground for a guardian↔minor link is unassigned; "
+    "counsel names it (policy row guardian_link_basis) before the guardian_link gate opens"
+)
 
 # --- retention (files/06 §3 matrix; enforced by INT-036) ------------------------------
 
@@ -77,6 +97,34 @@ RET_CONSENT_AUDIT = "10 years for hospital tenants; WORM copy; audit is append-o
 RET_SHARE = "share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)"
 RET_EVENTS = "telemetry window: 30 d hot / 1 y cold; PHI-free by construction (06 §3)"
 RET_TENANT = "life of the tenant contract plus statutory retention on the DPA (06 §3)"
+# INT-141: files/06 §3 has no row for a notification preference, and inventing
+# a clock would be inventing a retention. It rides the record clock the matrix
+# already defines, for a stated reason rather than by default.
+RET_NOTIFICATION_PREFERENCE = (
+    "life of the patient record, on the 06 §3 record clock: patient-deletable, "
+    "30-day grace, then crypto-shred — a delivery preference cannot outlive the "
+    "account it configures, and an account that is gone has nobody to message"
+)
+RET_DSAR = (
+    "record of a KVKK m.11/m.13 rights exercise: kept with the consent & audit tier, "
+    "10 years (06 §3), which also carries the DEST-2017 ≥ 3-year floor for the "
+    "destruction records among them (06 §1 KVKK-7)"
+)
+# INT-240: files/06 §3 "Satisfaction: with account." — an EVENT-based clock
+# rather than a duration: the row becomes due the moment the account is deleted
+# and not before (retention/retention_policy.yaml data_class `satisfaction`,
+# status: sourced, dsar_erasable: true). No survey cadence, sampling rate or
+# window is invented here; the blueprint states none and this issue asks for none.
+RET_SATISFACTION = (
+    "with account: due the moment the account is deleted, never before; "
+    "DSAR-erasable (06 §3 satisfaction row)"
+)
+# INT-223: files/06 §3 has no row for guardian linkage, and inventing one
+# would be inventing a retention clock. The gate stays shut instead.
+RET_AWAITING_HUMAN_GUARDIAN = (
+    "awaiting-human — files/06 §3 holds no guardian-linkage row; counsel sets the period "
+    "(policy row guardian_link_basis) and the gate stays shut until then"
+)
 
 # --- recipients ------------------------------------------------------------------------
 
@@ -84,3 +132,14 @@ REC_INTERNAL = "internal services only; never leaves the PHI boundary"
 REC_CLINICIAN = "tenant clinicians via a consented share (Doctor Link / clinic console)"
 REC_PATIENT_CLINICIAN = "the patient (own record) and tenant clinicians via consented share"
 REC_AUDITOR = "supervisory authority or auditor on lawful request; WORM export"
+# INT-224: the health-platform reads (HealthKit / Health Connect) never leave
+# the handset. There is no recipient at all until the patient chooses to add a
+# summary to the note, at which point notes.payload's own row applies.
+REC_ON_DEVICE = (
+    "nobody: the data stays on the patient's own device until the patient adds a "
+    "summary to the note, from which point the notes.payload row governs"
+)
+REC_GUARDIAN_INTERNAL = (
+    "internal services only while the guardian_link gate is shut; no recipient is defined "
+    "beyond the PHI boundary until counsel answers"
+)

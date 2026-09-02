@@ -1,6 +1,13 @@
-# P0 dev tier (INT-001). EHRbase is NOT here: openEHR is a P3 export (00 §3 D8).
-# OpenBao (INT-017), the observability profile (INT-023) and the security stack
-# (infra/security) join with their own issues. Ports bind to loopback only.
+# P0 dev tier (INT-001). OpenBao (INT-017), the observability profile (INT-023)
+# and the security stack (infra/security) join with their own issues. Ports bind
+# to loopback only.
+#
+# EHRbase is present but OUT of the default tier, behind `profiles: ["export"]`.
+# openEHR was cut from P0/P1 and kept as a P3 *export* (00 §3 D8), and INT-032
+# is that export tier: no P0/P1 feature issues an AQL query or needs a CDR, so
+# `make dev` must not pay for a second JVM and a second Postgres (HB-I1, HB-I2).
+# Bring it up deliberately — `--profile export up -d --wait ehrbase-db ehrbase`,
+# which is what `make check-integration` does.
 name: intake-dev
 
 services:
@@ -85,6 +92,133 @@ services:
       timeout: 3s
       retries: 12
 
+  clamav:
+    # INT-120: the upload pipeline's malware verdict. Behind a profile — the
+    # image ships the whole signature database (hundreds of MB), and the unit
+    # lane never needs it (an in-test fake clamd covers the protocol).
+    # `make check-integration` activates the profile. Freshclam is disabled:
+    # dev/CI scans fixtures against the baked-in database and must not hammer
+    # the signature CDN on every boot. The -debian variant is the multi-arch
+    # one (the alpine-based default tags publish amd64 only — no arm64 dev
+    # machines otherwise).
+    image: clamav/clamav:1.4.6-debian
+    profiles: ["clamav"]
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "true"
+    ports:
+      - "127.0.0.1:3310:3310"
+    healthcheck:
+      # clamdcheck.sh ships in the image (it backs the image's own HEALTHCHECK)
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+
+  livekit:
+    # INT-090: LiveKit SFU + embedded TURN (UDP), dev tier. Behind a profile
+    # like clamav — the unit lane never boots it (tests/voice/ validates the
+    # config and this service statically); start it explicitly when driving a
+    # real voice session: `docker compose -f infra/docker-compose.dev.yml
+    # --profile livekit up -d`. v1.13.6 verified to exist on Docker Hub and
+    # via `docker manifest inspect` (multi-arch, alpine-based — busybox wget
+    # backs the healthcheck). Recording is structurally impossible here: no
+    # egress/ingress/recorder service exists in this file, the container
+    # mounts nothing writable, and livekit-dev.yaml carries no redis/webhook
+    # block (invariant 3; tests/voice/test_audio_retention_guard.py).
+    image: livekit/livekit-server:v1.13.6
+    profiles: ["livekit"]
+    command: --config /etc/livekit/livekit-dev.yaml
+    environment:
+      # dev-only pair, env-overridable; the prod pair comes from OpenBao and
+      # never enters a committed file (invariant 14). Format: "key: secret".
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-intake-dev-key}: ${LIVEKIT_API_SECRET:-intake-livekit-dev-only-secret-0001}"
+    ports:
+      - "127.0.0.1:7880:7880" # websocket signalling + RoomService API
+      - "127.0.0.1:7881:7881" # ICE over TCP (UDP-blocked networks)
+      - "127.0.0.1:3478:3478/udp" # embedded TURN, UDP only (dev tier)
+      - "127.0.0.1:50700-50720:50700-50720/udp" # RTC media (narrow dev range)
+    volumes:
+      - ./livekit/livekit-dev.yaml:/etc/livekit/livekit-dev.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7880/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # --- P3 openEHR export tier (INT-032), profile `export` ------------------
+  ehrbase-db:
+    # EHRbase's own Postgres, separate from the application database on
+    # purpose: the CDR owns its schema migrations and its `ehr`/`ext` schemas,
+    # and a P3 export tier must not be able to touch the P0 store. The vendor
+    # image is the preconfigured one (roles, schemas, uuid-ossp, ISO-8601
+    # intervalstyle) — reproducing that by hand is how a CDR silently
+    # mis-collates.
+    image: ehrbase/ehrbase-v2-postgres:16.2
+    profiles: ["export"]
+    environment:
+      POSTGRES_PASSWORD: ${EHRBASE_DB_ROOT_PASSWORD:-ehrbase-dev-only}
+      EHRBASE_USER: ${EHRBASE_DB_USER:-ehrbase_restricted}
+      EHRBASE_PASSWORD: ${EHRBASE_DB_PASSWORD:-ehrbase-dev-only}
+      EHRBASE_USER_ADMIN: ${EHRBASE_DB_ADMIN_USER:-ehrbase}
+      EHRBASE_PASSWORD_ADMIN: ${EHRBASE_DB_ADMIN_PASSWORD:-ehrbase-dev-only}
+    volumes:
+      - ehrbasedata:/var/lib/postgresql/data
+    healthcheck:
+      # the database `ehrbase` is created by the image's init script, so
+      # readiness means "that database answers", not "the server is up"
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ehrbase"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  ehrbase:
+    image: ehrbase/ehrbase:2.35.1
+    profiles: ["export"]
+    depends_on:
+      ehrbase-db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://ehrbase-db:5432/ehrbase
+      DB_USER: ${EHRBASE_DB_USER:-ehrbase_restricted}
+      DB_PASS: ${EHRBASE_DB_PASSWORD:-ehrbase-dev-only}
+      DB_USER_ADMIN: ${EHRBASE_DB_ADMIN_USER:-ehrbase}
+      DB_PASS_ADMIN: ${EHRBASE_DB_ADMIN_PASSWORD:-ehrbase-dev-only}
+      SPRING_PROFILES_ACTIVE: local
+      # dev-only pair, env-overridable; the prod pair comes from OpenBao and
+      # never enters a committed file (invariant 14). The same pair is seeded
+      # into `secret/ehrbase` by scripts/security/openbao_dev_setup.sh, which
+      # is the only place the client reads it from.
+      SECURITY_AUTHTYPE: BASIC
+      SECURITY_AUTHUSER: ${EHRBASE_USER:-intake-dev}
+      SECURITY_AUTHPASSWORD: ${EHRBASE_PASSWORD:-intake-dev-only}
+      SECURITY_AUTHADMINUSER: ${EHRBASE_ADMIN_USER:-intake-dev-admin}
+      SECURITY_AUTHADMINPASSWORD: ${EHRBASE_ADMIN_PASSWORD:-intake-dev-only-admin}
+      # Actuator: `health` and nothing else. EHRbase's default is ADMIN_ONLY,
+      # which would put the CDR admin password into every healthcheck and every
+      # probe; a liveness document that says {"status":"UP"} and nothing more
+      # is not worth that. `env`, `beans` and `configprops` stay unexposed.
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health"
+      MANAGEMENT_ENDPOINTS_WEB_ACCESS: PUBLIC
+      MANAGEMENT_ENDPOINT_HEALTH_ACCESS: UNRESTRICTED
+      # 1 GiB heap: Docker's allocation is already undersized for the app tier
+      # (HB-I2), and an unbounded JVM next to it is what makes `make dev` swap.
+      JAVA_OPTS: "-Xmx1g"
+    ports:
+      # host 8092: 8091 is HAPI's, 8080 is commonly taken. In-container 8080.
+      - "127.0.0.1:8092:8080"
+    healthcheck:
+      # this image ships no curl. The actuator health document is the vendor's
+      # own liveness check and needs no credentials, so nothing secret ends up
+      # in `docker inspect`.
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/ehrbase/management/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 60s
+
 volumes:
   pgdata:
   miniodata:
+  ehrbasedata:

@@ -1,0 +1,26 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control.
+# MUST FAIL AT SCHEMA: an ACTIVE rule at SARI/KIRMIZI level with no source
+# block. Every rule at KIRMIZI or SARI carries source: {guideline_id,
+# guideline_title, version_or_date, url, retrieved_on, quote} (files/12
+# §2.5; files/04 §8.1 rule 3; CLAUDE.md clinical content rules). A rule that
+# cannot be sourced must instead carry status: draft_needs_source.
+kind: pack
+id: base.synthetic_kaynaksiz
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik kaynaksız paket"
+red_flags:
+  - id: rf.synthetic_kaynaksiz
+    label_tr: "Sentetik kural — kaynak eksik"
+    when: "ornek_bulgu == true"
+    tense: today
+    tense_anchor: olay_zamani
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    register: CALM
+    notify_clinic: always
+    status: active

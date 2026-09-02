@@ -1,0 +1,14 @@
+# INT-041 output directory (files/03 §6 compiler outputs).
+#
+# `protocols compile --pack <id> --voice <id>` writes
+# <pack_id>/{questionnaire.json, openehr_bindings.json, slots.py, slots.ts,
+# clips.<voice>.json, manifest.json} here. The artefacts themselves are
+# derived and are git-ignored (root .gitignore `dist/`); this file exists so
+# the directory the acceptance names is present in a fresh clone.
+#
+# Nothing is generated in-tree today, and that is the honest state rather
+# than an omission: every pack under packages/protocols/ is maturity L0, and
+# an L0 pack is review-queue only and is never served (files/09 §2; CLAUDE.md
+# invariant 13). The clinical sign-off block of the life-threat set is also
+# still empty (HUMAN_BLOCKERS HB-C1). `make protocols-compile` therefore
+# refuses on this tree, prints every reason, and writes nothing.

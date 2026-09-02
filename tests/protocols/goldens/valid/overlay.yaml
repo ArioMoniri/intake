@@ -1,0 +1,40 @@
+# SENTETİK TEST VERİSİ — INT-040 golden fixture (valid overlay pack).
+# Overlays may only add or tighten (files/04 §2.3; files/12 §3.2 closed
+# set_attr table: allow_paraphrase true→false is the tightening direction).
+kind: pack
+id: overlay.synthetic_ek
+layer: overlay
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik ek katman"
+ops:
+  - op: add_rule
+    pointer: /red_flags
+    rule:
+      id: rf.synthetic_ek_sari
+      label_tr: "Sentetik ek sarı kuralı"
+      when: "ek_katman_bulgusu == true"
+      tense: within_30d
+      tense_anchor: olay_zamani
+      level: SARI_K2
+      route: EXPEDITE
+      notify_clinic: never
+      status: active
+      source:
+        guideline_id: SYN-GUIDE-C
+        guideline_title: "Sentetik kılavuz C"
+        version_or_date: "sürüm üç"
+        url: "https://example.invalid/syn-guide-c"
+        retrieved_on: 2026-08-28
+        quote: "ek katman sentetik alıntısı"
+  - op: set_attr
+    pointer: /sections/ornek_bolum/slots/renk_tercihi
+    attr: allow_paraphrase
+    value: false
+  - op: set_attr
+    pointer: /sections/ornek_bolum/slots/bekleme_suresi
+    attr: min_confidence
+    value: "0.9"

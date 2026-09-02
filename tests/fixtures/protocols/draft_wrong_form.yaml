@@ -1,0 +1,29 @@
+# SENTETİK TEST VERİSİ — INT-040 near-miss negative control (lives under
+# tests/fixtures/ because it exercises the sign-off literal; see
+# draft_ok.yaml).
+# MUST FAIL VALIDATION: the sign-off string is malformed — invariant 17
+# permits exactly one form, "the literal string `TODO: <what> requires
+# clinical sign-off`", and this file drops the required tail. A near miss:
+# same rule, same status, one malformed literal.
+kind: pack
+id: base.synthetic_bozuk_taslak
+layer: base
+version: 1.0.0
+schema_version: 2
+maturity: L0
+status: awaiting-clinical-review
+language: tr
+title_tr: "Sentetik bozuk taslak paketi"
+red_flags:
+  - id: rf.synthetic_bozuk_taslak
+    label_tr: "Sentetik bozuk taslak kural"
+    when: "olcum_degeri >= (TODO: eşik belirlenecek)"
+    tense: today
+    tense_anchor: olay_zamani
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    register: CALM
+    notify_clinic: always
+    status: draft_needs_source
+    source_gap: >-
+      Sentetik test gerekçesi: biçimi bozuk bir bekletme metni içeriyor.

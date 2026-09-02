@@ -50,9 +50,12 @@ TENANT_SCOPED = (
     "slots",
     "notes",
     "consents",
+    "guardian_links",
     "shares",
     "documents",
     "events",
+    # INT-141 — the patient's notification opt-out and quiet window
+    "notification_preferences",
 )
 
 

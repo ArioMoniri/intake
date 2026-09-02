@@ -9,6 +9,9 @@ python:
   packages/protocols/triage: 100 # branch coverage
   packages/clinical-schemas: 90
   services/voice-runtime: 90
+  # INT-060: the clip cache is voice-runtime core built ahead of the
+  # service, so it takes the protocols floor rather than the api one.
+  packages/voice-clips: 95
   packages/intake_platform: 85
 ts:
   default: 85
