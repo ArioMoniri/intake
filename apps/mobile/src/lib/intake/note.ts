@@ -54,6 +54,20 @@ import {
 export interface Answer {
   questionId: string;
   values: string[];
+  /**
+   * The patient's own sentence behind this answer (INT-286) — the verbatim
+   * quote the dialogue already carries as provenance, and what the typed
+   * open field collects. Two rules make it safe to record:
+   *
+   * - it is never in `values`, so it can never open a gate, reach a rule or
+   *   become a slot value (CLAUDE.md invariant 1); `askIfMet` reads `values`
+   *   and nothing else;
+   * - it is provenance FOR a value and is replaced with it, so a later
+   *   answer never inherits words that were said about an earlier one.
+   *
+   * Absent for every answer given by tapping alone, which is most of them.
+   */
+  words?: string;
 }
 
 /**
@@ -127,7 +141,7 @@ export interface NoteState {
 }
 
 export type NoteAction =
-  | { type: "answer"; questionId: string; values: string[] }
+  | { type: "answer"; questionId: string; values: string[]; words?: string }
   | { type: "scope"; sectionId: string; shared: boolean }
   | { type: "attachHealth"; lines: string[] }
   | { type: "send" }
@@ -156,10 +170,14 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
   switch (action.type) {
     case "answer": {
       const rest = state.answers.filter((a) => a.questionId !== action.questionId);
-      return {
-        ...state,
-        answers: [...rest, { questionId: action.questionId, values: action.values }],
-      };
+      // INT-286: `words` is written only when the action carries it, so a
+      // re-answer with no words drops the old sentence rather than leaving a
+      // quote attached to a value it was never said about.
+      const answer: Answer = { questionId: action.questionId, values: action.values };
+      if (action.words !== undefined && action.words.trim().length > 0) {
+        answer.words = action.words.trim();
+      }
+      return { ...state, answers: [...rest, answer] };
     }
     case "scope":
       return { ...state, scopes: { ...state.scopes, [action.sectionId]: action.shared } };
@@ -221,15 +239,33 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
   }
 }
 
+/**
+ * One answer as the clinician reads it: the coded labels first, then — when
+ * the patient answered in their own words (INT-286) — the sentence they said,
+ * quoted, as the last element.
+ *
+ * Quoted rather than labelled, and last rather than instead: a coded value
+ * and an utterance are different kinds of evidence, and the quotation marks
+ * are what tell a clinician which one they are reading. When extraction
+ * resolved nothing the quote stands alone, which is the honest rendering of
+ * an answer we have but could not code — nothing is invented in its place.
+ */
 function answerLines(answer: Answer): string[] {
-  return answer.values.map((v) => {
+  const coded = answer.values.map((v) => {
     const key = optionLabelKey(answer.questionId, v);
     return key ? t(key) : v;
   });
+  const words = answer.words?.trim() ?? "";
+  return words.length > 0 ? [...coded, `\u201C${words}\u201D`] : coded;
 }
 
 function hasContent(answer: Answer | undefined): answer is Answer {
-  return answer !== undefined && answer.values.some((v) => v.trim().length > 0);
+  if (answer === undefined) {
+    return false;
+  }
+  // INT-286: an answer given only in words is an answer. The patient said
+  // something about this question and the clinician should read it.
+  return answer.values.some((v) => v.trim().length > 0) || (answer.words ?? "").trim().length > 0;
 }
 
 /**

@@ -54,12 +54,29 @@ the transcript, so there is no patient text in a record, a log line or a
 metric label to redact. The consequence is a boundary INT-083 owns: extraction
 needs the text, and the route by which it gets it is that issue's
 data-boundary decision (CLAUDE.md invariant 14), not a field on this record.
+INT-095 settled that route and **kept the property**: the transcript travels
+in :mod:`intake_voice_runtime.transcript`, a per-session in-memory vault keyed
+by the same digest ``input_hash`` already carries, so nothing on this record,
+in this module's logs or in its metric labels changed.
 
-There are **no production handlers registered here**. A state handler for
-``extract_slots`` is INT-083; a background handler for ``parse_document`` is
-INT-121. Submitting a Work type with no handler raises
-:class:`UnregisteredWorkType` at ``submit`` — the mechanism is built, the gate
-fails closed, and the content is left empty (CLAUDE.md invariant 17).
+There are **no production handlers registered here** — registration is the
+composition root's job (:mod:`intake_voice_runtime.composition`), because a
+handler needs a gateway, a transcript source and a model pin, and a queue that
+built its own would be a queue that chose a model. Submitting a Work type with
+no handler still raises :class:`UnregisteredWorkType` at ``submit``: the gate
+fails closed for ``parse_document``, whose background handler is INT-121.
+
+**The ask ledger is the one Layer-B write Layer A may ask for.**
+:meth:`BackendAgent.note_asked` is the
+:class:`~intake_voice_runtime.ports.AskLedger` half of files/03 §4.5's *"ask
+ahead, reconcile behind"*: the Talker records the step it spoke, the note is
+queued under the cheap ``_queue_lock``, and :meth:`BackendAgent.run_pending`
+applies it through ``IntakeEngine.mark_asked`` **under the engine lock, before
+either lane runs** — so an answer's extraction can never overtake the mark for
+the question it answers. A note for a step the frontier is no longer offering
+is refused and recorded in :attr:`BackendAgent.refused_asks` rather than
+forced: the frontier is the protocol's decision about what is askable, and a
+step outside it has no open gate.
 """
 
 from __future__ import annotations
@@ -76,7 +93,7 @@ from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import CandidateFlag, RulesTriageResult, TriageLevel
 from pydantic import Field, ValidationError
 
-from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
+from intake_voice_runtime.clinical_agent.fsm import EngineError, IntakeEngine
 from intake_voice_runtime.metrics import (
     WORK_FAILED_TOTAL,
     WORK_LATENCY_MS,
@@ -92,6 +109,7 @@ from intake_voice_runtime.ports import (
     WorkType,
     work_key,
 )
+from intake_voice_runtime.talker.activity import ACTIVITY_OF, ActivityLabel
 from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import (
     BackendResult,
@@ -256,6 +274,8 @@ class BackendAgent:
     _claimed_ms: dict[str, float] = field(default_factory=dict, init=False, repr=False)
     _ready: list[BackendResult] = field(default_factory=list, init=False, repr=False)
     _cancelling: set[str] = field(default_factory=set, init=False, repr=False)
+    _asked: deque[str] = field(default_factory=deque, init=False, repr=False)
+    _refused_asks: list[str] = field(default_factory=list, init=False, repr=False)
     _sealed: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
@@ -295,10 +315,55 @@ class BackendAgent:
         return self._sealed
 
     @property
+    def state_handlers(self) -> Mapping[WorkType, StateHandler]:
+        """What is bound in the state lane — the registration, readable.
+
+        Exposed so a composition root's wiring is assertable from outside
+        rather than by reaching into a private dict; the mapping is a copy, so
+        reading it cannot register anything.
+        """
+        return dict(self._state_handlers)
+
+    @property
+    def refused_asks(self) -> tuple[str, ...]:
+        """Ask notes the engine refused, in order (files/13 §9.2).
+
+        Step ids are protocol identifiers, never patient text, so this is
+        readable and loggable under CLAUDE.md invariant 6. A non-empty tuple
+        means Layer A spoke a step the frontier was no longer offering — a
+        real defect, kept visible rather than swallowed.
+        """
+        with self._queue_lock:
+            return tuple(self._refused_asks)
+
+    @property
     def in_flight(self) -> tuple[str, ...]:
         """The Work ids running right now — at most one per lane."""
         with self._queue_lock:
             return tuple(work_id for work_id in self._running.values() if work_id is not None)
+
+    @property
+    def activity(self) -> tuple[ActivityLabel, ...]:
+        """What the rail may say this session is doing (files/03 §4.6 inv. 10).
+
+        Derived from the Work types that are queued or running — never from a
+        handler, which is what stops a prompt or a chain of reasoning reaching
+        the client through this channel. Each label appears once however many
+        Works of that type are outstanding: the rail shows *what* is happening,
+        not *how much*, and a count would leak queue depth to the patient.
+        """
+        with self._queue_lock:
+            outstanding = [
+                self._records[work_id].request.work_type
+                for lane, queue in self._queues.items()
+                for work_id in (*queue, *((self._running[lane],) if self._running[lane] else ()))
+            ]
+        seen: list[ActivityLabel] = []
+        for work_type in outstanding:
+            label = ACTIVITY_OF[work_type]
+            if label not in seen:
+                seen.append(label)
+        return tuple(seen)
 
     def depth(self, lane: WorkLane) -> int:
         """Queued (not running) items in one lane."""
@@ -351,6 +416,18 @@ class BackendAgent:
         )
         return WorkTicket(work_id=work_id, state=WorkState.QUEUED)
 
+    # --- the AskLedger port ----------------------------------------------------
+
+    def note_asked(self, step_id: str) -> None:
+        """Record that Layer A spoke ``step_id``. Returns at once; runs nothing.
+
+        Takes only ``_queue_lock`` — a few statements — never the engine lock,
+        which a state handler holds for the whole of an LLM call. The mark
+        itself is applied by :meth:`run_pending` (CLAUDE.md invariant 9).
+        """
+        with self._queue_lock:
+            self._asked.append(step_id)
+
     def cancel(self, work_id: str, reason: str) -> WorkTicket:
         """files/12 §7.1: dequeue if queued; never abort a committing write.
 
@@ -387,8 +464,44 @@ class BackendAgent:
 
         Called by the Backend worker loop, never from the Talker's turn — no
         expression on the speech path reaches this method.
+
+        Ask notes are applied **first**, so the mark for a question always
+        lands before the extraction of its answer runs: files/13 §9.3 binds
+        nothing to a step that is not ``ASKED_PENDING``, and the other order
+        would drop every answer.
         """
+        self._apply_asked_notes()
         return sum(self._run_lane(lane) for lane in (WorkLane.STATE, WorkLane.BACKGROUND))
+
+    def _apply_asked_notes(self) -> None:
+        """Drain the ask notes under the engine lock, in order.
+
+        A non-blocking acquire: when a state handler holds the engine the
+        notes keep their place and are applied on the next pass, which is the
+        same refusal-rather-than-interleave rule ``_run_lane`` uses.
+        """
+        with self._queue_lock:
+            if not self._asked:
+                return
+        if not self._engine_lock.acquire(blocking=False):
+            return
+        try:
+            while True:
+                with self._queue_lock:
+                    if not self._asked:
+                        return
+                    step_id = self._asked.popleft()
+                try:
+                    self.engine.mark_asked(step_id)
+                except EngineError:
+                    with self._queue_lock:
+                        self._refused_asks.append(step_id)
+                    logger.warning(
+                        "ask note refused",
+                        extra={"session_id": self.session_id, "step_id": step_id},
+                    )
+        finally:
+            self._engine_lock.release()
 
     def _run_lane(self, lane: WorkLane) -> int:
         work_id = self._claim(lane)

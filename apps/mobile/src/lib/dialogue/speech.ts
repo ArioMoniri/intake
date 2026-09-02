@@ -25,7 +25,7 @@
  */
 import { t } from "../i18n";
 import type { IntakeQuestion } from "../intake/questions";
-import { optionLabelKey } from "../intake/questions";
+import { isOpenAsk, optionLabelKey } from "../intake/questions";
 
 /** Spoken enumeration bound (files/13 §5.3, Cowan ~4 chunks). */
 export const MAX_SPOKEN_OPTION_HINTS = 4;
@@ -65,6 +65,23 @@ function joinLabels(labels: string[], connectorKey: "dialogue.and" | "dialogue.o
  * the extractor maps the answer — files/13 §5.3's "branch, don't enumerate".
  */
 export function questionAsideTr(question: IntakeQuestion): string | null {
+  // INT-286. The owner's report — "it goes completly written and option based
+  // but should be voice and open end questios" — lands exactly here. The
+  // photographed step, `breath_timing`, has FOUR options, so it fit the bound
+  // below and the agent read the answer list aloud: a question whose answers
+  // are read to you is a multiple-choice question however open its wording.
+  //
+  // Enumeration is therefore what a CLOSED question gets, and an open one
+  // gets the authored invitation instead, at every list length. Nothing is
+  // traded away for it: the option list is still the value space the
+  // extractor resolves onto (lib/extract.ts drops any id the pack does not
+  // declare), still what `confirmSpeechTr` reads back for the patient to
+  // confirm, and still the control on the typed screen. It has stopped being
+  // the way the question is ASKED — files/13 §5.3's "branch, don't
+  // enumerate", one step further along.
+  if (isOpenAsk(question)) {
+    return trText("dialogue.openInvite");
+  }
   const options = question.options ?? [];
   if (options.length === 0 || options.length > MAX_SPOKEN_OPTION_HINTS) {
     return null;
