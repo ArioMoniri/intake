@@ -8,17 +8,13 @@ Acceptance (docs/backlog/issues.yaml INT-019), verbatim:
   2. "`make security` runs the same list locally; planted secret, planted critical
      CVE and planted PHI each fail (proved in evidence, then reverted)"
 
-Placement state (docs/evidence/INT-019.md): .github/workflows/security.yml is
-hook-protected (07 §3.8 / §F rule 2) and its creation was refused from the
-agent session that built INT-019 — by design: protected gate files move only
-under the human-sanctioned ALLOW_PROTECTED=1. The byte-final workflow content
-is committed at scripts/ci/security_workflow.yml; the content tests below pin
-it wherever it lives, and test_workflow_is_installed stays RED (fail-closed)
-until a human runs
-    ALLOW_PROTECTED=1 git mv scripts/ci/security_workflow.yml \
-        .github/workflows/security.yml
-so this branch cannot go green — and the issue cannot close — without the
-sanctioned placement actually happening.
+Placement state: .github/workflows/security.yml is installed and the
+scripts/ci/security_workflow.yml template it was staged through is gone, so
+test_workflow_is_installed is a live assertion rather than an interlock. The
+path stays hook-protected (07 §3.8 / §F rule 2) and moves only under the
+human-sanctioned ALLOW_PROTECTED=1 — which is why the two remaining defects in
+that file (HB-O5: the gitleaks job's missing pull-requests scope and the
+osv-scanner action path) are recorded for the owner instead of patched here.
 
 What the rest of this file pins:
   - the workflow parses, every action is full-SHA-pinned with the resolved tag
@@ -39,10 +35,13 @@ exposes an OpenAPI schema offline; eslint-plugin-security wiring decision.
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import os
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -68,18 +67,15 @@ def run_script(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_workflow_is_installed() -> None:
-    """RED until a human places the gate under ALLOW_PROTECTED=1 (07 §F rule 2).
+    """The gate set only runs from .github/workflows/; a template copy runs nothing.
 
-    The security workflow only runs from .github/workflows/. The content is
-    committed and fully pinned below; this test is the fail-closed interlock
-    that keeps the branch red until the sanctioned placement:
-        ALLOW_PROTECTED=1 git mv scripts/ci/security_workflow.yml \
-            .github/workflows/security.yml
-    (delete the template in that same commit; see docs/evidence/INT-019.md).
+    Kept as an assertion after the sanctioned placement landed, because the
+    failure it guards against is silent: deleting or renaming the workflow
+    removes eight gates at once and every remaining check still passes.
     """
     assert WORKFLOW_INSTALLED.exists(), (
-        ".github/workflows/security.yml not installed yet — the CI gate set is "
-        "not live until the human-sanctioned move from scripts/ci/security_workflow.yml"
+        ".github/workflows/security.yml is not installed — the CI gate set is not "
+        "live, and nothing else in this suite would notice"
     )
 
 
@@ -296,6 +292,99 @@ def test_licence_gate_reads_python_dist_info(tmp_path: Path) -> None:
     out = _run_licences(nm, site)
     assert out.returncode == 1
     assert "agpl-pkg" in out.stdout
+
+
+def _fake_python_dist(
+    site: Path, name: str, licence: str | None, *, source_dir: Path | None = None
+) -> None:
+    """Write a dist-info. `source_dir` records PEP 610 provenance (an editable install)."""
+    dist = site / f"{name.replace('-', '_')}-0.1.0.dist-info"
+    dist.mkdir(parents=True)
+    lines = ["Metadata-Version: 2.1", f"Name: {name}", "Version: 0.1.0"]
+    if licence is not None:
+        lines.append(f"License-Expression: {licence}")
+    (dist / "METADATA").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if source_dir is not None:
+        (dist / "direct_url.json").write_text(
+            json.dumps({"url": source_dir.as_uri(), "dir_info": {"editable": True}}),
+            encoding="utf-8",
+        )
+
+
+def test_first_party_python_tracks_the_uv_workspace() -> None:
+    """The first-party set is derived, never hand-listed.
+
+    A hand-written set goes stale the moment a workspace member lands, and it
+    goes stale silently: the new package is simply reported as a third-party
+    dependency with no licence metadata. That is exactly what happened — seven
+    members were added after this gate was written and every one of them turned
+    up as a licence violation.
+    """
+    spec = importlib.util.spec_from_file_location("check_licenses", LICENSES)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    root = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
+    expected = {root["project"]["name"]}
+    for member in root["tool"]["uv"]["workspace"]["members"]:
+        for member_dir in sorted(REPO.glob(member)):
+            member_toml = member_dir / "pyproject.toml"
+            if member_toml.is_file():
+                expected.add(
+                    tomllib.loads(member_toml.read_text(encoding="utf-8"))["project"]["name"]
+                )
+
+    assert module.first_party_python_names() == expected, (
+        "the first-party set must be read from [tool.uv.workspace], not hand-listed"
+    )
+    assert len(expected) > 3, "the workspace has grown past the original hand-written set"
+
+
+def test_licence_gate_accepts_a_workspace_package_with_no_licence_metadata(tmp_path: Path) -> None:
+    """Our own packages declare no licence and must not be treated as dependencies."""
+    site = tmp_path / "site"
+    _fake_python_dist(site, "intake-platform", None, source_dir=REPO / "packages/intake_platform")
+    nm = tmp_path / "node_modules"
+    _fake_node_package(nm, "fine-lib", "MIT")
+    out = _run_licences(nm, site)
+    assert out.returncode == 0, f"a real workspace member must pass:\n{out.stdout}{out.stderr}"
+
+
+def test_licence_gate_still_checks_a_dependency_squatting_a_workspace_name(
+    tmp_path: Path,
+) -> None:
+    """Skipping by NAME alone is a dependency-confusion hole; provenance is required.
+
+    This is the case that fails if the gate is defeated: a distribution named
+    after a workspace member but installed from somewhere other than this
+    checkout is a third-party package, and its licence must still be checked.
+    """
+    site = tmp_path / "site"
+    _fake_python_dist(site, "intake-platform", "AGPL-3.0-only")  # no direct_url.json
+    nm = tmp_path / "node_modules"
+    _fake_node_package(nm, "fine-lib", "MIT")
+    out = _run_licences(nm, site)
+    assert out.returncode == 1, (
+        "a package that only borrows a workspace NAME must still be licence-checked:\n"
+        f"{out.stdout}{out.stderr}"
+    )
+    assert "intake-platform" in out.stdout and "AGPL" in out.stdout
+
+
+def test_licence_gate_still_checks_a_workspace_name_installed_from_outside_the_repo(
+    tmp_path: Path,
+) -> None:
+    """PEP 610 provenance pointing outside the checkout is not our package either."""
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    site = tmp_path / "site"
+    _fake_python_dist(site, "intake-platform", "AGPL-3.0-only", source_dir=elsewhere)
+    nm = tmp_path / "node_modules"
+    _fake_node_package(nm, "fine-lib", "MIT")
+    out = _run_licences(nm, site)
+    assert out.returncode == 1, "provenance outside the repo must not confer first-party status"
+    assert "intake-platform" in out.stdout
 
 
 # --- PHI-pattern scan ----------------------------------------------------------------

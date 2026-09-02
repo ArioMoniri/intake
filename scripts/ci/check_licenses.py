@@ -22,9 +22,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tomllib
 from collections.abc import Iterator
 from importlib import metadata
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -58,8 +60,53 @@ ALLOWED = {
 
 DENIED_PREFIXES = ("AGPL", "SSPL")
 
-# Our own workspace packages are not third-party dependencies.
-FIRST_PARTY_PYTHON = {"intake", "intake-platform", "intake-probes"}
+
+# Our own workspace packages are not third-party dependencies. The set is READ
+# from the uv workspace rather than written down here: a hand-listed set goes
+# stale the moment a member lands, and it goes stale silently — the new package
+# is simply reported as a dependency with no licence metadata. That is what
+# happened to the original three-name list once seven more members landed.
+#
+# Membership by NAME alone would be a dependency-confusion hole (a PyPI package
+# that squats a workspace name would inherit the skip), so a distribution counts
+# as ours only when PEP 610 provenance proves it was installed FROM this
+# checkout. Both conditions, never either one.
+def first_party_python_names() -> frozenset[str]:
+    """Distribution names declared by this repo's own uv workspace members."""
+    root = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
+    names = {str(root["project"]["name"])}
+    for member in root.get("tool", {}).get("uv", {}).get("workspace", {}).get("members", []):
+        for member_dir in sorted(REPO.glob(str(member))):
+            member_toml = member_dir / "pyproject.toml"
+            if not member_toml.is_file():
+                continue
+            data = tomllib.loads(member_toml.read_text(encoding="utf-8"))
+            name = data.get("project", {}).get("name")
+            if name:
+                names.add(str(name))
+    return frozenset(names)
+
+
+def _installed_from_this_repo(dist: metadata.Distribution) -> bool:
+    """True when PEP 610 records this distribution as installed from inside REPO."""
+    try:
+        raw = dist.read_text("direct_url.json")
+    except OSError:
+        return False
+    if not raw:
+        return False
+    try:
+        url = str(json.loads(raw).get("url", ""))
+    except ValueError:
+        return False
+    if not url.startswith("file://"):
+        return False
+    try:
+        source = Path(unquote(urlsplit(url).path)).resolve()
+    except OSError:
+        return False
+    return source == REPO or REPO in source.parents
+
 
 # Documented per-package exceptions — exact names, never prefixes, each with the
 # reason it is tolerated. Anything new with the same licence still fails, which
@@ -278,6 +325,7 @@ def iter_python(python_path: Path | None) -> Iterator[tuple[str, str, str]]:
         dists = metadata.distributions(path=[str(python_path)])
     else:
         dists = metadata.distributions()
+    first_party = first_party_python_names()
     seen: set[tuple[str, str]] = set()
     for dist in dists:
         md = dist.metadata
@@ -286,6 +334,8 @@ def iter_python(python_path: Path | None) -> Iterator[tuple[str, str, str]]:
         if (name, version) in seen:
             continue
         seen.add((name, version))
+        if name in first_party and _installed_from_this_repo(dist):
+            continue  # our own source, governed by the repo LICENSE, not an inbound licence
         expr = md.get("License-Expression")
         if expr:
             yield name, version, str(expr)
@@ -320,8 +370,6 @@ def main(argv: list[str] | None = None) -> int:
         ("python", iter_python(args.python_path)),
     ):
         for name, version, raw in packages:
-            if source == "python" and name in FIRST_PARTY_PYTHON:
-                continue
             counts[source] += 1
             v = verdict(raw) if raw else "UNKNOWN"
             if v == "ALLOWED":

@@ -88,3 +88,23 @@ rewrote those same files for unrelated reasons. **Conflict count measures diverg
 unmerged content.** Resolving every conflict in main's favour yields tree `409e0431`, which
 *is* `origin/main`'s tree: the branch contributes nothing. Before treating a stale branch as
 unlanded work, run `git log origin/main --oneline --grep '<ID>'`.
+
+## INT-019 — two CI gates are wired to a workflow file this session may not edit
+
+**Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O5
+
+`.github/workflows/security.yml` is hook-protected, so INT-019 could diagnose the `gitleaks`
+and `vulnerabilities` failures and fix neither. Both are one-line edits, both are proven
+rather than guessed, and both are written out verbatim in HB-O5 and in docs/evidence/INT-019.md.
+
+**What is NOT the cause, so it is not re-investigated:** gitleaks does not need a
+`GITLEAKS_LICENSE` — the action logs *"[ArioMoniri] is an individual user. No license key is
+required"* before it crashes — and it does not need a version bump. It needs the
+`pull-requests: read` scope that the workflow's top-level `permissions: contents: read`
+takes away.
+
+**What lands the moment (b) is applied:** the `vulnerabilities` job starts working and
+immediately reports 8 real npm advisories (1 Critical, 3 High) that no gate in this repo has
+ever run against. That is the gate doing its job on a tree that has never been scanned, not a
+regression from INT-019. Bumping `vitest`, `vite`, `uuid`, `esbuild` and `decode-uri-component`
+is a `pnpm-lock.yaml` change that races every open branch and needs its own issue.
