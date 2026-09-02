@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**218 issues.** By phase: P0 128 · P1 48 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 103 · todo 102 · withdrawn 1.
+**219 issues.** By phase: P0 128 · P1 49 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 104 · todo 102 · withdrawn 1.
 
 ## P0
 
@@ -192,6 +192,7 @@
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
+| INT-295 | The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing scrolls sideways to bring it back | E08-mobile | INT-284 | area:mobile, area:a11y | done |
 
 ## P2
 
