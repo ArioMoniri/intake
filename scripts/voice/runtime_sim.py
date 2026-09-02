@@ -17,8 +17,18 @@ the scenario catalogue and the report are production code
 ``--measure``, which is opt-in, refuses to run under pytest, and is described
 where it is defined.
 
+``--parity`` is INT-096's half: files/03 §4.6 invariant 8 asks that *"the same
+simulator scenarios pass on ``typed`` … and ``residency_tr`` with mock
+adapters"*, and this flag is that sentence made runnable. It drives the named
+scenario on **every** profile the scenario declares and compares the runs with
+every transport-specific quantity removed — see
+:class:`~intake_voice_runtime.simulator.report.ParityTrace` for what is
+compared and why an equality over the whole report would be false rather than
+strict. A divergence is printed field by field, because a parity failure that
+says only "not equal" is one nobody can act on.
+
 Exit codes: 0 ran · 2 the scenario or profile is not runnable · 3 the lane
-probe in ``--measure`` could not reach a service.
+probe in ``--measure`` could not reach a service · 4 the profiles diverged.
 """
 
 from __future__ import annotations
@@ -28,6 +38,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -38,6 +49,7 @@ from intake_voice_runtime.profiles import VoiceProfile  # noqa: E402
 from intake_voice_runtime.simulator import (  # noqa: E402
     SCENARIOS,
     NetworkProfile,
+    ParityTrace,
     ScenarioNotRunnable,
     render_report,
 )
@@ -74,6 +86,13 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
         help="Also time a real synthesis on the dev TTS ladder. Opt-in, dev only, "
         "never CI: it dials localhost. The figures are of this bridge on this day.",
     )
+    parser.add_argument(
+        "--parity",
+        action="store_true",
+        help="Run the scenario on every profile it declares and compare the runs "
+        "with transport-specific quantities removed (files/03 §4.6 invariant 8). "
+        "Exit 4 on a divergence.",
+    )
     return parser.parse_args(argv)
 
 
@@ -107,6 +126,32 @@ def _measure_tts() -> dict[str, object]:
     raise SystemExit(3)
 
 
+def _parity(scenario: Any, run_scenario: Any, network: NetworkProfile) -> int:
+    """Every profile the scenario declares, compared pairwise against the first.
+
+    Against the first rather than every pair: parity is an equivalence, so a
+    divergence anywhere shows up against the reference run, and naming one
+    reference keeps the report readable when a third profile is impossible
+    anyway (ADR-010 closes the registry at two).
+    """
+    profiles = scenario.require_runnable()
+    reference, *others = profiles
+    base = ParityTrace.of(run_scenario(scenario.id, reference, network))
+    diverged = False
+    print(f"runtime-sim · parity · {scenario.id} · reference={reference.value}")
+    for profile in others:
+        trace = ParityTrace.of(run_scenario(scenario.id, profile, network))
+        lines = base.divergence(trace)
+        if not lines:
+            print(f"  {profile.value}: identical on step, text, work_id, delivery, hold")
+            continue
+        diverged = True
+        print(f"  {profile.value}: DIVERGED")
+        for line in lines:
+            print(f"    {line}")
+    return 4 if diverged else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse(argv)
     scenario = SCENARIOS.get(args.scenario)
@@ -123,6 +168,9 @@ def main(argv: list[str] | None = None) -> int:
     except ScenarioNotRunnable as refusal:
         print(f"runtime-sim: {refusal}")
         return 2
+
+    if args.parity:
+        return _parity(scenario, run_scenario, NetworkProfile(args.network))
 
     measured = _measure_tts() if args.measure else None
     if args.json:

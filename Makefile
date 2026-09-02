@@ -205,9 +205,9 @@ voice-doctor:
 # synthesis on the local TTS ladder — a measurement of that bridge on that day,
 # never a property of the product (CLAUDE.md invariant 20).
 runtime-sim:
-	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1]"; exit 2; }
+	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1] [PARITY=1]"; exit 2; }
 	uv run python scripts/voice/runtime_sim.py --scenario $(SCENARIO) --profile $(PROFILE) \
-	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,)
+	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,) $(if $(PARITY),--parity,)
 
 # INT-095: one REAL residency_tr turn against the self-hosted lanes, timed per
 # term. PROFILE is required and has no default; `typed` is refused (it has no
@@ -384,3 +384,20 @@ egress-down:
 audit-verify:
 	uv run python -m intake_platform.audit_verifier \
 	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)
+# INT-082: the headless patient simulator — personas × scenarios IM-01…IM-14
+# driven over the real IntakeEngine (INT-081), the real Talker (INT-091) and
+# the real triage engine (INT-080), on a synthetic pack and recorded fixtures.
+#
+# Hermetic and fast by construction: no model, no network, no LiveKit room, no
+# database, no wall clock, and every run happens inside a probe that records
+# any write-mode file open (CLAUDE.md invariant 3).
+#
+# **CI already runs it.** `check-py`'s first pytest invocation uses the default
+# testpaths (`tests`, `packages`), so tests/sim is collected by the CI job that
+# calls `make check-py`. This target exists so a change to a persona or a
+# scenario can be cleared in seconds without the full fan-out — and because a
+# gate nobody can see in the Makefile is a gate nobody runs.
+.PHONY: test-sim
+
+test-sim:
+	uv run pytest tests/sim -q -o addopts=""

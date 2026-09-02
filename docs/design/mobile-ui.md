@@ -562,3 +562,41 @@ our tokens — so typing is always available without a mode switch: a
 typed message is the same utterance path minus the ASR hop. The one
 honest wait left is the end-of-dialogue settling row while the last
 extractions land.
+
+## Verileriniz and the learned ledger (INT-140, 2026-09-03)
+
+Two surfaces under Profilim, both built entirely from the pass-5 settings
+anatomy — no new primitive, no new colour, no new type role. Recorded here
+because the DECISIONS are design decisions, not layout ones.
+
+- **A destructive control is two taps, and the first one only changes the
+  word.** Erasing the record and deleting a learned fact both arm on the
+  first press ("Kaydınızın silinmesini isteyin" → "Silme isteğini
+  onaylayın") and act on the second. No modal, no `Alert`: an alert's text
+  cannot live in the catalogue and its buttons cannot carry a hint, so a
+  sheet would cost both invariant 5 and the screen-reader path. Arming a
+  second fact disarms the first, so a half-finished deletion never waits.
+- **Nothing on either screen is coloured for danger.** 02 §5.3 keeps the
+  emergency pair for the RED route; erasure is an ordinary row whose LABEL
+  carries the weight. The saturated accent stays on forward actions.
+- **A state the server has not confirmed is never shown as done.** The
+  screens have no optimistic write at all — a filed request appears only
+  once the controller has it, a fact disappears only once the record has
+  dropped it, and a change that did not land shows as a quiet caption. This
+  is the opposite of the notification screen's optimism, deliberately: the
+  cost of a wrong "saved" there is a mis-set quiet hour, and here it is a
+  patient who believes their data is gone.
+- **The ledger says where each fact is held** — "Kaydınızda saklanıyor" or
+  "Yalnızca bu telefonda". The owner's edge-storage direction is only
+  credible if the screen distinguishes the two, and the same line is what
+  makes the delete control honest: one of them travels, the other does not.
+- **Numbers stay off both screens except as dates.** The count of shares an
+  erasure closed is read as a boolean at the seam and rendered as a
+  sentence, so no bare numeral becomes copy (invariant 22).
+- **Accessibility hints here state the RESULT, not the gesture.** "İki kez
+  dokunmak bu bilgiyi kaydınızdan siler", against the older "… için iki kez
+  dokunun". This is the iOS HIG form, it tells a screen-reader user what
+  will happen before they commit, and it is also what the files/00 §2
+  register split asks for in instructional prose — the older hints are the
+  recorded findings in `tests/release/test_i18n_complete.py`, and new copy
+  does not join them.

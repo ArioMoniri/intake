@@ -47,7 +47,7 @@ Neither blocks this issue: the mechanism ships, the enum is closed, and both cho
 
 **Raised:** 2 Sep 2026 · **Named human:** physician of record
 
-**HB-C16 — may a RED patient keep a patient summary?** INT-085 refused to render one.
+**HB-C20 — may a RED patient keep a patient summary?** (filed as HB-C16; renumbered 3 Sep when INT-112 was found to hold that id) INT-085 refused to render one.
 Invariant 21 makes RED three axes (route × register × location) with its script
 pre-positioned on the device and triggered over the data channel; a card set is none of
 those three, and a RED sentence whose register is decided by page layout is the default
@@ -89,13 +89,43 @@ unmerged content.** Resolving every conflict in main's favour yields tree `409e0
 *is* `origin/main`'s tree: the branch contributes nothing. Before treating a stale branch as
 unlanded work, run `git log origin/main --oneline --grep '<ID>'`.
 
+## INT-140 — the export ANSWER cannot be delivered, so the issue stays open
+
+**Raised:** 3 Sep 2026 · **Named human:** none new — this is INT-210's content
+
+INT-140 delivers two of the three obligations in its acceptance line: the erasure
+flow (file, grace, withdraw, tracker) and the learned-fact ledger (provenance,
+per-field share scope, delete). The third — handing the patient the copy of their
+record — is not delivered, and the client deliberately never calls
+`GET /v1/me/dsar/export/{id}`.
+
+Three facts make the call wrong today rather than merely unbuilt. The route marks
+the KVKK m.13 obligation **completed at the moment of delivery**, so calling it
+without handing anything over would record an answer nobody received. It cannot
+succeed in any case: the document renders only from the hash-bound fixed strings
+in `docs/legal/strings.yaml`, which does not exist, so the route answers
+`503 legal_strings_missing`. And the app has no path that hands a file to a
+patient — building one is a security decision needing its own files/10 §9 row and
+a licence-audited dependency.
+
+**Nothing is owed by a human that is not already owed:** INT-210 (`status: todo`,
+`approval:human-legal`) owns the strings. When they land, the remaining work is
+one unit — retrieval plus a delivery channel — and INT-140 closes on it.
+
+One product finding for the **clinical copy owner**, flagged rather than fixed: an
+overlay key (`chronic.hipertansiyon`) has no patient-readable Turkish label
+anywhere in the repo. The ledger renders the fact's own recorded phrase where the
+value is one and a catalogue label where it is not, and never the slot ref — every
+other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
+is clinical copy against the packs' slot definitions.
+
 ## INT-019 — two CI gates are wired to a workflow file this session may not edit
 
-**Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O5
+**Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O6
 
 `.github/workflows/security.yml` is hook-protected, so INT-019 could diagnose the `gitleaks`
 and `vulnerabilities` failures and fix neither. Three one-line edits, all proven rather than
-guessed, all written out verbatim in HB-O5 and in docs/evidence/INT-019.md: the `gitleaks`
+guessed, all written out verbatim in HB-O6 and in docs/evidence/INT-019.md: the `gitleaks`
 job's missing `pull-requests: read`, the osv-scanner action path plus its removed `--skip-git`
 flag, and `trivyignores: .trivyignore.yaml` on the trivy step.
 

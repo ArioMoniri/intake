@@ -38,6 +38,8 @@ const NAV_MAP = [
   "(tabs)/me/index.tsx",
   // INT-260 — Görünüm: text size, theme, motion, start mode
   "(tabs)/me/appearance.tsx",
+  // INT-140 — Verileriniz: the KVKK m.11 export/erasure controls
+  "(tabs)/me/data.tsx",
   "(tabs)/me/learned.tsx",
   // INT-141 — Bildirimler: opt-out and quiet hours
   "(tabs)/me/notifications.tsx",

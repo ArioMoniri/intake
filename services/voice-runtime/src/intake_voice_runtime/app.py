@@ -41,6 +41,7 @@ from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.security import SecurityHeadersMiddleware
 
 from intake_voice_runtime.ports import ClipStore, RoomTokenSource, SpeechSynthesizer
+from intake_voice_runtime.profiles import VoiceProfile
 
 __all__ = ["VoiceRuntimeWiring", "create_app"]
 
@@ -70,11 +71,25 @@ class VoiceRuntimeWiring:
     Every field defaults to ``None`` and every ``None`` is a readiness
     failure — the process comes up so it can be observed, and refuses to be
     routed traffic until each binding exists.
+
+    ``profile`` decides *which* bindings are required, and INT-096 is why it
+    exists. ``typed`` is the kill-switch target, and a target that can never
+    report ready is not one: a worker serving keyboards has no clip store, no
+    TTS and no LiveKit room to join, so demanding all three would leave the
+    safer state permanently un-routable. The three checks stay in the list and
+    say why they passed, rather than disappearing — a readiness report that
+    silently shrinks is one nobody can compare across deployments.
     """
 
     clip_store: ClipStore | None = None
     synthesizer: SpeechSynthesizer | None = None
     room_token_source: RoomTokenSource | None = None
+    profile: VoiceProfile = VoiceProfile.RESIDENCY_TR
+
+    @property
+    def needs_speech(self) -> bool:
+        """Whether this worker's profile has a speech path at all."""
+        return self.profile is not VoiceProfile.TYPED
 
 
 def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
@@ -88,13 +103,16 @@ def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
     mount_http_metrics(app, SERVICE_NAME)
 
     async def clip_store_ready() -> bool:
-        return bound.clip_store is not None
+        return not bound.needs_speech or bound.clip_store is not None
 
     async def synthesizer_ready() -> bool:
-        return bound.synthesizer is not None
+        return not bound.needs_speech or bound.synthesizer is not None
 
     async def room_token_ready() -> bool:
-        return bound.room_token_source is not None
+        # The room token joins a LiveKit *media* room. A typed worker has no
+        # media to carry — files/03 §4.4 gives the profile a dash in the
+        # turn-taking and TTS columns — so it needs no room and no token.
+        return not bound.needs_speech or bound.room_token_source is not None
 
     mount_health(
         app,
