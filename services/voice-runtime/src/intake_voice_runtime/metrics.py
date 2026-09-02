@@ -79,7 +79,6 @@ WORK_FAILED_TOTAL = Counter(
 )
 
 
-<<<<<<< HEAD
 # --- observer lanes (INT-110) ---------------------------------------------------
 #
 # files/10 §9 names `lane.dropped_frames` among the observer-lane signals, and
@@ -94,7 +93,8 @@ LANE_DROPPED_FRAMES = Counter(
     "lane_dropped_frames",
     "Audio frames dropped by an observer lane under backpressure, by lane.",
     ["lane"],
-=======
+)
+
 # --- the RED preemption path (INT-093) --------------------------------------------
 #
 # files/08 §4 C names exactly one id for this path — ``preempt.red_latency_ms``
@@ -114,5 +114,4 @@ PREEMPT_RED_LATENCY_MS = Histogram(
     "preempt_red_latency_ms",
     "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
     buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
->>>>>>> origin/main
 )
