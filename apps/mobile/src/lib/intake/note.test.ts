@@ -400,3 +400,86 @@ describe("the fact decision is per-visit note state", () => {
     expect(meds.lines.join(" ")).toContain("hasta bu ziyarette devam ettiğini söyledi");
   });
 });
+
+// ---- INT-286: the patient's own words reach the clinician -------------------
+//
+// Open-ended asking buys nothing if the words evaporate on the way to the
+// note: the clinician would read the same coded label either way. So an
+// answer carries `words` — the verbatim span the dialogue already holds as a
+// quote and the typed screen now collects — and the note prints it after the
+// coded labels, quoted, so it reads as the patient's utterance and not as a
+// second finding. `values` stays the coded value space and nothing else, so
+// no free text can reach a gate or a rule (invariant 1).
+
+describe("an open answer carries the patient's own words (INT-286)", () => {
+  it("prints the words quoted, after the coded label, on the same line", () => {
+    const answers: Answer[] = [
+      { questionId: "complaint", values: ["dyspnoea"] },
+      {
+        questionId: "breath_timing",
+        values: ["exertion"],
+        words: "merdiven çıkarken nefesim daralıyor",
+      },
+    ];
+    const sections = buildNote(answers, account);
+    const hpi = sections.find((s) => s.id === "hpi")!;
+    expect(hpi.lines).toContain(
+      "Nefes darlığının zamanı: Hareket ya da eforla, “merdiven çıkarken nefesim daralıyor”",
+    );
+  });
+
+  it("prints the words alone when extraction resolved no coded value", () => {
+    // (d) — the honest end state of an open turn nothing could be mapped
+    // from. The patient's sentence is not thrown away and nothing is
+    // invented in its place.
+    const answers: Answer[] = [
+      { questionId: "complaint", values: ["dyspnoea"] },
+      { questionId: "breath_timing", values: [], words: "tarif etmesi zor, bazen oluyor" },
+    ];
+    const hpi = buildNote(answers, account).find((s) => s.id === "hpi")!;
+    expect(hpi.lines).toContain("Nefes darlığının zamanı: “tarif etmesi zor, bazen oluyor”");
+  });
+
+  it("an answer with neither a value nor words prints nothing", () => {
+    const answers: Answer[] = [
+      { questionId: "complaint", values: ["dyspnoea"] },
+      { questionId: "breath_timing", values: [], words: "  " },
+    ];
+    // Nothing at all: whitespace is not an answer, so the question does not
+    // even open an HPI section on its own.
+    const sections = buildNote(answers, account);
+    expect(sections.map((s) => s.id)).not.toContain("hpi");
+    expect(sections.flatMap((s) => s.lines).join("\n")).not.toContain("Nefes darlığının zamanı");
+  });
+
+  it("the reducer keeps the words with the answer it belongs to", () => {
+    const state = noteReducer(emptyNoteState(), {
+      type: "answer",
+      questionId: "breath_timing",
+      values: ["exertion"],
+      words: "yürürken oluyor",
+    });
+    expect(state.answers).toEqual([
+      { questionId: "breath_timing", values: ["exertion"], words: "yürürken oluyor" },
+    ]);
+  });
+
+  it("re-answering without words drops the old words rather than keeping a stale quote", () => {
+    // The words are provenance FOR a value. A patient who changes their
+    // answer on the review screen has not re-said the old sentence, so
+    // carrying it forward would attribute words to an answer they were
+    // never said about.
+    const first = noteReducer(emptyNoteState(), {
+      type: "answer",
+      questionId: "breath_timing",
+      values: ["exertion"],
+      words: "yürürken oluyor",
+    });
+    const second = noteReducer(first, {
+      type: "answer",
+      questionId: "breath_timing",
+      values: ["rest"],
+    });
+    expect(second.answers).toEqual([{ questionId: "breath_timing", values: ["rest"] }]);
+  });
+});

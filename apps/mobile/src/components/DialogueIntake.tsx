@@ -262,7 +262,17 @@ export function DialogueIntake({
     }
     const values = question.kind === "text" ? [...turn.candidate.values] : [...selected];
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId: question.id, values });
+      // INT-286: the quote travels WITH the answer now. It was already the
+      // patient's verbatim words behind this candidate and it was already on
+      // screen as provenance; dropping it at the commit was what made an
+      // open-ended turn read, in the note, exactly like a tapped card. A
+      // `text` step's value IS the words, so it carries none separately.
+      updateNote(visitId, {
+        type: "answer",
+        questionId: question.id,
+        values,
+        words: question.kind === "text" ? undefined : turn.candidate.quote,
+      });
     }
     session.confirm(values);
   };
@@ -274,8 +284,14 @@ export function DialogueIntake({
     if (candidate === undefined) {
       return;
     }
+    const rowQuestion = questions.find((q) => q.id === questionId);
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId, values: [...candidate.values] });
+      updateNote(visitId, {
+        type: "answer",
+        questionId,
+        values: [...candidate.values],
+        words: rowQuestion?.kind === "text" ? undefined : candidate.quote,
+      });
     }
     session.confirmPending(questionId);
   };
