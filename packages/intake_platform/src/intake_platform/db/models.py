@@ -29,7 +29,10 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from clinical_schemas.overlay import LearnedFactSource
 from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -42,7 +45,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import BigInteger, Uuid
+from sqlalchemy.types import BigInteger, Integer, Uuid
 
 from intake_platform.db.inventory import (
     BASIS_AWAITING_HUMAN_GUARDIAN,
@@ -63,7 +66,9 @@ from intake_platform.db.inventory import (
     RET_CONSENT_AUDIT,
     RET_DSAR,
     RET_EVENTS,
+    RET_NOTIFICATION_PREFERENCE,
     RET_RECORD,
+    RET_SATISFACTION,
     RET_SHARE,
     RET_TENANT,
     inv,
@@ -81,8 +86,12 @@ __all__ = [
     "GuardianLink",
     "IntakeSession",
     "KvkkRole",
+    "NotificationPreference",
     "Note",
+    "OverlayFact",
     "Patient",
+    "PatientOverlayHeader",
+    "SessionAttribution",
     "SessionStatus",
     "Share",
     "Slot",
@@ -117,6 +126,22 @@ class SessionStatus(enum.StrEnum):
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+
+class SessionAttribution(enum.StrEnum):
+    """INT-133 — who produced the answers in this session (files/02 §3).
+
+    Three values, not two: ``assisted_self_report`` is the patient's own
+    words on a family member's device, which the other two both misdescribe.
+    This column is the SOURCE of files/06 §6's "companion/proxy answers are
+    always flagged ``proxy_reported`` on the record" — every record derived
+    from a session reads the flag from here rather than carrying an
+    independently settable copy that could drift out of step.
+    """
+
+    SELF_REPORT = "self_report"
+    PROXY_REPORT = "proxy_report"
+    ASSISTED_SELF_REPORT = "assisted_self_report"
 
 
 class DsarKind(enum.StrEnum):
@@ -321,6 +346,60 @@ class IntakeSession(Base):
         info=inv(
             CAT_OPERATIONAL,
             "when the intake finished (SLO + retention inputs)",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    # --- INT-133: session attribution (files/02 §3; files/06 §6; files/13 §13) ---
+    # No new personal-data CATEGORY: these are the same three provenance
+    # facts the clinician note already carries and already sends to FHIR
+    # (clinical_schemas.note.ScreeningProvenance), lifted to the session so
+    # every record derived from it reads ONE flag. Nothing here identifies
+    # the companion — no name, no account ref, no relationship. A persisted
+    # person↔person link is the separate, gated guardian_links table.
+    attribution: Mapped[SessionAttribution] = mapped_column(
+        Enum(
+            SessionAttribution,
+            name="session_attribution",
+            native_enum=False,
+            length=24,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        default=SessionAttribution.SELF_REPORT,
+        server_default=SessionAttribution.SELF_REPORT.value,
+        info=inv(
+            CAT_HEALTH,
+            "who produced the answers (self / proxy / assisted): a clinician reading the "
+            "note must know whether the symptoms are reported or observed",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_CLINICIAN,
+        ),
+    )
+    third_party_present: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+        info=inv(
+            CAT_HEALTH,
+            "a second person was present or answering (files/13 §13): the disclosure "
+            "confound that forces sensitive sections to text and stops safeguarding",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_CLINICIAN,
+        ),
+    )
+    proxy_ack_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "instant the companion acknowledged answering on the patient's behalf; an "
+            "acknowledgement of ROLE only — never evidence of legal representation "
+            "(policy row guardian_relationship_proof is awaiting-human)",
             BASIS_CONTRACT,
             RET_RECORD,
             REC_INTERNAL,
@@ -1020,3 +1099,362 @@ class Event(Base):
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_EVENTS)
+
+
+class NotificationPreference(Base):
+    """INT-141 — the patient's own message-refusal register: one opt-out flag
+    and, optionally, a quiet window.
+
+    It is a table rather than a setting in a process because a quiet-hours
+    window that lives in memory is a quiet-hours window that stops working at
+    the next deploy — at 03:00, for everybody at once.
+
+    Shape notes:
+
+    - **Two integers and a flag.** Minutes since local midnight, evaluated on
+      the fixed Türkiye offset (``intake_platform.notifications.preferences``),
+      so no per-patient timezone column exists and no location signal is
+      collected to support one.
+    - **Both ends or neither** (``ck_notification_preferences_quiet_window``):
+      half a window is not a window, and accepting one end while defaulting
+      the other would be the invented value rule 1 forbids.
+    - **Nothing here is an identifier**: no device token, no push handle, no
+      phone number (invariant 14). Delivery addressing belongs to the
+      transport and its vendor contract, which does not exist yet.
+    - One row per patient per tenant; a change replaces it in place, because
+      the history of a preference is the audit chain's business, not this
+      table's.
+    """
+
+    __tablename__ = "notification_preferences"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "patient_id"),
+        CheckConstraint(
+            "(quiet_start_minute IS NULL) = (quiet_end_minute IS NULL)",
+            name="quiet_window",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk("notification preference row key", RET_NOTIFICATION_PREFERENCE)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_NOTIFICATION_PREFERENCE)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient whose delivery preference this is",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    opted_out: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        info=inv(
+            CAT_OPERATIONAL,
+            "the patient has asked to receive no messages; honoured for every "
+            "class this product sends (files/06 §1 row 6563-İYS)",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    quiet_start_minute: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "start of the patient's quiet window, minutes since local midnight; "
+            "NULL means she has said nothing about hours, never that she is "
+            "happy to be woken",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    quiet_end_minute: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "end of the patient's quiet window, minutes since local midnight; "
+            "NULL exactly when the start is NULL (check constraint)",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        info=inv(
+            CAT_OPERATIONAL,
+            "instant the patient last changed the setting",
+            BASIS_CONTRACT,
+            RET_NOTIFICATION_PREFERENCE,
+            REC_INTERNAL,
+        ),
+    )
+
+
+class CsatText(Base):
+    """INT-240 — the optional free text on a ``csat.v1`` response.
+
+    Why it is not a column on ``events``: satisfaction feedback is written by
+    the patient, so it WILL carry symptoms and names, and ``events.payload`` is
+    declared id-shaped and PHI-free because the rollups and the console read it
+    (invariant 6; threat row `experience` threat [I]). Splitting the sentence
+    out keeps that declaration true instead of quietly weakening it — the
+    scores stay analysable and the words stay behind an envelope.
+
+    Storage is the clinical regime: field-level envelope encryption, never
+    plaintext at rest (invariant 14), exactly like ``notes.payload`` and
+    ``dsar_rectifications.payload``.
+
+    Destruction needs no new sweeper, which is the point of both foreign keys
+    being ``ON DELETE CASCADE``:
+
+    - **session** — a KVKK m.7/m.11 erasure deletes the subject's sessions
+      (``intake_api.dsar.shred``), so the words go with them;
+    - **event** — the files/06 §3 ``satisfaction`` class ("with account")
+      destroys the event rows (``retention.executors.destroy_events``), so the
+      words go with those too.
+
+    A third sweeper could fall out of step with the two that already exist; a
+    foreign key cannot.
+    """
+
+    __tablename__ = "csat_texts"
+
+    id: Mapped[uuid.UUID] = _uuid_pk("csat free-text row key", RET_SATISFACTION)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_SATISFACTION)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the session the response rates; the FK cascade is what makes a "
+            "DSAR erasure reach the text (invariant 4)",
+            BASIS_CONTRACT,
+            RET_SATISFACTION,
+            REC_INTERNAL,
+        ),
+    )
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("events.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the csat.v1 event row this text belongs to; the FK cascade is "
+            "what makes the 06 §3 satisfaction clock reach the text",
+            BASIS_CONTRACT,
+            RET_SATISFACTION,
+            REC_INTERNAL,
+        ),
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the patient's satisfaction comment in their own words as "
+            "EncryptedField JSON (field-level envelope encryption; never "
+            "plaintext at rest). Health data whatever the survey calls it: "
+            "free text about a visit carries symptoms",
+            BASIS_HEALTH_CONSENT,
+            RET_SATISFACTION,
+            REC_INTERNAL,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_SATISFACTION)
+
+
+class PatientOverlayHeader(Base):
+    """INT-170 — the versioned header of one patient's ``PatientOverlay``.
+
+    files/09 §3 makes the overlay *"versioned, patient-owned, exported/
+    deletable"*. The version cannot be derived from the facts themselves: a
+    deletion is a mutation, and a version taken as ``max()`` over surviving
+    rows would go **backwards** when the patient removes the newest fact. So
+    the counter is a column, bumped by every mutation and by nothing else.
+
+    Version 1 is the empty overlay every patient starts with — the header row
+    appears on the first mutation, at version 2, so "no header" and "version 1"
+    are the same statement rather than two.
+    """
+
+    __tablename__ = "patient_overlays"
+    __table_args__ = (UniqueConstraint("tenant_id", "patient_id"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk("patient overlay header key", RET_RECORD)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_RECORD)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient who owns this overlay",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    version: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "overlay version — monotonic, one increment per mutation (files/09 §3: "
+            "the overlay is versioned)",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        info=inv(
+            CAT_OPERATIONAL,
+            "instant of the most recent overlay mutation",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+
+
+class OverlayFact(Base):
+    """INT-170 — one CONFIRMED learned fact (files/09 §3; invariant 12).
+
+    There is deliberately **no companion table for unconfirmed candidates**,
+    and the absence is the design rather than an omission. A nullable
+    ``source`` column — one table holding both forms — is exactly the runtime
+    check invariant 12 refuses to rely on; and persisting unconfirmed
+    proposals would be a new category of personal data, which CLAUDE.md makes
+    a stop-and-ask. A :class:`~clinical_schemas.overlay.FactCandidate` is
+    therefore held by the patient's own device until they confirm it, and only
+    the confirmation is written here (see docs/evidence/INT-170.md).
+
+    Shape notes:
+
+    - **The value is an envelope, always** (invariant 14: field-level envelope
+      encryption for *"transcripts/notes/learned facts"*). ``payload`` carries
+      EncryptedField JSON over ``{"value": …, "confidence": …}``; there is no
+      plaintext-value column to fall back to.
+    - **``fact_key`` is in the clear**, exactly as ``slots.slot_id`` is: a fact
+      key is an authored protocol reference (``oyku.belirti_var``), not
+      patient narrative — that is what makes delta mode able to match it
+      against a step id at all.
+    - **One row per key per patient.** Re-confirmation replaces it in place and
+      restarts the twelve-month clock; the history of a confirmation is the
+      hash-chained audit's business, not this table's.
+    - **A deletion removes the row**, with no tombstone: a tombstone that keeps
+      the key keeps the health fact the patient asked us to forget.
+    """
+
+    __tablename__ = "overlay_facts"
+    __table_args__ = (UniqueConstraint("tenant_id", "patient_id", "fact_key"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk("learned fact row key", RET_RECORD)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_RECORD)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient the fact was learned about",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    fact_key: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "authored protocol reference the fact answers (files/09 §3 fact key); "
+            "an id in the shape of slots.slot_id, never patient narrative",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the learned value and its confidence as EncryptedField JSON "
+            "(field-level envelope encryption; never plaintext at rest)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    source: Mapped[str] = mapped_column(
+        Enum(
+            LearnedFactSource,
+            name="learned_fact_source",
+            native_enum=False,
+            length=32,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "confirmed provenance (files/09 §3): the closed three-member vocabulary, "
+            "which has no unconfirmed value to store",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    source_ref: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "id of the confirming artefact — the 'where from' every fact must show "
+            "the patient (files/09 §3 guardrails)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    confirmed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "when the patient or clinician confirmed it; the twelve-month "
+            "re-confirmation window runs from here (files/09 §3)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    shared: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
+        info=inv(
+            CAT_CONSENT,
+            "per-field share scope (files/09 §3 guardrails): whether this fact may "
+            "travel with a shared note",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_PATIENT_CLINICIAN,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_RECORD)

@@ -40,7 +40,7 @@ import { configuredServiceCandidates } from "../dev/expoHosts";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
-import { clearDialogueClips, dialogueClipStore, reachableTtsBaseUrl } from "./clips";
+import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
   dialogueStreamReducer,
@@ -48,7 +48,7 @@ import {
   type DialogueStreamAction,
   type DialogueStreamState,
 } from "./stream";
-import { clipName, type ClipStore } from "./tts";
+import { clipDeadlineMs, clipName, withDeadline, type ClipStore } from "./tts";
 import type { DialogueCandidate } from "./turn";
 
 export interface DialogueSessionOptions {
@@ -57,8 +57,10 @@ export interface DialogueSessionOptions {
   packName: string;
   /** Every question answered — the caller routes onward. Clips gone. */
   onDone: () => void;
-  /** Hard service failure — the caller lands in the manual steps. */
-  onFailed: () => void;
+  /** Hard service failure — the caller lands in the manual steps, carrying
+   * the same unconfirmed suggestions a tidy hand-over would (INT-261): both
+   * exits go to the same place, so both must arrive with what was said. */
+  onFailed: (leftovers: Record<string, DialogueCandidate>) => void;
   /** Dialogue settled with questions left: the caller hands the manual
    * steps whatever suggestions remain unconfirmed (may be empty). */
   onHandoff: (leftovers: Record<string, DialogueCandidate>) => void;
@@ -129,18 +131,24 @@ export function useDialogueSession({
     return abortRef.current.signal;
   };
 
-  /** Mic permission + TTS probe, once per session; failure is terminal. */
+  /**
+   * Mic permission + the session's lane selector, once per session.
+   *
+   * INT-249: the store is bound to the SELECTOR, not to a base resolved
+   * here. The lane is still probed once — probing costs a real synthesis and
+   * must not happen per turn — but the probe now times that synthesis
+   * against the blueprint's turn budget, and a lane that wedges later is
+   * re-probed instead of blocking every remaining clip behind it. A mic
+   * denial is still terminal; an unreachable ladder surfaces from the
+   * selector on the first `ensure`.
+   */
   const clipStore = (): Promise<ClipStore> => {
     storeRef.current ??= (async () => {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!permission.granted) {
         throw new Error("mic_denied");
       }
-      const base = await reachableTtsBaseUrl();
-      if (base === null) {
-        throw new Error("tts_unreachable");
-      }
-      return dialogueClipStore(base);
+      return dialogueClipStore(createDialogueTtsLaneSelector());
     })();
     return storeRef.current;
   };
@@ -216,7 +224,19 @@ export function useDialogueSession({
   // Speaking driver: ensure the clip (pre-warm makes this a cache hit),
   // then play it; end of clip hands the turn over. Reconcile updates keep
   // the turn object's identity, so they never restart a clip.
+  //
+  // INT-261 splits the two failures this loop can have, because they are not
+  // the same failure. `clipStore()` asks for the MICROPHONE before it builds
+  // anything, and a patient who has refused it cannot hold a conversation —
+  // that is `failure`, and the typed steps take over. Everything after it is
+  // about AUDIO OUTPUT: a TTS ladder that cannot admit a lane inside the turn
+  // budget, a clip that comes back empty, a player that will not start. None
+  // of that stops the patient answering, so it raises `speech_unavailable`
+  // instead: the turn advances, the session is silent from here, and the
+  // screen says so once. Before this, a clip failure on question two ended
+  // the whole intake and the typed form re-asked question one.
   const speaking = state.turn.phase === "speaking" ? state.turn : null;
+  const voiceMuted = state.voiceMuted;
   useEffect(() => {
     if (speaking === null) {
       return;
@@ -224,8 +244,26 @@ export function useDialogueSession({
     const question = questions[speaking.step];
     let stale = false;
     (async () => {
+      let store: ClipStore;
       try {
-        const store = await clipStore();
+        store = await clipStore();
+      } catch {
+        // No microphone: this is the one that ends the conversation.
+        if (!stale) {
+          dispatch({ type: "failure" });
+        }
+        return;
+      }
+      if (stale) {
+        return;
+      }
+      if (voiceMuted) {
+        // Already silent — do not spend another ladder probe per turn to
+        // rediscover it. The question text is on screen; move the turn on.
+        dispatch({ type: "speech_done" });
+        return;
+      }
+      try {
         const speech =
           speaking.intent === "question"
             ? questionSpeechTr(question)
@@ -236,7 +274,9 @@ export function useDialogueSession({
             : question.kind === "text"
               ? clipName("confirm", question.id) // generic clip — free text never names a file
               : clipName("confirm", question.id, speaking.candidate.values);
-        const uri = await store.ensure(name, speech);
+        // INT-261: the ladder may take as long as it likes; the patient may
+        // not be made to wait more than this clip's own worth of work.
+        const uri = await withDeadline(store.ensure(name, speech), clipDeadlineMs(speech));
         if (stale) {
           return;
         }
@@ -256,8 +296,9 @@ export function useDialogueSession({
         player.play();
         setPlaying(true);
       } catch {
+        // Audio output only — the conversation is unaffected and goes on.
         if (!stale) {
-          dispatch({ type: "failure" });
+          dispatch({ type: "speech_unavailable" });
         }
       }
     })();
@@ -265,7 +306,7 @@ export function useDialogueSession({
       stale = true;
       setPlaying(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session, and voiceMuted is a latch the same dispatch sets alongside the turn, so this closure always reads the current value
   }, [speaking]);
 
   // Listening driver: the mic opens when the machine says listen.
@@ -312,7 +353,7 @@ export function useDialogueSession({
       abortRef.current?.abort();
       void stopAndDiscardRecording();
       void clearDialogueClips();
-      onFailed();
+      onFailed(stateRef.current.pending);
     } else if (state.turn.phase === "handoff") {
       closedRef.current = true;
       abortRef.current?.abort();

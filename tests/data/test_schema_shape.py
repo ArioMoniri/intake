@@ -42,6 +42,15 @@ TENANT_SCOPED = (
     # INT-037 — the DSAR tracker and the rectification addenda
     "dsar_requests",
     "dsar_rectifications",
+    # INT-240 — the satisfaction free text (envelope-encrypted; erased by the
+    # session and event cascades rather than by a sweeper of its own)
+    "csat_texts",
+    # INT-141 — the patient's notification opt-out and quiet window
+    "notification_preferences",
+    # INT-170 — the PatientOverlay version header and its confirmed facts
+    # (the fact value is envelope-encrypted, like notes.payload)
+    "patient_overlays",
+    "overlay_facts",
 )
 
 CLINICIAN_READ = ("patients", "sessions", "slots", "notes", "documents")

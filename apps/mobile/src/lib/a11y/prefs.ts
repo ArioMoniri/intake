@@ -8,16 +8,25 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo } from "react-native";
 
+import { reducedMotion } from "@/lib/prefs/appearance";
+import { useAppearance } from "@/lib/prefs/AppearanceProvider";
+
 import { nextAnnouncement } from "./announce";
 
 /**
- * Whether the user asked the OS to reduce motion (iOS "Hareketi Azalt",
- * Android "Remove animations"). Re-reads on the OS event, so a change made
- * in Settings while the app is backgrounded takes effect on return without a
- * restart.
+ * Whether motion should be reduced: the OS signal (iOS "Hareketi Azalt",
+ * Android "Remove animations") OR the app's own switch (INT-260). Re-reads on
+ * the OS event, so a change made in Settings while the app is backgrounded
+ * takes effect on return without a restart.
+ *
+ * OR, deliberately, and in one direction only: the in-app switch can ADD
+ * reduced motion for a patient the OS setting never reached, and can never
+ * take it away from a patient who asked the OS for it. The five call sites are
+ * untouched — the policy moved, not the callers.
  */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
+  const { prefs } = useAppearance();
   useEffect(() => {
     let live = true;
     void AccessibilityInfo.isReduceMotionEnabled().then((value) => {
@@ -31,7 +40,7 @@ export function useReducedMotion(): boolean {
       subscription.remove();
     };
   }, []);
-  return reduced;
+  return reducedMotion(prefs.reduceMotion, reduced);
 }
 
 /**

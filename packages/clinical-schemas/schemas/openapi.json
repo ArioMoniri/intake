@@ -408,6 +408,16 @@
         "title": "CsatV1",
         "type": "object"
       },
+      "DocumentKind": {
+        "description": "The ``document_type`` breakdown files/08 §4 G asks of\n``wait.records_processing_s``.\n\nThese are the THREE content types the ingest allow-list already accepts\n(``intake_platform.documents.ALLOWED_CONTENT_TYPES``), renamed to a label\nvalue. It is deliberately not a clinical document taxonomy — lab report,\ndischarge summary, prescription — because this repo has none and inventing\none here would be a value chosen once by an engineer for every future\nreader. ``intake_platform.wait_times`` holds the mapping and a test fails\nthe build if the allow-list gains a type this enum does not cover.",
+        "enum": [
+          "pdf",
+          "jpeg",
+          "png"
+        ],
+        "title": "DocumentKind",
+        "type": "string"
+      },
       "EvidenceBundle": {
         "additionalProperties": false,
         "description": "The attached evidence bundle, keys verbatim from the files/07 Loop-2\nsketch; every artefact is referenced by id — nothing identifiable rides\nin a proposal (files/09 §4 forbidden list).",
@@ -1095,6 +1105,15 @@
         "title": "LlmCandidateTriage",
         "type": "object"
       },
+      "MeasureCode": {
+        "description": "What a patient can measure about themselves and be believed about.\n\nfiles/02 §2 lists \"vitals entry (manual/HealthKit/Health Connect)\" in the\ndetailed column, but INT-282 asserted by name that pulse (174_TC), blood\npressure (173_TC/354_TC) and respiration (49_TC) are *clinician-measured*\nrows the patient is never asked. A field called ``vitals`` would invite a\npatient-typed blood pressure to sit in a clinician note beside\nclinic-measured ones; this code set names only what the intake surface\nactually collects. Adding a measured vital here is a clinical-safety\ndecision and not a schema one (docs/evidence/INT-084.md; HB-C14).",
+        "enum": [
+          "height",
+          "weight"
+        ],
+        "title": "MeasureCode",
+        "type": "string"
+      },
       "MedicationItem": {
         "additionalProperties": false,
         "description": "files/04 §5 ``PreVisitNote.medications[]``.",
@@ -1596,6 +1615,15 @@
             ],
             "default": null,
             "description": "Objective speech measures, sibling of screening (files/04 §5 change note); None when not rendered — the caveat/range rule makes partial rendering unrepresentable."
+          },
+          "measurements": {
+            "default": [],
+            "description": "Self-reported anthropometry (files/04 §5 PreVisitNote.measurements, added 2 Sep 2026 by INT-084). A sibling of family_social and deliberately NOT named `vitals`: the measured vitals of files/02 §2 are clinician-taken and have no home here (see MeasureCode).",
+            "items": {
+              "$ref": "#/components/schemas/SelfReportedMeasure"
+            },
+            "title": "Measurements",
+            "type": "array"
           },
           "medications": {
             "default": [],
@@ -2157,6 +2185,35 @@
         "title": "SecurityV1",
         "type": "object"
       },
+      "SelfReportedMeasure": {
+        "additionalProperties": false,
+        "description": "files/04 §5 ``PreVisitNote.measurements[]`` (added 2 Sep 2026, INT-084).\n\nThe 04 §5 sketch had no anthropometry key at all, so INT-282 rendered\nheight and weight into a *mobile* section id rather than invent one\n(docs/evidence/INT-282.md). This is that gap closed at the schema layer:\na self-report, typed as one, so no renderer can read it as a measurement\ntaken in clinic. The magnitude is an exact ``Decimal`` — invariant 22 does\nnot let a float cross a representation boundary — and the unit is the one\nthe patient's control was labelled with, never converted.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/MeasureCode",
+            "description": "Which self-reported measure this is (files/04 §5 measurements.code)."
+          },
+          "magnitude": {
+            "description": "Exact decimal magnitude (CLAUDE.md invariant 22 — no float crosses a representation boundary).",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Magnitude",
+            "type": "string"
+          },
+          "unit": {
+            "description": "Unit as the patient's control was labelled (files/04 §5 measurements.unit); never silently converted (invariant 22).",
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "magnitude",
+          "unit"
+        ],
+        "title": "SelfReportedMeasure",
+        "type": "object"
+      },
       "SessionBudget": {
         "additionalProperties": false,
         "description": "Turn budget (files/13 §9.4 budget governor; ``turns_used`` /\n``turns_remaining`` are GuardExpr whitelist functions, files/13 §9.5).",
@@ -2386,6 +2443,66 @@
         ],
         "title": "VerificationStatus",
         "type": "string"
+      },
+      "WaitKind": {
+        "description": "The wait intervals files/08 §4 group G names and INT-241's acceptance\nenumerates. A closed set: a kind outside group G has no catalogue row, so\nit has no honest way to be emitted (invariant 13).",
+        "enum": [
+          "time_to_first_question",
+          "note_ready_after_wrapup",
+          "doctor_link_first_open",
+          "checkin_to_seen",
+          "records_processing"
+        ],
+        "title": "WaitKind",
+        "type": "string"
+      },
+      "WaitV1": {
+        "additionalProperties": false,
+        "description": "One completed wait interval (INT-241; files/08 §4 group G).\n\n**A duration, not two instants.** The interval is reduced to a scalar\nbefore it is written: instants plus a session id are a queue position that\ncorrelates to a person, a duration is not. The row's own ``created_at``\nstill owns event time (the module convention above), which is what puts\nthe observation inside a rollup window.\n\n**No free text and no minimum unit of one.** ``kind`` and\n``document_type`` are closed enumerations; ``duration_ms`` is a count of\nmilliseconds. There is nowhere for an identifier or a sentence to ride\n(invariant 6), which is what lets the rollups read the payload directly.",
+        "properties": {
+          "document_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentKind"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Ingest content kind, for wait.records_processing_s only (files/08 §4 G: 'by document type'). None for every other kind."
+          },
+          "duration_ms": {
+            "description": "Elapsed milliseconds between the interval's two instants, measured on a monotonic clock. A count, never a wall-clock pair.",
+            "minimum": 0,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WaitKind",
+            "description": "Which files/08 §4 group G interval this measures (closed set)."
+          },
+          "schema_id": {
+            "const": "intake.clinical.wait.v1",
+            "default": "intake.clinical.wait.v1",
+            "description": "Versioned event id per the TS schemaId convention.",
+            "title": "Schema Id",
+            "type": "string"
+          },
+          "tenant_id": {
+            "description": "Owning tenant (INT-030 events.tenant_id).",
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "kind",
+          "duration_ms"
+        ],
+        "title": "WaitV1",
+        "type": "object"
       }
     }
   },

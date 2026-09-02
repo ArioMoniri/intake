@@ -15,7 +15,7 @@
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
@@ -85,6 +85,8 @@ function StatePill({
 export default function Me() {
   const router = useRouter();
   const { account, consents, setConsent, signOut, locale, switchLocale } = useSession();
+  // Hoisted above the early return: hooks run in the same order every render.
+  const tabBarClearance = useTabBarClearance();
   if (account === null || consents === null) {
     // The tabs layout has already redirected to welcome by the time this
     // renders without a session; render nothing during that frame.
@@ -92,7 +94,7 @@ export default function Me() {
   }
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("me.title")}
         </AppText>
@@ -101,6 +103,18 @@ export default function Me() {
             icon="person.crop.circle"
             label={account.name}
             sublabel={t("me.syntheticBadge")}
+          />
+        </ListGroup>
+        {/* Görünüm (INT-260): text size, theme, motion and how a visit
+            starts. Above İzinleriniz because a patient who cannot read the
+            screen cannot reach anything below it either. */}
+        <ListGroup>
+          <ListRow
+            icon="textformat.size"
+            label={t("appearance.title")}
+            chevron
+            hint={t("a11y.appearance.entry")}
+            onPress={() => router.push("/(tabs)/me/appearance")}
           />
         </ListGroup>
         {/* İzinleriniz (INT-132): the per-purpose record moved to its own
@@ -163,6 +177,27 @@ export default function Me() {
               </View>
             }
           />
+          {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
+              because the quiet-window choices do not fit a settings row —
+              and because the honest explanation of what a reminder never
+              says belongs beside the switch that governs it. */}
+          <ListRow
+            label={t("me.notifications")}
+            sublabel={t("notifications.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/notifications")}
+          />
+          {/* Yakınınız adına (INT-133): who is doing this sitting, and what
+              that does to the note (06 §6, 13 §13). The under-18 door lives
+              on that screen too, closed with its reason on it. */}
+          <ListRow
+            label={t("me.companion")}
+            sublabel={t("companion.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/companion")}
+          />
           <ListRow
             label={t("me.learned")}
             chevron
@@ -177,7 +212,7 @@ export default function Me() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.md },
   heroLine: { marginTop: spacing.xl, marginBottom: spacing.sm },
   section: { gap: spacing.sm, marginTop: spacing.sm },
   statePill: {

@@ -15,6 +15,8 @@ walks and asserts.
 
 from __future__ import annotations
 
+import enum
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import AwareDatetime, Field
@@ -182,6 +184,49 @@ class FamilySocial(FrozenModel):
     )
 
 
+class MeasureCode(enum.StrEnum):
+    """What a patient can measure about themselves and be believed about.
+
+    files/02 §2 lists "vitals entry (manual/HealthKit/Health Connect)" in the
+    detailed column, but INT-282 asserted by name that pulse (174_TC), blood
+    pressure (173_TC/354_TC) and respiration (49_TC) are *clinician-measured*
+    rows the patient is never asked. A field called ``vitals`` would invite a
+    patient-typed blood pressure to sit in a clinician note beside
+    clinic-measured ones; this code set names only what the intake surface
+    actually collects. Adding a measured vital here is a clinical-safety
+    decision and not a schema one (docs/evidence/INT-084.md; HB-C14).
+    """
+
+    HEIGHT = "height"
+    WEIGHT = "weight"
+
+
+class SelfReportedMeasure(FrozenModel):
+    """files/04 §5 ``PreVisitNote.measurements[]`` (added 2 Sep 2026, INT-084).
+
+    The 04 §5 sketch had no anthropometry key at all, so INT-282 rendered
+    height and weight into a *mobile* section id rather than invent one
+    (docs/evidence/INT-282.md). This is that gap closed at the schema layer:
+    a self-report, typed as one, so no renderer can read it as a measurement
+    taken in clinic. The magnitude is an exact ``Decimal`` — invariant 22 does
+    not let a float cross a representation boundary — and the unit is the one
+    the patient's control was labelled with, never converted."""
+
+    code: MeasureCode = Field(
+        description="Which self-reported measure this is (files/04 §5 measurements.code)."
+    )
+    magnitude: Decimal = Field(
+        gt=0,
+        description="Exact decimal magnitude (CLAUDE.md invariant 22 — no float crosses a "
+        "representation boundary).",
+    )
+    unit: str = Field(
+        min_length=1,
+        description="Unit as the patient's control was labelled (files/04 §5 "
+        "measurements.unit); never silently converted (invariant 22).",
+    )
+
+
 class ScreeningProvenance(FrozenModel):
     """files/04 §5 ``screening.provenance`` — the factual qualifiers that
     replaced the deleted ``affect_summary`` (files/04 §5 change note, 25 Aug
@@ -307,6 +352,13 @@ class PreVisitNote(FrozenModel):
         default=(), description="files/04 §5 PreVisitNote.allergies."
     )
     family_social: FamilySocial = Field(description="files/04 §5 PreVisitNote.family_social.")
+    measurements: tuple[SelfReportedMeasure, ...] = Field(
+        default=(),
+        description="Self-reported anthropometry (files/04 §5 PreVisitNote.measurements, "
+        "added 2 Sep 2026 by INT-084). A sibling of family_social and deliberately NOT "
+        "named `vitals`: the measured vitals of files/02 §2 are clinician-taken and have "
+        "no home here (see MeasureCode).",
+    )
     screening: ScreeningBlock = Field(description="files/04 §5 PreVisitNote.screening.")
     konusma_ozellikleri: KonusmaOzellikleri | None = Field(
         default=None,

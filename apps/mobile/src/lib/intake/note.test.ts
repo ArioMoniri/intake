@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import { getTestAccount, type TestAccount } from "../dev/accounts";
+import type { FactDecision } from "./carriedFacts";
 import {
   buildNote,
   emptyNoteState,
   noteReducer,
   sentSections,
   type Answer,
+  type NoteAccount,
   type NoteState,
 } from "./note";
 
 // ---- INT-198: labelled HPI lines from the department packs -----------------
 
-/** Synthetic — invented person, no medications so the meds section stays out. */
+/** Synthetic — invented person, nothing carried so the meds section stays out. */
 const account: TestAccount = {
   id: "synthetic-note-test",
   name: "Test Hasta",
@@ -20,7 +22,7 @@ const account: TestAccount = {
   locale: "tr",
   consents: { core: true, voice: false, wellbeing: false, documents: false, health: false },
   visits: [],
-  medications: [],
+  carriedFacts: [],
   records: [],
 };
 
@@ -188,10 +190,10 @@ describe("environment privacy self-check (02 §33 — deferred, not asked)", () 
     expect(s.deferred).toEqual([]);
   });
 
-  it("someone present defers the wellbeing entry point — today's only deferral consumer", () => {
+  it("someone present defers every sensitive section — wellbeing and, since INT-256, family history", () => {
     const s = noteReducer(detayli(), { type: "privacy", alone: false });
     expect(s.privacy).toBe("not_private");
-    expect(s.deferred).toEqual(["wellbeing"]);
+    expect(s.deferred).toEqual(["wellbeing", "family_history"]);
   });
 
   it("re-establishing privacy lifts the deferral — nothing was asked, nothing is lost", () => {
@@ -265,5 +267,136 @@ describe("koşul değişti (an edit that unmets a gate keeps the answer, marked)
     ];
     const hpi = buildNote(answers, account).find((s) => s.id === "hpi")!;
     expect(hpi.lines).toContain("Yemekle ilişkisi: Yemekten sonra artıyor");
+  });
+});
+
+// ---- INT-247: carried-forward facts are UNCONFIRMED until this visit -------
+// Owner bug: "it says patient uses metoprolol from previous ones but these
+// should be updateble mayne they stopped using". Invariant 12 read literally:
+// a PatientOverlay fact requires patient or clinician confirmation, so a fact
+// carried from an earlier visit may not be printed as current until someone
+// confirms it FOR THIS VISIT.
+
+/** Ayşe's one carried fact — recorded at the filed 2026-05-12 visit. */
+const AYSE_FACT = "cf-ayse-metoprolol";
+const AYSE_FACT_TEXT = "Metoprolol (düzenli kullanım)";
+
+/** Nobody carries anything: the "absent" control for the stopped test. */
+const noFacts: NoteAccount = { carriedFacts: [] };
+
+const patientNow: FactDecision = {
+  outcome: "confirmed",
+  by: { role: "patient", attribution: "self_report" },
+  at: "2026-08-29",
+};
+
+describe("carried facts never reach the note as current (invariant 12)", () => {
+  const answers: Answer[] = [{ questionId: "complaint", values: ["pain"] }];
+
+  it("an unconfirmed carried fact is NOT printed as a current medication", () => {
+    const meds = buildNote(answers, ayse).find((s) => s.id === "medications");
+    // The bug: today this section prints the bare fact text, which a
+    // clinician reads as "the patient takes this now".
+    expect(meds?.lines ?? []).not.toContain(AYSE_FACT_TEXT);
+  });
+
+  it("an unconfirmed carried fact is still shown, marked unconfirmed", () => {
+    const meds = buildNote(answers, ayse).find((s) => s.id === "medications");
+    expect(meds).toBeDefined();
+    expect(meds!.lines.join(" ")).toContain(AYSE_FACT_TEXT);
+    expect(meds!.lines.join(" ")).toContain("bu ziyarette onaylanmadı");
+  });
+
+  it("confirming for this visit is what makes it current", () => {
+    const meds = buildNote(answers, ayse, null, [], { [AYSE_FACT]: patientNow }).find(
+      (s) => s.id === "medications",
+    );
+    expect(meds!.lines.join(" ")).not.toContain("bu ziyarette onaylanmadı");
+    expect(meds!.lines.join(" ")).toContain("hasta bu ziyarette devam ettiğini söyledi");
+  });
+});
+
+describe("a stopped fact is not an absent fact", () => {
+  const answers: Answer[] = [{ questionId: "complaint", values: ["pain"] }];
+  const stopped: FactDecision = {
+    outcome: "stopped",
+    by: { role: "patient", attribution: "self_report" },
+    at: "2026-08-29",
+  };
+
+  it("stopped renders distinguishably from absent — absent says nothing at all", () => {
+    const absent = buildNote(answers, noFacts);
+    const retracted = buildNote(answers, ayse, null, [], { [AYSE_FACT]: stopped });
+
+    // Absent: no medications section exists, because there is nothing to say.
+    expect(absent.find((s) => s.id === "medications")).toBeUndefined();
+
+    // Stopped: the note SAYS it — previously recorded, patient reports stopping.
+    const meds = retracted.find((s) => s.id === "medications")!;
+    expect(meds.lines.join(" ")).toContain(AYSE_FACT_TEXT);
+    expect(meds.lines.join(" ")).toContain("hasta bıraktığını söyledi");
+  });
+
+  it("stopped renders distinguishably from confirmed", () => {
+    const asStopped = buildNote(answers, ayse, null, [], { [AYSE_FACT]: stopped });
+    const asCurrent = buildNote(answers, ayse, null, [], { [AYSE_FACT]: patientNow });
+    expect(asStopped.find((s) => s.id === "medications")!.lines).not.toEqual(
+      asCurrent.find((s) => s.id === "medications")!.lines,
+    );
+  });
+
+  it("provenance survives: who asserted it before, and when", () => {
+    const meds = buildNote(answers, ayse, null, [], { [AYSE_FACT]: stopped }).find(
+      (s) => s.id === "medications",
+    )!;
+    expect(meds.lines.join(" ")).toContain("önceki kayıt");
+    expect(meds.lines.join(" ")).toContain("12 Mayıs 2026");
+  });
+});
+
+describe("the fact decision is per-visit note state", () => {
+  it("a fresh note has decided nothing", () => {
+    expect(emptyNoteState().factReview).toEqual({});
+  });
+
+  it("deciding records the outcome, the asserter and the moment", () => {
+    const s = noteReducer(emptyNoteState(), {
+      type: "fact",
+      factId: AYSE_FACT,
+      decision: patientNow,
+    });
+    expect(s.factReview[AYSE_FACT]).toEqual(patientNow);
+  });
+
+  it("a decision can be taken back — undecided is a real state, not a default yes", () => {
+    let s = noteReducer(emptyNoteState(), {
+      type: "fact",
+      factId: AYSE_FACT,
+      decision: patientNow,
+    });
+    s = noteReducer(s, { type: "fact", factId: AYSE_FACT, decision: null });
+    expect(s.factReview[AYSE_FACT]).toBeUndefined();
+    expect(
+      buildNote([], ayse, null, [], s.factReview)
+        .find((x) => x.id === "medications")!
+        .lines.join(" "),
+    ).toContain("bu ziyarette onaylanmadı");
+  });
+
+  it("a sent note is frozen — deciding after send is a no-op", () => {
+    let s = noteReducer(emptyNoteState(), { type: "send" });
+    s = noteReducer(s, { type: "fact", factId: AYSE_FACT, decision: patientNow });
+    expect(s.factReview).toEqual({});
+  });
+
+  it("sentSections carries the reviewed facts", () => {
+    let s = noteReducer(emptyNoteState(), {
+      type: "answer",
+      questionId: "complaint",
+      values: ["pain"],
+    });
+    s = noteReducer(s, { type: "fact", factId: AYSE_FACT, decision: patientNow });
+    const meds = sentSections(s, ayse).find((x) => x.id === "medications")!;
+    expect(meds.lines.join(" ")).toContain("hasta bu ziyarette devam ettiğini söyledi");
   });
 });

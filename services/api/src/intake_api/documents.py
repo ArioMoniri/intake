@@ -14,6 +14,12 @@ Flow, matching the INT-034 posture exactly:
 - ``GET …/documents/{id}/url`` mints a short-TTL download URL for
   scanned-clean documents only (409 before the scan pass).
 
+INT-241 measures the one files/08 §4 group G interval whose two instants both
+exist in this repo: ``wait.records_processing_s`` runs from the uploaded bytes
+arriving here to the scan-and-promote pipeline returning a verdict, both
+inside this handler. What is written is a duration and the ingest content
+kind — never the two instants, never the filename, never a size.
+
 No filename crosses this API in any direction (invariant 6). All routes are
 patient-only in this slice — document sharing to the clinic side is its own
 consented flow (share:*), not built here. Every route checks the patient's
@@ -29,6 +35,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Literal
 
+from clinical_schemas.events import WaitKind
 from fastapi import APIRouter, HTTPException, Request
 from intake_platform.audit import AuditChain
 from intake_platform.documents import (
@@ -47,6 +54,7 @@ from intake_platform.documents import (
     Scanner,
 )
 from intake_platform.uploads import ScanFailedError
+from intake_platform.wait_times import document_kind, measure_ms, record_wait
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -366,14 +374,15 @@ async def ingest_content(
             session, tenant_id=patient.tenant_id, patient_id=patient_id
         )
         try:
-            ref = await gateway.ingest(
-                tenant_id=patient.tenant_id,
-                patient_ref=pseudonym,
-                file_bytes=file_bytes,
-                content_type=content_type,
-                sha256=row.sha256,
-                consent_scope_ref=f"scope:{DOCUMENTS_SCOPE}",
-            )
+            with measure_ms() as processing:
+                ref = await gateway.ingest(
+                    tenant_id=patient.tenant_id,
+                    patient_ref=pseudonym,
+                    file_bytes=file_bytes,
+                    content_type=content_type,
+                    sha256=row.sha256,
+                    consent_scope_ref=f"scope:{DOCUMENTS_SCOPE}",
+                )
         except DocumentTooLargeError:
             raise HTTPException(status_code=413, detail={"error": "too_large"}) from None
         except ContentTypeNotAllowedError:
@@ -419,6 +428,18 @@ async def ingest_content(
                 action="api.document.ingest",
                 resource_ref=f"doc:{row.id}",
                 consent_scope=f"scope:{DOCUMENTS_SCOPE}",
+            )
+            # INT-241: the observation rides the transaction that recorded the
+            # ingest, so a rolled-back ingest leaves no wait behind. Only the
+            # clean path is measured — a rejection is not a wait a patient sat
+            # through, and counting it would flatter the figure.
+            await record_wait(
+                session,
+                tenant_id=patient.tenant_id,
+                kind=WaitKind.RECORDS_PROCESSING,
+                duration_ms=processing.duration_ms,
+                session_id=visit_id,
+                document_type=document_kind(content_type),
             )
             result = DocumentIngestOut(id=row.id, state="clean", sha256=ref.sha256)
     if result is None:

@@ -8,9 +8,13 @@ Acceptance, verbatim:
 
 This file pins the policy + enforcement-library tier (allow-list as data,
 default deny, glob discipline, PHI double-gate, the httpx guard, the
-structured no-payload log). The deployed proxy (Envoy/squid in dev compose)
-is INT-203 infra. CI is vendor-free — every HTTP exchange below runs over
-``httpx.MockTransport``; nothing here opens a socket.
+structured no-payload log). Its two siblings pin the rest of INT-018:
+``tests/security/test_egress_allowlist.py`` is the bypass lane (IP literals,
+answers inside denied ranges, DNS rebinding, redirects, right-host-wrong-
+purpose) and ``tests/infra/test_egress_proxy.py`` is the dev forward proxy and
+the generated squid config. CI is vendor-free — every HTTP exchange below runs
+over ``httpx.MockTransport`` with an injected resolver; nothing here opens a
+socket or performs a lookup.
 
 files/10 §4 semantics carried over the issue brief: literal IPs and
 private/link-local/metadata ranges are denied outright, and the allow-list
@@ -26,10 +30,13 @@ from typing import Any
 import httpx
 import pytest
 from intake_platform.egress import (
+    DataClass,
     EgressAllowlist,
     EgressConfigError,
+    EgressContext,
     EgressDenied,
     EgressPolicy,
+    EgressPurpose,
     assert_dev_only_vendors,
     guarded_transport,
     load_allowlist,
@@ -57,6 +64,7 @@ def _entry(host: str, **over: Any) -> dict[str, Any]:
         "host": host,
         "port": 443,
         "protocol": "https",
+        "purpose_id": "package_registry",
         "purpose": "unit-test fixture traffic",
         "phi_allowed": False,
         "basis": "no-personal-data; unit fixture",
@@ -72,6 +80,26 @@ def _allowlist(
     return EgressAllowlist.model_validate(
         {"version": 1, "tiers": {"dev": dev, "phi_path": phi_path or []}}
     )
+
+
+#: The declaration every fixture row is allow-listed for. INT-018's purpose
+#: binding (ADR-025) makes a context mandatory: there is no default, because a
+#: default is a permission nobody wrote down. The wrong-purpose and
+#: wrong-data-class refusals are pinned in tests/security/test_egress_allowlist.py.
+PACKAGES = EgressContext(purpose=EgressPurpose.PACKAGE_REGISTRY, data_class=DataClass.NON_PERSONAL)
+
+#: A resolver over a fixed table so the transport tests never touch DNS. Its
+#: answer is TEST-NET-3 (RFC 5737), reserved for documentation and outside
+#: every range `DENIED_RANGES` refuses.
+PUBLIC_ANSWER = "203.0.113.10"
+
+
+def _resolver(host: str, port: int) -> tuple[str, ...]:
+    return (PUBLIC_ANSWER,)
+
+
+def _shipped_policy(tier: str = "dev") -> EgressPolicy:
+    return EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), tier, resolver=_resolver)  # type: ignore[arg-type]
 
 
 # --- the shipped allow-list file --------------------------------------------------
@@ -101,41 +129,45 @@ def test_shipped_allowlist_every_entry_carries_purpose_and_basis() -> None:
 
 
 def test_unknown_host_denied_by_default() -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    decision = policy.check("evil.example.com", 443)
+    policy = _shipped_policy()
+    decision = policy.check("evil.example.com", 443, PACKAGES)
     assert not decision.allowed
     assert "allow-list" in decision.reason
 
 
 def test_known_host_allowed_case_insensitive_trailing_dot_port_strict() -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    assert policy.check("pypi.org", 443).allowed
-    assert policy.check("PyPI.ORG", 443).allowed
-    assert policy.check("pypi.org.", 443).allowed
-    assert not policy.check("pypi.org", 8443).allowed
-    assert not policy.check("", 443).allowed
+    policy = _shipped_policy()
+    assert policy.check("pypi.org", 443, PACKAGES).allowed
+    assert policy.check("PyPI.ORG", 443, PACKAGES).allowed
+    assert policy.check("pypi.org.", 443, PACKAGES).allowed
+    assert not policy.check("pypi.org", 8443, PACKAGES).allowed
+    assert not policy.check("", 443, PACKAGES).allowed
 
 
 def test_phi_path_tier_is_default_deny_everything() -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "phi_path")
-    assert not policy.check("pypi.org", 443).allowed
-    assert not policy.check("llm.anthropic.com", 443).allowed
+    policy = _shipped_policy("phi_path")
+    assert not policy.check("pypi.org", 443, PACKAGES).allowed
+    assert not policy.check("llm.anthropic.com", 443, PACKAGES).allowed
 
 
 def test_no_implicit_subdomain_match_without_glob() -> None:
-    policy = EgressPolicy.for_tier(_allowlist([_entry("files.pythonhosted.org")]), "dev")
-    assert policy.check("files.pythonhosted.org", 443).allowed
-    assert not policy.check("sub.files.pythonhosted.org", 443).allowed
+    policy = EgressPolicy.for_tier(
+        _allowlist([_entry("files.pythonhosted.org")]), "dev", resolver=_resolver
+    )
+    assert policy.check("files.pythonhosted.org", 443, PACKAGES).allowed
+    assert not policy.check("sub.files.pythonhosted.org", 443, PACKAGES).allowed
 
 
 def test_glob_matches_only_when_declared() -> None:
     policy = EgressPolicy.for_tier(
-        _allowlist([_entry("*.hf.co", name="hf-lfs-cdn", glob=True)]), "dev"
+        _allowlist([_entry("*.hf.co", name="hf-lfs-cdn", glob=True)]), "dev", resolver=_resolver
     )
-    assert policy.check("cdn-lfs-us-1.hf.co", 443).allowed
-    assert policy.check("a.b.hf.co", 443).allowed
-    assert not policy.check("hf.co", 443).allowed, "the bare apex is not covered by *.hf.co"
-    assert not policy.check("evilhf.co", 443).allowed
+    assert policy.check("cdn-lfs-us-1.hf.co", 443, PACKAGES).allowed
+    assert policy.check("a.b.hf.co", 443, PACKAGES).allowed
+    assert not policy.check("hf.co", 443, PACKAGES).allowed, (
+        "the bare apex is not covered by *.hf.co"
+    )
+    assert not policy.check("evilhf.co", 443, PACKAGES).allowed
 
 
 def test_glob_shaped_host_without_glob_flag_is_rejected() -> None:
@@ -154,10 +186,10 @@ def test_glob_flag_requires_leading_star_dot_pattern() -> None:
 
 
 def test_literal_ip_hosts_denied_even_if_someone_lists_them() -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    assert not policy.check("169.254.169.254", 443).allowed  # cloud metadata
-    assert not policy.check("10.1.2.3", 443).allowed
-    assert not policy.check("2001:db8::1", 443).allowed
+    policy = _shipped_policy()
+    assert not policy.check("169.254.169.254", 443, PACKAGES).allowed  # cloud metadata
+    assert not policy.check("10.1.2.3", 443, PACKAGES).allowed
+    assert not policy.check("2001:db8::1", 443, PACKAGES).allowed
 
 
 def test_allowlist_refuses_ip_literal_entries() -> None:
@@ -182,16 +214,16 @@ def test_phi_allowed_with_approval_still_denies_without_runtime_env(
     allowlist = _allowlist(
         [_entry("example-vendor.example", phi_allowed=True, phi_exception_approval="HD-2026-041")]
     )
-    policy = EgressPolicy.for_tier(allowlist, "dev")
-    decision = policy.check("example-vendor.example", 443)
+    policy = EgressPolicy.for_tier(allowlist, "dev", resolver=_resolver)
+    decision = policy.check("example-vendor.example", 443, PACKAGES)
     assert not decision.allowed
     assert "INTAKE_ALLOW_PHI_EGRESS" in decision.reason
 
     monkeypatch.setenv("INTAKE_ALLOW_PHI_EGRESS", "yes")  # near-miss: wrong value
-    assert not policy.check("example-vendor.example", 443).allowed
+    assert not policy.check("example-vendor.example", 443, PACKAGES).allowed
 
     monkeypatch.setenv("INTAKE_ALLOW_PHI_EGRESS", "explicit-yes")
-    assert policy.check("example-vendor.example", 443).allowed
+    assert policy.check("example-vendor.example", 443, PACKAGES).allowed
 
 
 # --- invariant 19: vendor LLM adapters are mock/dev only --------------------------
@@ -248,8 +280,8 @@ def _ok_handler(request: httpx.Request) -> httpx.Response:
 
 
 def test_transport_allows_listed_host_and_blocks_unlisted() -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    transport = guarded_transport(policy, inner=httpx.MockTransport(_ok_handler))
+    policy = _shipped_policy()
+    transport = guarded_transport(policy, PACKAGES, inner=httpx.MockTransport(_ok_handler))
     with httpx.Client(transport=transport) as client:
         response = client.get("https://pypi.org/simple/")
         assert response.status_code == 200
@@ -258,8 +290,8 @@ def test_transport_allows_listed_host_and_blocks_unlisted() -> None:
 
 
 def test_transport_infers_port_from_scheme() -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    transport = guarded_transport(policy, inner=httpx.MockTransport(_ok_handler))
+    policy = _shipped_policy()
+    transport = guarded_transport(policy, PACKAGES, inner=httpx.MockTransport(_ok_handler))
     with httpx.Client(transport=transport) as client:
         # http => port 80, which is not on the 443-only allow-list
         with pytest.raises(EgressDenied):
@@ -272,8 +304,8 @@ def test_transport_infers_port_from_scheme() -> None:
 def test_denial_emits_structured_record_and_allow_logs_purpose(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    transport = guarded_transport(policy, inner=httpx.MockTransport(_ok_handler))
+    policy = _shipped_policy()
+    transport = guarded_transport(policy, PACKAGES, inner=httpx.MockTransport(_ok_handler))
     with caplog.at_level(logging.INFO, logger="intake_platform.egress"):
         with httpx.Client(transport=transport) as client:
             client.post("https://pypi.org/simple/?q=tc-12345678901", content=b"abc")
@@ -297,8 +329,8 @@ def test_denial_emits_structured_record_and_allow_logs_purpose(
 
 
 def test_log_records_carry_no_payload_path_or_query(caplog: pytest.LogCaptureFixture) -> None:
-    policy = EgressPolicy.for_tier(load_allowlist(ALLOWLIST_PATH), "dev")
-    transport = guarded_transport(policy, inner=httpx.MockTransport(_ok_handler))
+    policy = _shipped_policy()
+    transport = guarded_transport(policy, PACKAGES, inner=httpx.MockTransport(_ok_handler))
     with caplog.at_level(logging.INFO, logger="intake_platform.egress"):
         with httpx.Client(transport=transport) as client:
             client.get("https://pypi.org/gizli-yol/?hasta=ayse-yilmaz")

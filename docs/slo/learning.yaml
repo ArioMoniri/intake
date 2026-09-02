@@ -1,0 +1,46 @@
+# docs/slo/learning.yaml — SLOs for services/learning (INT-172; invariant 15).
+#
+# Same conventions as docs/slo/metrics.yaml (schema: intake_platform.slo.SLOFile).
+#
+# What is being promised, and what is deliberately not. files/09 §4 runs Loop 2
+# **weekly**; a week's proposals arriving late is a review queue that fills on
+# Tuesday instead of Monday, not a patient waiting. So the objective is the
+# probes-tier 99.5 on the scrape surface, and there is no latency SLO at all:
+# a batch job's wall-clock is a capacity question for the console (files/10 §9
+# lists job duration among the learning signals), not a service-level promise
+# to anyone.
+#
+# There is no SLO on proposal throughput either, and that omission is
+# load-bearing. An objective on "proposals per week" would be an incentive to
+# lower the thresholds files/09 §4 states — which is the exact failure the
+# `proposal_scope` gate and the k floor exist to prevent. Throughput is
+# reported (learning_proposals_total), never targeted.
+service: learning
+owner: learning
+slos:
+  - name: availability
+    sli: >-
+      sum(rate(http_requests_total{service="learning",status=~"5.."}[5m]))
+      /
+      sum(rate(http_requests_total{service="learning"}[5m]))
+    objective: 99.5
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page
+      ticket:
+        factor: 1.0
+        long_window: 3d
+        short_window: 6h
+        for_duration: 1h
+        severity: ticket

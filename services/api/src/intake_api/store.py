@@ -1,8 +1,9 @@
-"""ORM access over the INT-030 models (INT-197). No new tables, no new
-columns (invariant 18): a visit is one ``sessions`` row plus three plain
-``visit.*`` slots; the note is one envelope-bearing ``notes`` row per visit
-(updated in place — the audit chain, not row history, is the record of
-access); sending is a ``shares`` row carrying only the scoped-on section ids.
+"""ORM access over the INT-030 models (INT-197). No new tables: a visit is
+one ``sessions`` row plus three plain ``visit.*`` slots; the note is one
+envelope-bearing ``notes`` row per visit (updated in place — the audit chain,
+not row history, is the record of access); sending is a ``shares`` row
+carrying only the scoped-on section ids. The INT-133 attribution columns are
+the one column addition, inventoried on the model (invariant 18).
 
 Every query carries an explicit ``tenant_id`` predicate even though the
 postgres tier enforces the same boundary with RLS — the unit lane (SQLite)
@@ -21,6 +22,7 @@ from intake_platform.db.models import (
     IntakeSession,
     Note,
     Patient,
+    SessionAttribution,
     SessionStatus,
     Share,
     Slot,
@@ -83,6 +85,20 @@ class VisitRecord:
     visit_type: str | None
     date: str | None
     note_status: NoteStatus | None
+    # INT-133 / files/06 §6 — read off the session row, so the flag on a
+    # visit, on its note and on anything else derived from that session is
+    # ONE fact rather than three copies that can disagree.
+    attribution: SessionAttribution = SessionAttribution.SELF_REPORT
+    third_party_present: bool = False
+
+    @property
+    def proxy_reported(self) -> bool:
+        """files/06 §6: companion/proxy ANSWERS are flagged.
+        ``assisted_self_report`` is the patient's own words on someone
+        else's device, so it is not a proxy answer — that session's
+        third-party fact travels on ``third_party_present`` (files/02 §3).
+        """
+        return self.attribution is SessionAttribution.PROXY_REPORT
 
 
 def _aware(value: datetime) -> datetime:
@@ -112,6 +128,9 @@ async def create_visit(
     date: str | None,
     branch_id: str | None = None,
     visit_type: str | None = None,
+    attribution: SessionAttribution = SessionAttribution.SELF_REPORT,
+    third_party_present: bool = False,
+    proxy_ack_at: datetime | None = None,
 ) -> uuid.UUID:
     visit = IntakeSession(
         tenant_id=tenant_id,
@@ -119,6 +138,11 @@ async def create_visit(
         protocol_id=VISIT_PROTOCOL_ID,
         protocol_version=VISIT_PROTOCOL_VERSION,
         status=SessionStatus.CREATED,
+        # INT-133: stamped at creation, never patched afterwards — who
+        # answered is a fact about the session, not a mutable label.
+        attribution=attribution,
+        third_party_present=third_party_present,
+        proxy_ack_at=proxy_ack_at,
     )
     session.add(visit)
     await session.flush()
@@ -202,6 +226,8 @@ async def _visit_records(
                 visit_type=str(type_slot["text"]) if type_slot is not None else None,
                 date=str(date_slot["date"]) if date_slot is not None else None,
                 note_status=statuses.get(visit.id),
+                attribution=visit.attribution,
+                third_party_present=visit.third_party_present,
             )
         )
     return records

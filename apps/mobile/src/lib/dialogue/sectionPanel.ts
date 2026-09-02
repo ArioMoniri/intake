@@ -14,9 +14,12 @@
  *   suggestions (not the current turn's own candidate) are confirmable
  *   from the panel — the current turn confirms in the turn, never twice.
  * - `empty`: nothing yet.
+ * - `carried`: recorded at an EARLIER visit and not yet answered for this
+ *   one (INT-247) — shown, so the patient sees what the app is holding, but
+ *   never dressed as an answer they gave today (invariant 12).
  * `filled` counts answered rows with content — the strip's "x/y bölüm".
- * The profile-derived meds line is appended exactly as buildNote appends
- * its medications section: display-only, outside the pack counts.
+ * The carried-fact lines are appended exactly as buildNote appends its
+ * medications section: display-only, outside the pack counts.
  *
  * INT-239: rows are the APPLICABLE questions, not the whole pack — the
  * same `askIf` gate the dialogue engine and the typed steps use — so the
@@ -25,11 +28,12 @@
  * never appears, suggestion or not.
  */
 import type { MessageKey } from "../i18n";
+import type { CarriedFact } from "../intake/carriedFacts";
 import { applicableQuestions, type IntakeQuestion } from "../intake/questions";
 import { committedAnswers, type DialogueStreamState } from "./stream";
 import type { DialogueCandidate } from "./turn";
 
-export type SectionRowStatus = "empty" | "suggested" | "answered";
+export type SectionRowStatus = "empty" | "suggested" | "answered" | "carried";
 
 export interface SectionRow {
   questionId: string;
@@ -55,6 +59,11 @@ export interface SectionPanelModel {
 export function sectionLabelKey(question: IntakeQuestion): MessageKey {
   if (question.hpiLabelKey !== undefined) {
     return question.hpiLabelKey;
+  }
+  // INT-256: a universal history question renders in its OWN note section,
+  // so its line label is `lineLabelKey`, not `hpiLabelKey`.
+  if (question.lineLabelKey !== undefined) {
+    return question.lineLabelKey;
   }
   if (question.id === "complaint") {
     return "review.section.cc";
@@ -83,7 +92,7 @@ function turnCandidate(
 export function sectionPanelModel(
   pack: readonly IntakeQuestion[],
   state: DialogueStreamState,
-  medications: readonly string[],
+  carriedFacts: readonly CarriedFact[],
 ): SectionPanelModel {
   const current = turnCandidate(pack, state);
   const applicable = applicableQuestions(pack, committedAnswers(state));
@@ -134,12 +143,14 @@ export function sectionPanelModel(
       confirmable: false,
     };
   });
-  if (medications.length > 0) {
+  if (carriedFacts.length > 0) {
     rows.push({
       questionId: "medications",
       labelKey: "review.section.medications",
-      status: "answered",
-      values: [...medications],
+      // Carried, not answered: the panel must not show an earlier visit's
+      // record as something the patient told us today (INT-247).
+      status: "carried",
+      values: carriedFacts.map((fact) => fact.text),
       quote: "",
       confirmable: false,
     });

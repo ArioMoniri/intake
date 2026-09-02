@@ -46,12 +46,55 @@
  * the shared flow layer: the typed StepFlow, the spoken dialogue engine
  * (lib/dialogue/stream.ts) and the realtime section panel all gate through
  * them, so the flow length is decided by the answers in every surface.
+ *
+ * INT-256 adds the UNIVERSAL history block — 04 §1 rows 5 and 6,
+ * `meds_allergies` and `pmh_fh_sh`: allergies, medications, past medical
+ * history, family history. It is COMPOSED onto a department pack by
+ * `packForVisit`, never copied into the ten arrays, because that is what the
+ * protocol registry itself does (03 §6: base → cluster → specialty), so the
+ * base copy is authored once and every branch inherits the same wording.
+ *
+ * These are questions, not judgements. Nothing in the block grades a
+ * severity, computes an interaction, infers anything from an answer or
+ * carries a threshold; the answers are recorded and rendered and nothing is
+ * concluded from them. The guideline-grounded, department-specific content
+ * is INT-043 → INT-044..051 and is awaiting a physician (HB-C1). What was
+ * deliberately NOT authored is listed in docs/evidence/INT-256.md.
+ *
+ * INT-282 adds two things on the same terms.
+ *
+ * (a) The BASE LAYER from the owner's HBYS intake schema lives in
+ * ./baseLayer and is composed here by `packForVisit`, after the history
+ * block, exactly as that block is composed after the department dimensions.
+ * That file also records the split the schema is FOR: what a patient can
+ * answer, and what only a clinician or a lab can supply and is therefore
+ * never asked at all.
+ *
+ * (b) DEPTH. Two follow-ups now hang off `duration` — "when today" and "how
+ * has it gone since" — so the flow after an answer is a DIFFERENT flow and
+ * not merely a longer one, and the level-two department follow-ups declare
+ * `modes: ["detayli"]`, which makes 02 §2's mode filter the depth lever:
+ * Hızlı asks one level of follow-up, Detaylı asks two. Both are structural
+ * exactly as the rule above requires — a clock and a course, never a
+ * clinical significance.
  */
 import type { MessageKey } from "../i18n";
+import { baseLayerQuestions, measurementQuestions } from "./baseLayer";
 
 export interface IntakeOption {
   id: string;
   labelKey: MessageKey;
+  /**
+   * INT-282, invariant 22. The ON-SCREEN numeral for an option whose value
+   * IS a number — the pain score's `3`. `labelKey` stays the Turkish word
+   * (`Üç`), so no numeral ever enters the message catalogue and therefore
+   * none can reach a TTS path; the numeral exists only as this inline
+   * render. Render and label are fields of the SAME object, which is what
+   * makes invariant 22's *"a matching `inline` render on the same
+   * `work_id`"* true by construction — the same argument
+   * `talker/preemption.py` makes for the spoken side.
+   */
+  inline?: string;
 }
 
 /**
@@ -66,16 +109,123 @@ export interface AskIf {
   includesAny: readonly string[];
 }
 
+/**
+ * The 04 §1 protocol sections a question may belong to, spelled exactly as
+ * `packages/protocols/base/intake.yaml` spells them. Absent means the HPI
+ * dimensions the department packs already carry (04 §1 row 3).
+ */
+export type ProtocolSectionId = "meds_allergies" | "pmh_fh_sh";
+
+/**
+ * The note section a question's answer renders into — the `PreVisitNote`
+ * field names of files/04 §5, which are also `NOTE_SECTION_IDS` in
+ * packages/clinical-schemas and the ids `mappers/document.py` keys on. Two
+ * vocabularies, deliberately: 04 §1 groups QUESTIONS into protocol sections,
+ * 04 §5 groups ANSWERS into note sections, and `meds_allergies` splits in
+ * two on the way across.
+ */
+export type NoteSectionId = "pmh" | "medications" | "allergies" | "family_social";
+
+/** Which 04 §1 section owns the questions that fill each 04 §5 note section. */
+export const PROTOCOL_SECTION_OF: Record<NoteSectionId, ProtocolSectionId> = {
+  medications: "meds_allergies",
+  allergies: "meds_allergies",
+  pmh: "pmh_fh_sh",
+  family_social: "pmh_fh_sh",
+};
+
+/** 02 §2: Hızlı (pre-hospital, default) vs Detaylı (in-hospital). */
+export type IntakeMode = "hizli" | "detayli";
+
+/**
+ * A unit the 02 §33 environment self-check may push to a home session.
+ * `wellbeing` is INT-236's; `family_history` is INT-256's second consumer —
+ * family history is a disclosure about people who are not in the room, and
+ * 02 §33's rule is that a sensitive section is deferred, never asked more
+ * quietly.
+ */
+export type DeferralId = "wellbeing" | "family_history";
+
+export const FAMILY_HISTORY_DEFERRAL = "family_history" satisfies DeferralId;
+
+/**
+ * The session-constant inputs of 02 §2 and 02 §33 — the DSL's own guard
+ * whitelist calls the first of them `mode()` (files/13 §9.5). Neither
+ * changes within a turn, so they select the PROFILE (which questions the
+ * pack contains) rather than gating per answer: `askIf` stays purely
+ * answer-driven, exactly as `dsl.py Slot.ask_if` is.
+ */
+export interface IntakeProfile {
+  mode: IntakeMode;
+  /** Deferral ids recorded by the environment self-check (02 §33). */
+  deferred?: readonly string[];
+}
+
+/**
+ * How a step may be delivered (files/13 §13, INT-282). `voice` is the
+ * default and is left implicit. `text_first` is that section's own word for
+ * substance use, sexual and reproductive history and pregnancy/LMP.
+ * `text_only` means TEXT ONLY — *"no clip, no `speech_tr`, ever"* — which
+ * files/13 §9.5 makes a build-time guarantee rather than a runtime hope.
+ *
+ * INT-282 uses it for one further class the blueprint did not have to name:
+ * a step whose ANSWER is a number. Invariant 22 forbids a numeral reaching
+ * any TTS model, so a numeral-bearing step is `text_only` and `spokenPack`
+ * drops it — the guarantee is structural, not a formatting convention.
+ */
+export type Delivery = "voice" | "text_first" | "text_only";
+
+/**
+ * A guarded numeric control (INT-282, invariant 22 *"no free numeric text
+ * entry on the clinical critical path"*). The patient moves a stepper
+ * between authored bounds; there is no keyboard and no parser.
+ *
+ * `min`, `max`, `start` and the two step sizes are CONTROL BOUNDS, not
+ * clinical limits: nothing reads them, nothing outside them is "abnormal",
+ * and no threshold is expressed by them. A clinical bound would need the
+ * physician of record (HB-C1).
+ */
+export interface Measure {
+  /** The unit, as its own message key — `number + unit` is one atom. */
+  unitKey: MessageKey;
+  min: number;
+  max: number;
+  /** Where the control opens. Never committed until the patient moves it. */
+  start: number;
+  step: number;
+  /** The coarse step, so a value far from `start` is not fifty taps away. */
+  coarseStep: number;
+}
+
 export interface IntakeQuestion {
   id: string;
-  kind: "chips" | "single" | "text";
+  kind: "chips" | "single" | "text" | "measure";
   titleKey: MessageKey;
   hintKey?: MessageKey;
   /** Short label used for this answer's line in the HPI section. */
   hpiLabelKey?: MessageKey;
+  /**
+   * Short label for this answer's line in its own history section — the
+   * `hpiLabelKey` of a question that is not part of the HPI. Exactly one of
+   * the two is set (history.test.ts pins it), because the label names the
+   * section the line lands in and a question lands in one section.
+   */
+  lineLabelKey?: MessageKey;
   options?: readonly IntakeOption[];
   /** Ask only when met (INT-236); absent means always applicable. */
   askIf?: AskIf;
+  /** 04 §1 section owning this question; absent = the HPI dimensions. */
+  section?: ProtocolSectionId;
+  /** 04 §5 note section its answer renders into; set with `section`. */
+  noteSection?: NoteSectionId;
+  /** Modes this question is asked in; absent = every mode. */
+  modes?: readonly IntakeMode[];
+  /** Deferral unit this question belongs to (02 §33); absent = never deferred. */
+  deferrableAs?: DeferralId;
+  /** files/13 §13 delivery class; absent = `voice`, the default. */
+  delivery?: Delivery;
+  /** The guarded numeric control; set iff `kind` is `measure`. */
+  measure?: Measure;
 }
 
 /** The slice of an answer the gate evaluator needs (note.ts Answer fits). */
@@ -113,6 +263,47 @@ const duration: IntakeQuestion = {
     { id: "days", labelKey: "intake.opt.days" },
     { id: "week", labelKey: "intake.opt.week" },
     { id: "month", labelKey: "intake.opt.month" },
+  ],
+};
+
+/**
+ * INT-282, the owner's second example: *"a duration of 'months' branches
+ * differently from 'today'"*. Two follow-ups on the SAME earlier answer,
+ * mutually exclusive by their gates, so the flow after `duration` is
+ * genuinely a different flow — not a longer one.
+ *
+ * Both are structural. "When today did it start" is a clock question; "how
+ * has it gone since" is the patient's own account of change over time, the
+ * same dimension `neuro_course` and `derm_course` already ask. Neither
+ * grades anything and neither is read to produce another answer.
+ */
+const onsetTodayWhen: IntakeQuestion = {
+  id: "onset_today_when",
+  kind: "single",
+  titleKey: "intake.q.onsetTodayWhen",
+  hpiLabelKey: "intake.hpi.onsetTodayWhen",
+  askIf: { questionId: "duration", includesAny: ["today"] },
+  options: [
+    { id: "morning", labelKey: "intake.opt.startedMorning" },
+    { id: "afternoon", labelKey: "intake.opt.startedAfternoon" },
+    { id: "evening", labelKey: "intake.opt.startedEvening" },
+    { id: "night", labelKey: "intake.opt.startedNight" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const durationCourse: IntakeQuestion = {
+  id: "duration_course",
+  kind: "single",
+  titleKey: "intake.q.durationCourse",
+  hpiLabelKey: "intake.hpi.durationCourse",
+  askIf: { questionId: "duration", includesAny: ["week", "month"] },
+  options: [
+    { id: "same", labelKey: "intake.opt.courseSame" },
+    { id: "increasing", labelKey: "intake.opt.courseIncreasing" },
+    { id: "decreasing", labelKey: "intake.opt.courseDecreasing" },
+    { id: "comes_goes", labelKey: "intake.opt.courseComesGoes" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
   ],
 };
 
@@ -192,6 +383,7 @@ const breathTiming: IntakeQuestion = {
 
 const breathLying: IntakeQuestion = {
   id: "breath_lying",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.breathLying",
   hpiLabelKey: "intake.hpi.breathLying",
@@ -257,6 +449,7 @@ const radiation: IntakeQuestion = {
 
 const radiationSide: IntakeQuestion = {
   id: "radiation_side",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.radiationSide",
   hpiLabelKey: "intake.hpi.radiationSide",
@@ -317,6 +510,8 @@ const cardioPalpitation: IntakeQuestion = {
 const cardioInternal: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   painCharacter,
   radiation,
@@ -349,6 +544,7 @@ const neuroHeadSide: IntakeQuestion = {
 
 const neuroHeadSame: IntakeQuestion = {
   id: "neuro_head_same",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.headSameSide",
   hpiLabelKey: "intake.hpi.headSameSide",
@@ -441,6 +637,8 @@ const neuroNumbWhere: IntakeQuestion = {
 const neuro: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   neuroHeadSide,
   neuroHeadSame,
@@ -472,6 +670,7 @@ const entPainWhere: IntakeQuestion = {
 
 const entSwallow: IntakeQuestion = {
   id: "ent_swallow",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.swallow",
   hpiLabelKey: "intake.hpi.swallow",
@@ -534,6 +733,8 @@ const entHearSide: IntakeQuestion = {
 const ent: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   entPainWhere,
   entSwallow,
@@ -608,6 +809,7 @@ const orthoSpread: IntakeQuestion = {
 
 const orthoSpreadFeel: IntakeQuestion = {
   id: "ortho_spread_feel",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.spreadFeel",
   hpiLabelKey: "intake.hpi.spreadFeel",
@@ -653,6 +855,8 @@ const orthoAssoc: IntakeQuestion = {
 const ortho: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   orthoMechanism,
   orthoFallHow,
   orthoRegion,
@@ -717,6 +921,7 @@ const dermItchWhen: IntakeQuestion = {
 
 const dermItchSleep: IntakeQuestion = {
   id: "derm_itch_sleep",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.itchSleep",
   hpiLabelKey: "intake.hpi.itchSleep",
@@ -787,6 +992,8 @@ const dermFeverOrder: IntakeQuestion = {
 const derm: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   dermLocation,
   dermCharacter,
   dermItchWhen,
@@ -847,6 +1054,8 @@ const pulmoAssoc: IntakeQuestion = {
 const pulmo: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   pulmoCharacter,
   breathTiming,
@@ -907,6 +1116,8 @@ const gynAssoc: IntakeQuestion = {
 const gyn: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   gynPainWhere,
   painCharacter,
@@ -966,6 +1177,8 @@ const uroFlankSide: IntakeQuestion = {
 const uro: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   uroUrination,
   timeOfDay,
@@ -1055,6 +1268,8 @@ const eyeHeadacheLink: IntakeQuestion = {
 const eye: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   side,
   eyeCharacter,
@@ -1131,6 +1346,7 @@ const gastroBowel: IntakeQuestion = {
 
 const gastroBowelRelief: IntakeQuestion = {
   id: "gastro_bowel_relief",
+  modes: ["detayli"],
   kind: "single",
   titleKey: "intake.q.bowelRelief",
   hpiLabelKey: "intake.hpi.bowelRelief",
@@ -1166,6 +1382,8 @@ const gastroAssoc: IntakeQuestion = {
 const gastro: IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   gastroLocation,
   gastroCharacter,
   gastroMeal,
@@ -1175,6 +1393,356 @@ const gastro: IntakeQuestion[] = [
   feverPattern,
   severity,
   extra,
+];
+
+// ---- the universal history block (INT-256) ----------------------------------
+//
+// 04 §1 rows 5 and 6, authored once and inherited by every branch the way
+// base.intake is (03 §6). Wording follows base/intake.yaml's own `ask_tr` and
+// `follow_up_tr` — that file's header records that question copy is product
+// copy an agent may write, while every clinical VALUE in it is left empty for
+// the physician. The same line is drawn here.
+//
+// WHAT THESE QUESTIONS DO NOT DO, stated once for all of them: no option list
+// is ordered by severity, no answer grades anything, no answer is read to
+// produce another answer, and no gate below crosses a section boundary. The
+// only gates are the INT-236 shape — a further detail of something the
+// patient has ALREADY named. Deciding that an answer MEANS something is the
+// sourced chain's job (INT-057/041/096) and it is awaiting HB-C1.
+
+// -- 04 §1 row 5 · meds_allergies. Both modes: 04 §1 puts the whole row in the
+//    fast column. Only three of the eight cost an unconditional turn.
+
+const allergyKnown: IntakeQuestion = {
+  id: "allergy_known",
+  kind: "single",
+  section: "meds_allergies",
+  noteSection: "allergies",
+  titleKey: "intake.q.allergyKnown",
+  lineLabelKey: "intake.note.allergyKnown",
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const allergyKind: IntakeQuestion = {
+  id: "allergy_kind",
+  kind: "chips",
+  section: "meds_allergies",
+  noteSection: "allergies",
+  titleKey: "intake.q.allergyKind",
+  hintKey: "intake.q.complaint.hint",
+  lineLabelKey: "intake.note.allergyKind",
+  // The patient said they have one; this asks what it is against.
+  askIf: { questionId: "allergy_known", includesAny: ["yes"] },
+  options: [
+    { id: "medicine", labelKey: "intake.opt.allergyMedicine" },
+    { id: "food", labelKey: "intake.opt.allergyFood" },
+    { id: "sting", labelKey: "intake.opt.allergySting" },
+    { id: "latex", labelKey: "intake.opt.allergyLatex" },
+    { id: "pollen_dust", labelKey: "intake.opt.allergyPollenDust" },
+    { id: "other", labelKey: "intake.opt.other" },
+  ],
+};
+
+const allergyDetail: IntakeQuestion = {
+  id: "allergy_detail",
+  kind: "text",
+  section: "meds_allergies",
+  noteSection: "allergies",
+  titleKey: "intake.q.allergyDetail",
+  hintKey: "intake.q.allergyDetail.hint",
+  lineLabelKey: "intake.note.allergyDetail",
+  // Level two: they placed the allergy in a group, so ask them to name it.
+  askIf: {
+    questionId: "allergy_kind",
+    includesAny: ["medicine", "food", "sting", "latex", "pollen_dust", "other"],
+  },
+};
+
+const allergyReaction: IntakeQuestion = {
+  id: "allergy_reaction",
+  kind: "chips",
+  section: "meds_allergies",
+  noteSection: "allergies",
+  titleKey: "intake.q.allergyReaction",
+  hintKey: "intake.q.complaint.hint",
+  lineLabelKey: "intake.note.allergyReaction",
+  askIf: { questionId: "allergy_known", includesAny: ["yes"] },
+  // The three named options are base/intake.yaml's own follow_up_tr, in the
+  // order that file names them. THAT ORDER IS NOT A SEVERITY ORDER and no
+  // reading of this list grades anything: what a reaction means is the
+  // physician's determination, and nothing here computes it.
+  options: [
+    { id: "rash", labelKey: "intake.opt.reactionRash" },
+    { id: "swelling", labelKey: "intake.opt.reactionSwelling" },
+    { id: "breathing", labelKey: "intake.opt.dyspnoea" },
+    { id: "nausea", labelKey: "intake.opt.nausea" },
+    { id: "other", labelKey: "intake.opt.other" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const medsOther: IntakeQuestion = {
+  id: "meds_other",
+  kind: "single",
+  section: "meds_allergies",
+  noteSection: "medications",
+  titleKey: "intake.q.medsOther",
+  lineLabelKey: "intake.note.medsOther",
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const medsOtherDetail: IntakeQuestion = {
+  id: "meds_other_detail",
+  kind: "text",
+  section: "meds_allergies",
+  noteSection: "medications",
+  titleKey: "intake.q.medsOtherDetail",
+  hintKey: "intake.q.medsOtherDetail.hint",
+  lineLabelKey: "intake.note.medsOtherDetail",
+  askIf: { questionId: "meds_other", includesAny: ["yes"] },
+  // Invariant 22, the concrete case: a dose is the patient's own words in a
+  // plain text field. There is no numeric field anywhere on this path, and
+  // the hint deliberately asks for a colour rather than a number.
+};
+
+const medsOtc: IntakeQuestion = {
+  id: "meds_otc",
+  kind: "single",
+  section: "meds_allergies",
+  noteSection: "medications",
+  titleKey: "intake.q.medsOtc",
+  lineLabelKey: "intake.note.medsOtc",
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const medsOtcDetail: IntakeQuestion = {
+  id: "meds_otc_detail",
+  kind: "text",
+  section: "meds_allergies",
+  noteSection: "medications",
+  titleKey: "intake.q.medsOtcDetail",
+  hintKey: "intake.q.medsOtcDetail.hint",
+  lineLabelKey: "intake.note.medsOtcDetail",
+  askIf: { questionId: "meds_otc", includesAny: ["yes"] },
+};
+
+// -- 04 §1 row 6 · pmh_fh_sh. Detaylı only: 02 §2 puts "PMH/FH/SH deltas" in
+//    the detailed column and leaves the fast column at meds/allergies confirm.
+
+const pmhKnown: IntakeQuestion = {
+  id: "pmh_known",
+  kind: "single",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhKnown",
+  lineLabelKey: "intake.note.pmhKnown",
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const pmhConditions: IntakeQuestion = {
+  id: "pmh_conditions",
+  kind: "chips",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhConditions",
+  hintKey: "intake.q.complaint.hint",
+  lineLabelKey: "intake.note.pmhConditions",
+  askIf: { questionId: "pmh_known", includesAny: ["yes"] },
+  // The five named conditions are quoted from 04 §2.1 `cluster.medical`
+  // ("chronic-disease deltas (DM, HTN, COPD/asthma, CKD, thyroid)") — the
+  // blueprint's own list, not a clinical selection made here. Anything the
+  // list does not name reaches the note through the free-text step below.
+  // INT-282 adds the three the owner's HBYS schema names and 04 §2.1 does
+  // not — kalp-damar hastalıkları, kanser, kan hastalıkları — so the
+  // checklist covers the schema's seven `Kronik` rows (442–447 + 20110)
+  // without asking the patient about diabetes twice. Neither list is
+  // ordered by anything and no row is read to mean anything.
+  options: [
+    { id: "diabetes", labelKey: "intake.opt.pmhDiabetes" },
+    { id: "blood_pressure", labelKey: "intake.opt.pmhBloodPressure" },
+    { id: "heart", labelKey: "intake.opt.pmhHeart" },
+    { id: "cancer", labelKey: "intake.opt.pmhCancer" },
+    { id: "blood", labelKey: "intake.opt.pmhBlood" },
+    { id: "asthma_copd", labelKey: "intake.opt.pmhAsthmaCopd" },
+    { id: "kidney", labelKey: "intake.opt.pmhKidney" },
+    { id: "thyroid", labelKey: "intake.opt.pmhThyroid" },
+    { id: "other", labelKey: "intake.opt.other" },
+  ],
+};
+
+const pmhOtherDetail: IntakeQuestion = {
+  id: "pmh_other_detail",
+  kind: "text",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhOtherDetail",
+  lineLabelKey: "intake.note.pmhOtherDetail",
+  // Level two: they ticked the "other" chip, so ask them to name it.
+  askIf: { questionId: "pmh_conditions", includesAny: ["other"] },
+};
+
+const pmhSurgery: IntakeQuestion = {
+  id: "pmh_surgery",
+  kind: "single",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhSurgery",
+  lineLabelKey: "intake.note.pmhSurgery",
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "dont_remember", labelKey: "intake.opt.dontRemember" },
+  ],
+};
+
+const pmhSurgeryDetail: IntakeQuestion = {
+  id: "pmh_surgery_detail",
+  kind: "text",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhSurgeryDetail",
+  hintKey: "intake.q.pmhSurgeryDetail.hint",
+  lineLabelKey: "intake.note.pmhSurgeryDetail",
+  askIf: { questionId: "pmh_surgery", includesAny: ["yes"] },
+  // The hint invites a year, and a year typed into a free-text field is not
+  // a numeric entry: there is no numeric field, no unit and no arithmetic.
+};
+
+const pmhRecentChange: IntakeQuestion = {
+  id: "pmh_recent_change",
+  kind: "single",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhRecentChange",
+  lineLabelKey: "intake.note.pmhRecentChange",
+  // 04 §1 row 6 is a DELTA row ("new diagnoses/hospitalisations since last
+  // visit"), so the question asks for the change, not for a full history.
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const pmhRecentDetail: IntakeQuestion = {
+  id: "pmh_recent_detail",
+  kind: "text",
+  section: "pmh_fh_sh",
+  noteSection: "pmh",
+  modes: ["detayli"],
+  titleKey: "intake.q.pmhRecentDetail",
+  hintKey: "intake.q.pmhRecentDetail.hint",
+  lineLabelKey: "intake.note.pmhRecentDetail",
+  askIf: { questionId: "pmh_recent_change", includesAny: ["yes"] },
+};
+
+const fhKnown: IntakeQuestion = {
+  id: "fh_known",
+  kind: "single",
+  section: "pmh_fh_sh",
+  noteSection: "family_social",
+  modes: ["detayli"],
+  deferrableAs: FAMILY_HISTORY_DEFERRAL,
+  titleKey: "intake.q.fhKnown",
+  lineLabelKey: "intake.note.fhKnown",
+  options: [
+    { id: "yes", labelKey: "intake.opt.yes" },
+    { id: "no", labelKey: "intake.opt.no" },
+    { id: "not_sure", labelKey: "intake.opt.notSure" },
+  ],
+};
+
+const fhWho: IntakeQuestion = {
+  id: "fh_who",
+  kind: "chips",
+  section: "pmh_fh_sh",
+  noteSection: "family_social",
+  modes: ["detayli"],
+  deferrableAs: FAMILY_HISTORY_DEFERRAL,
+  titleKey: "intake.q.fhWho",
+  hintKey: "intake.q.complaint.hint",
+  lineLabelKey: "intake.note.fhWho",
+  askIf: { questionId: "fh_known", includesAny: ["yes"] },
+  // WHO is a relationship list — structural, and the same for every branch.
+  // WHAT is deliberately free text below: which familial conditions matter
+  // is a per-specialty determination (04 §2.2 names "family history of GI
+  // cancer/IBD" for gastroenterology alone), so no checklist is authored.
+  options: [
+    { id: "mother", labelKey: "intake.opt.fhMother" },
+    { id: "father", labelKey: "intake.opt.fhFather" },
+    { id: "brother", labelKey: "intake.opt.fhBrother" },
+    { id: "sister", labelKey: "intake.opt.fhSister" },
+    { id: "child", labelKey: "intake.opt.fhChild" },
+    { id: "grandparent", labelKey: "intake.opt.fhGrandparent" },
+    { id: "other", labelKey: "intake.opt.other" },
+  ],
+};
+
+const fhDetail: IntakeQuestion = {
+  id: "fh_detail",
+  kind: "text",
+  section: "pmh_fh_sh",
+  noteSection: "family_social",
+  modes: ["detayli"],
+  deferrableAs: FAMILY_HISTORY_DEFERRAL,
+  titleKey: "intake.q.fhDetail",
+  lineLabelKey: "intake.note.fhDetail",
+  // Level two, narrowed by INT-282: the four relatives the owner's schema
+  // itself enumerates (anne · baba · erkek kardeş · kız kardeş) now get the
+  // schema's own per-relative CHECKLIST in ./baseLayer, so free text is
+  // left to the relatives the schema does not enumerate. A checklist and a
+  // free-text field asking the same thing would be one question too many.
+  askIf: {
+    questionId: "fh_who",
+    includesAny: ["child", "grandparent", "other"],
+  },
+};
+
+/**
+ * The block, in 04 §1's own section order (row 5 then row 6) and inside each
+ * section in the order base/intake.yaml lists the slots.
+ */
+export const historyQuestions: readonly IntakeQuestion[] = [
+  allergyKnown,
+  allergyKind,
+  allergyDetail,
+  allergyReaction,
+  medsOther,
+  medsOtherDetail,
+  medsOtc,
+  medsOtcDetail,
+  pmhKnown,
+  pmhConditions,
+  pmhOtherDetail,
+  pmhSurgery,
+  pmhSurgeryDetail,
+  pmhRecentChange,
+  pmhRecentDetail,
+  fhKnown,
+  fhWho,
+  fhDetail,
 ];
 
 // ---- resolution --------------------------------------------------------------------
@@ -1223,14 +1791,87 @@ export function packForDepartment(department: string | undefined): IntakeQuestio
 }
 
 /**
+ * The universal block narrowed to one session profile (INT-256). Two filters,
+ * both session-constant:
+ *
+ * - `modes` — 02 §2. A question with no `modes` is asked in both; the
+ *   `pmh_fh_sh` deltas declare `["detayli"]` because 02 §2 puts them in the
+ *   detailed column and leaves the fast column at meds/allergies confirm.
+ * - `deferrableAs` — 02 §33. A deferred section is ABSENT from the flow, not
+ *   asked more quietly and not moved to text; the clinician sees it as
+ *   `eksik: ortam uygun değildi` on the note instead (buildNote).
+ */
+export function inProfile(question: IntakeQuestion, profile: IntakeProfile): boolean {
+  const deferred = new Set(profile.deferred ?? []);
+  return (
+    (question.modes === undefined || question.modes.includes(profile.mode)) &&
+    (question.deferrableAs === undefined || !deferred.has(question.deferrableAs))
+  );
+}
+
+export function historyForProfile(profile: IntakeProfile): IntakeQuestion[] {
+  return historyQuestions.filter((q) => inProfile(q, profile));
+}
+
+/**
+ * The HBYS base layer narrowed to one session profile (INT-282). Every
+ * question in it declares `modes: ["detayli"]`, because 02 §2 puts
+ * "PMH/FH/SH deltas" and "vitals entry" in the DETAILED column and leaves
+ * the fast column at meds/allergies confirm — so Hızlı stays short by the
+ * same lever that makes Detaylı deep, and no new mechanism was needed.
+ */
+export function baseLayerForProfile(profile: IntakeProfile): IntakeQuestion[] {
+  return [...baseLayerQuestions, ...measurementQuestions].filter((q) => inProfile(q, profile));
+}
+
+/**
+ * The steps a SPOKEN session may ask: files/13 §13's `text_only` class is
+ * dropped, exactly as the §9.5 compiler check drops their clips. INT-282's
+ * numeral-bearing steps declare it, so invariant 22's *"no numeral reaches
+ * any TTS model"* holds structurally here — there is no formatting rule to
+ * remember and no path by which a digit could be spoken.
+ */
+export function spokenPack(pack: readonly IntakeQuestion[]): IntakeQuestion[] {
+  return pack.filter((q) => q.delivery !== "text_only");
+}
+
+/**
+ * The pack a visit actually runs: the department's anamnesis dimensions,
+ * then the universal history block, then the free note — 04 §1's own section
+ * order (hpi → meds_allergies → pmh_fh_sh → expectations_wrapup).
+ *
+ * Composition rather than duplication is the point: `packForDepartment` stays
+ * the ten authored HPI packs, and the base block is authored once, exactly as
+ * 03 §6 resolves base.intake under specialty.*.
+ */
+export function packForVisit(
+  department: string | undefined,
+  profile: IntakeProfile,
+): IntakeQuestion[] {
+  const pack = packForDepartment(department);
+  const dimensions = pack.filter((q) => q.id !== extra.id && inProfile(q, profile));
+  const closing = pack.filter((q) => q.id === extra.id);
+  return [
+    ...dimensions,
+    ...historyForProfile(profile),
+    ...baseLayerForProfile(profile),
+    ...closing,
+  ];
+}
+
+/**
  * Every question across packs, unique by id, in the canonical anamnesis
  * order — the note builder walks this list, so it is the single ordering
- * authority for HPI lines. Each pack must read as a subsequence of this
- * list (questions.test.ts enforces both coverage and order).
+ * authority for the note's lines. Each pack must read as a subsequence of
+ * this list (questions.test.ts enforces both coverage and order), and the
+ * history block sits where `packForVisit` composes it: after the last
+ * department dimension, before the free note.
  */
 export const allQuestions: readonly IntakeQuestion[] = [
   complaint,
   duration,
+  onsetTodayWhen,
+  durationCourse,
   onset,
   // location and side
   orthoMechanism,
@@ -1297,6 +1938,11 @@ export const allQuestions: readonly IntakeQuestion[] = [
   gastroAssoc,
   feverPattern,
   severity,
+  // the universal history block (04 §1 rows 5–6), composed by packForVisit
+  ...historyQuestions,
+  // the HBYS base layer (INT-282), composed by packForVisit after it
+  ...baseLayerQuestions,
+  ...measurementQuestions,
   extra,
 ];
 

@@ -30,6 +30,17 @@ EXPECTED_TABLES = {
     # INT-037 — data-subject rights
     "dsar_requests",
     "dsar_rectifications",
+    # INT-240 — the satisfaction free text, split out of events.payload so
+    # that column's "id-shaped values only, no PHI" declaration stays true
+    # (invariant 6)
+    "csat_texts",
+    # INT-141 — notification opt-out and quiet hours
+    "notification_preferences",
+    # INT-170 — the Loop 1 learning store: the overlay version header and the
+    # patient's CONFIRMED learned facts. There is no third table: an
+    # unconfirmed candidate has nowhere to be written (invariant 12).
+    "patient_overlays",
+    "overlay_facts",
 }
 
 

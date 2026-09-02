@@ -1,0 +1,111 @@
+# INT-205 — INTAKE's Falco rules (files/10 §7 "container runtime alerts").
+#
+# Licence note (invariant 19): the Falco rule DSL and the stock ruleset these
+# extend are Apache-2.0 (falcosecurity/rules, LICENSE blob read 2026-08-29 —
+# see the `falco` row of observability/registry.yaml). This file is ours.
+#
+# Two authoring rules, both enforced by tests/infra/test_siem_feed.py:
+#
+#  1. **No `proc.cmdline`, `evt.args`, `evt.buffer` or `fd.name` in an output
+#     string.** Falco's stock rules interpolate all four, and a command line on
+#     the PHI path can hold a patient's file name. The feed drops them anyway
+#     (it reads a closed key set), but a rules file is also read by humans and
+#     by `falco --dry-run`, and neither of those goes through the feed.
+#  2. **Every rule is tagged `intake_container_runtime`.** That tag is what
+#     resolves the rule to a console signal; an untagged rule would arrive at
+#     the Security module as `unclassified`.
+#
+# What is not here: a rate, a count or a window. files/10 §7 names these
+# signals and states a number for none of them (CLAUDE.md: never invent a value
+# to unblock yourself).
+
+- list: intake_phi_containers
+  items: [intake-api, intake-voice-runtime, intake-workers, intake-metrics]
+
+- list: intake_sensitive_dirs
+  items: [/var/ossec/logs, /var/log/falco, /etc/falco, /var/ossec/etc]
+
+- macro: intake_container
+  condition: (container.name in (intake_phi_containers))
+
+- macro: intake_spawned_process
+  condition: (spawned_process and intake_container)
+
+# --- interactive access to a container that holds PHI ------------------------
+
+- rule: intake_shell_in_phi_container
+  desc: >-
+    An interactive shell was started inside a container on the PHI path. These
+    containers run one process and never need a shell; a shell in one is either
+    an operator working outside the runbook or an intruder.
+  condition: >-
+    intake_spawned_process and
+    proc.name in (bash, sh, dash, zsh, ash, busybox, csh, ksh)
+  output: "interactive shell in a PHI container (container=%container.id image=%container.image.repository)"
+  priority: Critical
+  tags: [container, intake_container_runtime]
+
+- rule: intake_package_manager_in_phi_container
+  desc: >-
+    A package manager ran inside a container on the PHI path. Images are built
+    in CI and signed (files/10 §8); anything installed at runtime is unsigned
+    by construction and defeats admission control.
+  condition: >-
+    intake_spawned_process and
+    proc.name in (apt, apt-get, dpkg, apk, yum, dnf, pip, pip3, npm, curl, wget)
+  output: "package manager or fetcher ran in a PHI container (container=%container.id proc=%proc.name)"
+  priority: Critical
+  tags: [container, intake_container_runtime]
+
+# --- tampering with the detection stack itself -------------------------------
+
+- rule: intake_detection_config_written
+  desc: >-
+    Something wrote to the detection stack's own configuration or logs. An
+    intruder who edits the ruleset or truncates the alert file stops the alerts
+    before they are sent; files/10 §9 `incident-response` names evidence
+    destruction as the threat this covers.
+  condition: >-
+    (open_write or rename or unlink) and
+    fd.directory in (intake_sensitive_dirs) and
+    not proc.name in (wazuh-logcollector, falco, wazuh-analysisd, wazuh-modulesd)
+  output: "detection stack configuration or log written (container=%container.id proc=%proc.name)"
+  priority: Critical
+  tags: [filesystem, intake_container_runtime]
+
+# --- container escape shapes -------------------------------------------------
+
+- rule: intake_privileged_container_started
+  desc: >-
+    A privileged container started on a host that runs PHI workloads. The
+    deployed posture is Pod Security Standards restricted with read-only root
+    filesystems (files/10 §8); a privileged container is outside it.
+  condition: container_started and container.privileged=true
+  output: "privileged container started (container=%container.id image=%container.image.repository)"
+  priority: Error
+  tags: [container, intake_container_runtime]
+
+- rule: intake_sensitive_mount_into_container
+  desc: >-
+    A container started with the container runtime socket or the host root
+    mounted in. Either one turns a container compromise into a host compromise.
+  condition: >-
+    container_started and
+    (container.mount.source[/var/run/docker.sock] != "" or
+     container.mount.source[/run/containerd/containerd.sock] != "")
+  output: "container started with a runtime socket mounted (container=%container.id)"
+  priority: Error
+  tags: [container, intake_container_runtime]
+
+- rule: intake_outbound_connection_from_phi_container
+  desc: >-
+    A container on the PHI path opened an outbound connection. The deployed
+    posture is deny-all egress with no vendor entries on the PHI path
+    (files/07 §"Security & technical monitoring"), so a connection that gets as
+    far as a syscall is either a misconfiguration or an exfiltration attempt.
+  condition: >-
+    outbound and intake_container and
+    not fd.sip in (127.0.0.1)
+  output: "outbound connection from a PHI container (container=%container.id proto=%fd.l4proto)"
+  priority: Warning
+  tags: [network, intake_container_runtime]

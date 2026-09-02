@@ -11,7 +11,7 @@
  */
 import { ScrollView, StyleSheet } from "react-native";
 
-import { TAB_BAR_CLEARANCE } from "@/components/FloatingTabBar";
+import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
@@ -22,7 +22,7 @@ export default function Wellbeing() {
   useClinicalScreenPrivacy(); // clinical screen: FLAG_SECURE-class (INT-131)
   return (
     <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
         <AppText role="hero" heading style={styles.heroLine}>
           {t("wellbeing.title")}
         </AppText>
@@ -52,6 +52,6 @@ export default function Wellbeing() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.xl, paddingBottom: TAB_BAR_CLEARANCE },
+  content: { gap: spacing.xl },
   heroLine: { marginTop: spacing.xl },
 });
