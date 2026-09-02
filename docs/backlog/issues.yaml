@@ -895,11 +895,13 @@
   title: "Patient summary (B1 Turkish) + reading-level check"
   depends_on: [INT-084]
   labels: [area:engine]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-085.md
   acceptance:
     - "plain-language summary excludes wellbeing signals; readability metric gate"
   tests: [tests/engine/test_patient_summary.py]
   legal: "HHY-15"
+  sec_row: "wellbeing"
 - id: INT-090
   epic: E05-voice
   phase: P0
