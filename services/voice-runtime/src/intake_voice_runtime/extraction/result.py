@@ -138,22 +138,18 @@ class ExtractionResult:
         flags are not here (they are clinician-facing, and the engine holds no
         rule), and the flags are not here (they are a data-quality record).
 
-        ``Decimal`` becomes the JSON carrier the engine's context declares
-        (``clinical_schemas.common.JsonValue``): an integral value stays an
-        ``int``, and a fractional one becomes a ``float`` that
-        ``protocols.triage.context.canonical_scalar`` converts back through
-        ``str`` — the round trip that section documents as the deterministic
-        one.
+        ``Decimal`` crosses as ``Decimal`` (INT-303). It used to be cast to
+        ``int`` or ``float`` here because the engine's carrier
+        (``clinical_schemas.common.JsonValue``) declared no ``Decimal``; that
+        carrier now does, so the cast is gone. It was the one place a clinical
+        quantity crossed a representation boundary through binary floating
+        point — the crossing files/13 §9.5 forbids outright ("no floats
+        anywhere ... exact comparison, because floats are how two machines
+        disagree about the same session") and CLAUDE.md invariant 22 calls
+        unguarded. It also dropped the declared scale: ``38.50`` and ``38.5``
+        are the same float and are not the same ``Decimal``.
         """
-        updates: dict[str, Any] = {}
-        for update in self.slot_updates:
-            value = update.value
-            if isinstance(value, Decimal):
-                updates[update.ref] = (
-                    int(value) if value == value.to_integral_value() else float(value)
-                )
-            else:
-                updates[update.ref] = value
+        updates: dict[str, Any] = {update.ref: update.value for update in self.slot_updates}
         return {
             "step_id": self.step_id,
             "slot_updates": updates,

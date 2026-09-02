@@ -10,7 +10,13 @@ by the import-boundary test).
 
 from __future__ import annotations
 
-from protocols.triage.context import SlotAnswer, TriageContext, canonical_scalar, temporal_within
+from protocols.triage.context import (
+    SlotAnswer,
+    TriageContext,
+    UncomparableSlotValue,
+    canonical_scalar,
+    temporal_within,
+)
 from protocols.triage.engine import (
     DraftRuleError,
     TriageEngineError,
@@ -34,6 +40,7 @@ __all__ = [
     "TriageEngineError",
     "TriageEvaluation",
     "Truth",
+    "UncomparableSlotValue",
     "WhenGrammarError",
     "canonical_scalar",
     "evaluate_triage",

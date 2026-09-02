@@ -10,6 +10,7 @@ text has no carrier (invariant 6).
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
@@ -21,7 +22,19 @@ _NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_.]*$")
 # One JSON-shaped value type used for open payload maps (lane payloads,
 # reference ranges, slot values). One level of list/dict nesting is enough
 # for every shape files/03-04 sketch; a deeper structure belongs in a model.
-type JsonScalar = str | int | float | bool | None
+#
+# ``Decimal`` is a member, and it precedes ``float`` deliberately (INT-303).
+# It is the numeric type files/13 §9.5 names for a clinical quantity —
+# *"no floats anywhere, Decimal with declared scale and exact comparison,
+# because floats are how two machines disagree about the same session"* — and
+# it is what the extraction reader and the protocol compiler both produce. A
+# carrier that omitted it did not reject a ``Decimal``: pydantic resolved the
+# union to ``float``, so the declared scale and the exactness were dropped in
+# silence, and a ``Decimal`` reaching an unvalidated carrier map read as a
+# type the comparison grammar could not see at all. ``float`` stays, because
+# an observer lane payload legitimately carries one and a lane value never
+# reaches a clinical comparison (CLAUDE.md invariant 11).
+type JsonScalar = str | int | Decimal | float | bool | None
 type JsonValue = JsonScalar | list[JsonScalar] | dict[str, JsonScalar]
 
 # Mirrors intake_platform.audit._REF_SHAPE (INT-016): the shape of an id,

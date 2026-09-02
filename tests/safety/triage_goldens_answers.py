@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from clinical_schemas.session import AnswerState
 from protocols.types import EK4Level
 from triage_goldens_corpus import (
@@ -405,5 +407,20 @@ def type_mismatch_unknown() -> list[GoldenCase]:
             "base",
             {ANCHOR: p(5), "renk_tercihi": p("kirmizi")},
             "a non-string anchor is undated — the tensed rule cannot fire",
+        ),
+        green(
+            "type/bk-ondalik",
+            "base",
+            syn(renk_tercihi=p(Decimal("38.50"))),
+            "INT-303: a Decimal is inside the carrier — it reads Unknown against "
+            "a string comparison, and reading it as Unknown is a CHOICE the "
+            "grammar makes rather than the engine failing to recognise the type",
+        ),
+        green(
+            "type/bs-ondalik",
+            "base",
+            syn(bekleme_suresi_gun_asimi=p(Decimal("1"))),
+            "INT-303: a Decimal where the rule compares a boolean reads Unknown "
+            "— never True, so 1 cannot stand in for the boolean it equals",
         ),
     ]

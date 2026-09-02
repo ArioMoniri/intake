@@ -312,8 +312,22 @@ def _evidence(rule: RedFlagRule, context: TriageContext) -> str:
     for ref in refs:
         values = context.candidate_values(ref)
         if values is not None:
-            rendered = "|".join(
-                json.dumps(value, ensure_ascii=False, separators=(",", ":")) for value in values
-            )
+            rendered = "|".join(_render_value(value) for value in values)
             parts.append(f"{ref}={rendered}")
     return "; ".join(parts)
+
+
+def _render_value(value: JsonValue) -> str:
+    """One carried value as evidence text, exactly and without grouping.
+
+    ``json`` has no ``Decimal`` (INT-303), and the clinical numeric carrier
+    is ``Decimal`` (files/13 §9.5). Rendering it through ``float`` would put
+    the binary-floating-point image of a quantity into the clinician-facing
+    evidence line and drop the declared scale, so it is formatted in plain
+    positional notation — no exponent, no grouping separator (CLAUDE.md
+    invariant 22). A ``Decimal`` nested inside a collection is handed to
+    ``str`` for the same reason: exact digits, never a float.
+    """
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), default=str)
