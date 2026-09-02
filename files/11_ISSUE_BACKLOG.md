@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**218 issues.** By phase: P0 128 · P1 48 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 103 · todo 102 · withdrawn 1.
+**219 issues.** By phase: P0 129 · P1 48 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 103 · todo 103 · withdrawn 1.
 
 ## P0
 
@@ -124,6 +124,7 @@
 | INT-238 | Kaynaklar ingest defect: the virus scanner slot was never wired, so every upload stuck in quarantine | E02-data | INT-120, INT-034 | area:data | done |
 | INT-239 | Dialogue-only intake with answer-driven dev packs: delete the two-button chooser, branch every department on prior answers | E08-mobile | INT-235, INT-236 | area:mobile | done |
 | INT-243 | Serve the intended production TTS tier (VoxCPM2) behind a licence-verified registry row, with the fallback voice kept | E05-voice | INT-237 | area:voice | done |
+| INT-244 | Name the physician of record in the clinical blocker ledger, and record what a name does and does not unlock | E00-governance | — | area:governance | todo |
 | INT-254 | DSL/life-threat reconciliation: tense_anchor is a slot reference, explicit rule status, source note, secondary action — and the validator AttributeError INT-041 routed around | E03-protocols | INT-040, INT-041 | area:protocols | done |
 | INT-255 | Model the eleven life-threat delivery annotations the DSL still refuses (audio/register, the crisis path, paediatric proxy, document-level blocks) | E03-protocols | INT-254 | area:protocols, risk:clinical, approval:human-clinical | done |
 | INT-245 | Counsel factual annex for INT-210: what the software actually does | E14-legal | — | area:legal, risk:legal | done |
