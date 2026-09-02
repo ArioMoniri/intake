@@ -859,7 +859,8 @@
   title: "Patient simulator: personas + scenarios IM-01..IM-14 headless"
   depends_on: [INT-081]
   labels: [area:engine]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-082.md
   acceptance:
     - "12+ scripted personas incl. proxy, low-literacy, crisis, oncology; runs in typed and mock voice; used by CI"
   tests: [tests/sim/test_scenarios.py]
@@ -1006,11 +1007,12 @@
   title: "Profile typed (full parity fallback)"
   depends_on: [INT-081]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "entire intake completable typed; kill-switch target; parity simulator run"
   tests: [tests/voice/test_typed_parity.py]
   sec_row: "intake-typed"
+  evidence: docs/evidence/INT-096.md
 - id: INT-097
   epic: E05-voice
   phase: P3
@@ -3417,6 +3419,53 @@
     - apps/mobile/src/lib/dialogue/stream.test.ts
     - tests/mobile/test_voice_doctor.py
   sec_row: "intake-voice"
+- id: INT-295
+  epic: E08-mobile
+  phase: P1
+  # Filed from the INT-293 walkthrough, 2 Sep 2026. The ModeBar rendered
+  # "Hastanedeyim" + "Detayli mod acik" + "Siraniz geldi" as one row that
+  # neither wrapped nor scrolled, with the checkpoint chip pinned to the far
+  # end by an auto margin, so the chip walked off the right edge as the text
+  # grew. "Siraniz geldi" is the control for "I have been called in, give me
+  # my note now" and Detayli is the in-hospital mode, so the one affordance
+  # built for the situation the mode exists for was unreachable in it.
+  #
+  # ONE CORRECTION to the filed report, made before the fix and recorded in
+  # docs/evidence/INT-295.md. The walkthrough said "at the system default
+  # Dynamic Type (UICTContentSizeCategoryL)". The OS category was L, but
+  # INT-260's control REPLACES the OS value rather than composing with it, so
+  # the two can disagree - and the capture itself settles which was true: the
+  # "Hastanedeyim" chip measures 195.7 pt in that PNG, which is the app's
+  # LARGEST step. At an OS-following 1.0 the row does fit. It stops fitting at
+  # 1.20 on that same phone. 1.20 is not a rung of the app's own control - its
+  # steps are 0.9, 1.0, 1.3, 1.6, 2.0 - it is where the row stops fitting as a
+  # continuous measurement, so the first REACHABLE app step that breaks it is
+  # 1.3, the third of the five, and 1.20 is iOS's XL in OS terms
+  # and iOS's XL category, so the defect is real, reachable without touching
+  # any accessibility setting, and simply not at 1.0. Acceptance is written
+  # against the measurement rather than the premise.
+  #
+  # INT-284 swept content that overflows the safe area VERTICALLY and pinned a
+  # tree-wide test for it. This is the horizontal axis, which that test does
+  # not cover; the same class of defect, one axis over.
+  title: "The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing
+    scrolls sideways to bring it back"
+  depends_on: [INT-284]
+  labels: [area:mobile, area:a11y]
+  status: done
+  evidence: docs/evidence/INT-295.md
+  acceptance:
+    - "the defect is reproduced before it is fixed and the reproduction is a MEASUREMENT, not the premise it was filed with: the row's items are measured in the face the app ships (Inter, read from its own hmtx/cmap tables), the model is calibrated against the INT-293 capture to within half a point, and the recorded red run names the scale at which the checkpoint control first leaves the row on the captured 402 pt phone - 1.20, not 1.0"
+    - "every ModeBar control is reachable in BOTH modes across the whole text-size range: a test enumerates the row's items from the component itself rather than checking one width, sweeps the app's five rungs and the clamped OS range in 0.05 steps, on the captured phone and on the narrowest one still in service, in both shipped catalogues"
+    - "the fix is structural and not a font shrink: the row wraps, its chips shrink, and it changes form at the app's one large-text threshold - and a near-miss control re-measures the row exactly as photographed in the SMALLEST role the type scale has and shows a control still leaving the screen, so shrinking type alone is proved not to satisfy the test"
+    - "the horizontal axis is swept the way INT-284 swept the vertical one: a tree-wide test catches a row that pins an item to the far end (space-between, or an auto margin) in a container that cannot break a line, every such row in the tree is fixed with the one-token remedy INT-284 already used, and the allow-list ships empty and may only shrink"
+    - "the caption 'N soru yanitlandi' is likewise not clipped by the progress dot rail at any text size: the rail owns a box that wraps and shrinks, the counter shrinks not at all, and the counter is measured to fit the narrowest phone at the largest step in both catalogues"
+    - "the chips reach the touch floor by BOX rather than by vertical slop, because a row that can stack them four points apart is the case lib/a11y/target.ts already refuses horizontally"
+    - "no new string, no copy change, no placeholder, no skipped test; make check and make safety are green"
+  tests:
+    - apps/mobile/e2e/modeBar.spec.ts
+    - apps/mobile/e2e/overflow.spec.ts
+  sec_row: "mobile"
 - id: INT-296
   epic: E01-platform
   phase: P0
@@ -3668,3 +3717,89 @@
   tests:
   - tests/legal/test_locale_binding.py
   sec_row: "consent"
+- id: INT-303
+  epic: E03-protocols
+  phase: P0
+  # Found by reading the seam rather than by a failing test, which is the point:
+  # three subsystems each declared their own type for a numeric slot value, and
+  # the disagreement is invisible at every boundary because every boundary
+  # answers it with silence. `canonical_scalar` returned None for a Decimal and
+  # its own docstring says "None reads Unknown", so a rule gating on a measured
+  # quantity would simply not fire and nothing would report it (invariant 1).
+  #
+  # Honest scope, because an overstated safety claim in an evidence file is its
+  # own defect (invariant 20 exists for this habit): the red-flag half is
+  # LATENT — SlotAnswer/TriageContext have no constructor outside tests, and no
+  # merged rule compares a number at all. The extraction -> IntakeEngine half is
+  # LIVE (extraction/handler.py calls apply_extraction(**as_engine_call())), but
+  # what crossed there was a float, not a silently-Unknown Decimal. So this is
+  # one seam with two defects: a latent silent-Unknown and a live float.
+  title: 'One numeric carrier end to end: a Decimal slot value that reads Unknown
+    to every gate that compares it, and the float it crossed the seam as'
+  depends_on:
+  - INT-080
+  - INT-083
+  labels:
+  - area:protocols
+  - area:voice
+  status: done
+  acceptance:
+  - 'the three subsystems agree on one numeric type: the extraction reader builds
+    a Decimal on purpose (`json.loads(raw, parse_float=Decimal)`) and the protocol
+    compiler emits `Decimal | None` for a numeric slot, but the carrier those two
+    meet in - `clinical_schemas.common.JsonScalar` - declared `str | int | float |
+    bool | None` and no Decimal; the carrier now declares Decimal, ahead of float,
+    so the type the producers produce is the type the comparison reads'
+  - 'the silent reading is gone at its source: `canonical_scalar` fell through a
+    Decimal to `return None`, and its own docstring says "None reads Unknown", so
+    a red-flag rule gating on a measured quantity would have evaluated Unknown and
+    not fired - the worst failure this system can have, because nothing reports it
+    (invariant 1); a Decimal now canonicalises to itself with its declared scale
+    intact, exactly as files/13 §9.5 requires'
+  - 'Unknown and uncomparable stop being the same outcome: null and collections
+    still read Unknown, because that is a reading the grammar defines and a rule
+    must survive it, while a value outside the declared carrier raises
+    `UncomparableSlotValue` - which names the offending TYPE and never the value,
+    since an exception that interpolated a slot value would put what the patient
+    said into a log (invariant 6)'
+  - 'the raise is safe to put inside triage evaluation because the fix removes
+    everything that could legitimately reach it: with Decimal admitted to the
+    carrier, no value any producer in the repository builds is outside it, so the
+    raise is an assertion about callers rather than a new way for a live session
+    to crash on patient data - the loudness is placed where the bad value is
+    already unrepresentable rather than where it would be caught late'
+  - 'the live half is the float, and it is removed: `ExtractionResult.as_engine_
+    call()` cast a fractional Decimal to `float` before handing it to the engine
+    (`extraction/handler.py` calls that on every landed extraction, so this path
+    runs today) - the crossing files/13 §9.5 forbids outright and invariant 22
+    calls unguarded, and one that drops the declared scale, since 38.50 and 38.5
+    are the same float and are not the same Decimal'
+  - 'the near-miss negative control is on the FIRING side, because a naive fix
+    that keeps a float in the path fails in the direction that produces a RED the
+    rules never authorised: `Decimal("37.999999999999999999")` is exactly below a
+    `>= 38` gate and its float image is exactly 38.0 - and this case really did
+    report RED before the fix, so the control is a recorded observation and not a
+    hypothetical'
+  - 'the second near-miss is the numeral that must not be coerced: the same
+    magnitude written as the string "38.5" stays a string and reads Unknown, never
+    True - files/03 §4.9.6 refuses a numeric string rather than parsing it, since
+    a separator cannot be resolved without an expected magnitude; and a boolean is
+    still never the number one, so `true` cannot satisfy a threshold of 1'
+  - 'the confirm gate stops reading a re-stated number as a contradiction: a prior
+    fact loaded from stored JSON and a freshly extracted answer can carry the same
+    quantity as an int, a float or a Decimal, and `_same_value` compared Python
+    types - which after this change would have re-opened the full ask for a value
+    the patient had just confirmed, for no reason a patient could perceive'
+  - 'the live-or-latent finding is recorded honestly rather than as a safety
+    headline: the red-flag half is LATENT (no non-test constructor of SlotAnswer
+    or TriageContext exists, and no merged rule compares a number, so the "38.5
+    derece ateşim var" scenario has no gate to miss today), the extraction ->
+    engine half is LIVE, and the evidence file names the file:line for each
+    boundary rather than asserting a patient-facing consequence it cannot show'
+  tests:
+  - tests/safety/test_numeric_carrier.py
+  - tests/safety/triage_goldens_answers.py
+  - tests/engine/test_fsm.py
+  - tests/ai/test_extraction_contract.py
+  evidence: docs/evidence/INT-303.md
+  sec_row: "triage"

@@ -209,6 +209,14 @@ const styles = StyleSheet.create({
   section: { gap: spacing.md },
   summaryCard: { gap: spacing.sm },
   metricBlock: { gap: spacing.xs + 2 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  // Wraps (INT-295): the value is pinned to the far end, and a measurement
+  // pushed off the right edge is a clinical fact the patient cannot read.
+  row: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   confirmBlock: { gap: spacing.sm },
 });
