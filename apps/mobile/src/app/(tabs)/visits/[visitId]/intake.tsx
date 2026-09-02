@@ -578,7 +578,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         </GlassBar>
       ) : null}
       {question.kind === "measure" ? (
-        <GlassBar>
+        <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
             // Disabled until the control has been MOVED: where a stepper
