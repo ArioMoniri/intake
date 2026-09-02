@@ -530,6 +530,25 @@ metrics:
       intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
       fault, a refused preempt provenance and an invariant-22 numeric pair all
       land here as receipts rather than as a crashed pump.
+  # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
+  # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
+  # recorded field on every lane signal, so the same number appears here and on
+  # LaneObservation.dropped_frames_in_window. A low value is not a target: a
+  # lane that never drops a frame under load would be one that made speech wait.
+  - name: lane_dropped_frames
+    id: lane.dropped_frames
+    type: counter
+    labels: [lane]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Audio frames dropped by an observer lane under backpressure, by lane.
+      Emitted by intake_voice_runtime.observers.runtime (INT-110) when a lane's
+      bounded ring evicts an older frame rather than making the audio path
+      wait. The single label is the closed Lane enumeration; a lane that was
+      never admitted has no child series at all, which is how a refused lane is
+      told apart from an idle one.
   - name: work_restart_failures
     id: work.restart_failures
     type: counter

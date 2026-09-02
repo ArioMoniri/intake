@@ -503,10 +503,23 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   fail-closed study gate); inv. 12–29 as catalogued in §9.1 — single egress, no lane
   transport, diarization gate, ephemeral embeddings, zeroization incl. consent withdrawal,
   closed InteractionState at M1.
-- **Signals:** lane consent rates, `lane.dropped_frames`, `acoustic.window_yield` (a low
-  yield is a correct outcome, not an incident — §9), withdrawal-to-zeroization latency — land
-  with INT-110/INT-115.
-- **Tests:** invariants 12–29 land with INT-110, INT-111, INT-112, INT-115.
+- **Signals:** `lane.dropped_frames{lane}` is **live** with INT-110 — emitted by
+  `intake_voice_runtime.observers.runtime` when a lane's bounded ring evicts a frame rather
+  than making the audio path wait; a lane that was never admitted has no child series at all,
+  which is how the exposition tells a refused lane from an idle one. Lane consent rates,
+  `acoustic.window_yield` (a low yield is a correct outcome, not an incident — §9) and
+  withdrawal-to-zeroization latency are still owed: the first belongs to the consent surface,
+  the second to INT-115's diarization gate, and the third to the audio-buffer work.
+- **Tests:** `tests/lanes/test_isolation.py` (INT-110) lands CLAUDE.md invariant 11 whole —
+  read-only at type level, the fake-clock stall with a positive control, backpressure with its
+  metric, per-lane consent through the one evaluator, and the `acoustic` study assertion
+  (inv. 23) against the INT-230 study registry with no grace day and a protocol-amendment
+  close. It also lands inv. 13's static half (no observer module imports an audio transport),
+  inv. 29 (every lane declares a reviewed `intended_purpose`, one statement per module), the
+  `ObserverState` half of inv. 22 (there is no `affect` field for a label to cross M1 in) and
+  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows. Invariants 12, 14,
+  15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-112, INT-115 and the
+  audio-buffer and consent-withdrawal issues.
 
 ## `clinical-content` — packs, rules and safety strings
 
