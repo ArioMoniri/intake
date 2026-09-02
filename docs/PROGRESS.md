@@ -782,7 +782,6 @@
 - CI still billing-blocked; both verified by full local make check exit 0 on the merged tree.
 - LOOP_STATUS: CONTINUE
 
-<<<<<<< HEAD
 ### 2026-09-02T21:40:00+03:00 · INT-084 · done
 - Goal: the note composer, its provenance and the three renderers (SOAP, watermark-ready PDF, FHIR bundle) — the artefact the clinician actually reads, so the failure modes are about what the note CLAIMS, not about crashes.
 - Plan: failing tests first (red run recorded), then the 04 §5 schema addition, the fact/attribution/gap model, the hash-bound copy layer, the three renderers and the golden snapshots.
@@ -798,7 +797,6 @@
 - Next: INT-085 (patient summary) depends on this.
 - LOOP_STATUS: CONTINUE
 
-=======
 ### 2026-09-02T02:40:00+03:00 · INT-093 · done
 - Goal: the RED preemption path — "only rules-engine RED carries priority preempt; playback cancel and script start measured on fake clock", holding files/02 §8.2's stop ≤ 150 ms and e2e ≤ 300 ms from rule evaluation, and asserting (files/03 §4.6 inv. 4) that the path touches no media transport.
 - Plan: failing suite first against a module that did not exist; then services/voice-runtime/.../talker/red_path.py — a controller handed only {canceller, channel, clinic, scripts, clock}, a total register→delivery table with no default, budgets checked after the delivery rather than at the breach, and a script id resolved from the pinned pack rather than derived.
@@ -808,7 +806,6 @@
 - Decisions / ADRs / `00_STATE.md` rows: no ADR and no 00 row — the acceptance is a mechanism. Three readings recorded in the evidence instead: SILENT stops and renders (silence is what "no audio, ever" asks for) while DEFERRED_CLINICIAN does neither (its definition is `device_functions=off`, where the session runs on); the clinician route runs first because its port has no awaitable member; a missed budget completes the delivery and then raises, because policing a number must not cost the patient the delivery. `preempt.red_latency_ms` promoted planned → live.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. HB-C1/INT-043 blocks the RED scripts' words, not this path — every id here is synthetic (files/04 §7).
 - Next: INT-094 (runtime invariants 1-11 + RT-01..08 + latency harness) now has its dependency. Also open and unowned: the files/12 §5 HMAC attestation, which INT-091 handed to INT-093 but INT-093's acceptance does not name — it needs its own issue (evidence finding 1).
->>>>>>> origin/main
 ## 2026-09-02 — INT-170 merged (PR #394), plus a PHI finding on main
 - INT-170 makes invariant 12 hold by FOUR ABSENCES rather than a guard: FactCandidate has no `source` and no `confirmed_at`; there is no inheritance either way between candidate and confirmed; `confirm()` is the only function returning a LearnedFact (AST-asserted, so a second producer cannot appear quietly); and OverlayStore has no public method taking a LearnedFact — you cannot hand the store a fact you minted. At the storage layer there is NO candidates table at all: one table with a nullable `source` is exactly the runtime check invariant 12 refuses to depend on.
 - The owner's on-device direction, decided with a reason rather than a preference: a server-side candidates table means persisting UNCONFIRMED INFERENCES about a patient — a new category of personal data, a CLAUDE.md stop-and-ask, with no files/06 §3 retention row. Device-local needs no human decision and makes the forbidden state have no storage, not merely no type. Stated cost: an unanswered confirmation card is not durable. Options table recorded so the ADR can be written from real options.
