@@ -21,9 +21,9 @@
  * component unmounts the instant the fallback fires.
  */
 import { useEffect } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { GLASS_BAR_CLEARANCE } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import { AppText, useTheme } from "@/components/Themed";
 import { verticalSlop } from "@/lib/a11y/target";
@@ -45,6 +45,12 @@ interface DialogueGateProps {
 
 export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
   const theme = useTheme();
+  // INT-284: the gate reserved `GLASS_BAR_CLEARANCE` for a bar it does not
+  // render — intake.tsx shows the gate, the dialogue OR the typed steps, and
+  // only the latter two carry a bar, so that was padding with no referent.
+  // What the gate does own is the physical bottom edge (the flow drops the
+  // bottom safe edge), so the home-indicator zone is its own to clear.
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let stale = false;
@@ -60,7 +66,14 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
   }, [dispatch, onProbe]);
 
   return (
-    <View style={styles.content}>
+    // A hero line, a body paragraph and two rows: at the largest text step
+    // that is taller than the flow's body box, and a View cannot be moved.
+    <ScrollView
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: spacing.xl + Math.max(insets.bottom, spacing.md) },
+      ]}
+    >
       <Kicker label={t("dialogue.kicker")} tone="accent" />
       <AppText role="hero" heading>
         {t("dialogue.entryTitle")}
@@ -91,16 +104,18 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
           </AppText>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  // `flexGrow`, never `flex`: the column is shorter than the box at the small
+  // steps and taller at the large ones, and flexGrow is the one rule that
+  // fills the box while it fits and scrolls once it does not.
   content: {
-    flex: 1,
+    flexGrow: 1,
     gap: spacing.md,
     padding: spacing.screen,
-    paddingBottom: GLASS_BAR_CLEARANCE,
   },
   statusRow: {
     flexDirection: "row",

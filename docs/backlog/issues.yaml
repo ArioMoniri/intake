@@ -3110,6 +3110,36 @@
     - apps/mobile/e2e/appearance.spec.ts
   sec_row: "mobile"
   evidence: docs/evidence/INT-260.md
+- id: INT-284
+  epic: E08-mobile
+  phase: P0
+  # Reported on the simulator against origin/main at the largest step INT-260's
+  # control can now ask for: the welcome screen rendered its title under the
+  # notch, cut its footer off at the physical bottom edge, and did not scroll —
+  # a 400 pt swipe produced a pixel-identical screenshot below the status bar.
+  # The clipped copy included the screen's own explanation of what it is, so it
+  # was unreachable rather than merely ugly. INT-260 rewired the thirteen
+  # screens under the tab rail and left two families behind: the (auth) flow,
+  # which has no scroll container and no bottom safe edge, and the focused
+  # flows, where the rail unmounts and a glass bar owns the bottom edge against
+  # a CONSTANT 128 pt of reserved room.
+  title: "The screens INT-260 did not reach: content that overflows the safe area at both ends, and a glass bar that reserves less room than it occupies"
+  depends_on: [INT-260]
+  labels: [area:mobile, area:a11y]
+  status: done
+  acceptance:
+    - "no module in the tree renders a Screen it cannot scroll: the welcome screen and the locked biometric gate centre their column with flexGrow rather than flex, so it is centred while it fits and scrollable once it does not, and a tree-wide test bans the pattern rather than auditing the two sites"
+    - "the glass bar's height and the scroll room reserved for it are ONE number: the bar reports its laid-out height through onLayout and every host pads from useGlassBarClearance(height), because no formula over the type scale sees a wrapped CTA label, a second button or the dialogue's whole stack - GLASS_BAR_CLEARANCE and DIALOGUE_BAR_CLEARANCE are gone and a test keeps them gone"
+    - "the pre-layout floor is the bar's own anatomy rather than an estimate of it (padding + one CTA + the home-indicator zone the bar swallows) and lands within a point of the 131 measured on an iPhone 16 Pro at 2.0; the focal CTA's 56 is declared once, in lib/prefs/appearance.ts, and both the button and the floor read it"
+    - "a screen drops the bottom safe edge only where something else owns that zone: the (auth) flow has neither a tab rail nor a glass bar, so phone/otp/consent keep the edge and the dialogue gate reserves the inset instead of room for a bar it does not render"
+    - "the review card header wraps instead of pushing its controls off the screen - at 2.0 the scope chips ran past the right edge, where the consent state was clipped and the edit control could not be tapped at all"
+    - "no text is shrunk, clamped or truncated to make anything fit: allowFontScaling stays off, scaledSize is untouched, no second scaling mechanism is introduced, and the 00 §2 mid-word truncation gate is neither weakened nor exempted"
+    - "proved on the simulator at the largest step in BOTH themes, before and after, with the screenshots in docs/evidence/screens/"
+  tests:
+    - apps/mobile/e2e/overflow.spec.ts
+    - apps/mobile/src/lib/prefs/appearance.test.ts
+  sec_row: "mobile"
+  evidence: docs/evidence/INT-284.md
 - id: INT-282
   epic: E04-engines
   phase: P1

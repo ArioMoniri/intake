@@ -19,11 +19,14 @@ import { scaledSize } from "../theme";
 import {
   APPEARANCE_SLOT,
   APP_STEPS,
+  CTA_MIN_HEIGHT,
   DEFAULT_APPEARANCE,
   LARGE_TEXT_SCALE,
   decodeAppearance,
   effectiveFontScale,
   encodeAppearance,
+  glassBarClearance,
+  glassBarFloor,
   RAIL_LABEL_MAX_SCALE,
   isLargeText,
   nearestStep,
@@ -188,6 +191,78 @@ describe("the rail's own threshold, which is lower than the content one", () => 
 
   it("every step above the smallest two collapses it", () => {
     expect(APP_STEPS.filter((step) => railCollapses(step))).toEqual([1.3, 1.6, 2.0]);
+  });
+});
+
+/**
+ * INT-284 — the same "reserved number vs rendered number" defect INT-260 fixed
+ * for the tab rail, on the screens where the rail unmounts and a glass bar
+ * owns the bottom edge instead.
+ */
+describe("the glass bar's clearance", () => {
+  /**
+   * iPhone 16 Pro home-indicator inset, and the bar height measured on it at
+   * the largest step with a one-line CTA (docs/evidence/INT-284.md §3).
+   */
+  const IPHONE_16_PRO_BOTTOM = 34;
+  const MEASURED_AT_2_0 = 131;
+
+  it("the constant the tree used to carry is smaller than the bar it reserved for", () => {
+    // `GLASS_BAR_CLEARANCE = 128`, chosen when a body line was 17 pt.
+    const floor = glassBarFloor(2.0, IPHONE_16_PRO_BOTTOM);
+    expect(floor).toBeGreaterThan(128);
+    // The floor is the bar's own anatomy, not an estimate of it: padding,
+    // one CTA, and the home-indicator zone the bar swallows. Within a point
+    // of what the device rendered.
+    expect(Math.abs(floor - MEASURED_AT_2_0)).toBeLessThanOrEqual(1);
+  });
+
+  it("a clearance never sits below the bar it clears", () => {
+    for (const scale of APP_STEPS) {
+      for (const inset of [0, 20, IPHONE_16_PRO_BOTTOM]) {
+        expect(glassBarClearance(null, scale, inset)).toBeGreaterThan(glassBarFloor(scale, inset));
+      }
+    }
+  });
+
+  it("once the bar has measured itself, the measurement is what counts", () => {
+    // A wrapped CTA label, a second button, the dialogue's whole
+    // strip-plus-CTAs-plus-composer stack: no formula over the type scale
+    // sees any of them, which is why `DIALOGUE_BAR_CLEARANCE` was
+    // `GLASS_BAR_CLEARANCE + 176` — a guess with a plus sign in it.
+    // "Hekiminize gönderin" wraps at 2.0 and takes the bar to about 178.
+    for (const measured of [178, 420]) {
+      expect(glassBarClearance(measured, 1.0, IPHONE_16_PRO_BOTTOM)).toBeGreaterThan(measured);
+      expect(glassBarClearance(measured, 2.0, IPHONE_16_PRO_BOTTOM)).toBeGreaterThan(measured);
+    }
+  });
+
+  it("a bar that has not laid out yet still clears the home indicator", () => {
+    expect(glassBarFloor(1.0, IPHONE_16_PRO_BOTTOM)).toBeGreaterThan(IPHONE_16_PRO_BOTTOM);
+  });
+
+  it("a nonsense measurement falls back to the floor rather than to nothing", () => {
+    // onLayout fires with 0 on some first passes; trusting it would put the
+    // last row flush under the bar for a frame and, if it never fired
+    // again, permanently.
+    expect(glassBarClearance(0, 2.0, IPHONE_16_PRO_BOTTOM)).toBe(
+      glassBarClearance(null, 2.0, IPHONE_16_PRO_BOTTOM),
+    );
+  });
+
+  it("more text never buys less room", () => {
+    for (let i = 1; i < APP_STEPS.length; i += 1) {
+      expect(glassBarClearance(null, APP_STEPS[i], IPHONE_16_PRO_BOTTOM)).toBeGreaterThanOrEqual(
+        glassBarClearance(null, APP_STEPS[i - 1], IPHONE_16_PRO_BOTTOM),
+      );
+    }
+  });
+
+  it("the CTA floor is the button's own number, not a copy of it", () => {
+    // components/Themed.tsx reads this same export for `primaryButton`'s
+    // minHeight — that is the whole point of it living here.
+    expect(CTA_MIN_HEIGHT).toBe(56);
+    expect(glassBarFloor(0.5, 0)).toBeGreaterThanOrEqual(CTA_MIN_HEIGHT);
   });
 });
 

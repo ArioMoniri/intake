@@ -56,7 +56,7 @@ import {
 } from "react-native";
 import { SymbolView } from "expo-symbols";
 
-import { GLASS_BAR_CLEARANCE, GlassBar } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
@@ -79,9 +79,6 @@ import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
-
-/** The dialogue bar stacks the strip, up to two CTAs and the composer. */
-const DIALOGUE_BAR_CLEARANCE = GLASS_BAR_CLEARANCE + 176;
 
 interface DialogueIntakeProps {
   visitId: string | undefined;
@@ -186,6 +183,14 @@ export function DialogueIntake({
   const [draft, setDraft] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  // INT-284: the bar reports its own height. This one stacks the section
+  // strip, up to two CTAs and the composer, and which of those are present
+  // depends on the turn — so the room reserved for it used to be the typed
+  // steps' constant plus a literal 176, a guess with a plus sign in it. Only
+  // the measurement sees a wrapped label or a second button, and it is the
+  // same hook the typed steps now use.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
 
   // Seed the chips when a confirm turn opens (candidate pre-selected).
   const seedKeyRef = useRef("");
@@ -455,7 +460,7 @@ export function DialogueIntake({
         // user knows the scroller they landed in is the transcript and not
         // the page.
         accessibilityLabel={t("a11y.dialogue.transcript")}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
@@ -584,7 +589,7 @@ export function DialogueIntake({
       </ScrollView>
 
       <View style={styles.bottomStack}>
-        <GlassBar floating={false}>
+        <GlassBar floating={false} onHeight={setBarHeight}>
           <SectionStrip
             filled={model.filled}
             total={model.total}
@@ -690,11 +695,7 @@ export function DialogueIntake({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: {
-    gap: spacing.md,
-    padding: spacing.screen,
-    paddingBottom: DIALOGUE_BAR_CLEARANCE,
-  },
+  content: { gap: spacing.md, padding: spacing.screen },
   bubble: {
     maxWidth: "84%",
     borderRadius: radius.group,
