@@ -226,9 +226,10 @@ def test_backlog_parses_and_is_complete() -> None:
     assert len(ids) == len(set(ids)), "duplicate issue ids"
     # 175 blueprint issues (07 §3.11) + INT-176..178 from the 2026-08-27
     # security review (tracker issue #195) + INT-258 (overlay composition
-    # mechanism) + INT-286 (open-ended asking, owner defect report); grows
+    # mechanism) + INT-286 (open-ended asking, owner defect report) + INT-294
+    # (TTS admission eats the clip deadline; the mute then latches); grows
     # only with a stated reason.
-    assert len(ids) == 218, f"expected 175 blueprint + 43 added issues, got {len(ids)}"
+    assert len(ids) == 219, f"expected 175 blueprint + 44 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

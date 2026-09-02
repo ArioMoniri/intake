@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**218 issues.** By phase: P0 128 · P1 48 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 103 · todo 102 · withdrawn 1.
+**219 issues.** By phase: P0 129 · P1 48 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 104 · todo 102 · withdrawn 1.
 
 ## P0
 
@@ -139,6 +139,7 @@
 | INT-284 | The screens INT-260 did not reach: content that overflows the safe area at both ends, and a glass bar that reserves less room than it occupies | E08-mobile | INT-260 | area:mobile, area:a11y | done |
 | INT-286 | Open-ended asking: the pack declares how each question is asked, and the option list becomes the value space rather than the interaction | E08-mobile | INT-083, INT-239, INT-256, INT-282 | area:mobile, area:voice | done |
 | INT-291 | The patient cannot interrupt by speaking: voice barge-in, a measured chunk floor, and a turn-yielding contour | E05-voice | INT-237, INT-249 | area:voice, area:mobile | done |
+| INT-294 | TTS lane admission consumes the clip deadline, and the resulting mute latches for the session | E08-mobile | INT-243, INT-249, INT-261 | area:mobile, area:voice | done |
 
 ## P1
 

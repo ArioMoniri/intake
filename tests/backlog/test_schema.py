@@ -39,9 +39,11 @@ def test_ids_unique_and_well_formed() -> None:
     # owner directive 2026-08-27) + INT-257 (INT-224 found that the marketing
     # claims-control gate files/01 §3b calls a P1 deliverable had no issue at
     # all) + INT-286 (owner defect report: the intake reads as written and
-    # option-based where it should ask openly). Grow this count only with a
+    # option-based where it should ask openly) + INT-294 (the end-to-end
+    # walkthrough measured TTS admission consuming the clip deadline, and the
+    # resulting mute latching for the session). Grow this count only with a
     # stated reason.
-    assert len(ids) == 218
+    assert len(ids) == 219
     import re
 
     for i in ids:
