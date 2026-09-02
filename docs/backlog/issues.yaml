@@ -3179,3 +3179,117 @@
     - apps/mobile/src/lib/intake/history.test.ts
     - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
+- id: INT-293
+  epic: E08-mobile
+  phase: P0
+  # Found by driving the real app on the simulator end to end, 2 Sep 2026
+  # (docs/evidence/INT-293.md). On the DIALOGUE surface I answered three
+  # consecutive questions through the composer. The conversation advanced
+  # correctly every time and the note never moved: "Not olusuyor 0 / 10 bolum"
+  # after three answers, and every section still "Henuz yanitlanmadi" -
+  # including Baslangic, read immediately after answering "Nasil basladi?".
+  # Handing over to typed steps then started at "0 soru yanitlandi", so no
+  # prefill carried either. The `today` branch that fires reliably in the typed
+  # flow did not fire here.
+  #
+  # HONEST CAVEAT, and it is the first thing to test: my typed Turkish had no
+  # diacritics ("Bugun basladi", not "Bugun basladi" with them) because the
+  # driving tool cannot type them. So this may be an extraction-normalisation
+  # failure rather than a missing write path. It does not change the severity.
+  # Diacritic-free Turkish is what people actually type, the answer is silently
+  # discarded, the agent moves on as though it understood, and the note the
+  # clinician receives is empty. A patient who completes the whole voice intake
+  # arrives at the visit with nothing.
+  title: "Answers given on the dialogue surface never reach the note"
+  depends_on: [INT-261, INT-282]
+  labels: [area:mobile, area:engine, risk:clinical]
+  status: todo
+  evidence: docs/evidence/INT-293.md
+  acceptance:
+    - "the failure is reproduced before it is fixed: a test drives submit_utterance with a diacritic-free Turkish answer that matches an option label modulo diacritics ('Bugun basladi' against 'Bugun basladi'), and asserts the slot is filled - recorded red in the evidence before any fix"
+    - "the two hypotheses are separated in the evidence rather than assumed: a test with FULLY diacritised input proves whether the write path works at all, and the answer decides whether this is a normalisation bug or a missing write - both are stated with their recorded runs"
+    - "Turkish normalisation is exercised in both directions on the real option vocabulary: every option label in questions.ts and baseLayer.ts round-trips through the matcher from its diacritic-free form, with the Turkish dotted/dotless i pair asserted explicitly and NOT via a naive lowercase"
+    - "an answer the extractor cannot map is never silently swallowed: the turn re-asks or says it did not understand, and a test asserts that an unmappable utterance does NOT advance the question index"
+    - "the note-section counter is truthful: a test asserts that N answered dialogue turns produce N filled sections for slot-bearing questions, so 'Not olusuyor 0 / 10 bolum' cannot read 0 after a real answer"
+    - "askIf gates evaluate identically on both surfaces: the same answer sequence through the dialogue and through the typed steps yields the SAME asked-set, asserted for duration=today and duration=month"
+    - "the tidy hand-over carries what was already answered: 'Yazarak devam edin' after N dialogue answers lands on question N+1 with the earlier answers present, not at '0 soru yanitlandi'"
+    - "no placeholder, no skipped test; make check is green"
+  tests:
+    - apps/mobile/src/lib/dialogue/stream.test.ts
+    - apps/mobile/src/lib/intake/questions.test.ts
+  sec_row: "intake-voice"
+- id: INT-294
+  epic: E08-mobile
+  phase: P0
+  # Measured on the host against the live dev daemons, 2 Sep 2026
+  # (docs/evidence/INT-293.md). selectTtsLane walks every (tier, host) pair
+  # before the first syllable is synthesised:
+  #   voxcpm2 127.0.0.1:8805    over_budget   1721 ms  (healthy, cannot speak)
+  #   voxcpm2 172.20.10.3:8805  unhealthy     1505 ms  (host not reachable)
+  #   freya   127.0.0.1:8803    ok             798 ms  <- winner
+  #   TOTAL 4024 ms  vs  clipDeadlineMs(1 sentence) = 4048 ms
+  # It wins by 24 ms on the host and loses about as often inside RN. When it
+  # loses, stream.ts:267 latches voiceMuted = voiceMuted || speech_unavailable
+  # and never clears it, so one slow first turn mutes the WHOLE visit with a
+  # healthy Freya (0.8 s) sitting idle. I observed both outcomes on the same
+  # config within one hour.
+  #
+  # Two independent causes each waste a full budget: a first tier that is
+  # health-green and cannot speak (INT-249 already recorded this about VoxCPM2
+  # on CPU), and a configured host that is unreachable and costs the full
+  # 1500 ms health cap. Meanwhile `make voice-doctor` reports "voice: UP -
+  # every configured lane answered", because voice_doctor.py only does
+  # GET /health (scripts/dev/voice_doctor.py:63) - the exact criterion INT-249
+  # proved insufficient one level down.
+  title: "TTS lane admission consumes the clip deadline, and the resulting mute latches for the session"
+  depends_on: [INT-243, INT-249, INT-261]
+  labels: [area:mobile, area:voice]
+  status: todo
+  evidence: docs/evidence/INT-293.md
+  acceptance:
+    - "the race is reproduced before it is fixed: a fake-clock test walks the real ladder shape (a first tier that trips the budget, an unreachable host, a fast third) and asserts the total exceeds clipDeadlineMs for a one-sentence clip - recorded red in the evidence with the measured per-leg figures, not invented ones"
+    - "admission is bounded independently of the clip it precedes: lane selection can no longer consume the patient's whole clip deadline, and a test asserts the FIRST turn still gets a voice when a healthy fast tier exists anywhere on the ladder"
+    - "an unreachable configured host cannot cost a full health cap on every session: a host that fails once is not re-probed for the rest of the session, asserted by counting fetches"
+    - "voiceMuted stops being permanent: a session muted by a transient admission failure recovers when a later turn's lane admits, with a test asserting the caption clears - and a test asserting it does NOT flap mid-turn"
+    - "the ladder's intent is untouched: VoxCPM2 still wins whenever it is genuinely fast, asserted by a test where tier one answers inside the budget"
+    - "make voice-doctor answers the question it claims to: every TTS lane is asked to SPEAK the same probe the app uses and is timed against the same committed budget, a lane that is health-green and over budget is reported as such rather than UP, and the exit code reflects it. A near-miss control: a lane that is healthy and fast is still reported UP"
+    - "no placeholder, no skipped test; make check is green"
+  tests:
+    - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+    - apps/mobile/src/lib/dialogue/stream.test.ts
+    - tests/dev/test_voice_doctor.py
+  sec_row: "intake-voice"
+- id: INT-295
+  epic: E08-mobile
+  phase: P1
+  # Observed at the SYSTEM DEFAULT Dynamic Type (UICTContentSizeCategoryL) on
+  # an iPhone 16 Pro, 2 Sep 2026 (docs/evidence/INT-293.md) - not at a large
+  # text step. The ModeBar renders "Hastanedeyim" + "Detayli mod acik" +
+  # "Siraniz geldi" as one non-wrapping, non-scrolling row. In Detayli it is
+  # clipped mid-word at "Detayli mod ac..." and the checkpoint chip is simply
+  # not on screen. A horizontal swipe on the row does nothing - verified.
+  #
+  # "Siraniz geldi" is the control for "I have been called in, give me my note
+  # now". Detayli is the in-hospital mode. So the one affordance that exists
+  # for the situation the mode was built for is unreachable in that mode, at
+  # the default text size, on a current flagship phone.
+  #
+  # INT-284 fixed content sitting under the glass bar VERTICALLY and pinned a
+  # tree-wide test for it. This is the horizontal axis, which that test does
+  # not cover; the same class of defect, one axis over.
+  title: "The Detayli mode bar clips 'Siraniz geldi' off-screen at default text size"
+  depends_on: [INT-284]
+  labels: [area:mobile, area:a11y]
+  status: todo
+  evidence: docs/evidence/INT-293.md
+  acceptance:
+    - "the defect is reproduced before it is fixed: a test asserts the ModeBar's intrinsic content width exceeds the 402 pt viewport with mode=detayli at UICTContentSizeCategoryL, recorded red in the evidence with the screenshot"
+    - "every ModeBar control is reachable in BOTH modes at every Dynamic Type step from XS to the largest accessibility size: no control is clipped, and a test enumerates the controls rather than checking a single width"
+    - "the fix is structural and not a font shrink: the row wraps, stacks or scrolls, and a near-miss control asserts that shrinking type alone does NOT satisfy the test"
+    - "the horizontal axis is swept the way INT-284 swept the vertical one: a tree-wide test catches a fixed-height non-wrapping control row whose contents can overflow, so this class cannot be reintroduced elsewhere, and the allow-list may only shrink"
+    - "the caption 'N soru yanitlandi' is likewise not clipped by the progress dot rail at any text size"
+    - "no placeholder, no skipped test; make check is green"
+  tests:
+    - apps/mobile/e2e/overflow.spec.ts
+    - apps/mobile/src/lib/prefs/appearance.test.ts
+  sec_row: "mobile"
