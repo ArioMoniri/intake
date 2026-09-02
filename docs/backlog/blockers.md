@@ -35,4 +35,29 @@ This is not INT-254's content to fix and it does not block the work, which is co
 2. **HB-C15 — confirm or overturn the note's definition of "missing".** The engine counts a `must_ask` step whose gate is TRUE *or UNKNOWN* as obliged; mobile keeps gate-TRUE only. INT-084 took the engine's definition (`NoteGapReason.UNRESOLVED_PRECONDITION` exists) because under-reporting what is absent is the dangerous direction on a checkpointed note. Live the moment INT-096 puts compiled packs behind both surfaces.
 
 Neither blocks this issue: the mechanism ships, the enum is closed, and both choices are recorded in `docs/evidence/INT-084.md`.
-| INT-208 | deferred (merge ordering, not a blocker) | coordinator | `int-200-health-connectors` carries device-local Apple Health / Health Connect and is nine source conflicts behind main, including `apps/mobile/src/lib/intake/note.ts` and its tests — which INT-084's note composer is rewriting right now. Resolving those conflicts against a file being rewritten would produce a merge nobody can review. Package it AFTER INT-084 lands, then re-resolve from the new note shape. Branch is intact at `13feef7`; nothing is lost. |
+## INT-208 — the deferral filed here on 2 Sep was against work that had already merged
+
+**Raised:** 2 Sep 2026 · **Retracted:** 2 Sep 2026 · **Named human:** none — this was never a blocker
+
+A row was appended to this file deferring INT-208 (*"nine source conflicts behind main …
+package it AFTER INT-084 lands, then re-resolve from the new note shape"*). It was wrong. It
+is retracted here rather than deleted, because a deleted mistake is one that gets made again
+— and this one already cost a second agent a full re-read of the branch.
+
+**INT-208 merged on 28 Aug 2026 as PR #239 (`e9600d8`).** Every file it touched is on `main`:
+`apps/mobile/src/lib/health/*` and `src/components/HealthSection.tsx` byte-identical to the
+branch; the `healthLines` / `attachHealth` / `device_health` path in
+`src/lib/intake/note.ts`, carried through INT-084's and INT-282's rewrites and now rendered
+after the `measurements` block; every `health.*` and `consent.health*` key in `tr.ts` and
+`en.ts`; the three Android health permissions and the Turkish `NSHealthShareUsageDescription`
+in `app.json`; both native dependencies in `package.json` and `pnpm-lock.yaml`;
+`INT-208 status: done` in `issues.yaml` and `files/11`; and the
+`2026-08-28T08:00:00+03:00 · INT-208 · done` entry in `docs/PROGRESS.md`.
+
+**How the mistake happened, and the one command that catches it.** `git merge origin/main` on
+`int-200-health-connectors` really does conflict in nine source files — not because the work
+is unmerged, but because the branch predates INT-084, INT-282 and several design passes that
+rewrote those same files for unrelated reasons. **Conflict count measures divergence, not
+unmerged content.** Resolving every conflict in main's favour yields tree `409e0431`, which
+*is* `origin/main`'s tree: the branch contributes nothing. Before treating a stale branch as
+unlanded work, run `git log origin/main --oneline --grep '<ID>'`.
