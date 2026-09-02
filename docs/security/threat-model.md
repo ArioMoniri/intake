@@ -453,8 +453,32 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   engine writes, content-addressed dedupe and the derived-never-requested `preempt` — is
   `tests/voice/test_work_queue.py` (INT-092), which also covers RT-05 and the
   "[D] stalled Backend" threat by holding a handler open on one thread while `submit`
-  returns on another. Runtime invariants 1–11 with RT-01…08 land with INT-094; guards
-  12–19/27/28 land with INT-090, INT-110, INT-115.
+  returns on another. **INT-094 adds `tests/voice/test_invariants.py`**: files/03 §4.6
+  invariants 1–11 asserted against the *composed* stack — one real `IntakeEngine`, one real
+  `BackendAgent`, one real `TalkerSession` and one real `RedPreemption` on one virtual
+  clock — plus RT-01…RT-08. Two things there are load-bearing for this row. (a) The
+  "[D] stalled Backend" threat is now measured end to end rather than at the queue: ten
+  seconds and one hour of Backend stall produce the *same* turn latency, and a permanent
+  positive control shows the same interval on the turn's own path costing the full amount,
+  so the assertion cannot pass against a clock that never moves. (b) The "[E] tool-list
+  growth" threat gains a composed form: a whole turn against a watched engine touches
+  `snapshot` and nothing else. Guards 12–19/27/28 land with INT-090, INT-110, INT-115.
+- **Known-open joints (INT-094):** the Layer A ↔ Layer B loop does not close on this tree,
+  and the suite asserts each joint so it fails when one is wired. No module under
+  `services/` registers an `extract_slots` state handler (INT-092 left it to INT-083, which
+  built `run_extraction` and never registered it), `IntakeEngine.mark_asked` has no caller
+  outside tests, and `WorkRequest` carries `input_hash` rather than a transcript. The
+  security consequence is in the safe direction — a composed session raises
+  `UnregisteredWorkType` on the first transcript instead of silently dropping it, and the
+  queue stays PHI-free by construction — but the transcript route is a **data-boundary
+  decision** (invariant 14) and belongs with whoever closes it.
+- **Fixed activity-label table (INT-094):** `InlinePayload` carried a free-text
+  `activity_label_tr` that any Layer-B handler could fill with a session id, a prompt or a
+  chain of reasoning — the three things invariant 10 forbids reaching the client. It is now
+  `activity: ActivityLabel | None`, a closed enumeration of label ids total over `WorkType`,
+  rendered by the client from its own tr/en catalogue. The invariant is held by the type
+  rather than by review, and `BackendAgent.activity` derives the in-flight labels from Work
+  types rather than from handlers.
 
 ## `triage` — deterministic RED/YELLOW only
 

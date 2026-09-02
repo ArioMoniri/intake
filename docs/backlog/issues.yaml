@@ -953,10 +953,11 @@
   title: "Runtime invariants 1-11 + RT-01..08 + latency harness"
   depends_on: [INT-093, INT-110]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "all invariant tests incl. lanes-stalled-30s; harness reports per-turn budgets per profile"
   tests: [tests/voice/test_invariants.py]
+  evidence: docs/evidence/INT-094.md
   sec_row: "voice-runtime"
 - id: INT-095
   epic: E05-voice
