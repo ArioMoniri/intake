@@ -3184,7 +3184,8 @@
   title: "OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
   depends_on: [INT-131, INT-285]
   labels: [area:api, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-263.md
   acceptance:
     - "the deviation is stated first: auth_store._window_key buckets on floor(now / OTP_WINDOW_S), so a caller who spends its budget just before a boundary is given a fresh budget just after it. INT-285 pinned the worst case as 2 x PHONE_LIMIT_PER_HOUR codes to one phone inside about six minutes, against the files/10 §2 wording '3 requests/hour/phone'"
     - "the budgets are counted so that no more than PHONE_LIMIT_PER_HOUR requests per phone, IP_LIMIT_PER_HOUR per IP and DEVICE_LIMIT_PER_HOUR per device are admitted in ANY OTP_WINDOW_S span rather than in each fixed window; the retry-after the caller is told is the true one for that bound, not the time to the next boundary"
