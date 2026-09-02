@@ -115,3 +115,27 @@ PREEMPT_RED_LATENCY_MS = Histogram(
     "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
     buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
 )
+
+
+# --- the patient's barge-in (INT-291) ---------------------------------------------
+#
+# files/08 §4 group B names this series and its target: ``voice.barge_in_stop_ms``
+# (≤ 150). It stays SEPARATE from ``preempt.red_latency_ms`` for the reason
+# docs/evidence/INT-093.md records — *"that series is the patient's barge-in and
+# conflating two causes in one histogram would make the ≤ 150 ms target
+# unreadable for both"*. This issue is the other half of that sentence: the
+# series moves ``planned`` → ``live`` because something now emits it.
+#
+# The label set is group B's own, and every member of it is a closed, non
+# identifying dimension — tenant, profile, branch, vendor. No session id, no
+# utterance id (invariant 6).
+
+#: Patient-speech detection → the outbound audio path cancelled, in
+#: milliseconds. Buckets bracket the files/02 §8.2 budget so the p95 either
+#: sits under 150 or visibly does not.
+BARGE_IN_STOP_MS = Histogram(
+    "voice_barge_in_stop_ms",
+    "Time to stop agent playback after the patient started speaking, in milliseconds.",
+    ["tenant", "profile", "branch", "vendor"],
+    buckets=(25.0, 50.0, 100.0, 150.0, 250.0, 500.0, 1_000.0, float("inf")),
+)
