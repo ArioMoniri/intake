@@ -11,7 +11,14 @@
  */
 import { describe, expect, it, vi } from "vitest";
 
-import { encodeWav, parseWav, SENTENCE_GAP_MS } from "./speechShaping";
+import {
+  encodeWav,
+  KEEP_HEAD_MS,
+  KEEP_TAIL_MS,
+  parseWav,
+  SENTENCE_GAP_MS,
+  TURN_YIELD_TAIL_MS,
+} from "./speechShaping";
 import {
   assertSpeakableTr,
   bytesToBase64,
@@ -171,13 +178,25 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
   });
 
   it("joins the parts with a real inter-sentence gap", async () => {
+    // INT-291: both halves must clear MIN_CHUNK_CHARS or delivery merges them
+    // into one request, and there is no gap to find. "Bir cümle. İki cümle."
+    // — the old fixture — is two nine-character sentences, which is exactly
+    // the shape the measured floor now refuses to send.
     const { impl } = recordingFetch();
-    const two = await synthesizeClip("http://x", "Bir cümle. İki cümle.", { fetchImpl: impl });
-    const one = await synthesizeClip("http://x", "Bir cümle.", { fetchImpl: impl });
+    const two = await synthesizeClip(
+      "http://x",
+      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
+      { fetchImpl: impl },
+    );
+    const one = await synthesizeClip("http://x", "Söyledikleriniz ekrana yazıldı.", {
+      fetchImpl: impl,
+    });
     const gap = Math.round((SR * SENTENCE_GAP_MS) / 1000);
-    const joined = parseWav(two).samples.length;
-    const single = parseWav(one).samples.length;
-    expect(joined).toBe(single * 2 + gap);
+    const yieldTail = Math.round((SR * TURN_YIELD_TAIL_MS) / 1000);
+    // every turn now ends with the yield tail, so one part is the single
+    // clip minus that tail
+    const part = parseWav(one).samples.length - yieldTail;
+    expect(parseWav(two).samples.length).toBe(part * 2 + gap + yieldTail);
   });
 
   it("still refuses a digit before any network call", async () => {
@@ -204,7 +223,16 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
     })) as unknown as typeof fetch;
 
     const out = parseWav(await synthesizeClip("http://x", "Tek cümle.", { fetchImpl: impl }));
-    expect(out.samples.length).toBeLessThan(padded.length);
+    // The 300 ms of ragged lead is gone and the shape is the contract's:
+    // kept head + speech + kept tail + the turn-yield tail (INT-291). The
+    // silence scan works on 10 ms frames, so allow one frame either way.
+    const expected = Math.round(
+      (SR * (KEEP_HEAD_MS + 200 + KEEP_TAIL_MS + TURN_YIELD_TAIL_MS)) / 1000,
+    );
+    expect(Math.abs(out.samples.length - expected)).toBeLessThanOrEqual(Math.round(SR * 0.02));
+    // and the head really is silence, not a faded first phoneme
+    const head = Math.round((SR * KEEP_HEAD_MS) / 1000);
+    expect(Math.max(...Array.from(out.samples.slice(0, head), Math.abs))).toBe(0);
   });
 });
 
@@ -306,11 +334,21 @@ describe("createClipStore (one synthesis per clip per session)", () => {
 // numbers already committed and sourced (files/03 §4.4) — and past that the
 // turn goes on without a voice. Nothing here invents a duration.
 describe("clipDeadlineMs / withDeadline — a turn cannot wait forever (INT-261)", () => {
-  it("allows one lane admission plus one synthesis per sentence", () => {
+  it("allows one lane admission plus one synthesis per REQUEST", () => {
     const one = "Sizi bugün hekime getiren nedir?";
     expect(clipDeadlineMs(one)).toBe(TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS);
-    const three = "Ağrınız ne kadar sürdü? Nerede başladı? Şimdi nasıl?";
+    const three =
+      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın. Bir haftadan uzun süredir.";
     expect(clipDeadlineMs(three)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 3 * SYNTHESIZE_TIMEOUT_MS);
+  });
+
+  it("counts the requests delivery will MAKE, not the sentences the text has", () => {
+    // INT-291: "Şimdi nasıl?" is 11 non-space characters, under the measured
+    // floor, so it is merged rather than sent — two requests, not three. A
+    // budget that counted sentences would buy the patient a third of a minute
+    // of spinner for a request nobody is going to make.
+    const merged = "Ağrınız ne kadar sürdü? Nerede başladı? Şimdi nasıl?";
+    expect(clipDeadlineMs(merged)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 2 * SYNTHESIZE_TIMEOUT_MS);
   });
 
   it("never returns less than a single-sentence budget", () => {
