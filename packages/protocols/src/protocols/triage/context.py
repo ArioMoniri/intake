@@ -27,9 +27,37 @@ from pydantic import AwareDatetime, Field, model_validator
 from protocols.triage.expr import Truth
 from protocols.types import Tense
 
-__all__ = ["SlotAnswer", "TriageContext", "canonical_scalar", "temporal_within"]
+__all__ = [
+    "SlotAnswer",
+    "TriageContext",
+    "UncomparableSlotValue",
+    "canonical_scalar",
+    "temporal_within",
+]
 
 _VALUE_BEARING = frozenset({AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT})
+
+
+class UncomparableSlotValue(TypeError):
+    """A slot value outside the declared carrier reached a comparison.
+
+    Unknown and *uncomparable* are two different things and were one code
+    path (INT-303). "This slot has no answer" is a reading the grammar
+    defines and a rule must survive; "I was handed a type the carrier does
+    not declare" is a programming error, and answering it with Unknown makes
+    a red-flag rule quietly never fire — the failure CLAUDE.md invariant 1
+    exists to prevent, and the one nothing reports.
+
+    It names the offending TYPE and never the value: an exception that
+    interpolated a slot value would put what the patient said into a log
+    (invariant 6).
+    """
+
+    def __init__(self, offending: type) -> None:
+        super().__init__(
+            f"slot value of type {offending.__name__!r} is outside "
+            "clinical_schemas.common.JsonValue and cannot be compared"
+        )
 
 
 class SlotAnswer(FrozenModel):
@@ -89,18 +117,36 @@ class TriageContext(FrozenModel):
 def canonical_scalar(value: JsonValue) -> bool | Decimal | str | None:
     """Canonicalise a JsonValue for comparison; None reads Unknown.
 
-    Numbers become Decimal (files/13 §9.5: exact comparison, no floats —
-    a float arriving through the JSON carrier is converted through its
-    string form, deterministically). Collections and null do not compare
-    in this grammar and read Unknown.
+    Numbers are Decimal (files/13 §9.5: exact comparison, no floats). A
+    ``Decimal`` is carried through **unchanged**, so the scale the patient
+    stated survives the comparison; an ``int`` and a ``float`` are converted
+    through their string form, deterministically — that conversion is the
+    guard CLAUDE.md invariant 22 requires at this representation boundary.
+    ``bool`` is checked first: ``True == 1`` in Python, and a boolean answer
+    must not satisfy a numeric threshold of one.
+
+    Two outcomes, and they are deliberately not the same one:
+
+    - **Unknown** (``None``) for JSON null and for collections. Those are
+      inside the carrier and simply do not compare in this grammar, so a
+      predicate over them reads Unknown and a rule does not fire.
+    - **A raise** for anything outside the carrier. Reading that as Unknown
+      is what let a ``Decimal`` — the very type extraction produces — make a
+      red-flag rule silently never fire. The engine calls this on a value
+      that has already passed a typed boundary, so a raise here is a caller
+      bug surfacing at once rather than a new failure mode for patient data.
     """
     if isinstance(value, bool):
+        return value
+    if isinstance(value, Decimal):
         return value
     if isinstance(value, (int, float)):
         return Decimal(str(value))
     if isinstance(value, str):
         return value
-    return None
+    if value is None or isinstance(value, (list, dict)):
+        return None
+    raise UncomparableSlotValue(type(value))
 
 
 def temporal_within(anchor_value: JsonValue, tense: Tense, reference_time: datetime) -> Truth:

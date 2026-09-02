@@ -747,13 +747,18 @@ class TestOutputValidatedAgainstSlotSchemas:
             "hpi.siddet": "orta",
         }
 
-    def test_a_fractional_quantity_reaches_the_engine_through_the_json_carrier(self) -> None:
-        raw = '{"slots": {"hpi.tutukluk_dk": {"value": 2.5, "unit": "min", "confidence": 0.9}},'
+    def test_a_fractional_quantity_reaches_the_engine_as_a_decimal(self) -> None:
+        """INT-303: the seam used to cast a fractional ``Decimal`` to ``float``
+        because the engine's carrier declared none. It declares one now, so the
+        quantity crosses exactly — files/13 §9.5 "no floats anywhere"."""
+        raw = '{"slots": {"hpi.tutukluk_dk": {"value": 2.50, "unit": "min", "confidence": 0.9}},'
         raw += ' "candidate_flags": [], "clarification_needed": false}'
         result = parse_extraction(raw=raw, slots=SLOTS, valuesets=VALUESETS, step_id=STEP_ID)
         carried = result.as_engine_call()["slot_updates"]["hpi.tutukluk_dk"]
-        assert carried == 2.5
-        assert Decimal(str(carried)) == Decimal("2.5")
+        assert isinstance(carried, Decimal)
+        assert not isinstance(carried, float)
+        assert carried == Decimal("2.50")
+        assert carried.as_tuple().exponent == -2
 
     def test_the_result_has_no_str_that_leaks_a_value(self) -> None:
         result = parse_extraction(

@@ -39,6 +39,11 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { readFontMetrics } from "./fontMetrics";
+import { en } from "@/lib/i18n/en";
+import { tr } from "@/lib/i18n/tr";
+import { scaledSize, spacing } from "@/lib/theme";
+
 const MOBILE = join(__dirname, "..");
 const SRC = join(MOBILE, "src");
 const APP = join(SRC, "app");
@@ -276,5 +281,168 @@ describe("the review card header", () => {
     const header = review.match(/sectionHeader: \{([^}]*)\}/);
     expect(header, "sectionHeader is not declared the way this test reads it").not.toBeNull();
     expect(header![1]).toContain('flexWrap: "wrap"');
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* 6 · The horizontal axis: a row that pins an item to the far end     */
+/*     must be able to break a line (INT-295)                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The class INT-295 is one instance of, stated so it cannot come back
+ * somewhere else.
+ *
+ * Sections 1-5 above swept the VERTICAL axis: a screen too tall for the
+ * viewport must be scrollable, and the room reserved for floating chrome
+ * must be the room it occupies. Nothing swept the horizontal one, and
+ * nothing could: this app scrolls nowhere sideways, so a row that outgrows
+ * its container does not become reachable by swiping — it is simply drawn
+ * where the screen is not. INT-293 verified that by hand on the mode row and
+ * the swipe did nothing.
+ *
+ * The shape that reliably produces it is a row that pins one item to the far
+ * end — `justifyContent: "space-between"`, or a child carrying
+ * `marginLeft: "auto"`. The pinned item is the one that leaves, and it is
+ * usually the control rather than the prose: "Sıranız geldi" behind
+ * "Detaylı mod açık", "Kapatın" behind a sheet title, a measurement behind
+ * its label. RN flex children neither wrap nor shrink by default, so the
+ * only structural answer available is `flexWrap`.
+ *
+ * This does not claim to catch every horizontal overflow — a plain row of
+ * two long labels can still overflow without pinning anything, and only a
+ * width model catches that (`e2e/modeBar.spec.ts` runs one over the mode
+ * row). It catches the shape that has now produced the defect three times.
+ */
+const FAR_END = /(justifyContent: "space-between"|marginLeft: "auto")/;
+
+/**
+ * Rows allowed to pin without wrapping, each with the reason it is safe.
+ * It may only shrink: an entry here is a row that has been argued about, and
+ * a row nobody has argued about belongs in the gate, not in the list.
+ */
+const PINNED_WITHOUT_WRAP_ALLOW: Record<string, string> = {};
+
+/**
+ * Every `name: { ... }` rule in a StyleSheet, per module.
+ *
+ * Braces are counted rather than matched by a lazy pattern. A pattern that
+ * stops at the first `\n  },` swallows every single-line rule that follows a
+ * multi-line one, and a scan that quietly sees two rows where the tree holds
+ * five is a gate that passes because it looked away.
+ */
+function styleRules(source: string): Map<string, string> {
+  const rules = new Map<string, string>();
+  const head = /\n {2}([A-Za-z0-9_]+): \{/g;
+  let match = head.exec(source);
+  while (match !== null) {
+    let depth = 1;
+    let index = head.lastIndex;
+    while (index < source.length && depth > 0) {
+      if (source[index] === "{") {
+        depth += 1;
+      } else if (source[index] === "}") {
+        depth -= 1;
+      }
+      index += 1;
+    }
+    rules.set(match[1], source.slice(head.lastIndex, index - 1));
+    head.lastIndex = index;
+    match = head.exec(source);
+  }
+  return rules;
+}
+
+describe("a row that pins an item to the far end can break a line", () => {
+  const pinned = TREE.flatMap((f) =>
+    [...styleRules(f.source).entries()]
+      .filter(([, body]) => /flexDirection: "row"/.test(body) && FAR_END.test(body))
+      .map(([name, body]) => ({ where: `${f.name}::${name}`, body })),
+  );
+
+  it("finds the rows it is supposed to police", () => {
+    // A gate that matches nothing passes for the wrong reason. The pinning
+    // shape is common enough in this tree that an empty result means the
+    // rule stopped reading StyleSheet bodies, not that the tree got safer.
+    expect(pinned.length).toBeGreaterThan(3);
+  });
+
+  it("every one of them wraps, or says why it does not have to", () => {
+    const stuck = pinned
+      .filter(({ where, body }) => {
+        if (Object.prototype.hasOwnProperty.call(PINNED_WITHOUT_WRAP_ALLOW, where)) {
+          return false;
+        }
+        return !/flexWrap: "wrap"/.test(body);
+      })
+      .map((entry) => entry.where);
+    expect(
+      stuck,
+      "these rows push their far item off the screen as the text grows, and " +
+        "nothing scrolls sideways to bring it back (INT-295)",
+    ).toEqual([]);
+  });
+
+  it("the allow-list holds nothing that is no longer there", () => {
+    for (const where of Object.keys(PINNED_WITHOUT_WRAP_ALLOW)) {
+      expect(
+        pinned.some((entry) => entry.where === where),
+        `${where} is allow-listed but no longer pins anything; drop the entry`,
+      ).toBe(true);
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* 7 · The progress row: decoration yields, the fact does not          */
+/*     (INT-295)                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The second control INT-293 found off the right edge, on the same screen and
+ * at the same default text size: "N soru yanıtlandı".
+ *
+ * The dots are decoration and are hidden from assistive technology; the
+ * counter beside them is the only place the progress is stated as a fact
+ * (SC 1.4.1). But the dots are one per applicable question — a Detaylı flow
+ * reached about thirty of them — and at 8 pt plus a 4 pt gap that rail is
+ * wider than the content box on its own, whatever the text is doing. In a
+ * plain row it pushed the counter out of the screen.
+ *
+ * So the row is asserted from both ends: the decoration must be able to give
+ * room back (wrap and shrink), and the counter must never need more room than
+ * the narrowest phone has at the largest step, in either catalogue — measured
+ * in the shipped face rather than assumed.
+ */
+describe("the progress counter is never pushed off the row", () => {
+  const metrics = readFontMetrics(
+    join(MOBILE, "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"),
+  );
+  const intake = file("src/app/(tabs)/visits/[visitId]/intake.tsx");
+
+  it("hands the room back from the decoration, not from the fact", () => {
+    const dots = /progressRail: \{([\s\S]*?)\n {2}\}/.exec(intake);
+    expect(dots, "the dot rail no longer owns a box of its own").not.toBeNull();
+    expect(dots![1]).toContain('flexWrap: "wrap"');
+    expect(dots![1]).toContain("flexShrink: 1");
+    expect(intake).toContain("progressCount: { flexShrink: 0");
+  });
+
+  it("fits the narrowest phone at the largest step, in both catalogues", () => {
+    // Tabular figures (`fontVariant`) give every digit one advance, so a
+    // two-digit count is the widest a flow of this length can print.
+    const tooWide: string[] = [];
+    for (const [locale, catalogue] of [
+      ["tr", tr],
+      ["en", en],
+    ] as const) {
+      const line = `99 ${catalogue["intake.progress.answered"]}`;
+      const width = metrics.advance(line, scaledSize("caption", 2.0));
+      const available = 375 - 2 * spacing.screen;
+      if (width > available) {
+        tooWide.push(`${locale}: ${width.toFixed(1)} pt against ${available} pt`);
+      }
+    }
+    expect(tooWide).toEqual([]);
   });
 });
