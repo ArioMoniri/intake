@@ -163,9 +163,9 @@ voice-doctor:
 # synthesis on the local TTS ladder — a measurement of that bridge on that day,
 # never a property of the product (CLAUDE.md invariant 20).
 runtime-sim:
-	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1]"; exit 2; }
+	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1] [PARITY=1]"; exit 2; }
 	uv run python scripts/voice/runtime_sim.py --scenario $(SCENARIO) --profile $(PROFILE) \
-	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,)
+	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,) $(if $(PARITY),--parity,)
 
 # INT-095: one REAL residency_tr turn against the self-hosted lanes, timed per
 # term. PROFILE is required and has no default; `typed` is refused (it has no

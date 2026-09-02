@@ -40,6 +40,7 @@ import datetime
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from clinical_schemas.session import AnswerState
@@ -75,6 +76,7 @@ from intake_voice_runtime.simulator import (
     VENDOR_HOP_SAVING_P95_MS,
     BudgetNotPublished,
     NetworkProfile,
+    ParityTrace,
     PublishedBudget,
     RuntimeScenario,
     ScenarioNotRunnable,
@@ -123,6 +125,7 @@ from talker_harness import (
     FakeClock,
     InMemoryPatientMemory,
     RecordedClipStore,
+    RecordingScreen,
     RecordingSink,
     RecordingSynthesizer,
     build_session,
@@ -295,9 +298,17 @@ class Stack:
         self.agent.register_state(WorkType.EXTRACT_SLOTS, self._extract)
         self.agent.register_background(WorkType.PARSE_DOCUMENT, self._parse)
 
-        self.sink = RecordingSink(clock=self.clock, ms_per_byte=playback_ms_per_byte)
-        self.clip_store = RecordedClipStore()
-        self.synthesizer = RecordingSynthesizer()
+        # INT-096: the transport, and only the transport, follows the profile.
+        # A typed Stack is handed a screen and none of the four speech ports;
+        # every other line of this constructor is profile-independent, which
+        # is what makes the parity run over RT-01…RT-08 mean anything.
+        speaks = profile is not VoiceProfile.TYPED
+        self.sink = (
+            RecordingSink(clock=self.clock, ms_per_byte=playback_ms_per_byte) if speaks else None
+        )
+        self.clip_store = RecordedClipStore() if speaks else None
+        self.synthesizer = RecordingSynthesizer() if speaks else None
+        self.screen = RecordingScreen()
         self.memory = InMemoryPatientMemory()
         self.session = build_session(
             self.clock,
@@ -308,11 +319,13 @@ class Stack:
             synthesizer=self.synthesizer,
             memory=self.memory,
             rule_ids=rule_ids,
+            profile=profile,
+            screen=self.screen,
         )
         self.session.engine = self.engine
         table = deadlines or DeliveryDeadlines()
         self.session.config = self.session.config.model_copy(
-            update={"profile": profile, "protocol_hash": HASH, "deadlines": table}
+            update={"protocol_hash": HASH, "deadlines": table}
         )
         # The scheduler was built from the config the session was constructed
         # with; point it at the table this Stack was asked for.
@@ -354,13 +367,35 @@ class Stack:
         self.agent.run_pending()
 
     def turn(self, transcript: str | None, *, pump: bool = True) -> object:
-        """One turn, with Layer B running concurrently and never awaited."""
+        """One turn, with Layer B running concurrently and never awaited.
+
+        **Layer B is pumped on both sides of the turn, and INT-096 is why.**
+        With a single pre-turn worker, Layer B ran only when Layer A happened
+        to await something — which on ``residency_tr`` is the playback sleep
+        inside the sink, and which a typed turn does not have. So the pump ran
+        *during* a voice turn and never at all on a typed one, and the same
+        scenario produced two different step orders on the two profiles.
+
+        That was a defect in this driver rather than in the runtime, and it is
+        exactly the coupling ADR-009 forbids: *"the Talker never waits for the
+        Backend"* cuts both ways — the Backend must not depend on the Talker
+        having waited either. Pumping before *and* after puts the ask note the
+        turn just recorded under Layer B's lock on every profile, at the same
+        point relative to the turn.
+
+        Neither pump costs virtual time, so a genuinely stalled Layer B
+        (``stall_s``) stays parked in both and RT-03 still proves what it
+        proved: a ten-second backend does not lengthen a turn.
+        """
 
         async def main() -> object:
-            worker = asyncio.ensure_future(self._pump()) if pump else None
+            before = asyncio.ensure_future(self._pump()) if pump else None
             outcome = await self.session.take_turn(transcript)
-            if worker is not None and not worker.done():
-                worker.cancel()
+            after = asyncio.ensure_future(self._pump()) if pump else None
+            await asyncio.sleep(0)
+            for task in (before, after):
+                if task is not None and not task.done():
+                    task.cancel()
             return outcome
 
         return self.clock.run(main())
@@ -1213,11 +1248,23 @@ class TestRT08:
 # this module for exactly that reason.
 
 
-def _record(index: int, outcome: object) -> TurnRecord:
+def _record(index: int, outcome: Any) -> TurnRecord:
+    """One turn, projected for the report and for the INT-096 parity check.
+
+    Everything but ``elapsed_ms`` is what the turn *did* rather than what the
+    transport charged for it, which is the split ``ParityTrace`` reads.
+    """
     return TurnRecord(
         index=index,
-        elapsed_ms=outcome.elapsed_ms,  # type: ignore[attr-defined]
-        spoke=bool(outcome.spoken_text),  # type: ignore[attr-defined]
+        elapsed_ms=outcome.elapsed_ms,
+        spoke=bool(outcome.spoken_text),
+        step_id=outcome.step_id,
+        text_tr=outcome.spoken_text,
+        from_clip=outcome.from_clip,
+        work_id=outcome.work_id,
+        drained_results=outcome.drained_results,
+        delivered_work_ids=outcome.delivered_work_ids,
+        held=outcome.held.value if outcome.held is not None else None,
     )
 
 
@@ -1514,15 +1561,27 @@ class TestLatencyHarness:
             run_scenario("RT-06", VoiceProfile.RESIDENCY_TR, NetworkProfile.TR_MOBILE_MID_LTE)
 
     def test_a_scenario_run_is_identical_under_both_profiles(self) -> None:
-        """files/03 §4.6 invariant 8, as a measurement rather than a claim: the
-        two profiles differ only in a metric label today, so the harness must
-        report the same turns for both — and this test is what will fail on the
-        day INT-096 gives `typed` a path of its own."""
+        """files/03 §4.6 invariant 8, and the sense in which "identical" is meant.
+
+        This test predicted its own rewrite: INT-094 wrote it asserting equal
+        ``elapsed_ms`` and noted that it *"is what will fail on the day INT-096
+        gives `typed` a path of its own."* That day came, and the failure was
+        the right one — a screen write charges no playback, so the two profiles
+        report different per-turn costs and always will.
+
+        Equal timings were never what invariant 8 asked for. What it asks is
+        that the same scenario *does* the same thing, which is
+        :class:`~intake_voice_runtime.simulator.report.ParityTrace`: the step,
+        the Turkish, the derived ``work_id``, the deliveries and the hold. The
+        timings stay in the report beside the published budget, where they are
+        a measurement rather than an equality.
+        """
         residency = run_scenario(
             "RT-03", VoiceProfile.RESIDENCY_TR, NetworkProfile.TR_MOBILE_MID_LTE
         )
         typed = run_scenario("RT-03", VoiceProfile.TYPED, NetworkProfile.TR_MOBILE_MID_LTE)
-        assert [turn.elapsed_ms for turn in residency.turns] == [
+        assert ParityTrace.of(residency).divergence(ParityTrace.of(typed)) == ()
+        assert [turn.elapsed_ms for turn in residency.turns] != [
             turn.elapsed_ms for turn in typed.turns
         ]
 
