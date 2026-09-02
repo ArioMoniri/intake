@@ -1430,9 +1430,9 @@
   # docs/legal/consents/satisfaction.tr.md does not exist until INT-210.
   # That is the correct state (build the gate, fail closed, leave the
   # content empty), not a working prompt. Two further gaps are filed
-  # rather than worked around: INT-304 (the spec calls the prompt one-tap
+  # rather than worked around: INT-305 (the spec calls the prompt one-tap
   # and csat.v1 requires a reason, so one tap cannot form an event and no
-  # reason is defaulted) and INT-303 (the API's SectionId names three
+  # reason is defaulted) and INT-304 (the API's SectionId names three
   # sections against the note's eight, so a withheld allergy list cannot
   # be recorded in the share scope). The answer also has no transport:
   # the device holds a visitId, not the IntakeSession id INT-240's route
@@ -3660,7 +3660,7 @@
   tests:
   - tests/legal/test_locale_binding.py
   sec_row: "consent"
-- id: INT-303
+- id: INT-304
   epic: E08-mobile
   phase: P0
   title: 'The share scope can express three sections and the note has eight, so a
@@ -3692,7 +3692,7 @@
   - apps/mobile/e2e/review_send.spec.ts
   legal: "KVKK-5"
   sec_row: "review-send"
-- id: INT-304
+- id: INT-305
   epic: E16-experience
   phase: P1
   title: 'One-tap CSAT cannot form a csat.v1 event, because the schema requires a
