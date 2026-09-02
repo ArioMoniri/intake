@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**227 issues.** By phase: P0 133 · P1 52 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 107 · todo 107 · withdrawn 1.
+**228 issues.** By phase: P0 134 · P1 52 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 108 · todo 107 · withdrawn 1.
 
 ## P0
 
@@ -144,6 +144,7 @@
 | INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | todo |
 | INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | todo |
 | INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
+| INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
 
 ## P1
 
