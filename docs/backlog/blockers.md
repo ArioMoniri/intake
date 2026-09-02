@@ -94,14 +94,22 @@ unlanded work, run `git log origin/main --oneline --grep '<ID>'`.
 **Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O5
 
 `.github/workflows/security.yml` is hook-protected, so INT-019 could diagnose the `gitleaks`
-and `vulnerabilities` failures and fix neither. Both are one-line edits, both are proven
-rather than guessed, and both are written out verbatim in HB-O5 and in docs/evidence/INT-019.md.
+and `vulnerabilities` failures and fix neither. Three one-line edits, all proven rather than
+guessed, all written out verbatim in HB-O5 and in docs/evidence/INT-019.md: the `gitleaks`
+job's missing `pull-requests: read`, the osv-scanner action path plus its removed `--skip-git`
+flag, and `trivyignores: .trivyignore.yaml` on the trivy step.
 
 **What is NOT the cause, so it is not re-investigated:** gitleaks does not need a
 `GITLEAKS_LICENSE` — the action logs *"[ArioMoniri] is an individual user. No license key is
 required"* before it crashes — and it does not need a version bump. It needs the
 `pull-requests: read` scope that the workflow's top-level `permissions: contents: read`
 takes away.
+
+**Why (c) exists at all:** trivy 0.74 auto-detects the plain-text `.trivyignore` and not the
+YAML form, so a PURL-scoped ignore row is inert unless the path is passed explicitly. The row
+had been drafted in the INT-019 worktree, never committed and never exercised, so it did
+nothing — `make security` now passes `--ignorefile` and a test pins that, but the CI side
+needs the action input.
 
 **What lands the moment (b) is applied:** the `vulnerabilities` job starts working and
 immediately reports 8 real npm advisories (1 Critical, 3 High) that no gate in this repo has

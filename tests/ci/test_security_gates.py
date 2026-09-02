@@ -595,3 +595,46 @@ def test_claims_scan_covers_patient_and_clinician_copy() -> None:
     assert "COPY_GLOBS" in body and "src/locales" in body and "src/lib/i18n" in body, (
         "claims_scan.sh does not scan the patient/clinician copy catalogues"
     )
+
+
+# --- trivy ignore file: scoped, and actually loaded ----------------------------
+
+
+TRIVYIGNORE = REPO / ".trivyignore.yaml"
+
+
+def test_trivyignore_rows_are_purl_scoped() -> None:
+    """No row may mute an advisory tree-wide.
+
+    A bare `id:` row suppresses the CVE for every package forever, including a
+    real dependency that acquires it later. Every row must name the exact
+    package it is about, and say why.
+    """
+    rows = yaml.safe_load(TRIVYIGNORE.read_text(encoding="utf-8"))["vulnerabilities"]
+    assert rows, "an empty ignore file should be deleted, not kept"
+    for row in rows:
+        assert row.get("purls"), f"{row.get('id')} has no purls — that is a tree-wide mute"
+        assert all(p.startswith("pkg:") for p in row["purls"]), row["purls"]
+        assert len(str(row.get("statement", "")).split()) >= 30, (
+            f"{row.get('id')} needs a statement a reviewer can disagree with"
+        )
+
+
+def test_make_security_actually_loads_the_trivy_ignore_file() -> None:
+    """trivy 0.74 auto-detects .trivyignore but NOT .trivyignore.yaml.
+
+    Without the explicit flag the file is decoration: the gate still fails and
+    the next reader assumes the suppression is what is wrong. Measured on
+    trivy 0.74.0 (docs/evidence/INT-019.md) — the row was committed unproven.
+    """
+    makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+    trivy_fs = [
+        ln
+        for ln in makefile.splitlines()
+        if ln.lstrip().startswith("trivy fs")  # the command, not its @echo banner
+    ]
+    assert trivy_fs, "make security no longer runs trivy fs"
+    for line in trivy_fs:
+        assert "--ignorefile .trivyignore.yaml" in line, (
+            f"trivy fs would ignore .trivyignore.yaml: {line.strip()}"
+        )

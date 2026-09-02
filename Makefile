@@ -90,7 +90,7 @@ security:
 	uvx --python 3.12 bandit@$(BANDIT_VERSION) -r packages/intake_platform/src scripts -ll -ii
 	@echo "== [4/12] trivy fs (fail on CRITICAL,HIGH) =="
 	@command -v trivy >/dev/null 2>&1 || { echo "FAIL: trivy not installed — brew install trivy (invariant 14: never skip a gate)"; exit 1; }
-	trivy fs --scanners vuln --severity CRITICAL,HIGH --exit-code 1 --skip-dirs node_modules .
+	trivy fs --ignorefile .trivyignore.yaml --scanners vuln --severity CRITICAL,HIGH --exit-code 1 --skip-dirs node_modules .
 	@echo "== [5/12] trivy config (IaC) =="
 	trivy config --severity CRITICAL,HIGH --exit-code 1 infra
 	@echo "== [6/12] osv-scanner (lockfiles) =="
