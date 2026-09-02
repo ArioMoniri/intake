@@ -1451,7 +1451,17 @@
   title: "Me: consents, connectors, language, security, export/delete, learned facts"
   depends_on: [INT-037, INT-170]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Two of the three obligations in the
+  # acceptance line are delivered and evidenced: the erasure flow (file,
+  # grace, withdraw, tracker) and the learned-fact ledger (provenance,
+  # per-field share scope, delete). The third is not: the export ANSWER is
+  # not delivered in the app, because issuing it marks the KVKK m.13
+  # obligation completed and there is nothing to answer with until the fixed
+  # strings in docs/legal/ exist (INT-210). The client deliberately never
+  # calls GET /v1/me/dsar/export/{id} and a test asserts the absence.
+  # Reopen against INT-210; see docs/evidence/INT-140.md §"What is not met".
   status: todo
+  evidence: docs/evidence/INT-140.md
   acceptance:
     - "export/delete flows wired to DSAR; learned facts editable/deletable with provenance"
   tests: [apps/mobile/e2e/me.spec.ts]

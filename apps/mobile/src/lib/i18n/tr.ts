@@ -180,6 +180,16 @@ export const tr = {
   "learned.guide.title": "Hiçbir şey sessizce öğrenilmez",
   "learned.guide.body":
     "Vizite sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
+  // INT-140 — her bilginin nereden geldiği, nerede tutulduğu, kimin gördüğü
+  // ve nasıl silineceği. Yeniden onay ziyaret hazırlığında sorulur.
+  "learned.shareLabel": "Hekimle paylaşılsın",
+  "learned.origin.record": "Kaydınızda saklanıyor",
+  "learned.origin.device": "Yalnızca bu telefonda",
+  "learned.value.unreadable": "Kaydedilmiş bir yanıt",
+  "learned.forget": "Bu bilgiyi silin",
+  "learned.forget.confirm": "Silmeyi onaylayın",
+  "learned.reconfirm.footer": "Bu bilgi bir yıldan eski; ziyaret hazırlığında yeniden sorulur.",
+  "learned.unsaved": "Bu değişiklik kaydınıza ulaşmadı.",
   // INT-260 — Görünüm: yazı boyutu, tema, ekran hareketi ve ziyaretin nasıl
   // başlayacağı. Ayarlar yalnızca bu cihazda tutulur; sunucuya gitmez.
   "appearance.title": "Görünüm",
@@ -202,6 +212,36 @@ export const tr = {
   "appearance.start.voice": "Konuşarak",
   "appearance.start.typed": "Yazarak",
   "appearance.deviceOnly": "Bu ayarlar yalnızca bu telefonda saklanır.",
+  // INT-140 — Verileriniz: kaydınızın kopyası ve silinmesi. Buradaki her
+  // satır bir denetimi anlatır; bilgilendirme metinleri docs/legal/ dışından
+  // gelmez, bu yüzden hiçbiri burada yazılı değildir (invariant 18).
+  "me.data": "Verileriniz",
+  "data.entry.sub": "Kaydınızın kopyasını ya da silinmesini isteyebilirsiniz.",
+  "data.guide.kicker": "Kontrol sizde",
+  "data.guide.title": "Kaydınız sizindir",
+  "data.guide.body":
+    "Kaydınızın bir kopyasını isteyebilirsiniz. Kaydınızın silinmesini de isteyebilirsiniz.",
+  "data.export": "Kaydınızın kopyasını isteyin",
+  "data.export.notYet":
+    "Kopyanız şimdilik uygulamadan indirilemiyor. İsteğiniz aşağıdaki listeye eklenir.",
+  "data.due": "Yanıt için son gün",
+  "data.delete": "Kaydınızın silinmesini isteyin",
+  "data.delete.confirm": "Silme isteğini onaylayın",
+  "data.delete.withdraw": "Silme isteğini geri çekin",
+  "data.delete.graceEnds": "Silme günü",
+  "data.delete.sharesCancelled": "Açık paylaşımlar kapatıldı.",
+  "data.requests": "İstekleriniz",
+  "data.kind.export": "Kopya isteği",
+  "data.kind.delete": "Silme isteği",
+  "data.kind.rectify": "Düzeltme isteği",
+  "data.status.received": "Alındı",
+  "data.status.scheduled": "Planlandı",
+  "data.status.completed": "Tamamlandı",
+  "data.status.cancelled": "Geri çekildi",
+  "data.status.overdue": "Süresi geçti",
+  "data.empty": "Henüz bir isteğiniz yok.",
+  "data.unsent": "Bu istek gönderilemedi.",
+  "data.deviceOnly": "Görünüm ayarlarınız ve sağlık okumalarınız yalnızca bu telefonda kalır.",
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
@@ -733,6 +773,13 @@ export const tr = {
   "a11y.otp.digit": "Doğrulama kodu hanesi",
   "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açmak için iki kez dokunun.",
   "a11y.consent.switchHint": "Bu izni açıp kapatmak için iki kez dokunun.",
+  // INT-140 — ipuçları eylemin SONUCUNU söyler (iOS HIG): ekran okuyucu
+  // kullanan hasta, dokunmadan önce ne olacağını bilir.
+  "a11y.data.exportHint": "İki kez dokunmak kopya isteğinizi gönderir.",
+  "a11y.data.deleteHint": "İki kez dokunmak silme isteğinizi başlatır.",
+  "a11y.data.withdrawHint": "İki kez dokunmak silme isteğinizi geri çeker.",
+  "a11y.learned.shareHint": "İki kez dokunmak bu bilginin paylaşımını değiştirir.",
+  "a11y.learned.forgetHint": "İki kez dokunmak bu bilgiyi kaydınızdan siler.",
   "a11y.ladder.reached": "tamamlandı",
   "a11y.ladder.pending": "henüz tamamlanmadı",
   // The two voices of the conversation. The agent is named with the product
