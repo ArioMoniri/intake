@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**227 issues.** By phase: P0 134 · P1 51 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 107 · todo 107 · withdrawn 1.
+**228 issues.** By phase: P0 134 · P1 52 · P2 37 · P3 5. By status: awaiting-human 7 · doing 5 · done 108 · todo 107 · withdrawn 1.
 
 ## P0
 
@@ -198,6 +198,7 @@
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
+| INT-295 | The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing scrolls sideways to bring it back | E08-mobile | INT-284 | area:mobile, area:a11y | done |
 | INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | todo |
 | INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
 | INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
