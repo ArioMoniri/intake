@@ -342,3 +342,20 @@ egress-down:
 audit-verify:
 	uv run python -m intake_platform.audit_verifier \
 	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)
+# INT-082: the headless patient simulator — personas × scenarios IM-01…IM-14
+# driven over the real IntakeEngine (INT-081), the real Talker (INT-091) and
+# the real triage engine (INT-080), on a synthetic pack and recorded fixtures.
+#
+# Hermetic and fast by construction: no model, no network, no LiveKit room, no
+# database, no wall clock, and every run happens inside a probe that records
+# any write-mode file open (CLAUDE.md invariant 3).
+#
+# **CI already runs it.** `check-py`'s first pytest invocation uses the default
+# testpaths (`tests`, `packages`), so tests/sim is collected by the CI job that
+# calls `make check-py`. This target exists so a change to a persona or a
+# scenario can be cleared in seconds without the full fan-out — and because a
+# gate nobody can see in the Makefile is a gate nobody runs.
+.PHONY: test-sim
+
+test-sim:
+	uv run pytest tests/sim -q -o addopts=""
