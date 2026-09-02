@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor runtime-sim
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -151,6 +151,21 @@ backlog-render:
 # inside a running Metro and so cannot be read from config.
 voice-doctor:
 	uv run python scripts/dev/voice_doctor.py $(if $(HOST),--host $(HOST),)
+
+# INT-094: the fake-clock latency harness (files/03 §7). Runs one RT scenario
+# against the composed runtime on the shared virtual clock and prints the
+# per-turn server-side cost beside what files/02 §8.1 publishes as the budget
+# for that profile and network profile. SCENARIO and PROFILE are required and
+# have no defaults: a scenario is written for particular profiles and picking
+# one for the caller is how a run silently reports the wrong thing.
+#
+# It calls nothing. `MEASURE=1` adds an opt-in, dev-only timing of a real
+# synthesis on the local TTS ladder — a measurement of that bridge on that day,
+# never a property of the product (CLAUDE.md invariant 20).
+runtime-sim:
+	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1]"; exit 2; }
+	uv run python scripts/voice/runtime_sim.py --scenario $(SCENARIO) --profile $(PROFILE) \
+	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,)
 
 clean:
 	rm -rf node_modules packages/*/node_modules .venv .pytest_cache .ruff_cache

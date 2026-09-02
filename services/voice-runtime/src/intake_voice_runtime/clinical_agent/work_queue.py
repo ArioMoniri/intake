@@ -92,6 +92,7 @@ from intake_voice_runtime.ports import (
     WorkType,
     work_key,
 )
+from intake_voice_runtime.talker.activity import ACTIVITY_OF, ActivityLabel
 from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import (
     BackendResult,
@@ -299,6 +300,29 @@ class BackendAgent:
         """The Work ids running right now — at most one per lane."""
         with self._queue_lock:
             return tuple(work_id for work_id in self._running.values() if work_id is not None)
+
+    @property
+    def activity(self) -> tuple[ActivityLabel, ...]:
+        """What the rail may say this session is doing (files/03 §4.6 inv. 10).
+
+        Derived from the Work types that are queued or running — never from a
+        handler, which is what stops a prompt or a chain of reasoning reaching
+        the client through this channel. Each label appears once however many
+        Works of that type are outstanding: the rail shows *what* is happening,
+        not *how much*, and a count would leak queue depth to the patient.
+        """
+        with self._queue_lock:
+            outstanding = [
+                self._records[work_id].request.work_type
+                for lane, queue in self._queues.items()
+                for work_id in (*queue, *((self._running[lane],) if self._running[lane] else ()))
+            ]
+        seen: list[ActivityLabel] = []
+        for work_type in outstanding:
+            label = ACTIVITY_OF[work_type]
+            if label not in seen:
+                seen.append(label)
+        return tuple(seen)
 
     def depth(self, lane: WorkLane) -> int:
         """Queued (not running) items in one lane."""
