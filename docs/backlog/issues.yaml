@@ -1153,8 +1153,25 @@
   phase: P0
   title: "linguistic lane: TR lexicons + prosody stats + crisis bypass to triage"
   depends_on: [INT-110, INT-080]
-  labels: [area:lanes, risk:clinical]
-  status: todo
+  labels: [area:lanes, risk:clinical, approval:human-clinical]
+  status: awaiting-human
+  evidence: docs/evidence/INT-112.md
+  # MECHANISM SHIPPED, CONTENT AWAITING A HUMAN (2 Sep 2026).
+  # "markers aggregate per section" is delivered: the lane, its threshold-free prosody
+  # statistics and its per-section aggregate are built and tested (tests/lanes/
+  # test_crisis_bypass.py, 59 tests; tests/protocols/test_lexicon.py, 32).
+  # "route deterministically to C-SSRS path" is NOT satisfiable and, on the blueprints'
+  # own reading, is the wrong destination. C-SSRS is licence-BLOCKED (HB-L2) and is in no
+  # pack; the two crisis rules are draft_needs_source; files/04 section 4.2's escalation
+  # policy does not exist (HB-C8) and _crisis_path_refusals already keeps every
+  # consent_independent rule out of a served pack. And files/04 section 4.2 defect 3 asks
+  # for signposting - "not a screener, not a score" - while files/03 section 4.7.1 puts
+  # instrument-forwarding under device_functions rather than under the lane, so routing a
+  # lexicon hit into an instrument cascade contradicts both. The ROUTING is built and
+  # tested against the real rules engine (the level comes back from packages/protocols/
+  # triage, never from the lane); the destination is INT-116's.
+  # Lexicon content: HB-C16 (four marker families), HB-C17 (crisis family + its
+  # destination). Clinician-facing rendering of the prosody measures: HB-C18.
   acceptance:
     - "crisis lexicon hits route deterministically to C-SSRS path (test); markers aggregate per section"
   tests: [tests/lanes/test_crisis_bypass.py]

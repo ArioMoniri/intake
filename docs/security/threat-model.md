@@ -576,7 +576,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   which is how the exposition tells a refused lane from an idle one. Lane consent rates,
   `acoustic.window_yield` (a low yield is a correct outcome, not an incident — §9) and
   withdrawal-to-zeroization latency are still owed: the first belongs to the consent surface,
-  the second to INT-115's diarization gate, and the third to the audio-buffer work.
+  the second to INT-115's diarization gate, and the third to the audio-buffer work. INT-112
+  added **no** metric and the omission is deliberate: a `crisis_signposts_total` counter would
+  increment exactly when a patient discloses suicidal ideation, which is re-identifying in a
+  small tenant — the invariant-6 harm with a metric name on it. `crisis.path_completion` stays
+  `planned` for INT-116, which owns path completion end to end.
 - **Tests:** `tests/lanes/test_isolation.py` (INT-110) lands CLAUDE.md invariant 11 whole —
   read-only at type level, the fake-clock stall with a positive control, backpressure with its
   metric, per-lane consent through the one evaluator, and the `acoustic` study assertion
@@ -584,9 +588,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   close. It also lands inv. 13's static half (no observer module imports an audio transport),
   inv. 29 (every lane declares a reviewed `intended_purpose`, one statement per module), the
   `ObserverState` half of inv. 22 (there is no `affect` field for a label to cross M1 in) and
-  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows. Invariants 12, 14,
-  15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-112, INT-115 and the
-  audio-buffer and consent-withdrawal issues.
+  the ≤ 60 s / zeroize-on-every-trigger half of inv. 18 for lane windows.
+  `tests/lanes/test_crisis_bypass.py` (INT-112) lands the first lane *model* and the crisis
+  path's read-only half: the presence fact carries a family id and a count with no field,
+  property or open map a level could occupy; the router port is declared and **unimplemented**,
+  so the crisis path is absent rather than idle (HB-C8, HB-L2); the lane's declared input type
+  has no `match_crisis`, so a crisis hit has no route into `ObserverState`; INT-110's AST gate
+  is re-run with the triage names this issue could have reached for; the detection is not
+  consent-gated (files/04 §4.2 defect 3) and still runs when `lane:linguistic` is refused; and
+  the CLAUDE.md invariant 22 whole-token rule is carried into lexicon matching with `üre`/`üreme`
+  and `sarı tebeşir`/`sarı tebeşirlik` as near-miss negative controls. It also re-runs the
+  fake-clock latency proof with a real lane and 200 in-turn crisis scans (0.0 virtual ms) against
+  the same positive control. `tests/protocols/test_lexicon.py` holds the content gate: five
+  families, zero terms, and a compiler that refuses every `draft_needs_source` one.
+  Invariants 12, 14, 15, 16, 17, 19, 20, 21, 24, 25, 26, 27 and 28 remain with INT-111, INT-115
+  and the audio-buffer and consent-withdrawal issues.
 
 ## `clinical-content` — packs, rules and safety strings
 
