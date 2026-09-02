@@ -3215,3 +3215,78 @@
     - apps/mobile/src/lib/intake/history.test.ts
     - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
+- id: INT-291
+  epic: E05-voice
+  phase: P0
+  # Owner defect report, verbatim: "the voice is too robotic and non disruptble
+  # at middle and no emotions", after an earlier "tts is so awkward". Three
+  # defects in one sentence about one surface — the spoken turn — so one issue.
+  # The first is a safety property and the rest of the row is subordinate to it.
+  title: 'The patient cannot interrupt by speaking: voice barge-in, a measured
+    chunk floor, and a turn-yielding contour'
+  depends_on:
+  - INT-237
+  - INT-249
+  labels:
+  - area:voice
+  - area:mobile
+  status: done
+  acceptance:
+  - 'speaking over the agent does something: while a clip plays the dialogue set
+    an audio mode that forbade recording and started no recorder at all, so
+    there was no microphone during agent speech and the only two interrupts were
+    a tap on the bubble and a typed message; the microphone now opens when the
+    agent starts speaking rather than when it stops, a level watch feeds a pure
+    onset detector, and an onset calls the same reducer action the tap calls, so
+    one state machine serves both causes'
+  - 'the stop is measured rather than asserted: the runtime gains a barge-in path
+    measured on the shared virtual clock the RED preemption path uses, from the
+    moment patient speech was DETECTED rather than the moment the runtime heard
+    about it, holding the stop budget the product spec states; a missed budget is
+    recorded on the outcome instead of raised, because unlike a missed emergency
+    budget it must not take the conversation away from the patient who just
+    asked for it'
+  - 'the series the spec already names moves from planned to live and stays its
+    own series, never folded into the emergency preemption histogram, because
+    two causes in one histogram make one target unreadable for both'
+  - 'an emergency script is not interruptible: a barge-in arriving while one is
+    in flight is refused explicitly and on the record, and the refusal lifts the
+    moment the script finishes rather than latching for the session'
+  - 'the barge-in path cannot become a preemption: it never reaches the work
+    queue, carries no priority, is unreachable from a backend result, and holds
+    no audio - asserted against the module''s own parsed source with docstrings
+    stripped, because a name merely unused today is imported tomorrow'
+  - 'the self-echo problem is answered by measurement, not by a constant: with
+    the microphone open on a speakerphone the agent hears itself, so the trigger
+    threshold is calibrated per clip against the level actually observed while
+    the agent speaks, floored absolutely, and held - and every failure mode of
+    that ladder is toward NOT interrupting, so the worst case is the behaviour
+    the product already had'
+  - 'the previous shaping pass split at EVERY sentence boundary and a
+    measurement of the shipped lane shows that corrupts short ones: synthesise
+    then transcribe with the independent recogniser, every request below a
+    measured floor of thirteen non-space characters came back carrying a token
+    nobody authored, four of four, and the strings this bites are the shortest
+    and most safety-critical in the product; delivery now merges below that
+    floor and keeps the split wherever both sides clear it'
+  - 'the turn has a contour instead of one flat pause everywhere: the gap
+    between the agent''s own sentences drops below the end-of-turn silence
+    floor the runtime spec mandates, so a pause inside a question can no longer
+    read as the agent having finished, and the last chunk gains a deliberate
+    yield tail above that floor - which costs no interaction latency because the
+    microphone is open through the clip'
+  - 'a clip that arrives head-clipped is padded rather than shaved: the previous
+    pass trimmed to a fixed head and faded into it, which on a lane that returns
+    zero leading silence put the fade on the first phoneme'
+  - 'no word is added anywhere: the delivery stage is proved unable to originate
+    a token, over every string in the Turkish catalog, so the reassurance
+    language the policy guard forbids cannot arrive through prosody work'
+  - 'the two lanes are compared on quality and not only on latency, with a date
+    and a named corpus, described as measurements of two daemons on one host on
+    one day and never as properties of either model'
+  tests:
+  - tests/voice/test_barge_in.py
+  - apps/mobile/src/lib/dialogue/bargeIn.test.ts
+  - apps/mobile/src/lib/dialogue/speechShaping.test.ts
+  - apps/mobile/e2e/bargeIn.spec.ts
+  sec_row: "intake-voice"

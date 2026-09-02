@@ -23,7 +23,7 @@
  * primitive. See speechShaping.ts for the shaping contract and
  * docs/evidence/INT-237.md for the measurements.
  */
-import { assembleClip, shapeForSpeech } from "./speechShaping";
+import { assembleClip, shapeForDelivery } from "./speechShaping";
 
 export const TTS_PORT = 8803;
 
@@ -96,7 +96,10 @@ export const SYNTHESIZE_TIMEOUT_MS = 2364;
  * which is the same trade INT-249 already made one level down.
  */
 export function clipDeadlineMs(text: string): number {
-  const sentences = Math.max(1, shapeForSpeech(text).length);
+  // INT-291: count the requests DELIVERY will make, not the sentences the
+  // text has — merging below the floor means fewer requests, and a budget
+  // that overcounts them buys the patient a longer spinner for nothing.
+  const sentences = Math.max(1, shapeForDelivery(text).length);
   return TURN_ROUND_TRIP_BUDGET_MS + sentences * SYNTHESIZE_TIMEOUT_MS;
 }
 
@@ -243,13 +246,15 @@ export async function synthesizeClipWith(
   text: string,
 ): Promise<Uint8Array> {
   assertSpeakableTr(text);
-  const chunks = shapeForSpeech(text);
+  // INT-291: shapeForDelivery, not shapeForSpeech. The extra stage merges any
+  // sentence below the lane's measured floor back into its neighbour — the
+  // RED imperatives are the shortest strings in the product and the lane
+  // invents a word in each when they are sent alone — and puts the turn-yield
+  // tail on the last chunk. The single-chunk case is no longer special: it
+  // carries that tail like any other last chunk.
+  const chunks = shapeForDelivery(text);
   if (chunks.length === 0) {
     throw new Error("tts_empty_text");
-  }
-  if (chunks.length === 1) {
-    // one sentence: nothing to join, but still trim and fade the edges
-    return assembleClip([await synthesizeSentence(chunks[0].spoken)], [0]);
   }
   // sequential, not parallel: the daemon synthesizes under a single lock,
   // so concurrent requests would queue anyway and only cost us timeouts.

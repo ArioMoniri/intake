@@ -415,13 +415,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Trust boundaries:** patient's room (who else is present?) ↔ the session; device ↔ SFU.
 - **Threats (STRIDE/LINDDUN):** [I] eavesdropping and third-party presence during sensitive
   sections; [S] a different speaker answering for the patient; [D] network loss at the worst
-  moment (during a RED).
+  moment (during a RED); **[D] the patient cannot stop or correct the agent** — until
+  INT-291 the only interrupts were a screen tap and a typed message, so a patient who
+  needed to correct a question mid-sentence had no voice route at all.
 - **Controls (files/10):** §5 voice transport — per-session room tokens with minimal grants
   and 10-min TTL, DTLS-SRTP, ephemeral rooms, no SFU recording; inv. 26 — on
   `third_party_present` before a sensitive section, typed/keypad is offered; CLAUDE.md
-  invariant 21 — the RED script is pre-positioned on the device, data channel only.
-- **Signals:** round-trip latency and vendor errors (§9 voice row) land with INT-135/INT-103.
-- **Tests:** RT-01…RT-12 scenarios land with INT-094 and INT-102.
+  invariant 21 — the RED script is pre-positioned on the device, data channel only, and a
+  barge-in arriving while it plays is **refused** (INT-291), because inside RED ambiguity is
+  the harm; the barge-in path carries no priority and never reaches the Work queue, so
+  invariant 9's single preemption is unchanged; invariant 3 is untouched — the onset signal
+  is an id and a timestamp, never frames.
+- **Signals:** round-trip latency and vendor errors (§9 voice row) land with INT-135/INT-103;
+  `voice.barge_in_stop_ms` (≤ 150 ms, files/08 §4 group B) is **live** with INT-291, and
+  stays a separate series from `preempt.red_latency_ms` so one target is readable per cause.
+- **Tests:** RT-01…RT-12 scenarios land with INT-094 and INT-102. The barge-in stop, its
+  refusal under RED and its non-preemption are `tests/voice/test_barge_in.py` (INT-291) on
+  the same virtual clock INT-093 uses; the onset rule itself is
+  `apps/mobile/src/lib/dialogue/bargeIn.test.ts`, pure so that it is provable without a
+  microphone.
 
 ## `intake-typed` — the typed parity path
 
