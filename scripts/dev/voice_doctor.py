@@ -21,7 +21,10 @@ Lanes, and what "expected" means for each:
   a ladder, and the app picks the first that answers.
 * ``extract`` (8804) — DEGRADED, not required. The dialogue runs without it:
   ``useDialogueSession`` keeps the verbatim transcript when the extract call
-  fails and simply carries no slot suggestions. Exiting non-zero on a lane
+  fails, an answer given in the pack's own option words is still recognised on
+  the device (``lib/intake/answerMatch.ts``, INT-293), and anything neither can
+  place is asked again rather than dropped. What is lost with this lane down is
+  the reading of free narrative onto slots — not the answer. Exiting non-zero on a lane
   the product tolerates would teach people to ignore the exit code.
 
 Ports and hosts are the app's own, read from ``apps/mobile/app.json`` and

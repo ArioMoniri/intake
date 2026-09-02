@@ -3258,7 +3258,7 @@
   title: "Answers given on the dialogue surface never reach the note"
   depends_on: [INT-261, INT-282]
   labels: [area:mobile, area:engine, risk:clinical]
-  status: todo
+  status: done
   evidence: docs/evidence/INT-293.md
   acceptance:
     - "the failure is reproduced before it is fixed: a test drives submit_utterance with a diacritic-free Turkish answer that matches an option label modulo diacritics ('Bugun basladi' against 'Bugun basladi'), and asserts the slot is filled - recorded red in the evidence before any fix"
@@ -3271,6 +3271,7 @@
     - "no placeholder, no skipped test; make check is green"
   tests:
     - apps/mobile/src/lib/dialogue/stream.test.ts
+    - apps/mobile/src/lib/intake/answerMatch.test.ts
     - apps/mobile/src/lib/intake/questions.test.ts
   sec_row: "intake-voice"
 - id: INT-294

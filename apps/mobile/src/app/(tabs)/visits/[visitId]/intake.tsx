@@ -275,8 +275,11 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
    * Commit one answer. `words` is the patient's own sentence for an open step
    * (INT-286) — recorded beside the coded values, never inside them, so no
    * free text can open a gate or reach a rule (invariant 1). The typed lane
-   * resolves nothing locally: there is exactly one route from words to a
-   * declared option id and it is the INT-083 boundary the dialogue uses.
+   * resolves nothing from those words: the options are on screen and the tap
+   * is the answer, so there is nothing here for a matcher to do. (The spoken
+   * lane, which has no chips, reads the patient's words against the same
+   * declared labels before handing anything the extract boundary cannot place
+   * back to the patient — lib/intake/answerMatch.ts, INT-293.)
    */
   const commit = (values: string[], words?: string) => {
     if (visitId) {

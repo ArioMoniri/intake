@@ -26,8 +26,16 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { intakeQuestions, packForDepartment } from "../intake/questions";
 import {
+  applicableQuestions,
+  intakeQuestions,
+  packForDepartment,
+  type IntakeQuestion,
+} from "../intake/questions";
+import { sectionPanelModel } from "./sectionPanel";
+import {
+  answerWords,
+  committedAnswers,
   dialogueStreamReducer,
   initialDialogueStreamState,
   type DialogueStreamAction,
@@ -57,6 +65,8 @@ function state(overrides: Partial<DialogueStreamState>): DialogueStreamState {
     seq: {},
     stream: [],
     voiceMuted: false,
+    utteranceOf: {},
+    unclear: {},
     ...overrides,
   };
 }
@@ -723,5 +733,249 @@ describe("dialogueStreamReducer — a clip that cannot be spoken silences the ag
     const after = runGeneral(listening, { type: "speech_unavailable" });
     expect(after.turn).toBe(listening.turn);
     expect(after.voiceMuted).toBe(true);
+  });
+});
+
+// INT-293 — the answers given on the dialogue surface reach the note.
+//
+// The walkthrough (docs/evidence/INT-293.md) answered three consecutive
+// questions through the composer. The conversation advanced correctly every
+// time and the note never moved: "Not oluşuyor 0 / 10 bölüm" after three
+// answers, every section still "Henüz yanıtlanmadı", and the hand-over to the
+// typed steps started at "0 soru yanıtlandı".
+//
+// The issue names the first thing to establish, and these tests establish it
+// by asserting on the INTERMEDIATE value — the candidate the utterance
+// produces — rather than on the note at the end:
+//
+//   (a) the answer is extracted into a slot and the slot never reaches the
+//       note composer — a wiring defect; or
+//   (b) the answer is never extracted at all — the note is correctly
+//       reporting that it has nothing.
+//
+// `the write path` below is the separator: it drives the same commit with a
+// candidate that already exists, so whichever way it goes decides which world
+// this is before a line of it is fixed.
+describe("dialogueStreamReducer — an answer given here reaches the note (INT-293)", () => {
+  /** The suggestion standing for one question: pending, or the live confirm
+   * turn that has already consumed it. */
+  function suggestionFor(
+    pack: readonly IntakeQuestion[],
+    s: DialogueStreamState,
+    questionId: string,
+  ): DialogueCandidate | null {
+    const { turn } = s;
+    if (
+      (turn.phase === "confirming" || (turn.phase === "speaking" && turn.intent === "confirm")) &&
+      pack[turn.step]?.id === questionId
+    ) {
+      return turn.candidate;
+    }
+    return s.pending[questionId] ?? null;
+  }
+
+  /** One whole answered turn, exactly as the surface drives it: the patient
+   * types, the agent reads the suggestion back, the patient confirms. */
+  function answerByTyping(
+    pack: readonly IntakeQuestion[],
+    s: DialogueStreamState,
+    workId: number,
+    text: string,
+  ): DialogueStreamState {
+    let next = dialogueStreamReducer(pack, s, { type: "typed", workId, text });
+    const candidate = suggestionFor(pack, next, currentId(pack, next) ?? "");
+    if (candidate === null) {
+      return next; // nothing to confirm — the caller asserts on that
+    }
+    next = dialogueStreamReducer(pack, next, { type: "speech_done" });
+    return dialogueStreamReducer(pack, next, { type: "confirm", values: candidate.values });
+  }
+
+  function currentId(
+    pack: readonly IntakeQuestion[],
+    s: DialogueStreamState,
+  ): string | undefined {
+    return "step" in s.turn ? pack[s.turn.step]?.id : undefined;
+  }
+
+  const askingDuration = () =>
+    state({
+      turn: { phase: "listening", step: 1 },
+      asked: ["complaint"],
+      answers: { complaint: { values: ["pain"], quote: "agrim var" } },
+      stream: [
+        { kind: "agent_question", questionId: "complaint" },
+        { kind: "agent_question", questionId: "duration" },
+      ],
+    });
+
+  it("the reproduction: 'Bugun basladi' typed on the duration turn fills the slot", () => {
+    // Diacritic-free Turkish is what the walkthrough could type, and what
+    // people actually type. The assertion is on the SLOT, not on the note.
+    const after = runGeneral(askingDuration(), {
+      type: "typed",
+      workId: 2,
+      text: "Bugun basladi",
+    });
+    expect(suggestionFor(general, after, "duration")).toEqual({
+      values: ["today"],
+      quote: "Bugun basladi",
+    });
+  });
+
+  it("the same answer fully diacritised fills the same slot", () => {
+    const after = runGeneral(askingDuration(), {
+      type: "typed",
+      workId: 2,
+      text: "Bugün başladı",
+    });
+    expect(suggestionFor(general, after, "duration")).toEqual({
+      values: ["today"],
+      quote: "Bugün başladı",
+    });
+  });
+
+  it("the write path: a candidate that exists does reach the answers", () => {
+    // The hypothesis separator. This one drives the commit from a candidate
+    // handed in from outside, so it says whether the note-ward half of the
+    // path works at all, independently of anything that produces candidates.
+    let s = state({
+      turn: { phase: "listening", step: 1 },
+      asked: ["complaint"],
+      answers: { complaint: { values: ["pain"], quote: "" } },
+    });
+    s = runGeneral(s, { type: "utterance", workId: 2 });
+    s = runGeneral(s, {
+      type: "extract_settled",
+      workId: 2,
+      candidates: { duration: { values: ["today"], quote: "bugün başladı" } },
+    });
+    expect(s.pending.duration).toEqual({ values: ["today"], quote: "bugün başladı" });
+    // the landed suggestion gets its confirm turn on the next advance
+    s = runGeneral(s, { type: "speech_done" });
+    s = runGeneral(s, { type: "utterance", workId: 3 });
+    expect(s.turn).toEqual({
+      phase: "speaking",
+      step: 1,
+      intent: "confirm",
+      candidate: { values: ["today"], quote: "bugün başladı" },
+    });
+    s = runGeneral(s, { type: "speech_done" });
+    s = runGeneral(s, { type: "confirm", values: ["today"] });
+    expect(s.answers.duration).toEqual({ values: ["today"], quote: "bugün başladı" });
+  });
+
+  it("words nothing can map are never swallowed: the question comes back", () => {
+    // Ask-ahead speaks the next question while the pipeline runs (INT-235),
+    // so the honest place to assert is once that utterance's fate is known:
+    // the conversation has not moved PAST the question, and the patient is
+    // told why it is being asked again.
+    let s = state({
+      turn: { phase: "listening", step: 0 },
+      stream: [{ kind: "agent_question", questionId: "complaint" }],
+    });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "pek bilmiyorum ki" });
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    expect(s.answers.complaint).toBeUndefined();
+    expect(s.asked).not.toContain("complaint"); // not left behind as asked-and-done
+    // and the very next advance asks it again, with the honest line first
+    s = runGeneral(s, { type: "speech_done" });
+    s = runGeneral(s, { type: "typed", workId: 2, text: "bugün başladı" });
+    expect(currentId(general, s)).toBe("complaint");
+    expect(s.stream.at(-2)).toEqual({ kind: "agent_unclear", questionId: "complaint" });
+    expect(s.stream.at(-1)).toEqual({ kind: "agent_question", questionId: "complaint" });
+  });
+
+  it("a question the agent could not understand twice is not asked a third time", () => {
+    let s = state({
+      turn: { phase: "listening", step: 0 },
+      stream: [{ kind: "agent_question", questionId: "complaint" }],
+    });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "pek bilmiyorum ki" });
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    s = runGeneral(s, { type: "speech_done" });
+    s = runGeneral(s, { type: "typed", workId: 2, text: "Bugun basladi" }); // duration lands
+    expect(currentId(general, s)).toBe("complaint"); // and complaint is re-asked
+    s = runGeneral(s, { type: "speech_done" });
+    s = runGeneral(s, { type: "typed", workId: 3, text: "yine anlatamıyorum" });
+    s = runGeneral(s, { type: "extract_settled", workId: 3, candidates: {} });
+    expect(s.unclear.complaint).toBe(2);
+    expect(s.asked).toContain("complaint"); // the second miss ends the loop
+  });
+
+  it("the dialogue never ENDS past a question it could not understand", () => {
+    // The literal form of "does not advance the question index": with every
+    // question asked and the last pipeline settling, an unmapped answer does
+    // not resolve to handoff — the conversation comes back and asks it.
+    let s = state({
+      turn: { phase: "settling" },
+      asked: ["complaint", "duration", "extra"],
+      answers: {
+        duration: { values: ["today"], quote: "bugün başladı" },
+        extra: { values: [], quote: "" },
+      },
+      utteranceOf: { 7: "complaint" },
+      inflight: [7],
+    });
+    s = runGeneral(s, { type: "extract_settled", workId: 7, candidates: {} });
+    expect(s.turn).toEqual({ phase: "speaking", step: 0, intent: "question" });
+    expect(s.stream.at(-2)).toEqual({ kind: "agent_unclear", questionId: "complaint" });
+  });
+
+  it("the note counter is truthful: three answered turns are three filled sections", () => {
+    let s = initialDialogueStreamState(cardio);
+    s = runCardio(s, { type: "speech_done" });
+    s = answerByTyping(cardio, s, 1, "Ağrı var");
+    s = answerByTyping(cardio, s, 2, "Bugun basladi");
+    s = answerByTyping(cardio, s, 3, "Sabah");
+    expect(Object.keys(s.answers).sort()).toEqual(["complaint", "duration", "onset_today_when"]);
+    const model = sectionPanelModel(cardio, s, []);
+    expect(model.filled).toBe(3);
+    expect(model.rows.filter((row) => row.status === "answered").map((row) => row.questionId)).
+      toEqual(["complaint", "duration", "onset_today_when"]);
+  });
+
+  it("the gates fire here exactly as they do in the typed steps", () => {
+    // duration = today opens `onset_today_when` and closes `duration_course`;
+    // duration = month does the opposite. Same pack, same predicate, both
+    // surfaces — the dialogue's asked-set against applicableQuestions.
+    const walk = (durationWords: string) => {
+      let s = initialDialogueStreamState(cardio);
+      s = runCardio(s, { type: "speech_done" });
+      s = answerByTyping(cardio, s, 1, "Ağrı var");
+      s = answerByTyping(cardio, s, 2, durationWords);
+      return s;
+    };
+    const today = walk("Bugun basladi");
+    const month = walk("Bir aydan uzun süredir");
+    expect(currentId(cardio, today)).toBe("onset_today_when");
+    expect(currentId(cardio, month)).toBe("duration_course");
+    for (const s of [today, month]) {
+      const typedLane = applicableQuestions(cardio, committedAnswers(s)).map((q) => q.id);
+      expect(typedLane).toContain(currentId(cardio, s));
+      // the closed branch is absent from BOTH surfaces
+      const closed = s === today ? "duration_course" : "onset_today_when";
+      expect(typedLane).not.toContain(closed);
+    }
+  });
+
+  it("the hand-over lands on the next question, not back at zero", () => {
+    let s = initialDialogueStreamState(cardio);
+    s = runCardio(s, { type: "speech_done" });
+    s = answerByTyping(cardio, s, 1, "Ağrı var");
+    s = answerByTyping(cardio, s, 2, "Bugun basladi");
+    // What the screen commits per confirm, in the note's own shape.
+    const noteAnswers = Object.entries(s.answers).map(([questionId, answer]) => ({
+      questionId,
+      values: answer.values,
+      words: answerWords(
+        cardio.find((q) => q.id === questionId)!,
+        answer.quote,
+      ),
+    }));
+    const applicable = applicableQuestions(cardio, noteAnswers);
+    const answeredIds = new Set(noteAnswers.map((a) => a.questionId));
+    expect(applicable.filter((q) => answeredIds.has(q.id)).length).toBe(2);
+    expect(applicable.find((q) => !answeredIds.has(q.id))?.id).toBe("onset_today_when");
   });
 });
