@@ -18,12 +18,21 @@ Three rules that are load-bearing rather than incidental:
 3. **Scripted stays scripted.** Instrument items and red-flag action scripts
    are marked ``scripted`` unconditionally; a paraphrasable section can only
    ever relax an ordinary protocol question (CLAUDE.md invariant 10).
+4. **The key carries the locale** (INT-297). Two locales may be pinned to one
+   voice, and after per-locale expansion two languages can produce the same
+   bytes for a short string — a brand name, a unit, a place. A cache found by
+   text hash and voice alone then serves one language's clip into the other
+   language's turn. So the row is keyed ``(locale, voice, text_hash)`` and the
+   clip id names the locale, and a second row wanting one key with a different
+   obligation on it is a **refusal**, never a first-writer-wins dedupe:
+   identical rows are the same clip, and rows that disagree about whether the
+   text may be paraphrased are two different promises sharing one cache entry.
 """
 
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 
 from clinical_schemas.common import FrozenModel, Ref
 from pydantic import Field
@@ -32,9 +41,10 @@ from protocols.compile.errors import Refusal, RefusalCode
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.compile.tr_orthography import TrExpansionError, assert_round_trip, expand_tr
 from protocols.dsl import ClipManifestEntry, clip_text_hash
+from protocols.locale_text import DEFAULT_LOCALE, entry_for, safe_code
 from protocols.types import Delivery
 
-__all__ = ["ClipRow", "SpeakableText", "clip_manifest"]
+__all__ = ["ClipRow", "SpeakableText", "clip_manifest", "rows_from"]
 
 
 class ClipRow(FrozenModel):
@@ -61,14 +71,24 @@ class SpeakableText(FrozenModel):
     )
 
 
-def _clip_id(text: str, voice: str) -> Ref:
-    """``sha256(text_tr, voice_id)`` (files/03 §4.9.1 row 10), namespaced so a
-    clip id reads as a clip id in a log line."""
-    digest = hashlib.sha256(f"{text}\x00{voice}".encode()).hexdigest()
-    return f"clip.{voice}.{digest}"
+def _clip_id(text: str, voice: str, locale: str) -> Ref:
+    """``sha256(text_tr, voice_id, locale)`` (files/03 §4.9.1 row 10 plus the
+    INT-297 locale), namespaced so a clip id reads as a clip id in a log line
+    and names the language it speaks."""
+    digest = hashlib.sha256(f"{text}\x00{voice}\x00{locale}".encode()).hexdigest()
+    return f"clip.{locale}.{voice}.{digest}"
 
 
 def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
+    """Every string this document can speak, read for the document's own locale.
+
+    The locale-keyed fields are read through :func:`entry_for`, which raises
+    rather than falling back. That cannot fire here — ``resolve_protocol``
+    refuses a locale the chain cannot speak before any emitter runs — and it is
+    written this way so that if the gate is ever removed the manifest stops
+    rather than quietly emitting Turkish under another language's clip id.
+    """
+    locale = document.locale
     speakable_sections: set[str] = set()
     for section in document.sections:
         section_clipped = section.delivery is not Delivery.TEXT_ONLY
@@ -80,16 +100,20 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
             if slot.slot.ask_tr is not None:
                 yield SpeakableText(
                     subject=slot.fhir_link_id,
-                    text=slot.slot.ask_tr,
+                    text=entry_for(slot.slot.ask_tr, locale),
                     scripted=scripted,
                     clipped=clipped,
                     is_prompt=True,
                 )
-            for text in (
-                slot.slot.confirm_tr,
-                slot.slot.follow_up_tr,
-                *(slot.slot.choices_tr or ()),
-            ):
+            follow_up = (
+                entry_for(slot.slot.follow_up_tr, locale)
+                if slot.slot.follow_up_tr is not None
+                else None
+            )
+            choices = (
+                entry_for(slot.slot.choices_tr, locale) if slot.slot.choices_tr is not None else ()
+            )
+            for text in (slot.slot.confirm_tr, follow_up, *choices):
                 if text is not None:
                     yield SpeakableText(
                         subject=slot.fhir_link_id, text=text, scripted=scripted, clipped=clipped
@@ -104,7 +128,7 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
         for item in instrument.items:
             yield SpeakableText(
                 subject=f"{instrument.id}.{item.id}",
-                text=item.text_tr,
+                text=entry_for(item.text_tr, locale),
                 scripted=True,
                 clipped=instrument.id in administered,
             )
@@ -113,7 +137,8 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
         if action is None:
             continue
         for location in (action.remote, action.on_site):
-            for text in (location.action_tr, location.why_tr, *location.do_nots_tr):
+            why = entry_for(location.why_tr, locale) if location.why_tr is not None else None
+            for text in (location.action_tr, why, *location.do_nots_tr):
                 if text is not None:
                     yield SpeakableText(subject=rule.id, text=text, scripted=True, clipped=True)
         yield SpeakableText(
@@ -122,13 +147,41 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
 
 
 def clip_manifest(
-    document: ResolvedProtocol, voice: str
+    document: ResolvedProtocol, voice: str, *, locale: str | None = None
 ) -> tuple[tuple[ClipRow, ...], dict[str, str], list[Refusal]]:
-    """Build the manifest, the linkId → expanded-prompt map, and any refusals."""
+    """Build the manifest, the linkId → expanded-prompt map, and any refusals.
+
+    ``locale`` defaults to the document's own and may not disagree with it: a
+    manifest built for one language out of a document resolved for another is
+    the exact confusion the (locale, voice) key exists to prevent.
+    """
+    if locale is not None and locale != document.locale:
+        return (
+            (),
+            {},
+            [
+                Refusal(
+                    code=RefusalCode.LOCALE_NOT_SELECTABLE,
+                    subject=document.pack_id,
+                    message=(
+                        f"clip manifest asked for {safe_code(locale)} from a document "
+                        f"resolved for {safe_code(document.locale)}; resolve the pack "
+                        "for the locale you intend to serve (INT-296; INT-297)"
+                    ),
+                )
+            ],
+        )
+    return rows_from(_sources(document), voice=voice, locale=document.locale)
+
+
+def rows_from(
+    sources: Iterable[SpeakableText], *, voice: str, locale: str = DEFAULT_LOCALE
+) -> tuple[tuple[ClipRow, ...], dict[str, str], list[Refusal]]:
+    """Expand, key on ``(locale, voice, text_hash)``, and refuse a collision."""
     refusals: list[Refusal] = []
     rows: dict[str, ClipRow] = {}
     prompts: dict[str, str] = {}
-    for source in _sources(document):
+    for source in sources:
         try:
             expansion = expand_tr(source.text)
             assert_round_trip(expansion)
@@ -155,15 +208,33 @@ def clip_manifest(
         if not source.clipped:
             continue
         text_hash = clip_text_hash(expanded)
-        rows.setdefault(
-            text_hash,
-            ClipRow(
-                subject=source.subject,
-                text_tr=expanded,
-                scripted=source.scripted,
-                entry=ClipManifestEntry(
-                    text_hash=text_hash, clip_id=_clip_id(expanded, voice), voice=voice
-                ),
+        row = ClipRow(
+            subject=source.subject,
+            text_tr=expanded,
+            scripted=source.scripted,
+            entry=ClipManifestEntry(
+                text_hash=text_hash,
+                clip_id=_clip_id(expanded, voice, locale),
+                voice=voice,
+                locale=locale,
             ),
         )
+        seen = rows.get(text_hash)
+        if seen is None:
+            rows[text_hash] = row
+            continue
+        if seen.scripted != row.scripted:
+            refusals.append(
+                Refusal(
+                    code=RefusalCode.CLIP_KEY_COLLISION,
+                    subject=f"{seen.subject}|{row.subject}",
+                    message=(
+                        f"two rows claim clip key ({safe_code(locale)}, {voice}, "
+                        f"{text_hash[:12]}…) with different paraphrase obligations — "
+                        "one clip cannot be both verbatim-only and paraphrasable, and "
+                        "preferring whichever row was seen first decides invariant 10 "
+                        "by iteration order (CLAUDE.md invariant 10; INT-297)"
+                    ),
+                )
+            )
     return tuple(rows[key] for key in sorted(rows)), prompts, refusals

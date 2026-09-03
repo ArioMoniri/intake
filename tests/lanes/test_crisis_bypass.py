@@ -81,6 +81,7 @@ from intake_voice_runtime.observers.transcript import (
 from lane_harness import FakeClock, build_session, granted, lane_double, refused, scripted_step
 from protocols import EK4Level, RedFlagRule
 from protocols.lexicon import CompiledLexicon, LexiconDocument, compile_lexicon, load_lexicon
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.triage import DraftRuleError, SlotAnswer, TriageContext, evaluate_triage
 from pydantic import ValidationError
 
@@ -205,14 +206,14 @@ def crisis_rule(rule_id: str = "rf.sentetik_kriz", *, status: str = "active") ->
                 "primary": "CALL_112",
                 "show_112": True,
                 "action_tr": "Sentetik yonlendirme metni.",
-                "why_tr": "Bu bir sentetik test metnidir.",
+                "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "ON_SITE": {
                 "primary": "GO_TO_IN_HOUSE_ACIL",
                 "show_112": False,
                 "notify_staff_immediate": True,
                 "action_tr": "Sentetik yonlendirme metni.",
-                "why_tr": "Bu bir sentetik test metnidir.",
+                "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "UNKNOWN": {
                 "ask_one_tr": "Su anda hastanede misiniz?",

@@ -21,8 +21,10 @@ sections:
       ek_soru:
         type: boolean
         required: true
-        ask_tr: "Örnek dal sorusu: ek belirti var mı?"
-        follow_up_tr: "Evet ya da hayır diyebilir misiniz?"
+        ask_tr:
+          tr: "Örnek dal sorusu: ek belirti var mı?"
+        follow_up_tr:
+          tr: "Evet ya da hayır diyebilir misiniz?"
 red_flags:
   - id: rf.synthetic_dal_sari
     label_tr: "Sentetik dal sarı kuralı"
@@ -72,13 +74,15 @@ ops:
           primary: CALL_112
           show_112: true
           action_tr: "Hemen yardım isteyin."
-          why_tr: "Bu bir sentetik test metnidir."
+          why_tr:
+            tr: "Bu bir sentetik test metnidir."
         ON_SITE:
           primary: GO_TO_IN_HOUSE_ACIL
           show_112: false
           notify_staff_immediate: true
           action_tr: "Görevlilere haber verin ve bekleyin."
-          why_tr: "Bu bir sentetik test metnidir."
+          why_tr:
+            tr: "Bu bir sentetik test metnidir."
         UNKNOWN:
           ask_one_tr: "Şu anda hastanede misiniz?"
           on_yes: ON_SITE

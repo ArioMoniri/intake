@@ -3,7 +3,8 @@
 files/09 §2, L0 row: a "starter pack drafted by the *Protocol Authoring
 Agent* from the cluster pack + branch template + cited public guidance
 (Turkish specialty-society guidelines, MoH clinical protocols); every slot
-has ``ask_tr/follow_up_tr``; red flags only *copied* from base/cluster,
+has locale-keyed ``ask_tr``/``follow_up_tr``; red flags only *copied* from
+base/cluster,
 never invented" — and it is never served: review queue only, and an L0 pack
 resolved for a live session raises (CLAUDE.md invariant 13, enforced by
 :mod:`protocols.taxonomy` and pinned in tests/protocols/test_l0_guard.py).
@@ -41,6 +42,7 @@ from typing import Final
 import yaml
 
 from protocols.loader import load_pack
+from protocols.locale_text import DEFAULT_LOCALE
 from protocols.pack import ProtocolPack
 from protocols.taxonomy import Branch, Cluster, Taxonomy
 from protocols.types import Maturity, PackLayer
@@ -160,6 +162,7 @@ def _payload(branch: Branch, cluster: Cluster) -> dict[str, object]:
 
     The branch template (files/09 §2 "branch template"): one generic
     visit-context section whose slots all carry ``ask_tr``/``follow_up_tr``
+    keyed by locale (INT-297), Turkish being the only locale registered
     (≤ B1 Turkish, ``siz`` register, one question per turn, no numerals —
     CLAUDE.md invariant 22). Cluster and base content — the real sections
     and red flags — arrive through ``extends`` (files/03 §6), never by
@@ -183,14 +186,20 @@ def _payload(branch: Branch, cluster: Cluster) -> dict[str, object]:
                     "basvuru_nedeni": {
                         "type": "string",
                         "required": True,
-                        "ask_tr": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-                        "follow_up_tr": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+                        "ask_tr": {
+                            DEFAULT_LOCALE: "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+                        },
+                        "follow_up_tr": {
+                            DEFAULT_LOCALE: "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+                        },
                     },
                     "sikayet_suresi": {
                         "type": "duration",
                         "required": False,
-                        "ask_tr": "Bu şikâyetiniz ne zamandır var?",
-                        "follow_up_tr": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+                        "ask_tr": {DEFAULT_LOCALE: "Bu şikâyetiniz ne zamandır var?"},
+                        "follow_up_tr": {
+                            DEFAULT_LOCALE: "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+                        },
                     },
                 },
             },

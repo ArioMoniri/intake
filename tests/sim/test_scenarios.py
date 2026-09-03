@@ -71,6 +71,7 @@ from intake_voice_runtime.steps import StepKind
 from intake_voice_runtime.talker.registry import TALKER_TOOLS
 from personas import PERSONAS, Literacy, Persona, ScriptedAnswer, SubjectRole
 from protocol import IntakeMode, sim_protocol
+from protocols.locale_text import entry_for
 from protocols.types import EK4Level
 from scenarios import SCENARIOS, ClinicalContentBlocked, Scenario
 
@@ -386,6 +387,7 @@ class TestVerbatimSpeech:
             for section in sim_protocol().sections
             for slot in section.slots
         }
+        locale = sim_protocol().locale
         for scenario in SCENARIOS.values():
             result = run_scenario(
                 scenario,
@@ -393,12 +395,13 @@ class TestVerbatimSpeech:
                 profile=VoiceProfile.RESIDENCY_TR,
             )
             for spoken in result.played:
+                authored = by_id[spoken.origin_id]
                 if spoken.kind is StepKind.FOLLOW_UP:
-                    assert spoken.text_tr == by_id[spoken.origin_id].follow_up_tr
+                    assert spoken.text_tr == entry_for(authored.follow_up_tr, locale)
                 elif spoken.kind is StepKind.CONFIRM:
-                    assert spoken.text_tr == by_id[spoken.origin_id].confirm_tr
+                    assert spoken.text_tr == authored.confirm_tr
                 else:
-                    assert spoken.text_tr == by_id[spoken.origin_id].ask_tr
+                    assert spoken.text_tr == entry_for(authored.ask_tr, locale)
 
     def test_only_the_paraphrase_section_is_marked_paraphrasable(self) -> None:
         result = _run("IM-01", profile=VoiceProfile.RESIDENCY_TR)
@@ -413,13 +416,15 @@ class TestVerbatimSpeech:
             assert repeat.text_tr == repeat.original_text_tr
 
     def test_instrument_items_are_authored_unparaphrasable(self) -> None:
+        locale = sim_protocol().locale
         instruments = sim_protocol().instruments
         assert instruments
         for instrument in instruments:
             assert instrument.voice is not None
-            assert instrument.voice.allow_paraphrase is False
+            assert instrument.voice.allow_paraphrase is not None
+            assert entry_for(instrument.voice.allow_paraphrase, locale) is False
             for item in instrument.items:
-                assert item.allow_paraphrase is False
+                assert entry_for(item.allow_paraphrase, locale) is False
 
     def test_one_question_per_turn(self) -> None:
         # files/04 §6 forbidden behaviours: never more than one question in a

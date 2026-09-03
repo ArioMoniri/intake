@@ -25,6 +25,7 @@ from protocols import (
     validate_packs,
 )
 from protocols.dsl import ClipManifestEntry
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.validator import split_top_level_disjuncts
 
 MINIMAL = """\
@@ -129,7 +130,8 @@ def test_quantity_slot_requires_unit(tmp_path: Path) -> None:
         slots:
           sure:
             type: quantity
-            ask_tr: "Örnek soru: ne kadar sürdü?"
+            ask_tr:
+              tr: "Örnek soru: ne kadar sürdü?"
     """
     path = write_pack(tmp_path, "birimsiz.yaml", minimal("base.synthetic_birimsiz", "base", extra))
     with pytest.raises(PackSchemaError, match="unit"):
@@ -143,7 +145,8 @@ def test_code_slot_requires_valueset(tmp_path: Path) -> None:
         slots:
           secim:
             type: code
-            ask_tr: "Örnek soru: hangisini seçersiniz?"
+            ask_tr:
+              tr: "Örnek soru: hangisini seçersiniz?"
     """
     path = write_pack(tmp_path, "kumesiz.yaml", minimal("base.synthetic_kumesiz", "base", extra))
     with pytest.raises(PackSchemaError, match="valueset"):
@@ -255,8 +258,10 @@ def test_set_attr_min_confidence_decrease_is_loosening(tmp_path: Path) -> None:
             type: boolean
             required: true
             min_confidence: "0.9"
-            ask_tr: "Örnek soru: emin misiniz?"
-            follow_up_tr: "Evet ya da hayır diyebilir misiniz?"
+            ask_tr:
+              tr: "Örnek soru: emin misiniz?"
+            follow_up_tr:
+              tr: "Evet ya da hayır diyebilir misiniz?"
     """
     overlay_extra = """\
     ops:
@@ -306,7 +311,8 @@ def test_reorder_and_set_voice_ops_are_representable(tmp_path: Path) -> None:
       - op: set_voice
         pointer: /sections/ornek_bolum
         voice:
-          allow_paraphrase: false
+          allow_paraphrase:
+            tr: false
           pace: slow
     """
     path = write_pack(tmp_path, "duzen.yaml", minimal("overlay.synthetic_duzen", "overlay", extra))
@@ -520,7 +526,8 @@ def test_signoff_token_outside_any_rule_is_flagged(tmp_path: Path) -> None:
         slots:
           bekleyen_soru:
             type: boolean
-            ask_tr: "Örnek {token} bekleyen metin"
+            ask_tr:
+              tr: "Örnek {token} bekleyen metin"
     """
     path = write_pack(tmp_path, "bekleyen.yaml", minimal("base.synthetic_bekleyen", "base", extra))
     registry = PackRegistry()
@@ -534,11 +541,14 @@ def test_instrument_voice_hint_may_not_permit_paraphrase(tmp_path: Path) -> None
     instruments:
       - id: SYN-SCALE
         voice:
-          allow_paraphrase: true
+          allow_paraphrase:
+            tr: true
         items:
           - id: syn_madde_bir
-            text_tr: "Örnek ölçek maddesi bir."
-            allow_paraphrase: false
+            text_tr:
+              tr: "Örnek ölçek maddesi bir."
+            allow_paraphrase:
+              tr: false
     """
     path = write_pack(
         tmp_path, "serbest_ses.yaml", minimal("base.synthetic_serbest_ses", "base", extra)
@@ -1121,7 +1131,7 @@ def test_the_on_site_action_has_no_112_carrier_of_any_kind() -> None:
         secondary="NOTIFY_STAFF",
         numbers=[183],
         do_nots_tr=["Poliklinik sırasında beklemeyin."],
-        why_tr="Acil serviste durumunuz girişte değerlendirilir.",
+        why_tr={TR: "Acil serviste durumunuz girişte değerlendirilir."},
     )
     rule = _validated(payload)
     dumped = rule.action.on_site.model_dump(mode="json")  # type: ignore[attr-defined]

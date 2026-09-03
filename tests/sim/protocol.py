@@ -123,8 +123,8 @@ def protocol_with_free_text_must_ask() -> ResolvedProtocol:
             type=SlotType.STRING,
             required=True,
             must_ask=True,
-            ask_tr="Sentetik serbest metin sorusu.",
-            follow_up_tr="Sentetik serbest metin takip sorusu.",
+            ask_tr={"tr": "Sentetik serbest metin sorusu."},
+            follow_up_tr={"tr": "Sentetik serbest metin takip sorusu."},
         ),
         delivery=Delivery.VOICE,
     )

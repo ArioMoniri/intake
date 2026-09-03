@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**240 issues.** By phase: P0 139 · P1 58 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 117 · todo 110 · withdrawn 1.
+**241 issues.** By phase: P0 139 · P1 59 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 119 · todo 109 · withdrawn 1.
 
 ## P0
 
@@ -204,7 +204,7 @@
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
 | INT-295 | The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing scrolls sideways to bring it back | E08-mobile | INT-284 | area:mobile, area:a11y | done |
-| INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | todo |
+| INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | done |
 | INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
 | INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
 | INT-305 | One-tap CSAT cannot form a csat.v1 event, because the schema requires a reason the first tap has not given | E16-experience | INT-240, INT-137 | area:experience, area:mobile | todo |
@@ -213,6 +213,7 @@
 | INT-309 | A Decimal still loses its type at three boundaries: the FHIR scalar mapper, the overlay store, and a JSON round trip | E02-data | INT-303 | area:data | todo |
 | INT-310 | Eight npm advisories block make security, including vitest at CVSS 9.8 | E13-infra | INT-019 | area:security, area:ci | todo |
 | INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | todo |
+| INT-314 | Four spoken fields are still Turkish-only, so a red-flag action script cannot yet be per-locale | E03-protocols | INT-297 | area:protocols, area:i18n, area:safety | todo |
 
 ## P2
 

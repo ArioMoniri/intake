@@ -126,11 +126,11 @@ def _slot(ask_tr: str, *, choices: tuple[str, ...] = CHIPS) -> Slot:
         "type": SlotType.INTEGER,
         "required": True,
         "must_ask": True,
-        "ask_tr": ask_tr,
-        "follow_up_tr": f"{ask_tr} Tekrar eder misiniz?",
+        "ask_tr": {"tr": ask_tr},
+        "follow_up_tr": {"tr": f"{ask_tr} Tekrar eder misiniz?"},
     }
     if choices:
-        payload["choices_tr"] = list(choices)
+        payload["choices_tr"] = {"tr": list(choices)}
     return Slot.model_validate(payload)
 
 

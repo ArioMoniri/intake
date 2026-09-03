@@ -3785,7 +3785,8 @@
   labels:
   - area:protocols
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-297.md
   acceptance:
   - '`text_tr`, `ask_tr`, `follow_up_tr`, `choices_tr` and `why_tr` become maps
     keyed by locale, with `tr` required by the schema so no pack can lose its
@@ -4413,3 +4414,42 @@
   - tests/safety/test_adversarial_rt12_14.py
   - tests/platform/test_spoken_identifiers.py
   sec_row: "identifiers"
+- id: INT-314
+  epic: E03-protocols
+  phase: P1
+  # Reported by INT-297, which migrated five `*_tr` fields to per-locale maps and
+  # found four more that are SPOKEN and outside that set: confirm_tr, action_tr,
+  # do_nots_tr, ask_one_tr. So invariant 10's "red-flag action scripts are spoken
+  # verbatim from the locale's own entry" is only partially per-locale today.
+  # It is fail-closed rather than ignored: `selectable_locales` clamps any pack
+  # carrying one of the four to `tr`, and the clamp lifts by itself once they
+  # migrate. `action_tr` is the field that closes it.
+  title: 'Four spoken fields are still Turkish-only, so a red-flag action script
+    cannot yet be per-locale'
+  depends_on:
+  - INT-297
+  labels:
+  - area:protocols
+  - area:i18n
+  - area:safety
+  status: todo
+  acceptance:
+  - '`confirm_tr`, `action_tr`, `do_nots_tr` and `ask_one_tr` become per-locale
+    maps on the same schema as the five INT-297 migrated, with `tr` required, so
+    invariant 10 holds for the WHOLE of a red-flag script rather than for its
+    question half'
+  - 'the byte-identity discipline is repeated, not assumed: the pre- and
+    post-migration trees compile to identical served bundles for `tr`, authored
+    string AND `expand_tr` expansion, using the same comparator INT-297
+    committed - a refactor that changes one Turkish RED sentence is the most
+    dangerous edit in this repository'
+  - 'the `selectable_locales` clamp is REMOVED by this issue rather than left
+    dormant, and a test asserts a pack carrying all four in a second locale is
+    now selectable - a clamp that outlives its reason is a silent restriction
+    nobody can see'
+  - 'invariant 21 is untouched: RED stays route x register x location with no
+    permitted default, and nothing here lets a locale change which action
+    resolves for a location'
+  tests:
+  - tests/protocols/test_locale_maps.py
+  sec_row: "protocol-registry"
