@@ -1759,6 +1759,23 @@ metrics:
       cost of the write-ahead receipt made countable, and it is the series that
       decides whether a retry is safe — an endpoint whose DPA does not declare
       that it honours an Idempotency-Key parks these for a human instead.
+  - name: connector_token_exchange_total
+    type: counter
+    labels: [endpoint, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      SMART backend services token exchanges (INT-161), by endpoint id and
+      bucketed outcome: granted, denied, unavailable, malformed,
+      scope_not_granted, key_unusable, consent_expired. A failed exchange is a
+      different fault from a failed push and has a different fix — a key, a
+      client registration or an authorization-server outage rather than a
+      bundle or a network — so files/10 §9's "endpoint errors" signal has to
+      tell them apart. The outcome label is a closed set of OUR codes, never
+      the receiver's status code: a label a receiver can choose is cardinality
+      a receiver can choose. The precise code still lands in the receipt's
+      outcome_code, which nothing indexes. A failed exchange never produces an
+      unresolved receipt, because no clinical byte was ever in flight.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
