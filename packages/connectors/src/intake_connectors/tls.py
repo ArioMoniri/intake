@@ -76,6 +76,16 @@ def mtls_context(material: TlsMaterial) -> ssl.SSLContext:
     return context
 
 
-def mtls_transport(material: TlsMaterial) -> httpx.BaseTransport:
-    """The production transport factory the sender takes by default."""
+def mtls_transport(material: TlsMaterial | None) -> httpx.BaseTransport:
+    """The production transport factory the sender takes by default.
+
+    ``None`` is SMART's case (INT-161): the client is authenticated by a
+    signed assertion rather than by the channel, and a hospital that issued no
+    client certificate has none to present. TLS itself is not weakened —
+    verification, the CA store and the hostname check are Python's defaults —
+    only the *client* half of the handshake is absent, which is exactly what
+    that deployment means.
+    """
+    if material is None:
+        return httpx.HTTPTransport()
     return httpx.HTTPTransport(verify=mtls_context(material))
