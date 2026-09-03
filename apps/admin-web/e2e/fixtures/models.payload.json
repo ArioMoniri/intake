@@ -1,0 +1,847 @@
+{
+  "release": {
+    "blocked": true,
+    "reasons": [
+      {
+        "component": "postgres",
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+      },
+      {
+        "component": "minio",
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+      },
+      {
+        "component": "hapi",
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+      },
+      {
+        "component": "openbao",
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+      },
+      {
+        "component": "qwen3.5-9b",
+        "reason": "no self-hosted fallback declared (fallback: none)"
+      },
+      {
+        "component": "whisper-tr-medical",
+        "reason": "no self-hosted fallback declared (fallback: none)"
+      },
+      {
+        "component": "freya-tts",
+        "reason": "no self-hosted fallback declared (fallback: none)"
+      },
+      {
+        "component": "voxcpm2-tts",
+        "reason": "fallback 'freya-tts' has no probe result in this sweep"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "component": "postgres",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "dev compose 127.0.0.1:5432 — pgvector/pgvector:pg16",
+      "license": "PostgreSQL Licence (PostgreSQL and pgvector both)",
+      "probe": "postgres_select1",
+      "budget_ms": 500,
+      "fallback": "component:backups",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "postgres: own probe postgres_select1 is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "redis",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "dev compose 127.0.0.1:6379 — redis:7.4-alpine",
+      "license": "RSALv2 / SSPLv1 dual (source-available, not OSI; internal self-hosting permitted — re-verify before ever offering it as a service)",
+      "probe": "redis_ping",
+      "budget_ms": 200,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "redis: own probe redis_ping is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "minio",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "dev compose 127.0.0.1:9000 — minio/minio:RELEASE.2024-01-16T16-07-38Z",
+      "license": "AGPL-3.0-only",
+      "probe": "minio_ready",
+      "budget_ms": 1000,
+      "fallback": "component:backups",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "minio: own probe minio_ready is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "hapi",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "dev compose 127.0.0.1:8091 — hapiproject/hapi:v7.2.0 (FHIR R4)",
+      "license": "Apache-2.0",
+      "probe": "http_health",
+      "budget_ms": 3000,
+      "fallback": "component:backups",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "hapi: own probe http_health is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "ehrbase",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "dev compose 127.0.0.1:8092 — ehrbase/ehrbase:2.35.1 (openEHR CDR, profile `export`)",
+      "license": "Apache-2.0",
+      "probe": "http_health",
+      "budget_ms": 5000,
+      "fallback": "component:hapi",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "ehrbase: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (dev compose 127.0.0.1:8092 — ehrbase/ehrbase:2.35.1 (openEHR CDR, profile `export`))."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "openbao",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "dev compose 127.0.0.1:8200 — openbao/openbao:2.0.2 (dev mode, auto-unsealed)",
+      "license": "MPL-2.0",
+      "probe": "openbao_seal_status",
+      "budget_ms": 500,
+      "fallback": "component:backups",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "openbao: own probe openbao_seal_status is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "api",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "code landed (INT-197 dev-tier slice: dev-bearer auth, visits, notes, documents) — not yet wired into compose/systemd; flips true when the deployment issue runs it",
+      "license": "proprietary (repo LICENSE)",
+      "probe": "http_health",
+      "budget_ms": 800,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "api: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (code landed (INT-197 dev-tier slice: dev-bearer auth, visits, notes, documents) — not yet wired into compose/systemd; flips true when the deployment issue runs it)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "probes",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "this package (services/probes) — runner exists; the 60 s scheduler wiring (systemd/compose) lands with the deployment issues",
+      "license": "proprietary (repo LICENSE)",
+      "probe": "http_health",
+      "budget_ms": 800,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "ok",
+      "findings": [],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "metrics",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "this package (services/metrics) — INT-240 lands the satisfaction rollups; the hourly scheduler and its Postgres wiring land with the deployment issues",
+      "license": "proprietary (repo LICENSE)",
+      "probe": "http_health",
+      "budget_ms": 800,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "ok",
+      "findings": [],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "learning",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "this package (services/learning) — INT-172 lands the Inspector -> Architect pipeline; the weekly schedule and the PR-bot identity land with the deployment issues",
+      "license": "proprietary (repo LICENSE)",
+      "probe": "http_health",
+      "budget_ms": 800,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "ok",
+      "findings": [],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "voice-runtime",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "planned — LiveKit Agents worker; the LiveKit server+TURN dev tier lands with INT-090",
+      "license": "proprietary (repo LICENSE); LiveKit Agents Apache-2.0; livekit/turn-detector is proprietary (LiveKit Model License — knowingly adopted, files/03 §4.9.2(d))",
+      "probe": "livekit_room_join",
+      "budget_ms": 5000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "voice-runtime: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (planned — LiveKit Agents worker; the LiveKit server+TURN dev tier lands with INT-090)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "edge-tls",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "no TLS edge in the dev tier (compose binds loopback, plaintext); probe target comes from INTAKE_TLS_PROBE_TARGET once an edge terminator exists",
+      "license": "not chosen yet — recorded when the edge terminator lands",
+      "probe": "cert_expiry_days",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "edge-tls: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (no TLS edge in the dev tier (compose binds loopback, plaintext); probe target comes from INTAKE_TLS_PROBE_TARGET once an edge terminator exists)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "backups",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design",
+      "license": "n/a — our own artefacts",
+      "probe": "backup_freshness",
+      "budget_ms": 200,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "backups: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "ci-runners",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/ci/runners.yaml — zero pools declared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). CI runs on GitHub-hosted runners meanwhile, which files/08 §6 records as the fallback precisely because no PHI is ever in CI",
+      "license": "GitHub Actions Runner — MIT (the runner agent); the hosted service is a vendor product, which is why the self-hosted pool is the target state",
+      "probe": "runner_heartbeat",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "ok",
+      "findings": [],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "langfuse",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.langfuse.yml, profile `langfuse` — langfuse/langfuse:4.24.0 + langfuse/langfuse-worker:4.24.0 on their own Postgres/ClickHouse/Redis/MinIO; web on loopback 127.0.0.1:3030, every backing store on the project network only. Not booted here: HB-I1/HB-I2",
+      "license": "MIT Expat (core, LICENSE blob verified @v4.24.0) — see licence_note for the ee/ carve-out, which is NOT MIT and is not licensed in",
+      "probe": "http_health",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "ok",
+      "findings": [],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "langfuse-clickhouse",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.langfuse.yml, profile `langfuse` — clickhouse/clickhouse-server:25.12.11.4, project network only, no published port. Langfuse's own analytics store; it holds the same id-only spans and nothing else",
+      "license": "Apache-2.0 (LICENSE blob verified @v25.12.11.4-stable — 203 lines, stock, no acceptable-use rider, no field-of-use restriction)",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "ok",
+      "findings": [],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "qwen3.5-9b",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "Qwen/Qwen3.5-9B@c202236 — team GPU server, loopback 127.0.0.1:8801 (dev/synthetic only; PHI-path in-country serving is contract-gated, files/00_STATE.md §3 D11)",
+      "license": "Apache-2.0 (LICENSE blob verified @c202236)",
+      "probe": "http_health",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "qwen3.5-9b: own probe http_health is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "no self-hosted fallback declared (fallback: none)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "whisper-tr-medical",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "turkmedstt/whisper-large-v3-turkish-medical@0e74ec8 (CTranslate2 float16) — team GPU server, invoked per-run, no daemon yet (dev/synthetic only)",
+      "license": "UNVERIFIED (card tag apache-2.0, no blob)",
+      "probe": "http_health",
+      "budget_ms": 4000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "licence_not_verified_from_blob",
+          "detail": "whisper-tr-medical: the declared licence has not been read from a raw LICENSE blob (UNVERIFIED (card tag apache-2.0, no blob)). files/03 §4.9.0 rule 3 — a card tag or a badge is not a grant."
+        },
+        {
+          "code": "probe_not_healthy",
+          "detail": "whisper-tr-medical: own probe http_health is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "no self-hosted fallback declared (fallback: none)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "freya-tts",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "freyavoice/Freya-TTS@d124e07 (code pin 146d36c) — team GPU server, loopback 127.0.0.1:8803, CUDA, supervised by bin/serve_tts_supervised.sh (dev/synthetic only). files/03 §4.9.1 row 12: the whole-session TTS fallback, selected at session start",
+      "license": "Apache-2.0 (code LICENSE blob verified @d124e07)",
+      "probe": "http_health",
+      "budget_ms": 3000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "freya-tts: own probe http_health is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "no self-hosted fallback declared (fallback: none)"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "voxcpm2-tts",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "openbmb/VoxCPM2@32279eff (voxcpm==2.0.3) — team GPU server, loopback 127.0.0.1:8805, supervised by bin/serve_voxcpm2_supervised.sh (dev/synthetic only; PHI-path in-country serving is contract-gated, files/00_STATE.md §3 D11). Serving on CPU today: the box is a shared MIG 3g.71gb slice with ~3.4 GiB free against this model's ~8 GiB, so the server's device ladder chose CPU (RTF ~4). That serves files/03 §4.9.1 row 10, the compile-time clip path, and NOT row 11, the dynamic 0.14 s-TTFT path, which stays VRAM-blocked — docs/evidence/INT-243.md",
+      "license": "Apache-2.0 (stock, unmodified — raw LICENSE blob read and hashed; see licence_blob_url and licence_note)",
+      "probe": "http_health",
+      "budget_ms": 3000,
+      "fallback": "component:freya-tts",
+      "phi_path": true,
+      "pin": "openbmb/VoxCPM2@32279effe8c19989596f05d353d1447f51d9e915",
+      "licence_verified_at": "2026-08-29",
+      "severity": "blocking",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "voxcpm2-tts: own probe http_health is no probe result in this sweep."
+        },
+        {
+          "code": "release_blocked",
+          "detail": "fallback 'freya-tts' has no probe result in this sweep"
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "deid-tr-ner-v1",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "in-process (intake_platform.deid) — pinned artefact .cache/deid-tr-ner-v1, sha256-verified by `make deid-model` (INT-015)",
+      "license": "own-trained: MIT base model + CC-BY-4.0 training data",
+      "probe": "backup_freshness",
+      "budget_ms": 200,
+      "fallback": "in-process:intake_platform.redaction",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "deid-tr-ner-v1: own probe backup_freshness is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "wazuh-manager",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.siem.yml, profile `siem` — wazuh/wazuh-manager:4.14.7; API on loopback 127.0.0.1:55000, agent ports unpublished. Reads Falco events, the k8s audit log and our own security log; writes /var/ossec/logs/alerts, which intake_platform.siem.feed scrubs. Not booted here: HB-I1/HB-I2",
+      "license": "GPL-2.0-only + OpenSSL linking exception + an extended derivative-work clause (LICENSE blob verified @v4.14.7 — see licence_note; a one-word 'GPL-2.0' would be the laundered claim)",
+      "probe": "tcp_connect",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "wazuh-manager: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.siem.yml, profile `siem` — wazuh/wazuh-manager:4.14.7; API on loopback 127.0.0.1:55000, agent ports unpublished. Reads Falco events, the k8s audit log and our own security log; writes /var/ossec/logs/alerts, which intake_platform.siem.feed scrubs. Not booted here: HB-I1/HB-I2)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "wazuh-indexer",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.siem.yml, profile `siem` — wazuh/wazuh-indexer:4.14.7 (an OpenSearch fork) on loopback 127.0.0.1:9201. No index lifecycle policy: files/06 §3 has no retention row for SIEM alert storage and INT-212 owns the answer, so it expires nothing. Not booted here: HB-I1/HB-I2",
+      "license": "Apache-2.0 (LICENSE.txt blob verified @v4.14.7 — 201 lines, stock, no copyright rider, no addendum, no acceptable-use clause)",
+      "probe": "tcp_connect",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "wazuh-indexer: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.siem.yml, profile `siem` — wazuh/wazuh-indexer:4.14.7 (an OpenSearch fork) on loopback 127.0.0.1:9201. No index lifecycle policy: files/06 §3 has no retention row for SIEM alert storage and INT-212 owns the answer, so it expires nothing. Not booted here: HB-I1/HB-I2)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "falco",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.siem.yml, profile `siem` — falcosecurity/falco:0.44.1, modern eBPF engine, privileged with read-only host views; /healthz and Prometheus on loopback 127.0.0.1:8765 (INTAKE_FALCO_HEALTH_URL). Writes json to the volume the manager reads. Not booted here: HB-I1/HB-I2, and the modern-eBPF engine needs a host kernel this laptop's container runtime does not expose",
+      "license": "Apache-2.0 (LICENSE blob verified @0.44.1 — 202 lines, stock, 'Copyright 2019 The Falco Authors', no rider; falcosecurity/rules likewise Apache-2.0)",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "falco: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.siem.yml, profile `siem` — falcosecurity/falco:0.44.1, modern eBPF engine, privileged with read-only host views; /healthz and Prometheus on loopback 127.0.0.1:8765 (INTAKE_FALCO_HEALTH_URL). Writes json to the volume the manager reads. Not booted here: HB-I1/HB-I2, and the modern-eBPF engine needs a host kernel this laptop's container runtime does not expose)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "egress-proxy",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py",
+      "license": "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see licence_note; the blob alone would read GPL-2.0-only)",
+      "probe": "tcp_connect",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "egress-proxy: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    }
+  ]
+}

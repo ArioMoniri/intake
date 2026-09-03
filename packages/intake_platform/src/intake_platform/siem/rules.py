@@ -163,7 +163,11 @@ def load_wazuh_ruleset(path: Path) -> WazuhRuleset:
     """
     try:
         text = path.read_text(encoding="utf-8")
-        root = ET.fromstring(f"<wazuh_ruleset>{text}</wazuh_ruleset>")  # noqa: S314
+        # nosec B314 — same call, same decision as the ruff suppression beside
+        # it: `path` is a COMMITTED, version-controlled ruleset in this repo,
+        # not attacker-supplied input. INT-019 added bandit, which reports the
+        # rule ruff already had suppressed here; the two markers agree.
+        root = ET.fromstring(f"<wazuh_ruleset>{text}</wazuh_ruleset>")  # noqa: S314 # nosec B314
     except (ET.ParseError, OSError) as exc:
         raise SiemConfigError(f"{path.name}: not parseable as a Wazuh ruleset: {exc}") from exc
 
@@ -279,7 +283,9 @@ def _parse_falco_rule(path: Path, entry: dict[str, Any], seen: set[str]) -> Falc
 def load_ossec_config(path: Path) -> OssecConfig:
     """Parse the committed manager configuration and hold it to §7 and §8."""
     try:
-        root = ET.parse(path).getroot()  # noqa: S314
+        # nosec B314 — see load_wazuh_ruleset: a committed, version-controlled
+        # manager configuration, not attacker-supplied input.
+        root = ET.parse(path).getroot()  # noqa: S314 # nosec B314
     except (ET.ParseError, OSError) as exc:
         raise SiemConfigError(f"{path.name}: not parseable as an ossec.conf: {exc}") from exc
 

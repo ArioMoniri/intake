@@ -8,6 +8,7 @@ dependencies = [
     "intake-clinical-schemas",
     "intake-metrics",
     "intake-platform",
+    "intake-probes",
     "intake-protocols",
     "psycopg[binary]>=3.2",
     "pydantic>=2.8",
@@ -21,6 +22,11 @@ intake-clinical-schemas = { workspace = true }
 # floor that gets lowered by accident (files/08 §0c F9).
 intake-metrics = { workspace = true }
 intake-platform = { workspace = true }
+# INT-183: the models module READS observability/registry.yaml and calls the
+# INT-022 release gate rather than reimplementing either. A second
+# implementation of a gate is a gate that disagrees with itself on the day
+# it matters (invariant 13).
+intake-probes = { workspace = true }
 intake-protocols = { workspace = true }
 
 [tool.intake]

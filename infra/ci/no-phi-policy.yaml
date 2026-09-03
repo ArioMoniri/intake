@@ -80,7 +80,17 @@ cache_paths:
 # Paths a workflow may hand to actions/upload-artifact. An artefact is
 # downloadable for its whole retention window by anyone with read access to
 # the repository, which is a wider audience than the job log.
-artefact_paths: []
+artefact_paths:
+  # INT-019's release SBOM and the cosign bundle that signs it. Publishing the
+  # SBOM is the point of invariant 14, so the question is only whether it can
+  # carry PHI. It cannot: syft derives it from the dependency tree, and the
+  # generated document names zero paths under tests/fixtures or docs/ (checked
+  # on the real artefact, 1487 packages / 751 files, docs/evidence/INT-019.md).
+  # Read honestly: the SBOM does contain one 11-digit run that satisfies the
+  # TCKN checksum, and it is a decimal substring of a package's SHA1 — which is
+  # what a coincidence looks like at this scale, not an identifier.
+  - intake-sbom.spdx.json
+  - intake-sbom.spdx.json.cosign.bundle
 
 # Repository or organisation secrets a workflow may reference. CI carries no
 # secrets by design (.github/workflows/ci.yml header; CLAUDE.md "never call

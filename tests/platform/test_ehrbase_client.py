@@ -262,3 +262,24 @@ def test_status_reports_the_server_version() -> None:
     status = _client(lambda request: httpx.Response(200, content=xml)).status()
     assert status.ehrbase_version == "2.35.1"
     assert status.openehr_sdk_version == "2.35.0"
+
+
+def test_status_refuses_a_status_document_that_declares_entities() -> None:
+    """A server response is data, never instructions (CLAUDE.md invariant 14).
+
+    The stdlib parser expands internally declared entities: the document below
+    turns one declaration into a 10x expansion, and nesting it is the classic
+    billion-laughs allocation attack. A hostile or compromised CDR is exactly
+    the threat the openEHR boundary exists to contain, so the parse must refuse
+    the DTD rather than expand it — and refuse as a typed EhrbaseRefusedError,
+    not as whatever the parser happens to throw.
+    """
+    xml = (
+        b'<?xml version="1.0"?>'
+        b'<!DOCTYPE status [<!ENTITY a "lol">'
+        b'<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]>'
+        b"<status><ehrbase_version>&b;</ehrbase_version>"
+        b"<openehr_sdk_version>2.35.0</openehr_sdk_version></status>"
+    )
+    with pytest.raises(EhrbaseRefusedError):
+        _client(lambda request: httpx.Response(200, content=xml)).status()

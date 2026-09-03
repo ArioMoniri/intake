@@ -48,14 +48,27 @@ from intake_platform.admin.four_eyes import SelfApproval
 from intake_platform.admin.metrics import (
     ADMIN_BREAK_GLASS_OPENED_TOTAL,
     ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL,
+    ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL,
     ADMIN_PENDING_ACTION_EXPIRED_TOTAL,
     SEC_BREAK_GLASS_TOTAL,
 )
+from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
 from intake_api.admin import views
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
+from intake_api.admin.models_source import (
+    load_models_module,
+    resolve_benchmark,
+    run_benchmark,
+)
 from intake_api.consent_guard import administrative_action
-from intake_api.errors import admin_refused, break_glass_refused, four_eyes_refused, not_found
+from intake_api.errors import (
+    admin_refused,
+    benchmark_refused,
+    break_glass_refused,
+    four_eyes_refused,
+    not_found,
+)
 from intake_api.state import get_state
 
 __all__ = ["router"]
@@ -189,10 +202,63 @@ async def _break_glass_approve(
     return views.pending_view(approved)
 
 
+async def _models(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    return views.models_module_view(load_models_module())
+
+
+#: The closed body shape of a benchmark trigger. Anything else is refused
+#: rather than ignored: invariant 6 says no patient data reaches this surface,
+#: and a field the server silently drops is a field nobody notices carrying
+#: one. Two keys, both operator vocabulary, neither free text.
+_BENCHMARK_FIELDS = frozenset({"kind", "corpus_id"})
+
+
+async def _models_benchmark(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    component = request.path_params["component"]
+    payload = await _json_body(request)
+    unexpected = sorted(set(payload) - _BENCHMARK_FIELDS)
+    if unexpected:
+        # the refusal names the KEYS, never their values — echoing a rejected
+        # value is how a rejected value reaches a log (invariant 6)
+        raise benchmark_refused(
+            "unexpected_field",
+            f"the benchmark trigger takes {sorted(_BENCHMARK_FIELDS)} and nothing else; "
+            f"refused: {unexpected}",
+        )
+    try:
+        kind = BenchmarkKind(_text(payload, "kind"))
+    except ValueError:
+        raise benchmark_refused(
+            "unknown_kind",
+            f"kind must be one of {[k.value for k in BenchmarkKind]}",
+        ) from None
+    corpus_id = payload.get("corpus_id")
+    try:
+        plan = resolve_benchmark(component, kind, corpus_id if isinstance(corpus_id, str) else None)
+    except BenchmarkRefused as refusal:
+        ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL.labels(
+            actor=caller.principal.subject, kind=kind.value, outcome="refused"
+        ).inc()
+        raise benchmark_refused(refusal.code, refusal.detail) from None
+    ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL.labels(
+        actor=caller.principal.subject, kind=kind.value, outcome="planned"
+    ).inc()
+    executed = run_benchmark(plan)
+    if executed is None:
+        return views.benchmark_plan_view(plan)
+    return views.benchmark_result_view(executed)
+
+
 _HANDLERS: dict[str, Handler] = {
     "admin.whoami.read": _whoami,
     "admin.access.roles.read": _roles,
     "admin.actions.read": _actions,
+    "admin.models.read": _models,
+    "admin.models.benchmark": _models_benchmark,
     "admin.break_glass.open": _break_glass_open,
     "admin.break_glass.brief.read": _break_glass_brief,
     "admin.break_glass.approve": _break_glass_approve,
