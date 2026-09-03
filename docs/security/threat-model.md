@@ -819,8 +819,54 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §2 clinicians — OTP to the patient-chosen channel, 128-bit random
   token, 72 h default expiry, view limit, instant revoke, watermarked PDFs, no indexing,
   access log (visible to the patient — §3).
-- **Signals:** opens, failed OTPs, revocations, time-to-open (§9) land with INT-150.
-- **Tests:** token entropy and expiry tests land with INT-150.
+- **Controls added by INT-150:** the token is 128 bits from `secrets` and is persisted only as
+  a SHA-256 fingerprint, compared in constant time — a database dump yields no access; it
+  travels in a POST **body** on both redemption routes, so no path or query parameter in the
+  package can carry it into an access log, a Referer header or a browser history entry (inv. 6,
+  asserted over the live OpenAPI document). **Expiry is computed on the server** and anchored on
+  the visit, never on issue time (files/02 §2b); the schema records a date and no time of day,
+  so the anchor is the START of the visit day in Türkiye — never later than the appointment, so
+  never later than the spec's `visit_datetime + 72 h` — and a visit with no recorded date is
+  refused (`visit_date_unknown`) rather than given an invented clock. The **view budget is
+  atomic**: one guarded UPDATE carries "not revoked, not expired, budget left" and the
+  increment together, so two concurrent redemptions cannot both be admitted at the limit. The
+  **OTP is the INT-131 gate**, not a second one, in its own `dlink` Redis namespace and counted
+  against the LINK rather than the patient (two links never share a five-attempt budget, and
+  the two request paths never share a request budget — otherwise a token holder could lock the
+  patient out of their own link). It inherits that gate's stated non-atomicity (INT-263) rather
+  than forking a differently-broken copy. **Revocation cascades**: revoking a share — which
+  every note save does — revokes its links, and the row is the authority, so restoring the
+  Redis routing hint does not resurrect a revoked link. **Consent is checked record-level**
+  inside the redemption endpoint against the note's own patient (inv. 4), through the same
+  evaluator the clinic-admin path uses, and BEFORE the view is spent, so a withdrawal costs the
+  patient no view. The **watermark** carries the recipient the PATIENT named plus the instant of
+  this opening plus the opaque grant ref, and nothing derived from the request — no IP, no user
+  agent, no device fingerprint — so it cannot become a way to identify the reader beyond the
+  consent given. `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet, noimageindex` is set on
+  every API response, including the ones an exception handler builds. **Not delivered:** the
+  §2 channel ("the phone/e-mail the patient chose"). No destination is recorded anywhere in
+  this repo and no messaging vendor is contracted, so the seam refuses (503) behind a live abuse
+  gate; the code is minted over the patient's own authenticated session instead.
+- **Signals:** `doctor_link_events_total{event}` — issued, revoked, otp_requested, otp_failed,
+  otp_limited, opened, refused_expired, refused_revoked, refused_view_limit,
+  refused_unknown_token — catalogued `live` and emitted by `intake_api.doctor_link.metrics`.
+  That is §9's *opens, failed OTPs, revocations*. The fourth, *time-to-open*, is
+  `wait.doctor_link_first_open_h` and stays `planned`: every open is written to the
+  hash-chained audit log, which is evidence rather than an analytics source, and no
+  share-access row exists — publishing the interval needs an unlabelled path through
+  `publish_wait`/`roll_up_wait` that INT-241 did not build, so
+  `intake_platform.wait_times.WAIT_SOURCES` records the gap instead of the catalogue status
+  drifting from the writer (inv. 13). No tenant, clinic, link or recipient label on the counter:
+  a per-link series would let a Prometheus scrape reconstruct one clinician's reading of one
+  patient's note.
+- **Tests:** `tests/clinician/test_doctor_link.py` — token entropy (128 bits, no repeats, and a
+  source check that fails a `random`-based generator that passes every statistical assertion),
+  expiry anchored on the visit and exact to the second on both sides, the (limit + 1)th view,
+  a token used immediately after revocation both with the routing hint gone and with it forcibly
+  restored, a token one character off a valid one, an OTP one digit off and the right code on the
+  attempt after the five-attempt budget, the no-index header on every response including
+  refusals, the watermark through the committed PDF renderer's bytes, and the audited open
+  appearing in the patient's own access log with a role and no identity.
 
 ## `share-centre` — active shares, revocation, visibility
 
@@ -848,13 +894,18 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   for it — publishing without a catalogued series is the drift invariant 13 exists to prevent.
   The measurement taken for INT-139's acceptance is in `docs/evidence/INT-139.md` with its date
   and corpus; the series belongs to whichever issue lands the server-side publisher.
-- **Tests:** the patient-surface half landed with INT-139 —
+- **Tests:** landed with INT-139. The patient surface —
   `apps/mobile/e2e/shares.spec.ts`, `apps/mobile/src/lib/shares/links.test.ts` and
-  `apps/mobile/src/lib/shares/store.test.ts`, including the control that a withdrawal of
-  `share:previsit_note` cannot lock the stop path. The revocation cascade itself is tested on the
-  server by INT-150 (`tests/clinician/test_doctor_link.py`), which is **PR #446, open** — until it
-  merges, `shares.spec.ts` §7 is an inversion that fails the day the router lands. Deletion-proof
-  tests remain INT-037's.
+  `apps/mobile/src/lib/shares/store.test.ts` — including the control that a withdrawal of
+  `share:previsit_note` cannot lock the stop path, checked against the router's own
+  `require_scopes` decorators rather than claimed about the client. The cascade —
+  `tests/clinician/test_share_revocation_budget.py` — bounds the interval between the revoking
+  write returning and the redemption being refused, with the near-miss control that separates a
+  row check from a store that expires on a timer, and a three-grant control for the plural in
+  "cascades to tokens". That third one is worth reading: `redeem` checks the SHARE's `revoked_at`
+  before the link's, so a cascade that stopped after the first row still refused every redemption,
+  and the test had to assert the rows as well as the behaviour to catch it. Deletion-proof tests
+  remain INT-037's.
 
 ## `clinic-console` — the clinician web surface
 

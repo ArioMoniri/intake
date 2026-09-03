@@ -15,7 +15,9 @@
  * withdrawing consent to share cannot lock the patient out of stopping the
  * sharing they already started. The client half is `revokeOffered`, which
  * takes a grant and nothing else — there is no consent value in scope here to
- * gate it on, and `e2e/shares.spec.ts` fails if one appears.
+ * gate it on. `e2e/shares.spec.ts` fails if one appears here, and its §7 checks the
+ * same rule against the router's own `require_scopes` decorators, so the three
+ * routes this app calls cannot quietly acquire the share purpose either.
  *
  * **Stopping a share is two taps, and the first only changes the word.** The
  * INT-140 idiom, reused rather than reinvented: no modal and no `Alert`, whose

@@ -14,11 +14,14 @@
  * store and the rules is proved next to them, without a network, in
  * `src/lib/shares/links.test.ts` and `src/lib/shares/store.test.ts`.
  *
- * The half of the acceptance this repository cannot yet hold is named rather
- * than assumed: `services/api/src/intake_api/doctor_link/` is INT-150's, and
- * INT-150 is PR #446 — open, not merged. Until it lands there is no revoke
- * route on `main` to cross-check these paths against, and §7 below is the
- * tripwire that says so and fails the day it lands.
+ * §7 is the cross-check against the server itself. It was written as an
+ * INVERSION — asserting the router's absence, because INT-150 was PR #446 and
+ * still open when this branch was cut — and it did exactly what a tripwire is
+ * for: #446 merged mid-iteration, the inversion failed, and it was replaced
+ * by the real check. That check now recovers every route decorator out of
+ * `doctor_link/router.py` and asserts the client calls only the three the
+ * share purpose does NOT gate, which is the acceptance's revoke clause
+ * checked against the deployed system rather than claimed about the client.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -339,7 +342,7 @@ describe("the copy", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/* 7 · The half of the acceptance main cannot hold yet                  */
+/* 7 · The client's paths, pinned to the server that serves them        */
 /* ------------------------------------------------------------------ */
 
 const SERVER_ROUTER = join(
@@ -352,28 +355,94 @@ const SERVER_ROUTER = join(
   "router.py",
 );
 
-describe("the cross-check this branch cannot run", () => {
-  /**
-   * An inversion, not a deletion (the INT-263 form). The acceptance's first
-   * clause — "revocation cascades to tokens within 1 min" — is a property of
-   * the server's revoke path, and that path is INT-150's: PR #446, open and
-   * unmerged at the time this branch was cut. There is nothing on `main` to
-   * point these three paths at, so the honest artefact is a tripwire that
-   * fails the day there is.
-   */
-  it("fails the moment INT-150 lands, so the paths get pinned to the router", () => {
-    expect(
-      existsSync(SERVER_ROUTER),
-      "services/api/src/intake_api/doctor_link/router.py now exists, so INT-150 " +
-        "(PR #446) has merged. Replace this inversion with the real cross-check: " +
-        "assert every CLIENT_ROUTES suffix appears in that router, and re-run the " +
-        "revocation-interval measurement on main. See docs/evidence/INT-139.md.",
-    ).toBe(false);
+/**
+ * Every route decorator in INT-150's patient-side router, recovered from the
+ * source so the client and the server cannot drift apart silently.
+ *
+ * The regex reads `@router.<method>(<args>)` up to the decorated function, and
+ * the two things it recovers are the path literal and whether the decorator's
+ * `require_scopes(...)` mentions `SHARE_SCOPE`. That second fact is the whole
+ * point: it is the machine-checkable form of INT-150 §6, and it is what makes
+ * "a withdrawal cannot lock the stop control" a property of the deployed
+ * system rather than a claim in a comment.
+ */
+function serverRoutes(source: string): { method: string; path: string; sharePurpose: boolean }[] {
+  const found: { method: string; path: string; sharePurpose: boolean }[] = [];
+  const head = /@router\.(get|post|put|delete|patch)\(/g;
+  for (const match of source.matchAll(head)) {
+    // Balance the parentheses rather than pattern-matching the end. A regex
+    // that guessed where the decorator stopped read a single-line one as
+    // running into the NEXT decorator's arguments — which reported the
+    // access-log route as share-gated and the OTP mint as not. A check whose
+    // failure mode is "reports the wrong route as safe" has to be exact.
+    let depth = 1;
+    let i = (match.index ?? 0) + match[0].length;
+    const from = i;
+    for (; i < source.length && depth > 0; i += 1) {
+      if (source[i] === "(") {
+        depth += 1;
+      } else if (source[i] === ")") {
+        depth -= 1;
+      }
+    }
+    const args = source.slice(from, i - 1);
+    const literal = /^\s*"([^"]*)"/.exec(args);
+    found.push({
+      method: match[1].toUpperCase(),
+      path: literal === null ? "" : literal[1],
+      sharePurpose: /require_scopes\([^)]*SHARE_SCOPE/.test(args.replace(/\s+/g, " ")),
+    });
+  }
+  return found;
+}
+
+describe("the client is pinned to the router INT-150 shipped", () => {
+  const source = readFileSync(SERVER_ROUTER, "utf8");
+  const routes = serverRoutes(source);
+
+  it("reads the router it is checking, rather than passing on an empty parse", () => {
+    // A cross-check that matches nothing passes for the wrong reason. INT-150
+    // ships five routes on this prefix: issue, list, mint, revoke, log.
+    expect(routes).toHaveLength(5);
+    expect(source).toContain('prefix="/v1/visits/{visit_id}/note/doctor-links"');
   });
 
-  it("records the dependency where a reader of the backlog will meet it", () => {
+  it("speaks three paths the router actually serves", () => {
+    const served = new Set(routes.map((r) => `${r.method} ${r.path}`));
+    expect(served).toContain("GET ");
+    expect(served).toContain("POST /{link_id}/revoke");
+    expect(served).toContain("GET /access-log");
+    // and the client's own strings reach those same three, prefix included
+    const api = code(file(API));
+    expect(api).toContain("/v1/visits/");
+    expect(api).toContain("/note/doctor-links");
+    expect(api).toContain("/revoke");
+    expect(api).toContain("/access-log");
+    expect(CLIENT_ROUTES).toHaveLength(3);
+  });
+
+  /**
+   * The acceptance's revoke clause, checked against the server rather than
+   * asserted about the client. INT-150 §6 declares revoke and the access log
+   * under `core` ALONE so that withdrawing `share:previsit_note` cannot lock
+   * the patient out of stopping a share they already started. If a future edit
+   * added the share purpose to either decorator, this app's stop control would
+   * become unreachable exactly when it is most needed — and this fails.
+   */
+  it("calls only routes a withdrawal of the share purpose cannot take away", () => {
+    const gated = new Set(
+      routes.filter((r) => r.sharePurpose).map((r) => `${r.method} ${r.path}`),
+    );
+    // The two the client deliberately does not call are the gated ones …
+    expect(gated).toEqual(new Set(["POST ", "POST /{link_id}/otp"]));
+    // … and none of the three it does call is among them.
+    for (const call of ["GET ", "POST /{link_id}/revoke", "GET /access-log"]) {
+      expect(gated, `${call} now enforces the share purpose`).not.toContain(call);
+    }
+  });
+
+  it("records the measurement and the run it came from", () => {
     const evidence = readFileSync(join(REPO, "docs", "evidence", "INT-139.md"), "utf8");
-    expect(evidence).toContain("PR #446");
     // The same three phrases `scripts/ci/evidence_check.sh` greps for, and
     // with its case-insensitivity, so this cannot pass where the gate fails.
     for (const phrase of [/red run/i, /green run/i, /make check/i]) {

@@ -37,6 +37,8 @@ TENANT_SCOPED = (
     "notes",
     "consents",
     "shares",
+    # INT-150 — Doctor Link grants (tenant-scoped like the share they hang off)
+    "doctor_links",
     "documents",
     "events",
     # INT-037 — the DSAR tracker and the rectification addenda
