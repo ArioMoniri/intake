@@ -24,6 +24,10 @@
  * paths are the confirm turn, the panel-row confirm, and the manual
  * steps after handoff. Nothing auto-commits.
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -38,6 +42,7 @@ import {
   committedAnswers,
   dialogueStreamReducer,
   initialDialogueStreamState,
+  shouldAttemptSpeech,
   type DialogueStreamAction,
   type DialogueStreamState,
 } from "./stream";
@@ -64,9 +69,11 @@ function state(overrides: Partial<DialogueStreamState>): DialogueStreamState {
     inflight: [],
     seq: {},
     stream: [],
-    voiceMuted: false,
     utteranceOf: {},
     unclear: {},
+    voiceMuted: false,
+    voiceFailures: 0,
+    voiceRetryIn: 0,
     ...overrides,
   };
 }
@@ -694,13 +701,18 @@ describe("dialogueStreamReducer — a clip that cannot be spoken silences the ag
     expect(after.voiceMuted).toBe(true);
   });
 
-  it("the mute is a session latch — later turns never un-mute", () => {
+  it("the silence carries ACROSS turns until a clip actually plays", () => {
+    // INT-261 wrote this as "later turns never un-mute" and asserted that a
+    // clip which PLAYED left the session muted. That is the INT-294 defect
+    // stated as a requirement: the surviving half is that the silence is not
+    // forgotten between turns, and the corrected half is that a clip the
+    // patient actually heard ends it.
     let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
     s = runGeneral(s, { type: "utterance", workId: 1 });
     expect(s.turn).toEqual({ phase: "speaking", step: 1, intent: "question" });
     expect(s.voiceMuted).toBe(true);
     s = runGeneral(s, { type: "speech_done" });
-    expect(s.voiceMuted).toBe(true);
+    expect(s.voiceMuted).toBe(false);
   });
 
   it("the whole conversation still completes with no agent audio at all", () => {
@@ -708,7 +720,11 @@ describe("dialogueStreamReducer — a clip that cannot be spoken silences the ag
     let s = initialDialogueStreamState(general); // complaint → duration → extra
     s = runGeneral(s, { type: "speech_unavailable" }); // complaint, silent
     s = runGeneral(s, { type: "typed", workId: 1, text: "göğsümde baskı var" });
-    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: { complaint: painCandidate } });
+    s = runGeneral(s, {
+      type: "extract_settled",
+      workId: 1,
+      candidates: { complaint: painCandidate },
+    });
     s = runGeneral(s, { type: "speech_unavailable" }); // duration, silent
     s = runGeneral(s, { type: "typed", workId: 2, text: "birkaç gündür" });
     // complaint's suggestion is owed a confirm turn, silent like the rest
@@ -1024,5 +1040,190 @@ describe("dialogueStreamReducer — an answer given here reaches the note (INT-2
     const answeredIds = new Set(noteAnswers.map((a) => a.questionId));
     expect(applicable.filter((q) => answeredIds.has(q.id)).length).toBe(2);
     expect(applicable.find((q) => !answeredIds.has(q.id))?.id).toBe("onset_today_when");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// INT-294 — the mute is a condition, not a life sentence
+// ---------------------------------------------------------------------------
+
+// INT-261 made a clip failure silence the agent for the REST OF THE SESSION,
+// and the reason it gave was a cost argument: "re-probing the TTS ladder on
+// every subsequent turn would spend the turn budget twice per question to
+// arrive at the same answer". That argument was true of an admission walk
+// that cost the whole clip deadline (docs/evidence/INT-293.md measured 4024 ms
+// of a 4048 ms budget) and it is not true of a bounded one. What is left is
+// the cost the owner actually paid: one slow FIRST turn, and a whole visit in
+// silence with a healthy Freya answering in 0.8 s the entire time.
+//
+// So the mute becomes what it always was — a report about the last clip, not
+// a property of the session. Three actions, and the difference between them
+// is the whole design:
+//   speech_done        the clip PLAYED      → the voice is back, on the record
+//   speech_unavailable the clip FAILED      → silent, and one turn further
+//                                             from the next attempt
+//   speech_skipped     it was NOT ATTEMPTED → silent, and one turn closer
+// A turn that was never attempted is not evidence of anything, which is why
+// it cannot clear the caption; a turn that was heard is evidence, and it can.
+describe("dialogueStreamReducer — a muted session recovers (INT-294)", () => {
+  it("one bad turn does not mute the visit: a later clip that plays clears it", () => {
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    expect(s.voiceMuted).toBe(true);
+    s = runGeneral(s, { type: "utterance", workId: 1 });
+    expect(s.turn).toEqual({ phase: "speaking", step: 1, intent: "question" });
+    // One failure buys no cooldown: the very next turn tries again.
+    expect(s.voiceRetryIn).toBe(0);
+    s = runGeneral(s, { type: "speech_done" });
+    expect(s.voiceMuted).toBe(false);
+    expect(s.voiceFailures).toBe(0);
+  });
+
+  it("backs off one further turn for each consecutive failure", () => {
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    expect([s.voiceFailures, s.voiceRetryIn]).toEqual([1, 0]);
+    s = runGeneral(s, { type: "utterance", workId: 1 });
+    s = runGeneral(s, { type: "speech_unavailable" });
+    expect([s.voiceFailures, s.voiceRetryIn]).toEqual([2, 1]);
+    s = runGeneral(s, { type: "utterance", workId: 2 });
+    s = runGeneral(s, { type: "speech_skipped" });
+    expect([s.voiceMuted, s.voiceFailures, s.voiceRetryIn]).toEqual([true, 2, 0]);
+  });
+
+  it("a turn nobody attempted is not evidence the voice is back", () => {
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    s = runGeneral(s, { type: "utterance", workId: 1 });
+    s = runGeneral(s, { type: "speech_skipped" });
+    expect(s.voiceMuted).toBe(true);
+  });
+
+  it("does not flap inside a turn: nothing between two clips touches the caption", () => {
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    s = runGeneral(s, { type: "utterance", workId: 1 });
+    expect(s.voiceMuted).toBe(true);
+    s = runGeneral(s, { type: "transcript_ready", workId: 1, text: "göğsümde baskı var" });
+    expect(s.voiceMuted).toBe(true);
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    expect(s.voiceMuted).toBe(true);
+    s = runGeneral(s, { type: "barge_in" });
+    expect(s.voiceMuted).toBe(true);
+  });
+
+  it("a skipped clip moves the turn exactly where a played one would", () => {
+    const played = runGeneral(initialDialogueStreamState(general), { type: "speech_done" });
+    const skipped = runGeneral(initialDialogueStreamState(general), { type: "speech_skipped" });
+    expect(skipped.turn).toEqual(played.turn);
+  });
+
+  it("the confirm turn recovers too — it is the same clip path", () => {
+    let s = state({
+      turn: { phase: "speaking", step: 0, intent: "confirm", candidate: painCandidate },
+      asked: ["complaint"],
+      voiceMuted: true,
+      voiceFailures: 1,
+      voiceRetryIn: 0,
+    });
+    s = runCardio(s, { type: "speech_done" });
+    expect(s.turn).toEqual({ phase: "confirming", step: 0, candidate: painCandidate });
+    expect(s.voiceMuted).toBe(false);
+  });
+
+  it("the caption on screen is exactly this flag, so clearing it clears the caption", () => {
+    // The reducer tests above are about a boolean; this is the line that
+    // makes them about what the patient sees. DialogueIntake renders the
+    // "sesli okuma su an calismiyor" caption under `state.voiceMuted` and
+    // nothing else, so a recovered voice takes the caption with it.
+    const screen = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "..", "components", "DialogueIntake.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("{state.voiceMuted ? (");
+    expect(screen).toContain('t("dialogue.voiceMuted")');
+  });
+
+  it("shouldAttemptSpeech: silent turns are skipped only while a cooldown is owed", () => {
+    expect(shouldAttemptSpeech({ voiceMuted: false, voiceRetryIn: 0 })).toBe(true);
+    expect(shouldAttemptSpeech({ voiceMuted: true, voiceRetryIn: 0 })).toBe(true);
+    expect(shouldAttemptSpeech({ voiceMuted: true, voiceRetryIn: 1 })).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The seam between INT-293 and INT-294 — two silences that are not the same
+// ---------------------------------------------------------------------------
+//
+// The two changes extend the same reducer state from opposite directions, and
+// the union does not answer the question they raise between them: does an
+// utterance the conversation could not place count against the VOICE?
+//
+// It does not, and the reason is that they are different failures with
+// different remedies. `unclear` counts what the conversation could not place
+// — the remedy is to ask the question again. `voiceFailures` counts what the
+// agent could not say — the remedy is a bounded retry of the TTS ladder.
+// Conflating them fails in both directions: a patient who mumbles would mute
+// the agent, and a dead TTS lane would start abandoning questions the agent
+// heard perfectly to the typed steps.
+//
+// INT-294's own asymmetry is the argument. `speech_skipped` may move the
+// cooldown and may NOT move the caption, because a turn nobody attempted
+// carries no information about the lane. An utterance the matcher refused
+// carries no information about the lane either — so it touches neither.
+//
+// What a re-ask IS, on the other hand, is an ordinary speaking turn, and it
+// is treated as one: it costs an admission when the voice is available and
+// takes `speech_skipped` when a cooldown is owed, exactly like the first ask.
+// The honest line survives that silence, because it is a stream entry and not
+// a clip.
+describe("dialogueStreamReducer — a refused answer and a failed clip stay separate", () => {
+  it("an utterance nothing could place does not touch the voice", () => {
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_done" });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "pek bilmiyorum ki" });
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    expect(s.unclear.complaint).toBe(1);
+    expect([s.voiceMuted, s.voiceFailures, s.voiceRetryIn]).toEqual([false, 0, 0]);
+  });
+
+  it("a negated answer the guard refuses does not touch the voice either", () => {
+    // The INT-293 negation guard refuses "Ateş yok" rather than reading it as
+    // `fever`. That refusal is about the SENTENCE, never about the lane.
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_done" });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "Ateş yok" });
+    expect(s.pending.complaint).toBeUndefined();
+    expect([s.voiceMuted, s.voiceFailures, s.voiceRetryIn]).toEqual([false, 0, 0]);
+  });
+
+  it("and a clip that failed does not make a question unclear", () => {
+    // The converse, and the one that would quietly cost the note sections: a
+    // silent agent must not start abandoning questions it heard.
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "Ateş ve ağrı var" });
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    expect(s.voiceFailures).toBe(1);
+    expect(s.unclear).toEqual({});
+    expect(s.asked).toContain("complaint");
+  });
+
+  it("a re-ask is an ordinary speaking turn: the cooldown governs it too", () => {
+    // Two consecutive clip failures owe one turn of silence. The turn that
+    // comes due is the INT-293 re-ask, and it takes that silence like any
+    // other turn — one admission is not spent to rediscover a dead lane just
+    // because this question is being asked twice.
+    let s = runGeneral(initialDialogueStreamState(general), { type: "speech_unavailable" });
+    s = runGeneral(s, { type: "typed", workId: 1, text: "pek bilmiyorum ki" });
+    s = runGeneral(s, { type: "speech_unavailable" });
+    expect([s.voiceFailures, s.voiceRetryIn]).toEqual([2, 1]);
+    s = runGeneral(s, { type: "extract_settled", workId: 1, candidates: {} });
+    s = runGeneral(s, { type: "typed", workId: 2, text: "bugün başladı" });
+    // the re-ask is live, and it is a plain speaking turn
+    expect(s.turn).toEqual({ phase: "speaking", step: 0, intent: "question" });
+    expect(shouldAttemptSpeech(s)).toBe(false);
+    // the honest line is on screen BEFORE any clip is attempted — it is a
+    // stream entry, so a silent re-ask still explains itself
+    expect(s.stream.at(-2)).toEqual({ kind: "agent_unclear", questionId: "complaint" });
+    expect(s.stream.at(-1)).toEqual({ kind: "agent_question", questionId: "complaint" });
+    // and the silence it takes is INT-294's, spending the cooldown
+    s = runGeneral(s, { type: "speech_skipped" });
+    expect([s.voiceMuted, s.voiceFailures, s.voiceRetryIn]).toEqual([true, 2, 0]);
+    expect(s.turn).toEqual({ phase: "listening", step: 0 });
+    expect(s.unclear.complaint).toBe(1); // untouched by the clip that never was
   });
 });
