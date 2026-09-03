@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n admin-fixtures check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety voice-doctor runtime-sim live-smoke
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim live-smoke admin-fixtures
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -105,6 +105,48 @@ check-ts:
 	pnpm -r lint
 	pnpm -r typecheck
 	pnpm -r test
+
+# INT-019 — the security gate set, mirroring .github/workflows/security.yml
+# tool for tool, pin for pin. Invariant 14: a tool absent from PATH FAILS
+# with an install hint — silence is how gates rot. cosign/SLSA run in CI on
+# tags only (nothing to sign locally yet).
+# semgrep needs setuptools<81 (pkg_resources import; .pre-commit-config).
+SEMGREP_VERSION := 1.86.0
+BANDIT_VERSION := 1.9.4
+CHECKOV_VERSION := 3.3.15
+SBOM_OUT := .cache/intake-sbom.spdx.json
+
+security:
+	@echo "== [1/12] gitleaks (full history) =="
+	@command -v gitleaks >/dev/null 2>&1 || { echo "FAIL: gitleaks not installed — brew install gitleaks (invariant 14: never skip a gate)"; exit 1; }
+	gitleaks detect --source . --redact --no-banner
+	@echo "== [2/12] semgrep (p/ci, metrics off) =="
+	uvx --python 3.12 --with 'setuptools<81' semgrep@$(SEMGREP_VERSION) scan --config p/ci --error --metrics=off --exclude files --exclude pnpm-workspace.yaml --exclude pyproject.toml
+	@echo "== [3/12] bandit (first-party python) =="
+	uvx --python 3.12 bandit@$(BANDIT_VERSION) -r packages/intake_platform/src scripts -ll -ii
+	@echo "== [4/12] trivy fs (fail on CRITICAL,HIGH) =="
+	@command -v trivy >/dev/null 2>&1 || { echo "FAIL: trivy not installed — brew install trivy (invariant 14: never skip a gate)"; exit 1; }
+	trivy fs --ignorefile .trivyignore.yaml --scanners vuln --severity CRITICAL,HIGH --exit-code 1 --skip-dirs node_modules .
+	@echo "== [5/12] trivy config (IaC) =="
+	trivy config --severity CRITICAL,HIGH --exit-code 1 infra
+	@echo "== [6/12] osv-scanner (lockfiles) =="
+	@command -v osv-scanner >/dev/null 2>&1 || { echo "FAIL: osv-scanner not installed — brew install osv-scanner (invariant 14: never skip a gate)"; exit 1; }
+	osv-scanner scan source -r .
+	@echo "== [7/12] checkov (infra/) =="
+	uvx --python 3.12 checkov@$(CHECKOV_VERSION) --directory infra --quiet --compact
+	@echo "== [8/12] licence allow-list (check_licenses.py) =="
+	uv run python scripts/ci/check_licenses.py
+	@echo "== [9/12] syft SBOM (spdx-json) =="
+	@command -v syft >/dev/null 2>&1 || { echo "FAIL: syft not installed — brew install syft (invariant 14: never skip a gate)"; exit 1; }
+	syft scan dir:. -o spdx-json=$(SBOM_OUT)
+	@echo "SBOM written to $(SBOM_OUT)"
+	@echo "== [10/12] PHI-pattern scan (phi_scan.sh) =="
+	scripts/ci/phi_scan.sh
+	@echo "== [11/12] accuracy-claims scan (claims_scan.sh) =="
+	scripts/ci/claims_scan.sh
+	@echo "== [12/12] gate self-test (every scanner rejects a planted case) =="
+	SEMGREP_VERSION=$(SEMGREP_VERSION) BANDIT_VERSION=$(BANDIT_VERSION) CHECKOV_VERSION=$(CHECKOV_VERSION) scripts/ci/gate_selftest.sh
+	@echo "security: all gates green"
 
 # INT-031: regenerate the committed schema exports (OpenAPI bundle, per-event
 # JSON Schemas, generated TS types). tests/schemas/test_roundtrip.py fails

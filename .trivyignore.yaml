@@ -1,0 +1,35 @@
+# Trivy ignore file — INT-019 (invariant 14: gates are not weakened; a row here
+# must name something provably inapplicable, never a risk we have decided to
+# accept quietly).
+#
+# Scoped by PURL, never by bare CVE id: a bare `id:` row would suppress the
+# advisory for every package in the tree forever, including a real dependency
+# that acquires it later. tests/ci/test_security_gates.py pins that shape —
+# every row must carry a purls list — so this file cannot quietly become a
+# global mute.
+
+vulnerabilities:
+  - id: CVE-2026-33310
+    purls:
+      - "pkg:pypi/intake@0.1.0"
+    statement: >
+      NAME COLLISION WITH NOTHING, not a vulnerability we are accepting.
+      CVE-2026-33310 is a shell() expansion command injection in the PyData
+      `intake` data-catalog project on PyPI. What trivy matched is not that
+      project and is not a package at all: uv.lock records
+      `intake 0.1.0` as `source = { virtual = "." }` — this repository's own
+      workspace root, declared `[tool.uv] package = false` with no
+      `[build-system]`, so it is never built, never published and never
+      resolved from PyPI. It ships zero source files; `shell()` appears
+      nowhere in the tree.
+
+      Observed rather than assumed: `trivy fs --scanners vuln --severity
+      CRITICAL,HIGH` on 3 Sep 2026 reported exactly this one finding against
+      uv.lock and nothing else, and reported it again with this row removed
+      (docs/evidence/INT-019.md).
+
+      ⚠️ A first-party distribution sharing a name with a public PyPI project
+      is a dependency-confusion surface in its own right, and suppressing the
+      advisory does not remove it. The durable fix is to rename the workspace
+      root; that touches uv.lock, which every open branch is also editing, so
+      it is recorded for the owner rather than done inside INT-019.

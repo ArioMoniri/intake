@@ -37,10 +37,10 @@ import argparse
 import json
 import sys
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 from typing import Any
+
+import httpx
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tests" / "voice"))
@@ -102,20 +102,19 @@ def _measure_tts() -> dict[str, object]:
         base = f"http://{MEASURE_HOST}:{port}"
         timings: list[float] = []
         try:
-            for text in MEASURE_CORPUS:
-                payload = json.dumps({"text": text}).encode("utf-8")
-                request = urllib.request.Request(  # noqa: S310 - loopback, dev only
-                    f"{base}/synthesize",
-                    data=payload,
-                    headers={"Content-Type": "application/json"},
-                )
-                started = time.perf_counter()
-                with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
-                    body = response.read()
-                timings.append((time.perf_counter() - started) * 1000.0)
-                if not body:
-                    raise urllib.error.URLError("empty body")
-        except (urllib.error.URLError, TimeoutError, OSError):
+            # httpx, not urllib: urlopen honours file:/ and any other scheme the
+            # URL happens to carry, which is what bandit B310 is about. httpx
+            # speaks http/https only, so the class of risk is removed at the
+            # call rather than annotated away.
+            with httpx.Client(timeout=30.0) as client:
+                for text in MEASURE_CORPUS:
+                    started = time.perf_counter()
+                    response = client.post(f"{base}/synthesize", json={"text": text})
+                    response.raise_for_status()
+                    timings.append((time.perf_counter() - started) * 1000.0)
+                    if not response.content:
+                        raise httpx.HTTPError("empty body")
+        except (httpx.HTTPError, TimeoutError, OSError):
             continue
         return {
             "lane": lane_id,
