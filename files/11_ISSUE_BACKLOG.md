@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**237 issues.** By phase: P0 137 · P1 57 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 113 · todo 111 · withdrawn 1.
+**237 issues.** By phase: P0 137 · P1 57 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 114 · todo 110 · withdrawn 1.
 
 ## P0
 
