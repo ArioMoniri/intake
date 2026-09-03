@@ -296,7 +296,7 @@ def extract_record_items(
     ``expected_units`` maps a folded printed analyte name to the unit a
     clinician authored for it, and is what makes a unit *conflict* detectable
     at all. No such table is committed to this repository
-    (HUMAN_BLOCKERS.md **HB-C23**), so the default is empty, the check does not
+    (HUMAN_BLOCKERS.md **HB-C24**), so the default is empty, the check does not
     run, and every analyte it did not run for is named in
     ``units_unchecked`` — visibly, rather than as a pass.
 

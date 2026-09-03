@@ -503,7 +503,7 @@ class TestMagnitudeOutranksThePrintedUnitToken:
     files/03 §4.9.6 records the demonstrated case: a published 2024 university
     handbook prints adult ALT ``0 - 55 U/mL`` when the values are U/L — wrong
     by 1000x. The guard is the *expectation*, which is clinical content no
-    human has supplied (HB-C23); this proves the guard, not a table.
+    human has supplied (HB-C24); this proves the guard, not a table.
     """
 
     def test_a_disagreement_flags_and_converts_nothing(self) -> None:

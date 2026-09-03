@@ -18,7 +18,7 @@ failure below is a demonstrated one rather than a hypothetical:
 
 What §4.9.6 also asks for — *"cross-checked against the analyte's expected
 magnitude"* — is a clinical table no human has supplied (HUMAN_BLOCKERS.md
-**HB-C23**). The fail-closed reading of the same rule is available and is what
+**HB-C24**). The fail-closed reading of the same rule is available and is what
 runs: where a printed form reads two ways, refuse it. That refusal is strictly
 safer than the cross-check would be and never becomes wrong when the table
 lands; the table only turns some refusals into readings.

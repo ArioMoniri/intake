@@ -1306,7 +1306,7 @@
   # corpus is configured, `LoincUnitMeasurement` cannot be constructed without
   # a named corpus and two dates, and no figure is reported anywhere.
   #
-  # Separately: HB-C23 (the analyte expected-unit table) leaves the invariant-22
+  # Separately: HB-C24 (the analyte expected-unit table) leaves the invariant-22
   # unit guard wired with nothing to check against. That is visible rather than
   # silent — `DocumentExtraction.units_unchecked` names every analyte the check
   # did not run for — and it is INT-124's clause, not this one's.
