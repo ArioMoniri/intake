@@ -1,0 +1,41 @@
+# docs/legal/documents.yaml — the signed index of the INT-210 legal document
+# set. CLAUDE.md invariant 18: consent and legal texts render only from
+# docs/legal/ with hash binding.
+#
+# This file is EMPTY OF DOCUMENTS ON PURPOSE. The mechanism is complete and
+# every gate is wired; the copy is human legal work and no document has been
+# authored or signed. `intake_platform.legal.LegalDocumentSet` therefore
+# refuses every id in the required set today, which is the correct state, not
+# a gap to be filled with a draft: a plausible aydınlatma metni would load,
+# hash, bind to real acceptances and become indistinguishable from counsel's
+# own words once merged (invariant 17; docs/legal/COUNSEL_BRIEF.md §5).
+#
+# The required set is code, not configuration: it is
+# `intake_platform.legal.documents.REQUIRED_DOCUMENTS`, derived from files/06
+# §1's five aydınlatma channels, files/06 §2's eleven açık rıza purposes, the
+# four standalone documents INT-210 names, and the files/06 §7 fixed strings.
+# A row here for anything else is a defect and the loader refuses it.
+#
+# What one row looks like once a document exists and counsel has signed it:
+#
+#   documents:
+#     - id: gizlilik                       # from REQUIRED_DOCUMENTS
+#       version: "2026-09-01.1"            # this document's own version
+#       sha256: "<sha256 of docs/legal/gizlilik.tr.md, exact bytes>"
+#       summary_sha256: "<sha256 of docs/legal/summaries/gizlilik.tr.md>"
+#       counsel:
+#         signed_by: "<name, role/bar registration>"
+#         signed_on: 2026-09-01
+#         evidence: "docs/evidence/INT-210.md#counsel-sign-off"
+#
+# All five sub-keys are required. A row missing any of the three counsel facts
+# is not a partially signed document; it is an unsigned one, and it does not
+# serve. `evidence` must point inside docs/evidence/INT-210.md, because the
+# acceptance criterion is "counsel sign-off recorded in evidence file before
+# merge" and a pointer anywhere else records nothing.
+#
+# The ask, with the named human and the one sentence they must answer, is in
+# docs/backlog/blockers.md under INT-210.
+
+legal_index_version: "v0-unsigned"
+documents: []
