@@ -9,7 +9,7 @@ load-bearing: the note value has already lost some of what the summary needs.
 after INT-084's composer the fact index is where a line's attribution, its
 subject and the date a carried fact was first asserted actually live.
 
-Four refusals, each because a friendlier surface is where the corresponding
+Five refusals, each because a friendlier surface is where the corresponding
 guarantee is usually lost.
 
 1. **A relative's item is refused, never relocated.** INT-084 established the
