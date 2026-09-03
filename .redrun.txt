@@ -1,0 +1,16 @@
+
+==================================== ERRORS ====================================
+_____________ ERROR collecting tests/connectors/test_fhir_push.py ______________
+ImportError while importing test module '/private/tmp/int161-wt/tests/connectors/test_fhir_push.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/Users/ario/.pyenv/versions/3.12.8/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/connectors/test_fhir_push.py:55: in <module>
+    from intake_connectors.fhir import FhirR4PushAdapter, PayloadNotFhir
+E   ModuleNotFoundError: No module named 'intake_connectors.fhir'
+=========================== short test summary info ============================
+ERROR tests/connectors/test_fhir_push.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.63s
