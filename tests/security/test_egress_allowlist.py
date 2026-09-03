@@ -53,6 +53,7 @@ from typing import Any
 import httpx
 import pytest
 from intake_platform.egress import (
+    AllowlistEntry,
     DataClass,
     EgressContext,
     EgressDenied,
@@ -441,18 +442,49 @@ def test_the_transport_refuses_a_wrong_purpose_before_resolving() -> None:
         client.get("https://pypi.org/simple/")
 
 
+#: Purposes whose destinations are NOT vendor rows and therefore never appear
+#: in this file (INT-160 / ADR-026): a hospital push endpoint is per-tenant
+#: data, registered out-of-band and bound to a signed DPA (files/10 inv. 46),
+#: so it is declared by `infra/connectors/destinations.yaml` and the
+#: `ConnectorDestination` schema instead. Naming the exemption here rather than
+#: dropping the assertion keeps the "no dead members" rule intact, and the test
+#: below adds the direction that matters more: such a purpose must be ABSENT
+#: from this file, never merely optional in it.
+NON_VENDOR_PURPOSES = frozenset({EgressPurpose.CLINICAL_RECORD_PUSH})
+
+
+def _shipped_rows() -> list[AllowlistEntry]:
+    allowlist = load_allowlist(ALLOWLIST_PATH)
+    return [*allowlist.tiers.dev, *allowlist.tiers.phi_path]
+
+
 def test_every_purpose_in_the_vocabulary_is_used_by_the_shipped_allowlist() -> None:
     """A closed vocabulary with dead members drifts into a free-text field.
 
-    Every `EgressPurpose` must be the purpose of at least one shipped row, and
+    Every `EgressPurpose` must be declared by a shipped policy artefact, and
     every shipped row's purpose must be in the enum (the latter by type).
     """
-    allowlist = load_allowlist(ALLOWLIST_PATH)
-    rows = [*allowlist.tiers.dev, *allowlist.tiers.phi_path]
-    used = {entry.purpose_id for entry in rows}
-    assert used == set(EgressPurpose), (
-        f"unused purposes: {sorted(set(EgressPurpose) - used)}; "
+    used = {entry.purpose_id for entry in _shipped_rows()}
+    expected = set(EgressPurpose) - NON_VENDOR_PURPOSES
+    assert used == expected, (
+        f"unused purposes: {sorted(expected - used)}; "
         "a purpose nothing declares is vocabulary, not policy"
+    )
+
+
+def test_a_connector_push_purpose_never_appears_in_the_vendor_allowlist() -> None:
+    """The stronger direction of the exemption above.
+
+    A clinical-record push destination is one hospital's endpoint under one
+    tenant's DPA. Putting it in this file would make it reachable by every
+    process that loads the vendor list, for every tenant — which is ADR-025's
+    fifth bypass ("the right host addressed for the wrong reason") installed
+    as configuration rather than exploited.
+    """
+    offenders = [entry.name for entry in _shipped_rows() if entry.purpose_id in NON_VENDOR_PURPOSES]
+    assert offenders == [], (
+        f"{offenders} declare a non-vendor purpose in the vendor allow-list; "
+        "connector destinations belong in infra/connectors/destinations.yaml"
     )
 
 

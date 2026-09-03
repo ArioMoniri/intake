@@ -981,10 +981,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   resolve-once-and-pin with re-validation; redirects disabled; endpoint change is tier-2 by
   `platform_owner` and pages; OpenBao-held credentials, scoped consent token per push,
   idempotency keys, mTLS/SMART backend services.
-- **Signals:** push success/failure, receipts, endpoint errors, connector-endpoint change
-  events (§7/§9) land with INT-160.
-- **Tests:** contract and replay tests plus `connector_endpoint_allowlist_guard` (inv. 46,
-  incl. the DNS-rebinding fail-closed case) land with INT-160.
+- **Signals:** `connector_push_total{endpoint,outcome}` carries success, failure, consent
+  refusal and replay suppression off one label; `connector_push_duration_seconds{endpoint}`
+  the endpoint-error latency; `connector_receipts_unresolved_total{endpoint}` the pushes
+  whose delivery is unknown, which is the series that decides whether a retry is safe
+  (INT-160; all three catalogued in `observability/metrics_catalog.yaml` — files/08 §4
+  names no id for this row, so they enter the catalogue without one).
+  `admin.connector_endpoint_changed_total` stays `planned`: a destination is a reviewed
+  commit to `infra/connectors/destinations.yaml`, not a runtime event, and it arrives with
+  the console (INT-19x).
+- **Tests:** `tests/connectors/test_framework.py` — the per-tenant registry (no URL field
+  exists in the schema; a tenant naming another tenant's `endpoint_id` is refused, which is
+  ADR-025's fifth bypass in the form it takes here), each of ADR-025's five bypasses driven
+  through the connector path (metadata-range answer, split DNS answer fails closed, the
+  request aimed at the pinned address, redirects not followed, wrong tenant), the
+  write-ahead receipt with both hash-chained audit entries and the crash-in-between case,
+  the derived idempotency key with its near-miss negatives (edited note, other endpoint,
+  other tenant), the ambiguous-outcome parking for a receiver whose DPA does not declare
+  the key honoured, and the no-PHI-no-credential sweep over logs, receipts and errors.
+  `tests/connectors/test_credentials_and_tls.py` — OpenBao resolution that names no path in
+  its failure, mTLS material that leaves no file behind on success or failure, the registry
+  file refusing rather than loading empty, and the adapter-built path re-checked at send
+  time. `tests/security/test_egress_allowlist.py` additionally asserts that a
+  clinical-push purpose never appears in the vendor allow-list.
 
 ## `kiosk` — shared devices in clinics
 

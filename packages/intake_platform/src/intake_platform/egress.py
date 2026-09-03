@@ -178,14 +178,25 @@ class EgressPurpose(StrEnum):
     Closed on purpose: files/10 §4 records that free-text destinations are the
     console SSRF, and a free-text *purpose* is the transfer-register version
     of the same mistake — a register whose purpose column is prose cannot be
-    audited. Every member is the purpose of at least one shipped row and every
-    row's purpose is a member (both directions tested).
+    audited. Every member is declared by a shipped policy artefact and every
+    row's purpose is a member (both directions tested): the vendor rows in
+    ``infra/security/egress-allowlist.yaml`` for the four vendor purposes, and
+    the connector destination schema for ``CLINICAL_RECORD_PUSH``, whose
+    destinations are per-tenant data rather than committed rows.
     """
 
     PACKAGE_REGISTRY = "package_registry"
     SOURCE_CONTROL = "source_control"
     ISSUE_TRACKING = "issue_tracking"
     MODEL_WEIGHTS = "model_weights"
+    #: INT-160 / ADR-026. The one purpose whose destinations are NOT vendor
+    #: rows: a hospital endpoint is per-tenant data, registered out-of-band and
+    #: bound to a signed DPA (files/10 inv. 46), so it never appears in
+    #: ``infra/security/egress-allowlist.yaml`` — the connector registry
+    #: synthesises an :class:`AllowlistEntry` per send instead, and the vendor
+    #: file's own test asserts the stronger direction: this member must not
+    #: appear there.
+    CLINICAL_RECORD_PUSH = "clinical_record_push"
 
 
 class DataClass(StrEnum):
