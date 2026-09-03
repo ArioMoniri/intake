@@ -1086,7 +1086,22 @@
   title: "Session budgets + cost metering per component/profile"
   depends_on: [INT-092]
   labels: [area:voice]
+  # STAYS todo, deliberately (3 Sep 2026). The mechanism is built, wired, tested at
+  # 100 % branch and fails closed: intake_voice_runtime.metering meters all three axes
+  # per session and per profile, decides which KIND each budget is (cap for extraction
+  # tokens, target for TTS chars, accounting for audio seconds), and refuses the
+  # elective model lane when no cap is declared - never the obligatory one, because a
+  # patient's answer that is never extracted is a red-flag phrase nobody evaluated.
+  # One acceptance line of three is NOT met: "cost.per_session emitted". A cost is a
+  # quantity times a price; the quantities are metered and there is no price. Invariant
+  # 19 leaves no vendor list price, and HB-I4/HB-I5 leave no GPU-hour rate to amortise,
+  # so PriceBook ships empty, priced_cost raises rather than returning a zero (zero is
+  # a claim that a session was free), no Gauge is declared and the catalogue row stays
+  # planned. The per-session limits are missing for the same reason - files/10 Sec 5
+  # names the control and states no number. Both asks are in docs/backlog/blockers.md;
+  # the HUMAN_BLOCKERS.md id is for the coordinator to allocate.
   status: todo
+  evidence: docs/evidence/INT-101.md
   acceptance:
     - "token/char/audio-second budgets enforced; cost.per_session emitted; exhaustion degrades gracefully"
   tests: [tests/voice/test_budgets.py]

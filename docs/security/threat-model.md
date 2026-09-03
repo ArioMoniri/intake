@@ -702,7 +702,17 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `sec_injection_suspected_total` from `intake_voice_runtime.extraction.boundary` when a
   transcript carries the data-block control marker, and `injection_event()` builds the
   `SecurityV1` row (ids and closed enumerations only; the refused string is never
-  recorded). PolicyGuard spikes and budget exhaustion (§7) land with INT-101, INT-102.
+  recorded). **Budget exhaustion landed with INT-101**, and what it produces is narrower
+  than "a signal" — `intake_voice_runtime.metering` counts every session's spend by
+  component and refuses the *elective* model lane when a declared cap cannot afford it
+  (and when no cap is declared at all, which is the state today: no file publishes a
+  per-session limit). The obligatory lane is never refused, because a patient's answer
+  that is never extracted is a red-flag phrase nobody evaluated. One series moves
+  `planned` → `live`: `voice.tts_chars`. Two do **not**, and neither gap is closed by
+  minting an id — Backend extraction tokens are files/08 §4 group J's id-less row, and
+  `cost.per_session` has no price to multiply by (files/HUMAN_BLOCKERS.md HB-I4, HB-I5),
+  so it stays `planned` and no `Gauge` is declared for it. PolicyGuard spikes still land
+  with INT-102.
 - **Tests:** schema-validation tests landed with INT-083 —
   `tests/ai/test_extraction_contract.py`, which pins the four structural facts this row
   turns on: the instruction region takes no transcript parameter, the transcript travels
@@ -710,8 +720,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   could occupy, and `ExtractionResult` has no `level` field at all (invariant 1 as a
   `TypeError` at the call site rather than a check). A planted Turkish injection —
   INT-175's symptom sentence with an instruction welded onto it — is refused without the
-  refusal echoing a fragment of it. The adversarial suite RT-09…14 in `make safety` plus
-  the nightly red-team job still land with INT-102.
+  refusal echoing a fragment of it. **INT-101 adds `tests/voice/test_budgets.py`**: the
+  admission table for all three kinds, the cap refusing the elective lane *before* the
+  endpoint is dialled, the exhausted cap still admitting obligatory work, the ledger
+  holding running totals rather than a per-charge history (invariant 3 reaches a derived
+  duration too), the label set proved free of `PHI_RISK_LABEL_NAMES`, a metered turn
+  taking exactly the same virtual time as an unmetered one on the fake clock (invariant
+  9), and the price book refusing rather than returning a zero. The adversarial suite
+  RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
 
 ## `cloud-boundary` — what may leave, and in what form
 
