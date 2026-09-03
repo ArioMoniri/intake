@@ -1139,6 +1139,35 @@ export const tr = {
   "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
+
+  // --- INT-137 · Gönder'den önceki paylaşım özeti (02 §5.4: ne, kiminle, ne
+  // zamana kadar). Süre bir sayaç değil, bir dayanak: 02 §2 Doctor Link
+  // süresini randevuya bağlar, gönderim anına değil — bu yüzden metinde
+  // rakam yoktur ve cihaz hiçbir saat hesaplamaz.
+  "review.consent.title": "Paylaşım özeti",
+  "review.consent.sections": "Paylaşılan bölümler",
+  "review.consent.nothing": "Şu anda hiçbir bölüm paylaşılmıyor.",
+  "review.consent.recipient": "Kime gidiyor",
+  "review.consent.until": "Ne zamana kadar",
+  "review.consent.untilValue": "Paylaşım, randevunuzun saatinden üç gün sonra sona erer.",
+  // --- INT-137 · gönderimden sonra sorulan memnuniyet sorusu. 06 §2
+  // `satisfaction` izni yoksa kart hiç görünmez ve hiçbir şey toplanmaz.
+  // Ölçek rakamla değil sözcükle sorulur (invariant 22).
+  "csat.title": "Bu görüşme nasıldı?",
+  "csat.optional": "Bu soru isteğe bağlıdır. Yanıtlamasanız da notunuz gönderildi.",
+  "csat.scoreGroup": "Görüşme değerlendirmesi",
+  "csat.score.veryBad": "Çok kötüydü",
+  "csat.score.bad": "Kötüydü",
+  "csat.score.ok": "İdare eder",
+  "csat.score.good": "İyiydi",
+  "csat.score.veryGood": "Çok iyiydi",
+  "csat.reasonGroup": "Bunun nedeni",
+  "csat.reason.tooLong": "Çok uzundu",
+  "csat.reason.didntUnderstandMe": "Beni anlamadı",
+  "csat.reason.feltRushed": "Acele ettirdi",
+  "csat.reason.helpful": "Yardımcı oldu",
+  "csat.reason.feltHeard": "Dinlendiğimi hissettim",
+  "csat.thanks": "Teşekkür ederiz.",
   // --- INT-136 · validated instruments on the typed surface ----------------
   // What the screen says when an instrument cannot be administered. It names
   // no scale and no score: the item text itself is never in this catalogue

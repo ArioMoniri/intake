@@ -1438,7 +1438,38 @@
   title: "Review & send + Doctor Link QR + CSAT prompt"
   depends_on: [INT-084, INT-240]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Five of the six clauses in the
+  # acceptance line are delivered and evidenced: section-level scope UI,
+  # the consent summary (what / with whom / which expiry anchor), send,
+  # the after-send status timeline, and never-blocks-send - the last held
+  # structurally and proved non-vacuous by three reverted mutants.
+  #
+  # The sixth is delivered as a MECHANISM that is shut. The CSAT prompt
+  # exists, is gated on the files/06 §2 `satisfaction` acika riza, and
+  # renders nothing without it - and nothing can grant it, because
+  # docs/legal/consents/satisfaction.tr.md does not exist until INT-210.
+  # That is the correct state (build the gate, fail closed, leave the
+  # content empty), not a working prompt. Two further gaps are filed
+  # rather than worked around: INT-305 (the spec calls the prompt one-tap
+  # and csat.v1 requires a reason, so one tap cannot form an event and no
+  # reason is defaulted) and INT-304 (the API's SectionId names three
+  # sections against the note's eight, so a withheld allergy list cannot
+  # be recorded in the share scope). The answer also has no transport:
+  # the device holds a visitId, not the IntakeSession id INT-240's route
+  # is keyed on, and INT-142 owns mobile sync.
+  #
+  # The Doctor Link QR in the title is NOT in the acceptance line and is
+  # deliberately not built. INT-150 owns the token, its OTP, expiry, view
+  # limit, revoke, watermark and access log, and is still todo; there is
+  # no redemption route to point a code at, and no QR or barcode
+  # dependency has had the invariant 19 licence audit. review.tsx says so
+  # and e2e/review_send.spec.ts §6 fails the build if a link, scheme,
+  # token or serialised payload appears.
+  #
+  # Reopen against INT-210 (the consent text) and INT-150 (the QR); see
+  # docs/evidence/INT-137.md §"What is not met".
   status: todo
+  evidence: docs/evidence/INT-137.md
   acceptance:
     - "section-level scope UI; consent summary; send; status timeline; one-tap CSAT with reason chips; never blocks send"
   tests: [apps/mobile/e2e/review_send.spec.ts]
@@ -3173,7 +3204,8 @@
   title: "OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
   depends_on: [INT-131, INT-285]
   labels: [area:api, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-263.md
   acceptance:
     - "the deviation is stated first: auth_store._window_key buckets on floor(now / OTP_WINDOW_S), so a caller who spends its budget just before a boundary is given a fresh budget just after it. INT-285 pinned the worst case as 2 x PHONE_LIMIT_PER_HOUR codes to one phone inside about six minutes, against the files/10 §2 wording '3 requests/hour/phone'"
     - "the budgets are counted so that no more than PHONE_LIMIT_PER_HOUR requests per phone, IP_LIMIT_PER_HOUR per IP and DEVICE_LIMIT_PER_HOUR per device are admitted in ANY OTP_WINDOW_S span rather than in each fixed window; the retry-after the caller is told is the true one for that bound, not the time to the next boundary"
@@ -3398,6 +3430,53 @@
   - apps/mobile/src/lib/dialogue/speechShaping.test.ts
   - apps/mobile/e2e/bargeIn.spec.ts
   sec_row: "intake-voice"
+- id: INT-295
+  epic: E08-mobile
+  phase: P1
+  # Filed from the INT-293 walkthrough, 2 Sep 2026. The ModeBar rendered
+  # "Hastanedeyim" + "Detayli mod acik" + "Siraniz geldi" as one row that
+  # neither wrapped nor scrolled, with the checkpoint chip pinned to the far
+  # end by an auto margin, so the chip walked off the right edge as the text
+  # grew. "Siraniz geldi" is the control for "I have been called in, give me
+  # my note now" and Detayli is the in-hospital mode, so the one affordance
+  # built for the situation the mode exists for was unreachable in it.
+  #
+  # ONE CORRECTION to the filed report, made before the fix and recorded in
+  # docs/evidence/INT-295.md. The walkthrough said "at the system default
+  # Dynamic Type (UICTContentSizeCategoryL)". The OS category was L, but
+  # INT-260's control REPLACES the OS value rather than composing with it, so
+  # the two can disagree - and the capture itself settles which was true: the
+  # "Hastanedeyim" chip measures 195.7 pt in that PNG, which is the app's
+  # LARGEST step. At an OS-following 1.0 the row does fit. It stops fitting at
+  # 1.20 on that same phone. 1.20 is not a rung of the app's own control - its
+  # steps are 0.9, 1.0, 1.3, 1.6, 2.0 - it is where the row stops fitting as a
+  # continuous measurement, so the first REACHABLE app step that breaks it is
+  # 1.3, the third of the five, and 1.20 is iOS's XL in OS terms
+  # and iOS's XL category, so the defect is real, reachable without touching
+  # any accessibility setting, and simply not at 1.0. Acceptance is written
+  # against the measurement rather than the premise.
+  #
+  # INT-284 swept content that overflows the safe area VERTICALLY and pinned a
+  # tree-wide test for it. This is the horizontal axis, which that test does
+  # not cover; the same class of defect, one axis over.
+  title: "The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing
+    scrolls sideways to bring it back"
+  depends_on: [INT-284]
+  labels: [area:mobile, area:a11y]
+  status: done
+  evidence: docs/evidence/INT-295.md
+  acceptance:
+    - "the defect is reproduced before it is fixed and the reproduction is a MEASUREMENT, not the premise it was filed with: the row's items are measured in the face the app ships (Inter, read from its own hmtx/cmap tables), the model is calibrated against the INT-293 capture to within half a point, and the recorded red run names the scale at which the checkpoint control first leaves the row on the captured 402 pt phone - 1.20, not 1.0"
+    - "every ModeBar control is reachable in BOTH modes across the whole text-size range: a test enumerates the row's items from the component itself rather than checking one width, sweeps the app's five rungs and the clamped OS range in 0.05 steps, on the captured phone and on the narrowest one still in service, in both shipped catalogues"
+    - "the fix is structural and not a font shrink: the row wraps, its chips shrink, and it changes form at the app's one large-text threshold - and a near-miss control re-measures the row exactly as photographed in the SMALLEST role the type scale has and shows a control still leaving the screen, so shrinking type alone is proved not to satisfy the test"
+    - "the horizontal axis is swept the way INT-284 swept the vertical one: a tree-wide test catches a row that pins an item to the far end (space-between, or an auto margin) in a container that cannot break a line, every such row in the tree is fixed with the one-token remedy INT-284 already used, and the allow-list ships empty and may only shrink"
+    - "the caption 'N soru yanitlandi' is likewise not clipped by the progress dot rail at any text size: the rail owns a box that wraps and shrinks, the counter shrinks not at all, and the counter is measured to fit the narrowest phone at the largest step in both catalogues"
+    - "the chips reach the touch floor by BOX rather than by vertical slop, because a row that can stack them four points apart is the case lib/a11y/target.ts already refuses horizontally"
+    - "no new string, no copy change, no placeholder, no skipped test; make check and make safety are green"
+  tests:
+    - apps/mobile/e2e/modeBar.spec.ts
+    - apps/mobile/e2e/overflow.spec.ts
+  sec_row: "mobile"
 - id: INT-296
   epic: E01-platform
   phase: P0
@@ -3649,6 +3728,66 @@
   tests:
   - tests/legal/test_locale_binding.py
   sec_row: "consent"
+- id: INT-304
+  epic: E08-mobile
+  phase: P0
+  title: 'The share scope can express three sections and the note has eight, so a
+    withheld section is not recorded anywhere'
+  depends_on:
+  - INT-137
+  labels:
+  - area:mobile
+  - area:api
+  - risk:legal
+  status: todo
+  acceptance:
+  - '`SectionId` in services/api (`schemas.py`) is widened from the three names
+    it carries today - chief_complaint, hpi, medications - to the full set the
+    note actually emits, which `buildNote` fixes at eight including allergies,
+    pmh, family_social, measurements, device_health and the deferral marker;
+    the set is derived from ONE declaration shared by the note builder and the
+    schema rather than restated, because two lists is how they drifted'
+  - 'a patient who scopes a section off has that choice recorded in the
+    share consent scope and in the hash-chained audit entry for the share
+    (invariant 4): a test scopes off `allergies`, sends, and asserts the
+    recorded scope names it - today that assertion cannot even be written,
+    because the field has no value that means allergies'
+  - 'the mobile consent summary and the server-side scope check read the same
+    section ids, so the summary a patient reads before Gonder is the set the
+    audit records afterwards'
+  tests:
+  - tests/api/test_note_scopes.py
+  - apps/mobile/e2e/review_send.spec.ts
+  legal: "KVKK-5"
+  sec_row: "review-send"
+- id: INT-305
+  epic: E16-experience
+  phase: P1
+  title: 'One-tap CSAT cannot form a csat.v1 event, because the schema requires a
+    reason the first tap has not given'
+  depends_on:
+  - INT-240
+  - INT-137
+  labels:
+  - area:experience
+  - area:mobile
+  status: todo
+  acceptance:
+  - 'the contradiction is RESOLVED in one direction and recorded, not papered
+    over: either files/02 §5.4 stops calling the prompt one-tap, or `reason`
+    becomes optional in csat.v1 and the rollups handle its absence - and
+    whichever is chosen, the other file changes in the same PR'
+  - 'no reason is ever defaulted, inferred from the score, or filled from the
+    chip a patient hovered: a fabricated reason is the patient''s words put in
+    their mouth and is indistinguishable from a real one in the rollup'
+  - 'a score recorded without a reason is either a complete event or is not
+    recorded at all - there is no third state where the device holds an answer
+    the patient believes was sent'
+  tests:
+  - tests/experience/test_csat_flow.py
+  - apps/mobile/src/lib/intake/csat.test.ts
+  legal: "KVKK-5-satisfaction"
+  sec_row: "experience"
 - id: INT-303
   epic: E03-protocols
   phase: P0

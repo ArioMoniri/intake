@@ -263,10 +263,15 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     maxHeight: "78%",
   },
+  // Wraps (INT-295): a title role and a close control at opposite ends of a
+  // fixed line collide as the text grows, and the control is the one that
+  // leaves.
   sheetHeader: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: spacing.sm,
     paddingHorizontal: spacing.screen,
     paddingBottom: spacing.md,
   },

@@ -48,10 +48,11 @@ import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
 import { InstrumentStep } from "@/components/InstrumentStep";
+import { ModeBar } from "@/components/ModeBar";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { joinParts } from "@/lib/a11y/labels";
-import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import { MIN_TAP } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
@@ -434,21 +435,30 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <View style={styles.progressRow}>
           {/* SC 1.4.1: per-question progress exists here ONLY as a hue, and
               a hue is not a fact. The dots are hidden as the decoration
-              they are and the counter beside them carries the state. */}
-          {applicable.map((item, i) => (
-            <View
-              key={item.id}
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={[
-                styles.progressDot,
-                {
-                  backgroundColor:
-                    answeredIds.has(item.id) || i === stepIndex ? theme.primary : theme.border,
-                },
-              ]}
-            />
-          ))}
+              they are and the counter beside them carries the state.
+
+              INT-295: the dots own a box that WRAPS and SHRINKS, and the
+              counter does neither. A Detaylı flow reaches about thirty dots,
+              which at 8 pt plus a 4 pt gap is longer than the content width
+              on its own — so the row used to push the counter off the right
+              edge at the DEFAULT text size, and the fact went with it. The
+              decoration yields the room now; the fact keeps it. */}
+          <View style={styles.progressRail}>
+            {applicable.map((item, i) => (
+              <View
+                key={item.id}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={[
+                  styles.progressDot,
+                  {
+                    backgroundColor:
+                      answeredIds.has(item.id) || i === stepIndex ? theme.primary : theme.border,
+                  },
+                ]}
+              />
+            ))}
+          </View>
           <AppText role="caption" color="inkFaint" style={styles.progressCount}>
             {answeredCount} {t("intake.progress.answered")}
           </AppText>
@@ -724,68 +734,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   );
 }
 
-interface ModeBarProps {
-  detayli: boolean;
-  /** Show the calm one-liner that private questions are deferred (02 §33). */
-  deferredNotice: boolean;
-  onToggleMode: () => void;
-  onQueueCalled: () => void;
-}
-
-/**
- * The quiet mode row (INT-236): the "Hastanedeyim" switch (02 §2 table —
- * Detaylı trigger) and, while Detaylı is on, the persistent "Sıranız geldi"
- * affordance (02 §34). Both are caption-register chips — mode is context,
- * never the screen's subject.
- */
-function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeBarProps) {
-  const theme = useTheme();
-  return (
-    <View style={styles.modeBlock}>
-      <View style={styles.modeRow}>
-        <Pressable
-          accessibilityRole="switch"
-          accessibilityLabel={t("intake.mode.hastanedeyim")}
-          accessibilityState={{ checked: detayli }}
-          hitSlop={verticalSlop(26)}
-          onPress={onToggleMode}
-          style={[
-            styles.modeChip,
-            { backgroundColor: detayli ? theme.primarySoft : theme.surfaceRaised },
-          ]}
-        >
-          <AppText role="caption" color={detayli ? "primary" : "inkSoft"}>
-            {t("intake.mode.hastanedeyim")}
-          </AppText>
-        </Pressable>
-        {detayli ? (
-          <>
-            <AppText role="caption" color="inkFaint">
-              {t("intake.mode.detayliOn")}
-            </AppText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("intake.queue.called")}
-              hitSlop={verticalSlop(26)}
-              onPress={onQueueCalled}
-              style={[styles.modeChip, styles.queueChip, { backgroundColor: theme.surfaceRaised }]}
-            >
-              <AppText role="caption" color="primary">
-                {t("intake.queue.called")}
-              </AppText>
-            </Pressable>
-          </>
-        ) : null}
-      </View>
-      {deferredNotice ? (
-        <AppText role="caption" color="inkFaint">
-          {t("intake.privacy.deferredInfo")}
-        </AppText>
-      ) : null}
-    </View>
-  );
-}
-
 /**
  * The guarded numeric control of invariant 22 (INT-282): a stepper between
  * the question's authored bounds. There is no keyboard, no parser and no
@@ -860,22 +808,25 @@ const styles = StyleSheet.create({
   integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  modeBlock: { gap: spacing.xs },
-  modeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  modeChip: {
-    borderRadius: radius.chip,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-  },
-  queueChip: { marginLeft: "auto" },
   // The Card inside is far taller than the floor; declaring it keeps the
   // SC 2.5.8 guarantee a property of the control rather than of its content.
   cardTarget: { minHeight: MIN_TAP },
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  // The decoration is the part that gives way: it wraps onto a second line
+  // and shrinks, so the counter beside it never has to leave the screen.
+  progressRail: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.xs,
+    flexShrink: 1,
+  },
   progressDot: { width: 8, height: 8, borderRadius: radius.chip },
   // Tabular figures so the counter doesn't reflow step to step (design
   // pass 6 microtypography — Oura's numeric rows are tabular).
-  progressCount: { fontVariant: ["tabular-nums"] },
+  // Never shrinks: the count is the fact, and it fits the narrowest phone at
+  // the largest step in both catalogues (asserted in e2e/overflow.spec.ts).
+  progressCount: { flexShrink: 0, fontVariant: ["tabular-nums"] },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,

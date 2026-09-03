@@ -23,14 +23,21 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { en } from "../src/lib/i18n/en";
-import { tr } from "../src/lib/i18n/tr";
-import { INSTRUMENT_ITEMS, INSTRUMENT_LICENCES } from "../src/lib/intake/instruments";
+import { readFontMetrics } from "./fontMetrics";
+import { en } from "@/lib/i18n/en";
+import { tr } from "@/lib/i18n/tr";
+import { INSTRUMENT_ITEMS, INSTRUMENT_LICENCES } from "@/lib/intake/instruments";
+import { allQuestions } from "@/lib/intake/questions";
+import { APP_STEPS } from "@/lib/prefs/appearance";
+import { scaledSize, spacing } from "@/lib/theme";
 
 const MOBILE = join(__dirname, "..");
 const REPO = join(MOBILE, "..", "..");
 const PROTOCOLS = join(REPO, "packages", "protocols");
 const INTAKE_SCREEN = "src/app/(tabs)/visits/[visitId]/intake.tsx";
+const metrics = readFontMetrics(
+  join(MOBILE, "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"),
+);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -247,21 +254,52 @@ describe("the low-literacy overlay is acquired without stigma", () => {
 /* ------------------------------------------------------------------ */
 
 /**
- * A chip in a `flexWrap: "wrap"` row sizes to its content: React Native gives
- * a wrap item no shrink, so a label wider than the row makes the CHIP wider
- * than the row, and there is no horizontal scroll to reach it. Truncating is
- * banned repo-wide (files/00 §2, and `appearance.spec.ts` holds it), so the
- * only remaining way for a long Turkish option label to stay reachable at the
- * app's largest text step is for the chip to be bounded and the label to wrap
- * inside it.
+ * A chip in a `flexWrap: "wrap"` row sizes to its content: React Native gives a
+ * wrap item no shrink, so a label wider than the row makes the CHIP wider than
+ * the row, and there is no horizontal scroll to reach it. Truncating is banned
+ * repo-wide (files/00 §2, held by `appearance.spec.ts`), so the only remaining
+ * way for a long Turkish option label to stay reachable at the app's largest
+ * text step is for the chip to be bounded and the label to wrap inside it.
  *
- * INT-295's finding is why this is asserted across the app's OWN ladder rather
- * than at 1.0: the in-app step REPLACES the OS Dynamic Type value, so a device
- * left at 1.0 says nothing about what the control can ask for.
+ * Measured rather than asserted, using INT-295's reader over the face the app
+ * actually ships — the same model that agreed with an iPhone 16 Pro capture to
+ * within half a point. INT-295 is also why the sweep runs over the app's OWN
+ * ladder rather than at 1.0: its text step REPLACES the OS Dynamic Type value,
+ * so a device sitting at the default says nothing about what the control can
+ * ask for.
  */
 const OPTION_CHIP_HOSTS = [INTAKE_SCREEN, "src/components/DialogueIntake.tsx"];
 
+/** The narrowest iPhone still in service, and the phone INT-295 captured on. */
+const PHONE_WIDTHS = [375, 402] as const;
+
+/** The chip's own horizontal chrome: `paddingHorizontal` and the hairline. */
+const CHIP_CHROME = 2 * spacing.md + 2;
+
+/** Every chip label the packs can put on screen, in both catalogues. */
+const OPTION_LABELS = [
+  ...new Set(
+    allQuestions.flatMap((question) =>
+      (question.options ?? []).flatMap((option) => [tr[option.labelKey], en[option.labelKey]]),
+    ),
+  ),
+];
+
+function chipWidth(label: string, scale: number): number {
+  // Chips are `role="label"` (AppText) in both hosts.
+  return CHIP_CHROME + metrics.advance(label, scaledSize("label", scale));
+}
+
 describe("a pack option label is reachable at every APP_STEPS size", () => {
+  it("has labels that do NOT fit a row, so the bound is load-bearing", () => {
+    // The control has to be shown to be needed. Without this, `maxWidth` would
+    // be a style nobody could tell from decoration.
+    const row = Math.min(...PHONE_WIDTHS) - 2 * spacing.screen;
+    const widest = Math.max(...OPTION_LABELS.map((label) => chipWidth(label, 2.0)));
+    expect(OPTION_LABELS.length).toBeGreaterThan(50);
+    expect(widest).toBeGreaterThan(row);
+  });
+
   it("bounds every wrap-laid chip that carries a pack option label", () => {
     for (const host of OPTION_CHIP_HOSTS) {
       const source = code(read(host));
@@ -271,6 +309,26 @@ describe("a pack option label is reachable at every APP_STEPS size", () => {
       const chip = /\n\s{2}chip:\s*\{[\s\S]*?\n\s{2}\}/.exec(source);
       expect(chip, `${host} has no \`chip\` style to bound`).not.toBeNull();
       expect(chip![0], host).toContain('maxWidth: "100%"');
+    }
+  });
+
+  it("keeps the widest label inside the row once the bound wraps it", () => {
+    // A bounded chip is as wide as the row at worst, and the label wraps
+    // inside the space the chrome leaves. What must never happen is the
+    // chrome alone exceeding the row — then no wrapping saves it.
+    for (const phone of PHONE_WIDTHS) {
+      const row = phone - 2 * spacing.screen;
+      expect(CHIP_CHROME, `${phone}pt`).toBeLessThan(row);
+      for (const scale of APP_STEPS) {
+        // One glyph has to fit beside the chrome at every step, or the label
+        // could never wrap into a legible column.
+        const widestGlyph = Math.max(
+          ...OPTION_LABELS.flatMap((label) => [...label]).map((glyph) =>
+            metrics.advance(glyph, scaledSize("label", scale)),
+          ),
+        );
+        expect(CHIP_CHROME + widestGlyph, `${phone}pt @${scale}`).toBeLessThanOrEqual(row);
+      }
     }
   });
 

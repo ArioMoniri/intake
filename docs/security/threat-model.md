@@ -310,12 +310,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Threats (STRIDE/LINDDUN):** [S] account takeover through OTP abuse; [D] SMS pumping
   (cost and lockout); [I/Id] account enumeration through response differences.
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
-  caps, carrier/geo sanity), device attestation on OTP request and session start, rotating
+  caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
-  generic error messages (§9 row 1).
+  generic error messages (§9 row 1). ⚠ `carrier/geo sanity` is named in §2 and no code
+  implements it; the request budgets below are the whole of what enforces §2's SMS-pumping
+  control today.
+- **The request-budget bound, stated (INT-263):** the per-phone, per-IP and per-device
+  budgets are counted in a **rolling** `OTP_WINDOW_S` window, not per fixed hour. No more
+  than 3 requests per phone, 10 per IP and 3 per device are admitted in **any** 3600-second
+  span — measured backwards from each request, so an hour boundary hands no budget back —
+  and a refused caller is told the true wait for that bound (the instant enough of the
+  admissions in its window have left it), never the time to the next boundary. INT-131
+  shipped fixed hourly buckets, which enforced **2 x the limit inside a rolling hour** — six
+  codes to one phone in about six minutes, floored only by the 60 s resend cooldown; INT-285
+  measured that and left it, INT-263 narrowed it. Enforced in
+  `services/api/src/intake_api/auth_store.py` (`otp_request_gate`), constant work per request
+  over a key set of one sorted set per (dimension, identifier) holding at most that
+  dimension's limit.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
-- **Tests:** abuse-path tests land with INT-131; schemathesis with INT-019.
+- **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
+  boundary-crossing refusal on all three dimensions, the true retry-after (including under a
+  budget tightened while windows are live) and the bounded counter key set with INT-263
+  (`tests/security/test_otp_abuse.py`); schemathesis with INT-019.
 
 ## `consent` — layered consent and scope enforcement
 

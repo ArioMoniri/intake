@@ -135,6 +135,9 @@ const styles = StyleSheet.create({
   },
   optionStacked: {
     flexDirection: "row",
+    // Wraps (INT-295): the checkmark is pinned to the far end, and a long
+    // Turkish label at the largest step would otherwise push it off the row.
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignSelf: "stretch",
     borderRadius: radius.group,

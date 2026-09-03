@@ -47,6 +47,20 @@ clinical white. Choices (tokens in `apps/mobile/src/lib/theme.ts`):
 - **No ALL-CAPS anywhere** (00 §2: İ/ı casing corrupts under `toUpperCase`);
   `nav.spec.ts` greps for `textTransform: "uppercase"` and the i18n test
   rejects fully-uppercase catalog strings.
+- **The app's step REPLACES the OS value** (INT-260, `effectiveFontScale`). So
+  the iOS Dynamic Type category is *not* evidence of the scale the app is
+  rendering at: INT-293 read `UICTContentSizeCategoryL` off a phone whose app
+  step was the largest one, and filed a layout defect as happening "at the
+  default size". Read `useFontScale`, or measure something on screen whose
+  width the type scale decides.
+- **A row of chrome wraps** (INT-295). RN flex children neither wrap nor
+  shrink by default and nothing in this app scrolls sideways, so a row that
+  outgrows its container does not become reachable by swiping — it is drawn
+  where the screen is not. Chrome rows carry `flexWrap: "wrap"`, their items
+  carry `flexShrink: 1`, and at `LARGE_TEXT_SCALE` they change form the way
+  the tab rail and the segmented control do. `e2e/overflow.spec.ts` §6 holds
+  the class tree-wide for the shape that keeps producing it: a row that pins
+  one item to the far end.
 
 ## Motion
 
