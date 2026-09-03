@@ -12,15 +12,19 @@ contracts: the four health endpoints and readiness checks come from
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from intake_platform.admin import AdminWiring, IpAllowList
+from intake_platform.admin.oidc import KeycloakClaimsVerifier, load_jwks
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
@@ -34,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from intake_api import (
+    admin,
     consents,
     doctor_link,
     documents,
@@ -97,6 +102,9 @@ class ApiWiring:
     # INT-131: the OTP/DPoP tier; None = unconfigured (fail closed) while
     # the dev-bearer tier keeps carrying the demo
     auth: AuthWiring | None = None
+    # INT-180: the admin console. None = unconfigured, so every /admin route
+    # answers 503 and the console authenticates nobody (fail closed).
+    admin: AdminWiring | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -207,6 +215,39 @@ def _doctor_link_service(auth: AuthWiring | None) -> DoctorLinkService | None:
     )
 
 
+def _admin_from_env() -> AdminWiring | None:
+    """INT-180. All three of issuer, audience and a mirrored JWKS, or nothing.
+
+    The JWKS is read from a FILE rather than fetched from Keycloak's
+    well-known endpoint on purpose: the most privileged surface in the system
+    should not answer 503 because an identity provider is briefly unreachable,
+    key rotation should be a deploy with a diff, and CI must never dial a live
+    service. Any of the three absent, or a key set that carries no usable
+    signing key, leaves the console unconfigured — every /admin route answers
+    503 rather than admitting anyone.
+
+    The IP allow-list (files/08 §2.3) ships EMPTY, which admits nobody. No
+    file in this repository names an office range, a VPN egress or a bastion,
+    and a plausible address here would look configured while being wrong
+    (invariant 17).
+    """
+    issuer = os.environ.get("INTAKE_ADMIN_OIDC_ISSUER", "")
+    audience = os.environ.get("INTAKE_ADMIN_OIDC_AUDIENCE", "")
+    jwks_path = os.environ.get("INTAKE_ADMIN_OIDC_JWKS_PATH", "")
+    if not (issuer and audience and jwks_path):
+        return None
+    try:
+        keys = load_jwks(json.loads(Path(jwks_path).read_text(encoding="utf-8")))
+    except (OSError, ValueError, json.JSONDecodeError):
+        # ids only, and never the path's contents (invariant 6)
+        logger.warning("admin console unconfigured: the JWKS mirror is absent or unusable")
+        return None
+    return AdminWiring(
+        claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
+        ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
+    )
+
+
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
     return ApiWiring(
@@ -218,6 +259,7 @@ def wiring_from_env() -> ApiWiring:
         bootstrap_engine=build_engine(settings.bootstrap_db_url),
         documents=_documents_from_env(),
         auth=_auth_from_settings(settings),
+        admin=_admin_from_env(),
     )
 
 
@@ -254,6 +296,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state
     app.state.settings = w.settings
+    app.state.admin = w.admin
 
     app.add_middleware(SecurityHeadersMiddleware)
     mount_http_metrics(app, "api")
@@ -336,4 +379,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(notification_prefs.router)
     app.include_router(experience.router)
     app.include_router(learned.router)
+    app.include_router(admin.router)
     return app
