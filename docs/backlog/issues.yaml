@@ -4466,3 +4466,37 @@
   tests:
   - tests/protocols/test_locale_maps.py
   sec_row: "protocol-registry"
+- id: INT-315
+  epic: E13-infra
+  phase: P1
+  # Found by INT-180, and found the honest way: two restore-drill PHI-safety
+  # tests failed on its branch, it was told they might mean a widened guard, and
+  # it established they did not - the cause was a .cache SYMLINK the
+  # coordinator's interruption-recovery saves had committed. Removing the
+  # symlink passes 5/5; restoring it reproduces. But the guard is still wrong.
+  title: 'assert_restore_target_outside_workspace resolves the target and not the
+    workspace, so a symlinked directory INSIDE the repo reads as outside'
+  depends_on: []
+  labels:
+  - area:infra
+  - area:security
+  status: todo
+  acceptance:
+  - 'the workspace side is resolved too: a directory that git can see inside the
+    repository must be refused as a restore target even when it is reached
+    through a symlink whose `Path.resolve()` lands elsewhere - today only the
+    target is resolved, so the comparison is between a real path and a symbolic
+    one and it silently answers "outside"'
+  - 'the case that produced it is the regression test: a symlinked `.cache`
+    directory inside the worktree, which is exactly what this repository''s
+    own fresh-worktree deid-model workflow creates, so the fixture is the real
+    workflow rather than an invented one'
+  - 'the near-miss control passes unchanged: a genuinely external target is
+    still accepted, and a relative path that escapes upward is still refused -
+    a fix that refuses everything would pass the first clause and destroy the
+    drill'
+  - 'no restore ever writes patient data inside the repository, which is what
+    this guard exists for and what the symlink quietly permitted'
+  tests:
+  - tests/infra/test_restore_drill.py
+  sec_row: "backups"
