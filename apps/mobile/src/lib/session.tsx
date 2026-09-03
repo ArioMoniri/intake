@@ -18,6 +18,7 @@ import {
 import type { DeviceIntegrity } from "./auth/integrityState";
 import type { ConsentState, RecordFixture, TestAccount, VisitFixture } from "./dev/accounts";
 import { setLocale, type Locale } from "./i18n";
+import { offerableAppLocales } from "./i18n/locale";
 import type { CarriedFact } from "./intake/carriedFacts";
 import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
 import { buildLocalVisit, type NewVisitInput } from "./visits";
@@ -169,7 +170,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // INT-296 — the ONE explicit act that changes a session's language, and the
+  // only one. It goes through the registry rather than trusting its caller: a
+  // locale the chooser should never have rendered must not become the session
+  // language just because something rendered it. Nothing infers a language
+  // from speech anywhere on this path.
   const switchLocale = useCallback((next: Locale) => {
+    if (!offerableAppLocales().includes(next)) {
+      return;
+    }
     setLocale(next);
     setLocaleState(next);
   }, []);

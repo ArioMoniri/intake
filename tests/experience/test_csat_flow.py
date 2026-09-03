@@ -365,13 +365,15 @@ def test_the_text_row_cascades_away_with_its_session_and_with_its_event(
         )
         conn.execute(
             text(
-                # attribution is NOT NULL as of INT-133 and this is a RAW
-                # insert, so the ORM-side default never runs — supply it.
+                # attribution is NOT NULL as of INT-133 and locale as of
+                # INT-296; this is a RAW insert into the sqlite DDL clone,
+                # which strips non-DateTime server defaults, so neither the
+                # ORM-side nor the server-side default runs — supply both.
                 "INSERT INTO sessions (id, tenant_id, patient_id, protocol_id,"
                 " protocol_version, status, started_at, attribution,"
-                " third_party_present)"
+                " third_party_present, locale)"
                 " VALUES (:i, :t, :p, 'x', 'y', 'created', CURRENT_TIMESTAMP,"
-                " 'self_report', 0)"
+                " 'self_report', 0, 'tr')"
             ),
             {"i": session_id.hex, "t": tenant_id.hex, "p": patient_id.hex},
         )

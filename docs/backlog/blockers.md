@@ -119,6 +119,7 @@ anywhere in the repo. The ledger renders the fact's own recorded phrase where th
 value is one and a catalogue label where it is not, and never the slot ref — every
 other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
 is clinical copy against the packs' slot definitions.
+| INT-296 | awaiting-human (KVKK category of a second locale; column shipped, registry holds only `tr`) | DPO / Turkish counsel (with the owner) | Under which KVKK category, lawful basis, retention and recipients does `sessions.locale` sit once a second language is offered — given that with `tr` alone the column records the service's own language and states nothing about the patient, but a language choice among several can proxy ethnic origin (m.6 special category)? | HB-L25 |
 
 ## INT-136 — instruments render verbatim, and nothing renders
 
