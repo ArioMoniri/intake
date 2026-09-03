@@ -154,9 +154,7 @@ def test_the_intake_scenarios_are_loaded_and_enabled() -> None:
     by_name = {row["name"]: row for row in rows}
     declared = {
         yaml.safe_load(path.read_text(encoding="utf-8"))["name"]
-        for path in (REPO / "infra" / "security" / "edge" / "crowdsec" / "scenarios").glob(
-            "*.yaml"
-        )
+        for path in (REPO / "infra" / "security" / "edge" / "crowdsec" / "scenarios").glob("*.yaml")
     }
     assert len(declared) == 3, "the policy declares three scenarios"
     assert declared <= set(by_name), sorted(set(by_name))
@@ -201,7 +199,14 @@ def _explain(lines: str) -> str:
     stdin to plumb.
     """
     encoded = lines.replace("'", "'\\''")
-    _compose("exec", "-T", "crowdsec", "sh", "-c", f"printf '%s\\n' '{encoded}' > /tmp/explain.log")
+    _compose(
+        "exec",
+        "-T",
+        "crowdsec",
+        "sh",
+        "-c",
+        f"printf '%s\\n' '{encoded}' > /var/lib/crowdsec/data/explain.log",
+    )
     result = _compose(
         "exec",
         "-T",
@@ -209,7 +214,7 @@ def _explain(lines: str) -> str:
         "cscli",
         "explain",
         "--file",
-        "/tmp/explain.log",
+        "/var/lib/crowdsec/data/explain.log",
         "--type",
         "traefik",
     )

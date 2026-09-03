@@ -29,6 +29,7 @@ from typing import Any
 import httpx
 import pytest
 import yaml
+from intake_connectors.destinations import ConnectorDestination
 from intake_platform.egress import (
     DataClass,
     EgressContext,
@@ -40,7 +41,6 @@ from intake_platform.egress import (
     guarded_transport,
     load_allowlist,
 )
-from intake_connectors.destinations import ConnectorDestination
 from prometheus_client import REGISTRY
 
 REPO = Path(__file__).resolve().parents[2]

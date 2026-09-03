@@ -505,9 +505,7 @@ def test_naming_a_domain_renders_a_certificate_that_matches_the_policy() -> None
         certificate and documents[0]["spec"]["acme"]["server"]
     )
     # And the redirect appears with the certificate, never before it.
-    assert static["entryPoints"]["web"]["http"]["redirections"]["entryPoint"]["to"] == (
-        "websecure"
-    )
+    assert static["entryPoints"]["web"]["http"]["redirections"]["entryPoint"]["to"] == ("websecure")
 
 
 def _renderer() -> Any:

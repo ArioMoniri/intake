@@ -707,9 +707,7 @@ def test_the_allow_list_still_refuses_behind_the_proxy() -> None:
 def test_a_wrong_purpose_is_still_refused_behind_the_proxy() -> None:
     """Delegating the pin does not delegate the purpose check either."""
     policy = _policy(_resolver({}))
-    wrong = EgressContext(
-        purpose=EgressPurpose.MODEL_WEIGHTS, data_class=DataClass.NON_PERSONAL
-    )
+    wrong = EgressContext(purpose=EgressPurpose.MODEL_WEIGHTS, data_class=DataClass.NON_PERSONAL)
     transport = guarded_transport(
         policy,
         wrong,

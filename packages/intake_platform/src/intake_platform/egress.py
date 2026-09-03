@@ -41,7 +41,9 @@ The layers, so that no single config mistake silently widens the boundary:
 construction, and :func:`guarded_client` builds a client with redirects off
 (files/10 §4). A transport carrying personal data may not be pointed at the
 forward proxy at all — see :func:`guarded_transport` — because that is the one
-configuration in which neither enforcement point does the resolve-and-pin. Redirects are safe either way by composition: httpx follows one
+configuration in which neither enforcement point does the resolve-and-pin.
+
+Redirects are safe either way by composition: httpx follows one
 by issuing a new request through the same transport, so every hop is checked,
 resolved and pinned independently.
 
