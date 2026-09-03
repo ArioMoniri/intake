@@ -73,6 +73,7 @@ from intake_platform.db.inventory import (
     RET_TENANT,
     inv,
 )
+from intake_platform.locale import DEFAULT_LOCALE
 
 __all__ = [
     "Base",
@@ -404,6 +405,36 @@ class IntakeSession(Base):
             BASIS_CONTRACT,
             RET_RECORD,
             REC_INTERNAL,
+        ),
+    )
+    # --- INT-296: the session locale (CLAUDE.md inv. 5, 6, 18) ---------------
+    # ONE language per session, fixed at the start and changed only by an
+    # explicit patient act. It lives here rather than being threaded through
+    # each lookup so the note, the audit entry and the metric label read the
+    # same value and no single turn can be assembled out of two languages.
+    #
+    # The value set is closed by intake_platform.locale.LOCALE_REGISTRY, which
+    # today holds exactly `tr` (HB-O5 names the rest, HB-C19 signs them). No
+    # DB enum: the registry is the authority and a Postgres enum nobody can
+    # migrate cheaply would become a second, drifting one.
+    locale: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default=DEFAULT_LOCALE,
+        server_default=DEFAULT_LOCALE,
+        info=inv(
+            CAT_OPERATIONAL,
+            "which language the patient was actually asked in, so the note, the audit "
+            "entry and the metric label cannot disagree. Operational rather than "
+            "special-category WHILE `tr` is the only registered locale: the column is "
+            "then the service's own language and states nothing about the patient. A "
+            "second registered locale changes that — a language choice can proxy ethnic "
+            "origin (KVKK m.6) — and the category, basis and recipients must be "
+            "re-decided before one is enabled (HUMAN_BLOCKERS.md HB-L25). Never a free-"
+            "text language name: the value is a registry code (inv. 6)",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_CLINICIAN,
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_RECORD)
