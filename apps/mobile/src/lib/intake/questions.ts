@@ -265,6 +265,15 @@ export interface QuestionCommon {
   noteSection?: NoteSectionId;
   /** Modes this question is asked in; absent = every mode. */
   modes?: readonly IntakeMode[];
+  /**
+   * This step's options are ORDINAL ANCHORS — an ordered severity-style set,
+   * not an unordered choice (INT-136). Declared rather than inferred, because
+   * the only thing that makes a list ordinal is that its author says so, and
+   * files/02 §3 binds a bound to that claim: *"numeracy-free, using 3–4
+   * ordinal spoken anchors"*, which `lowLiteracy.ordinalAnchorOffenders`
+   * enforces. It grades nothing and no rule reads it.
+   */
+  ordinal?: true;
   /** Deferral unit this question belongs to (02 §33); absent = never deferred. */
   deferrableAs?: DeferralId;
 }
@@ -459,6 +468,10 @@ const severity: IntakeQuestion = {
   id: "severity",
   kind: "single",
   ask: "open",
+  // files/02 §3's numeracy-free severity: three ordered anchors, inside the
+  // 3–4 bound Cowan 2010 supports. The wording is unchanged — declaring the
+  // set ordinal states what it already is (INT-136).
+  ordinal: true,
   titleKey: "intake.q.severity",
   hpiLabelKey: "intake.hpi.severity",
   options: [
@@ -2228,4 +2241,61 @@ export function missingQuestions(
 export function optionLabelKey(questionId: string, optionId: string): MessageKey | null {
   const q = allQuestions.find((x) => x.id === questionId);
   return q?.options?.find((o) => o.id === optionId)?.labelKey ?? null;
+}
+
+/**
+ * Where a session resumes (INT-136).
+ *
+ * Lifted out of the screen so the rule can be tested without a renderer, and
+ * because "progress + resume" is an acceptance line: a rule that lives inside
+ * a component is a rule only a screenshot can check. Three cases, in order:
+ * an explicit request (the review screen's pencil) wins; otherwise the first
+ * applicable question with no answer; otherwise the last applicable one,
+ * because a fully answered pack resumes at its end rather than nowhere.
+ *
+ * `null` for a pack with nothing applicable, rather than a fabricated first
+ * step — a caller with no question to show has to say so.
+ */
+export function resumeQuestion(
+  pack: readonly IntakeQuestion[],
+  answers: readonly AnsweredValues[],
+  requestedId?: string,
+): IntakeQuestion | null {
+  const requested = requestedId === undefined ? undefined : pack.find((q) => q.id === requestedId);
+  if (requested !== undefined) {
+    return requested;
+  }
+  const applicable = applicableQuestions(pack, answers);
+  const answered = new Set(answers.map((a) => a.questionId));
+  return applicable.find((q) => !answered.has(q.id)) ?? applicable[applicable.length - 1] ?? null;
+}
+
+/** What the progress row states (INT-136); see `intakeProgress`. */
+export interface IntakeProgress {
+  /** Applicable questions carrying an answer. The counter shows this. */
+  readonly answered: number;
+  /** The applicable list itself, in pack order — the dots track it. */
+  readonly applicable: readonly IntakeQuestion[];
+  /** True while a gate could still add steps, so no total may be printed. */
+  readonly canGrow: boolean;
+}
+
+/**
+ * Progress over an adaptive flow (INT-236, INT-239), as data.
+ *
+ * The denominator is deliberately absent. The flow's length is decided by the
+ * answers, so "3 / 9" is a promise the next answer can break; what is honest
+ * is the count answered, plus one line while a gate could still open.
+ */
+export function intakeProgress(
+  pack: readonly IntakeQuestion[],
+  answers: readonly AnsweredValues[],
+): IntakeProgress {
+  const applicable = applicableQuestions(pack, answers);
+  const answered = new Set(answers.map((a) => a.questionId));
+  return {
+    answered: applicable.filter((q) => answered.has(q.id)).length,
+    applicable,
+    canGrow: applicable.length < pack.length,
+  };
 }

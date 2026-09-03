@@ -47,6 +47,7 @@ import {
 import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
+import { InstrumentStep } from "@/components/InstrumentStep";
 import { ModeBar } from "@/components/ModeBar";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
@@ -57,10 +58,11 @@ import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
 import {
-  applicableQuestions,
+  intakeProgress,
   isOpenAsk,
   nextApplicableQuestion,
   packForVisit,
+  resumeQuestion,
   spokenPack,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
@@ -207,15 +209,23 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // the progress denominator is honest ("n of applicable", never the full
   // pack). The advance rule lives in nextApplicableQuestion (pack layer).
   const answers = note?.answers ?? [];
-  const applicable = applicableQuestions(intakeQuestions, answers);
+  // INT-136 moved both rules into the pack layer, so "progress + resume" is
+  // held by unit tests rather than by a screenshot.
+  const {
+    answered: answeredCount,
+    applicable,
+    canGrow: flowCanGrow,
+  } = intakeProgress(intakeQuestions, answers);
 
   // `q` = edit mode: jump straight to that question with its current answer
   // preloaded (the review screen's pencil). Otherwise resume at the first
-  // unanswered APPLICABLE question.
+  // unanswered APPLICABLE question. The `?? intakeQuestions[0]` only keeps the
+  // type total and is unreachable: questions.test.ts pins that every shipped
+  // pack has something applicable before a single answer is given.
   const answeredIds = new Set(answers.map((a) => a.questionId));
   const requested = requestedQ ? intakeQuestions.find((x) => x.id === requestedQ) : undefined;
-  const firstUnanswered = applicable.find((x) => !answeredIds.has(x.id));
-  const initialQuestion = requested ?? firstUnanswered ?? applicable[applicable.length - 1];
+  const initialQuestion =
+    resumeQuestion(intakeQuestions, answers, requestedQ) ?? intakeQuestions[0];
   const initialAnswer = answers.find((a) => a.questionId === initialQuestion.id);
   const initialPrefill = initialAnswer === undefined ? prefill[initialQuestion.id] : undefined;
   const initialKind = initialQuestion.kind;
@@ -256,12 +266,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     applicable.findIndex((x) => x.id === question.id),
     0,
   );
-  // Progress is honest about a flow whose length is not fixed (INT-239):
-  // the count is what has been ANSWERED — never "x / 9" against a total
-  // that the next answer can change — and when a gate could still open we
-  // say so in one line rather than letting the dots imply a finish line.
-  const answeredCount = applicable.filter((item) => answeredIds.has(item.id)).length;
-  const flowCanGrow = applicable.length < intakeQuestions.length;
   // The suggestion for THIS question (saved answers always win over it).
   const suggestion = answers.some((a) => a.questionId === question.id)
     ? undefined
@@ -401,7 +405,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // CTA it never had: without one, words typed and no card tapped would have
   // no way to be committed.
   const openAsk = isOpenAsk(question);
-  const floatingCta = question.kind !== "single" || openAsk;
+  // INT-136 — a step that reproduces one item of a validated instrument. It
+  // owns the whole body: its title line IS the item, verbatim from the pack
+  // (invariant 10), and its choices are the instrument's own, so the screen's
+  // catalogue-driven title and option controls are not rendered beside them.
+  // It commits on the tap, so it carries no CTA either.
+  const instrumentStep = question.instrument !== undefined;
+  const floatingCta = !instrumentStep && (question.kind !== "single" || openAsk);
   // INT-256: the text CTA used to read "Bitir" unconditionally, which was
   // true only while `extra` was the one text step in the pack. The universal
   // history block adds free-text steps mid-flow, so the label now follows
@@ -464,16 +474,28 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </AppText>
         ) : null}
         {/* The bar is untitled by design (pass 6), so the question line is
-            this screen's title and must be a heading (SC 1.3.1). */}
-        <AppText role="hero" heading>
-          {t(question.titleKey)}
-        </AppText>
+            this screen's title and must be a heading (SC 1.3.1). An instrument
+            step's heading is the ITEM, so it is rendered by InstrumentStep and
+            the catalogue title is not shown at all — two askings of one
+            question is how a verbatim item stops being the one that was
+            validated. */}
+        {instrumentStep ? (
+          <InstrumentStep
+            instrument={question.instrument!}
+            options={question.options ?? []}
+            onSelect={(optionId) => commit([optionId])}
+          />
+        ) : (
+          <AppText role="hero" heading>
+            {t(question.titleKey)}
+          </AppText>
+        )}
         {/* On an open step the invitation replaces the pack's control hint
             here: "Birden fazla seçebilirsiniz" describes the chips grid, and
             the grid is now below the answer field, so the hint travels down
             with the control it describes (the same rule INT-261 applied to
             the spoken turn). */}
-        {openAsk ? (
+        {instrumentStep ? null : openAsk ? (
           <AppText role="body" color="inkSoft">
             {t("intake.open.hint")}
           </AppText>
@@ -540,7 +562,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </>
         ) : null}
 
-        {question.kind === "chips" ? (
+        {question.kind === "chips" && !instrumentStep ? (
           <View style={styles.chipWrap}>
             {question.options!.map((o) => {
               const on = selected.includes(o.id);
@@ -571,7 +593,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </View>
         ) : null}
 
-        {question.kind === "single" ? (
+        {question.kind === "single" && !instrumentStep ? (
           <View style={styles.optionColumn}>
             {question.options!.map((o) => {
               const suggested = suggestion?.values.includes(o.id) === true;
@@ -664,7 +686,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </>
         ) : null}
       </ScrollView>
-      {question.kind === "chips" ? (
+      {question.kind === "chips" && !instrumentStep ? (
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
@@ -811,8 +833,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: "center",
+    // A wrap item gets no shrink in React Native, so without this an option
+    // label wider than the row makes the CHIP wider than the row and there is
+    // no horizontal scroll to reach it. Truncating is banned (files/00 §2), so
+    // the bound is what keeps a long Turkish label reachable at the largest
+    // step the app's own control offers (INT-295: that control REPLACES the OS
+    // value, so 1.0 says nothing about what it can ask for).
+    maxWidth: "100%",
   },
   optionColumn: { gap: spacing.sm },
   measureBlock: { gap: spacing.xs },

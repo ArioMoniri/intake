@@ -1117,4 +1117,8 @@ export const en: Record<MessageKey, string> = {
   "csat.reason.helpful": "It was helpful",
   "csat.reason.feltHeard": "I felt heard",
   "csat.thanks": "Thank you.",
+  // --- INT-136 · validated instruments on the typed surface ----------------
+  "intake.instrument.unavailable.title": "This section is closed for now",
+  "intake.instrument.unavailable.body":
+    "The questions for this section are not ready yet. You will see them here once they are; for now you can leave this step empty.",
 };
