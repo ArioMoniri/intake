@@ -4293,7 +4293,7 @@
   labels:
   - area:security
   - area:ci
-  status: todo
+  status: done
   acceptance:
   - 'the advisories are cleared by upgrading rather than by suppression: vitest
     2 to 3 and vite 5 to 6 across the workspace, plus uuid, esbuild and
@@ -4307,6 +4307,7 @@
     named in the evidence with what remains'
   tests:
   - tests/ci/test_security_gates.py
+  evidence: docs/evidence/INT-310.md
   sec_row: "cicd"
 - id: INT-311
   epic: E08-mobile
