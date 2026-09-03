@@ -35,12 +35,14 @@ from __future__ import annotations
 import base64
 import logging
 import time
-import xml.etree.ElementTree as ElementTree  # noqa: S405
+import xml.etree.ElementTree as ElementTree  # noqa: S405 - Element and ParseError types
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
 import httpx
+from defusedxml.common import DefusedXmlException
+from defusedxml.ElementTree import fromstring as _xml_fromstring
 
 __all__ = [
     "DEFAULT_TIMEOUT_S",
@@ -259,8 +261,13 @@ class EhrbaseClient:
     def status(self) -> ServerStatus:
         response = self._request("GET", STATUS_PATH, operation="status")
         try:
-            root = ElementTree.fromstring(response.content)  # noqa: S314
-        except ElementTree.ParseError as exc:
+            # Hardened parser: the CDR's answer is data, never instructions
+            # (invariant 14). The stdlib parser expands internally declared
+            # entities, which is the billion-laughs allocation attack; this one
+            # refuses the DTD outright. Both failure shapes become the same
+            # typed refusal so callers never see a parser exception.
+            root = _xml_fromstring(response.content)
+        except (ElementTree.ParseError, DefusedXmlException) as exc:
             raise EhrbaseRefusedError(
                 response.status_code, "status", f"unparseable status document: {exc}"
             ) from exc

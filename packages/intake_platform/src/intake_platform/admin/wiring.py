@@ -26,16 +26,29 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from intake_platform.admin.actions import BREAK_GLASS_OPEN
+from intake_platform.admin.actions import BREAK_GLASS_OPEN, MODEL_BENCHMARK_RUN
 from intake_platform.admin.break_glass import Deployment
 from intake_platform.admin.four_eyes import FourEyesService
 from intake_platform.admin.ip_allowlist import IpAllowList
 from intake_platform.admin.principal import AdminClaimsVerifier
-from intake_platform.admin.roles import ADMIN_ROLES, AdminRole
+from intake_platform.admin.roles import ADMIN_ROLES, ROLE_SPECS, AdminRole, RoleScope
 
 __all__ = ["ADMIN_ROUTES", "AdminRoute", "AdminWiring"]
 
 _ANY_CONSOLE_ROLE = frozenset(ADMIN_ROLES)
+
+#: The self-hosting registry is a statement about the PLATFORM — which hosts,
+#: which licences, which fallbacks, which release gate. A role scoped to one
+#: tenant, one study or one patient grant has no reach over any of that, so
+#: the read is the set of roles whose scope is the platform or all tenants.
+#: Derived from ``ROLE_SPECS`` rather than listed, so a role added to files/08
+#: §2.1 lands on the correct side of this line by construction instead of by
+#: somebody remembering to edit a second list (INT-183).
+_PLATFORM_SCOPE_ROLES = frozenset(
+    role
+    for role, spec in ROLE_SPECS.items()
+    if spec.scope in {RoleScope.ALL_TENANTS, RoleScope.PLATFORM_INFRASTRUCTURE}
+)
 
 #: The brief is what the second pair of eyes reads before deciding, so it is
 #: readable by the roles that may open a ceremony, the roles that may approve
@@ -61,6 +74,20 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
     AdminRoute("GET", "/admin/whoami", "admin.whoami.read", _ANY_CONSOLE_ROLE),
     AdminRoute("GET", "/admin/access/roles", "admin.access.roles.read", _ANY_CONSOLE_ROLE),
     AdminRoute("GET", "/admin/actions", "admin.actions.read", _ANY_CONSOLE_ROLE),
+    # INT-183 — files/08 §8: `GET /admin/models` and
+    # `POST /admin/models/{id}/benchmark`. The read is open to every console
+    # role because the self-hosting posture is what §0 says the console exists
+    # to show and it carries no patient content; the trigger is narrowed to
+    # the roles that answer for capacity, and registered as the tier-2 action
+    # its execution will require.
+    AdminRoute("GET", "/admin/models", "admin.models.read", _PLATFORM_SCOPE_ROLES),
+    AdminRoute(
+        "POST",
+        "/admin/models/{component}/benchmark",
+        "admin.models.benchmark",
+        MODEL_BENCHMARK_RUN.actor_roles,
+        MODEL_BENCHMARK_RUN.id,
+    ),
     AdminRoute(
         "POST",
         "/admin/break-glass",

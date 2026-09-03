@@ -26,8 +26,20 @@ from intake_platform.admin import (
     ApprovalBrief,
     PendingAction,
 )
+from intake_probes.console import BenchmarkKind, BenchmarkPlan, BenchmarkResult, ModelsModule
 
-__all__ = ["action_registry_view", "brief_view", "pending_view", "role_registry_view", "whoami"]
+from intake_api.admin.models_source import PROBE_CLIENTS_ENV
+
+__all__ = [
+    "action_registry_view",
+    "benchmark_plan_view",
+    "benchmark_result_view",
+    "brief_view",
+    "models_module_view",
+    "pending_view",
+    "role_registry_view",
+    "whoami",
+]
 
 
 def whoami(principal: AdminPrincipal, tenant: str | None) -> dict[str, Any]:
@@ -115,3 +127,114 @@ def brief_view(brief: ApprovalBrief) -> dict[str, Any]:
         "expires_at": brief.expires_at.isoformat(),
         "approver_rule": brief.approver_rule,
     }
+
+
+# --------------------------------------------------------------------------
+# INT-183 — the models module
+# --------------------------------------------------------------------------
+
+#: Why every row advertises both lanes rather than only the one that works:
+#: a control that is missing reads as "not applicable"; a control that is
+#: present and disabled with its reason reads as "someone decided this, and
+#: here is what they decided". files/HUMAN_BLOCKERS.md HB-C10 is the decision.
+_QUALITY_LANE_DISABLED = (
+    "no named evaluation corpus is declared — a quality figure would have no corpus and no "
+    "date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+)
+
+
+def models_module_view(module: ModelsModule) -> dict[str, Any]:
+    """The `GET /admin/models` body.
+
+    Every field is projected from ``observability/registry.yaml`` or from the
+    INT-022 release gate's own verdict. Nothing here is a second opinion about
+    either, and nothing here is patient-shaped: the rows are component ids,
+    host strings, licence strings, probe ids and integers (invariant 6).
+    """
+    return {
+        "release": {
+            "blocked": module.release.blocked,
+            "reasons": [
+                {"component": reason.component, "reason": reason.reason}
+                for reason in module.release.reasons
+            ],
+        },
+        "rows": [
+            {
+                "component": row.component,
+                "self_hostable": row.self_hostable,
+                "self_hosted_now": row.self_hosted_now,
+                "host": row.host,
+                "license": row.license,
+                "probe": row.probe,
+                "budget_ms": row.budget_ms,
+                "fallback": row.fallback,
+                "phi_path": row.phi_path,
+                "pin": row.pin,
+                "licence_verified_at": (
+                    row.licence_verified_at.isoformat()
+                    if row.licence_verified_at is not None
+                    else None
+                ),
+                "severity": row.severity.value,
+                "findings": [
+                    {"code": finding.code, "detail": finding.detail} for finding in row.findings
+                ],
+                "benchmark": {
+                    "lanes": {
+                        BenchmarkKind.LATENCY.value: {"enabled": True, "disabled_reason": None},
+                        BenchmarkKind.QUALITY.value: {
+                            "enabled": False,
+                            "disabled_reason": _QUALITY_LANE_DISABLED,
+                        },
+                    }
+                },
+            }
+            for row in module.rows
+        ],
+    }
+
+
+def benchmark_plan_view(plan: BenchmarkPlan) -> dict[str, Any]:
+    """The `POST /admin/models/{id}/benchmark` body.
+
+    ``state`` is ``planned`` and ``executes`` is ``false`` because that is
+    what happens: the route resolves what a run would measure and over what
+    named basis, and runs nothing. Executing it is the tier-2 ceremony
+    ``admin.models.benchmark.run`` registers, and the runner that ceremony
+    would guard does not exist yet — so the plan is the honest end of this
+    route rather than a button that pretends.
+    """
+    return {
+        "component": plan.component,
+        "kind": plan.kind.value,
+        "probe": plan.probe,
+        "budget_ms": plan.budget_ms,
+        "corpus": plan.corpus,
+        "state": "planned",
+        "executes": False,
+        "not_executed_reason": (
+            "no probe client is wired in this environment "
+            f"(set {PROBE_CLIENTS_ENV}=dev against a running dev stack)"
+        ),
+        "measurement": None,
+    }
+
+
+def benchmark_result_view(result: BenchmarkResult) -> dict[str, Any]:
+    """The body when the latency lane actually ran.
+
+    ``measurement`` is the rendered string and never a bare number: it carries
+    the probe and host it was taken against and the date it was taken, because
+    a latency figure with neither attached is a claim about the product rather
+    than an observation of one deployment (invariant 20, ADR-022). When the
+    probe could not run at all the field is ``null`` and ``detail`` says why —
+    a benchmark that reached nothing reports that, never a zero.
+    """
+    body = benchmark_plan_view(result.plan)
+    body["state"] = result.status.value
+    body["executes"] = True
+    body["not_executed_reason"] = None
+    body["detail"] = result.detail
+    body["measurement"] = result.measurement.render() if result.measurement is not None else None
+    return body

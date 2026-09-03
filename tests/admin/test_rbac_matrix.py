@@ -55,10 +55,35 @@ BREAK_GLASS_APPROVERS = frozenset(
 #: the openers, the approvers, and `auditor` (read-only evidence, §2.1).
 BREAK_GLASS_BRIEF_READERS = BREAK_GLASS_OPENERS | BREAK_GLASS_APPROVERS | {AdminRole.AUDITOR}
 
+#: INT-183. The self-hosting registry is a platform-wide statement, so it is
+#: readable by the roles whose scope is the platform or all tenants and by
+#: nobody scoped to one tenant, one study or one patient grant (files/08 §2.1
+#: scope column). Written out here rather than derived, on purpose: this file
+#: is the second opinion that catches a mistake in the derivation.
+PLATFORM_SCOPE_ROLES = frozenset(
+    {
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.PLATFORM_ADMIN,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.QMS_OWNER,
+        AdminRole.AUDITOR,
+        AdminRole.SRE_ONCALL,
+        AdminRole.COMPLIANCE_OFFICER,
+        AdminRole.RESEARCHER,
+    }
+)
+#: files/08 §8.2 `admin.models.benchmark.run` actor set — the roles that
+#: answer for capacity on a host that serves the PHI path.
+BENCHMARK_ACTORS = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN, AdminRole.SRE_ONCALL}
+)
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
     ("GET", "/admin/actions"): ALL_ROLES,
+    ("GET", "/admin/models"): PLATFORM_SCOPE_ROLES,
+    ("POST", "/admin/models/{component}/benchmark"): BENCHMARK_ACTORS,
     ("POST", "/admin/break-glass"): BREAK_GLASS_OPENERS,
     ("GET", "/admin/break-glass/{action_id}"): frozenset(BREAK_GLASS_BRIEF_READERS),
     ("POST", "/admin/break-glass/{action_id}/approve"): BREAK_GLASS_APPROVERS,

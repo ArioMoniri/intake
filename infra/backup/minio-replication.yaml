@@ -27,7 +27,15 @@ source_secret_key_env: MINIO_ROOT_PASSWORD
 target_alias: intake-dr
 target_endpoint_env: INTAKE_DR_S3_ENDPOINT
 target_access_key_env: INTAKE_DR_S3_ACCESS_KEY
-target_secret_key_env: INTAKE_DR_S3_SECRET_KEY
+# Every value on these lines is the NAME of an environment variable, never a
+# credential: OpenBao populates the variables at run time (invariant 14) and no
+# secret is ever written to this file. checkov's Base64HighEntropyString plugin
+# reads the name below as an opaque token and flags it; renaming does not help
+# (INTAKE_DR_OBJECT_STORE_SECRET_KEY and INTAKE_DR_S3_SECRET_ACCESS_KEY were
+# both measured and both still fire), so the exemption is anchored to this one
+# line. It is not a file exemption: scripts/ci/gate_selftest.sh plants a real
+# base64 secret elsewhere in this same file and requires checkov to still fail.
+target_secret_key_env: INTAKE_DR_S3_SECRET_KEY  # checkov:skip=CKV_SECRET_6: env-var name, not a value; see the comment above
 
 # The pgBackRest repository lives in object storage too (repo1-type=s3), so
 # the PITR archive replicates alongside the document and audit buckets.
