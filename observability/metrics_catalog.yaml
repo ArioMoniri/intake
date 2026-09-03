@@ -1737,6 +1737,42 @@ metrics:
       because the subject key is a keyed derivation and remains personal data
       under KVKK (KSVY m.16(1)'s anonymisation route is not the one this
       pipeline takes).
+  # --- connectors (INT-160; files/10 §9 `connectors` row) -----------------------
+  - name: connector_push_total
+    type: counter
+    labels: [endpoint, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      Connector pushes to a registered destination, by endpoint id and settled
+      receipt state (delivered, rejected, failed, unresolved, refused,
+      suppressed). Emitted by intake_connectors.sender. `refused` is a consent
+      scope that did not stand and `suppressed` a replay the local ledger
+      declined to repeat, so the share-refusal rate and the duplicate-send rate
+      are both read off the outcome label. Both labels are closed sets — a
+      registry id and a receipt state — so nothing a receiver or a patient
+      supplies can widen the cardinality.
+  - name: connector_push_duration_seconds
+    type: histogram
+    labels: [endpoint]
+    owner: platform
+    unit: "s"
+    description: >-
+      Wall time from the write-ahead receipt to its settlement, per registered
+      endpoint. Covers the whole guarded path — consent, credentials, egress
+      authorisation, the exchange — because a push that stalls before the wire
+      is as much an endpoint error as one that stalls on it.
+  - name: connector_receipts_unresolved_total
+    type: counter
+    labels: [endpoint]
+    owner: platform
+    unit: "count"
+    description: >-
+      Pushes settled as unresolved: a timeout, a dropped connection or a 5xx,
+      where the bytes may or may not have reached the receiver. This is the
+      cost of the write-ahead receipt made countable, and it is the series that
+      decides whether a retry is safe — an endpoint whose DPA does not declare
+      that it honours an Idempotency-Key parks these for a human instead.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):

@@ -15,6 +15,7 @@ members = [
     "intake",
     "intake-api",
     "intake-clinical-schemas",
+    "intake-connectors",
     "intake-learning",
     "intake-metrics",
     "intake-platform",
@@ -791,6 +792,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "intake-api" },
     { name = "intake-clinical-schemas" },
+    { name = "intake-connectors" },
     { name = "intake-learning" },
     { name = "intake-metrics" },
     { name = "intake-platform", extra = ["ner"] },
@@ -821,6 +823,7 @@ dev = [
 requires-dist = [
     { name = "intake-api", editable = "services/api" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-connectors", editable = "packages/connectors" },
     { name = "intake-learning", editable = "services/learning" },
     { name = "intake-metrics", editable = "services/metrics" },
     { name = "intake-platform", extras = ["ner"], editable = "packages/intake_platform" },
@@ -884,6 +887,27 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2.8" }]
+
+[[package]]
+name = "intake-connectors"
+version = "0.1.0"
+source = { editable = "packages/connectors" }
+dependencies = [
+    { name = "httpx" },
+    { name = "intake-platform" },
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "prometheus-client", specifier = ">=0.20" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "intake-learning"
