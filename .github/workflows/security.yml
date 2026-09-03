@@ -56,6 +56,9 @@ jobs:
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # without this the action uses its built-in ruleset and never reads
+          # .gitleaks.toml, so the anchored allowlists there have no effect
+          GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
 
   sast:
     # semgrep p/ci (metrics off) + bandit — same pins as `make security`.
