@@ -60,10 +60,34 @@ check-py:
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
 # check-py runs these lanes too; this target exists so a change under
 # packages/protocols can be cleared without the full fan-out.
+#
+# INT-102 adds the last two lines. The adversarial suite RT-09..14 is what
+# files/04 §6 makes "required in `make safety`"; the tests/safety line already
+# collects both files, and they are named again because a gate nobody can see
+# in the Makefile is a gate nobody runs. The final line proves the nightly
+# red-team job is WIRED - it enumerates its six cases out of files/04 - without
+# invoking anything: `--plan` never touches the judge seam, and
+# tests/safety/test_nightly_red_team.py asserts that structurally, along with
+# `nightly-red-team` sitting outside the prerequisite closure of
+# check/check-py/safety.
 safety:
 	uv run pytest tests/safety --cov=packages/protocols/src/protocols/triage --cov-branch --cov-fail-under=100 -q -o addopts=""
 	uv run python scripts/safety/triage_mutation_report.py
 	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
+	uv run pytest tests/safety/test_adversarial_rt09_14.py tests/safety/test_adversarial_rt12_14.py tests/safety/test_nightly_red_team.py -q -o addopts=""
+	uv run python scripts/safety/nightly_red_team.py --plan
+
+# INT-102: the nightly LLM red-team job (files/10 §9 row `llm-boundary`).
+# NOT part of `make check`, `make safety` or any CI job: it is the only target
+# in this repository that would reach a live model. It fails closed and exits 3
+# unless EVAL_BUDGET_USD and INTAKE_RED_TEAM_MAX_CALLS are both set - neither
+# has a default - and the budget is inside the 20 USD ceiling CLAUDE.md
+# reserves for a human decision. It then exits 4, having invoked nothing,
+# because no judge is configured in this repository; wiring one is a change to
+# `client_from_env` under review rather than an environment variable.
+.PHONY: nightly-red-team
+nightly-red-team:
+	uv run python scripts/safety/nightly_red_team.py --run
 
 check-ts:
 	pnpm -r lint
