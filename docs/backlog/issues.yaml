@@ -3785,7 +3785,8 @@
   labels:
   - area:protocols
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-297.md
   acceptance:
   - '`text_tr`, `ask_tr`, `follow_up_tr`, `choices_tr` and `why_tr` become maps
     keyed by locale, with `tr` required by the schema so no pack can lose its
