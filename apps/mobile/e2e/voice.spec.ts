@@ -325,18 +325,37 @@ describe("Expo configuration", () => {
     expect(plugins).toContain('"enableMultitaskingCameraAccess":false');
   });
 
-  it("declares the audio-only Android permissions and no camera", () => {
+  it("declares the audio permissions the voice path needs", () => {
     const permissions: string[] = appJson.expo.android.permissions;
     expect(permissions).toContain("android.permission.RECORD_AUDIO");
     expect(permissions).toContain("android.permission.MODIFY_AUDIO_SETTINGS");
     expect(permissions).toContain("android.permission.BLUETOOTH_CONNECT");
-    expect(permissions).not.toContain("android.permission.CAMERA");
   });
 
-  it("the plugin strips camera permissions and background audio", () => {
+  it("keeps the no-video guarantee where it actually lives (INT-138)", () => {
+    // The CAMERA permission left this app's forbidden list when the records
+    // screen gained a still capture (INT-138). The guarantee it was standing in
+    // for is unchanged and is asserted at its real home: the room token grants
+    // the microphone alone, and the LiveKit plugin's multitasking camera switch
+    // is off. A manifest line was never the control.
+    expect(plugins).toContain('"enableMultitaskingCameraAccess":false');
+    const token = read(
+      REPO,
+      "packages",
+      "intake_platform",
+      "src",
+      "intake_platform",
+      "room_tokens.py",
+    );
+    expect(token).toContain('"canPublishSources": ["microphone"]');
+  });
+
+  it("the plugin blocks the storage permissions and background audio", () => {
     const plugin = read(MOBILE, "plugins", "withVoiceAudio.js");
-    expect(plugin).toContain("android.permission.CAMERA");
+    expect(plugin).toContain("android.permission.READ_EXTERNAL_STORAGE");
+    expect(plugin).toContain("android.permission.WRITE_EXTERNAL_STORAGE");
     expect(plugin).toContain("FORBIDDEN_PERMISSIONS");
+    expect(plugin).toContain("withBlockedPermissions");
     // "background pauses safely" — declaring background audio would let
     // capture continue behind a backgrounded medical app.
     expect(plugin).toContain("UIBackgroundModes");

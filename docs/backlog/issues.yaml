@@ -1513,7 +1513,35 @@
   title: "Records screens: upload, processing, confirm cards, provenance viewer"
   depends_on: [INT-121, INT-130]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. `status: todo` rather than
+  # `awaiting-human` on the INT-121 / INT-136 / INT-140 precedent: nothing here
+  # waits on a named human, so marking it awaiting-human would misreport the
+  # ask and would make dependents Ready against clauses that are not met.
+  #
+  # ONE of the four clauses is delivered end to end: "camera+file upload".
+  # expo-image-picker's capture joins the INT-229 file path — one allow-list
+  # pre-check, one digest, one ingest — and the JPEG metadata container is
+  # stripped before the bytes are hashed, because expo-image-picker's Android
+  # exporter copies TAG_GPS_* into the file it hands over and location is a
+  # category of personal data nothing in this repo has declared.
+  #
+  # The other THREE are built as a mechanism behind a gate that fails closed,
+  # because the thing they render does not exist: NOTHING PUBLISHES A DOCUMENT
+  # EXTRACTION. There is no API route serving UnconfirmedRecordItems and none
+  # accepting a confirmation, so `noExtractionFeed` is the only production
+  # ExtractionSource, it answers "not read" for every document, and it
+  # acknowledges no decision — which, with the no-optimistic-write rule, means
+  # no card can ever show as confirmed. The cards, the two verdicts, the
+  # provenance locator and the parser's invariant-1 refusal are all real and
+  # tested against a stub source.
+  #   - the PRODUCER is INT-124 (lab-report -> JSON via the extraction LLM, P2);
+  #   - the TRANSPORT (a route that publishes confirm cards and takes a verdict)
+  #     is owned by NO issue in this file, and no id was minted for it here.
+  #
+  # Reopen when that transport exists; see docs/evidence/INT-138.md
+  # "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-138.md
   acceptance:
     - "camera+file upload; AV/processing states; confirm-before-use; provenance boxes"
   tests: [apps/mobile/e2e/records.spec.ts]

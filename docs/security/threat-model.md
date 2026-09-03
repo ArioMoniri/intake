@@ -768,7 +768,16 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `intake_platform.data_boundary`, so one counter covers both.
 - **Tests:** PDF fuzzing lands with INT-120; extraction, the document data boundary, the
   confirm gate and the two invariant-22 guards with INT-121
-  (`tests/records/test_extraction_eval.py`); RLS namespace tests with INT-123.
+  (`tests/records/test_extraction_eval.py`); the patient-facing half of the confirm gate,
+  the client-side level-shaped-key refusal and the camera path with INT-138
+  (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
+  RLS namespace tests with INT-123.
+- **INT-138 addition — the capture is a second way in, and it carries metadata.** A
+  photograph of a report taken in the app reaches the same object store as an uploaded
+  file, so it goes through the same allow-list pre-check, size cap and digest; and
+  because `expo-image-picker`'s Android exporter copies the GPS EXIF family into the
+  file it hands over, every JPEG loses its APP1 (EXIF/XMP) segment before the digest is
+  computed. Location is not a declared category in the inventory and is not persisted.
 
 ## `documents` — the object store
 

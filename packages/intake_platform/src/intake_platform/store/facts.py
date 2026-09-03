@@ -349,9 +349,21 @@ _CLASSIFICATIONS: Final[tuple[PermissionClassification, ...]] = (
         "reads sleep sessions from Health Connect",
     ),
     PermissionClassification(
+        "android.permission.CAMERA",
+        "document_object",
+        "photographs the patient's own report so it can be uploaded as a document; "
+        "the capture never reaches the photo library and its EXIF/XMP container is "
+        "stripped before the bytes leave the device (INT-138)",
+    ),
+    PermissionClassification(
         "NSMicrophoneUsageDescription",
         "voice_audio",
         "the iOS side of the microphone capture",
+    ),
+    PermissionClassification(
+        "NSCameraUsageDescription",
+        "document_object",
+        "the iOS side of the document capture",
     ),
     PermissionClassification(
         "NSHealthShareUsageDescription",

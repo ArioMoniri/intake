@@ -20,6 +20,7 @@ import {
   ALLOWED_DOCUMENT_TYPES,
   MAX_DOCUMENT_BYTES,
   RecordsApiError,
+  cameraFile,
   downloadUrl,
   ensureServerVisit,
   listDocuments,
@@ -367,5 +368,35 @@ describe("pickUploadVisit — the 'exactly one upcoming' rule", () => {
 
   it("no visits at all → none (the screen shows guidance, never a dead end)", () => {
     expect(pickUploadVisit([], "2026-08-28")).toEqual({ kind: "none" });
+  });
+});
+
+describe("cameraFile — a capture joins the file picker's path (INT-138)", () => {
+  it("carries the uri, type and size a capture reports", () => {
+    expect(
+      cameraFile({ uri: "file:///shot.jpg", fileName: "shot.jpg", mimeType: "image/jpeg", fileSize: 900 }),
+    ).toEqual({ uri: "file:///shot.jpg", name: "shot.jpg", mimeType: "image/jpeg", size: 900 });
+  });
+
+  it("passes the same pre-check a picked file does", () => {
+    const file = cameraFile({ uri: "file:///shot.jpg", mimeType: "image/jpeg" });
+    expect(file).not.toBeNull();
+    expect(precheckFile(file!)).toEqual({ ok: true, contentType: "image/jpeg" });
+  });
+
+  it("is refused when the capture reports neither a type nor a usable name", () => {
+    // Fail closed rather than guess what the camera produced: the allow-list
+    // is the server's and this side only mirrors it honestly.
+    const file = cameraFile({ uri: "file:///shot" });
+    expect(file).not.toBeNull();
+    expect(precheckFile(file!)).toEqual({ ok: false, reason: "type" });
+  });
+
+  it("returns null for a capture with no uri at all", () => {
+    expect(cameraFile({ uri: "   " })).toBeNull();
+  });
+
+  it("keeps no filename when the capture reports none — nothing is invented", () => {
+    expect(cameraFile({ uri: "file:///shot.jpg", mimeType: "image/jpeg" })?.name).toBe("");
   });
 });

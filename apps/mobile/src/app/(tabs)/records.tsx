@@ -6,8 +6,15 @@
  * see worded scan-state chips — colour never the only carrier (02 §8.2) —
  * and open clean documents through expo-web-browser. Design pass 5 anatomy:
  * ListGroup rows, guidance blocks instead of dead ends.
+ *
+ * INT-138 adds the other half of the acceptance: a CAMERA capture beside the
+ * file picker (one pre-check, one upload path, and the JPEG metadata
+ * container stripped on the way), and the READING section — the confirm
+ * cards and their provenance boxes, behind the extraction seam that refuses
+ * until something publishes a feed.
  */
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
@@ -17,6 +24,7 @@ import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
+import { RecordReading } from "@/components/RecordReading";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
 import { joinParts, labelled } from "@/lib/a11y/labels";
@@ -26,6 +34,7 @@ import { getLocale, t, type MessageKey } from "@/lib/i18n";
 import {
   ALLOWED_DOCUMENT_TYPES,
   RecordsApiError,
+  cameraFile,
   docDisplayName,
   downloadUrl,
   ensureServerVisit,
@@ -34,9 +43,11 @@ import {
   precheckFile,
   rememberDocName,
   upload,
+  type PickedFile,
   type RecordDoc,
   type ScanState,
 } from "@/lib/records/api";
+import { noExtractionFeed } from "@/lib/records/extraction";
 import { useSession, type RecordFixture, type VisitFixture } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -171,10 +182,50 @@ function OtpRecords() {
     }
   }, [selected, refresh]);
 
+  /**
+   * The one upload path (INT-138). A capture and a picked file differ only in
+   * where the bytes came from; everything after that — the allow-list
+   * pre-check, the metadata strip, the digest, the ingest — is the same code,
+   * because a second path is a second place a control can be forgotten.
+   */
+  const ingest = useCallback(
+    async (file: PickedFile) => {
+      if (selected === null) {
+        return;
+      }
+      const pre = precheckFile(file);
+      if (!pre.ok) {
+        setNotice(pre.reason === "type" ? "records.err.type" : "records.err.size");
+        return;
+      }
+      setUploading(true);
+      try {
+        const visitId = serverVisitId ?? (await ensureServerVisit(selected, { create: true }));
+        if (visitId === null) {
+          setNotice("records.err.generic");
+          return;
+        }
+        setServerVisitId(visitId);
+        const outcome = await upload(visitId, file);
+        if (file.name !== "") {
+          // the patient's own filename, kept on device only (invariant 6)
+          rememberDocName(outcome.id, file.name);
+        }
+        if (outcome.state === "rejected") {
+          setNotice("records.err.rejected");
+        }
+        setDocs(await listDocuments(visitId));
+        setPhase("ready");
+      } catch (error) {
+        setNotice(errorKey(error));
+      } finally {
+        setUploading(false);
+      }
+    },
+    [selected, serverVisitId],
+  );
+
   const onUpload = useCallback(async () => {
-    if (selected === null) {
-      return;
-    }
     setNotice(null);
     const picked = await DocumentPicker.getDocumentAsync({
       type: [...ALLOWED_DOCUMENT_TYPES],
@@ -184,34 +235,36 @@ function OtpRecords() {
     if (picked.canceled) {
       return;
     }
-    const asset = picked.assets[0];
-    const pre = precheckFile(asset);
-    if (!pre.ok) {
-      setNotice(pre.reason === "type" ? "records.err.type" : "records.err.size");
+    await ingest(picked.assets[0]);
+  }, [ingest]);
+
+  /**
+   * Photograph a report. `exif: false` keeps the metadata dictionary out of
+   * the app entirely; the bytes are stripped separately in `upload`, because
+   * this flag governs what JavaScript is HANDED, not what the file carries.
+   */
+  const onCapture = useCallback(async () => {
+    setNotice(null);
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setNotice("records.err.camera");
       return;
     }
-    setUploading(true);
-    try {
-      const visitId = serverVisitId ?? (await ensureServerVisit(selected, { create: true }));
-      if (visitId === null) {
-        setNotice("records.err.generic");
-        return;
-      }
-      setServerVisitId(visitId);
-      const outcome = await upload(visitId, asset);
-      // the patient's own filename, kept on device only (invariant 6)
-      rememberDocName(outcome.id, asset.name);
-      if (outcome.state === "rejected") {
-        setNotice("records.err.rejected");
-      }
-      setDocs(await listDocuments(visitId));
-      setPhase("ready");
-    } catch (error) {
-      setNotice(errorKey(error));
-    } finally {
-      setUploading(false);
+    const shot = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: false,
+      exif: false,
+    });
+    if (shot.canceled) {
+      return;
     }
-  }, [selected, serverVisitId]);
+    const file = cameraFile(shot.assets[0]);
+    if (file === null) {
+      setNotice("records.err.generic");
+      return;
+    }
+    await ingest(file);
+  }, [ingest]);
 
   const onOpen = useCallback(
     async (doc: RecordDoc) => {
@@ -345,6 +398,14 @@ function OtpRecords() {
           </ListGroup>
         </View>
       ) : null}
+      {serverVisitId !== null ? (
+        <RecordReading
+          visitId={serverVisitId}
+          docs={docs}
+          source={noExtractionFeed}
+          onOpenDocument={(doc) => void onOpen(doc)}
+        />
+      ) : null}
       {notice !== null ? (
         // SC 3.3.1. `notice` is not always an error: "records.scanningInfo"
         // is a progress line, so only the error kinds are prefixed "Hata"
@@ -355,11 +416,18 @@ function OtpRecords() {
           {t(notice)}
         </AppText>
       ) : null}
-      <SecondaryButton
-        label={uploading ? t("records.uploading") : t("records.upload")}
-        onPress={() => void onUpload()}
-        disabled={uploading || phase === "loading"}
-      />
+      <View style={styles.actions}>
+        <SecondaryButton
+          label={uploading ? t("records.uploading") : t("records.upload")}
+          onPress={() => void onUpload()}
+          disabled={uploading || phase === "loading"}
+        />
+        <SecondaryButton
+          label={t("records.camera")}
+          onPress={() => void onCapture()}
+          disabled={uploading || phase === "loading"}
+        />
+      </View>
     </>
   );
 }
@@ -403,6 +471,9 @@ const styles = StyleSheet.create({
   content: { gap: spacing.xl },
   heroLine: { marginTop: spacing.xl },
   section: { gap: spacing.sm },
+  // Stacked, never a split row: at the largest text step half a row cannot
+  // hold either label, and a wrap row gives its items no shrink (INT-295).
+  actions: { gap: spacing.sm },
   chip: {
     alignSelf: "center",
     borderRadius: radius.chip,

@@ -23,10 +23,11 @@ Clinical Health Records capability.
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from types import MappingProxyType
 from typing import Final
 
 from intake_platform.flags import SAFETY_FLAG_DEFAULTS
@@ -187,16 +188,58 @@ def _check_listing_is_hash_bound(ctx: CheckContext) -> CheckResult:
     return CheckResult(Verdict.SATISFIED, f"{len(listings)} listing(s) hash-bound to their bytes")
 
 
-def _check_no_camera_permission(ctx: CheckContext) -> CheckResult:
+#: A declared sensor permission and the shipped module that uses it.
+#:
+#: CHANGED AT INT-138. This rule used to assert that the manifest declared NO
+#: camera permission at all, on the ground that the product had no video path —
+#: true until the records screen gained a still capture of the patient's own
+#: report. The obligation was never "no camera"; it is *no sensor the product
+#: has no code path for*, which is what a store reviewer actually asks. So the
+#: rule now demands the path rather than the absence, which also catches the
+#: case the old form could not: a permission that outlives the feature it was
+#: added for.
+SENSOR_PERMISSION_PATHS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
+    {
+        "android.permission.CAMERA": (
+            "apps/mobile/src/app/(tabs)/records.tsx",
+            "launchCameraAsync",
+        ),
+        "android.permission.RECORD_AUDIO": (
+            "apps/mobile/src/lib/livekit/nativeRoom.ts",
+            "microphone",
+        ),
+    }
+)
+
+#: Name fragments that make a permission a SENSOR for this rule's purposes. A
+#: declared permission matching one of these with no row above fails: the point
+#: is that a new sensor cannot arrive unnoticed.
+_SENSOR_MARKERS: Final[tuple[str, ...]] = ("CAMERA", "MICROPHONE", "RECORD_AUDIO", "LOCATION")
+
+
+def _check_no_sensor_without_a_code_path(ctx: CheckContext) -> CheckResult:
     config = json.loads(ctx.app_json.read_text(encoding="utf-8"))["expo"]
-    declared = set(config.get("android", {}).get("permissions", []))
-    camera = {p for p in declared if "CAMERA" in p}
-    if camera:
+    declared = sorted(set(config.get("android", {}).get("permissions", [])))
+    sensors = [p for p in declared if any(marker in p for marker in _SENSOR_MARKERS)]
+    unpathed: list[str] = []
+    for permission in sensors:
+        row = SENSOR_PERMISSION_PATHS.get(permission)
+        if row is None:
+            unpathed.append(f"{permission} (no recorded path)")
+            continue
+        relative, token = row
+        module = ctx.repo / relative
+        if not module.exists() or token not in module.read_text(encoding="utf-8"):
+            unpathed.append(f"{permission} ({relative} no longer calls {token})")
+    if unpathed:
         return CheckResult(
             Verdict.FAILED,
-            f"the manifest asks for a sensor the product has no path for: {sorted(camera)}",
+            f"the manifest asks for a sensor the product has no path for: {unpathed}",
         )
-    return CheckResult(Verdict.SATISFIED, "no camera permission; the product has no video path")
+    return CheckResult(
+        Verdict.SATISFIED,
+        f"every declared sensor has a shipped code path: {sensors}",
+    )
 
 
 # --- the checklist ----------------------------------------------------------------------
@@ -279,11 +322,11 @@ CHECKLIST: Final[tuple[ChecklistItem, ...]] = (
         item_id="apple/no-sensor-the-product-cannot-use",
         store="apple",
         obligation="The manifest asks for no sensor the product has no code path for; "
-        "the camera permission is actively stripped.",
-        source="apps/mobile/plugins/withVoiceAudio.js",
+        "each declared sensor names the module that uses it.",
+        source="packages/intake_platform/src/intake_platform/store/checklist.py",
         blocker="",
         vendor_published=False,
-        check=_check_no_camera_permission,
+        check=_check_no_sensor_without_a_code_path,
     ),
     ChecklistItem(
         item_id="apple/app-privacy-answers",
