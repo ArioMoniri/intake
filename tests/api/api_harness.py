@@ -212,6 +212,8 @@ def build_harness(
     legal_root: Path | None = None,
     legal_strings: Path | None = None,
     taxonomy_path: Path | None = None,
+    auth: Any = None,
+    dev_otp_peek: bool = False,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -236,6 +238,7 @@ def build_harness(
         legal_root=legal_root if legal_root is not None else tmp_path / "legal-not-authored",
         # default: the pre-INT-210 state for the files/06 §7 fixed strings
         # too — everything that renders them fails closed (INT-037)
+        dev_otp_peek=dev_otp_peek,
         legal_strings_path=(
             legal_strings
             if legal_strings is not None
@@ -268,6 +271,10 @@ def build_harness(
                 bucket_audit="intake-audit-unit",
                 scanner=CleanScanner() if scanner is _DEFAULT_SCANNER else scanner,
             ),
+            # INT-150: the OTP/Doctor Link tier, when a test brings a fake
+            # Redis. None keeps the INT-197 dev-bearer-only shape, in which
+            # both tiers answer 503 (fail closed).
+            auth=auth,
         )
     )
     with TestClient(app, raise_server_exceptions=False) as client:

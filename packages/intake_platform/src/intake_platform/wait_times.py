@@ -15,12 +15,14 @@ do not exist. Three artefacts, one fact: the registry, the catalogue status
 and the writer cannot drift apart, and the day an instant lands,
 `tests/experience/test_wait_metrics.py` fails until all three move together.
 
-Two of the four gaps have an owning issue (INT-150 for the Doctor Link open,
-INT-163 for connector check-in). Two do not: no issue in the backlog claims
-the intake lifecycle instants — `sessions.started_at`, the first question
-reaching the patient, `sessions.completed_at` — so `blocked_by` is honestly
-`None` there and the ask is recorded in docs/evidence/INT-241.md rather than
-attributed to an issue that never promised it.
+One of the four gaps has an owning issue (INT-163 for connector check-in).
+Three do not: no issue in the backlog claims the intake lifecycle instants —
+`sessions.started_at`, the first question reaching the patient,
+`sessions.completed_at` — and INT-150 delivered the Doctor Link redemption
+route without the interval, for the reason its `missing_instant` states. So
+`blocked_by` is honestly `None` on all three and the ask is recorded in
+docs/evidence/INT-241.md and docs/evidence/INT-150.md rather than attributed
+to an issue that never promised it.
 
 Today exactly one interval has both instants: document processing begins and
 ends inside a single request handler (`intake_api.documents.ingest_content`).
@@ -150,10 +152,16 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
         end_moment="the clinician's first open of that share",
         observable=False,
         missing_instant=(
-            "the end: there is no clinician-facing share-redemption route and no "
-            "share-access row, so nothing records an open"
+            "the end: INT-150 landed the redemption route, and every open is written "
+            "to the hash-chained audit log — which is EVIDENCE, not an analytics "
+            "source, and is never mined for aggregates. No share-access row and no "
+            "first_opened_at column exist, deliberately: publishing this interval "
+            "needs an unlabelled path through publish_wait/roll_up_wait that INT-241 "
+            "did not build, and landing the instant without the publisher would put "
+            "this registry, the catalogue status and the writer out of step — the "
+            "exact drift this module exists to prevent"
         ),
-        blocked_by="INT-150",
+        blocked_by=None,
     ),
     WaitSource(
         kind=WaitKind.CHECKIN_TO_SEEN,

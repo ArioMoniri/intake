@@ -18,6 +18,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from intake_platform.db.models import (
+    DoctorLink,
     Document,
     IntakeSession,
     Note,
@@ -327,6 +328,26 @@ async def revoke_live_shares(
     now = datetime.now(UTC)
     for row in rows:
         row.revoked_at = now
+        # INT-150: a link is a way to reach a share, so it cannot outlive the
+        # share. Every save takes the note back to draft (notes.write_note),
+        # and a patient who did that must not find an old link still open.
+        await _revoke_links_of_share(session, tenant_id=tenant_id, share_id=row.id, now=now)
+
+
+async def _revoke_links_of_share(
+    session: AsyncSession, *, tenant_id: uuid.UUID, share_id: uuid.UUID, now: datetime
+) -> None:
+    links = (
+        await session.scalars(
+            select(DoctorLink).where(
+                DoctorLink.tenant_id == tenant_id,
+                DoctorLink.share_id == share_id,
+                DoctorLink.revoked_at.is_(None),
+            )
+        )
+    ).all()
+    for link in links:
+        link.revoked_at = now
 
 
 async def create_share(
