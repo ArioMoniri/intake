@@ -94,13 +94,35 @@ export interface DialogueStreamState {
   /** The chat transcript, oldest first. */
   stream: readonly StreamEntry[];
   /**
-   * The agent has lost its voice for the rest of this session (INT-261).
-   * Latched by `speech_unavailable` and never cleared: re-probing the TTS
-   * ladder on every subsequent turn would spend the turn budget twice per
-   * question to arrive at the same answer, so once is enough. The surface
-   * says so once; the conversation carries on in text.
+   * The agent has no voice RIGHT NOW (INT-261, corrected by INT-294).
+   *
+   * INT-261 latched this for the session and gave a cost argument for it:
+   * re-probing the TTS ladder every turn would spend the turn budget twice
+   * per question to arrive at the same answer. That was true of an admission
+   * walk which cost the whole clip deadline, and it is not true of one bounded
+   * to a single admission. What the latch cost instead was measured on 2 Sep
+   * 2026: one slow FIRST turn, and the rest of the visit in silence with a
+   * healthy Freya answering in 0.8 s throughout.
+   *
+   * So this is a report about the last clip, not a property of the session.
+   * A clip that PLAYS clears it; a turn nobody attempted cannot.
    */
   voiceMuted: boolean;
+  /**
+   * Consecutive turns whose clip could not be produced. Only a clip that
+   * played resets it, which is what makes recovery observable rather than
+   * assumed.
+   */
+  voiceFailures: number;
+  /**
+   * Speaking turns still to pass before speech is attempted again.
+   *
+   * Each consecutive failure buys one further turn of silence
+   * (`voiceRetryIn = voiceFailures - 1`), so the first failure retries at
+   * once and a lane that is genuinely gone stops costing an admission per
+   * question. No constant is chosen here: the schedule is the failure count.
+   */
+  voiceRetryIn: number;
 }
 
 export type DialogueStreamAction =
@@ -108,9 +130,17 @@ export type DialogueStreamAction =
   /**
    * The agent could not produce audio for this turn (INT-261). The turn
    * proceeds exactly as `speech_done` would have — the question is already
-   * on screen — and the session goes silent from here.
+   * on screen — and the session is silent until a clip plays again.
    */
   | { type: "speech_unavailable" }
+  /**
+   * The driver did not attempt a clip this turn — the voice is silent and a
+   * cooldown is still owed (INT-294). The turn advances exactly as
+   * `speech_done` does, and the silence is one turn closer to its next
+   * attempt. It can never clear the caption: a turn nobody tried is not
+   * evidence that the voice came back.
+   */
+  | { type: "speech_skipped" }
   | { type: "barge_in" }
   /** From the confirm card: the patient speaks the correction instead. */
   | { type: "speak" }
@@ -139,7 +169,24 @@ export function initialDialogueStreamState(pack: readonly IntakeQuestion[]): Dia
     seq: {},
     stream: pack.length > 0 ? [{ kind: "agent_question", questionId: pack[0].id }] : [],
     voiceMuted: false,
+    voiceFailures: 0,
+    voiceRetryIn: 0,
   };
+}
+
+/**
+ * Should the speaking driver ask for a clip on this turn?
+ *
+ * Pure, and exported, because it is the one decision the INT-261 driver took
+ * inline and got wrong: it read a latched `voiceMuted` and never asked again.
+ * A silent session retries as soon as its cooldown is spent, and the cooldown
+ * exists only so that a lane which is genuinely gone costs a bounded
+ * admission every few turns rather than one per question.
+ */
+export function shouldAttemptSpeech(
+  state: Pick<DialogueStreamState, "voiceMuted" | "voiceRetryIn">,
+): boolean {
+  return !state.voiceMuted || state.voiceRetryIn === 0;
 }
 
 function currentQuestionId(pack: readonly IntakeQuestion[], turn: StreamTurn): string | undefined {
@@ -235,15 +282,49 @@ function takeUtterance(
     inflight: [...state.inflight, entry.workId],
     seq: state.seq,
     stream: [...state.stream, entry],
-    // The mute is a session latch, so it has to survive every rebuild of
-    // the state that is not a spread of the whole thing — this is the one.
+    // The voice condition has to survive every rebuild of the state that is
+    // not a spread of the whole thing — this is the one.
     voiceMuted: state.voiceMuted,
+    voiceFailures: state.voiceFailures,
+    voiceRetryIn: state.voiceRetryIn,
   };
   if (state.turn.phase === "settling") {
     // No live question — the note keeps enriching while the end settles.
     return { ...next, turn: { phase: "settling" } };
   }
   return advance(pack, next);
+}
+
+type VoiceOutcome = "speech_done" | "speech_unavailable" | "speech_skipped";
+
+/**
+ * What one clip's outcome says about the agent's voice.
+ *
+ *   speech_done        it PLAYED        → the voice is back, on the record
+ *   speech_unavailable it FAILED        → silent, one turn further from the
+ *                                          next attempt
+ *   speech_skipped     NOT ATTEMPTED    → silent, one turn closer
+ *
+ * The asymmetry between the last two is the whole of INT-294: a turn that was
+ * deliberately not attempted carries no information about the lane, so it may
+ * move the cooldown and may not move the caption.
+ */
+function nextVoice(
+  state: DialogueStreamState,
+  outcome: VoiceOutcome,
+): Pick<DialogueStreamState, "voiceMuted" | "voiceFailures" | "voiceRetryIn"> {
+  if (outcome === "speech_done") {
+    return { voiceMuted: false, voiceFailures: 0, voiceRetryIn: 0 };
+  }
+  if (outcome === "speech_unavailable") {
+    const voiceFailures = state.voiceFailures + 1;
+    return { voiceMuted: true, voiceFailures, voiceRetryIn: voiceFailures - 1 };
+  }
+  return {
+    voiceMuted: state.voiceMuted,
+    voiceFailures: state.voiceFailures,
+    voiceRetryIn: Math.max(0, state.voiceRetryIn - 1),
+  };
 }
 
 export function dialogueStreamReducer(
@@ -259,20 +340,27 @@ export function dialogueStreamReducer(
   }
   switch (action.type) {
     case "speech_done":
-    case "speech_unavailable": {
-      // A clip that failed and a clip that finished leave the turn in the
-      // same place: the patient has the question either way (it is rendered
-      // from the same catalog string the clip was synthesized from), so the
-      // only difference the failure makes is that the session is now silent.
-      const voiceMuted = state.voiceMuted || action.type === "speech_unavailable";
+    case "speech_unavailable":
+    case "speech_skipped": {
+      // All three leave the turn in the same place: the patient has the
+      // question either way (it is rendered from the same catalog string the
+      // clip was synthesized from), so the only thing that differs between
+      // them is what they say about the VOICE.
+      const voice = nextVoice(state, action.type);
       if (turn.phase !== "speaking") {
-        // Pre-warm and confirm clips can fail while the patient is talking;
-        // latch the mute without touching a turn that is not the agent's.
-        return voiceMuted === state.voiceMuted ? state : { ...state, voiceMuted };
+        // Pre-warm and confirm clips can land while the patient is talking;
+        // record the voice without touching a turn that is not the agent's,
+        // and hand back the SAME state when nothing about the voice moved so
+        // a late duplicate costs no re-render.
+        const moved =
+          voice.voiceMuted !== state.voiceMuted ||
+          voice.voiceFailures !== state.voiceFailures ||
+          voice.voiceRetryIn !== state.voiceRetryIn;
+        return moved ? { ...state, ...voice } : state;
       }
       return {
         ...state,
-        voiceMuted,
+        ...voice,
         turn:
           turn.intent === "question"
             ? { phase: "listening", step: turn.step }

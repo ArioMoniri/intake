@@ -181,6 +181,13 @@ export function clipName(
 export interface SynthesizeOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /**
+   * Abandons a request the caller no longer needs (INT-294). Admission races
+   * every lane at once, and the losers must stop the moment a winner is
+   * known — a probe nobody is waiting for is a request the dev box is still
+   * serving.
+   */
+  signal?: AbortSignal;
 }
 
 /** POST /synthesize on a known base; throws on guard, transport or empty body. */
