@@ -205,18 +205,18 @@ def crisis_rule(rule_id: str = "rf.sentetik_kriz", *, status: str = "active") ->
             "REMOTE": {
                 "primary": "CALL_112",
                 "show_112": True,
-                "action_tr": "Sentetik yonlendirme metni.",
+                "action_tr": {"tr": "Sentetik yonlendirme metni."},
                 "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "ON_SITE": {
                 "primary": "GO_TO_IN_HOUSE_ACIL",
                 "show_112": False,
                 "notify_staff_immediate": True,
-                "action_tr": "Sentetik yonlendirme metni.",
+                "action_tr": {"tr": "Sentetik yonlendirme metni."},
                 "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "UNKNOWN": {
-                "ask_one_tr": "Su anda hastanede misiniz?",
+                "ask_one_tr": {"tr": "Su anda hastanede misiniz?"},
                 "on_yes": "ON_SITE",
                 "on_no": "REMOTE",
                 "on_no_answer": "REMOTE",

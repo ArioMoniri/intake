@@ -427,25 +427,38 @@ def test_an_unregistered_locale_on_a_red_action_script_is_refused(tmp_path: Path
         load_pack(_write(tmp_path, raw))
 
 
-def test_a_do_not_list_that_drops_an_instruction_in_one_locale_is_refused() -> None:
+def test_a_do_not_list_that_drops_an_instruction_in_one_locale_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A do-not list is not prose: each line is a separate instruction, and a
-    locale carrying fewer of them has dropped one rather than translated it."""
-    LocationAction.model_validate(
-        {
-            "primary": "CALL_112",
-            "show_112": True,
-            "action_tr": {"tr": "Hemen yardım isteyin."},
-            "do_nots_tr": {"tr": ["Yalnız kalmayın.", "Araç kullanmayın."]},
-        }
-    )
-    with pytest.raises(ValidationError):
-        LocationAction.model_validate(
+    locale carrying fewer of them has dropped one rather than translated it.
+
+    ``de`` is registered for the duration, because otherwise the refusal would
+    come from the unregistered-key rule and this test would pass without ever
+    reaching the arity check it exists for.
+    """
+    monkeypatch.setattr("protocols.locale_text.KNOWN_LOCALES", frozenset({DEFAULT_LOCALE, "de"}))
+
+    def _with(do_nots: dict[str, list[str]]) -> LocationAction:
+        return LocationAction.model_validate(
             {
                 "primary": "CALL_112",
                 "show_112": True,
                 "action_tr": {"tr": "Hemen yardım isteyin."},
-                "do_nots_tr": {"tr": ["Yalnız kalmayın."], "de": []},
+                "do_nots_tr": do_nots,
             }
+        )
+
+    matched = _with(
+        {
+            "tr": ["Yalnız kalmayın.", "Araç kullanmayın."],
+            "de": ["Bleiben Sie nicht allein.", "Fahren Sie nicht selbst."],
+        }
+    )
+    assert len(entry_for(matched.do_nots_tr, "de")) == 2
+    with pytest.raises(ValidationError, match="dropped a safety instruction"):
+        _with(
+            {"tr": ["Yalnız kalmayın.", "Araç kullanmayın."], "de": ["Bleiben Sie nicht allein."]}
         )
 
 
@@ -461,6 +474,17 @@ def test_an_absent_do_not_list_is_absent_and_not_an_empty_turkish_entry() -> Non
         {"primary": "CALL_112", "show_112": True, "action_tr": {"tr": "Hemen arayın."}}
     )
     assert action.do_nots_tr == {}
+    # And written out explicitly, which is the shape the migration leaves a
+    # branch that had none: accepted, and NOT refused for missing ``tr``.
+    spelled_out = LocationAction.model_validate(
+        {
+            "primary": "CALL_112",
+            "show_112": True,
+            "action_tr": {"tr": "Hemen arayın."},
+            "do_nots_tr": {},
+        }
+    )
+    assert spelled_out.do_nots_tr == {}
     assert locales_of(None) == known_locales()
 
 

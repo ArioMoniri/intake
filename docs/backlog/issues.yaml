@@ -4451,7 +4451,7 @@
   - area:protocols
   - area:i18n
   - area:safety
-  status: todo
+  status: done
   acceptance:
   - '`confirm_tr`, `action_tr`, `do_nots_tr` and `ask_one_tr` become per-locale
     maps on the same schema as the five INT-297 migrated, with `tr` required, so
@@ -4471,6 +4471,7 @@
     resolves for a location'
   tests:
   - tests/protocols/test_locale_maps.py
+  - tests/protocols/test_migration_is_identity_for_tr.py
   sec_row: "protocol-registry"
 - id: INT-315
   epic: E13-infra
