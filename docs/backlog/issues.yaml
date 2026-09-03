@@ -2575,9 +2575,11 @@
   # aydinlatma to close the other four would be the drafted-legal-copy
   # invariant 17 forbids, so the issue stays open.
   # docs/evidence/INT-210.md §7 is the clause-by-clause account and §8 is the
-  # ask; the ask is filed in docs/backlog/blockers.md. There is no HB row for
-  # legal-text authoring anywhere in the project (blockers.md records the same
-  # absence for INT-038) and none was minted here.
+  # ask; the ask is filed in docs/backlog/blockers.md and registered as
+  # HB-L27, allocated for the whole twenty-one-document set rather than per
+  # document, because the index is hash-bound as a set and a partially signed
+  # one serves nothing. HB-L27 also supersedes the identical unregistered ask
+  # recorded against INT-038.
   status: awaiting-human
   acceptance:
     - "docs/legal/ versioned with hashes; rendered in-app from source; acceptance evidence stored; plain-language summaries; counsel sign-off recorded in evidence file before merge"
