@@ -4119,6 +4119,15 @@
   # later than the spec's value - and refused an undated visit outright rather
   # than falling back to an issue-time clock. That approximation is correct and
   # it is still an approximation, so the field it approximates is filed here.
+  #
+  # CORROBORATED from the opposite direction by INT-122, independently: an
+  # appointment TIME read off an MHRS screenshot has nowhere to go, because
+  # VisitCreate.date is an ISO date and the store has no time column. Its
+  # candidate carries the time (dropping it silently leaves a patient unable to
+  # check the one field they remember) and as_visit_fields() carries only what
+  # the API has a field for. Two issues reached this missing field from
+  # different ends - one needing it to compute an expiry, one unable to store
+  # what it read - which is the strongest evidence the field is real.
   title: 'The schema records a visit DATE and the expiry rule needs a visit
     DATETIME'
   depends_on: []
