@@ -70,6 +70,11 @@ class AccessCategory(enum.StrEnum):
 
     RECORD_VIEWED = "record_viewed"
     RECORD_SHARED = "record_shared"
+    # INT-150: a revocation is not a share. Rendering "you revoked this"
+    # as RECORD_SHARED would tell the patient the opposite of what happened,
+    # and OTHER would tell them nothing — so the closed set grows by one
+    # member that can be given its own reviewed Turkish copy.
+    SHARE_REVOKED = "share_revoked"
     RECORD_UPDATED = "record_updated"
     CONSENT_CHANGED = "consent_changed"
     ACCOUNT_SECURITY = "account_security"
@@ -99,6 +104,14 @@ class AccessorRole(enum.StrEnum):
 _EXACT: dict[str, AccessCategory] = {
     "api.note.read": AccessCategory.RECORD_VIEWED,
     "api.note.share": AccessCategory.RECORD_SHARED,
+    # INT-150 Doctor Link: an open is a clinician READING the note, which is
+    # the event this log exists for; issuing is a share; revoking is its own
+    # category. "opened" is listed exactly so the _SHARING_SEGMENT fallback
+    # never absorbs it into "shared" — the patient must be able to tell "you
+    # sent this" from "someone read it".
+    "api.doctor_link.issued": AccessCategory.RECORD_SHARED,
+    "api.doctor_link.opened": AccessCategory.RECORD_VIEWED,
+    "api.doctor_link.revoked": AccessCategory.SHARE_REVOKED,
     "api.note.write": AccessCategory.RECORD_UPDATED,
     "api.visit.read": AccessCategory.RECORD_VIEWED,
     "api.visit.list": AccessCategory.RECORD_VIEWED,

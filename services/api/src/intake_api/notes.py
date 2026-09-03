@@ -30,7 +30,7 @@ from intake_api.schemas import NoteBody, NoteOut, NotePut
 from intake_api.state import ApiState, State
 from intake_api.visits import CORE_SCOPE
 
-__all__ = ["router"]
+__all__ = ["SHARE_SCOPE", "decrypt_note_body", "router"]
 
 router = APIRouter(prefix="/v1/visits/{visit_id}/note", tags=["notes"])
 
@@ -47,7 +47,9 @@ def _encrypt_body(state: ApiState, tenant_id: uuid.UUID, body: NoteBody) -> dict
     return dict(encrypted_field_to_json(field))
 
 
-def _decrypt_body(state: ApiState, tenant_id: uuid.UUID, payload: dict[str, object]) -> NoteBody:
+def decrypt_note_body(
+    state: ApiState, tenant_id: uuid.UUID, payload: dict[str, object]
+) -> NoteBody:
     field = encrypted_field_from_json(payload)
     plaintext = state.cipher.decrypt_field(str(tenant_id), field)
     return NoteBody.model_validate(json.loads(plaintext.decode("utf-8")))
@@ -82,7 +84,7 @@ async def read_note(visit_id: uuid.UUID, principal: Principal, state: State) -> 
 
         if principal.role == "patient":
             # the route guard already enforced the patient's own core scope
-            body = _decrypt_body(state, principal.tenant_id, dict(note.payload))
+            body = decrypt_note_body(state, principal.tenant_id, dict(note.payload))
             sections = body.sections
             scopes = body.scopes
             scope_checked = CORE_SCOPE
@@ -99,7 +101,7 @@ async def read_note(visit_id: uuid.UUID, principal: Principal, state: State) -> 
                 scope=SHARE_SCOPE,
                 actor=principal.account_id,
             )
-            body = _decrypt_body(state, principal.tenant_id, dict(note.payload))
+            body = decrypt_note_body(state, principal.tenant_id, dict(note.payload))
             shared_ids = _shared_ids(share.scope_sections)
             sections = [s for s in body.sections if s.id in shared_ids]
             scopes = {sid: on for sid, on in body.scopes.items() if sid in shared_ids}

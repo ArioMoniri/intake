@@ -35,6 +35,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from intake_api import (
     consents,
+    doctor_link,
     documents,
     dsar,
     experience,
@@ -51,6 +52,12 @@ from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
+from intake_api.doctor_link.common import NOINDEX
+from intake_api.doctor_link.service import (
+    DoctorLinkService,
+    DoctorLinkWiring,
+    FailClosedDoctorLinkDelivery,
+)
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ApiSettings
@@ -177,6 +184,29 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
     )
 
 
+def _doctor_link_service(auth: AuthWiring | None) -> DoctorLinkService | None:
+    """INT-150. The Doctor Link tier rides the OTP tier's Redis, because it
+    rides the OTP tier's GATE — one abuse budget, one code store, one place to
+    fix. No Redis (``auth is None``) means the whole surface answers 503 rather
+    than issuing links whose opening code nobody could check.
+
+    The delivery adapter is the fail-closed one: files/10 §2 sends the code to
+    the phone or e-mail the patient chose, this repo records no such
+    destination and no vendor is contracted, and a stub that returned a receipt
+    would be a mock standing in for a control (invariant 17).
+    """
+    if auth is None:
+        return None
+    return DoctorLinkService(
+        DoctorLinkWiring(
+            redis_client=auth.redis_client,
+            delivery=FailClosedDoctorLinkDelivery(),
+            dev_otp_peek=auth.dev_otp_peek,
+            now_fn=auth.now_fn,
+        )
+    )
+
+
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
     return ApiWiring(
@@ -202,6 +232,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         cipher=w.cipher,
         documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
+        doctor_link=_doctor_link_service(w.auth),
     )
 
     @asynccontextmanager
@@ -238,6 +269,13 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         # path set request.state.auth_tier = "otp"; everything else keeps
         # the INT-197 "dev" tag so nobody mistakes the tier they are on
         response.headers[header_name] = getattr(request.state, "auth_tier", header_value)
+        # INT-150 / files/10 §9 `doctor-link` row: "no indexing". Set on EVERY
+        # response, including the ones an exception handler builds — a header
+        # attached by a route dependency is lost the moment a route raises, and
+        # a refusal page for a Doctor Link is exactly the page that must not be
+        # crawled. This API serves nothing indexable at all, so the widest form
+        # is also the correct one.
+        response.headers.setdefault("X-Robots-Tag", NOINDEX)
         return response
 
     @app.exception_handler(StarletteHTTPException)
@@ -286,6 +324,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
 
     app.include_router(visits.router)
     app.include_router(notes.router)
+    app.include_router(doctor_link.router)
+    app.include_router(doctor_link.public_router)
     app.include_router(documents.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)

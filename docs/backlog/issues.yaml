@@ -1546,7 +1546,21 @@
   title: "Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index"
   depends_on: [INT-084, INT-016]
   labels: [area:clinician, risk:security]
+  # STAYS OPEN on purpose, 3 Sep 2026. Three of the four acceptance clauses are
+  # delivered and evidenced (entropy/expiry, watermark carrying recipient +
+  # timestamp through the committed PDF renderer, robots/noindex, and every open
+  # audited and rendered into the patient's access log). What is NOT delivered is
+  # the files/10 §2 delivery channel: the OTP goes "to the phone/e-mail the
+  # patient chose" and this repo records no such destination anywhere (invariant
+  # 14 keeps contact identifiers out of every app table and no file records a
+  # Doctor-Link delivery preference), with no messaging vendor contracted. The
+  # seam is built, the abuse gate runs in front of it and it answers 503; the code
+  # is minted over the patient's own authenticated session instead. Recording a
+  # patient-chosen contact channel is a new category of personal data, which
+  # CLAUDE.md makes a stop-and-ask — it needs a HUMAN_BLOCKERS row and a named
+  # human, which this iteration did not mint. Reopen against that row.
   status: todo
+  evidence: docs/evidence/INT-150.md
   acceptance:
     - "entropy/expiry tests; watermark carries recipient+timestamp; robots/noindex; every open audited and visible to patient"
   tests: [tests/clinician/test_doctor_link.py]
