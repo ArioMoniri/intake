@@ -1098,8 +1098,13 @@
   # so PriceBook ships empty, priced_cost raises rather than returning a zero (zero is
   # a claim that a session was free), no Gauge is declared and the catalogue row stays
   # planned. The per-session limits are missing for the same reason - files/10 Sec 5
-  # names the control and states no number. Both asks are in docs/backlog/blockers.md;
-  # the HUMAN_BLOCKERS.md id is for the coordinator to allocate.
+  # names the control and states no number. Both asks are in docs/backlog/blockers.md,
+  # and the coordinator has since allocated them as ONE row: HB-O8, "the session budgets
+  # have no numbers, and the cost has no price - two asks, one row". That row names the
+  # owner for both and records this issue's state in its own words - what it blocks is
+  # "the cost.per_session acceptance line, which is why INT-101 stays todo ... Not the
+  # mechanism, which ships metered and fails closed". Reopen against HB-O8; see
+  # docs/evidence/INT-101.md Sec 6 "The acceptance, line by line".
   status: todo
   evidence: docs/evidence/INT-101.md
   acceptance:
@@ -1533,9 +1538,13 @@
   #     not hold is that section's "severity is numeracy-free, using 3-4
   #     ordinal spoken anchors": pain_score is an 11-point scale with no
   #     authored Turkish anchor wording, and recoding it is a clinical
-  #     judgement (blockers.md, physician of record).
+  #     judgement. The evidence file recorded that no HB row was minted for it;
+  #     the coordinator has since allocated HB-C22, addressed to the physician
+  #     of record, whose "what it blocks" column reads "the low-literacy clause
+  #     of INT-136, and nothing else". lowLiteracyReadiness naming
+  #     numeral_anchored:pain_score is the fail-closed state that row describes.
   #
-  # Reopen against HB-C1 plus the pain-score anchor ask; see
+  # Reopen against HB-C1 (the unsigned packs) and HB-C22 (the anchors); see
   # docs/evidence/INT-136.md §5 "Acceptance, line by line".
   status: todo
   evidence: docs/evidence/INT-136.md
@@ -1757,8 +1766,15 @@
   # seam is built, the abuse gate runs in front of it and it answers 503; the code
   # is minted over the patient's own authenticated session instead. Recording a
   # patient-chosen contact channel is a new category of personal data, which
-  # CLAUDE.md makes a stop-and-ask — it needs a HUMAN_BLOCKERS row and a named
-  # human, which this iteration did not mint. Reopen against that row.
+  # CLAUDE.md makes a stop-and-ask — the evidence file left the row for the
+  # coordinator to file, and it has since been allocated as HB-O7, "where does a
+  # Doctor Link OTP actually go, and may we record that destination?", with two
+  # answers owed: the channel and its contracted provider (owner), and whether
+  # such a destination may be stored at all (counsel). That row's "what it
+  # blocks" column is as narrow as this comment — "only the spec's delivery
+  # path" — because the link itself issues, expires, revokes, watermarks and
+  # audits today. Reopen against HB-O7; see docs/evidence/INT-150.md
+  # "What is NOT delivered, and why".
   status: todo
   evidence: docs/evidence/INT-150.md
   acceptance:
