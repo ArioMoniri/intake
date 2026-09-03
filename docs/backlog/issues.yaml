@@ -2308,7 +2308,20 @@
   title: "Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives"
   depends_on: [INT-023, INT-016]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-180.md
+  # NOTE 3 Sep 2026: all three acceptance clauses delivered. The audited-route
+  # list is DERIVED — the router is built from the ADMIN_ROUTES descriptor
+  # table and the tests read the served route set off FastAPI itself, so a
+  # route cannot exist without an audit action. The console appends to the
+  # INT-016 chain through a one-method sink and an AST gate proves it names no
+  # chain-head symbol, so HB-I12's gap is not narrowed. Two fail-closed states
+  # are the delivered state, not gaps: the IP allow-list ships EMPTY (08 §2.3
+  # names no range) and the tenant->deployment map ships EMPTY, so break-glass
+  # refuses every tenant until 08 §2.6's controller/processor question is
+  # answered per tenant (adjacent to HB-L6). The §8.2 tier table is
+  # implemented whole but registers only the actions this issue routes; rows
+  # for surfaces that do not exist would be controls in name only (inv. 17).
   acceptance:
     - "roles per 08 §2; break-glass with reason+approver; role-matrix contract tests for /admin/*"
   tests: [tests/admin/test_rbac_matrix.py]
