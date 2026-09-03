@@ -793,7 +793,31 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
   six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
   guard and the three no-scraping checks — with INT-122
-  (`tests/records/test_enabiz_pdf.py`); RLS namespace tests with INT-123.
+  (`tests/records/test_enabiz_pdf.py`); the patient-facing half of the confirm gate,
+  the client-side level-shaped-key refusal and the camera path with INT-138
+  (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
+  RLS namespace tests with INT-123.
+- **INT-138 addition — the capture is a second way in, and it carries metadata.** A
+  photograph of a report taken in the app reaches the same object store as an uploaded
+  file, so it goes through the same allow-list pre-check, size cap and digest. On the
+  path this app takes (`quality: 1` → `RawImageExporter`, a straight `copyFile`) the
+  camera's ENTIRE original EXIF would travel: the GPS family, maker notes and an
+  embedded thumbnail that is a second copy of the document. So every JPEG loses its
+  APP1 (EXIF/XMP) segment before the digest is computed, with the Orientation tag
+  carried across in a 34-byte segment the app authors itself. Location is not a
+  declared category in the inventory and is not persisted.
+- ⚠️ **Two limits of that strip, named rather than quietly accepted — both are for a
+  human to confirm or overturn, and neither was decided here.**
+  1. **It fails OPEN.** `stripJpegMetadata` returns the bytes unchanged for any JPEG it
+     cannot walk end to end — a truncated segment, a marker where none belongs — and a
+     test codifies that, so such a file uploads with its EXIF intact. That is file
+     integrity chosen over invariant 6: a partially rewritten JPEG is a corrupt document
+     the patient believes is their report. Refusing the upload is the other option and
+     is not obviously worse; it trades a lost document for a leaked coordinate.
+  2. **PNG is on the allow-list and is not stripped.** PNG carries its own `eXIf` chunk
+     and XMP, so it is a third metadata container beside the two the JPEG strip names.
+     Reachable through the file picker only — the camera path produces JPEG — so the
+     probability is lower, but the exposure is the same one.
 
 ## `documents` — the object store
 

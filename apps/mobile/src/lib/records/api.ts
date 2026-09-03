@@ -19,6 +19,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { File } from "expo-file-system";
 
 import { AuthApiError, authedFetch } from "@/lib/auth/api";
+import { stripJpegMetadata } from "@/lib/records/jpeg";
 
 /** Server allow-list mirror (intake_platform.documents.ALLOWED_CONTENT_TYPES). */
 export const ALLOWED_DOCUMENT_TYPES: readonly string[] = [
@@ -73,6 +74,36 @@ export interface PickedFile {
   name: string;
   mimeType?: string;
   size?: number;
+}
+
+/** What expo-image-picker hands back from a capture (INT-138). */
+export interface CapturedAsset {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+}
+
+/**
+ * A camera capture, as a picked file (INT-138).
+ *
+ * The capture joins the file picker's path rather than getting one of its own:
+ * a second upload path is a second place the server allow-list, the size cap
+ * and the metadata strip can each be forgotten. A capture that carries neither
+ * a content type nor a name resolves to no type and is refused downstream —
+ * fail closed rather than guess what the camera produced.
+ */
+export function cameraFile(asset: CapturedAsset): PickedFile | null {
+  const uri = asset.uri.trim();
+  if (uri === "") {
+    return null;
+  }
+  return {
+    uri,
+    name: asset.fileName?.trim() ?? "",
+    mimeType: asset.mimeType ?? undefined,
+    size: asset.fileSize ?? undefined,
+  };
 }
 
 export type Precheck = { ok: true; contentType: string } | { ok: false; reason: "type" | "size" };
@@ -332,7 +363,15 @@ export async function upload(visitId: string, file: PickedFile): Promise<UploadO
   if (!pre.ok) {
     throw new RecordsApiError(pre.reason);
   }
-  const bytes = await new File(file.uri).bytes();
+  // INT-138: a JPEG loses its EXIF/XMP container BEFORE anything else touches
+  // it. expo-image-picker's Android exporter copies TAG_GPS_* into the file it
+  // hands over, so a photograph of a report would otherwise carry where the
+  // patient was standing into the object store — a category of personal data
+  // nothing in this repository has declared. The strip comes first because the
+  // digest is declared to the server from the bytes that actually travel.
+  const picked = await new File(file.uri).bytes();
+  const bytes =
+    pre.contentType === "image/jpeg" ? stripJpegMetadata(picked) : picked;
   if (bytes.byteLength > MAX_DOCUMENT_BYTES) {
     throw new RecordsApiError("size");
   }
