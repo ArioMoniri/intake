@@ -43,6 +43,9 @@ permissions:
 
 jobs:
   gitleaks:
+    permissions:
+      contents: read
+      pull-requests: read
     # full history (fetch-depth 0): a secret buried three commits back still
     # fails. Free for user-owned repos; an org move needs GITLEAKS_LICENSE.
     runs-on: ubuntu-latest
@@ -79,14 +82,14 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
+          trivyignores: .trivyignore.yaml
           severity: CRITICAL,HIGH
           exit-code: "1"
       - name: osv-scanner (uv.lock + pnpm-lock.yaml)
-        uses: google/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67 # v2.5.1
+        uses: google/osv-scanner-action/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67 # v2.5.1
         with:
           scan-args: |-
             -r
-            --skip-git
             ./
 
   iac:
