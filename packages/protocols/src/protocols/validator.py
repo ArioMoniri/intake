@@ -373,8 +373,7 @@ def _tr_texts(pack: ProtocolPack) -> list[tuple[str, str]]:
     for subject, slot in _pack_slots(pack):
         texts.extend(_each_locale(subject, slot.ask_tr))
         texts.extend(_each_locale(subject, slot.follow_up_tr))
-        if slot.confirm_tr is not None:
-            texts.append((subject, slot.confirm_tr))
+        texts.extend(_each_locale(subject, slot.confirm_tr))
         for code, choices in sorted((slot.choices_tr or {}).items()):
             texts.extend((f"{subject}@{code}", choice) for choice in choices)
     for instrument in pack.instruments:
@@ -392,11 +391,11 @@ def _tr_texts(pack: ProtocolPack) -> list[tuple[str, str]]:
                 if location is None:
                     continue
                 texts.extend(_each_locale(rule.id, location.why_tr))
-                for text in (location.action_tr, *location.do_nots_tr):
-                    if text is not None:
-                        texts.append((rule.id, text))
+                texts.extend(_each_locale(rule.id, location.action_tr))
+                for code, do_nots in sorted(location.do_nots_tr.items()):
+                    texts.extend((f"{rule.id}@{code}", do_not) for do_not in do_nots)
             if rule.action.unknown is not None:
-                texts.append((rule.id, rule.action.unknown.ask_one_tr))
+                texts.extend(_each_locale(rule.id, rule.action.unknown.ask_one_tr))
     for op in pack.ops:
         if isinstance(op, OverrideTextOp):
             texts.extend(_each_locale(op.pointer, op.text_tr))

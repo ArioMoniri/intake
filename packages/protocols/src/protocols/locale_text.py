@@ -82,6 +82,7 @@ __all__ = [
     "LocaleCode",
     "LocaleEntryAbsent",
     "LocaleFlag",
+    "LocaleList",
     "LocaleText",
     "common_locales",
     "entry_for",
@@ -159,6 +160,51 @@ LocaleText = Annotated[dict[LocaleCode, _Content], AfterValidator(_requires_tr)]
 
 #: The spoken answer options, per locale, in one order.
 LocaleChoices = Annotated[dict[LocaleCode, tuple[_Content, ...]], AfterValidator(_equal_arity)]
+
+
+def _equal_arity_or_silent(
+    value: Mapping[str, tuple[str, ...]],
+) -> Mapping[str, tuple[str, ...]]:
+    """INT-314. Like :func:`_equal_arity`, except that *nothing* is sayable.
+
+    ``do_nots_tr`` is the one migrated field whose absence is meaningful: most
+    red-flag branches carry no explicit do-not list at all, and the DSL spelled
+    that as an empty tuple. An empty **map** keeps that meaning — no do-nots in
+    any language, and therefore no constraint on which languages the pack can
+    be run in. It is not the same as ``{tr: []}``, which is an author saying
+    this branch has no do-nots *in Turkish*.
+
+    Where entries do exist the arity rule is the stricter one, and for a harder
+    reason than ``choices_tr``'s: each line of a do-not list is a separate
+    instruction — *Kendi aracınızla yola çıkmayın* is not a rephrasing of *Bir
+    şey yiyip içmeyin* — so a locale carrying fewer of them has dropped a
+    safety instruction rather than translated one.
+    """
+    if not value:
+        return value
+    return _equal_arity_permitting_empty(value)
+
+
+def _equal_arity_permitting_empty(
+    value: Mapping[str, tuple[str, ...]],
+) -> Mapping[str, tuple[str, ...]]:
+    _requires_tr(value)
+    arity = len(value[DEFAULT_LOCALE])
+    mismatched = sorted(code for code, items in value.items() if len(items) != arity)
+    if mismatched:
+        raise ValueError(
+            "every locale must carry the same do-not instructions in the same order; "
+            + ", ".join(safe_code(code) for code in mismatched)
+            + f" disagrees with {DEFAULT_LOCALE} ({arity}) — a locale with fewer "
+            "do-nots has dropped a safety instruction, not translated one"
+        )
+    return value
+
+
+#: A list of separate instructions per locale, where having none is a position.
+LocaleList = Annotated[
+    dict[LocaleCode, tuple[_Content, ...]], AfterValidator(_equal_arity_or_silent)
+]
 
 #: A paraphrase permission per locale (CLAUDE.md invariant 10, restated per
 #: language rather than weakened): permission granted for Turkish says nothing

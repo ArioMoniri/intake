@@ -286,11 +286,13 @@ rules:
         primary: CALL_112
         secondary: NEAREST_ACIL_ADDRESS_AS_TEXT
         show_112: true
-        action_tr: "Hemen **112**'yi arayın."
+        action_tr:
+          tr: "Hemen **112**'yi arayın."
         do_nots_tr:
-          - "Kendi aracınızla yola çıkmayın."
-          - "Bir şey yiyip içmeyin."
-          - "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+          tr:
+            - "Kendi aracınızla yola çıkmayın."
+            - "Bir şey yiyip içmeyin."
+            - "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
         why_tr:
           tr: >-
             Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir.
@@ -302,13 +304,15 @@ rules:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false          # ⛔ never suggest an ambulance to someone inside the hospital
         notify_staff_immediate: true
-        action_tr: >-
-          **Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin.
-          Görevlilere haber verildi. Girişte **"göğüs ağrım var"** deyin.
+        action_tr:
+          tr: >-
+            **Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin.
+            Görevlilere haber verildi. Girişte **"göğüs ağrım var"** deyin.
         do_nots_tr:
-          - "Poliklinik sırasında beklemeyin."
-          - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
-          - "Bir şey yiyip içmeyin."
+          tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
+            - "Bir şey yiyip içmeyin."
         why_tr:
           tr: >-
             Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin
@@ -317,7 +321,8 @@ rules:
         # ^ EK-4 door-triage fact, the ON_SITE counterpart of the MADDE 8(5) line above.
         #   The MADDE 8(5) line must NOT be reused here: the patient is not travelling.
       UNKNOWN:
-        ask_one_tr: "Şu anda hastanede misiniz?"
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
         on_no: REMOTE
         on_no_answer: REMOTE     # the safe default IF AND ONLY IF the question was asked
@@ -405,9 +410,11 @@ rules:
       REMOTE:
         primary: SAME_DAY_ACIL_TODAY
         show_112: false
-        action_tr: "Bugün içinde bir acil servise başvurun."
+        action_tr:
+          tr: "Bugün içinde bir acil servise başvurun."
         do_nots_tr:
-          - "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — 112'yi arayın."
+          tr:
+            - "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — 112'yi arayın."
         why_tr:
           tr: >-
             Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Randevunuzu
@@ -423,17 +430,20 @@ rules:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
         notify_staff_immediate: true
-        action_tr: >-
-          **Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin.
-          Görevlilere haber verildi.
+        action_tr:
+          tr: >-
+            **Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin.
+            Görevlilere haber verildi.
         do_nots_tr:
-          - "Poliklinik sırasında beklemeyin."
+          tr:
+            - "Poliklinik sırasında beklemeyin."
         why_tr:
           tr: >-
             Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten
             hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz.
       UNKNOWN:
-        ask_one_tr: "Şu anda hastanede misiniz?"
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
         on_no: REMOTE
         on_no_answer: REMOTE
@@ -513,13 +523,15 @@ rules:
         # Turkish text lifted verbatim from the worked CALM example in `02 §5.3`, which
         # is where this wording was agreed. Do not re-translate it; re-translation is how
         # "kendi rahat ettiği pozisyonda" quietly becomes "yatırın".
-        action_tr: >-
-          Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.
+        action_tr:
+          tr: >-
+            Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.
         do_nots_tr:
-          - "Ağzını veya boğazını açıp bakmayın."
-          - "Su, yiyecek ya da ilaç vermeyin."
-          - "Çocuğunuzu sırtüstü yatırmayın."
-          - "Yanından ayrılmayın; onu ağlatacak ya da telaşlandıracak bir şey yapmayın."
+          tr:
+            - "Ağzını veya boğazını açıp bakmayın."
+            - "Su, yiyecek ya da ilaç vermeyin."
+            - "Çocuğunuzu sırtüstü yatırmayın."
+            - "Yanından ayrılmayın; onu ağlatacak ya da telaşlandıracak bir şey yapmayın."
         why_tr:
           tr: >-
             Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
@@ -529,16 +541,18 @@ rules:
         show_112: false
         notify_staff_immediate: true
         carry_child: true
-        action_tr: >-
-          Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun ve **Acil Servis'e
-          götürün[ — {{tenant.acil_location_tr}}]**. Randevunuzu beklemeyin.
-          Görevlilere haber verildi.
+        action_tr:
+          tr: >-
+            Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun ve **Acil Servis'e
+            götürün[ — {{tenant.acil_location_tr}}]**. Randevunuzu beklemeyin.
+            Görevlilere haber verildi.
         do_nots_tr:
-          - "Ağzını veya boğazını açıp bakmayın."
-          - "Su, yiyecek ya da ilaç vermeyin."
-          - "Çocuğunuzu sırtüstü yatırmayın."
-          - "Onu ağlatacak ya da telaşlandıracak bir şey yapmayın; koşmayın."
-          - "Poliklinik sırasında beklemeyin."
+          tr:
+            - "Ağzını veya boğazını açıp bakmayın."
+            - "Su, yiyecek ya da ilaç vermeyin."
+            - "Çocuğunuzu sırtüstü yatırmayın."
+            - "Onu ağlatacak ya da telaşlandıracak bir şey yapmayın; koşmayın."
+            - "Poliklinik sırasında beklemeyin."
         why_tr:
           tr: >-
             Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
@@ -551,7 +565,8 @@ rules:
           deliberately promises nothing about staying with the child, rather than
           promising something that may be withdrawn at the door.
       UNKNOWN:
-        ask_one_tr: "Şu anda hastanede misiniz?"
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
         on_no: REMOTE
         on_no_answer: REMOTE
@@ -651,7 +666,8 @@ rules:
                                  # 191 = substance. Türkiye has no 988 equivalent.
         action_tr_ref: strings.crisis.remote_tr   # text lives in docs/legal/strings.yaml,
                                                   # NOT here — PolicyGuard owns it
-        do_nots_tr: []
+        do_nots_tr:
+          tr: []
         why_tr_ref: strings.crisis.why_tr
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
@@ -664,7 +680,8 @@ rules:
           primary channel: the patient is in the building and a clinician can reach them.
           Still SILENT — the delivery register does not change because the location did.
       UNKNOWN:
-        ask_one_tr: "Şu anda hastanede misiniz?"
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
         on_no: REMOTE
         on_no_answer: REMOTE

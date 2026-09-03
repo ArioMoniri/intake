@@ -272,7 +272,8 @@ sections:
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
         ask_tr:
           tr: "Şikâyetinizin şiddetini sıfır ile on arasında bir sayıyla söyler misiniz?"
-        confirm_tr: "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?"
+        confirm_tr:
+          tr: "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?"
         follow_up_tr:
           tr: "Sıfır hiç yok, beş orta, on dayanılmaz demek. Aradan bir sayı söyleyebilirsiniz."
       trajectory:
@@ -594,7 +595,8 @@ sections:
           resolve the binding against a fabrication (12 §8.1).
         ask_tr:
           tr: "Kilonuzu biliyorsanız söyler misiniz?"
-        confirm_tr: "Söylediğiniz kiloyu ekranda gösteriyorum; doğru mu?"
+        confirm_tr:
+          tr: "Söylediğiniz kiloyu ekranda gösteriyorum; doğru mu?"
         follow_up_tr:
           tr: "Yaklaşık bir değer de yeterli olur."
       smoking_status:

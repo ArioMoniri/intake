@@ -1,6 +1,10 @@
-"""INT-297 — rewrite ``*_tr`` scalars into locale maps, and back again.
+"""INT-297/INT-314 — rewrite ``*_tr`` scalars into locale maps, and back again.
 
-Five fields, one transformation, applied to whatever shape it finds:
+Nine fields, one transformation, applied to whatever shape it finds. INT-297
+moved the five that carry a *question*; INT-314 moved the four that carry the
+red-flag script's *action* — ``confirm_tr``, ``action_tr``, ``do_nots_tr`` and
+``ask_one_tr`` — which is where CLAUDE.md invariant 10's "red-flag action
+scripts are spoken verbatim" clause actually bites:
 
 ===================  ====================  =============================
 field                before                after
@@ -10,6 +14,10 @@ field                before                after
 ``follow_up_tr``     ``"açar mısınız?"``   ``{tr: "açar mısınız?"}``
 ``why_tr``           ``"çünkü…"``          ``{tr: "çünkü…"}``
 ``choices_tr``       ``["evet", "hayır"]`` ``{tr: ["evet", "hayır"]}``
+``confirm_tr``       ``"öyle mi?"``        ``{tr: "öyle mi?"}``
+``action_tr``        ``"Hemen arayın."``   ``{tr: "Hemen arayın."}``
+``ask_one_tr``       ``"hastanede mi?"``   ``{tr: "hastanede mi?"}``
+``do_nots_tr``       ``["yatmayın"]``      ``{tr: ["yatmayın"]}``
 ===================  ====================  =============================
 
 Two properties, and neither is incidental.
@@ -49,10 +57,14 @@ import yaml
 from protocols.locale_text import DEFAULT_LOCALE
 
 __all__ = [
+    "ALL_LOCALE_FIELDS",
     "MIGRATED_FIELDS",
     "FLAG_FIELDS",
     "SCALAR_FIELDS",
     "SEQUENCE_FIELDS",
+    "SPOKEN_FIELDS",
+    "SPOKEN_SCALAR_FIELDS",
+    "SPOKEN_SEQUENCE_FIELDS",
     "TEXT_SCALAR_FIELDS",
     "migrate_document",
     "migrate_text",
@@ -64,6 +76,17 @@ __all__ = [
 TEXT_SCALAR_FIELDS = ("text_tr", "ask_tr", "follow_up_tr", "why_tr")
 SEQUENCE_FIELDS = ("choices_tr",)
 
+#: INT-314. The four spoken fields INT-297 left as single strings, and the ones
+#: invariant 10's *red-flag action script* clause is actually about:
+#: ``confirm_tr`` on a slot, ``action_tr`` and ``do_nots_tr`` on a location
+#: branch, ``ask_one_tr`` on the UNKNOWN branch. Kept as their own tuple rather
+#: than folded into :data:`MIGRATED_FIELDS` because that set defines INT-297's
+#: committed content baseline, and a baseline whose *field set* moved is a
+#: baseline that no longer compares the same thing.
+SPOKEN_SCALAR_FIELDS = ("confirm_tr", "action_tr", "ask_one_tr")
+SPOKEN_SEQUENCE_FIELDS = ("do_nots_tr",)
+SPOKEN_FIELDS = (*SPOKEN_SCALAR_FIELDS, *SPOKEN_SEQUENCE_FIELDS)
+
 #: ``allow_paraphrase`` travels with them. The acceptance names it in the same
 #: breath — *"``allow_paraphrase`` is per locale"* — because a permission is
 #: about a language: it is granted for Turkish, whose register and reading level
@@ -72,13 +95,19 @@ SEQUENCE_FIELDS = ("choices_tr",)
 #: baseline, and a boolean is not a string a patient hears.
 FLAG_FIELDS = ("allow_paraphrase",)
 
-SCALAR_FIELDS = (*TEXT_SCALAR_FIELDS, *FLAG_FIELDS)
+SCALAR_FIELDS = (*TEXT_SCALAR_FIELDS, *FLAG_FIELDS, *SPOKEN_SCALAR_FIELDS)
 
-#: The five text fields, and nothing else. A field absent from here is a field
-#: whose Turkish the migration must have left exactly as it found it.
+#: INT-297's five text fields, and nothing else. A field absent from here is a
+#: field whose Turkish *that* migration must have left exactly as it found it,
+#: which is what ``int297_tr_content_baseline.json`` is a baseline of.
 MIGRATED_FIELDS = (*TEXT_SCALAR_FIELDS, *SEQUENCE_FIELDS)
 
-_REWRITTEN_FIELDS = (*SCALAR_FIELDS, *SEQUENCE_FIELDS)
+#: Every locale-keyed field in the DSL, whichever issue moved it. This is what
+#: the rewrite acts on; the two per-issue tuples above exist for the two
+#: baselines, which have to keep comparing what they were taken over.
+ALL_LOCALE_FIELDS = (*MIGRATED_FIELDS, *SPOKEN_FIELDS)
+
+_REWRITTEN_FIELDS = (*SCALAR_FIELDS, *SEQUENCE_FIELDS, *SPOKEN_SEQUENCE_FIELDS)
 
 _SKIP_KINDS = frozenset({"text_mirror"})
 
@@ -89,7 +118,9 @@ _SCALAR_LINE = re.compile(
     r"^(?P<indent>[ ]*)(?P<key>" + "|".join(SCALAR_FIELDS) + r"):(?P<rest>|[ ].*)$"
 )
 _SEQUENCE_LINE = re.compile(
-    r"^(?P<indent>[ ]*)(?P<key>" + "|".join(SEQUENCE_FIELDS) + r"):(?P<rest>.*)$"
+    r"^(?P<indent>[ ]*)(?P<key>"
+    + "|".join((*SEQUENCE_FIELDS, *SPOKEN_SEQUENCE_FIELDS))
+    + r"):(?P<rest>.*)$"
 )
 
 

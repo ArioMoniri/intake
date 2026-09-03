@@ -31,19 +31,19 @@ ACTION = {
     "REMOTE": {
         "primary": "CALL_112",
         "show_112": True,
-        "action_tr": "Hemen yardım isteyin.",
-        "do_nots_tr": ("Yalnız kalmayın.",),
+        "action_tr": {"tr": "Hemen yardım isteyin."},
+        "do_nots_tr": {"tr": ("Yalnız kalmayın.",)},
         "why_tr": {"tr": "Bu bir sentetik test metnidir."},
     },
     "ON_SITE": {
         "primary": "GO_TO_IN_HOUSE_ACIL",
         "show_112": False,
         "notify_staff_immediate": True,
-        "action_tr": "Görevlilere haber verin ve bekleyin.",
+        "action_tr": {"tr": "Görevlilere haber verin ve bekleyin."},
         "why_tr": {"tr": "Bu bir sentetik test metnidir."},
     },
     "UNKNOWN": {
-        "ask_one_tr": "Şu anda hastanede misiniz?",
+        "ask_one_tr": {"tr": "Şu anda hastanede misiniz?"},
         "on_yes": "ON_SITE",
         "on_no": "REMOTE",
         "on_no_answer": "REMOTE",

@@ -390,7 +390,7 @@ def _location(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
         "primary": "GO_TO_IN_HOUSE_ACIL",
         "show_112": False,
-        "action_tr": "Görevlilere haber verin ve bekleyin.",
+        "action_tr": {"tr": "Görevlilere haber verin ve bekleyin."},
         "notify_staff_immediate": True,
     }
     base.update(overrides)
@@ -420,7 +420,7 @@ def _rule_payload(**overrides: object) -> dict[str, object]:
             "REMOTE": _location(primary="CALL_112", show_112=True, notify_staff_immediate=False),
             "ON_SITE": _location(),
             "UNKNOWN": {
-                "ask_one_tr": "Şu anda hastanede misiniz?",
+                "ask_one_tr": {"tr": "Şu anda hastanede misiniz?"},
                 "on_yes": "ON_SITE",
                 "on_no": "REMOTE",
                 "on_no_answer": "REMOTE",
@@ -1130,7 +1130,7 @@ def test_the_on_site_action_has_no_112_carrier_of_any_kind() -> None:
         primary="GO_TO_IN_HOUSE_ACIL",
         secondary="NOTIFY_STAFF",
         numbers=[183],
-        do_nots_tr=["Poliklinik sırasında beklemeyin."],
+        do_nots_tr={"tr": ["Poliklinik sırasında beklemeyin."]},
         why_tr={TR: "Acil serviste durumunuz girişte değerlendirilir."},
     )
     rule = _validated(payload)

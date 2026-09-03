@@ -148,7 +148,7 @@ def _protocol() -> ResolvedProtocol:
                     required=True,
                     must_ask=True,
                     ask_tr={"tr": "Sentetik belirtiniz var mı?"},
-                    confirm_tr="Sentetik belirti hâlâ var, doğru mu?",
+                    confirm_tr={"tr": "Sentetik belirti hâlâ var, doğru mu?"},
                     follow_up_tr={"tr": "Sentetik belirti takip sorusu."},
                 ),
             ),

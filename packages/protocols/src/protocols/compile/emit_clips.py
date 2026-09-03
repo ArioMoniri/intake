@@ -113,7 +113,12 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
             choices = (
                 entry_for(slot.slot.choices_tr, locale) if slot.slot.choices_tr is not None else ()
             )
-            for text in (slot.slot.confirm_tr, follow_up, *choices):
+            confirm = (
+                entry_for(slot.slot.confirm_tr, locale)
+                if slot.slot.confirm_tr is not None
+                else None
+            )
+            for text in (confirm, follow_up, *choices):
                 if text is not None:
                     yield SpeakableText(
                         subject=slot.fhir_link_id, text=text, scripted=scripted, clipped=clipped
@@ -137,12 +142,24 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
         if action is None:
             continue
         for location in (action.remote, action.on_site):
+            # INT-314: the action half of the script is per locale too, so each
+            # of these is the locale's own entry rather than the Turkish one.
+            # ``entry_for`` raises instead of falling back, which is what makes
+            # a missing entry a compile refusal and not a Turkish clip served
+            # under another language's clip id.
             why = entry_for(location.why_tr, locale) if location.why_tr is not None else None
-            for text in (location.action_tr, why, *location.do_nots_tr):
+            action_text = (
+                entry_for(location.action_tr, locale) if location.action_tr is not None else None
+            )
+            do_nots = entry_for(location.do_nots_tr, locale) if location.do_nots_tr else ()
+            for text in (action_text, why, *do_nots):
                 if text is not None:
                     yield SpeakableText(subject=rule.id, text=text, scripted=True, clipped=True)
         yield SpeakableText(
-            subject=rule.id, text=action.unknown.ask_one_tr, scripted=True, clipped=True
+            subject=rule.id,
+            text=entry_for(action.unknown.ask_one_tr, locale),
+            scripted=True,
+            clipped=True,
         )
 
 

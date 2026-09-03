@@ -31,6 +31,7 @@ from protocols.locale_text import (
     LocaleChoices,
     LocaleCode,
     LocaleFlag,
+    LocaleList,
     LocaleText,
 )
 from protocols.types import (
@@ -175,8 +176,11 @@ class Slot(FrozenModel):
         description="Spoken question per locale, ``tr`` required (files/04 §1 "
         "``ask_tr``; INT-297).",
     )
-    confirm_tr: TrText | None = Field(
-        default=None, description="Spoken Turkish confirm text (files/04 §1 ``confirm_tr``)."
+    confirm_tr: LocaleText | None = Field(
+        default=None,
+        description="Spoken confirm text per locale, ``tr`` required (files/04 §1 "
+        "``confirm_tr``; INT-314). Spoken, so invariant 10 applies to it in "
+        "whatever language it is spoken in.",
     )
     follow_up_tr: LocaleText | None = Field(
         default=None,
@@ -371,19 +375,27 @@ class LocationAction(FrozenModel):
         description="Whether the 112 affordance is shown; never under ON_SITE "
         "(files/04 §8.2 on_site_action_never_offers_112)."
     )
-    action_tr: TrText | None = Field(
+    action_tr: LocaleText | None = Field(
         default=None,
-        description="Patient-facing Turkish, action first (files/protocols/"
-        "base.life_threat.yaml action_tr; <= B1 Turkish per files/04 header).",
+        description="Patient-facing action script per locale, action first, ``tr`` "
+        "required (files/protocols/base.life_threat.yaml action_tr; <= B1 Turkish "
+        "per files/04 header; INT-314). This is the field CLAUDE.md invariant 10's "
+        "*red-flag action scripts are spoken verbatim* clause is about: before "
+        "INT-314 the question half of a RED script was per locale and the action "
+        "half was not, so the clause held for half a rule.",
     )
     action_tr_ref: str | None = Field(
         default=None,
         description="Reference into docs/legal/strings.yaml for PolicyGuard-owned "
         "text (files/protocols/base.life_threat.yaml exemplar 4 action_tr_ref).",
     )
-    do_nots_tr: tuple[TrText, ...] = Field(
-        default=(),
-        description="Explicit do-not list (files/04 §8.1 rule 6 do_nots_tr).",
+    do_nots_tr: LocaleList = Field(
+        default_factory=dict,
+        description="Explicit do-not list per locale (files/04 §8.1 rule 6 "
+        "do_nots_tr; INT-314). An empty map is no do-nots in any language — the "
+        "pre-INT-314 empty tuple — and constrains no locale; ``{tr: []}`` is an "
+        "author saying this branch has none in Turkish, and does. Every locale "
+        "present carries the same number of instructions in the same order.",
     )
     why_tr: LocaleText | None = Field(
         default=None,
@@ -450,8 +462,12 @@ class UnknownAction(FrozenModel):
     never a guess (files/04 §8.1 rule 7; files/04 §8.2
     unknown_location_asks_exactly_one_question)."""
 
-    ask_one_tr: TrText = Field(
-        description="The single disambiguation question (files/04 §8.1 rule 7)."
+    ask_one_tr: LocaleText = Field(
+        description="The single disambiguation question per locale, ``tr`` required "
+        "(files/04 §8.1 rule 7; INT-314). The answer picks ON_SITE or REMOTE, so "
+        "the one-question gate in protocols.compile.resolve runs against EVERY "
+        "locale's entry: a language in which this asked two questions would be a "
+        "language deciding which action resolves (CLAUDE.md invariant 21)."
     )
     on_yes: Literal["ON_SITE", "REMOTE"] = Field(
         description="Branch taken on yes (files/protocols/base.life_threat.yaml)."

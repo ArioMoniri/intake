@@ -169,7 +169,15 @@ def _red_script_lines() -> tuple[tuple[str, ...], tuple[str, ...]]:
         for block in action.values():
             if not isinstance(block, dict):
                 continue
-            lines = [block.get("action_tr"), *(block.get("do_nots_tr") or [])]
+            # INT-314: both fields are locale maps now, so the Turkish is the
+            # ``tr`` entry rather than the field. Read with an explicit key and
+            # not a fallback: a corpus that silently found nothing would make
+            # the RED-register controls below assert nothing, which is what the
+            # AssertionError at the end of this function exists to prevent.
+            lines = [
+                (block.get("action_tr") or {}).get("tr"),
+                *((block.get("do_nots_tr") or {}).get("tr") or []),
+            ]
             for line in lines:
                 if not isinstance(line, str):
                     continue

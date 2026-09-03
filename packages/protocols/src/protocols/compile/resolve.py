@@ -33,10 +33,10 @@ from protocols.bindings import OperationalTemplate, fhir_link_id
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
-from protocols.dsl import Instrument, RedFlagRule, Slot, VoiceSettings
+from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
-from protocols.locale_text import DEFAULT_LOCALE, LocaleCode, entry_for, safe_code
+from protocols.locale_text import DEFAULT_LOCALE, LocaleCode, safe_code
 from protocols.ops import (
     DENY_PREFIXES,
     AddRuleOp,
@@ -59,6 +59,7 @@ __all__ = [
     "ResolvedSection",
     "ResolvedSlot",
     "resolve_protocol",
+    "unknown_question_refusals",
 ]
 
 _LAYER_RANK: Mapping[PackLayer, int] = {layer: rank for rank, layer in enumerate(PackLayer)}
@@ -71,11 +72,11 @@ _MONOTONICITY_FINDINGS = MONOTONICITY_FINDINGS
 _PARAPHRASE_FINDINGS = frozenset({FindingCode.INSTRUMENT_PARAPHRASE})
 _SERVABLE_MATURITY = frozenset({Maturity.L1, Maturity.L2, Maturity.L3})
 
-# One text-carrying field per slot that override_text may address. Two of the
-# three are locale maps since INT-297; ``confirm_tr`` is not, so the op's map is
-# projected to the locale being resolved before it is written there.
+# One text-carrying field per slot that override_text may address. All three
+# are locale maps: ``ask_tr`` and ``follow_up_tr`` since INT-297, ``confirm_tr``
+# since INT-314 — so the op's map is written whole and no field needs projecting
+# to the locale being resolved first.
 _TEXT_FIELDS = frozenset({"ask_tr", "confirm_tr", "follow_up_tr"})
-_LOCALE_MAP_TEXT_FIELDS = frozenset({"ask_tr", "follow_up_tr"})
 
 
 class ResolvedSlot(FrozenModel):
@@ -362,16 +363,41 @@ def _red_axis_refusals(rule: RedFlagRule) -> list[Refusal]:
                     "(files/02 §5.3; files/04 §8.2)",
                 )
             )
-    if _question_count(action.unknown.ask_one_tr) != 1:
-        refusals.append(
-            _refusal(
-                RefusalCode.UNKNOWN_NOT_ONE_QUESTION,
-                rule.id,
-                "the UNKNOWN branch asks exactly ONE question, then branches — never "
-                f"two, never zero (files/04 §8.2): {action.unknown.ask_one_tr!r}",
-            )
-        )
+    refusals.extend(unknown_question_refusals(rule.id, action.unknown))
     return refusals
+
+
+def unknown_question_refusals(rule_id: str, unknown: UnknownAction) -> list[Refusal]:
+    """files/04 §8.2 ``unknown_location_asks_exactly_one_question``, per locale.
+
+    INT-314 made ``ask_one_tr`` a locale map, and this gate is the one place a
+    locale could otherwise have reached across CLAUDE.md invariant 21's third
+    axis. The answer to this question picks the ON_SITE or the REMOTE branch,
+    so a language in which it asked two questions in one breath — files/04
+    §8.2's *"Şu anda hastanede misiniz, yanınızda biri var mı?"* — would be a
+    language in which nobody knows which one the patient answered, and
+    therefore a language deciding which action resolves. Checking only ``tr``
+    would have left that open the moment a second locale is registered.
+
+    What this does *not* claim: :func:`_question_count` counts question marks,
+    which is language-neutral, and then recognises a comma-joined second
+    interrogative by its Turkish suffix, which is Turkish morphology and finds
+    nothing in a language it was not written for. Running it per locale extends
+    the mark count to every language and takes nothing away from Turkish;
+    another language's interrogative detector belongs with registering that
+    language at all (HB-O5, HB-C19).
+    """
+    return [
+        _refusal(
+            RefusalCode.UNKNOWN_NOT_ONE_QUESTION,
+            rule_id,
+            "the UNKNOWN branch asks exactly ONE question, then branches — never "
+            f"two, never zero (files/04 §8.2), and in every locale it carries "
+            f"({safe_code(code)}): {text!r}",
+        )
+        for code, text in sorted(unknown.ask_one_tr.items())
+        if _question_count(text) != 1
+    ]
 
 
 def _question_count(text: str) -> int:
@@ -575,18 +601,7 @@ def _apply_one(
                 f"(files/12 §3.1-3.2), not {pointer!r}"
             )
         field = parts[4]
-        if field in _LOCALE_MAP_TEXT_FIELDS:
-            replacement: object = dict(op.text_tr)
-        else:
-            # A field the migration did not reach still holds one string, so the
-            # op's map is projected onto the locale being resolved rather than
-            # written whole. A pack carrying such a field is clamped to ``tr`` by
-            # protocols.pack_locale, so the entry always exists.
-            try:
-                replacement = entry_for(op.text_tr, locale)
-            except LookupError as exc:
-                return f"override_text carries no entry for the resolved locale: {exc}"
-        section.slots[key] = slot.model_copy(update={field: replacement})
+        section.slots[key] = slot.model_copy(update={field: dict(op.text_tr)})
         return None
     if isinstance(op, SetVoiceOp):
         return "set_voice addresses a section in this compiler (files/12 §3.1)"

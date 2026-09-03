@@ -54,7 +54,12 @@ from protocols.cli import load_registry
 from protocols.compile import CompiledBundle, LifeThreatSet, compile_bundle
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
-from protocols.migrate.locale_maps import MIGRATED_FIELDS, migrate_tree, unmigrate_document
+from protocols.migrate.locale_maps import (
+    MIGRATED_FIELDS,
+    SPOKEN_FIELDS,
+    migrate_tree,
+    unmigrate_document,
+)
 from protocols.migrate.tr_baseline import authored_baseline
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -224,3 +229,121 @@ def test_the_committed_tree_still_loads() -> None:
     """
     registry = load_registry(REPO_ROOT / "packages" / "protocols")
     assert len(registry) >= 90
+
+
+# =============================================================================
+# INT-314 — the same discipline, repeated rather than assumed, for the four
+# SPOKEN fields INT-297 left as single strings.
+#
+# ``confirm_tr``, ``action_tr``, ``do_nots_tr`` and ``ask_one_tr`` are the
+# action half of a red-flag script. *A refactor that changes one Turkish RED
+# sentence is the most dangerous edit in this repository*, so the check is not
+# a re-read of the diff: it is the same shape-agnostic comparator INT-297
+# committed, pointed at the four fields, over a baseline taken from the tree
+# BEFORE the schema moved — authored bytes and ``expand_tr`` expansion both,
+# because the expansion is what actually reaches TTS (invariant 22).
+# =============================================================================
+
+SPOKEN_BASELINE = FIXTURES / "int314_tr_content_baseline.json"
+
+#: Wider than INT-297's four trees: the four spoken fields also live in the
+#: compiler goldens and the simulator's fixture tree, and a baseline that
+#: skipped those would leave the RED scripts they carry unchecked.
+SPOKEN_TREES = (
+    *BASELINE_TREES,
+    REPO_ROOT / "tests" / "protocols" / "goldens",
+    REPO_ROOT / "tests" / "sim" / "fixtures",
+)
+
+
+def test_every_spoken_turkish_string_in_the_tree_is_byte_identical_to_its_baseline() -> None:
+    """The headline for INT-314, and the same one INT-297 wrote.
+
+    Every ``confirm_tr``, ``action_tr``, ``do_nots_tr`` and ``ask_one_tr`` in
+    every YAML document in the tree, authored bytes beside expanded bytes,
+    against a baseline generated from the pre-migration tree by this same
+    function reading the raw YAML. Not a diff somebody read.
+    """
+    baseline = json.loads(SPOKEN_BASELINE.read_text(encoding="utf-8"))
+    current: dict[str, object] = {}
+    for tree in SPOKEN_TREES:
+        current.update(authored_baseline(tree, root=REPO_ROOT, fields=SPOKEN_FIELDS))
+    assert dict(sorted(current.items())) == baseline
+
+
+def test_the_baseline_actually_covers_the_red_flag_action_scripts() -> None:
+    """A comparator over an empty set passes vacuously.
+
+    So the baseline's own coverage is asserted: the life-threat sibling set is
+    in it, every one of the four fields appears, and the count is pinned. A
+    baseline that silently stopped finding ``action_tr`` would otherwise be a
+    green test proving nothing.
+    """
+    baseline: dict[str, dict[str, object]] = json.loads(SPOKEN_BASELINE.read_text(encoding="utf-8"))
+    assert "files/protocols/base.life_threat.yaml" in baseline
+    pointers = [pointer for entries in baseline.values() for pointer in entries]
+    for field in SPOKEN_FIELDS:
+        assert any(pointer.endswith(field) for pointer in pointers), field
+    assert len(pointers) == 58
+
+
+def test_the_served_bundle_is_unchanged_by_the_spoken_field_migration(
+    registry: PackRegistry, life_threat: LifeThreatSet, template: OperationalTemplate
+) -> None:
+    """The RED rows of the compiled manifest, against INT-297's own baseline.
+
+    ``int297_pre_migration_bundle.json`` was taken before *either* migration, so
+    comparing to it now is the stronger claim: the spoken content of every
+    red-flag row is the same bytes it was two schema changes ago. The rows are
+    filtered to the rule subjects because those are the rows this issue moves —
+    ``test_the_served_bundle_for_tr_is_byte_identical`` above still covers all
+    of them, unchanged, and its passing is half this test's point.
+    """
+    baseline = json.loads(BUNDLE_BASELINE.read_text(encoding="utf-8"))
+    bundle = _bundle(registry, life_threat, template)
+    red = [
+        {
+            "subject": row.subject,
+            "text_tr": row.text_tr,
+            "scripted": row.scripted,
+            "text_hash": row.entry.text_hash,
+        }
+        for row in bundle.clip_manifest
+        if row.subject.startswith("rf.")
+    ]
+    assert red == [row for row in baseline["spoken"] if str(row["subject"]).startswith("rf.")]
+    assert red
+
+
+def test_the_tree_carries_no_unmigrated_spoken_field_left() -> None:
+    """Every one of the four, in every document, is a map. Including the
+    goldens and the simulator fixtures, which INT-297's sweep did not reach."""
+    unmigrated: list[str] = []
+    for tree in SPOKEN_TREES:
+        for path in sorted(tree.rglob("*.yaml")):
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict) or raw.get("kind") == "text_mirror":
+                continue
+            unmigrated.extend(
+                f"{path}:{pointer}"
+                for pointer, value in _walk_fields(raw, (), SPOKEN_FIELDS)
+                if not isinstance(value, dict)
+            )
+    assert unmigrated == []
+
+
+def _walk_fields(
+    node: object, path: tuple[str, ...], fields: tuple[str, ...]
+) -> list[tuple[str, object]]:
+    found: list[tuple[str, object]] = []
+    if isinstance(node, dict):
+        for key, child in node.items():
+            here = (*path, str(key))
+            if key in fields:
+                found.append(("/".join(here), child))
+            else:
+                found.extend(_walk_fields(child, here, fields))
+    elif isinstance(node, list):
+        for index, child in enumerate(node):
+            found.extend(_walk_fields(child, (*path, str(index)), fields))
+    return found
