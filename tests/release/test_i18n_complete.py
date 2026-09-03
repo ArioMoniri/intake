@@ -52,11 +52,12 @@ from intake_platform.locale import (
     registration,
 )
 from intake_voice_runtime.profiles import VoiceProfile
+from intake_voice_runtime.talker.guard_lexicons.tr import B1_MAX_WORDS_PER_SENTENCE
 from intake_voice_runtime.talker.policy_guard import (
-    B1_MAX_WORDS_PER_SENTENCE,
     FormOfAddress,
     PolicyGuard,
     Violation,
+    policy_guard_for,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -305,7 +306,9 @@ def en() -> dict[str, str]:
 
 @pytest.fixture(scope="module")
 def guard() -> PolicyGuard:
-    return PolicyGuard(profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SIZ)
+    return policy_guard_for(
+        locale="tr", profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SIZ
+    )
 
 
 # --- the shipped set -------------------------------------------------------------------

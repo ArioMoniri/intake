@@ -3618,7 +3618,8 @@
   - area:engine
   - area:safety
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-298.md
   acceptance:
   - 'the guard is constructed per locale and cannot be constructed without a
     signed lexicon for it: invariant 2''s content - the diagnosis, treatment and
