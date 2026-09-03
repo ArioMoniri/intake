@@ -656,3 +656,47 @@ one.
   screenshot could check. They are pack-layer functions now, which is what lets
   "resumes at the first UNANSWERED question, not the next one in order" be a
   test rather than a claim.
+
+## The share centre (INT-139, 2026-09-03)
+
+One screen under the visit detail, built entirely from the pass-5 settings
+anatomy — no new primitive, no new colour, no new type role. Recorded here
+because the decisions are design decisions, not layout ones.
+
+- **The stop control is offered on every grant the patient has not already
+  stopped** — expired and used-up ones included. It reads as redundant and it
+  is not: if the server's verdict or this device's reading of it were ever
+  wrong, stopping the share is still the patient's to do, and the route is
+  idempotent so a redundant tap costs nothing. The fail-safe direction of a
+  control is "present".
+- **Nothing on the screen is coloured for danger, and the stop control is a
+  plain row.** Same rule as Verileriniz: 02 §5.3 keeps the emergency pair for
+  the RED route, and the LABEL carries the weight. Two taps, the first only
+  changing the word, and no `Alert` — an alert's text cannot live in the
+  catalogue and its buttons cannot carry a hint.
+- **An unreachable read is its own state, not an empty list.** "Nobody has
+  access to your record" and "we could not ask" are different sentences, and
+  the first one printed when the second is true is the only lie this screen
+  could tell that a patient would act on. So `unreachable` renders its own
+  footer and the list stays empty rather than reassuring.
+- **The log's promise is made out loud.** The group footer says the log
+  carries a role and not a name. Without it, a patient reading "Kayıt
+  görüntülendi · Hekim" cannot tell whether a name was withheld from them or
+  never existed — and those are very different facts about a system holding
+  their record.
+- **The one formatter prints an INSTANT, never a bare day.** INT-150 anchors
+  expiry to the start of the visit date in Türkiye plus 72 h, so a grant ends
+  at local midnight and the UTC instant representing that falls on the
+  previous date. The earlier day understates the access the patient still has;
+  the later one overstates it. The instant states neither. This is invariant
+  22 in its representation-boundary sense rather than its grouping sense.
+- **No numeral except a date, and no duration anywhere.** The view budget is
+  spoken as a state ("Görüntüleme hakkı bitti") rather than printed as a
+  counter — INT-140's rule, applied. How fast a revocation takes effect is a
+  measurement in docs/evidence/, never a promise in patient copy (invariant
+  20); what the copy promises is the mechanism, that a stopped share does not
+  work at the next attempt to open it. A CI text gate over every `shares.*`
+  string fails on a duration appearing in either catalogue.
+- **Every row is asserted across `APP_STEPS`, not at 1.0** — INT-136's
+  measurement and INT-295's finding, taken as standing practice now rather
+  than as a thing each screen rediscovers.
