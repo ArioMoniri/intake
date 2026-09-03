@@ -1102,7 +1102,22 @@
   title: "Session budgets + cost metering per component/profile"
   depends_on: [INT-092]
   labels: [area:voice]
+  # STAYS todo, deliberately (3 Sep 2026). The mechanism is built, wired, tested at
+  # 100 % branch and fails closed: intake_voice_runtime.metering meters all three axes
+  # per session and per profile, decides which KIND each budget is (cap for extraction
+  # tokens, target for TTS chars, accounting for audio seconds), and refuses the
+  # elective model lane when no cap is declared - never the obligatory one, because a
+  # patient's answer that is never extracted is a red-flag phrase nobody evaluated.
+  # One acceptance line of three is NOT met: "cost.per_session emitted". A cost is a
+  # quantity times a price; the quantities are metered and there is no price. Invariant
+  # 19 leaves no vendor list price, and HB-I4/HB-I5 leave no GPU-hour rate to amortise,
+  # so PriceBook ships empty, priced_cost raises rather than returning a zero (zero is
+  # a claim that a session was free), no Gauge is declared and the catalogue row stays
+  # planned. The per-session limits are missing for the same reason - files/10 Sec 5
+  # names the control and states no number. Both asks are in docs/backlog/blockers.md;
+  # the HUMAN_BLOCKERS.md id is for the coordinator to allocate.
   status: todo
+  evidence: docs/evidence/INT-101.md
   acceptance:
     - "token/char/audio-second budgets enforced; cost.per_session emitted; exhaustion degrades gracefully"
   tests: [tests/voice/test_budgets.py]
@@ -1113,10 +1128,39 @@
   title: "Adversarial suite RT-09..14 in make safety + nightly LLM red-team job"
   depends_on: [INT-094, INT-083]
   labels: [area:safety, risk:security]
-  status: todo
+  # STAYS OPEN on purpose, 3 Sep 2026. Six of the seven acceptance clauses are
+  # delivered and evidenced: injection by speech, hidden document text, triage
+  # manipulation in both directions, proxy impersonation, vendor failover, and a
+  # nightly job whose unreachability from check/check-py/safety is asserted over
+  # the Makefile's own prerequisite closure. Each family carries the near-miss
+  # negative control that must pass clean. What is NOT delivered is "spoken TCKN
+  # masking": both pattern tiers (intake_platform.deid and .redaction) are
+  # \b[1-9]\d{10}\b, a contiguous eleven-digit run, and an identifier said aloud
+  # arrives as digit groups or as Turkish digit words. The suite asserts that
+  # fact rather than pre-normalising its own input, and asserts the two controls
+  # that hold the line today (deidentify_for_egress fails closed entirely
+  # without the NER tier; LlmSpan has no field a transcript could occupy). The
+  # residual is a fully configured dev tier. Closing it is a pattern change in
+  # packages/intake_platform plus an ASR-side digit-run normalisation in the
+  # voice runtime — two packages and two acceptance surfaces, so a second issue
+  # rather than a second half of this PR. No id minted here; the reproduction is
+  # committed as SPOKEN_TCKN_FORMS in tests/safety/adversarial_corpus.py.
+  #
+  # CLOSED 3 Sep 2026 by INT-312 (PR #462). The seventh clause is delivered: 8 of
+  # 8 spoken forms masked, 0 survived, and the matched checksum-FAILING control
+  # survives untouched 8 of 8 - so it is still a TCKN redactor and not a number
+  # shredder. RT-13 now carries no `gaps`, and this issue's own tests pass on
+  # main (test_adversarial_rt12_14.py + test_spoken_identifiers.py, 69 passed).
+  # Note what INT-312 did NOT do: the ASR-side digit-run normalisation this
+  # comment predicted was refused, because invariant 9 keeps identifier handling
+  # off the speech critical path. The redaction tier alone closes the clause,
+  # which makes the prediction above wrong in a useful direction and is recorded
+  # rather than quietly deleted.
+  status: done
+  evidence: docs/evidence/INT-102.md
   acceptance:
     - "injection by speech and hidden-PDF text, triage manipulation, proxy impersonation, spoken TCKN masking, vendor failover — all pass; nightly job budgeted"
-  tests: [tests/safety/test_adversarial_rt09_14.py]
+  tests: [tests/safety/test_adversarial_rt09_14.py, tests/safety/test_adversarial_rt12_14.py, tests/safety/test_nightly_red_team.py]
   sec_row: "llm-boundary"
 - id: INT-103
   epic: E05-voice
@@ -1340,11 +1384,46 @@
   title: "e-Nabız export/PDF import parser + MHRS SMS screenshot OCR"
   depends_on: [INT-121]
   labels: [area:records]
+  # `status: todo` on the INT-121 / INT-136 / INT-140 precedent: the third
+  # acceptance clause is delivered and the first two are delivered as far as a
+  # blocker filed against THIS issue permits, so the issue is not waiting as a
+  # whole and `awaiting-human` would make INT-123/124 Ready against clauses
+  # that are not met (LOOP.md step 1). The asks are in docs/backlog/blockers.md.
+  #
+  # "no scraping of e-Nabiz ... legal note enforced" is MET and mechanically
+  # enforced: the egress allow-list names no Ministry host (so default-deny
+  # already refuses one), no file under packages/services/apps/infra/scripts
+  # names one, and no module on this path can even represent a read — none
+  # imports an HTTP client and no entry point takes a locator. There is no
+  # e-Nabiz read path to build: KSVY m.6(2), as amended by RG 33096, is a
+  # closed list of PHYSICIAN access tiers with no category for an application
+  # (files/03 §12; 00_STATE §2).
+  #
+  # The other two clauses ship the parser and are bounded by HB-A1, which
+  # names "INT-122's acceptance" in those words as what it blocks: whether the
+  # e-Nabiz PDF has a text layer at all is UNVERIFIED and obtainable only from
+  # an e-Devlet citizen login, with the standing instruction "Do not assume a
+  # text layer". So the table parser reads TextRegion[] and is agnostic to
+  # which seam produced them, and both seams (NoLayout, NoOcr) are fail-closed
+  # behind the open engine-and-sandbox ADR (files/10 §4). No e-Nabiz export
+  # and no MHRS SMS exists in this repository to validate against, and one may
+  # not be committed (files/06 §5), so no figure is reported anywhere.
+  #
+  # Reopen against HB-A1; see docs/evidence/INT-122.md "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-122.md
   acceptance:
     - "patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
   tests: [tests/records/test_enabiz_pdf.py]
-  legal: "KSVY-9,KSVY-10"
+  # Corrected from "KSVY-9,KSVY-10". Both citations were wrong and one is
+  # repealed: m.10 was `Saglik verilerine avukatlarin erisimi` (LAWYERS'
+  # access) and RG 33096 (03.12.2025) MADDE 9 repealed it outright, and m.9 is
+  # `hasta yakinlarinin erisimi` (RELATIVES' access). The e-Nabiz regime is
+  # m.6 and patient rectification is m.13. files/06 §1 corrected its own row
+  # on 25 Aug 2026 and already lists INT-122 under KSVY-5/6/7/13/16;
+  # 00_STATE §2 marks the remaining citations "Fix before any legal review".
+  # This row is the last place the repealed article was still cited.
+  legal: "KSVY-5,KSVY-6"
   sec_row: "records"
 - id: INT-123
   epic: E07-records
@@ -1529,7 +1608,35 @@
   title: "Records screens: upload, processing, confirm cards, provenance viewer"
   depends_on: [INT-121, INT-130]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. `status: todo` rather than
+  # `awaiting-human` on the INT-121 / INT-136 / INT-140 precedent: nothing here
+  # waits on a named human, so marking it awaiting-human would misreport the
+  # ask and would make dependents Ready against clauses that are not met.
+  #
+  # ONE of the four clauses is delivered end to end: "camera+file upload".
+  # expo-image-picker's capture joins the INT-229 file path — one allow-list
+  # pre-check, one digest, one ingest — and the JPEG metadata container is
+  # stripped before the bytes are hashed, because expo-image-picker's Android
+  # exporter copies TAG_GPS_* into the file it hands over and location is a
+  # category of personal data nothing in this repo has declared.
+  #
+  # The other THREE are built as a mechanism behind a gate that fails closed,
+  # because the thing they render does not exist: NOTHING PUBLISHES A DOCUMENT
+  # EXTRACTION. There is no API route serving UnconfirmedRecordItems and none
+  # accepting a confirmation, so `noExtractionFeed` is the only production
+  # ExtractionSource, it answers "not read" for every document, and it
+  # acknowledges no decision — which, with the no-optimistic-write rule, means
+  # no card can ever show as confirmed. The cards, the two verdicts, the
+  # provenance locator and the parser's invariant-1 refusal are all real and
+  # tested against a stub source.
+  #   - the PRODUCER is INT-124 (lab-report -> JSON via the extraction LLM, P2);
+  #   - the TRANSPORT (a route that publishes confirm cards and takes a verdict)
+  #     is owned by NO issue in this file, and no id was minted for it here.
+  #
+  # Reopen when that transport exists; see docs/evidence/INT-138.md
+  # "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-138.md
   acceptance:
     - "camera+file upload; AV/processing states; confirm-before-use; provenance boxes"
   tests: [apps/mobile/e2e/records.spec.ts]
@@ -1716,10 +1823,11 @@
   title: "Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS"
   depends_on: [INT-018, INT-035]
   labels: [area:connectors, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-160.md
   acceptance:
     - "per-tenant endpoint allow-list; push receipts stored; replay-safe"
-  tests: [tests/connectors/test_framework.py]
+  tests: [tests/connectors/test_framework.py, tests/connectors/test_credentials_and_tls.py]
   legal: "KVKK-8/9"
   sec_row: "connectors"
 - id: INT-161
@@ -2216,7 +2324,20 @@
   title: "Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives"
   depends_on: [INT-023, INT-016]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-180.md
+  # NOTE 3 Sep 2026: all three acceptance clauses delivered. The audited-route
+  # list is DERIVED — the router is built from the ADMIN_ROUTES descriptor
+  # table and the tests read the served route set off FastAPI itself, so a
+  # route cannot exist without an audit action. The console appends to the
+  # INT-016 chain through a one-method sink and an AST gate proves it names no
+  # chain-head symbol, so HB-I12's gap is not narrowed. Two fail-closed states
+  # are the delivered state, not gaps: the IP allow-list ships EMPTY (08 §2.3
+  # names no range) and the tenant->deployment map ships EMPTY, so break-glass
+  # refuses every tenant until 08 §2.6's controller/processor question is
+  # answered per tenant (adjacent to HB-L6). The §8.2 tier table is
+  # implemented whole but registers only the actions this issue routes; rows
+  # for surfaces that do not exist would be controls in name only (inv. 17).
   acceptance:
     - "roles per 08 §2; break-glass with reason+approver; role-matrix contract tests for /admin/*"
   tests: [tests/admin/test_rbac_matrix.py]
@@ -3693,7 +3814,8 @@
   labels:
   - area:protocols
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-297.md
   acceptance:
   - '`text_tr`, `ask_tr`, `follow_up_tr`, `choices_tr` and `why_tr` become maps
     keyed by locale, with `tr` required by the schema so no pack can lose its
@@ -3765,7 +3887,7 @@
   - area:engine
   - area:clinical
   - area:i18n
-  status: todo
+  status: done
   acceptance:
   - 'the clinician reads Turkish and the patient may not have spoken it, so a
     line built from a translated answer carries `translated` rather than
@@ -3787,7 +3909,7 @@
     closed: a test walks the enum and asserts the set, so a later locale cannot
     quietly introduce a second translated-ish class'
   tests:
-  - tests/engines/test_note_translated_attribution.py
+  - tests/engine/test_note_translated_attribution.py
   sec_row: "notes"
 - id: INT-300
   epic: E05-voice
@@ -4039,6 +4161,15 @@
   # later than the spec's value - and refused an undated visit outright rather
   # than falling back to an issue-time clock. That approximation is correct and
   # it is still an approximation, so the field it approximates is filed here.
+  #
+  # CORROBORATED from the opposite direction by INT-122, independently: an
+  # appointment TIME read off an MHRS screenshot has nowhere to go, because
+  # VisitCreate.date is an ISO date and the store has no time column. Its
+  # candidate carries the time (dropping it silently leaves a patient unable to
+  # check the one field they remember) and as_visit_fields() carries only what
+  # the API has a field for. Two issues reached this missing field from
+  # different ends - one needing it to compute an expiry, one unable to store
+  # what it read - which is the strongest evidence the field is real.
   title: 'The schema records a visit DATE and the expiry rule needs a visit
     DATETIME'
   depends_on: []
@@ -4227,3 +4358,161 @@
   tests:
   - apps/mobile/e2e/shares.spec.ts
   sec_row: "share-centre"
+- id: INT-313
+  epic: E07-records
+  phase: P0
+  # Reported by INT-138: the confirm cards, the provenance panel and the
+  # extraction reader are all built and all unreachable, because nothing
+  # publishes a document extraction to the app. noExtractionFeed is the only
+  # production ExtractionSource - one, asserted - and it acknowledges no
+  # decision, so under the no-optimistic-write rule no card can ever show as
+  # confirmed. INT-124 owns the producer; the TRANSPORT between it and the
+  # phone is owned by nobody, which is why INT-138 stays todo.
+  title: 'Nothing carries an extraction to the phone: the confirm-card transport
+    is owned by no issue'
+  depends_on:
+  - INT-121
+  - INT-138
+  labels:
+  - area:records
+  - area:api
+  status: todo
+  acceptance:
+  - 'a route publishes extracted items for a document the patient owns, scoped
+    by consent and audited on every read like every other clinical read
+    (invariant 4) - and it carries the SourceBox coordinates the provenance
+    panel renders, because a value without its box is exactly what INT-121
+    refuses to emit'
+  - 'a route accepts a verdict and returns the confirmed item: confirm_record_item
+    takes no `by=` and reads the actor off the closed vocabulary, so the route
+    must not reintroduce a parameter that lets a caller assert who confirmed
+    (invariant 12)'
+  - 'the unit_conflict flag survives the transport intact and is not tidied into
+    a corrected value on the way - the guard exists because a silently converted
+    magnitude is the failure, and a transport that normalises defeats it
+    (invariant 22)'
+  - 'nothing in the payload is instruction-shaped: extracted text crosses the
+    data boundary as data, through the one fence in intake_platform.data_boundary
+    rather than a second implementation of it (invariant 14)'
+  - 'the no-optimistic-write rule holds end to end: a card shows as confirmed
+    only after the server acknowledges the decision, asserted rather than
+    assumed'
+  tests:
+  - tests/records/test_extraction_transport.py
+  sec_row: "records"
+- id: INT-312
+  epic: E01-platform
+  phase: P0
+  # Found by INT-102's adversarial suite, which asserted the gap rather than
+  # pre-normalising its own input to make itself pass. Both redaction tiers -
+  # intake_platform.deid._TCKN and redaction._TCKN_CANDIDATE - are
+  # \b[1-9]\d{10}\b, a CONTIGUOUS eleven-digit run. An identifier said aloud
+  # does not arrive that way. The forms are committed as SPOKEN_TCKN_FORMS in
+  # tests/safety/adversarial_corpus.py; INT-102 stays todo because of this line.
+  title: 'A TCKN said aloud is not masked: the redactors match a contiguous
+    eleven-digit run and speech arrives as groups or as words'
+  depends_on:
+  - INT-102
+  labels:
+  - area:security
+  - area:platform
+  - area:voice
+  status: done
+  evidence: docs/evidence/INT-312.md
+  acceptance:
+  - 'the redactors see what speech actually produces: digit groups (a spaced or
+    hyphenated eleven-digit run), Turkish digit words, and the mixtures a
+    recogniser emits mid-utterance - with the committed SPOKEN_TCKN_FORMS
+    corpus as the input rather than a normalised copy of it'
+  - 'the checksum stays the discriminator, so this remains a TCKN redactor and
+    does not become a number shredder: a checksum-FAILING eleven-digit
+    accession number still survives untouched, which is INT-102''s existing
+    near-miss control and must keep passing unchanged'
+  - 'the normalisation happens where it can see the whole utterance and cannot
+    reach the note: it is a redaction concern, not an ASR feature, and nothing
+    added here may put identifier handling on the speech critical path
+    (invariant 9) or retain audio (invariant 3)'
+  - 'the two controls that hold the line today are not weakened: deidentify_for_egress
+    still fails closed ENTIRELY without the NER tier, and LlmSpan still has no
+    field a transcript could occupy - both asserted before and after'
+  - 'any leak-rate figure lives only in docs/evidence/ with a date and the named
+    corpus, described as a measurement of that corpus on that day (invariant 20)'
+  # The RT-13 cases have always lived in test_adversarial_rt12_14.py, not
+  # rt09_14; the field is corrected to the files that actually carry them.
+  tests:
+  - tests/safety/test_adversarial_rt12_14.py
+  - tests/platform/test_spoken_identifiers.py
+  sec_row: "identifiers"
+- id: INT-314
+  epic: E03-protocols
+  phase: P1
+  # Reported by INT-297, which migrated five `*_tr` fields to per-locale maps and
+  # found four more that are SPOKEN and outside that set: confirm_tr, action_tr,
+  # do_nots_tr, ask_one_tr. So invariant 10's "red-flag action scripts are spoken
+  # verbatim from the locale's own entry" is only partially per-locale today.
+  # It is fail-closed rather than ignored: `selectable_locales` clamps any pack
+  # carrying one of the four to `tr`, and the clamp lifts by itself once they
+  # migrate. `action_tr` is the field that closes it.
+  title: 'Four spoken fields are still Turkish-only, so a red-flag action script
+    cannot yet be per-locale'
+  depends_on:
+  - INT-297
+  labels:
+  - area:protocols
+  - area:i18n
+  - area:safety
+  status: todo
+  acceptance:
+  - '`confirm_tr`, `action_tr`, `do_nots_tr` and `ask_one_tr` become per-locale
+    maps on the same schema as the five INT-297 migrated, with `tr` required, so
+    invariant 10 holds for the WHOLE of a red-flag script rather than for its
+    question half'
+  - 'the byte-identity discipline is repeated, not assumed: the pre- and
+    post-migration trees compile to identical served bundles for `tr`, authored
+    string AND `expand_tr` expansion, using the same comparator INT-297
+    committed - a refactor that changes one Turkish RED sentence is the most
+    dangerous edit in this repository'
+  - 'the `selectable_locales` clamp is REMOVED by this issue rather than left
+    dormant, and a test asserts a pack carrying all four in a second locale is
+    now selectable - a clamp that outlives its reason is a silent restriction
+    nobody can see'
+  - 'invariant 21 is untouched: RED stays route x register x location with no
+    permitted default, and nothing here lets a locale change which action
+    resolves for a location'
+  tests:
+  - tests/protocols/test_locale_maps.py
+  sec_row: "protocol-registry"
+- id: INT-315
+  epic: E13-infra
+  phase: P1
+  # Found by INT-180, and found the honest way: two restore-drill PHI-safety
+  # tests failed on its branch, it was told they might mean a widened guard, and
+  # it established they did not - the cause was a .cache SYMLINK the
+  # coordinator's interruption-recovery saves had committed. Removing the
+  # symlink passes 5/5; restoring it reproduces. But the guard is still wrong.
+  title: 'assert_restore_target_outside_workspace resolves the target and not the
+    workspace, so a symlinked directory INSIDE the repo reads as outside'
+  depends_on: []
+  labels:
+  - area:infra
+  - area:security
+  status: todo
+  acceptance:
+  - 'the workspace side is resolved too: a directory that git can see inside the
+    repository must be refused as a restore target even when it is reached
+    through a symlink whose `Path.resolve()` lands elsewhere - today only the
+    target is resolved, so the comparison is between a real path and a symbolic
+    one and it silently answers "outside"'
+  - 'the case that produced it is the regression test: a symlinked `.cache`
+    directory inside the worktree, which is exactly what this repository''s
+    own fresh-worktree deid-model workflow creates, so the fixture is the real
+    workflow rather than an invented one'
+  - 'the near-miss control passes unchanged: a genuinely external target is
+    still accepted, and a relative path that escapes upward is still refused -
+    a fix that refuses everything would pass the first clause and destroy the
+    drill'
+  - 'no restore ever writes patient data inside the repository, which is what
+    this guard exists for and what the symlink quietly permitted'
+  tests:
+  - tests/infra/test_restore_drill.py
+  sec_row: "backups"

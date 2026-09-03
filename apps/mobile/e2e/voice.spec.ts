@@ -325,18 +325,32 @@ describe("Expo configuration", () => {
     expect(plugins).toContain('"enableMultitaskingCameraAccess":false');
   });
 
-  it("declares the audio-only Android permissions and no camera", () => {
+  it("declares the audio permissions the voice path needs", () => {
     const permissions: string[] = appJson.expo.android.permissions;
     expect(permissions).toContain("android.permission.RECORD_AUDIO");
     expect(permissions).toContain("android.permission.MODIFY_AUDIO_SETTINGS");
     expect(permissions).toContain("android.permission.BLUETOOTH_CONNECT");
-    expect(permissions).not.toContain("android.permission.CAMERA");
   });
 
-  it("the plugin strips camera permissions and background audio", () => {
+  it("keeps the no-video guarantee where it actually lives (INT-138)", () => {
+    // The CAMERA permission left this app's forbidden list when the records
+    // screen gained a still capture (INT-138). The guarantee it stood in for is
+    // unchanged, and this file does not restate it by grepping a Python
+    // literal — `tests/voice/test_room_tokens.py` DECODES a minted JWT and
+    // asserts the grant surface, which is the behaviour rather than the text.
+    // What is asserted here is the half that lives in this app's own config.
+    expect(plugins).toContain('"enableMultitaskingCameraAccess":false');
+    const tokenSuite = read(REPO, "tests", "voice", "test_room_tokens.py");
+    expect(tokenSuite).toContain('assert video["canPublishSources"] == ["microphone"]');
+    expect(tokenSuite).toContain("def test_video_grant_is_exactly_the_minimal_surface");
+  });
+
+  it("the plugin blocks the storage permissions and background audio", () => {
     const plugin = read(MOBILE, "plugins", "withVoiceAudio.js");
-    expect(plugin).toContain("android.permission.CAMERA");
+    expect(plugin).toContain("android.permission.READ_EXTERNAL_STORAGE");
+    expect(plugin).toContain("android.permission.WRITE_EXTERNAL_STORAGE");
     expect(plugin).toContain("FORBIDDEN_PERMISSIONS");
+    expect(plugin).toContain("withBlockedPermissions");
     // "background pauses safely" — declaring background audio would let
     // capture continue behind a backgrounded medical app.
     expect(plugin).toContain("UIBackgroundModes");

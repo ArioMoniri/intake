@@ -24,6 +24,7 @@
 | INT-121 | awaiting-human (no corpus; the harness ships and refuses) | owner, with the DPO/counsel | Which named, dated, licensed set of Turkish documents is the records eval corpus, and on which machine or store does it live — given that a lab report is a patient record and `06 §5` forbids PHI in this repository and in CI, so it may not be committed here? Until you answer, `records_corpus_root()` refuses, `LoincUnitMeasurement` cannot be built without a named corpus and two dates, and no accuracy figure exists anywhere. | HB-A13 (with HB-A10, HB-A2) |
 | INT-121, INT-124 | awaiting-human (unit expectations; the guard ships and reports itself unchecked) | physician of record (**Dr Efe Onganer**) with a clinical biochemist | For which analytes, in which unit, and against which committed Turkish source, should ingestion check a printed unit token — given that `03 §4.9.6`'s own worked examples are two published Turkish handbooks that printed the unit wrong by 1000x, so the document cannot be its own authority? The guard flags and never converts; with no expectation authored it checks nothing, and every analyte it did not check is named in `units_unchecked` rather than passing silently. | HB-C24 |
 | INT-136 | awaiting-human (ordinal anchors; the overlay ships and reports itself not-ready) | physician of record (**Dr Efe Onganer**) | Under `overlay.low_literacy`, which three or four Turkish ordinal anchors stand in for the eleven-point pain score — or is the numeric scale simply not asked of a patient running that overlay, given that files/02 §3 requires severity to be **numeracy-free** and `packages/protocols`' own base layer records that no anchor wording is authored for either end of that scale? | — (no HB row; ids move under concurrent merges, so the coordinator should allocate one) |
+| INT-160 | note (mechanism shipped; registry empty and refusing) | owner + counsel (DPA), `platform_owner` (approval), owner (OpenBao) | Register the first connector destination — which hospital endpoint, under which executed DPA, approved by which recorded tier-3 decision, with the application credential and the mTLS client material already written to OpenBao paths under `connectors/`, and does that hospital's agreement state that it honours an `Idempotency-Key`? Until all five exist `infra/connectors/destinations.yaml` holds zero rows and every push refuses; the fifth has no default, because an undeclared receiver turns an ambiguous outcome into a `needs_human` parking rather than an automatic retry that could duplicate a clinical record. | **HB-A15** (allocated by the coordinator; HB-A5 covers the *adapter* half — what interfaces a given hospital exposes — and this is the destination half) |
 | licensing | note (non-blocking) | owner | Confirm the split "Apache-2.0 for packages/protocols, proprietary for everything else" (07 §4) — bootstrapped that way pending your word. | — |
 
 ## INT-254 — no CODEOWNERS file, so the protocols review requirement has no mechanism
@@ -152,6 +153,115 @@ above. `lowLiteracyReadiness` reports the Detaylı pack as not ready and names
 `numeral_anchored:pain_score` rather than inventing a recoding, which is
 HUMAN_BLOCKERS.md rule 1 applied to a scale rather than to a threshold.
 Filed as **HB-C22** (physician of record).
+
+## INT-101 — the budgets have no numbers, and the cost has no price
+
+**Raised:** 3 Sep 2026 · **Named humans:** the owner (both asks) · **HUMAN_BLOCKERS.md id: HB-O8** — allocated by the
+coordinator; the two asks below are the rows verbatim, and neither is a re-ask
+of an existing one.
+
+The mechanism ships and fails closed. `intake_voice_runtime.metering` decides which
+*kind* of object each budget is — a cap for extraction tokens, a target for TTS
+characters, accounting for audio seconds — meters all three axes per session and per
+profile, and refuses the elective model lane when no cap is declared. Nothing a patient
+is owed is ever refused. What is missing is two numbers, and neither may be engineered:
+
+**Ask 1 — the per-session limits.** files/10 §5 names the control (*"per-session
+token/char/audio budgets"*) and **no file in this repository states a number for it**.
+`PUBLISHED_BUDGETS` therefore ships every `limit` unset with the sentence that says why,
+and the consequence is deliberate: with no declared cap the elective lane is refused
+outright, because an unknown budget is not a licence to spend. One sentence closes it:
+*how many extraction tokens and how many synthesised characters may one session spend
+before the discretionary lane is cut, on the deployment we are actually buying?* It is a
+spend decision about hardware that does not exist yet, which is why it sits behind
+**HB-I4** and **HB-I5** rather than beside them.
+
+**Ask 2 — the price.** `cost.per_session` is denominated in USD (files/08 §4 J). Under
+CLAUDE.md invariant 19 every model is self-hosted, so there is no vendor list price to
+read a per-token or per-character rate off; and there is no GPU-hour rate either, because
+**HB-I4** records that no card has been bought and **HB-I5** that no capacity contract
+naming a provider or an SKU exists. `PriceBook` ships empty, `priced_cost` raises
+`CostNotPriced` rather than returning a zero (a zero is a claim that a session was free),
+no `Gauge` is declared for the name, and the catalogue row stays `planned`. One sentence
+closes it: *what USD rate per token, per character and per audio second should a session
+be costed at, and from which invoice or amortisation does it come?*
+
+**Consequence for the issue.** One acceptance line of three is not met —
+*"cost.per_session emitted"* — so **INT-101 stays `todo`**. The other two are met with the
+mechanism rather than with numbers, which docs/evidence/INT-101.md sets out line by line.
+
+Two smaller findings, reported rather than fixed, because closing either means minting a
+metric id the spec has not settled:
+
+- **Backend extraction tokens have no catalogued series.** files/08 §4 group B's
+  `voice.talker_tokens` is *the Talker's* LLM per turn; `extract_slots` is Layer B Work.
+  Group J states *"tokens/chars/audio-seconds by vendor"* **without an id**, and the
+  catalogue's own trailing comment already records that row as id-less. The ledger counts
+  them; no series carries them.
+- **`voice.stt_audio_s` has no source in this tree.** Nothing in `services/voice-runtime`
+  sees patient audio — the Talker is handed transcripts, and the ASR adapter takes opaque
+  bytes with no declared sample format. `charge_audio_seconds` therefore takes a *measured*
+  duration and has no byte-length overload, because a duration inferred from a guessed
+  sample rate would be an invented number about a recording CLAUDE.md invariant 3 says does
+  not exist. The row stays `planned` until the media plane supplies a duration.
+
+---
+
+## INT-122 · e-Nabız export / MHRS SMS screenshot — two asks, both the owner's
+
+Both are the same shape and neither may be engineered: **nobody on this project has seen
+either source document**, and inventing what one looks like is the records-path form of
+inventing a clinical value. The parsers ship and refuse; what is missing is two artefacts,
+and one of them already has a HUMAN_BLOCKERS.md row that names this issue by number.
+
+**Ask 1 — the e-Nabız PDF, and it is already filed as HB-A1.** That row states it in terms:
+*"does the e-Nabız PDF have a **text layer** or is it a scanned image, and does it
+**normalise units**?"*, both UNVERIFIED, obtainable only from an authenticated e-Devlet
+citizen login, with the standing instruction *"Do not assume a text layer"* — and it names
+what it blocks as *"INT-122's acceptance; the OCR-vs-text-extraction fork in `03 §10`"*.
+Nothing is re-asked here. What this issue adds to the row is that the fail-closed shape is
+now built: the table parser reads `TextRegion[]` and is agnostic to which seam produced
+them, so the answer changes which seam is wired and changes no line of the parser.
+
+**Ask 2 — one redacted MHRS appointment SMS, and its printed date order.** One sentence
+closes it: *what does an MHRS appointment SMS actually say, and does it print the date as
+`gg.aa.yyyy` or in some other order?* Two consequences today, both fail-closed rather than
+guessed:
+
+- **No message shape is encoded anywhere in this change.** There is no label vocabulary, no
+  field order and no regex over a body layout, because writing one would be describing a
+  message nobody has read. Values are recognised by their own shape and against committed
+  vocabularies — the branch against `packages/protocols/taxonomy/branches.yaml`, the date
+  against the printed-date guard — which is the only recognition that does not require
+  having seen the message. The cost is that a field an SMS states in a form neither of
+  those recognises comes back empty and named, rather than read.
+- **`parse_mhrs_sms` passes no `order`**, so a printed date whose day and month are both
+  ≤ 12 is refused outright — a little under half of all dates. `DateOrder` exists as the
+  seam and has **no default and no `TURKISH` member**: a default would be one engineer
+  choosing once, for every future patient, between two readings a month apart. The wrong
+  choice sends a patient to the hospital on the wrong day and there is no diff that makes
+  it look wrong.
+
+The **HUMAN_BLOCKERS.md id for Ask 2 is for the coordinator to allocate** rather than minted
+here; Ask 1 needs no id, it is HB-A1.
+
+**Consequence for the issue.** One acceptance clause of three is fully met — *"no scraping
+of e-Nabiz … legal note enforced"*, and mechanically rather than by assertion — so
+**INT-122 stays `todo`**. `docs/evidence/INT-122.md` sets the line out clause by clause.
+
+Two findings, reported rather than fixed:
+
+- **`files/02 §3`'s *"Hekiminize ne iletildi"* bullet still cites the repealed KSVY m.10.**
+  `files/06 §1` flags it in those words — *"Flagged rather than edited, because `02` is not
+  this file's to change"* — and 00_STATE §2 marks the class of error *"Fix before any legal
+  review"*. INT-122's own backlog row carried the same citation and **is** corrected here
+  (to `KSVY-5,KSVY-6`) with a test pinning it, because that row is this issue's.
+- **A visit has no time.** `VisitCreate.date` is an ISO date string and the store has no
+  time column, so an appointment *time* read off a screenshot has nowhere to go. The
+  candidate and the confirmed reading both carry it — dropping it silently would leave a
+  patient unable to check the one field they remember — and `as_visit_fields()` carries only
+  what the API has a field for. Giving the visit a time is a schema change and an issue of
+  its own; no id is minted for it here.
 
 ## INT-019 — two CI gates are wired to a workflow file this session may not edit
 

@@ -92,6 +92,7 @@ from intake_voice_runtime.transcript import (
 )
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.types import Delivery, SlotType
 from talker_harness import (
     FakeClock,
@@ -128,8 +129,8 @@ def _slot(ask_tr: str) -> Slot:
             "type": SlotType.INTEGER,
             "required": True,
             "must_ask": True,
-            "ask_tr": ask_tr,
-            "follow_up_tr": f"{ask_tr} Tekrar eder misiniz?",
+            "ask_tr": {TR: ask_tr},
+            "follow_up_tr": {TR: f"{ask_tr} Tekrar eder misiniz?"},
         }
     )
 

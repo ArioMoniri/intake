@@ -1,0 +1,54 @@
+# INT-160 — the per-tenant connector destination registry (files/10 §4 and
+# invariant 46; CLAUDE.md invariants 4, 14 and 17).
+#
+# This file is DATA, not code, and it is the ONLY way a connector destination
+# comes into existence. `intake_connectors.destinations` loads and validates
+# it; nothing else in the system can name a place to push clinical records to.
+#
+# Why the file exists rather than a console text field: files/08 §0b F8 is
+# `tenant_admin` — hospital IT, an adversary in files/10 §1 — typing a URL our
+# server then fetches from inside the PHI network holding OpenBao credentials.
+# `169.254.169.254`, `http://openbao:8200`, or, far more quietly, a host that
+# receives every push_previsit with full clinical notes indefinitely while
+# every dashboard shows normal operation. The answer is that destinations are
+# registered out-of-band at onboarding, bound to the signed DPA, and rendered
+# as a select — free-text entry does not exist in the schema at all.
+#
+# What a row costs, and why none exists yet. Each row asserts four things a
+# human must actually have done:
+#
+#   dpa_ref             an executed data-processing agreement with the
+#                       receiving hospital, naming this interface
+#   approval_ref        the recorded tier-3 approval that registered the
+#                       endpoint (files/10 §8: two humans, different
+#                       organisations, write-ahead audit, pages)
+#   credential_ref      an OpenBao path under `connectors/` that already
+#                       holds the application credential
+#   client_cert_ref     an OpenBao path holding the mTLS client material
+#
+# and one thing the receiver must have told us in writing:
+#
+#   receiver_idempotency  whether that hospital's agreement states it honours
+#                       an Idempotency-Key. There is no default. "We sent it
+#                       twice and the hospital deduplicated" is not a promise
+#                       this system can make on the hospital's behalf, so an
+#                       undeclared receiver makes an ambiguous outcome a
+#                       needs_human parking, never an automatic retry.
+#
+# None of the five exists today. HB-A5 records that our pilot partner's own
+# interfaces are UNVERIFIED and that the connector must not be sized or
+# promised a payload shape before that conversation happens; no DPA has been
+# executed and no endpoint has been approved. So the list is empty, the
+# framework refuses every send, and that is the fail-closed state rather than
+# a gap (invariant 17: build the mechanism, wire the gate, make it fail
+# closed, leave the content empty).
+#
+# A row here is additionally NOT sufficient on its own. The destination is
+# turned into an INT-018 `AllowlistEntry` per send (ADR-026), so the egress
+# guard's own rules still decide: IP literals refused, the resolved address
+# refused if it lands in a private/link-local/metadata range, one resolution
+# pinned so a rebind has nothing to win, redirects off, and the runtime
+# INTAKE_ALLOW_PHI_EGRESS=explicit-yes double gate that every phi_allowed row
+# must clear. Adding a row widens nothing by itself.
+version: 1
+destinations: []

@@ -2,12 +2,14 @@
 
 Two tiers:
 
-- **Pattern tier** (always on, deterministic): checksum-validated TCKN, TR
-  mobile numbers (contiguous and spaced), TR IBAN (contiguous and 4-grouped),
-  email, and Turkish dates. Dates are **shifted, not masked** — clinical
-  intervals matter — with a per-subject deterministic offset (±1..30 days) so
-  the same subject's timeline stays internally consistent while the real
-  dates never leave.
+- **Pattern tier** (always on, deterministic): checksum-validated TCKN
+  (contiguous, and — INT-312 — as it arrives when it is said out loud: digit
+  groups, hyphenated runs, Turkish digit words and the mixtures of the three a
+  recogniser emits mid-utterance), TR mobile numbers (contiguous and spaced),
+  TR IBAN (contiguous and 4-grouped), email, and Turkish dates. Dates are
+  **shifted, not masked** — clinical intervals matter — with a per-subject
+  deterministic offset (±1..30 days) so the same subject's timeline stays
+  internally consistent while the real dates never leave.
 - **NER tier** (names, addresses): our own fine-tune with recorded provenance
   (model registry row; base MIT via raw blob, data CC-BY-4.0 synthetic),
   loaded from ``INTAKE_DEID_MODEL_DIR`` or an explicit path.
@@ -30,7 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from intake_platform.redaction import is_valid_tckn
+from intake_platform.redaction import find_spoken_tckn_spans, is_valid_tckn
 
 __all__ = ["DateShifter", "DeidEntity", "DeidReport", "Deidentifier"]
 
@@ -151,6 +153,15 @@ class Deidentifier:
         for m in _TCKN.finditer(text):
             if is_valid_tckn(m.group(0)):
                 add("TCKN", m)
+        # INT-312: the same number said out loud — digit groups, hyphenated
+        # runs, Turkish digit words and the mixtures a recogniser emits. The
+        # checksum is still what decides, so a checksum-failing accession
+        # number said aloud survives exactly as its written form does. A
+        # contiguous run is found by both passes and de-duplicated by the
+        # overlap resolution below.
+        for spoken in find_spoken_tckn_spans(text):
+            value = text[spoken.start : spoken.end]
+            found.append(DeidEntity("TCKN", spoken.start, spoken.end, value))
         for m in _PHONE.finditer(text):
             add("PHONE", m)
 

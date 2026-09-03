@@ -18,5 +18,7 @@ ops:
     slot:
       type: boolean
       required: true
-      ask_tr: "Örnek hastane sorusu: ek bilgi vermek zorunda mısınız?"
-      follow_up_tr: "Evet ya da hayır diyebilir misiniz?"
+      ask_tr:
+        tr: "Örnek hastane sorusu: ek bilgi vermek zorunda mısınız?"
+      follow_up_tr:
+        tr: "Evet ya da hayır diyebilir misiniz?"

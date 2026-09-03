@@ -702,7 +702,17 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `sec_injection_suspected_total` from `intake_voice_runtime.extraction.boundary` when a
   transcript carries the data-block control marker, and `injection_event()` builds the
   `SecurityV1` row (ids and closed enumerations only; the refused string is never
-  recorded). PolicyGuard spikes and budget exhaustion (§7) land with INT-101, INT-102.
+  recorded). **Budget exhaustion landed with INT-101**, and what it produces is narrower
+  than "a signal" — `intake_voice_runtime.metering` counts every session's spend by
+  component and refuses the *elective* model lane when a declared cap cannot afford it
+  (and when no cap is declared at all, which is the state today: no file publishes a
+  per-session limit). The obligatory lane is never refused, because a patient's answer
+  that is never extracted is a red-flag phrase nobody evaluated. One series moves
+  `planned` → `live`: `voice.tts_chars`. Two do **not**, and neither gap is closed by
+  minting an id — Backend extraction tokens are files/08 §4 group J's id-less row, and
+  `cost.per_session` has no price to multiply by (files/HUMAN_BLOCKERS.md HB-I4, HB-I5),
+  so it stays `planned` and no `Gauge` is declared for it. PolicyGuard spikes still land
+  with INT-102.
 - **Tests:** schema-validation tests landed with INT-083 —
   `tests/ai/test_extraction_contract.py`, which pins the four structural facts this row
   turns on: the instruction region takes no transcript parameter, the transcript travels
@@ -710,8 +720,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   could occupy, and `ExtractionResult` has no `level` field at all (invariant 1 as a
   `TypeError` at the call site rather than a check). A planted Turkish injection —
   INT-175's symptom sentence with an instruction welded onto it — is refused without the
-  refusal echoing a fragment of it. The adversarial suite RT-09…14 in `make safety` plus
-  the nightly red-team job still land with INT-102.
+  refusal echoing a fragment of it. **INT-101 adds `tests/voice/test_budgets.py`**: the
+  admission table for all three kinds, the cap refusing the elective lane *before* the
+  endpoint is dialled, the exhausted cap still admitting obligatory work, the ledger
+  holding running totals rather than a per-charge history (invariant 3 reaches a derived
+  duration too), the label set proved free of `PHI_RISK_LABEL_NAMES`, a metered turn
+  taking exactly the same virtual time as an unmetered one on the fake clock (invariant
+  9), and the price book refusing rather than returning a zero. The adversarial suite
+  RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
 
 ## `cloud-boundary` — what may leave, and in what form
 
@@ -761,14 +777,47 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §9 records row — ClamAV, file-type sniffing, sandboxed parsing
   (seccomp-isolated PDF rendering, §4), the data boundary, RLS on pgvector with per-patient
   namespaces, provenance on every extracted fact; ingestion unit rule (CLAUDE.md invariant
-  22: magnitude outranks the printed unit token, disagreement flags).
+  22: magnitude outranks the printed unit token, disagreement flags). **No e-Nabız read
+  path exists or may be added** (KSVY m.6, files/06 §1; files/03 §12 — m.6(2) as amended by
+  RG 33096 is a closed list of *physician* access tiers with no category for an
+  application): the record is entered by patient-exported documents only. Enforced rather
+  than noted — the egress allow-list names no Ministry host so default-deny already refuses
+  one, no file under `packages/`·`services/`·`apps/`·`infra/`·`scripts/` names one, and no
+  module on the ingestion path imports an HTTP client or takes a locator (INT-122).
 - **Signals:** upload scan results and parse failures (§9) land with INT-120;
   `sec_injection_suspected_total` is shared with the `llm-boundary` row — INT-121's document
   fence and INT-083's transcript fence are one control in
   `intake_platform.data_boundary`, so one counter covers both.
 - **Tests:** PDF fuzzing lands with INT-120; extraction, the document data boundary, the
   confirm gate and the two invariant-22 guards with INT-121
-  (`tests/records/test_extraction_eval.py`); RLS namespace tests with INT-123.
+  (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
+  six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
+  guard and the three no-scraping checks — with INT-122
+  (`tests/records/test_enabiz_pdf.py`); the patient-facing half of the confirm gate,
+  the client-side level-shaped-key refusal and the camera path with INT-138
+  (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
+  RLS namespace tests with INT-123.
+- **INT-138 addition — the capture is a second way in, and it carries metadata.** A
+  photograph of a report taken in the app reaches the same object store as an uploaded
+  file, so it goes through the same allow-list pre-check, size cap and digest. On the
+  path this app takes (`quality: 1` → `RawImageExporter`, a straight `copyFile`) the
+  camera's ENTIRE original EXIF would travel: the GPS family, maker notes and an
+  embedded thumbnail that is a second copy of the document. So every JPEG loses its
+  APP1 (EXIF/XMP) segment before the digest is computed, with the Orientation tag
+  carried across in a 34-byte segment the app authors itself. Location is not a
+  declared category in the inventory and is not persisted.
+- ⚠️ **Two limits of that strip, named rather than quietly accepted — both are for a
+  human to confirm or overturn, and neither was decided here.**
+  1. **It fails OPEN.** `stripJpegMetadata` returns the bytes unchanged for any JPEG it
+     cannot walk end to end — a truncated segment, a marker where none belongs — and a
+     test codifies that, so such a file uploads with its EXIF intact. That is file
+     integrity chosen over invariant 6: a partially rewritten JPEG is a corrupt document
+     the patient believes is their report. Refusing the upload is the other option and
+     is not obviously worse; it trades a lost document for a leaked coordinate.
+  2. **PNG is on the allow-list and is not stripped.** PNG carries its own `eXIf` chunk
+     and XMP, so it is a third metadata container beside the two the JPEG strip names.
+     Reachable through the file picker only — the camera path produces JPEG — so the
+     probability is lower, but the exposure is the same one.
 
 ## `documents` — the object store
 
@@ -941,10 +990,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   resolve-once-and-pin with re-validation; redirects disabled; endpoint change is tier-2 by
   `platform_owner` and pages; OpenBao-held credentials, scoped consent token per push,
   idempotency keys, mTLS/SMART backend services.
-- **Signals:** push success/failure, receipts, endpoint errors, connector-endpoint change
-  events (§7/§9) land with INT-160.
-- **Tests:** contract and replay tests plus `connector_endpoint_allowlist_guard` (inv. 46,
-  incl. the DNS-rebinding fail-closed case) land with INT-160.
+- **Signals:** `connector_push_total{endpoint,outcome}` carries success, failure, consent
+  refusal and replay suppression off one label; `connector_push_duration_seconds{endpoint}`
+  the endpoint-error latency; `connector_receipts_unresolved_total{endpoint}` the pushes
+  whose delivery is unknown, which is the series that decides whether a retry is safe
+  (INT-160; all three catalogued in `observability/metrics_catalog.yaml` — files/08 §4
+  names no id for this row, so they enter the catalogue without one).
+  `admin.connector_endpoint_changed_total` stays `planned`: a destination is a reviewed
+  commit to `infra/connectors/destinations.yaml`, not a runtime event, and it arrives with
+  the console (INT-19x).
+- **Tests:** `tests/connectors/test_framework.py` — the per-tenant registry (no URL field
+  exists in the schema; a tenant naming another tenant's `endpoint_id` is refused, which is
+  ADR-025's fifth bypass in the form it takes here), each of ADR-025's five bypasses driven
+  through the connector path (metadata-range answer, split DNS answer fails closed, the
+  request aimed at the pinned address, redirects not followed, wrong tenant), the
+  write-ahead receipt with both hash-chained audit entries and the crash-in-between case,
+  the derived idempotency key with its near-miss negatives (edited note, other endpoint,
+  other tenant), the ambiguous-outcome parking for a receiver whose DPA does not declare
+  the key honoured, and the no-PHI-no-credential sweep over logs, receipts and errors.
+  `tests/connectors/test_credentials_and_tls.py` — OpenBao resolution that names no path in
+  its failure, mTLS material that leaves no file behind on success or failure, the registry
+  file refusing rather than loading empty, and the adapter-built path re-checked at send
+  time. `tests/security/test_egress_allowlist.py` additionally asserts that a
+  clinical-push purpose never appears in the vendor allow-list.
 
 ## `kiosk` — shared devices in clinics
 

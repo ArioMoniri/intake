@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from intake_api.state import ApiState
 
 __all__ = [
+    "ADMIN_PREFIX",
     "CONSENT_MANAGEMENT_PREFIX",
     "DATA_SUBJECT_RIGHT_PREFIX",
     "DOCTOR_LINK_PREFIX",
@@ -64,6 +65,8 @@ __all__ = [
     "REFERENCE_DATA_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
+    "administrative_action",
+    "administrative_action_routes",
     "consent_management",
     "consent_management_routes",
     "data_subject_right",
@@ -313,6 +316,40 @@ class ReferenceDataDeclaration:
         return
 
 
+class AdministrativeActionDeclaration:
+    """Explicit declaration that a route is an ADMINISTRATIVE action on the
+    control plane (INT-180; files/08 §2, §8), not a read or write of a data
+    subject's clinical data.
+
+    Why it cannot carry a consent scope. A console action is taken by a
+    member of staff against the platform, and the requesting principal is not
+    a patient — there is no data subject whose ledger could be consulted at
+    the door. files/06 §2 enumerates the patient's purposes and contains
+    nothing covering staff access at all, so any scope named here would be an
+    over-claim: it would assert a lawful basis the repository does not have.
+    The basis these routes are discharged under is the audit obligation
+    itself, recorded on every entry as ``basis:KVKK-12``.
+
+    Why it may not stay silent. An admin action is the most privileged thing
+    that happens in this system, so it is audited unconditionally — the
+    router is built from the ADMIN_ROUTES descriptor table and every route,
+    including every refusal, appends a write-ahead intent row and an outcome
+    row to the INT-016 chain. This marker is how that contract is declared to
+    the scan; the scan accepts it ONLY under ADMIN_PREFIX (as a path segment,
+    not a substring), so a /v1 data route cannot borrow it to dodge a scope.
+
+    The one route that will reach a patient's clinical content — the
+    break-glass transcript view of files/08 §2.5 item 5 — is NOT in this
+    issue, and it does not get this marker when it lands: §2.5 item 6 puts
+    the audit row before the read and invariant 4 puts a consent check with
+    it. See files/08 §2.6 and HUMAN_BLOCKERS HB-L6 for the basis that route
+    still needs, which is why ``Deployment.CONTROLLER`` refuses today.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 class NotificationPreferenceDeclaration:
     """Explicit declaration that a route IS the patient's message-refusal
     register (INT-141: opt-out and quiet hours).
@@ -347,6 +384,9 @@ NOTIFICATION_PREFERENCE_PREFIX = "/v1/me/notifications"
 #: The only prefix where a Doctor Link redemption declaration is accepted.
 DOCTOR_LINK_PREFIX = "/v1/doctor-link"
 
+#: The only prefix where an administrative-action declaration is accepted.
+ADMIN_PREFIX = "/admin"
+
 
 def data_subject_right() -> params.Depends:
     """Declare a route as a statutory data-subject right (see
@@ -372,6 +412,13 @@ def notification_preference() -> params.Depends:
     """Declare a route as the notification-preference register (see
     NotificationPreferenceDeclaration)."""
     dependency: params.Depends = Depends(NotificationPreferenceDeclaration())
+    return dependency
+
+
+def administrative_action() -> params.Depends:
+    """Declare a route as an administrative action (see
+    AdministrativeActionDeclaration)."""
+    dependency: params.Depends = Depends(AdministrativeActionDeclaration())
     return dependency
 
 
@@ -451,6 +498,13 @@ def _is_reference_data(route: APIRoute) -> bool:
 def _is_notification_preference(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, NotificationPreferenceDeclaration)
+        for dependency in route.dependencies
+    )
+
+
+def _is_administrative_action(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, AdministrativeActionDeclaration)
         for dependency in route.dependencies
     )
 
@@ -551,6 +605,18 @@ def notification_preference_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def administrative_action_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the administrative-action declaration, for the
+    pin test (INT-180) — reported wherever it appears; whether the scan
+    ACCEPTS it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_administrative_action(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
@@ -565,8 +631,11 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     (INT-141, the message-refusal register a withdrawal must not lock) and
     doctor_link_redemption under DOCTOR_LINK_PREFIX (INT-150, the clinician
     holding a token and no account, whose consent check runs record-level
-    inside the endpoint). Any marker outside its prefix does NOT count as a
-    declaration (the route is reported here instead)."""
+    inside the endpoint) and administrative_action under ADMIN_PREFIX
+    (INT-180, a staff action on the control plane with no data subject at the
+    door, discharged under the audit obligation and audited unconditionally).
+    Any marker outside its prefix does NOT count as a declaration (the route
+    is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -582,6 +651,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_notification_preference(route) and _under_notification_preference_prefix(path):
             continue
         if _is_doctor_link_redemption(route) and _under_prefix(path, DOCTOR_LINK_PREFIX):
+            continue
+        if _is_administrative_action(route) and _under_prefix(path, ADMIN_PREFIX):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

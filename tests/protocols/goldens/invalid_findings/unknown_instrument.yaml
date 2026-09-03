@@ -18,8 +18,10 @@ instruments:
   - id: SYN-UNLISTED
     items:
       - id: syn_madde_bir
-        text_tr: "Örnek ölçek maddesi bir."
-        allow_paraphrase: false
+        text_tr:
+          tr: "Örnek ölçek maddesi bir."
+        allow_paraphrase:
+          tr: false
 sections:
   olcek_bolumu:
     delivery: text_only

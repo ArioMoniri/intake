@@ -286,9 +286,14 @@ class TestActionScripts:
         assert action is not None
         dumped = action.model_dump()
         assert dumped["show_112"] is False
+        # ``why_tr`` is a locale map since INT-297, so it is flattened to its
+        # authored strings before the scan: iterating the mapping itself would
+        # check the locale codes and pass on any content whatsoever.
+        why_tr: dict[str, str] = dumped["why_tr"] or {}
+        assert "tr" in why_tr
         for text in (
             dumped["action_tr"],
-            dumped["why_tr"],
+            *why_tr.values(),
             *dumped["do_nots_tr"],
         ):
             assert text is None or "112" not in text

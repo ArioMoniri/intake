@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
+from protocols.locale_text import DEFAULT_LOCALE
+
 from voice_clips.audio import EncodedClip, encode_clip
 from voice_clips.cache import (
     ClipCache,
@@ -71,10 +73,11 @@ class ClipBuildResult:
 
 @dataclass(frozen=True)
 class ClipCoverage:
-    """What the object store actually holds for one pack and voice."""
+    """What the object store actually holds for one pack, locale and voice."""
 
     pack_id: str
     voice: str
+    locale: str
     total: int
     present: int
     missing: tuple[str, ...]
@@ -134,6 +137,7 @@ def clip_coverage(manifest: CompiledClipManifest, cache: ClipCache) -> ClipCover
     return ClipCoverage(
         pack_id=manifest.pack_id,
         voice=manifest.voice,
+        locale=manifest.locale,
         total=len(manifest.entries),
         present=len(manifest.entries) - len(missing),
         missing=missing,
@@ -145,7 +149,7 @@ def assert_clip_coverage(coverage: ClipCoverage) -> None:
     if coverage.complete:
         return
     raise ClipCoverageError(
-        f"pack {coverage.pack_id} voice {coverage.voice}: "
+        f"pack {coverage.pack_id} locale {coverage.locale} voice {coverage.voice}: "
         f"{len(coverage.missing)} of {coverage.total} scripted strings have no clip "
         f"({', '.join(coverage.missing)})"
     )
@@ -154,7 +158,7 @@ def assert_clip_coverage(coverage: ClipCoverage) -> None:
 def render_coverage(coverage: ClipCoverage) -> str:
     """The per-pack coverage report the acceptance asks for."""
     head = (
-        f"clips {coverage.pack_id} voice={coverage.voice}: "
+        f"clips {coverage.pack_id} locale={coverage.locale} voice={coverage.voice}: "
         f"{coverage.present}/{coverage.total} present"
     )
     if coverage.complete:
@@ -173,20 +177,22 @@ def run_clip_build(
     pack_ids: tuple[str, ...] = (),
     verify_only: bool = False,
     force: bool = False,
+    locale: str = DEFAULT_LOCALE,
 ) -> int:
-    """Build (or verify) every compiled pack for one voice. Exit-code shaped."""
-    found = discover_packs(dist_root, voice)
+    """Build (or verify) every compiled pack for one (locale, voice). Exit-code shaped."""
+    found = discover_packs(dist_root, voice, locale)
     wanted = tuple(pack for pack in found if not pack_ids or pack in pack_ids)
     if not wanted:
         print(
-            f"clips: no compiled clip manifest for voice {voice!r} under {dist_root} "
+            f"clips: no compiled clip manifest for locale {locale!r} voice {voice!r} "
+            f"under {dist_root} "
             "— nothing to build, which is a refusal rather than a success"
         )
         return 1
     failed = False
     for pack_id in wanted:
         try:
-            manifest = load_clip_manifest(dist_root, pack_id=pack_id, voice=voice)
+            manifest = load_clip_manifest(dist_root, pack_id=pack_id, voice=voice, locale=locale)
             if not verify_only:
                 built = build_clip_cache(
                     manifest=manifest, gateway=gateway, cache=cache, force=force

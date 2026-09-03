@@ -147,15 +147,15 @@ def _protocol() -> ResolvedProtocol:
                     type=SlotType.BOOLEAN,
                     required=True,
                     must_ask=True,
-                    ask_tr="Sentetik belirtiniz var mı?",
+                    ask_tr={"tr": "Sentetik belirtiniz var mı?"},
                     confirm_tr="Sentetik belirti hâlâ var, doğru mu?",
-                    follow_up_tr="Sentetik belirti takip sorusu.",
+                    follow_up_tr={"tr": "Sentetik belirti takip sorusu."},
                 ),
             ),
             _resolved(
                 "oyku",
                 "not_metni",
-                _slot(type=SlotType.STRING, ask_tr="Sentetik serbest metin sorusu."),
+                _slot(type=SlotType.STRING, ask_tr={"tr": "Sentetik serbest metin sorusu."}),
             ),
         ),
     )

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**238 issues.** By phase: P0 137 · P1 58 · P2 38 · P3 5. By status: awaiting-human 8 · doing 4 · done 114 · todo 111 · withdrawn 1.
+**242 issues.** By phase: P0 139 · P1 60 · P2 38 · P3 5. By status: awaiting-human 8 · doing 4 · done 120 · todo 109 · withdrawn 1.
 
 ## P0
 
@@ -109,7 +109,7 @@
 | INT-232 | Patient-facing consent routes: snapshot, grant, withdraw - seam-faithful to the INT-132 client | E01-platform | INT-038, INT-131 | area:api | done |
 | INT-233 | Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn confirm - LiveKit Talker remains the production path | E08-mobile | INT-198, INT-199 | area:mobile, area:voice | done |
 | INT-234 | Design pass 6: CTA saturation register (bone pill), tonal secondaries, focused-flow exits, glyph-badge empty states | E08-mobile | INT-209 | area:mobile | done |
-| INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | todo |
+| INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | done |
 | INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | todo |
 | INT-210 | Legal document set v1 (tr primary): aydinlatma x5, acik riza per purpose, gizlilik, kullanim kosullari, KVKK basvuru formu, cookie | E14-legal | INT-038 | area:legal, risk:legal, approval:human-legal | todo |
@@ -144,10 +144,12 @@
 | INT-294 | TTS lane admission consumes the clip deadline, and the resulting mute latches for the session | E08-mobile | INT-243, INT-249, INT-261 | area:mobile, area:voice | done |
 | INT-296 | Session locale: one language per session, chosen rather than detected, and a resource layer that refuses an incomplete one | E01-platform | — | area:platform, area:i18n | done |
 | INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | done |
-| INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | todo |
+| INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | done |
 | INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
 | INT-304 | The share scope can express three sections and the note has eight, so a withheld section is not recorded anywhere | E08-mobile | INT-137 | area:mobile, area:api, risk:legal | todo |
 | INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
+| INT-313 | Nothing carries an extraction to the phone: the confirm-card transport is owned by no issue | E07-records | INT-121, INT-138 | area:records, area:api | todo |
+| INT-312 | A TCKN said aloud is not masked: the redactors match a contiguous eleven-digit run and speech arrives as groups or as words | E01-platform | INT-102 | area:security, area:platform, area:voice | done |
 
 ## P1
 
@@ -156,7 +158,7 @@
 | INT-095 | Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke | E05-voice | INT-094, INT-018 | area:voice, approval:human-infra, gpu | awaiting-human |
 | INT-099 | Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI | E05-voice | INT-095 | area:voice | todo |
 | INT-100 | Vendor failover + circuit breakers + typed fallback <=2s + chaos test | E05-voice | INT-095, INT-024 | area:voice | todo |
-| INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | todo |
+| INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | done |
 | INT-103 | Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background | E05-voice | INT-130, INT-090 | area:mobile | done |
 | INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | INT-110 | area:lanes, approval:human-clinical | todo |
 | INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | INT-110, INT-095 | area:lanes, approval:human-legal | awaiting-human |
@@ -172,7 +174,7 @@
 | INT-146 | EAS builds + OTA code signing + MobSF gate + store listings/privacy labels | E08-mobile | INT-131, INT-224 | area:mobile, risk:legal, approval:human-legal | todo |
 | INT-152 | Clinic console: today list, statuses, read receipts, tenant isolation, SSO | E09-clinician | INT-151, INT-030 | area:clinician | todo |
 | INT-153 | Clinician feedback -> Langfuse annotation queues + acceptance metrics | E09-clinician | INT-151, INT-175 | area:clinician | todo |
-| INT-160 | Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS | E10-connectors | INT-018, INT-035 | area:connectors, risk:security | todo |
+| INT-160 | Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS | E10-connectors | INT-018, INT-035 | area:connectors, risk:security | done |
 | INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | INT-160, INT-033 | area:connectors, approval:human-vendor, live-smoke | todo |
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | done |
 | INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |
@@ -202,7 +204,7 @@
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
 | INT-295 | The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing scrolls sideways to bring it back | E08-mobile | INT-284 | area:mobile, area:a11y | done |
-| INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | todo |
+| INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | done |
 | INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
 | INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
 | INT-305 | One-tap CSAT cannot form a csat.v1 event, because the schema requires a reason the first tap has not given | E16-experience | INT-240, INT-137 | area:experience, area:mobile | todo |
@@ -211,6 +213,8 @@
 | INT-309 | A Decimal still loses its type at three boundaries: the FHIR scalar mapper, the overlay store, and a JSON round trip | E02-data | INT-303 | area:data | todo |
 | INT-310 | Eight npm advisories block make security, including vitest at CVSS 9.8 | E13-infra | INT-019 | area:security, area:ci | todo |
 | INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | todo |
+| INT-314 | Four spoken fields are still Turkish-only, so a red-flag action script cannot yet be per-locale | E03-protocols | INT-297 | area:protocols, area:i18n, area:safety | todo |
+| INT-315 | assert_restore_target_outside_workspace resolves the target and not the workspace, so a symlinked directory INSIDE the repo reads as outside | E13-infra | — | area:infra, area:security | todo |
 
 ## P2
 
