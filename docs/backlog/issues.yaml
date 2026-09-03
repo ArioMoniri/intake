@@ -1129,7 +1129,18 @@
   # voice runtime — two packages and two acceptance surfaces, so a second issue
   # rather than a second half of this PR. No id minted here; the reproduction is
   # committed as SPOKEN_TCKN_FORMS in tests/safety/adversarial_corpus.py.
-  status: todo
+  #
+  # CLOSED 3 Sep 2026 by INT-312 (PR #462). The seventh clause is delivered: 8 of
+  # 8 spoken forms masked, 0 survived, and the matched checksum-FAILING control
+  # survives untouched 8 of 8 - so it is still a TCKN redactor and not a number
+  # shredder. RT-13 now carries no `gaps`, and this issue's own tests pass on
+  # main (test_adversarial_rt12_14.py + test_spoken_identifiers.py, 69 passed).
+  # Note what INT-312 did NOT do: the ASR-side digit-run normalisation this
+  # comment predicted was refused, because invariant 9 keeps identifier handling
+  # off the speech critical path. The redaction tier alone closes the clause,
+  # which makes the prediction above wrong in a useful direction and is recorded
+  # rather than quietly deleted.
+  status: done
   evidence: docs/evidence/INT-102.md
   acceptance:
     - "injection by speech and hidden-PDF text, triage manipulation, proxy impersonation, spoken TCKN masking, vendor failover — all pass; nightly job budgeted"
@@ -1357,11 +1368,46 @@
   title: "e-Nabız export/PDF import parser + MHRS SMS screenshot OCR"
   depends_on: [INT-121]
   labels: [area:records]
+  # `status: todo` on the INT-121 / INT-136 / INT-140 precedent: the third
+  # acceptance clause is delivered and the first two are delivered as far as a
+  # blocker filed against THIS issue permits, so the issue is not waiting as a
+  # whole and `awaiting-human` would make INT-123/124 Ready against clauses
+  # that are not met (LOOP.md step 1). The asks are in docs/backlog/blockers.md.
+  #
+  # "no scraping of e-Nabiz ... legal note enforced" is MET and mechanically
+  # enforced: the egress allow-list names no Ministry host (so default-deny
+  # already refuses one), no file under packages/services/apps/infra/scripts
+  # names one, and no module on this path can even represent a read — none
+  # imports an HTTP client and no entry point takes a locator. There is no
+  # e-Nabiz read path to build: KSVY m.6(2), as amended by RG 33096, is a
+  # closed list of PHYSICIAN access tiers with no category for an application
+  # (files/03 §12; 00_STATE §2).
+  #
+  # The other two clauses ship the parser and are bounded by HB-A1, which
+  # names "INT-122's acceptance" in those words as what it blocks: whether the
+  # e-Nabiz PDF has a text layer at all is UNVERIFIED and obtainable only from
+  # an e-Devlet citizen login, with the standing instruction "Do not assume a
+  # text layer". So the table parser reads TextRegion[] and is agnostic to
+  # which seam produced them, and both seams (NoLayout, NoOcr) are fail-closed
+  # behind the open engine-and-sandbox ADR (files/10 §4). No e-Nabiz export
+  # and no MHRS SMS exists in this repository to validate against, and one may
+  # not be committed (files/06 §5), so no figure is reported anywhere.
+  #
+  # Reopen against HB-A1; see docs/evidence/INT-122.md "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-122.md
   acceptance:
     - "patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
   tests: [tests/records/test_enabiz_pdf.py]
-  legal: "KSVY-9,KSVY-10"
+  # Corrected from "KSVY-9,KSVY-10". Both citations were wrong and one is
+  # repealed: m.10 was `Saglik verilerine avukatlarin erisimi` (LAWYERS'
+  # access) and RG 33096 (03.12.2025) MADDE 9 repealed it outright, and m.9 is
+  # `hasta yakinlarinin erisimi` (RELATIVES' access). The e-Nabiz regime is
+  # m.6 and patient rectification is m.13. files/06 §1 corrected its own row
+  # on 25 Aug 2026 and already lists INT-122 under KSVY-5/6/7/13/16;
+  # 00_STATE §2 marks the remaining citations "Fix before any legal review".
+  # This row is the last place the repealed article was still cited.
+  legal: "KSVY-5,KSVY-6"
   sec_row: "records"
 - id: INT-123
   epic: E07-records
@@ -4085,6 +4131,15 @@
   # later than the spec's value - and refused an undated visit outright rather
   # than falling back to an issue-time clock. That approximation is correct and
   # it is still an approximation, so the field it approximates is filed here.
+  #
+  # CORROBORATED from the opposite direction by INT-122, independently: an
+  # appointment TIME read off an MHRS screenshot has nowhere to go, because
+  # VisitCreate.date is an ISO date and the store has no time column. Its
+  # candidate carries the time (dropping it silently leaves a patient unable to
+  # check the one field they remember) and as_visit_fields() carries only what
+  # the API has a field for. Two issues reached this missing field from
+  # different ends - one needing it to compute an expiry, one unable to store
+  # what it read - which is the strongest evidence the field is real.
   title: 'The schema records a visit DATE and the expiry rule needs a visit
     DATETIME'
   depends_on: []
@@ -4332,7 +4387,8 @@
   - area:security
   - area:platform
   - area:voice
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-312.md
   acceptance:
   - 'the redactors see what speech actually produces: digit groups (a spaced or
     hyphenated eleven-digit run), Turkish digit words, and the mixtures a
@@ -4351,6 +4407,9 @@
     field a transcript could occupy - both asserted before and after'
   - 'any leak-rate figure lives only in docs/evidence/ with a date and the named
     corpus, described as a measurement of that corpus on that day (invariant 20)'
+  # The RT-13 cases have always lived in test_adversarial_rt12_14.py, not
+  # rt09_14; the field is corrected to the files that actually carry them.
   tests:
-  - tests/safety/test_adversarial_rt09_14.py
+  - tests/safety/test_adversarial_rt12_14.py
+  - tests/platform/test_spoken_identifiers.py
   sec_row: "identifiers"
