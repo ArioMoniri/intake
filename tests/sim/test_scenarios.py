@@ -399,7 +399,7 @@ class TestVerbatimSpeech:
                 if spoken.kind is StepKind.FOLLOW_UP:
                     assert spoken.text_tr == entry_for(authored.follow_up_tr, locale)
                 elif spoken.kind is StepKind.CONFIRM:
-                    assert spoken.text_tr == authored.confirm_tr
+                    assert spoken.text_tr == entry_for(authored.confirm_tr, locale)
                 else:
                     assert spoken.text_tr == entry_for(authored.ask_tr, locale)
 

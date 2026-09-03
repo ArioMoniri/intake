@@ -36,7 +36,8 @@ sections:
         openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
         ask_tr:
           tr: "Bu şikâyet ne kadar sürüyor?"
-        confirm_tr: "Sentetik doz alanı: mg cinsinden mi?"
+        confirm_tr:
+          tr: "Sentetik doz alanı: mg cinsinden mi?"
         follow_up_tr:
           tr: "Yaklaşık olarak söyleyebilir misiniz?"
       renk_secimi:
@@ -84,20 +85,24 @@ red_flags:
       REMOTE:
         primary: CALL_112
         show_112: true
-        action_tr: "Hemen yardım isteyin."
+        action_tr:
+          tr: "Hemen yardım isteyin."
         do_nots_tr:
-          - "Yalnız kalmayın."
+          tr:
+            - "Yalnız kalmayın."
         why_tr:
           tr: "Bu bir sentetik test metnidir."
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
         notify_staff_immediate: true
-        action_tr: "Görevlilere haber verin."
+        action_tr:
+          tr: "Görevlilere haber verin."
         why_tr:
           tr: "Bu bir sentetik test metnidir."
       UNKNOWN:
-        ask_one_tr: "Şu anda hastanede misiniz?"
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
         on_no: REMOTE
         on_no_answer: REMOTE
