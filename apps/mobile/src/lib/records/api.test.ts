@@ -20,6 +20,7 @@ import {
   ALLOWED_DOCUMENT_TYPES,
   MAX_DOCUMENT_BYTES,
   RecordsApiError,
+  cameraFile,
   downloadUrl,
   ensureServerVisit,
   listDocuments,
@@ -367,5 +368,169 @@ describe("pickUploadVisit — the 'exactly one upcoming' rule", () => {
 
   it("no visits at all → none (the screen shows guidance, never a dead end)", () => {
     expect(pickUploadVisit([], "2026-08-28")).toEqual({ kind: "none" });
+  });
+});
+
+describe("cameraFile — a capture joins the file picker's path (INT-138)", () => {
+  it("carries the uri, type and size a capture reports", () => {
+    expect(
+      cameraFile({
+        uri: "file:///shot.jpg",
+        fileName: "shot.jpg",
+        mimeType: "image/jpeg",
+        fileSize: 900,
+      }),
+    ).toEqual({ uri: "file:///shot.jpg", name: "shot.jpg", mimeType: "image/jpeg", size: 900 });
+  });
+
+  it("passes the same pre-check a picked file does", () => {
+    const file = cameraFile({ uri: "file:///shot.jpg", mimeType: "image/jpeg" });
+    expect(file).not.toBeNull();
+    expect(precheckFile(file!)).toEqual({ ok: true, contentType: "image/jpeg" });
+  });
+
+  it("is refused when the capture reports neither a type nor a usable name", () => {
+    // Fail closed rather than guess what the camera produced: the allow-list
+    // is the server's and this side only mirrors it honestly.
+    const file = cameraFile({ uri: "file:///shot" });
+    expect(file).not.toBeNull();
+    expect(precheckFile(file!)).toEqual({ ok: false, reason: "type" });
+  });
+
+  it("returns null for a capture with no uri at all", () => {
+    expect(cameraFile({ uri: "   " })).toBeNull();
+  });
+
+  it("keeps no filename when the capture reports none — nothing is invented", () => {
+    expect(cameraFile({ uri: "file:///shot.jpg", mimeType: "image/jpeg" })?.name).toBe("");
+  });
+});
+
+describe("the JPEG metadata strip is applied to the bytes that travel (INT-138)", () => {
+  /** APP0, then an APP1 carrying a GPS pointer and Orientation 6, then a scan. */
+  const EXIF_JPEG = new Uint8Array([
+    0xff,
+    0xd8, // SOI
+    0xff,
+    0xe0,
+    0x00,
+    0x09,
+    0x4a,
+    0x46,
+    0x49,
+    0x46,
+    0x00,
+    0x01,
+    0x01, // APP0
+    0xff,
+    0xe1,
+    0x00,
+    0x2e, // APP1, 46 bytes
+    0x45,
+    0x78,
+    0x69,
+    0x66,
+    0x00,
+    0x00, // "Exif\0\0"
+    0x4d,
+    0x4d,
+    0x00,
+    0x2a,
+    0x00,
+    0x00,
+    0x00,
+    0x08, // MM, 42, IFD0 @ 8
+    0x00,
+    0x02, // two entries
+    0x88,
+    0x25,
+    0x00,
+    0x04,
+    0x00,
+    0x00,
+    0x00,
+    0x01,
+    0x00,
+    0x00,
+    0x00,
+    0x2a, // GPS pointer
+    0x01,
+    0x12,
+    0x00,
+    0x03,
+    0x00,
+    0x00,
+    0x00,
+    0x01,
+    0x00,
+    0x06,
+    0x00,
+    0x00, // Orientation 6
+    0x00,
+    0x00,
+    0x00,
+    0x00, // no next IFD
+    0xff,
+    0xda,
+    0x00,
+    0x05,
+    0x01,
+    0x01,
+    0x00, // SOS
+    0x12,
+    0x34,
+    0x56, // scan
+    0xff,
+    0xd9, // EOI
+  ]);
+
+  function indexOfPair(body: Uint8Array, a: number, b: number): number {
+    for (let i = 0; i + 1 < body.length; i += 1) {
+      if (body[i] === a && body[i + 1] === b) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  it("declares and PUTs the STRIPPED bytes, not the picked ones", async () => {
+    mocks.fileBytes.current = EXIF_JPEG;
+    mocks.authedFetch
+      .mockResolvedValueOnce(json(201, { id: "doc-9", state: "quarantined" }))
+      .mockResolvedValueOnce(json(200, { id: "doc-9", state: "clean" }));
+
+    await upload("visit-1", {
+      uri: "file:///cache/shot.jpg",
+      name: "shot.jpg",
+      mimeType: "image/jpeg",
+    });
+
+    const [, putInit] = mocks.authedFetch.mock.calls[1];
+    const body = putInit.body as Uint8Array;
+    // The declared digest is the digest of what actually travels — anything
+    // else and the server refuses the ingest for a digest mismatch.
+    const [, mintInit] = mocks.authedFetch.mock.calls[0];
+    expect(JSON.parse(mintInit.body as string).sha256).toBe(hex(sha256(body)));
+    expect(hex(sha256(body))).not.toBe(hex(sha256(EXIF_JPEG)));
+
+    // The GPS pointer tag (0x8825) is gone from the uploaded bytes...
+    expect(indexOfPair(body, 0x88, 0x25)).toBe(-1);
+    // ...and exactly one APP1 remains, the 34-byte orientation-only segment.
+    const app1 = indexOfPair(body.subarray(0, indexOfPair(body, 0xff, 0xda)), 0xff, 0xe1);
+    expect(app1).toBeGreaterThan(0);
+    expect((body[app1 + 2] << 8) | body[app1 + 3]).toBe(34);
+    expect(body.length).toBeLessThan(EXIF_JPEG.length);
+  });
+
+  it("leaves a PDF byte-identical — the strip is a JPEG rule", async () => {
+    mocks.fileBytes.current = PDF_BYTES;
+    mocks.authedFetch
+      .mockResolvedValueOnce(json(201, { id: "doc-8", state: "quarantined" }))
+      .mockResolvedValueOnce(json(200, { id: "doc-8", state: "clean" }));
+
+    await upload("visit-1", { uri: "file:///a.pdf", name: "a.pdf", mimeType: "application/pdf" });
+
+    const [, putInit] = mocks.authedFetch.mock.calls[1];
+    expect(putInit.body).toEqual(PDF_BYTES);
   });
 });

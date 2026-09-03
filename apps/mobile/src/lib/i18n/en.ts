@@ -154,6 +154,39 @@ export const en: Record<MessageKey, string> = {
   "records.visit.kicker": "Visit",
   "records.visit.choose": "Choose the visit this document belongs to.",
 
+  // INT-138 — camera capture, the reading (extraction) state, confirm cards
+  // and the provenance locator.
+  "records.camera": "Take a photo",
+  "records.err.camera": "Camera access is off. You can turn it on in your phone settings.",
+  "records.state.reading": "Reading",
+  "records.reading.kicker": "Reading documents",
+  "records.reading.title": "Your documents are not being read yet",
+  "records.reading.body":
+    "Your documents are stored safely. What is inside them is not read automatically for now.",
+  "records.reading.refused":
+    "The details from this document could not be shown. The document itself stays in your record.",
+  "records.confirm.kicker": "Waiting for your confirmation",
+  "records.confirm.intro":
+    "The lines below came from your document. Only the ones you confirm are added to your note.",
+  "records.card.yes": "Yes, that is right",
+  "records.card.no": "No, that is not right",
+  "records.card.yesHint": "Double tap to confirm this line.",
+  "records.card.noHint": "Double tap to leave this line out of your note.",
+  "records.card.show": "Show it in the document",
+  "records.card.hide": "Hide the place in the document",
+  "records.card.showHint": "Double tap to show where this line sits in the document.",
+  "records.card.unitConflict":
+    "The unit on this line differs from the expected one. The value is left exactly as printed.",
+  "records.card.confirmed": "You confirmed this",
+  "records.card.declined": "Will not be added to your note",
+  "records.card.notSaved": "Your confirmation could not be saved. Please try again later.",
+  "records.prov.page": "Page",
+  "records.prov.figure": "Diagram of the place in the document",
+  "records.prov.top": "Top of the page",
+  "records.prov.middle": "Middle of the page",
+  "records.prov.bottom": "Bottom of the page",
+  "records.prov.open": "Open the document",
+
   "wellbeing.title": "Wellbeing",
   "wellbeing.intro": "Track how you feel; sharing stays under your control.",
   "wellbeing.guide.how.kicker": "How it will work",

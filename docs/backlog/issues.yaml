@@ -1546,7 +1546,35 @@
   title: "Records screens: upload, processing, confirm cards, provenance viewer"
   depends_on: [INT-121, INT-130]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. `status: todo` rather than
+  # `awaiting-human` on the INT-121 / INT-136 / INT-140 precedent: nothing here
+  # waits on a named human, so marking it awaiting-human would misreport the
+  # ask and would make dependents Ready against clauses that are not met.
+  #
+  # ONE of the four clauses is delivered end to end: "camera+file upload".
+  # expo-image-picker's capture joins the INT-229 file path — one allow-list
+  # pre-check, one digest, one ingest — and the JPEG metadata container is
+  # stripped before the bytes are hashed, because expo-image-picker's Android
+  # exporter copies TAG_GPS_* into the file it hands over and location is a
+  # category of personal data nothing in this repo has declared.
+  #
+  # The other THREE are built as a mechanism behind a gate that fails closed,
+  # because the thing they render does not exist: NOTHING PUBLISHES A DOCUMENT
+  # EXTRACTION. There is no API route serving UnconfirmedRecordItems and none
+  # accepting a confirmation, so `noExtractionFeed` is the only production
+  # ExtractionSource, it answers "not read" for every document, and it
+  # acknowledges no decision — which, with the no-optimistic-write rule, means
+  # no card can ever show as confirmed. The cards, the two verdicts, the
+  # provenance locator and the parser's invariant-1 refusal are all real and
+  # tested against a stub source.
+  #   - the PRODUCER is INT-124 (lab-report -> JSON via the extraction LLM, P2);
+  #   - the TRANSPORT (a route that publishes confirm cards and takes a verdict)
+  #     is owned by NO issue in this file, and no id was minted for it here.
+  #
+  # Reopen when that transport exists; see docs/evidence/INT-138.md
+  # "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-138.md
   acceptance:
     - "camera+file upload; AV/processing states; confirm-before-use; provenance boxes"
   tests: [apps/mobile/e2e/records.spec.ts]
@@ -4244,6 +4272,48 @@
   tests:
   - apps/mobile/e2e/shares.spec.ts
   sec_row: "share-centre"
+- id: INT-313
+  epic: E07-records
+  phase: P0
+  # Reported by INT-138: the confirm cards, the provenance panel and the
+  # extraction reader are all built and all unreachable, because nothing
+  # publishes a document extraction to the app. noExtractionFeed is the only
+  # production ExtractionSource - one, asserted - and it acknowledges no
+  # decision, so under the no-optimistic-write rule no card can ever show as
+  # confirmed. INT-124 owns the producer; the TRANSPORT between it and the
+  # phone is owned by nobody, which is why INT-138 stays todo.
+  title: 'Nothing carries an extraction to the phone: the confirm-card transport
+    is owned by no issue'
+  depends_on:
+  - INT-121
+  - INT-138
+  labels:
+  - area:records
+  - area:api
+  status: todo
+  acceptance:
+  - 'a route publishes extracted items for a document the patient owns, scoped
+    by consent and audited on every read like every other clinical read
+    (invariant 4) - and it carries the SourceBox coordinates the provenance
+    panel renders, because a value without its box is exactly what INT-121
+    refuses to emit'
+  - 'a route accepts a verdict and returns the confirmed item: confirm_record_item
+    takes no `by=` and reads the actor off the closed vocabulary, so the route
+    must not reintroduce a parameter that lets a caller assert who confirmed
+    (invariant 12)'
+  - 'the unit_conflict flag survives the transport intact and is not tidied into
+    a corrected value on the way - the guard exists because a silently converted
+    magnitude is the failure, and a transport that normalises defeats it
+    (invariant 22)'
+  - 'nothing in the payload is instruction-shaped: extracted text crosses the
+    data boundary as data, through the one fence in intake_platform.data_boundary
+    rather than a second implementation of it (invariant 14)'
+  - 'the no-optimistic-write rule holds end to end: a card shows as confirmed
+    only after the server acknowledges the decision, asserted rather than
+    assumed'
+  tests:
+  - tests/records/test_extraction_transport.py
+  sec_row: "records"
 - id: INT-312
   epic: E01-platform
   phase: P0
