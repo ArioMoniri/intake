@@ -1094,4 +1094,8 @@ export const en: Record<MessageKey, string> = {
   "dialogue.openInvite": "You can tell me in your own words.",
   "intake.open.hint": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
+  // --- INT-136 · validated instruments on the typed surface ----------------
+  "intake.instrument.unavailable.title": "This section is closed for now",
+  "intake.instrument.unavailable.body":
+    "The questions for this section are not ready yet. You will see them here once they are; for now you can leave this step empty.",
 };

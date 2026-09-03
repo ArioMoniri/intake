@@ -21,6 +21,7 @@
 | INT-095 | awaiting-human (model provenance; adapters ship, PHI gate fails closed) | owner | Read the raw LICENSE blob at a pinned revision and hash the mirrored weight files for `qwen3.5-9b` (files/03 §4.9.1 row 7) and `whisper-tr-medical` (row 2), so their `observability/registry.yaml` rows carry `model_id@revision` + `weights_sha256` + `licence_verified_at` + the blob url and sha — because row 7 records its blob reading in prose and row 2 records `UNVERIFIED`, and `require_phi_path_pin` therefore refuses both for the PHI path. | HB-I10 |
 | INT-095 | awaiting-human (row 1 unobtained; the ASR adapter ships and runs on row 2) | owner + model-stack author | Is `nvidia/nemotron-3.5-asr-streaming-0.6b` (files/03 §4.9.1 row 1, the *primary* ASR) obtained, mirrored, hashed and served — or is the row withdrawn and row 2 promoted, given that row 2's evidence is three speakers and 120 clips? | HB-I11 |
 | INT-095 | awaiting-human (on-hardware evidence; a real turn ran, on a dev bridge) | owner (procurement) | The acceptance closes only on a real turn **on the target GPU**; there is no pilot card and no signed capacity contract, so `make live-smoke` records `target=dev-bridge` and the issue stays open. | HB-I4, HB-I5 |
+| INT-136 | awaiting-human (ordinal anchors; the overlay ships and reports itself not-ready) | physician of record (**Dr Efe Onganer**) | Under `overlay.low_literacy`, which three or four Turkish ordinal anchors stand in for the eleven-point pain score — or is the numeric scale simply not asked of a patient running that overlay, given that files/02 §3 requires severity to be **numeracy-free** and `packages/protocols`' own base layer records that no anchor wording is authored for either end of that scale? | — (no HB row; ids move under concurrent merges, so the coordinator should allocate one) |
 | licensing | note (non-blocking) | owner | Confirm the split "Apache-2.0 for packages/protocols, proprietary for everything else" (07 §4) — bootstrapped that way pending your word. | — |
 
 ## INT-254 — no CODEOWNERS file, so the protocols review requirement has no mechanism
@@ -118,3 +119,32 @@ anywhere in the repo. The ledger renders the fact's own recorded phrase where th
 value is one and a catalogue label where it is not, and never the slot ref — every
 other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
 is clinical copy against the packs' slot definitions.
+
+## INT-136 — instruments render verbatim, and nothing renders
+
+**Raised:** 3 Sep 2026 · **Named human:** none new — this is HB-C1 and HB-L2/HB-L3
+
+The typed intake's instrument half is built and fails closed. There is exactly
+one route from a pack's `text_tr` to the screen; it copies nothing (proved by
+byte identity against an injected instrument, with an NFD near-miss control);
+the licence is checked before the content, so a fully-authored blocked
+instrument is still refused; and a refusal is rendered as copy rather than as
+`null`, because a step that renders nothing looks finished.
+
+**No instrument item renders**, because none exists to render.
+`apps/mobile/src/lib/intake/instruments.ts` ships `INSTRUMENT_ITEMS = {}` for
+three independent reasons, none of them fixable in this repo: **HB-C1** leaves
+every pack unsigned, so all 93 are `maturity: L0` and none is servable
+(docs/evidence/INT-096.md F4); **HB-L2** and **HB-L3** block C-SSRS and WHO-5;
+and `packages/protocols/base/intake.yaml` states the third itself — *"Instrument
+ITEM text is not authored here: the verbatim Turkish items belong to the
+instrument engine (INT-116)"*.
+
+Nothing extra is owed by a human. When a pack authors a `GO` instrument,
+`apps/mobile/e2e/typed_intake.spec.ts` fails until the app registry carries it
+verbatim, which is how it lands. INT-136 stays `todo` meanwhile.
+
+Separately, and this one **is** a new ask: the pain score. See the table row
+above. `lowLiteracyReadiness` reports the Detaylı pack as not ready and names
+`numeral_anchored:pain_score` rather than inventing a recoding, which is
+HUMAN_BLOCKERS.md rule 1 applied to a scale rather than to a threshold.

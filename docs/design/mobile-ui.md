@@ -600,3 +600,45 @@ because the DECISIONS are design decisions, not layout ones.
   register split asks for in instructional prose — the older hints are the
   recorded findings in `tests/release/test_i18n_complete.py`, and new copy
   does not join them.
+
+## Typed intake: instruments, chips and the size ladder (INT-136, 2026-09-03)
+
+No new primitive, no new colour, no new type role — the step body, the option
+cards and the glass CTA bar are all pass-3/4/6 anatomy. What is recorded here
+are the DECISIONS, because each one is a design decision rather than a layout
+one.
+
+- **An instrument item is the screen's heading, and the catalogue title is not
+  shown beside it.** A validated item is rendered verbatim from the pack's
+  `text_tr` (invariant 10), so putting the app's own question line above it
+  would ask one question twice, in two wordings, one of which is not the
+  validated one. The item replaces the title; it does not sit under it.
+- **A refused instrument is visible.** When the item cannot be administered —
+  a non-`GO` licence, or a pack that has not authored it — the step renders a
+  quiet notice instead of the item. It is not `null`: a step that renders
+  nothing looks finished, and the patient is carried past a section nobody told
+  them was unavailable. The notice is deliberately unalarming and names no
+  scale and no score; an unauthored screening section costs the patient
+  nothing. It carries no CTA, because there is nothing to commit.
+- **Chips are bounded, and this is the INT-295 lesson applied.** A `flexWrap:
+  "wrap"` item gets no shrink in React Native, so a long Turkish option label
+  made the CHIP wider than the row — off-screen, with no horizontal scroll to
+  reach it and truncation banned (files/00 §2). Both option grids (the typed
+  step and the dialogue lane) now carry `maxWidth: "100%"`, so the label wraps
+  inside the chip instead. Asserted across `APP_STEPS` rather than at 1.0,
+  because the app's own text control REPLACES the OS Dynamic Type value: a
+  device sitting at the default says nothing about what the control can ask for.
+- **The severity anchor bound is one constant, not two.** files/02 §3's "3–4
+  ordinal spoken anchors" and `dialogue/speech.ts`'s `MAX_SPOKEN_OPTION_HINTS`
+  are the same Cowan finding reached from two directions; the typed side derives
+  its upper end from the spoken one rather than restating a second literal 4.
+- **The overlay reports rather than repairs.** `overlay.low_literacy` may change
+  delivery and may not remove a question (files/04 §2.3), so where the pack
+  cannot meet a files/02 §3 rule the gate names the step and the overlay says it
+  is not ready. Today that is the eleven-point pain score, which has no authored
+  Turkish ordinal wording — inventing three anchors for it would be a clinical
+  judgement wearing a design decision's clothes.
+- **Progress and resume moved out of the screen.** Both were inline rules only a
+  screenshot could check. They are pack-layer functions now, which is what lets
+  "resumes at the first UNANSWERED question, not the next one in order" be a
+  test rather than a claim.

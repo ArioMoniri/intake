@@ -1407,7 +1407,27 @@
   title: "Typed intake UI (Detayli) + chips + instruments verbatim"
   depends_on: [INT-096, INT-130]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Of the acceptance line's three clauses,
+  # "progress + resume" is delivered and evidenced. The other two are not.
+  #
+  # (a) INSTRUMENT ITEMS RENDERED VERBATIM. The mechanism ships and is proved
+  #     byte-for-byte against an injected instrument with an NFD near-miss
+  #     control, but NO INSTRUMENT ITEM RENDERS, because none exists to render:
+  #     the app registry is empty, and it is empty because HB-C1 leaves every
+  #     pack unsigned (all 93 are maturity L0 — docs/evidence/INT-096.md F4)
+  #     and HB-L2/HB-L3 block C-SSRS and WHO-5. `done` here would read as
+  #     "instruments render today", which is false.
+  # (b) LOW-LITERACY CHIPS. The chips affordance, its reachability at every
+  #     APP_STEPS size, and the four files/02 §3 delivery gates ship. What does
+  #     not hold is that section's "severity is numeracy-free, using 3-4
+  #     ordinal spoken anchors": pain_score is an 11-point scale with no
+  #     authored Turkish anchor wording, and recoding it is a clinical
+  #     judgement (blockers.md, physician of record).
+  #
+  # Reopen against HB-C1 plus the pain-score anchor ask; see
+  # docs/evidence/INT-136.md §5 "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-136.md
   acceptance:
     - "instrument items rendered verbatim; low-literacy chips; progress + resume"
   tests: [apps/mobile/e2e/typed_intake.spec.ts]
