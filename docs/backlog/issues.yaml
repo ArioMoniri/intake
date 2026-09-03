@@ -2604,10 +2604,24 @@
   title: "Legal document set v1 (tr primary): aydinlatma x5, acik riza per purpose, gizlilik, kullanim kosullari, KVKK basvuru formu, cookie"
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
-  status: todo
+  # Four of five acceptance clauses have their mechanism, complete and tested;
+  # the fifth is the sign-off itself, which is a named human's and not an
+  # agent's. Every gate is wired and closed: docs/legal/documents.yaml holds
+  # documents: [], so all twenty-one required ids refuse, no acceptance can be
+  # recorded, and no new consent can be granted. Writing a plausible Turkish
+  # aydinlatma to close the other four would be the drafted-legal-copy
+  # invariant 17 forbids, so the issue stays open.
+  # docs/evidence/INT-210.md §7 is the clause-by-clause account and §8 is the
+  # ask; the ask is filed in docs/backlog/blockers.md and registered as
+  # HB-L27, allocated for the whole twenty-one-document set rather than per
+  # document, because the index is hash-bound as a set and a partially signed
+  # one serves nothing. HB-L27 also supersedes the identical unregistered ask
+  # recorded against INT-038.
+  status: awaiting-human
   acceptance:
     - "docs/legal/ versioned with hashes; rendered in-app from source; acceptance evidence stored; plain-language summaries; counsel sign-off recorded in evidence file before merge"
   tests: [tests/legal/test_text_hash_binding.py]
+  evidence: docs/evidence/INT-210.md
   legal: "KVKK-10,AYD-2018,805"
   sec_row: "consent"
 - id: INT-211
