@@ -4559,3 +4559,48 @@
   tests:
   - tests/infra/test_restore_drill.py
   sec_row: "backups"
+- id: INT-316
+  epic: E08-mobile
+  phase: P1
+  # Reported by the owner as "navbar sizing and different text size sizings and
+  # button and context fitting", and observed on the simulator: on the consent
+  # screen a row's leading label collapses to one or two characters per line
+  # while the trailing pill keeps its intrinsic width. Not a large-text-only
+  # defect: re-derived at the 320 dp floor e2e/shares.spec.ts already commits
+  # to, "Sesli gorusme" beside "Metin hazirlaniyor" is beside at 0.9 and no
+  # longer fits at 1.0 — the OS default text size, with no accessibility
+  # setting touched. ListRow carries consent, records, shares, notifications
+  # and Verileriniz, and SectionPanel hand-rolls the same anatomy, so one
+  # missing flex contract reaches most of the app.
+  title: 'A paired row has no flex contract, so the label collapses while the
+    trailing control keeps its width'
+  depends_on: []
+  labels:
+  - area:mobile
+  - area:a11y
+  status: todo
+  acceptance:
+  - 'a paired row never squeezes its label below the width of that label''s own
+    longest Turkish token; when the label''s floor and the control''s box cannot
+    both hold, the ROW CHANGES FORM and the control takes the line beneath the
+    words it governs — never truncating, never clamping the text harder, never
+    breaking a word mid-syllable (00 §2)'
+  - 'the rule is `isLargeText(scale) || required > available`, decided in
+    apps/mobile/src/lib/a11y/pairedRow.ts and consumed by ListRow, SwitchRow and
+    SectionPanel; LARGE_TEXT_SCALE is BORROWED and no new scalar is minted, and
+    the first frame is derived at the 320 dp floor while a real onLayout width
+    wins the moment it arrives'
+  - 'pairedRow.test.ts proves the rule with four near-miss controls that each
+    isolate exactly one variable — trailing word, scale, label, and settled rows
+    that must stay beside at 0.9 and 1.0 — because a threshold whose test cannot
+    fail is a number rather than a control'
+  - 'e2e/appearance.spec.ts pins that ListRow and SwitchRow are wired to the
+    shared rule and that no `labels: { flex: 1` survives in either;
+    e2e/overflow.spec.ts proves the estimator never under-reserves against the
+    shipped Inter_400Regular.ttf across APP_STEPS'
+  tests:
+  - apps/mobile/src/lib/a11y/pairedRow.test.ts
+  - apps/mobile/e2e/appearance.spec.ts
+  - apps/mobile/e2e/overflow.spec.ts
+  evidence: docs/evidence/INT-316.md
+  sec_row: "mobile"
