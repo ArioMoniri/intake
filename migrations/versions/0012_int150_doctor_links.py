@@ -25,7 +25,7 @@ rows (fail closed). DELETE is granted to ``app_rw`` because a Doctor Link is
 part of the clinical record's crypto-shred set (retention class
 ``doctor_link_tokens``); revocation is an UPDATE, not a delete.
 
-Revision ID: 0011_int150
+Revision ID: 0012_int150
 Revises: 0010_int170
 """
 
@@ -35,8 +35,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
-revision = "0011_int150"
-down_revision = "0010_int170"
+revision = "0012_int150"
+down_revision = "0011_int296"
 branch_labels = None
 depends_on = None
 
