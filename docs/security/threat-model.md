@@ -831,8 +831,30 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   after revocation; [U] the patient unable to see who has access.
 - **Controls (files/10):** §9 share row — instant token revocation, crypto-shredding, signed
   export URLs, deletion SLA; §3 patient-visible access log covering shares and staff reads.
-- **Signals:** revocation latency and deletion SLA (§9) land with INT-139/INT-037.
-- **Tests:** revocation and deletion-proof tests land with INT-139/INT-037.
+  **INT-139 adds the patient's surface for the first two**: the grants over a note, a stop
+  control that is offered on every grant not already stopped, and the access log rendered as a
+  category and a role. Three client controls carry the row's threats. *[I] stale access
+  outliving intent* — the client never caches, never persists and never writes optimistically,
+  so there is no copy for a revocation to have to invalidate and the screen cannot show a grant
+  as stopped that the record does not. *[Nc] incomplete deletion after revocation* — the server's
+  row is the only authority the client consults: `linkState` short-circuits on `spent` so no
+  device clock can retire a live grant, and a revocation shows only once the returned row says
+  so. *[U] the patient unable to see who has access* — the log is on the patient's own screen,
+  and its footer states out loud that it carries a role and never a name, so a missing name reads
+  as a design choice rather than as something withheld.
+- **Signals:** revocation latency and the deletion SLA (§9) are **still owed**. INT-139 does not
+  emit one: the interval is a server-side property and a client metric measuring it on a phone
+  would be measuring the wrong clock, while `observability/metrics_catalog.yaml` carries no entry
+  for it — publishing without a catalogued series is the drift invariant 13 exists to prevent.
+  The measurement taken for INT-139's acceptance is in `docs/evidence/INT-139.md` with its date
+  and corpus; the series belongs to whichever issue lands the server-side publisher.
+- **Tests:** the patient-surface half landed with INT-139 —
+  `apps/mobile/e2e/shares.spec.ts`, `apps/mobile/src/lib/shares/links.test.ts` and
+  `apps/mobile/src/lib/shares/store.test.ts`, including the control that a withdrawal of
+  `share:previsit_note` cannot lock the stop path. The revocation cascade itself is tested on the
+  server by INT-150 (`tests/clinician/test_doctor_link.py`), which is **PR #446, open** — until it
+  merges, `shares.spec.ts` §7 is an inversion that fails the day the router lands. Deletion-proof
+  tests remain INT-037's.
 
 ## `clinic-console` — the clinician web surface
 

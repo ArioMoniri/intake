@@ -1492,7 +1492,21 @@
   title: "Share centre: active shares, revoke <=1min, access log"
   depends_on: [INT-150]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. The second clause is delivered: the
+  # patient's access log is on their own screen, rendered as a category and a
+  # role, with both id-shaped fields dropped at the seam. The first is not,
+  # and the reason is a dependency rather than a decision - INT-150 is PR
+  # #446, OPEN, so services/api/src/intake_api/doctor_link/ does not exist on
+  # main and there is no revoke route here for the cascade test to measure.
+  # The whole mobile half is built against that branch's contract and the
+  # client's own contribution is tested (no cache, no optimistic write, no
+  # poll, one round trip); the cascade interval was measured on the INT-150
+  # worktree and is recorded with its date and corpus in the evidence.
+  # apps/mobile/e2e/shares.spec.ts section 7 is an inversion that FAILS the
+  # day #446 merges, naming the two things whoever merges has to do.
+  # Reopen against INT-150; see docs/evidence/INT-139.md.
   status: todo
+  evidence: docs/evidence/INT-139.md
   acceptance:
     - "revocation cascades to tokens within 1 min (test); patient sees access log"
   tests: [apps/mobile/e2e/shares.spec.ts]

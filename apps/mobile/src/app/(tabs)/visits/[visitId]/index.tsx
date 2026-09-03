@@ -8,6 +8,7 @@ import { ScrollView, StyleSheet } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
+import { ListGroup, ListRow } from "@/components/ListRow";
 import { StatusLadder } from "@/components/StatusLadder";
 import {
   AppText,
@@ -80,6 +81,25 @@ export default function VisitDetail() {
             <StatusLadder current={status} />
           )}
         </Card>
+        {/* Paylaşımlarınız (INT-139; 02 §4 "visit detail: … share centre"):
+            the grants over this note, the control that stops one, and the
+            access log. It appears once the note has left the patient —
+            before that there is nothing to have granted, and INT-150's list
+            route has no note row to hang a grant off. The row is one tap
+            away and never the loudest thing on the screen, which is where a
+            control the patient reaches for rarely belongs. */}
+        {status !== null && status !== "draft" ? (
+          <ListGroup>
+            <ListRow
+              icon="person.2"
+              label={t("shares.title")}
+              sublabel={t("shares.sub")}
+              chevron
+              hint={t("a11y.openHint")}
+              onPress={() => router.push(`/(tabs)/visits/${visit.id}/shares`)}
+            />
+          </ListGroup>
+        ) : null}
         {status === "sent" ? (
           <AppText role="caption" color="inkSoft">
             {t("review.sentInfo")}
