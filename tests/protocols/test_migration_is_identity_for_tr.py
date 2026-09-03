@@ -48,7 +48,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 from protocols.bindings import OperationalTemplate
 from protocols.cli import load_registry
@@ -216,8 +215,12 @@ def _walk(node: object, path: tuple[str, ...]) -> list[tuple[str, object]]:
     return found
 
 
-@pytest.mark.parametrize("tree", BASELINE_TREES, ids=lambda p: p.name)
-def test_the_committed_tree_still_loads(tree: Path) -> None:
-    if tree.name not in {"base", "specialty"}:
-        pytest.skip("only the chain-pack directories load through the registry")
-    assert len(load_registry(tree.parent)) >= 90
+def test_the_committed_tree_still_loads() -> None:
+    """Every migrated pack still parses through the real registry loader.
+
+    The count is asserted, not just the absence of an exception: a loader that
+    silently passed over a file it could no longer parse would leave the tree
+    "loading" with packs missing from it.
+    """
+    registry = load_registry(REPO_ROOT / "packages" / "protocols")
+    assert len(registry) >= 90
