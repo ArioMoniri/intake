@@ -17,10 +17,21 @@ What is proven here:
   ``ConnectionRefusedError`` would prove only that the mock was written.
 * the exit code is the contract. A required lane down exits non-zero, which
   is what makes this usable from a script.
+
+INT-294 adds the second half of that first bullet. INT-249 had proved one
+level down that ``GET /health`` is the wrong question — a VoxCPM2 pinned to
+CPU answers it in milliseconds and cannot finish a turn — and the doctor had
+not caught up, so on 2 Sep 2026 it printed ``voice: UP — every configured lane
+answered`` while the app was muting itself (docs/evidence/INT-293.md). Every
+TTS tier is now asked to SPEAK, with the app's own probe word, timed against
+the app's own committed admission budget; ``asr`` and ``extract`` are not,
+because neither has a healthy-but-unusable mode and POSTing a synthesis at an
+ASR daemon probes something else.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import http.server
 import importlib.util
 import json
@@ -305,3 +316,251 @@ def test_the_makefile_exposes_the_target() -> None:
     makefile = (REPO / "Makefile").read_text(encoding="utf-8")
     assert re.search(r"^voice-doctor:", makefile, re.MULTILINE)
     assert re.search(r"^\.PHONY:.*\bvoice-doctor\b", makefile, re.MULTILINE)
+
+
+# ---------------------------------------------------------------------------
+# INT-294 — a lane that is health-green and cannot speak is not UP
+# ---------------------------------------------------------------------------
+
+WAV = b"RIFF\x00\x00\x00\x00WAVEfmt "
+
+
+class _Speaker(http.server.BaseHTTPRequestHandler):
+    """Two endpoints, independently controllable — the defect in one class."""
+
+    health_status = 200
+    speak_status = 200
+    speak_delay_s = 0.0
+    speak_body = WAV
+    seen: list[str] = []
+
+    def do_GET(self) -> None:  # noqa: N802 — BaseHTTPRequestHandler's name
+        type(self).seen.append(f"GET {self.path}")
+        self.send_response(self.health_status)
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    def do_POST(self) -> None:  # noqa: N802 — BaseHTTPRequestHandler's name
+        length = int(self.headers.get("Content-Length") or 0)
+        body = self.rfile.read(length)
+        type(self).seen.append(f"POST {self.path} {body.decode('utf-8')}")
+        if self.speak_delay_s:
+            threading.Event().wait(self.speak_delay_s)
+        self.send_response(self.speak_status)
+        self.end_headers()
+        self.wfile.write(self.speak_body)
+
+    def log_message(self, *_args: object) -> None:
+        return
+
+
+@contextmanager
+def speaking(
+    health_status: int = 200,
+    speak_status: int = 200,
+    speak_delay_s: float = 0.0,
+    speak_body: bytes = WAV,
+) -> Iterator[tuple[int, list[str]]]:
+    seen: list[str] = []
+    handler = type(
+        "H",
+        (_Speaker,),
+        {
+            "health_status": health_status,
+            "speak_status": speak_status,
+            "speak_delay_s": speak_delay_s,
+            "speak_body": speak_body,
+            "seen": seen,
+        },
+    )
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server.daemon_threads = True
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield int(server.server_address[1]), seen
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_the_probe_word_is_the_apps_own() -> None:
+    source = (MOBILE / "src/lib/dialogue/ttsLane.ts").read_text(encoding="utf-8")
+    match = re.search(r'export const LANE_PROBE_TEXT = "([^"]+)";', source)
+    assert match is not None, "LANE_PROBE_TEXT not found — the gate would be vacuous"
+    assert vd.TTS_PROBE_TEXT == match.group(1)
+
+
+def test_the_probe_word_carries_no_numeral() -> None:
+    # Invariant 22: no numeral reaches any TTS model, including from a doctor.
+    assert not any(ch.isdigit() for ch in vd.TTS_PROBE_TEXT)
+    assert vd.TTS_PROBE_TEXT.strip()
+
+
+def test_the_budget_is_the_apps_committed_admission_budget() -> None:
+    source = (MOBILE / "src/lib/dialogue/tts.ts").read_text(encoding="utf-8")
+    match = re.search(r"export const TURN_ROUND_TRIP_BUDGET_MS = (\d+);", source)
+    assert match is not None, "TURN_ROUND_TRIP_BUDGET_MS not found in the app"
+    assert vd.TTS_BUDGET_MS == int(match.group(1))
+
+
+# ---------------------------------------------------------------------------
+# A lane that is health-green and cannot speak is not UP
+# ---------------------------------------------------------------------------
+
+
+def test_a_healthy_lane_that_speaks_inside_the_budget_is_up() -> None:
+    # The near-miss control for every assertion below it: the change must not
+    # simply make TTS lanes fail.
+    with speaking() as (port, _seen):
+        verdict = vd.probe_lane(
+            vd.Lane(id="tts:freya", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=1000,
+        )
+    assert verdict.ok is True
+    assert verdict.detail == "ok"
+
+
+def test_a_healthy_lane_that_cannot_speak_in_time_reads_over_budget() -> None:
+    with speaking(speak_delay_s=0.3) as (port, _seen):
+        verdict = vd.probe_lane(
+            vd.Lane(id="tts:voxcpm2", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=50,
+        )
+    assert verdict.ok is False
+    assert "over budget" in verdict.detail
+
+
+def test_a_lane_that_answers_with_no_audio_reads_silent_not_up() -> None:
+    with speaking(speak_body=b"") as (port, _seen):
+        verdict = vd.probe_lane(
+            vd.Lane(id="tts:voxcpm2", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=1000,
+        )
+    assert verdict.ok is False
+    assert verdict.detail == "silent"
+
+
+def test_a_lane_that_refuses_the_synthesis_says_so() -> None:
+    with speaking(speak_status=503) as (port, _seen):
+        verdict = vd.probe_lane(
+            vd.Lane(id="tts:voxcpm2", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=1000,
+        )
+    assert verdict.ok is False
+    assert "503" in verdict.detail
+
+
+def test_a_lane_whose_health_is_down_is_never_asked_to_speak() -> None:
+    with speaking(health_status=503) as (port, seen):
+        verdict = vd.probe_lane(
+            vd.Lane(id="tts:voxcpm2", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=1000,
+        )
+    assert verdict.ok is False
+    assert verdict.detail == "http 503"
+    assert not [line for line in seen if line.startswith("POST")]
+
+
+def test_the_probe_posts_the_apps_word_to_synthesize() -> None:
+    with speaking() as (port, seen):
+        vd.probe_lane(
+            vd.Lane(id="tts:freya", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=1000,
+        )
+    posts = [line for line in seen if line.startswith("POST")]
+    assert len(posts) == 1
+    path, body = posts[0][len("POST ") :].split(" ", 1)
+    assert path == "/synthesize"
+    assert json.loads(body) == {"text": vd.TTS_PROBE_TEXT}
+
+
+def test_asr_and_extract_are_not_asked_to_speak() -> None:
+    # A doctor that POSTs /synthesize at the ASR daemon is probing something
+    # the app never asks of it, and would report a lane down that is not.
+    for group in ("asr", "extract"):
+        with speaking() as (port, seen):
+            verdict = vd.probe_lane(
+                vd.Lane(id=group, port=port, group=group),
+                "127.0.0.1",
+                timeout_s=2.0,
+                budget_ms=1000,
+            )
+        assert verdict.ok is True
+        assert not [line for line in seen if line.startswith("POST")], group
+
+
+def test_the_probe_keeps_a_duration_and_never_the_audio() -> None:
+    # Invariant 3's posture for agent audio by construction: there is no path
+    # from a doctor probe to a byte anyone can read back.
+    with speaking() as (port, _seen):
+        verdict = vd.probe_lane(
+            vd.Lane(id="tts:freya", port=port, group="tts"),
+            "127.0.0.1",
+            timeout_s=2.0,
+            budget_ms=1000,
+        )
+    fields = {f.name for f in dataclasses.fields(verdict)}
+    assert fields == {"base", "ok", "detail", "elapsed_s"}
+
+
+# ---------------------------------------------------------------------------
+# The exit code reflects it
+# ---------------------------------------------------------------------------
+
+
+def test_a_ladder_that_is_green_but_mute_exits_non_zero() -> None:
+    results = [
+        _result("asr", "asr", ok=True, detail="ok"),
+        _result("extract", "extract", ok=True, detail="ok"),
+        _result("tts:voxcpm2", "tts", ok=False, detail="over budget (3990 ms)"),
+        _result("tts:freya", "tts", ok=False, detail="over budget (2800 ms)"),
+    ]
+    assert vd.exit_code(results) == 1
+    assert "DOWN" in vd.summary_line(results)
+
+
+def test_one_tier_that_can_actually_speak_is_still_a_healthy_ladder() -> None:
+    results = [
+        _result("asr", "asr", ok=True, detail="ok"),
+        _result("extract", "extract", ok=True, detail="ok"),
+        _result("tts:voxcpm2", "tts", ok=False, detail="over budget (3990 ms)"),
+        _result("tts:freya", "tts", ok=True, detail="ok"),
+    ]
+    assert vd.exit_code(results) == 0
+    summary = vd.summary_line(results)
+    assert summary.startswith("voice: UP")
+    assert "every configured lane answered" not in summary
+    assert "tts:voxcpm2" in summary
+
+
+def test_the_over_budget_reason_reaches_the_printed_line() -> None:
+    line = vd.lane_line(_result("tts:voxcpm2", "tts", ok=False, detail="over budget (3990 ms)"))
+    assert "over budget" in line
+    assert "DOWN" in line
+
+
+def test_the_summary_names_what_a_lane_did_rather_than_renaming_it() -> None:
+    # The first real run after this change printed "voice: UP — tts:voxcpm2
+    # unreachable" about a tier that was reachable, health-green, and merely
+    # too slow to speak. A summary that renames the verdict hides it.
+    results = [
+        _result("asr", "asr", ok=True, detail="ok"),
+        _result("tts:voxcpm2", "tts", ok=False, detail="over budget (>1684 ms)"),
+        _result("tts:freya", "tts", ok=True, detail="ok"),
+    ]
+    summary = vd.summary_line(results)
+    assert "over budget" in summary
+    assert "unreachable" not in summary
