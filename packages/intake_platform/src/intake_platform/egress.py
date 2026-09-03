@@ -197,6 +197,15 @@ class EgressPurpose(StrEnum):
     #: file's own test asserts the stronger direction: this member must not
     #: appear there.
     CLINICAL_RECORD_PUSH = "clinical_record_push"
+    #: INT-161 / ADR-027. A SMART backend services token exchange: the second
+    #: host a FHIR push needs, and the one that must never carry a clinical
+    #: byte. Separated from ``CLINICAL_RECORD_PUSH`` rather than folded into
+    #: it because a purpose is a permission — an authorization server that
+    #: inherited the push purpose would be a destination approved to receive
+    #: patient records, which is ADR-025's fifth bypass granted by a shortcut.
+    #: Like the push purpose, its destinations are per-tenant registry data,
+    #: so it never appears in ``infra/security/egress-allowlist.yaml`` either.
+    CONNECTOR_AUTHORIZATION = "connector_authorization"
 
 
 class DataClass(StrEnum):

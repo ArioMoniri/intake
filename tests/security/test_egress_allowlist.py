@@ -446,11 +446,16 @@ def test_the_transport_refuses_a_wrong_purpose_before_resolving() -> None:
 #: in this file (INT-160 / ADR-026): a hospital push endpoint is per-tenant
 #: data, registered out-of-band and bound to a signed DPA (files/10 inv. 46),
 #: so it is declared by `infra/connectors/destinations.yaml` and the
-#: `ConnectorDestination` schema instead. Naming the exemption here rather than
-#: dropping the assertion keeps the "no dead members" rule intact, and the test
-#: below adds the direction that matters more: such a purpose must be ABSENT
-#: from this file, never merely optional in it.
-NON_VENDOR_PURPOSES = frozenset({EgressPurpose.CLINICAL_RECORD_PUSH})
+#: `ConnectorDestination` schema instead. INT-161 / ADR-027 adds the second
+#: one for the same reason: a SMART token endpoint is the same per-tenant
+#: registry data, and putting it here would make one hospital's authorization
+#: server reachable by every process and every tenant. Naming the exemption
+#: here rather than dropping the assertion keeps the "no dead members" rule
+#: intact, and the test below adds the direction that matters more: such a
+#: purpose must be ABSENT from this file, never merely optional in it.
+NON_VENDOR_PURPOSES = frozenset(
+    {EgressPurpose.CLINICAL_RECORD_PUSH, EgressPurpose.CONNECTOR_AUTHORIZATION}
+)
 
 
 def _shipped_rows() -> list[AllowlistEntry]:

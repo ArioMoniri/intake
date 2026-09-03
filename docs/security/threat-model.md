@@ -996,6 +996,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   whose delivery is unknown, which is the series that decides whether a retry is safe
   (INT-160; all three catalogued in `observability/metrics_catalog.yaml` — files/08 §4
   names no id for this row, so they enter the catalogue without one).
+  `connector_token_exchange_total{endpoint,outcome}` (INT-161) separates a failed SMART
+  token exchange from a failed push, because they have different fixes — a key, a client
+  registration or an authorization-server outage rather than a bundle or a network — and
+  its outcome label is a closed set of our own codes rather than the receiver's status, so
+  a receiver cannot choose our cardinality.
   `admin.connector_endpoint_changed_total` stays `planned`: a destination is a reviewed
   commit to `infra/connectors/destinations.yaml`, not a runtime event, and it arrives with
   the console (INT-19x).
@@ -1013,6 +1018,17 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   file refusing rather than loading empty, and the adapter-built path re-checked at send
   time. `tests/security/test_egress_allowlist.py` additionally asserts that a
   clinical-push purpose never appears in the vendor allow-list.
+  `tests/connectors/test_fhir_push.py` (INT-161) — the FHIR adapter re-encodes nothing (a
+  `Decimal` driven end to end proves the bytes are identical, so invariant 22's boundary is
+  held by not having one), the `OperationOutcome` narrative is never read, and a failure is
+  diagnosed from headers alone: the status, a closed-vocabulary OAuth error from
+  `WWW-Authenticate`, and a `Content-Type` that says whether a FHIR server answered at all.
+  `tests/connectors/test_smart_backend_services.py` — the second host and its own non-PHI
+  purpose (ADR-027; one host serving both roles still needs both permissions, and each
+  refuses the other's traffic), the token endpoint never discovered, the assertion's `exp`
+  clamped by the share consent's expiry, one token per push with no cache, an unsupported
+  key refused before anything leaves, and the framework headers an adapter cannot
+  overwrite.
 
 ## `kiosk` — shared devices in clinics
 

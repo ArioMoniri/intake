@@ -17,6 +17,7 @@ __all__ = [
     "CONNECTOR_PUSH_DURATION_SECONDS",
     "CONNECTOR_PUSH_TOTAL",
     "CONNECTOR_RECEIPTS_UNRESOLVED_TOTAL",
+    "CONNECTOR_TOKEN_EXCHANGE_TOTAL",
 ]
 
 CONNECTOR_PUSH_TOTAL = Counter(
@@ -39,4 +40,18 @@ CONNECTOR_RECEIPTS_UNRESOLVED_TOTAL = Counter(
     "connector_receipts_unresolved_total",
     "Pushes settled as unresolved — bytes may or may not have reached the receiver.",
     ("endpoint",),
+)
+
+#: INT-161. A SMART token exchange is a *separate* failure from a push
+#: failure and has a separate fix — a key, a registration or an authorization
+#: server outage rather than a bundle or a network — so files/10 §9's
+#: "endpoint errors" signal needs to tell them apart. The outcome label is
+#: bucketed into six of our own values rather than carrying a receiver's
+#: status code, because a status is receiver-chosen and a label a receiver
+#: chooses is cardinality a receiver chooses. The precise code still lands in
+#: the receipt's `outcome_code`, which nothing indexes.
+CONNECTOR_TOKEN_EXCHANGE_TOTAL = Counter(
+    "connector_token_exchange_total",
+    "SMART backend services token exchanges by registered endpoint and bucketed outcome.",
+    ("endpoint", "outcome"),
 )

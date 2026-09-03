@@ -1820,10 +1820,16 @@
   title: "FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth)"
   depends_on: [INT-160, INT-033]
   labels: [area:connectors, approval:human-vendor, live-smoke]
-  status: todo
+  # Three of four acceptance clauses are met. The fourth — a live smoke against
+  # a partner sandbox — has no sandbox to run against: HB-A5 records that the
+  # partner's interfaces are UNVERIFIED and HB-A15 that no destination, DPA,
+  # approval or credential exists. Not an agent's to supply, so the issue stays
+  # open. docs/evidence/INT-161.md §7 is the clause-by-clause account.
+  status: awaiting-human
   acceptance:
     - "contract tests vs HAPI; SMART backend client credentials; scoped by share consent token; live smoke against a partner sandbox recorded before close"
-  tests: [tests/connectors/test_fhir_push.py]
+  tests: [tests/connectors/test_fhir_push.py, tests/connectors/test_smart_backend_services.py]
+  evidence: docs/evidence/INT-161.md
   legal: "KVKK-8"
   sec_row: "connectors"
 - id: INT-162
