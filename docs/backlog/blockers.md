@@ -306,3 +306,31 @@ server rather than against *the partner's* — which is precisely what HB-A5 say
 still refuses, and the SMART path fails closed at each of its own gates: an unregistered
 token host is refused by the egress guard, an unloadable key never reaches the wire, and a
 grant narrower than the row declares stops the push before a byte of the bundle leaves.
+
+## INT-019 — two CI gates are wired to a workflow file this session may not edit
+
+**Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O6
+
+`.github/workflows/security.yml` is hook-protected, so INT-019 could diagnose the `gitleaks`
+and `vulnerabilities` failures and fix neither. Three one-line edits, all proven rather than
+guessed, all written out verbatim in HB-O6 and in docs/evidence/INT-019.md: the `gitleaks`
+job's missing `pull-requests: read`, the osv-scanner action path plus its removed `--skip-git`
+flag, and `trivyignores: .trivyignore.yaml` on the trivy step.
+
+**What is NOT the cause, so it is not re-investigated:** gitleaks does not need a
+`GITLEAKS_LICENSE` — the action logs *"[ArioMoniri] is an individual user. No license key is
+required"* before it crashes — and it does not need a version bump. It needs the
+`pull-requests: read` scope that the workflow's top-level `permissions: contents: read`
+takes away.
+
+**Why (c) exists at all:** trivy 0.74 auto-detects the plain-text `.trivyignore` and not the
+YAML form, so a PURL-scoped ignore row is inert unless the path is passed explicitly. The row
+had been drafted in the INT-019 worktree, never committed and never exercised, so it did
+nothing — `make security` now passes `--ignorefile` and a test pins that, but the CI side
+needs the action input.
+
+**What lands the moment (b) is applied:** the `vulnerabilities` job starts working and
+immediately reports 8 real npm advisories (1 Critical, 3 High) that no gate in this repo has
+ever run against. That is the gate doing its job on a tree that has never been scanned, not a
+regression from INT-019. Bumping `vitest`, `vite`, `uuid`, `esbuild` and `decode-uri-component`
+is a `pnpm-lock.yaml` change that races every open branch and needs its own issue.

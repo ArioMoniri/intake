@@ -4,10 +4,37 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "public artefact identifiers that pattern-match secret heuristics"
 regexes = [
   # actions/cache keys naming the pinned deid model artefact + sha fragment —
   # the sha is public (it is IN the Makefile pin); nothing here grants access.
   '''deid-tr-ner-v1-[0-9a-f]{8}''',
 ]
+
+# INT-019 — the two false positives the full-history scan surfaces.
+#
+# Both are matched against the CAPTURED SECRET (gitleaks' default regexTarget)
+# and ANCHORED end to end, which is the only scoping that provably cannot
+# silence anything else. `paths` is deliberately NOT used: a path allowlist
+# exempts the whole file, so a real key pasted into that same file would stop
+# being a finding — scripts/ci/gate_selftest.sh plants exactly that in each of
+# the two files these rows name and asserts gitleaks still rejects it, and
+# tests/ci/test_security_gates.py asserts that near-miss is still there.
+
+[[allowlists]]
+description = "credential that is an env-var REFERENCE, not a literal"
+# gitleaks' `curl-auth-user` rule matches any `-u name:value` without asking
+# whether the value is a literal. In infra/docker-compose.siem.yml the value
+# is a compose-escaped variable reference — `curl -sk -u admin:$${INDEXER_PASSWORD}`
+# — so the file holds no credential at all; the real one comes from OpenBao
+# (invariant 14). Anchored, so `admin:Sup3rS3cret` on the same flag still fails.
+regexes = ['''^[A-Za-z0-9_.-]+:\$\$?\{[A-Za-z_][A-Za-z0-9_]*\}$''']
+
+[[allowlists]]
+description = "product name in prose matched by generic-api-key"
+# The captured 'secret' is the literal string `WAF/CrowdSec` — two security
+# product names in the monitoring-signals sentence of files/10 §7 ("token
+# reuse detections, WAF/CrowdSec blocks, admin actions…"). Anchored to that
+# exact string, so any other high-entropy run in the same file still fails.
+regexes = ['''^WAF/CrowdSec$''']
