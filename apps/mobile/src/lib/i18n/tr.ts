@@ -1168,6 +1168,16 @@ export const tr = {
   "csat.reason.helpful": "Yardımcı oldu",
   "csat.reason.feltHeard": "Dinlendiğimi hissettim",
   "csat.thanks": "Teşekkür ederiz.",
+  // --- INT-136 · validated instruments on the typed surface ----------------
+  // What the screen says when an instrument cannot be administered. It names
+  // no scale and no score: the item text itself is never in this catalogue
+  // (invariant 10 — it comes verbatim from the pack), and today no pack is
+  // servable (HB-C1) and two of the four instruments are licence-BLOCKED
+  // (HB-L2, HB-L3). Deliberately unalarming: an unauthored screening section
+  // costs the patient nothing.
+  "intake.instrument.unavailable.title": "Bu bölüm şimdilik kapalı",
+  "intake.instrument.unavailable.body":
+    "Bu bölümün soruları henüz hazır değil. Hazır olduğunda burada göreceksiniz; şimdilik bu adımı boş bırakabilirsiniz.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

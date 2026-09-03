@@ -5,10 +5,13 @@ import { tr } from "../i18n/tr";
 import {
   allQuestions,
   applicableQuestions,
+  intakeProgress,
   missingQuestions,
   nextApplicableQuestion,
   optionLabelKey,
   packForDepartment,
+  packForVisit,
+  resumeQuestion,
   type AskIf,
   type IntakeQuestion,
 } from "./questions";
@@ -553,5 +556,98 @@ describe("allQuestions ordering (the note builder renders HPI lines in this orde
       const filtered = allQuestions.filter((q) => packIds.has(q.id)).map((q) => q.id);
       expect(filtered).toEqual(pack.map((q) => q.id));
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-136 — progress + resume, lifted out of the screen so they can   */
+/* be held without a renderer.                                         */
+/* ------------------------------------------------------------------ */
+
+describe("resume", () => {
+  const pack = packForVisit(undefined, { mode: "hizli" });
+
+  it("opens a fresh visit at the first applicable question", () => {
+    expect(resumeQuestion(pack, [])?.id).toBe(pack[0].id);
+  });
+
+  it("returns to the first UNANSWERED question, not the next one in order", () => {
+    // The resume promise of the flow shells (docs/design/mobile-ui.md): a
+    // patient who left after two answers comes back to the third question,
+    // not to the top and not past a gap.
+    const answers = [
+      { questionId: pack[0].id, values: ["x"] },
+      { questionId: pack[2].id, values: ["y"] },
+    ];
+    expect(resumeQuestion(pack, answers)?.id).toBe(pack[1].id);
+  });
+
+  it("lands on the last applicable question when everything is answered", () => {
+    const answers = pack.map((q) => ({ questionId: q.id, values: ["x"] }));
+    const applicable = applicableQuestions(pack, answers);
+    expect(resumeQuestion(pack, answers)?.id).toBe(applicable[applicable.length - 1].id);
+  });
+
+  it("honours an explicit request, which is the review screen's pencil", () => {
+    expect(resumeQuestion(pack, [], pack[3].id)?.id).toBe(pack[3].id);
+  });
+
+  it("ignores a request for a question this pack does not ask", () => {
+    expect(resumeQuestion(pack, [], "not_a_question")?.id).toBe(pack[0].id);
+  });
+
+  it("resumes at a question a later answer has just revealed", () => {
+    const gastro = packForVisit("Gastroenteroloji", { mode: "hizli" });
+    const gated = gastro.find((q) => q.askIf !== undefined);
+    expect(gated).toBeDefined();
+    const answers = gastro
+      .filter((q) => q.askIf === undefined)
+      .map((q) => ({ questionId: q.id, values: q.options?.[0] ? [q.options[0].id] : ["x"] }));
+    const resumed = resumeQuestion(gastro, answers);
+    expect(resumed).not.toBeNull();
+    expect(answers.some((a) => a.questionId === resumed!.id)).toBe(false);
+  });
+
+  it("returns null rather than inventing a step for an empty pack", () => {
+    expect(resumeQuestion([], [])).toBeNull();
+  });
+
+  it("has something applicable to open on every shipped pack, in both modes", () => {
+    // The screen's non-null fallback rests on this: a pack's first questions
+    // are ungated, so `resumeQuestion` never returns null in the app.
+    for (const department of [undefined, "Kardiyoloji", "Nöroloji", "Dermatoloji"]) {
+      for (const mode of ["hizli", "detayli"] as const) {
+        const shipped = packForVisit(department, { mode });
+        expect(applicableQuestions(shipped, []).length, `${department}/${mode}`).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe("progress", () => {
+  const pack = packForVisit(undefined, { mode: "hizli" });
+
+  it("counts answers, never a fixed total", () => {
+    expect(intakeProgress(pack, []).answered).toBe(0);
+    const answers = [{ questionId: pack[0].id, values: ["x"] }];
+    expect(intakeProgress(pack, answers).answered).toBe(1);
+  });
+
+  it("counts only APPLICABLE answers, so a closed gate does not inflate it", () => {
+    const gastro = packForVisit("Gastroenteroloji", { mode: "hizli" });
+    const gated = gastro.find((q) => q.askIf !== undefined)!;
+    const answers = [{ questionId: gated.id, values: ["x"] }];
+    const progress = intakeProgress(gastro, answers);
+    expect(progress.applicable.some((q) => q.id === gated.id)).toBe(false);
+    expect(progress.answered).toBe(0);
+  });
+
+  it("says the flow can still grow while a gate is unmet", () => {
+    const gastro = packForVisit("Gastroenteroloji", { mode: "hizli" });
+    expect(intakeProgress(gastro, []).canGrow).toBe(true);
+  });
+
+  it("stops saying so once nothing is left to reveal", () => {
+    expect(intakeProgress(pack.filter((q) => q.askIf === undefined), []).canGrow).toBe(false);
   });
 });

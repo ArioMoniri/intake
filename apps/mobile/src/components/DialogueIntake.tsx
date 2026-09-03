@@ -741,8 +741,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: "center",
+    // INT-136: the same bound the typed lane's chips carry. A wrap item gets
+    // no shrink in React Native, so an option label wider than the row would
+    // put the chip off-screen with no horizontal scroll to reach it, and
+    // truncating it is banned (files/00 §2).
+    maxWidth: "100%",
   },
   bottomStack: { position: "absolute", left: 0, right: 0, bottom: 0 },
   barItem: { marginBottom: spacing.sm },
