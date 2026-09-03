@@ -4261,7 +4261,8 @@
   - area:security
   - area:platform
   - area:voice
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-312.md
   acceptance:
   - 'the redactors see what speech actually produces: digit groups (a spaced or
     hyphenated eleven-digit run), Turkish digit words, and the mixtures a
@@ -4280,6 +4281,9 @@
     field a transcript could occupy - both asserted before and after'
   - 'any leak-rate figure lives only in docs/evidence/ with a date and the named
     corpus, described as a measurement of that corpus on that day (invariant 20)'
+  # The RT-13 cases have always lived in test_adversarial_rt12_14.py, not
+  # rt09_14; the field is corrected to the files that actually carry them.
   tests:
-  - tests/safety/test_adversarial_rt09_14.py
+  - tests/safety/test_adversarial_rt12_14.py
+  - tests/platform/test_spoken_identifiers.py
   sec_row: "identifiers"

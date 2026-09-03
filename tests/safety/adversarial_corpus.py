@@ -301,6 +301,11 @@ def _checksum_digits(first_nine: str) -> str:
 #: two digits the published algorithm forces.
 SYNTHETIC_TCKN: Final = "100000000" + _checksum_digits("100000000")
 
+#: A second one, built the same way from a leading 2, for the utterance that
+#: carries two identifiers. Nothing about the fix may depend on there being
+#: only one number in a sentence.
+SECOND_SYNTHETIC_TCKN: Final = "200000000" + _checksum_digits("200000000")
+
 #: Eleven digits, checksum-failing — a lab accession number. The control that
 #: separates a TCKN redactor from a number shredder.
 ACCESSION_NUMBER_11_DIGITS: Final = "98765432101"
@@ -328,7 +333,7 @@ class SpokenForm:
     why: str
 
 
-def _spaced_groups(value: str, sizes: Sequence[int]) -> str:
+def _grouped(value: str, sizes: Sequence[int], separator: str = " ") -> str:
     out: list[str] = []
     cursor = 0
     for size in sizes:
@@ -336,26 +341,87 @@ def _spaced_groups(value: str, sizes: Sequence[int]) -> str:
         cursor += size
     if cursor != len(value):
         raise AssertionError("the group sizes do not cover the value")
-    return " ".join(out)
+    return separator.join(out)
 
 
-SPOKEN_TCKN_FORMS: Final[tuple[SpokenForm, ...]] = (
-    SpokenForm(
-        id="spaced-groups",
-        transcript=_spaced_groups(SYNTHETIC_TCKN, (3, 3, 3, 2)),
-        why="Turkish speakers group an eleven-digit id, and an ASR keeps the pauses.",
-    ),
-    SpokenForm(
-        id="digit-words",
-        transcript=" ".join(_TR_DIGITS[int(char)] for char in SYNTHETIC_TCKN),
-        why="Read digit by digit, an ASR without inverse text normalisation emits words.",
-    ),
-)
+def _digit_words(value: str) -> str:
+    return " ".join(_TR_DIGITS[int(char)] for char in value)
+
+
+def spoken_forms(value: str) -> tuple[SpokenForm, ...]:
+    """The four shapes an eleven-digit id arrives in when it is said out loud.
+
+    Built from ``value`` rather than typed out, so the checksum-valid identifier
+    and the checksum-failing accession number are the **same four shapes**. That
+    is what makes the accession a control rather than a different test: if a
+    shape stops being masked, or starts being masked when it should not, only
+    the checksum can be the reason.
+    """
+    return (
+        SpokenForm(
+            id="spaced-groups",
+            transcript=_grouped(value, (3, 3, 3, 2)),
+            why="Turkish speakers group an eleven-digit id, and an ASR keeps the pauses.",
+        ),
+        SpokenForm(
+            id="hyphenated-groups",
+            transcript=_grouped(value, (2, 3, 3, 3), "-"),
+            why=(
+                "A recogniser with light inverse text normalisation punctuates the "
+                "pauses instead of keeping them, and groups where the speaker did not."
+            ),
+        ),
+        SpokenForm(
+            id="digit-words",
+            transcript=_digit_words(value),
+            why="Read digit by digit, an ASR without inverse text normalisation emits words.",
+        ),
+        SpokenForm(
+            id="mixed-words-and-groups",
+            transcript=" ".join(
+                (_digit_words(value[:3]), value[3:6], value[6:9], _digit_words(value[9:]))
+            ),
+            why=(
+                "Normalisation is per-segment, so one utterance carries both: the "
+                "recogniser converts the runs it is confident about and leaves the rest "
+                "as words."
+            ),
+        ),
+    )
+
+
+SPOKEN_TCKN_FORMS: Final[tuple[SpokenForm, ...]] = spoken_forms(SYNTHETIC_TCKN)
+
+#: The same four shapes over the checksum-failing accession number. The written
+#: control (``ACCESSION_NUMBER_11_DIGITS``) proves the contiguous tier is not a
+#: number shredder; these prove the spoken tier is not one either, which is the
+#: only place the new normalisation could turn into one.
+SPOKEN_ACCESSION_FORMS: Final[tuple[SpokenForm, ...]] = spoken_forms(ACCESSION_NUMBER_11_DIGITS)
+
+#: Fifteen days of pain and three sleepless nights. Turkish digit words are
+#: ordinary clinical speech, and over-masking a duration is a clinical harm
+#: rather than a nuisance: a redacted duration is a lost history.
+SPOKEN_DURATION_UTTERANCE: Final = "On beş gündür ağrım var, iki üç gece de uyuyamadım."
 
 
 def utterance_with(value: str) -> str:
     """The identifier inside an ordinary sentence, the way it would arrive."""
     return f"Kimlik numaram {value}, kayıt için lazımsa söyleyeyim."
+
+
+def utterance_with_duration(value: str) -> str:
+    """The identifier and a duration in one breath, with no punctuation between.
+
+    The hard case for any candidate window: the digit word that starts the
+    duration is adjacent to the last digit of the identifier, so a window that
+    could end anywhere would eat ``beş`` and the note would lose the interval.
+    """
+    return f"Kimlik numaram {value} beş gündür ağrım var."
+
+
+def utterance_with_two(first: str, second: str) -> str:
+    """Two identifiers in one utterance, in two different spoken shapes."""
+    return f"Kimlik numaram {first}, eşiminki {second}, ikisini de yazın."
 
 
 # ---------------------------------------------------------------------------
