@@ -30,6 +30,8 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@26.4.0)(lightningcss@1.33.0)(terser@5.51.2)
 
+  apps/admin-web: {}
+
   apps/mobile:
     dependencies:
       '@expo-google-fonts/fraunces':

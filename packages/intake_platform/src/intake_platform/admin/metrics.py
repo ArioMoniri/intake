@@ -19,6 +19,7 @@ from prometheus_client import Counter
 __all__ = [
     "ADMIN_BREAK_GLASS_OPENED_TOTAL",
     "ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL",
+    "ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL",
     "ADMIN_PENDING_ACTION_EXPIRED_TOTAL",
     "SEC_ADMIN_ACTIONS_TOTAL",
     "SEC_BREAK_GLASS_TOTAL",
@@ -50,4 +51,16 @@ ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL = Counter(
 ADMIN_PENDING_ACTION_EXPIRED_TOTAL = Counter(
     "admin_pending_action_expired_total",
     "Pending dangerous actions that expired unapproved.",
+)
+
+#: INT-183. The alert attached to `admin.models.benchmark.run` (files/08 §8.2
+#: requires one: "a registered action with no alert is not detected"). Both
+#: labels are closed: `actor` is a staff account subject, `kind` a
+#: BenchmarkKind member, `outcome` a two-valued verdict — never a patient,
+#: never free text, never a component's own name, which is unbounded by
+#: nothing but the registry (invariant 6).
+ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL = Counter(
+    "admin_model_benchmark_requested_total",
+    "Model benchmark triggers, by actor, lane and outcome.",
+    ["actor", "kind", "outcome"],
 )

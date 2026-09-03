@@ -144,6 +144,14 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
     RouteDrive("GET", "/admin/whoami", "/admin/whoami", "auditor"),
     RouteDrive("GET", "/admin/access/roles", "/admin/access/roles", "auditor"),
     RouteDrive("GET", "/admin/actions", "/admin/actions", "auditor"),
+    RouteDrive("GET", "/admin/models", "/admin/models", "sre_oncall"),
+    RouteDrive(
+        "POST",
+        "/admin/models/{component}/benchmark",
+        "/admin/models/postgres/benchmark",
+        "sre_oncall",
+        {"kind": "latency"},
+    ),
     RouteDrive(
         "POST", "/admin/break-glass", "/admin/break-glass", "clinical_lead", BREAK_GLASS_BODY
     ),
