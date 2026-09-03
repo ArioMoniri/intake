@@ -29,6 +29,13 @@ The fired rules are deliberately **not** facts. files/04 §5 already gives each
 one an ``evidence`` string — that is a rule's source — and adding a
 ``RULES_ENGINE`` row to the attribution table would create a second, weaker
 path for a level to reach the note.
+
+INT-299 adds a fourth refusal that rides on the same ``Sourced`` signature:
+the composer carries a translated item's **original** onto the fact it files,
+so the patient's own words reach every renderer beside the Turkish they were
+rendered into. It adds no code path of its own — an item that is translated
+and carries no original cannot be constructed, and one that carries an
+original without being marked translated cannot either.
 """
 
 from __future__ import annotations
@@ -186,6 +193,7 @@ class _FactIndex:
                 subject=sourced.subject,
                 lines=tuple(lines),
                 span=sourced.span,
+                translation=sourced.translation,
             )
         )
 

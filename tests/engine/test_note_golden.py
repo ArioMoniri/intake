@@ -335,19 +335,21 @@ class TestSourceSpanIsStructural:
 
 class TestAttribution:
     def test_the_attribution_table_is_exactly_the_declared_one(self) -> None:
+        """Written out member by member rather than derived, so widening a row
+        is a diff a reviewer reads. INT-299 widened eight of the nine with
+        ``TRANSLATED``: a translated answer goes wherever the patient's own
+        answer goes, and ``imported_objective`` — the record-only row — is the
+        one it does not reach."""
+        self_reported = frozenset({Attribution.PATIENT_SELF, Attribution.TRANSLATED})
         assert SECTION_ATTRIBUTIONS == {
-            "chief_complaint": frozenset({Attribution.PATIENT_SELF}),
-            "hpi": frozenset({Attribution.PATIENT_SELF}),
-            "ros_pertinent": frozenset({Attribution.PATIENT_SELF}),
-            "pmh": frozenset({Attribution.PATIENT_SELF, Attribution.RECORD, Attribution.CARRIED}),
-            "medications": frozenset(
-                {Attribution.PATIENT_SELF, Attribution.RECORD, Attribution.CARRIED}
-            ),
-            "allergies": frozenset(
-                {Attribution.PATIENT_SELF, Attribution.RECORD, Attribution.CARRIED}
-            ),
-            "family_social": frozenset({Attribution.PATIENT_SELF, Attribution.RELATIVE}),
-            "measurements": frozenset({Attribution.PATIENT_SELF}),
+            "chief_complaint": self_reported,
+            "hpi": self_reported,
+            "ros_pertinent": self_reported,
+            "pmh": self_reported | {Attribution.RECORD, Attribution.CARRIED},
+            "medications": self_reported | {Attribution.RECORD, Attribution.CARRIED},
+            "allergies": self_reported | {Attribution.RECORD, Attribution.CARRIED},
+            "family_social": self_reported | {Attribution.RELATIVE},
+            "measurements": self_reported,
             "imported_objective": frozenset({Attribution.RECORD}),
         }
 

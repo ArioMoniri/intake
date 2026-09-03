@@ -9,7 +9,7 @@ load-bearing: the note value has already lost some of what the summary needs.
 after INT-084's composer the fact index is where a line's attribution, its
 subject and the date a carried fact was first asserted actually live.
 
-Four refusals, each because a friendlier surface is where the corresponding
+Five refusals, each because a friendlier surface is where the corresponding
 guarantee is usually lost.
 
 1. **A relative's item is refused, never relocated.** INT-084 established the
@@ -27,7 +27,13 @@ guarantee is usually lost.
    :mod:`intake_voice_runtime.summary.cards`: the note's fields are
    partitioned, not filtered, so two notes differing only in their screening
    scores build byte-identical summaries.
-4. **A RED note has no summary.** Invariant 21 makes RED three axes — route ×
+4. **A translated line shows the patient their own words, or there is no
+   summary.** The note's job is to give the clinician a Turkish rendering with
+   the original beside it; the summary's is the reverse — the patient reads
+   the sentence they actually said, marked with the language they said it in,
+   and the machine's version is not shown to them at all. A fact whose
+   original is missing refuses the whole summary (INT-299).
+5. **A RED note has no summary.** Invariant 21 makes RED three axes — route ×
    register × location — with its script pre-positioned on the device and
    triggered over the data channel. A card set is none of those three, and a
    RED sentence whose register is decided by page layout is the default the
@@ -84,6 +90,12 @@ _NBSP: Final = " "
 
 #: What separates a line's authored marker from the words it is about.
 _SEPARATOR: Final = " — "
+
+#: Returned instead of an original when this fact has already shown one. A
+#: sentinel rather than ``None``: ``None`` is what an *absent* original looks
+#: like, and that case refuses the summary — the two must not be spelled the
+#: same way.
+_ALREADY_SHOWN: Final = "\x00already-shown"
 
 #: A reconciliation state a patient's own medication card must not carry.
 #:
@@ -156,8 +168,17 @@ def _marker(fact: NoteFact, copy: PatientSummaryCopy) -> str:
     its date, for the same reason it does on the note. A record says only that
     it came from a document: which document is an internal id, and the records
     surface (files/02 §5.5) is where a patient goes to see the source snippet.
+    A translated line names the locale the patient spoke, because the words
+    beside the marker are theirs and the language is how they recognise them.
+
+    The ``translation is not None`` guard is not defensive: the caller has
+    already refused the fact without one (:meth:`_LineIndex.add`), and this
+    branch is what keeps that refusal the *only* way such a fact is handled
+    rather than silently falling through to an unmarked base.
     """
     base = copy.attribution(fact.attribution)
+    if fact.attribution is Attribution.TRANSLATED and fact.translation is not None:
+        return f"{base}: {fact.translation.source_locale}"
     if fact.attribution is Attribution.RELATIVE:
         return f"{base}: {copy.subject(fact.subject)}"
     if fact.attribution is Attribution.CARRIED and fact.span.kind is SourceKind.EARLIER_VISIT:
@@ -208,8 +229,13 @@ class _LineIndex:
     def __init__(self, copy: PatientSummaryCopy) -> None:
         self._copy = copy
         self._lines: list[SummaryLine] = []
+        self._translated_refs: set[str] = set()
 
     def add(self, fact: NoteFact, quoted: str) -> None:
+        if fact.attribution is Attribution.TRANSLATED:
+            quoted = self._original(fact)
+            if quoted is _ALREADY_SHOWN:
+                return
         card = _CARD_OF_SECTION[fact.section]
         authored = _marker(fact, self._copy)
         # The assembled marker is a string nobody authored — a catalogue value
@@ -226,6 +252,30 @@ class _LineIndex:
                 quoted=quoted,
             )
         )
+
+    def _original(self, fact: NoteFact) -> str:
+        """What a translated line shows the patient: their own words.
+
+        Never the rendering. A summary that shows a patient a machine version
+        of what they said, with no way back to the sentence they actually
+        spoke, is worse than showing nothing — so a fact whose original is
+        gone refuses the **whole** summary rather than contributing a line the
+        patient has no way to check.
+
+        A fact that renders into several lines still records one utterance, so
+        the original is shown once. Repeating it under each rendered line
+        would read as several separate things the patient said.
+        """
+        if fact.translation is None:
+            raise SummaryRefused(
+                f"fact {fact.ref} is a translation whose original is not on the record, so "
+                "the summary would be showing a machine version of the patient's own words "
+                "with no way back to them — refused for the whole summary"
+            )
+        if fact.ref in self._translated_refs:
+            return _ALREADY_SHOWN
+        self._translated_refs.add(fact.ref)
+        return fact.translation.original
 
     def for_card(self, card: SummaryCardId) -> tuple[SummaryLine, ...]:
         return tuple(line for line in self._lines if line.card is card)
