@@ -14,6 +14,10 @@ reasoning for its own piece:
   with no representation containing their own bytes (invariant 14).
 - :mod:`intake_connectors.adapter` — the adapter seam, deliberately unable to
   read a response body (invariant 6).
+- :mod:`intake_connectors.fhir` — the FHIR R4 push adapter (INT-161), which
+  re-encodes nothing and reads three headers.
+- :mod:`intake_connectors.smart` — SMART backend services: a signed assertion,
+  a second host, one token per push and no cache (ADR-027).
 - :mod:`intake_connectors.receipts` — the write-ahead receipt and the derived
   idempotency key, with both design decisions argued in full.
 - :mod:`intake_connectors.tls` — mTLS material that leaves no file behind.
@@ -45,7 +49,9 @@ from intake_connectors.destinations import (
     DestinationRegistry,
     RegistryError,
     load_destinations,
+    require_public_hostname,
 )
+from intake_connectors.fhir import FHIR_JSON, FhirR4PushAdapter, PayloadNotFhir
 from intake_connectors.receipts import (
     InMemoryPushLedger,
     InMemoryReceiptStore,
@@ -63,13 +69,24 @@ from intake_connectors.sender import (
     ConsentGate,
     ConsentVerdict,
     PushRequest,
+    TokenTransportFactory,
     TransportFactory,
+)
+from intake_connectors.smart import (
+    ASSERTION_TYPE,
+    AccessToken,
+    SmartAuthorizationFailed,
+    build_client_assertion,
+    request_access_token,
+    scope_covers,
 )
 from intake_connectors.tls import mtls_context, mtls_transport
 
 __all__ = [
-    "CREDENTIAL_ROOT",
+    "ASSERTION_TYPE",
+    "AccessToken",
     "AdapterNotRegistered",
+    "CREDENTIAL_ROOT",
     "ClinicalPayload",
     "ConnectorAdapter",
     "ConnectorDestination",
@@ -81,11 +98,14 @@ __all__ = [
     "CredentialResolver",
     "DestinationNotRegistered",
     "DestinationRegistry",
+    "FHIR_JSON",
+    "FhirR4PushAdapter",
     "InMemoryCredentialResolver",
     "InMemoryPushLedger",
     "InMemoryReceiptStore",
     "OpenBaoCredentialResolver",
     "OutboundCall",
+    "PayloadNotFhir",
     "PushLedger",
     "PushRequest",
     "PushState",
@@ -94,10 +114,16 @@ __all__ = [
     "ReceiptStore",
     "RegistryError",
     "ReplayRefused",
+    "SmartAuthorizationFailed",
     "TlsMaterial",
+    "TokenTransportFactory",
     "TransportFactory",
+    "build_client_assertion",
     "idempotency_key",
     "load_destinations",
     "mtls_context",
     "mtls_transport",
+    "request_access_token",
+    "require_public_hostname",
+    "scope_covers",
 ]

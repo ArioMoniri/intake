@@ -141,9 +141,7 @@ def granted_until(expires_at: datetime | None) -> ConsentGate:
     """
 
     def _gate(*, tenant_id: str, patient_ref: str, scope: str) -> ConsentVerdict:
-        return ConsentVerdict(
-            allowed=True, scope=scope, reason="granted", expires_at=expires_at
-        )
+        return ConsentVerdict(allowed=True, scope=scope, reason="granted", expires_at=expires_at)
 
     return _gate
 

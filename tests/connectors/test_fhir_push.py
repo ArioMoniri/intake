@@ -121,7 +121,9 @@ def test_the_adapter_re_encodes_nothing_so_no_number_crosses_a_boundary() -> Non
             ],
         }
     ).encode("utf-8")
-    call = adapter().build(smart_destination(), ClinicalPayload(body=rendered, media_type=FHIR_JSON))
+    call = adapter().build(
+        smart_destination(), ClinicalPayload(body=rendered, media_type=FHIR_JSON)
+    )
     assert call.body is rendered, "the adapter must hand on the same object, not a re-encoding"
 
 
@@ -238,9 +240,7 @@ def test_an_expired_token_and_a_missing_grant_are_different_faults_in_the_receip
     the token exchange, the other by a conversation with the hospital."""
 
     def unauthorized(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            401, headers={"www-authenticate": 'Bearer error="invalid_token"'}
-        )
+        return httpx.Response(401, headers={"www-authenticate": 'Bearer error="invalid_token"'})
 
     sender, _, _ = smart_sender(push_handler=unauthorized)
     receipt = sender.send(smart_push(), payload_of())
@@ -272,3 +272,10 @@ def test_an_adapter_hint_that_is_not_id_shaped_is_dropped_by_the_sender() -> Non
     receipt = sender.send(smart_push(), payload_of())
     assert receipt.outcome_code == "http_400"
     assert "Ayşe" not in repr(receipt)
+
+
+def test_a_success_carries_no_failure_hint() -> None:
+    """The hint exists to name a fault. A 2xx has none, and inventing one
+    would put a token into the outcome code of a delivery that worked."""
+    assert adapter().failure_hint(201, {"content-type": "text/html"}) is None
+    assert adapter().failure_hint(200, {}) is None

@@ -69,7 +69,9 @@ ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 
 def payload() -> ClinicalPayload:
-    return ClinicalPayload(body=b'{"resourceType":"Bundle","type":"document"}', media_type=FHIR_JSON)
+    return ClinicalPayload(
+        body=b'{"resourceType":"Bundle","type":"document"}', media_type=FHIR_JSON
+    )
 
 
 def form_of(request: httpx.Request) -> dict[str, str]:
@@ -130,7 +132,13 @@ def test_an_mtls_row_may_not_declare_a_token_endpoint() -> None:
 
 @pytest.mark.parametrize(
     "token_host",
-    ["169.254.169.254", "openbao", "https://auth.example.test", "auth.example.test:8443", "*.a.test"],
+    [
+        "169.254.169.254",
+        "openbao",
+        "https://auth.example.test",
+        "auth.example.test:8443",
+        "*.a.test",
+    ],
 )
 def test_the_token_host_obeys_the_same_hostname_grammar(token_host: str) -> None:
     with pytest.raises(ValueError):
@@ -257,7 +265,7 @@ def test_the_audience_is_the_registered_token_endpoint_and_nothing_else() -> Non
 
 
 def test_the_assertion_expiry_is_clamped_by_the_share_consent_expiry() -> None:
-    """"Scoped by share consent token", made enforceable by the hospital.
+    """ "Scoped by share consent token", made enforceable by the hospital.
 
     files/06 §2.1 gives a share grant ``{recipient, visit, sections,
     expiry}``. The expiry is the half a connector can act on, so the
@@ -300,7 +308,9 @@ def test_no_token_is_requested_for_a_push_the_consent_gate_refused() -> None:
 def test_two_pushes_mint_two_assertions_and_never_reuse_a_jti() -> None:
     sender, _, token_transport = smart_sender()
     sender.send(smart_push(), payload())
-    sender.send(smart_push(resource_ref="note-100"), ClinicalPayload(body=b"{}", media_type=FHIR_JSON))
+    sender.send(
+        smart_push(resource_ref="note-100"), ClinicalPayload(body=b"{}", media_type=FHIR_JSON)
+    )
     first, second = (assertion_of(request)[1] for request in token_transport.requests)
     assert first["jti"] != second["jti"]
 
@@ -308,7 +318,9 @@ def test_two_pushes_mint_two_assertions_and_never_reuse_a_jti() -> None:
 def test_the_access_token_is_minted_per_push_and_never_cached() -> None:
     sender, push_transport, token_transport = smart_sender()
     sender.send(smart_push(), payload())
-    sender.send(smart_push(resource_ref="note-100"), ClinicalPayload(body=b"{}", media_type=FHIR_JSON))
+    sender.send(
+        smart_push(resource_ref="note-100"), ClinicalPayload(body=b"{}", media_type=FHIR_JSON)
+    )
     assert len(token_transport.requests) == 2, "a cached token outlives its consent check"
     assert len(push_transport.requests) == 2
 
@@ -514,8 +526,8 @@ def test_an_adapter_cannot_overwrite_the_framework_headers() -> None:
     """An adapter is per-hospital code. Letting it set ``Authorization`` or
     ``Idempotency-Key`` would let one swap the credential or forge a replay,
     so the framework's headers are applied last and win."""
-    from intake_connectors.fhir import FhirR4PushAdapter
     from intake_connectors.adapter import OutboundCall
+    from intake_connectors.fhir import FhirR4PushAdapter
 
     class GreedyAdapter(FhirR4PushAdapter):
         def build(self, destination: object, payload_: object) -> OutboundCall:
@@ -539,3 +551,103 @@ def test_an_adapter_cannot_overwrite_the_framework_headers() -> None:
     assert sent["authorization"] == f"Bearer {FAKE_ACCESS_TOKEN}"
     assert sent["idempotency-key"] == receipt.idempotency_key
     assert sent["content-type"] == FHIR_JSON
+
+
+# --- 6. the edges each of these gates exists for ------------------------------------
+
+
+def test_an_mtls_row_has_no_token_endpoint_to_offer() -> None:
+    """``token_url`` and the authorization entry are SMART-only, and they say
+    so rather than composing a plausible URL from a row that has none."""
+    from connector_harness import destination
+    from intake_connectors import RegistryError
+
+    row = destination()
+    for accessor in (lambda: row.token_url, row.authorization_egress_entry):
+        with pytest.raises(RegistryError, match="no token endpoint"):
+            accessor()
+
+
+def test_a_token_endpoint_on_a_non_default_port_keeps_its_port_in_the_audience() -> None:
+    """The ``aud`` claim must be the URL the server knows itself by, port and
+    all: a mismatched audience is refused by the receiver, not by us."""
+    row = smart_destination(token_port=8443)
+    assert row.token_url == f"https://{TOKEN_HOST}:8443/oauth2/token"
+    assert row.authorization_egress_entry().port == 8443
+
+
+def test_a_private_key_openssl_will_not_load_never_reaches_a_traceback() -> None:
+    sender, push_transport, token_transport = smart_sender(
+        credential_resolver=smart_credentials(private_key="not-a-key-at-all")
+    )
+    receipt = sender.send(smart_push(), payload())
+    assert receipt.outcome_code == "smart_key_unusable"
+    assert "not-a-key-at-all" not in repr(receipt)
+    assert token_transport.requests == [] and push_transport.requests == []
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        "",
+        "system",
+        "system/Bundle",
+        "/Bundle.c",
+        "system/.c",
+        "system/Bundle.",
+        "system/Bundle.xyz",
+    ],
+)
+def test_a_scope_that_is_not_a_smart_scope_covers_nothing(scope: str) -> None:
+    """Both directions: an unparseable *request* can never be satisfied, and
+    an unparseable *grant* is skipped rather than treated as a wildcard."""
+    from intake_connectors import scope_covers
+
+    assert scope_covers("system/*.cruds", scope) is False
+    assert scope_covers(scope, "system/Bundle.c") is False
+
+
+def test_the_v1_scope_spelling_is_understood_as_well_as_the_v2_one() -> None:
+    from intake_connectors import scope_covers
+
+    assert scope_covers("system/Bundle.write", "system/Bundle.c") is True
+    assert scope_covers("system/Bundle.read", "system/Bundle.r") is True
+    assert scope_covers("system/Bundle.read", "system/Bundle.c") is False
+    assert scope_covers("system/Bundle.*", "system/Bundle.cruds") is True
+
+
+def test_a_token_response_that_is_json_but_not_an_object_is_malformed() -> None:
+    def a_list(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=["access_token", "x"])
+
+    sender, push_transport, _ = smart_sender(token_handler=a_list)
+    assert sender.send(smart_push(), payload()).outcome_code == "smart_token_response_malformed"
+    assert push_transport.requests == []
+
+
+def test_a_smart_destination_without_client_material_still_gets_a_verified_transport() -> None:
+    """The ``mtls`` half is absent, not the TLS half: verification, the CA
+    store and the hostname check are Python's defaults either way."""
+    from intake_connectors import mtls_transport
+
+    transport = mtls_transport(None)
+    assert isinstance(transport, httpx.HTTPTransport)
+    transport.close()
+
+
+def test_every_smart_failure_code_buckets_into_the_closed_metric_vocabulary() -> None:
+    """The label set must stay closed even if a future code is added and the
+    map is not: an unmapped code buckets rather than becoming a new series."""
+    from intake_connectors.sender import _token_outcome
+
+    buckets = {
+        "token_http_503": "unavailable",
+        "token_http_400": "denied",
+        "token_unreachable": "unavailable",
+        "scope_not_granted": "scope_not_granted",
+        "key_unsupported": "key_unusable",
+        "consent_expired": "consent_expired",
+        "something_nobody_mapped": "malformed",
+    }
+    for code, expected in buckets.items():
+        assert _token_outcome(code) == expected
