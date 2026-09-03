@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**240 issues.** By phase: P0 139 · P1 58 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 116 · todo 111 · withdrawn 1.
+**240 issues.** By phase: P0 139 · P1 58 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 117 · todo 110 · withdrawn 1.
 
 ## P0
 
@@ -144,7 +144,7 @@
 | INT-294 | TTS lane admission consumes the clip deadline, and the resulting mute latches for the session | E08-mobile | INT-243, INT-249, INT-261 | area:mobile, area:voice | done |
 | INT-296 | Session locale: one language per session, chosen rather than detected, and a resource layer that refuses an incomplete one | E01-platform | — | area:platform, area:i18n | done |
 | INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | done |
-| INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | todo |
+| INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | done |
 | INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
 | INT-304 | The share scope can express three sections and the note has eight, so a withheld section is not recorded anywhere | E08-mobile | INT-137 | area:mobile, area:api, risk:legal | todo |
 | INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
@@ -174,7 +174,7 @@
 | INT-146 | EAS builds + OTA code signing + MobSF gate + store listings/privacy labels | E08-mobile | INT-131, INT-224 | area:mobile, risk:legal, approval:human-legal | todo |
 | INT-152 | Clinic console: today list, statuses, read receipts, tenant isolation, SSO | E09-clinician | INT-151, INT-030 | area:clinician | todo |
 | INT-153 | Clinician feedback -> Langfuse annotation queues + acceptance metrics | E09-clinician | INT-151, INT-175 | area:clinician | todo |
-| INT-160 | Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS | E10-connectors | INT-018, INT-035 | area:connectors, risk:security | todo |
+| INT-160 | Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS | E10-connectors | INT-018, INT-035 | area:connectors, risk:security | done |
 | INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | INT-160, INT-033 | area:connectors, approval:human-vendor, live-smoke | todo |
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | done |
 | INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |

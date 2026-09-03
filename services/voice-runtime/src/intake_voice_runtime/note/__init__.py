@@ -24,6 +24,15 @@ over-long one is noise they can dismiss. **This is flagged, not settled** —
 files/13 §9.4 and files/04 §5 have a human owner, and when INT-096 puts
 compiled packs behind both surfaces one of them has to change. See
 docs/evidence/INT-084.md.
+
+**What a translated answer is** — INT-299, and the reason
+:mod:`~intake_voice_runtime.note.translation` sits in this package rather than
+beside the locale registry. ``hasta beyanı`` is a claim about who said a
+sentence, so the class that says *a machine wrote these words* belongs in the
+same vocabulary as the class that says a relative did. The original travels on
+the fact, beside the rendering; the translator is pinned the way a model is;
+and no translator is registered, so the seam is what ships. See
+docs/evidence/INT-299.md.
 """
 
 from __future__ import annotations
@@ -48,9 +57,17 @@ from intake_voice_runtime.note.facts import (
     SourceSpan,
 )
 from intake_voice_runtime.note.render import (
+    TranslatedOriginalUnreachable,
     render_fhir_document,
     render_note_pdf,
     render_soap,
+)
+from intake_voice_runtime.note.translation import (
+    TRANSLATOR_REGISTRY,
+    TranslatedText,
+    TranslatorIdentity,
+    TranslatorUnidentified,
+    translator,
 )
 
 # Re-exported so a caller writes one import and the note's vocabulary and its
@@ -61,6 +78,7 @@ __all__ = [
     "NOTE_COPY_KEYS",
     "NOTE_COPY_SECTIONS",
     "SECTION_ATTRIBUTIONS",
+    "TRANSLATOR_REGISTRY",
     "Attribution",
     "AttributionRefused",
     "ComposedNote",
@@ -74,10 +92,15 @@ __all__ = [
     "SourceKind",
     "SourceSpan",
     "Sourced",
+    "TranslatedOriginalUnreachable",
+    "TranslatedText",
+    "TranslatorIdentity",
+    "TranslatorUnidentified",
     "compose",
     "facts_by_section",
     "note_copy_from_legal_strings",
     "render_fhir_document",
     "render_note_pdf",
     "render_soap",
+    "translator",
 ]

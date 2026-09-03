@@ -35,6 +35,8 @@ from dataclasses import KW_ONLY, dataclass, field
 from types import MappingProxyType
 from typing import Final
 
+from intake_voice_runtime.note.translation import TranslatedText, TranslatorUnidentified
+
 __all__ = [
     "SECTION_ATTRIBUTIONS",
     "Attribution",
@@ -46,6 +48,8 @@ __all__ = [
     "SourceKind",
     "SourceSpan",
     "Sourced",
+    "TranslatedText",
+    "TranslatorUnidentified",
 ]
 
 
@@ -59,8 +63,12 @@ class AttributionRefused(ValueError):
 class Attribution(enum.StrEnum):
     """Who is asserting the fact, and on what standing.
 
-    The set is closed. A sixth kind of assertion would be a new row in
-    :data:`SECTION_ATTRIBUTIONS` and therefore a visible review.
+    The set is closed and a test walks it. A further kind of assertion would
+    be a new row in :data:`SECTION_ATTRIBUTIONS` and therefore a visible
+    review — which is the point: INT-299 added ``TRANSLATED``, and the closure
+    test is what stops a later locale quietly adding a second translated-ish
+    class beside it ("post-edited", "interpreted", "clinician-translated"),
+    each of which would be a different clinical claim wearing one word.
     """
 
     #: the patient, about themselves, in this session
@@ -76,6 +84,12 @@ class Attribution(enum.StrEnum):
     RULES_ENGINE = "rules_engine"
     #: an LLM candidate flag, clinician-review material only (invariant 1)
     LLM_CANDIDATE = "llm_candidate"
+    #: the patient, about themselves, in a language the note is not written
+    #: in — so what the clinician reads is a machine's rendering and not the
+    #: sentence the patient said (INT-299). The words themselves are retained
+    #: on the fact as a
+    #: :class:`~intake_voice_runtime.note.translation.TranslatedText`.
+    TRANSLATED = "translated"
 
 
 class FactSubject(enum.StrEnum):
@@ -175,11 +189,18 @@ class SourceSpan:
 
 @dataclass(frozen=True, slots=True)
 class Sourced[T]:
-    """One 04 §5 item with the three axes attached.
+    """One 04 §5 item with the axes attached.
 
     ``span`` is keyword-only and has no default. That single fact is the
     acceptance clause: ``compose`` accepts no bare item anywhere, so a note
     cannot contain a fact whose origin nobody recorded.
+
+    ``translation`` is INT-299's half and it is an *equivalence* rather than
+    an optional extra: a ``TRANSLATED`` item without one is refused, because
+    there would be no way back to what the patient said; and an item that
+    carries one without the ``TRANSLATED`` attribution is refused too, because
+    that is a machine's sentence printed as ``hasta beyanı`` — the exact
+    defect the class exists to prevent.
     """
 
     value: T
@@ -187,8 +208,22 @@ class Sourced[T]:
     attribution: Attribution
     span: SourceSpan
     subject: FactSubject = FactSubject.PATIENT
+    translation: TranslatedText | None = None
 
     def __post_init__(self) -> None:
+        if self.attribution is Attribution.TRANSLATED and self.translation is None:
+            raise TranslatorUnidentified(
+                "a translated item must carry the original it was translated from and the "
+                "translator that produced it; rendering it unattributed would put a "
+                "machine's sentence on the record as the patient's own"
+            )
+        if self.attribution is not Attribution.TRANSLATED and self.translation is not None:
+            raise ValueError(
+                f"an item carrying a translation must be attributed "
+                f"{Attribution.TRANSLATED.value!r}, not {self.attribution.value!r}: "
+                "a machine rendering labelled as a direct patient statement attributes "
+                "to the patient a sentence they did not say"
+            )
         if self.attribution is Attribution.RELATIVE and not self.subject.is_relative:
             raise ValueError(
                 "a relative attribution must name the relative in `subject` — "
@@ -213,6 +248,11 @@ class NoteFact:
     subject: FactSubject
     lines: tuple[str, ...]
     span: SourceSpan
+    #: The patient's own words and the translator that rendered them, for a
+    #: ``TRANSLATED`` fact. It sits here, on the fact, rather than in a
+    #: sidecar a renderer might not read: ``lines`` is the rendering and this
+    #: is the original, and the two travel together to every surface.
+    translation: TranslatedText | None = None
 
     @property
     def provenance_line(self) -> str:
@@ -278,19 +318,29 @@ class NoteGap:
 #: relative's condition has one home in the note and it is not the patient's
 #: history. ``imported_objective`` is the mirror image: only a record may sit
 #: there, so a sentence the patient said cannot be printed as an imported
-#: result.
+#: result — and, since INT-299, so a translated *document* cannot arrive
+#: through the note's attribution axis either. That is a document-extraction
+#: question with its own provenance (files/03 §4.6), not this one.
+#:
+#: ``TRANSLATED`` is admitted in exactly the rows that admit ``PATIENT_SELF``,
+#: and :data:`_SELF_REPORTED` is why the two cannot drift: a translated answer
+#: goes wherever the patient's own answer goes, stated once rather than typed
+#: eight times. A row where they differed would be a place the distinction
+#: was made for a reason nobody wrote down.
+_SELF_REPORTED: Final[frozenset[Attribution]] = frozenset(
+    {Attribution.PATIENT_SELF, Attribution.TRANSLATED}
+)
+
 SECTION_ATTRIBUTIONS: Final[Mapping[str, frozenset[Attribution]]] = MappingProxyType(
     {
-        "chief_complaint": frozenset({Attribution.PATIENT_SELF}),
-        "hpi": frozenset({Attribution.PATIENT_SELF}),
-        "ros_pertinent": frozenset({Attribution.PATIENT_SELF}),
-        "pmh": frozenset({Attribution.PATIENT_SELF, Attribution.RECORD, Attribution.CARRIED}),
-        "medications": frozenset(
-            {Attribution.PATIENT_SELF, Attribution.RECORD, Attribution.CARRIED}
-        ),
-        "allergies": frozenset({Attribution.PATIENT_SELF, Attribution.RECORD, Attribution.CARRIED}),
-        "family_social": frozenset({Attribution.PATIENT_SELF, Attribution.RELATIVE}),
-        "measurements": frozenset({Attribution.PATIENT_SELF}),
+        "chief_complaint": _SELF_REPORTED,
+        "hpi": _SELF_REPORTED,
+        "ros_pertinent": _SELF_REPORTED,
+        "pmh": _SELF_REPORTED | {Attribution.RECORD, Attribution.CARRIED},
+        "medications": _SELF_REPORTED | {Attribution.RECORD, Attribution.CARRIED},
+        "allergies": _SELF_REPORTED | {Attribution.RECORD, Attribution.CARRIED},
+        "family_social": _SELF_REPORTED | {Attribution.RELATIVE},
+        "measurements": _SELF_REPORTED,
         "imported_objective": frozenset({Attribution.RECORD}),
     }
 )

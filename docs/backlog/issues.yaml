@@ -1807,10 +1807,11 @@
   title: "Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS"
   depends_on: [INT-018, INT-035]
   labels: [area:connectors, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-160.md
   acceptance:
     - "per-tenant endpoint allow-list; push receipts stored; replay-safe"
-  tests: [tests/connectors/test_framework.py]
+  tests: [tests/connectors/test_framework.py, tests/connectors/test_credentials_and_tls.py]
   legal: "KVKK-8/9"
   sec_row: "connectors"
 - id: INT-161
@@ -3856,7 +3857,7 @@
   - area:engine
   - area:clinical
   - area:i18n
-  status: todo
+  status: done
   acceptance:
   - 'the clinician reads Turkish and the patient may not have spoken it, so a
     line built from a translated answer carries `translated` rather than
@@ -3878,7 +3879,7 @@
     closed: a test walks the enum and asserts the set, so a later locale cannot
     quietly introduce a second translated-ish class'
   tests:
-  - tests/engines/test_note_translated_attribution.py
+  - tests/engine/test_note_translated_attribution.py
   sec_row: "notes"
 - id: INT-300
   epic: E05-voice

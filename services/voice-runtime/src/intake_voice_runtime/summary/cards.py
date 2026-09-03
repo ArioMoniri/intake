@@ -156,9 +156,18 @@ EXCLUDED_SECTIONS: Final[tuple[str, ...]] = tuple(EXCLUSION_REASONS)
 #: ``RULES_ENGINE`` and ``LLM_CANDIDATE`` are absent, and their absence is the
 #: enforcement: there is no marker key by which a fired rule or a candidate
 #: flag could be worded onto a card, so invariant 1's summary face is a missing
-#: vocabulary rather than a filter somebody has to remember to run.
+#: vocabulary rather than a filter somebody has to remember to run. INT-299
+#: added ``TRANSLATED`` and left that property exactly as it was — the two
+#: absences are asserted by name, not by counting members.
+#:
+#: ``TRANSLATED`` is *present* because every line carries a marker, including
+#: the ones that are not exceptional (INT-085): a marker on the exceptions
+#: makes the unmarked lines read as endorsed. What the marked line shows is
+#: the patient's **own** words, never the rendering —
+#: :func:`~intake_voice_runtime.summary.builder.build_patient_summary`.
 SUMMARY_ATTRIBUTIONS: Final[tuple[Attribution, ...]] = (
     Attribution.PATIENT_SELF,
+    Attribution.TRANSLATED,
     Attribution.RELATIVE,
     Attribution.CARRIED,
     Attribution.RECORD,
