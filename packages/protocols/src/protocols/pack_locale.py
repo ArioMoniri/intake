@@ -26,7 +26,7 @@ then a red-flag action script cannot be spoken in a language nobody wrote it in.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 
 from protocols.dsl import Instrument, RedFlagRule, Section, Slot
 from protocols.locale_text import DEFAULT_LOCALE, common_locales, known_locales
@@ -40,21 +40,21 @@ __all__ = ["MONOLINGUAL_SPOKEN_FIELDS", "selectable_locales"]
 MONOLINGUAL_SPOKEN_FIELDS = ("confirm_tr", "action_tr", "do_nots_tr", "ask_one_tr")
 
 
-def _slot_maps(slot: Slot) -> Iterator[dict[str, object] | None]:
+def _slot_maps(slot: Slot) -> Iterator[Mapping[str, object] | None]:
     yield slot.ask_tr
     yield slot.follow_up_tr
-    yield slot.choices_tr  # type: ignore[misc]
+    yield slot.choices_tr
 
 
-def _instrument_maps(instrument: Instrument) -> Iterator[dict[str, object] | None]:
+def _instrument_maps(instrument: Instrument) -> Iterator[Mapping[str, object] | None]:
     if instrument.voice is not None:
-        yield instrument.voice.allow_paraphrase  # type: ignore[misc]
+        yield instrument.voice.allow_paraphrase
     for item in instrument.items:
         yield item.text_tr
-        yield item.allow_paraphrase  # type: ignore[misc]
+        yield item.allow_paraphrase
 
 
-def _rule_maps(rule: RedFlagRule) -> Iterator[dict[str, object] | None]:
+def _rule_maps(rule: RedFlagRule) -> Iterator[Mapping[str, object] | None]:
     if rule.action is None:
         return
     for location in (rule.action.remote, rule.action.on_site):
@@ -62,9 +62,9 @@ def _rule_maps(rule: RedFlagRule) -> Iterator[dict[str, object] | None]:
             yield location.why_tr
 
 
-def _section_maps(section: Section) -> Iterator[dict[str, object] | None]:
+def _section_maps(section: Section) -> Iterator[Mapping[str, object] | None]:
     if section.voice is not None:
-        yield section.voice.allow_paraphrase  # type: ignore[misc]
+        yield section.voice.allow_paraphrase
     for slot in section.slots.values():
         yield from _slot_maps(slot)
 
@@ -110,9 +110,9 @@ def selectable_locales(pack: ProtocolPack) -> frozenset[str]:
     constrains nothing, which is why an empty pack returns the whole registry
     rather than the empty set.
     """
-    maps: list[dict[str, object] | None] = []
+    maps: list[Mapping[str, object] | None] = []
     if pack.voice is not None:
-        maps.append(pack.voice.allow_paraphrase)  # type: ignore[arg-type]
+        maps.append(pack.voice.allow_paraphrase)
     for section in pack.sections.values():
         maps.extend(_section_maps(section))
     for instrument in pack.instruments:
@@ -123,7 +123,7 @@ def selectable_locales(pack: ProtocolPack) -> frozenset[str]:
         if isinstance(op, AddSlotOp):
             maps.extend(_slot_maps(op.slot))
         elif isinstance(op, OverrideTextOp):
-            maps.append(op.text_tr)  # type: ignore[arg-type]
+            maps.append(op.text_tr)
     common = common_locales(maps)
     if _carries_a_monolingual_string(pack):
         common &= {DEFAULT_LOCALE}
