@@ -24,8 +24,12 @@ that the guard is loud: a boundary that refused every quoted imperative would
 lose the patient's medication history, and one that shredded every eleven-digit
 number would lose the lab accession it was printed beside.
 
-``gaps`` carries what a scenario does **not** prove. RT-09 and RT-13 both have
-one, and they are recorded here rather than smoothed over in a docstring.
+``gaps`` carries what a scenario does **not** prove, recorded here rather than
+smoothed over in a docstring. RT-09 still has one — files/04 names the wrong
+component for the injection signal, and moving the signal to satisfy the
+sentence would put injection handling on the speech path. RT-13's is gone:
+INT-102 recorded that a spoken identifier was not masked, and INT-312 masked it,
+so the tuple is emptied rather than left standing with a fix behind it.
 """
 
 from __future__ import annotations
@@ -228,19 +232,9 @@ ADVERSARIAL_SCENARIOS: Final[Mapping[str, AdversarialScenario]] = {
                 "shredder."
             ),
             covered_by=(
+                "tests/platform/test_spoken_identifiers.py",
                 "tests/security/test_deid_leak_rate.py",
                 "tests/security/test_trace_redaction.py",
-            ),
-            gaps=(
-                "The spoken forms are NOT masked. Both tiers "
-                "(`intake_platform.deid` and `intake_platform.redaction`) match a "
-                "contiguous eleven-digit run, so digit groups and Turkish digit words "
-                "pass through. It is not a leak on this tree — the only egressing "
-                "tier fails closed entirely without the NER model and the trace "
-                "boundary has no free-text field — but a fully configured dev tier "
-                "would scrub names and pass the spoken identifier. Closing it is a "
-                "pattern change in deid plus an ASR-side digit-run normalisation, in "
-                "two packages this issue does not own; it needs its own issue.",
             ),
         ),
         AdversarialScenario(

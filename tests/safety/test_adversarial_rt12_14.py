@@ -29,11 +29,18 @@ from pathlib import Path
 import pytest
 from adversarial_corpus import (
     ACCESSION_NUMBER_11_DIGITS,
+    SECOND_SYNTHETIC_TCKN,
+    SPOKEN_ACCESSION_FORMS,
+    SPOKEN_DURATION_UTTERANCE,
     SPOKEN_TCKN_FORMS,
     SYNTHETIC_TCKN,
     FixedClock,
     KilledAdapter,
+    SpokenForm,
+    spoken_forms,
     utterance_with,
+    utterance_with_duration,
+    utterance_with_two,
 )
 from adversarial_scenarios import ADVERSARIAL_SCENARIOS
 from intake_platform.chaos import (
@@ -186,41 +193,119 @@ class TestRT12ProxyImpersonation:
 class TestRT13SpokenIdentifier:
     """*"de-identification masks it before any cloud call and in logs"*.
 
-    Half true, and the half that is not is the point of this class. The written
-    form is masked. The **spoken** forms are not, because both patterns in this
-    repository are a contiguous eleven-digit run and an identifier said aloud
-    arrives from an ASR as digit groups or as words.
+    INT-102 asserted that this did **not** hold for a number said out loud, and
+    committed the reproduction instead of normalising its own input to go green.
+    INT-312 closes it. The corpus is still the input: ``SPOKEN_TCKN_FORMS`` is
+    read as it stands, not pre-joined, and the same four shapes over a
+    checksum-failing accession number are the control.
+
+    The discriminator did not change. It is still the published checksum, so a
+    lab accession number in any of these shapes survives untouched and a spoken
+    duration — *"on beş gündür"* — is not an identifier. Over-masking a duration
+    is a clinical harm, not a nuisance: a redacted duration is a lost history.
     """
+
+    @staticmethod
+    def _engine() -> Deidentifier:
+        return Deidentifier(None, subject_key="rt-13")
 
     def test_the_written_form_is_masked_in_logs_and_by_the_pattern_tier(self) -> None:
         assert is_valid_tckn(SYNTHETIC_TCKN)
         text = utterance_with(SYNTHETIC_TCKN)
         assert redact_text(text) == text.replace(SYNTHETIC_TCKN, "[TCKN]")
-        assert SYNTHETIC_TCKN not in Deidentifier(None, subject_key="rt-13").deidentify(text)
+        assert SYNTHETIC_TCKN not in self._engine().deidentify(text)
 
     @pytest.mark.parametrize("spoken", SPOKEN_TCKN_FORMS, ids=lambda form: form.id)
-    def test_the_spoken_forms_are_not_masked_and_the_suite_says_so(self, spoken: object) -> None:
-        """Recorded as a fact, not worked around.
+    def test_the_spoken_forms_are_masked_whole_by_both_tiers(self, spoken: SpokenForm) -> None:
+        """Every shape, masked as one span — separators and all.
 
-        ``\\b[1-9]\\d{10}\\b`` is what both tiers match. Neither
-        ``100 000 000 78`` nor the same digits as Turkish words is eleven
-        contiguous digits, so neither is masked. A test that quietly asserted
-        the opposite by pre-normalising its own input would be a green suite
-        over an open hole.
+        Masking the digits and leaving ``100 - 78`` behind would be a partial
+        leak dressed as a redaction, so the assertion is equality against the
+        sentence with the whole spoken run replaced, not an ``in`` check.
         """
-        text = utterance_with(spoken.transcript)  # type: ignore[attr-defined]
+        text = utterance_with(spoken.transcript)
+        assert spoken.why
+        assert redact_text(text) == utterance_with("[TCKN]")
+        assert self._engine().deidentify(text) == utterance_with("[TCKN]")
+
+    def test_the_corpus_still_carries_the_shapes_the_finding_was_written_about(self) -> None:
+        """The two shapes INT-102 committed are still in the corpus by id.
+
+        A fix that quietly narrowed the corpus to the shapes it happens to
+        handle would pass every test above.
+        """
+        ids = {form.id for form in SPOKEN_TCKN_FORMS}
+        assert {"spaced-groups", "digit-words"} <= ids
+        assert {"hyphenated-groups", "mixed-words-and-groups"} <= ids
+        assert {form.id for form in SPOKEN_ACCESSION_FORMS} == ids
+
+    def test_two_identifiers_in_one_utterance_are_both_masked(self) -> None:
+        """Nothing here may depend on there being one number in a sentence.
+
+        Two different values in two different shapes, and the ordinary words
+        between them survive: a candidate that ran from the first identifier to
+        the last would take ``eşiminki`` with it.
+        """
+        first, second = SPOKEN_TCKN_FORMS[0], spoken_forms(SECOND_SYNTHETIC_TCKN)[2]
+        assert is_valid_tckn(SECOND_SYNTHETIC_TCKN)
+        text = utterance_with_two(first.transcript, second.transcript)
+        for masked in (redact_text(text), self._engine().deidentify(text)):
+            assert masked == utterance_with_two("[TCKN]", "[TCKN]")
+            assert "eşiminki" in masked
+
+    @pytest.mark.parametrize("spoken", SPOKEN_ACCESSION_FORMS, ids=lambda form: form.id)
+    def test_the_near_miss_control_the_same_shapes_with_a_failing_checksum_survive(
+        self, spoken: SpokenForm
+    ) -> None:
+        """The control that stops the new tier being a number shredder.
+
+        Identical shapes to the masked forms above, one field away: the
+        checksum. A lab accession number said aloud is exactly as groupable as
+        an identity number, and destroying it would take the provenance of a
+        result with it.
+        """
+        text = utterance_with(spoken.transcript)
         assert redact_text(text) == text
-        assert Deidentifier(None, subject_key="rt-13").deidentify(text) == text
+        assert self._engine().deidentify(text) == text
+
+    def test_the_near_miss_control_a_spoken_duration_is_not_an_identifier(self) -> None:
+        """*"On beş gündür ağrım var"* is fifteen days of pain.
+
+        Turkish digit words are ordinary clinical speech. A normaliser that
+        treated any run of them as an identifier would delete the history the
+        note exists to carry.
+        """
+        assert redact_text(SPOKEN_DURATION_UTTERANCE) == SPOKEN_DURATION_UTTERANCE
+        assert self._engine().deidentify(SPOKEN_DURATION_UTTERANCE) == SPOKEN_DURATION_UTTERANCE
+
+    def test_a_duration_touching_the_identifier_survives_the_mask(self) -> None:
+        """The adjacency case, which is where a loose window actually bites.
+
+        ``… yedi sekiz beş gündür`` — the duration's first word is one space
+        from the identifier's last digit, inside the same run of digit-bearing
+        tokens. The identifier goes; ``beş gündür`` stays.
+        """
+        spoken = SPOKEN_TCKN_FORMS[2]
+        text = utterance_with_duration(spoken.transcript)
+        for masked in (redact_text(text), self._engine().deidentify(text)):
+            assert masked == utterance_with_duration("[TCKN]")
+            assert "beş gündür ağrım var" in masked
 
     def test_what_actually_holds_the_line_the_egress_tier_fails_closed(self) -> None:
-        """The spoken form does not reach a cloud call scrubbed — it does not
-        reach one. ``deidentify_for_egress`` refuses **entirely** without the
-        names/addresses tier, so pattern-only output is never mistaken for
-        de-identified text on that boundary."""
-        pattern_only = Deidentifier(None, subject_key="rt-13")
+        """Asserted before the fix and after it, unchanged.
+
+        ``deidentify_for_egress`` refuses **entirely** without the names/
+        addresses tier, so pattern-only output is never mistaken for
+        de-identified text on that boundary. A masking improvement is not a
+        reason to soften it — the spoken forms are now masked *and* the egress
+        boundary still refuses.
+        """
+        pattern_only = self._engine()
         assert pattern_only.ner_enabled is False
         with pytest.raises(RuntimeError, match="NER tier"):
             pattern_only.deidentify_for_egress(utterance_with(SYNTHETIC_TCKN))
+        with pytest.raises(RuntimeError, match="NER tier"):
+            pattern_only.deidentify_for_egress(utterance_with(SPOKEN_TCKN_FORMS[0].transcript))
 
     def test_what_actually_holds_the_line_the_trace_boundary_has_no_text_field(
         self,
@@ -230,11 +315,14 @@ class TestRT13SpokenIdentifier:
         Every string field is ref-shaped (no spaces, ASCII, ≤128 chars), so a
         sentence carrying an identifier is refused by field name with the value
         never echoed — and the closed field set has no free-text member at all.
+        Asserted before the fix and after it, unchanged, and now over a spoken
+        form as well as the written one.
         """
         assert not {"transcript", "text", "prompt", "utterance"} & set(LLM_SPAN_FIELDS)
-        with pytest.raises(SpanFieldRefused) as excinfo:
-            refuse_unless_ref_shaped("work_id", utterance_with(SYNTHETIC_TCKN))
-        assert SYNTHETIC_TCKN not in str(excinfo.value)
+        for value in (SYNTHETIC_TCKN, SPOKEN_TCKN_FORMS[1].transcript):
+            with pytest.raises(SpanFieldRefused) as excinfo:
+                refuse_unless_ref_shaped("work_id", utterance_with(value))
+            assert value not in str(excinfo.value)
 
     def test_the_near_miss_control_a_checksum_failing_number_survives(self) -> None:
         """The checksum is what makes this a TCKN redactor rather than a number
@@ -249,10 +337,31 @@ class TestRT13SpokenIdentifier:
         """A refuser that refused every value would pass the trace test above."""
         assert refuse_unless_ref_shaped("work_id", "work_01JABCDEF") == "work_01JABCDEF"
 
-    def test_the_open_gap_is_recorded_on_the_scenario(self) -> None:
-        gaps = ADVERSARIAL_SCENARIOS["RT-13"].gaps
-        assert any("spoken" in gap for gap in gaps)
-        assert any("deid" in gap for gap in gaps)
+    def test_the_measured_leak_over_the_committed_corpus_is_zero(self) -> None:
+        """The figure docs/evidence/INT-312.md records, as an assertion.
+
+        Invariant 20: it is a measurement of *this* corpus on the day it ran,
+        never a property of the product, so the corpus is named and counted here
+        and the date lives with the run in the evidence file.
+        """
+        engine = self._engine()
+        cases = [utterance_with(form.transcript) for form in SPOKEN_TCKN_FORMS]
+        leaked = [
+            form.id
+            for form, text in zip(SPOKEN_TCKN_FORMS, cases, strict=True)
+            if form.transcript in redact_text(text) or form.transcript in engine.deidentify(text)
+        ]
+        assert len(cases) == 4
+        assert leaked == []
+
+    def test_the_gap_recorded_on_the_scenario_is_closed(self) -> None:
+        """RT-13 carried the only open gap that was a hole rather than a note.
+
+        It is emptied here rather than left standing with a fix behind it: a
+        gaps tuple that outlives its gap is how the next reader learns to
+        ignore the field.
+        """
+        assert ADVERSARIAL_SCENARIOS["RT-13"].gaps == ()
 
 
 # ---------------------------------------------------------------------------
