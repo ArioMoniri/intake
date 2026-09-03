@@ -390,8 +390,12 @@ metrics:
     labels: [tenant, profile, branch, vendor]
     owner: voice-runtime
     unit: "chars"
-    status: planned
-    description: Characters synthesised per turn (TTSMetrics).
+    description: >-
+      Characters synthesised per turn (TTSMetrics). Emitted by
+      intake_voice_runtime.metering's metered synthesizer (INT-101), which
+      charges the string actually sent to the model — a clip-cache hit
+      synthesises nothing, so this series and voice.clip_cache_hit_ratio move
+      in opposite directions (CLAUDE.md invariant 10).
   - name: voice_stt_audio_s
     id: voice.stt_audio_s
     type: histogram
@@ -939,7 +943,18 @@ metrics:
     owner: platform
     unit: "USD"
     status: planned
-    description: Cost per session by component.
+    description: >-
+      Cost per session by component. Still planned after INT-101, which built
+      everything up to the multiplication and stopped there: the per-component
+      QUANTITIES (tokens, characters, audio seconds) are metered by
+      intake_voice_runtime.metering, and there is no price to multiply them by.
+      CLAUDE.md invariant 19 makes every model self-hosted, so there is no
+      vendor list price, and files/HUMAN_BLOCKERS.md HB-I4 and HB-I5 record
+      that no GPU and no capacity contract exist to derive an amortised
+      GPU-hour rate from. A rate invented to make this series emit would be
+      the artefact rule 1 forbids, and a zero would be a claim that a session
+      was free — so nothing declares a Gauge for this name and the row stays
+      planned until a human supplies a rate.
   # --- files/08 §4 M. Security (files/10 §7)
   - name: sec_auth_failures_total
     id: sec.auth_failures_total
@@ -1720,7 +1735,18 @@ metrics:
 #   storage growth, certificate expiry (sec_cert_expiry_days covers the
 #   security view).
 # - group J, cost: tokens/chars/audio-seconds by vendor, GPU hours, forecast
-#   vs budget.
+#   vs budget. (INT-101 metered all three quantities per session and closed
+#   none of this row. "by vendor" has no subject — CLAUDE.md invariant 19
+#   leaves no vendor — and the axis that survives is *component*, which
+#   cost_per_session is already labelled by. The chars half now has a home:
+#   voice_tts_chars above went live. The token half does not — group B's
+#   voice.talker_tokens is the TALKER's LLM per turn and extract_slots is
+#   Layer B Work — so the session ledger counts extraction tokens and no
+#   series carries them, rather than a name of ours being minted for a row
+#   whose shape the spec has not settled. GPU hours have no host to measure
+#   (HB-I4, HB-I5). "Forecast vs budget" has no budget: no file publishes a
+#   per-session limit, so intake_voice_runtime.metering ships every limit
+#   unset and fails closed on the elective lane instead of guessing one.)
 # - group K, compliance: consent coverage by version, vendor notifications
 #   due/overdue, DSAR SLA, residency attestation per tenant, retention job
 #   success (sec_audit_chain_ok covers the daily integrity check).

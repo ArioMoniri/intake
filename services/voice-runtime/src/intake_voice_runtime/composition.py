@@ -51,6 +51,11 @@ from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
 from intake_voice_runtime.extraction.handler import ExtractSlotsHandler
+from intake_voice_runtime.metering import (
+    MeteredExtractionGateway,
+    MeteredSpeechSynthesizer,
+    SessionMeter,
+)
 from intake_voice_runtime.ports import (
     AudioSink,
     ClipStore,
@@ -117,6 +122,13 @@ class SessionStack:
     #: this pack be finished on a keyboard?" has to be answerable before the
     #: switch is pulled, not after.
     slot_affordances: Mapping[str, SlotFacts] = field(default_factory=dict)
+    #: The session's cost ledger, or ``None`` where the caller supplied no
+    #: meter (INT-101). ``None`` means *nothing is metered and nothing is
+    #: refused* — the state of every caller that predates this issue — and it
+    #: is a visible ``None`` rather than a meter this function invented,
+    #: because the tenant and branch labels are the caller's to supply and a
+    #: guessed label is a wrong dimension on a real series.
+    meter: SessionMeter | None = None
 
     @property
     def profile(self) -> VoiceProfile:
@@ -151,6 +163,7 @@ def build_residency_tr_session(
     overlay_facts: PatientOverlay | None = None,
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
     screen: ScreenSink | None = None,
+    meter: SessionMeter | None = None,
 ) -> SessionStack:
     """Compose one ``residency_tr`` session and close the three joints.
 
@@ -199,6 +212,7 @@ def build_residency_tr_session(
         synthesizer=synthesizer,
         sink=sink,
         screen=screen,
+        meter=meter,
     )
 
 
@@ -218,6 +232,7 @@ def build_typed_session(
     valuesets: Mapping[str, tuple[str, ...]] | None = None,
     overlay_facts: PatientOverlay | None = None,
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
+    meter: SessionMeter | None = None,
 ) -> SessionStack:
     """Compose one ``typed`` session — the same three joints, no audio.
 
@@ -257,6 +272,7 @@ def build_typed_session(
             deadlines=deadlines or DeliveryDeadlines(),
         ),
         screen=screen,
+        meter=meter,
     )
 
 
@@ -281,6 +297,7 @@ def _compose(
     synthesizer: SpeechSynthesizer | None = None,
     sink: AudioSink | None = None,
     screen: ScreenSink | None = None,
+    meter: SessionMeter | None = None,
 ) -> SessionStack:
     """Both profiles, composed once.
 
@@ -293,6 +310,17 @@ def _compose(
     across two profiles rather than one.
     """
     ticking = clock or SystemClock()
+    # INT-101. Metering is added by composition, at the two seams a session
+    # actually spends at — the model call and the synthesiser. Both wrappers
+    # are synchronous and neither is on the Talker's await path (invariant 9).
+    # The typed profile is handed no synthesiser at all, which is not an
+    # omission: a typed session awaits no playback (INT-096) and therefore
+    # spends no characters, so half of this budget is structurally zero for
+    # half the sessions.
+    if meter is not None:
+        gateway = MeteredExtractionGateway(inner=gateway, meter=meter)
+        if synthesizer is not None:
+            synthesizer = MeteredSpeechSynthesizer(inner=synthesizer, meter=meter)
     engine = IntakeEngine(
         protocol=protocol, reference_time=reference_time, overlay_facts=overlay_facts
     )
@@ -331,4 +359,5 @@ def _compose(
         handler=handler,
         extraction_pin=pin,
         slot_affordances=slot_facts(protocol),
+        meter=meter,
     )
