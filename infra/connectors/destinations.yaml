@@ -43,6 +43,40 @@
 # a gap (invariant 17: build the mechanism, wire the gate, make it fail
 # closed, leave the content empty).
 #
+# INT-161 adds a SECOND SHAPE of row, and it costs different facts. A
+# `smart_backend_services` destination authenticates with a signed client
+# assertion rather than with a client certificate, so instead of
+# `client_cert_ref` (which becomes optional for that mode only, and stays
+# REQUIRED for `mtls`) it must declare:
+#
+#   token_host          the hospital's SMART authorization server — a SECOND
+#                       host, obeying the same hostname grammar, and registry
+#                       data rather than anything discovered. SMART defines
+#                       /.well-known/smart-configuration and this system does
+#                       not read it: discovery lets the receiver nominate the
+#                       URL our client credential is sent to.
+#   token_path          its token endpoint path, same segment grammar
+#   smart_scope         the system scope that hospital's DPA grants, e.g.
+#                       `system/Bundle.c`. The token request asks for exactly
+#                       this and never more, and a grant that does not cover
+#                       it stops the push.
+#
+# and the OpenBao document under `credential_ref` holds `{client_id,
+# private_key}` plus an optional `key_id` — never a bearer token, because
+# under SMART there is no long-lived bearer to hold. The public half of that
+# key must already be registered with the hospital, which is a human
+# transaction with the hospital and not a field.
+#
+# The second host is the security consequence, and it is ADR-025's fifth
+# bypass in a third form. INT-160 met that bypass as a host contracted and
+# approved for a DIFFERENT TENANT; a token endpoint is a host on this very
+# tenant's row, contracted and approved, for a purpose that is NOT receiving
+# clinical records. So it gets its own allow-list entry, its own purpose
+# (`connector_authorization`) and `phi_allowed: false` — a token endpoint that
+# inherited the push purpose would be a destination approved to receive
+# patient records, which is the bypass granted by a shortcut rather than
+# exploited. See ADR-027.
+#
 # A row here is additionally NOT sufficient on its own. The destination is
 # turned into an INT-018 `AllowlistEntry` per send (ADR-026), so the egress
 # guard's own rules still decide: IP literals refused, the resolved address

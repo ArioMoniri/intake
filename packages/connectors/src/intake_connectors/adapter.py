@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
@@ -71,6 +71,15 @@ class OutboundCall:
     path: str
     media_type: str
     body: bytes
+    #: Protocol headers the adapter asks for — ``Accept`` and ``Prefer`` for
+    #: FHIR, for instance. **Proposed, not imposed**: the sender applies its
+    #: own headers last, so an adapter can never set ``Authorization``,
+    #: ``Idempotency-Key`` or ``Content-Type``. An adapter is the one
+    #: component here written per hospital, and those three are respectively
+    #: the credential, the replay identity and the content contract — the
+    #: places where a per-hospital file could swap a secret, forge a replay
+    #: or change what the framework thinks it sent.
+    headers: Mapping[str, str] = field(default_factory=dict)
 
     def __repr__(self) -> str:
         return f"OutboundCall({self.method} {self.path}, {len(self.body)} bytes)"
@@ -90,4 +99,22 @@ class ConnectorAdapter(Protocol):
 
     def receiver_ref(self, status: int, headers: Mapping[str, str]) -> str | None:
         """The receiver's reference for what it stored, from headers only."""
+        ...
+
+    def failure_hint(self, status: int, headers: Mapping[str, str]) -> str | None:
+        """What this failure was, learned from headers rather than from prose.
+
+        The body stays unread, so the question is what is left. The answer is
+        more than it looks: the **status** separates a rejected payload from a
+        malformed request from a wrong URL from a bad credential;
+        ``WWW-Authenticate`` carries an OAuth error code from a closed
+        vocabulary, which splits "the token expired" from "the token was
+        never granted this" — two faults in the same status family with
+        entirely different fixes; and ``Content-Type`` says whether a FHIR
+        server answered at all, or whether we reached a proxy's login page.
+
+        The return is an id-shaped token from the adapter's own closed set,
+        never a string a receiver composed. The sender re-checks that shape
+        before it reaches a receipt, because an adapter is per-hospital code.
+        """
         ...

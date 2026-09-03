@@ -30,6 +30,7 @@ import ssl
 import time
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 import httpx
@@ -67,6 +68,7 @@ from intake_connectors.metrics import (
     CONNECTOR_PUSH_DURATION_SECONDS,
     CONNECTOR_PUSH_TOTAL,
     CONNECTOR_RECEIPTS_UNRESOLVED_TOTAL,
+    CONNECTOR_TOKEN_EXCHANGE_TOTAL,
 )
 from intake_connectors.receipts import (
     PushLedger,
@@ -79,6 +81,11 @@ from intake_connectors.receipts import (
     new_receipt_id,
     utc_now,
 )
+from intake_connectors.smart import (
+    SmartAuthorizationFailed,
+    build_client_assertion,
+    request_access_token,
+)
 from intake_connectors.tls import mtls_transport
 
 __all__ = [
@@ -87,6 +94,7 @@ __all__ = [
     "ConsentGate",
     "ConsentVerdict",
     "PushRequest",
+    "TokenTransportFactory",
     "TransportFactory",
 ]
 
@@ -119,6 +127,12 @@ class ConsentVerdict:
     #: An id-shaped reason (``granted``, ``withdrawn``, ``stale``, ``absent``)
     #: matching the INT-038 consent service's own vocabulary.
     reason: str
+    #: When the grant itself runs out (files/06 §2.1 gives a share consent
+    #: ``{recipient, visit, sections, expiry}``). Optional because not every
+    #: scope is time-boxed; where it exists, INT-161 clamps the SMART client
+    #: assertion's ``exp`` to it, so the credential we present to a hospital
+    #: is valid only inside the window the patient's consent is.
+    expires_at: datetime | None = None
 
 
 class ConsentGate(Protocol):
@@ -132,9 +146,25 @@ class ConsentGate(Protocol):
 
 
 class TransportFactory(Protocol):
-    """Builds the mTLS transport the guard wraps."""
+    """Builds the transport the guard wraps for the push itself.
 
-    def __call__(self, material: TlsMaterial) -> httpx.BaseTransport: ...
+    ``material`` is ``None`` for a SMART destination that issued no client
+    certificate: there the client is authenticated by a signed assertion
+    rather than by the channel (INT-161).
+    """
+
+    def __call__(self, material: TlsMaterial | None) -> httpx.BaseTransport: ...
+
+
+class TokenTransportFactory(Protocol):
+    """Builds the transport for the SMART token exchange — the *second* host.
+
+    Separate from :class:`TransportFactory` because it carries no client
+    certificate and no clinical bytes, and because a test has to be able to
+    assert what reached one host and provably did not reach the other.
+    """
+
+    def __call__(self) -> httpx.BaseTransport: ...
 
 
 @dataclass(frozen=True)
@@ -164,6 +194,7 @@ class ConnectorSender:
         audit: AuditChain,
         resolver: Resolver = default_resolver,
         transport_factory: TransportFactory = mtls_transport,
+        token_transport_factory: TokenTransportFactory = httpx.HTTPTransport,
         transfer_log: TransferLog | None = None,
     ) -> None:
         self._registry = registry
@@ -175,6 +206,7 @@ class ConnectorSender:
         self._audit = audit
         self._resolver = resolver
         self._transport_factory = transport_factory
+        self._token_transport_factory = token_transport_factory
         self._transfer_log = transfer_log
 
     # --- the push -------------------------------------------------------------------
@@ -217,7 +249,7 @@ class ConnectorSender:
         self._audit_event(request, destination, receipt, "connector.push_attempted")
 
         started = time.perf_counter()
-        state, code, receiver_ref = self._deliver(destination, adapter, payload, key)
+        state, code, receiver_ref = self._deliver(destination, adapter, payload, key, verdict)
         CONNECTOR_PUSH_DURATION_SECONDS.labels(destination.endpoint_id).observe(
             time.perf_counter() - started
         )
@@ -254,18 +286,28 @@ class ConnectorSender:
         adapter: ConnectorAdapter,
         payload: ClinicalPayload,
         key: str,
+        verdict: ConsentVerdict,
     ) -> tuple[ReceiptState, str, str | None]:
         try:
-            document = self._credentials.read(destination.credential_ref)
-            (token,) = require_keys(document, "token")
-            material_document = self._credentials.read(destination.client_cert_ref)
-            certificate, private_key = require_keys(material_document, "certificate", "private_key")
+            authorization = self._authorize(destination, verdict)
+        except CredentialMissing:
+            return ReceiptState.FAILED, "credential_missing", None
+        except SmartAuthorizationFailed as failure:
+            # No clinical byte was ever in flight, so there is nothing
+            # ambiguous to park: whatever the receiver's idempotency
+            # declaration says, this push definitely did not happen.
+            CONNECTOR_TOKEN_EXCHANGE_TOTAL.labels(
+                destination.endpoint_id, _token_outcome(failure.code)
+            ).inc()
+            return ReceiptState.FAILED, f"smart_{failure.code}", None
+
+        try:
+            material = self._client_material(destination)
         except CredentialMissing:
             return ReceiptState.FAILED, "credential_missing", None
 
         call = adapter.build(destination, payload)
         require_path_shape(call.path)
-        material = TlsMaterial(certificate=certificate, private_key=private_key)
         try:
             inner = self._transport_factory(material)
         except ssl.SSLError:
@@ -289,11 +331,18 @@ class ConnectorSender:
             port=None if destination.port == 443 else destination.port,
             path=call.path,
         )
-        headers = {
-            "Idempotency-Key": key,
-            "Content-Type": call.media_type,
-            "Authorization": f"Bearer {token}",
-        }
+        # The adapter's headers go on first and the framework's go on last, so
+        # a per-hospital adapter can propose ``Accept`` or ``Prefer`` and can
+        # never set the credential, the replay identity or the content
+        # contract. Last write wins, and the framework writes last.
+        headers = {str(name): str(value) for name, value in call.headers.items()}
+        headers.update(
+            {
+                "Idempotency-Key": key,
+                "Content-Type": call.media_type,
+                "Authorization": authorization,
+            }
+        )
         client = guarded_client(
             policy,
             context,
@@ -306,6 +355,94 @@ class ConnectorSender:
             return self._exchange(client, url, call.method, call.body, headers, adapter)
         finally:
             client.close()
+
+    # --- authorization: one seam, chosen by the row's declared mode -----------------
+
+    def _authorize(self, destination: ConnectorDestination, verdict: ConsentVerdict) -> str:
+        """The ``Authorization`` header value for this one push.
+
+        ``mtls`` reads a bearer OpenBao already holds; SMART mints one. The
+        branch is on the row's declared mode rather than on which credential
+        happens to be present, so a row that is half-configured fails to load
+        rather than silently taking the other path.
+        """
+        if destination.auth_mode == "mtls":
+            (token,) = require_keys(self._credentials.read(destination.credential_ref), "token")
+            return f"Bearer {token}"
+        return self._smart_bearer(destination, verdict)
+
+    def _smart_bearer(self, destination: ConnectorDestination, verdict: ConsentVerdict) -> str:
+        """One assertion, one token, one push — and no cache.
+
+        A cached access token is a credential that outlives the consent check
+        that authorised it, which is the caching INT-160 already refused for
+        the consent verdict itself. Minting per push costs one round trip on a
+        path that is not hot.
+        """
+        document = self._credentials.read(destination.credential_ref)
+        client_id, private_key = require_keys(document, "client_id", "private_key")
+        key_id = document.get("key_id") or None
+        scope = destination.smart_scope
+        if scope is None:  # pragma: no cover - the schema refuses such a row
+            raise SmartAuthorizationFailed("scope_undeclared")
+        assertion = build_client_assertion(
+            client_id=client_id,
+            token_url=destination.token_url,
+            private_key_pem=private_key,
+            key_id=key_id,
+            now=utc_now(),
+            consent_expires_at=verdict.expires_at,
+        )
+        policy = EgressPolicy(
+            [destination.authorization_egress_entry()],
+            f"connector-auth:{destination.endpoint_id}",
+            resolver=self._resolver,
+        )
+        client = guarded_client(
+            policy,
+            # Nothing personal goes to an authorization server: the assertion
+            # names our client identity at the hospital and nothing else. The
+            # declaration is the honest one rather than the cautious one,
+            # because a PHI declaration here would make the token endpoint a
+            # destination approved to receive patient data.
+            EgressContext(
+                purpose=EgressPurpose.CONNECTOR_AUTHORIZATION,
+                data_class=DataClass.NON_PERSONAL,
+            ),
+            inner=self._token_transport_factory(),
+            transfer_log=self._transfer_log,
+            follow_redirects=False,
+            timeout=httpx.Timeout(_TIMEOUT_S),
+        )
+        try:
+            token = request_access_token(
+                client,
+                token_url=destination.token_url,
+                assertion=assertion,
+                scope=scope,
+            )
+        except EgressDenied:
+            # The guard refused before a byte left — an unlisted token host, a
+            # denied-range answer, or a purpose mismatch. Not echoed: the
+            # reason can name a host somebody else chose.
+            raise SmartAuthorizationFailed("egress_denied") from None
+        finally:
+            client.close()
+        CONNECTOR_TOKEN_EXCHANGE_TOTAL.labels(destination.endpoint_id, "granted").inc()
+        return token.header
+
+    def _client_material(self, destination: ConnectorDestination) -> TlsMaterial | None:
+        """The mTLS client material, where the row declares any.
+
+        A SMART destination may legitimately have none: the signed assertion
+        is the authentication, and a hospital that issued no client
+        certificate has none for the row to name.
+        """
+        if destination.client_cert_ref is None:
+            return None
+        document = self._credentials.read(destination.client_cert_ref)
+        certificate, private_key = require_keys(document, "certificate", "private_key")
+        return TlsMaterial(certificate=certificate, private_key=private_key)
 
     def _exchange(
         self,
@@ -356,6 +493,14 @@ class ConnectorSender:
         # Everything else — a 4xx, or a redirect this client refused to follow
         # — is the receiver declining these bytes. Re-sending them changes
         # nothing, so the ledger makes it terminal rather than retryable.
+        #
+        # The adapter may add one token of diagnosis read from the headers
+        # (never the body). It is re-checked here, because an adapter is the
+        # one component written per hospital and this string lands in a
+        # receipt, a log and an audit entry.
+        hint = adapter.failure_hint(status, headers)
+        if hint is not None and is_ref_shaped(hint):
+            return ReceiptState.REJECTED, f"{code}.{hint}", None
         return ReceiptState.REJECTED, code, None
 
     # --- receipts and the chain -----------------------------------------------------
@@ -463,6 +608,36 @@ class ConnectorSender:
             resource_ref=f"{request.resource_ref}:{receipt.receipt_id}",
             consent_scope_ref=destination.consent_scope,
         )
+
+
+#: SMART failure codes, bucketed for the metric label. Six of our own values
+#: rather than the receiver's status code: a label a receiver can choose is
+#: cardinality a receiver can choose (invariant 6), and these six are the six
+#: different things an operator would actually do next.
+_TOKEN_OUTCOMES: Mapping[str, str] = {
+    "consent_expired": "consent_expired",
+    "egress_denied": "denied",
+    "key_unsupported": "key_unusable",
+    "key_unusable": "key_unusable",
+    "scope_not_granted": "scope_not_granted",
+    "token_malformed": "malformed",
+    "token_response_malformed": "malformed",
+    "token_response_too_large": "malformed",
+    "token_type_unsupported": "malformed",
+    "token_unreachable": "unavailable",
+}
+
+
+def _token_outcome(code: str) -> str:
+    """Bucket one SMART failure code for the metric label."""
+    bucketed = _TOKEN_OUTCOMES.get(code)
+    if bucketed is not None:
+        return bucketed
+    if code.startswith("token_http_5"):
+        return "unavailable"
+    if code.startswith("token_http_"):
+        return "denied"
+    return "malformed"
 
 
 def adapters_by_id(adapters: Sequence[ConnectorAdapter]) -> dict[str, ConnectorAdapter]:

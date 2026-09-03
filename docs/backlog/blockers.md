@@ -263,6 +263,49 @@ Two findings, reported rather than fixed:
   what the API has a field for. Giving the visit a time is a schema change and an issue of
   its own; no id is minted for it here.
 
+---
+
+## INT-161 · A FHIR push has nowhere to smoke against, and a SMART row costs four facts HB-A15 does not name
+
+**The ask, in one sentence each.**
+
+**Ask 1 — a partner FHIR sandbox, and it is already covered twice.** INT-161's fourth
+acceptance clause is *"live smoke against a partner sandbox recorded before close"*, and
+there is no sandbox: **HB-A5** records that Acıbadem Teknoloji A.Ş.'s own interfaces are
+**UNVERIFIED** — whether it exposes FHIR at all is the open question — with the standing
+instruction not to size the connector or promise a payload shape until that conversation
+happens; **HB-A15** records that no destination exists at all (no executed DPA, no recorded
+tier-3 approval, no OpenBao credential path, no `receiver_idempotency` declaration). A live
+smoke needs all of that before it needs a test. **Nothing is re-asked here** and no id is
+minted for it: it is HB-A5 plus HB-A15.
+
+**Ask 2 — the four SMART facts, which HB-A15 does not name.** HB-A15's five facts are all
+**mTLS-shaped** (`dpa_ref`, `approval_ref`, `credential_ref`, `client_cert_ref`,
+`receiver_idempotency`). A `smart_backend_services` destination needs four more, and none
+is an engineer's to supply:
+
+| field | what it asserts | who |
+|---|---|---|
+| `token_host` + `token_path` | the hospital's SMART **authorization server**, registered out-of-band. It is a *second host* and it is never discovered: reading `/.well-known/smart-configuration` would let the receiver nominate where our client credential is sent | owner, from the hospital |
+| `client_id` (OpenBao) | the client identifier that hospital issued us at registration | owner, from the hospital |
+| the registered **public key** | the public half of the signing key must already be registered with the hospital (JWKS or by-value); the private half goes to OpenBao under `connectors/` | owner (OpenBao) + the hospital |
+| `smart_scope` | the `system/...` scope that hospital's DPA actually grants, e.g. `system/Bundle.c` — the token request asks for exactly this and a grant that does not cover it stops the push | owner + counsel, from the DPA |
+
+**The HUMAN_BLOCKERS.md id for Ask 2 is for the coordinator to allocate** rather than minted
+here; Ask 1 needs no id, it is HB-A5 and HB-A15.
+
+**Consequence for the issue.** Three acceptance clauses of four are met, mechanically rather
+than by assertion, so **INT-161 stays open** at `status: awaiting-human`.
+`docs/evidence/INT-161.md` §7 sets the line out clause by clause, including the one limit
+worth stating on the clause that *is* met: the HAPI contract tests are recorded fixtures and
+no HAPI container is run, because a container would prove our client against *a* FHIR
+server rather than against *the partner's* — which is precisely what HB-A5 says is unknown.
+
+**Nothing is built around either blocker.** The registry still holds zero rows, every push
+still refuses, and the SMART path fails closed at each of its own gates: an unregistered
+token host is refused by the egress guard, an unloadable key never reaches the wire, and a
+grant narrower than the row declares stops the push before a byte of the bundle leaves.
+
 ## INT-019 — two CI gates are wired to a workflow file this session may not edit
 
 **Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O6

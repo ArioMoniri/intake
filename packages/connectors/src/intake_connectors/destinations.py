@@ -45,7 +45,7 @@ from typing import Literal
 
 import yaml
 from intake_platform.egress import AllowlistEntry, EgressPurpose
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __all__ = [
     "CREDENTIAL_ROOT",
@@ -56,6 +56,7 @@ __all__ = [
     "is_ref_shaped",
     "load_destinations",
     "require_path_shape",
+    "require_public_hostname",
 ]
 
 #: Every OpenBao path a connector row may name lives under this prefix, which
@@ -121,6 +122,33 @@ def require_path_shape(value: str) -> str:
     return value
 
 
+def require_public_hostname(value: str) -> str:
+    """The destination hostname grammar, shared by every host a row names.
+
+    Extracted for INT-161: a SMART token endpoint is a second host and it is
+    checked by exactly this rule, because a rule that is re-typed for the
+    second field is a rule that drifts from the first. An IP literal, a
+    scheme, a port suffix, a path, a wildcard or a single unqualified label
+    all fail — the last of those is how an internal service is addressed.
+    """
+    host = value.strip().lower().rstrip(".")
+    try:
+        ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        pass
+    else:
+        raise ValueError(
+            "an IP literal is never a registered destination: files/10 §4 denies "
+            "literal IPs and private/link-local/metadata ranges outright"
+        )
+    if _HOST.match(host) is None:
+        raise ValueError(
+            "host must be a public DNS name with at least two labels — no scheme, "
+            "no port, no userinfo, no path, no wildcard, and no bare service name"
+        )
+    return host
+
+
 def _ref(field_name: str, value: str) -> str:
     if _REF.match(value) is None:
         raise ValueError(
@@ -141,12 +169,33 @@ class ConnectorDestination(BaseModel):
     port: int = Field(default=443, ge=1, le=65535)
     protocol: Literal["https"] = "https"
     base_path: str = ""
-    #: Transport authentication. ``mtls`` is the only mode this framework
-    #: implements; SMART backend services arrives with the FHIR adapter
-    #: (INT-161) as an added member, never as a relaxation of this one.
-    auth_mode: Literal["mtls"]
+    #: How this destination authenticates us (INT-160 ``mtls``; INT-161 adds
+    #: ``smart_backend_services``, and ADR-027 records why it had to be a
+    #: second member rather than a widening of the first). The two differ in
+    #: what OpenBao holds and in whether a *second host* exists at all, which
+    #: is why the per-mode requirements below are a model validator rather
+    #: than a set of optional fields nobody checks together.
+    auth_mode: Literal["mtls", "smart_backend_services"]
     credential_ref: str = Field(min_length=1)
-    client_cert_ref: str = Field(min_length=1)
+    #: mTLS client material. Required under ``mtls``; optional under SMART,
+    #: where the signed client assertion *is* the authentication and a
+    #: hospital may have no client certificate to issue. Requiring one there
+    #: would make the row unfillable, which is a different failure from a
+    #: relaxed one — ``mtls`` still cannot load without it.
+    client_cert_ref: str | None = None
+    #: The SMART authorization server. A **second host**, so it obeys the same
+    #: hostname grammar, gets its own allow-list entry and its own purpose
+    #: (:meth:`authorization_egress_entry`), and is registry data rather than
+    #: anything discovered: letting a receiver nominate where our client
+    #: credential goes is a redirect to an unchecked host wearing a
+    #: standard's name.
+    token_host: str | None = None
+    token_path: str = "/token"  # noqa: S105 - a URL path, not a credential
+    token_port: int = Field(default=443, ge=1, le=65535)
+    #: The SMART system scope this endpoint's DPA grants, e.g.
+    #: ``system/Bundle.c``. The token request asks for exactly this and never
+    #: more, and a grant that does not cover it stops the push.
+    smart_scope: str | None = None
     #: The consent scope every push to this destination must clear
     #: (invariant 4). Checked per push, never cached across pushes.
     consent_scope: str = Field(min_length=1)
@@ -163,22 +212,7 @@ class ConnectorDestination(BaseModel):
     @field_validator("host")
     @classmethod
     def _public_hostname(cls, value: str) -> str:
-        host = value.strip().lower().rstrip(".")
-        try:
-            ipaddress.ip_address(host.strip("[]"))
-        except ValueError:
-            pass
-        else:
-            raise ValueError(
-                "an IP literal is never a registered destination: files/10 §4 denies "
-                "literal IPs and private/link-local/metadata ranges outright"
-            )
-        if _HOST.match(host) is None:
-            raise ValueError(
-                "host must be a public DNS name with at least two labels — no scheme, "
-                "no port, no userinfo, no path, no wildcard, and no bare service name"
-            )
-        return host
+        return require_public_hostname(value)
 
     @field_validator("base_path")
     @classmethod
@@ -197,7 +231,9 @@ class ConnectorDestination(BaseModel):
 
     @field_validator("credential_ref", "client_cert_ref")
     @classmethod
-    def _credential_paths(cls, value: str) -> str:
+    def _credential_paths(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         _ref("credential reference", value)
         if not value.startswith(CREDENTIAL_ROOT):
             raise ValueError(
@@ -205,6 +241,61 @@ class ConnectorDestination(BaseModel):
                 "OpenBao subtree the connector policy grants read on"
             )
         return value
+
+    @field_validator("token_host")
+    @classmethod
+    def _public_token_hostname(cls, value: str | None) -> str | None:
+        """The token endpoint is a destination, so it is checked like one.
+
+        Same grammar, same refusals: an IP literal, a scheme, a port suffix,
+        a path or a bare service name are all how an internal address is
+        smuggled in, and an authorization server is a *more* attractive place
+        to smuggle one, because it is where the client credential goes.
+        """
+        return None if value is None else require_public_hostname(value)
+
+    @field_validator("token_path")
+    @classmethod
+    def _safe_token_path(cls, value: str) -> str:
+        return require_path_shape(value)
+
+    @field_validator("smart_scope")
+    @classmethod
+    def _scope_shape(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _ref("smart_scope", value)
+
+    @model_validator(mode="after")
+    def _mode_requirements(self) -> ConnectorDestination:
+        """What each mode must carry, and what it must not.
+
+        The negative half matters as much as the positive one: a row that
+        names a token endpoint its own auth mode never reads is a destination
+        nobody reviews, sitting in the file looking approved.
+        """
+        smart = self.auth_mode == "smart_backend_services"
+        if smart:
+            for name in ("token_host", "smart_scope"):
+                if getattr(self, name) is None:
+                    raise ValueError(
+                        f"a smart_backend_services destination must declare {name}: the "
+                        "token endpoint and the granted scope are both registry data, "
+                        "never discovered and never defaulted"
+                    )
+        else:
+            if self.client_cert_ref is None:
+                raise ValueError(
+                    "an mtls destination must declare client_cert_ref — the OpenBao path "
+                    "holding the client material that authenticates the channel"
+                )
+            if self.token_host is not None or self.smart_scope is not None:
+                raise ValueError(
+                    "an mtls destination must not declare token_host or smart_scope: a "
+                    "field the row's own auth mode never reads is an approval nobody "
+                    "reviewed for a host nobody reaches"
+                )
+        return self
 
     def egress_entry(self) -> AllowlistEntry:
         """This row as an INT-018 allow-list entry.
@@ -224,6 +315,54 @@ class ConnectorDestination(BaseModel):
             basis=f"KVKK-8/9; processor under {self.dpa_ref}; approved as {self.approval_ref}",
             phi_allowed=True,
             phi_exception_approval=self.approval_ref,
+        )
+
+    @property
+    def token_url(self) -> str:
+        """The token endpoint, built from the row and from nothing else.
+
+        This string is also the assertion's ``aud`` claim, which is what binds
+        the credential we sign to the one server allowed to consume it. Built
+        here — from registry data — rather than read from a discovery
+        document, because ``aud`` taken from the receiver is an audience the
+        receiver chose.
+        """
+        if self.token_host is None:
+            raise RegistryError("this destination declares no token endpoint")
+        authority = self.token_host
+        if self.token_port != 443:
+            authority = f"{authority}:{self.token_port}"
+        return f"https://{authority}{self.token_path}"
+
+    def authorization_egress_entry(self) -> AllowlistEntry:
+        """The token endpoint as an INT-018 allow-list entry — and not a
+        PHI-enabled one.
+
+        Two entries per SMART destination, deliberately. ADR-025's fifth
+        bypass is the right host addressed for the wrong reason; INT-160 met
+        it as a host contracted for another *tenant*, and a token endpoint is
+        the third form: a host on this very tenant's row, contracted and
+        approved, for something that is not receiving clinical records. If it
+        inherited the push entry it would be a destination permitted to
+        receive patient data — the bypass granted by a shortcut rather than
+        exploited. So the purpose differs, ``phi_allowed`` is ``False``, and
+        no ``phi_exception_approval`` is claimed: none is needed, because
+        nothing personal is ever sent here.
+        """
+        if self.token_host is None:
+            raise RegistryError("this destination declares no token endpoint")
+        return AllowlistEntry(
+            name=f"connector-auth:{self.endpoint_id}",
+            host=self.token_host,
+            port=self.token_port,
+            protocol=self.protocol,
+            purpose_id=EgressPurpose.CONNECTOR_AUTHORIZATION,
+            purpose=(
+                "SMART backend services token exchange for the registered destination "
+                f"{self.endpoint_id}"
+            ),
+            basis=f"processor under {self.dpa_ref}; approved as {self.approval_ref}",
+            phi_allowed=False,
         )
 
 
