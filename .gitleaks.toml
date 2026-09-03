@@ -18,8 +18,9 @@ regexes = [
 # and ANCHORED end to end, which is the only scoping that provably cannot
 # silence anything else. `paths` is deliberately NOT used: a path allowlist
 # exempts the whole file, so a real key pasted into that same file would stop
-# being a finding — tests/ci/test_security_gates.py plants exactly that and
-# asserts it still fails.
+# being a finding — scripts/ci/gate_selftest.sh plants exactly that in each of
+# the two files these rows name and asserts gitleaks still rejects it, and
+# tests/ci/test_security_gates.py asserts that near-miss is still there.
 
 [[allowlists]]
 description = "credential that is an env-var REFERENCE, not a literal"

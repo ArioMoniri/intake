@@ -638,3 +638,100 @@ def test_make_security_actually_loads_the_trivy_ignore_file() -> None:
         assert "--ignorefile .trivyignore.yaml" in line, (
             f"trivy fs would ignore .trivyignore.yaml: {line.strip()}"
         )
+
+
+# --- gitleaks: the ignore file, and where the near-miss actually lives ----------
+
+
+GITLEAKSIGNORE = REPO / ".gitleaksignore"
+GITLEAKS_TOML = REPO / ".gitleaks.toml"
+GATE_SELFTEST = REPO / "scripts" / "ci" / "gate_selftest.sh"
+
+
+def test_gitleaksignore_rows_are_fully_scoped_and_only_shrink() -> None:
+    """A fingerprint must pin one finding, and the set may only shrink.
+
+    `commit:file:rule:line` is the narrowest suppression gitleaks has — it
+    exempts no file, no rule and no other line. A row missing any field, or a
+    row added without a reviewer noticing, is how an ignore file turns into the
+    path allowlist .gitleaks.toml deliberately refuses to be.
+    """
+    if not GITLEAKSIGNORE.exists():
+        return  # nothing suppressed is the better state, not a failure
+    rows = {
+        line.strip()
+        for line in GITLEAKSIGNORE.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+    for row in rows:
+        commit, _, rule, line_no = row.split(":", 3)
+        assert len(commit) == 40 and all(c in "0123456789abcdef" for c in commit), (
+            f"{row} does not pin one commit"
+        )
+        assert rule and line_no.isdigit(), f"{row} does not pin one rule and line"
+    pinned = {
+        # INT-019: the self-test's own fixtures in the commit 9fae031 superseded.
+        "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:97",
+        "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:generic-api-key:99",
+        "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:110",
+    }
+    assert rows <= pinned, f"gitleaks ignore file grew beyond the pinned set: {rows - pinned}"
+
+
+def test_the_gitleaks_allowlist_near_miss_exists_where_it_is_claimed() -> None:
+    """The allowlist rows are only trustworthy because something plants a real
+    literal in the two files they name and requires it to still fail.
+
+    That near-miss lives in scripts/ci/gate_selftest.sh, and both .gitleaks.toml
+    and an INT-019 commit message once cited this pytest module for it instead —
+    a justification pointing at a test that does not exist is how a gate rots.
+    """
+    selftest = GATE_SELFTEST.read_text(encoding="utf-8")
+    assert 'expect_reject "gitleaks (literal pw in the allowlisted file)"' in selftest
+    assert 'expect_reject "gitleaks (real key in the allowlisted file)"' in selftest
+    assert 'expect_accept "gitleaks (env-var ref + prose are allowlisted)"' in selftest, (
+        "a gate that rejects everything proves as little as one that rejects nothing"
+    )
+    cited = GITLEAKS_TOML.read_text(encoding="utf-8")
+    assert "scripts/ci/gate_selftest.sh" in cited, (
+        "the .gitleaks.toml rationale must name whatever actually plants the near-miss; "
+        "it cited this pytest module for years, which never contained it"
+    )
+
+
+def test_gate_selftest_holds_no_allowlisted_literal() -> None:
+    """The generator is the committed artefact; the violation lives only in a
+    mktemp directory. Committing the allowlisted strings as literals broke that
+    rule and put three findings in the history (fixed in 9fae031) — the fixtures
+    are read out of the real files at run time instead.
+
+    The strings are DERIVED here rather than named, because naming them puts
+    them back in the tree — which is precisely what the first version of this
+    test did: it asserted the literals were gone in a line that contained them,
+    and gitleaks flagged the guard instead of the thing guarded.
+    """
+    selftest = GATE_SELFTEST.read_text(encoding="utf-8")
+
+    # Every anchored allowlist row whose pattern is a plain string is a literal
+    # the generator must not carry. Rows with regex metacharacters describe a
+    # shape rather than a string, and are covered by the yml-derived check below.
+    metachars = set("\\[](){}|+*?.")
+    anchored = re.findall(r"'''\^([^'\n]+)\$'''", GITLEAKS_TOML.read_text(encoding="utf-8"))
+    plain = [pat for pat in anchored if not set(pat) & metachars]
+    assert plain, (
+        "no anchored plain-literal allowlist row found — has .gitleaks.toml changed shape?"
+    )
+
+    # The env-var reference is a shape, not a literal, so take the actual token
+    # out of the file whose row names it.
+    siem = (REPO / "infra" / "docker-compose.siem.yml").read_text(encoding="utf-8")
+    marker = "curl -sk -u admin:"
+    siem_line = next((ln for ln in siem.splitlines() if marker in ln), None)
+    assert siem_line is not None, f"{marker!r} is no longer in docker-compose.siem.yml"
+    plain.append(siem_line.split(marker, 1)[1].split()[0])
+
+    for literal in plain:
+        assert literal not in selftest, (
+            "an allowlisted string is back as a literal in the generator; "
+            "mirror it out of its real file instead"
+        )
