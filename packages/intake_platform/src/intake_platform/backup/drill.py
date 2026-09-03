@@ -24,6 +24,7 @@ The refusals, both fail-closed:
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
@@ -108,21 +109,57 @@ def host_preflight(free_disk_bytes: int, docker_memory_bytes: int) -> DrillBlock
     return DrillBlocked(reason="; ".join(short))
 
 
+def _contains(root: Path, candidate: Path) -> bool:
+    return candidate == root or root in candidate.parents
+
+
+def _readings(path: Path) -> tuple[Path, ...]:
+    """The two places one spelling can mean, deduplicated.
+
+    ``abspath`` is the reading ``git status`` uses: it collapses ``..``
+    textually and follows no link, so a symlinked child of the checkout stays
+    *under* the checkout. ``resolve`` is where the bytes actually land. The
+    two disagree exactly when a link is involved, and a guard that consults
+    only one of them can be walked past from the other side (INT-315).
+    """
+    absolute = Path(os.path.abspath(path))
+    real = Path(path).resolve()
+    return (absolute,) if absolute == real else (absolute, real)
+
+
 def assert_restore_target_outside_workspace(target: Path, repo_root: Path) -> None:
     """Refuse a restore target the workspace can reach (invariants 3 and 6).
 
     A restored cluster is patient data on disk. Inside the repository it is
     one ``git add -A`` from being committed and one ``make check`` from being
-    scanned, so the check runs on the resolved path — ``infra/../.cache`` is
-    inside the workspace however it is spelled.
+    scanned, so a target is refused when it is inside the workspace under
+    *any* reading of *either* path. Both sides are read both ways, because
+    either side can be the symbolic half:
+
+    * ``infra/../.cache`` is inside however it is spelled — the original case;
+    * a target reached through a link that leaves the checkout is still inside
+      it, because ``git status`` reports the path and not the link's
+      destination. That is the shape this repository's own fresh-worktree
+      de-identification-model workflow creates, and resolving the target alone
+      answered "outside" (INT-315);
+    * a link pointing *into* the checkout is inside it however it is reached;
+    * and a checkout named through a link — ``/tmp`` for ``/private/tmp`` —
+      judges its own children the same in either spelling.
+
+    Accepting therefore requires every reading to agree the target is outside,
+    so an ambiguous spelling fails closed. That costs an operator one rewrite;
+    the other way round costs a patient's data on the workspace floor.
     """
-    resolved = Path(target).resolve()
-    root = Path(repo_root).resolve()
-    if resolved == root or root in resolved.parents:
-        raise RestoreTargetInsideWorkspaceError(
-            f"restore target {resolved} is inside the workspace {root}; "
-            "restore into a container volume or a path outside the repository"
-        )
+    roots = _readings(Path(repo_root))
+    candidates = _readings(Path(target))
+    for root in roots:
+        for candidate in candidates:
+            if _contains(root, candidate):
+                raise RestoreTargetInsideWorkspaceError(
+                    f"restore target {target} is inside the workspace {repo_root} "
+                    f"(read as {candidate} under {root}); restore into a container "
+                    "volume or a path outside the repository"
+                )
 
 
 def _require_retention(retention_full: int | None) -> int:
