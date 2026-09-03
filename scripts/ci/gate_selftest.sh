@@ -91,26 +91,37 @@ expect_accept "gitleaks (clean config)" \
   gitleaks detect --no-git --source "$TMP/gl-ok" --config "$REPO/.gitleaks.toml" \
   --redact --no-banner
 
-# The allowlist rows are anchored to the captured secret. Plant a real literal
-# in the exact two files those rows name; both must still be findings.
+# The allowlist rows are anchored to the captured secret. Mirror the exact two
+# lines those rows name, read OUT OF the real files rather than copied to here:
+# a copy makes this generator hold the secret-shaped literal it exists to avoid
+# (the rule stated in the header), and it drifts the moment the real file moves.
+# Reading them also strengthens the check — it now asserts the allowlist covers
+# the text actually committed, not a hand-kept replica of it. Then plant a real
+# literal in each of those two files; both must still be findings.
 mkdir -p "$TMP/gl-allow/infra" "$TMP/gl-allow/files"
-printf 'test: ["CMD-SHELL", "curl -sk -u admin:$${INDEXER_PASSWORD} https://x/health"]\n' \
-  > "$TMP/gl-allow/infra/docker-compose.siem.yml"
-printf -- '- token reuse detections, WAF/CrowdSec blocks, admin actions (all)\n' \
-  > "$TMP/gl-allow/files/10_SECURITY_AND_TECHNICAL_MONITORING.md"
+gl_siem="$TMP/gl-allow/infra/docker-compose.siem.yml"
+gl_mon="$TMP/gl-allow/files/10_SECURITY_AND_TECHNICAL_MONITORING.md"
+gl_siem_src="$REPO/infra/docker-compose.siem.yml"
+gl_mon_src="$REPO/files/10_SECURITY_AND_TECHNICAL_MONITORING.md"
+grep -F -m1 -e 'curl -sk -u admin:' "$gl_siem_src" > "$gl_siem"
+grep -F -m1 -e 'CrowdSec blocks' "$gl_mon_src" > "$gl_mon"
+# An empty fixture would sail through the accept check while proving nothing,
+# so a line that has moved out of its file is a failure, not a silent skip.
+if [ ! -s "$gl_siem" ] || [ ! -s "$gl_mon" ]; then
+  echo "FAIL: an allowlisted line is no longer in the file its row names"
+  fail=$((fail + 1))
+fi
 expect_accept "gitleaks (env-var ref + prose are allowlisted)" \
   gitleaks detect --no-git --source "$TMP/gl-allow" --config "$REPO/.gitleaks.toml" \
   --redact --no-banner
 printf 'test: ["CMD-SHELL", "curl -sk -u admin:%s https://x/health"]\n' \
-  "$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24)" \
-  > "$TMP/gl-allow/infra/docker-compose.siem.yml"
+  "$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24)" > "$gl_siem"
 expect_reject "gitleaks (literal pw in the allowlisted file)" \
   gitleaks detect --no-git --source "$TMP/gl-allow" --config "$REPO/.gitleaks.toml" \
   --redact --no-banner
-printf 'test: ["CMD-SHELL", "curl -sk -u admin:$${INDEXER_PASSWORD} https://x/health"]\n' \
-  > "$TMP/gl-allow/infra/docker-compose.siem.yml"
+grep -F -m1 -e 'curl -sk -u admin:' "$gl_siem_src" > "$gl_siem"
 printf -- '- token reuse detections, aws_access_key_id = "%s"\n' "$fake_aws_key" \
-  > "$TMP/gl-allow/files/10_SECURITY_AND_TECHNICAL_MONITORING.md"
+  > "$gl_mon"
 expect_reject "gitleaks (real key in the allowlisted file)" \
   gitleaks detect --no-git --source "$TMP/gl-allow" --config "$REPO/.gitleaks.toml" \
   --redact --no-banner
