@@ -152,3 +152,54 @@ above. `lowLiteracyReadiness` reports the Detaylı pack as not ready and names
 `numeral_anchored:pain_score` rather than inventing a recoding, which is
 HUMAN_BLOCKERS.md rule 1 applied to a scale rather than to a threshold.
 Filed as **HB-C22** (physician of record).
+
+## INT-101 — the budgets have no numbers, and the cost has no price
+
+**Raised:** 3 Sep 2026 · **Named humans:** the owner (both asks) · **HUMAN_BLOCKERS.md id: HB-O8** — allocated by the
+coordinator; the two asks below are the rows verbatim, and neither is a re-ask
+of an existing one.
+
+The mechanism ships and fails closed. `intake_voice_runtime.metering` decides which
+*kind* of object each budget is — a cap for extraction tokens, a target for TTS
+characters, accounting for audio seconds — meters all three axes per session and per
+profile, and refuses the elective model lane when no cap is declared. Nothing a patient
+is owed is ever refused. What is missing is two numbers, and neither may be engineered:
+
+**Ask 1 — the per-session limits.** files/10 §5 names the control (*"per-session
+token/char/audio budgets"*) and **no file in this repository states a number for it**.
+`PUBLISHED_BUDGETS` therefore ships every `limit` unset with the sentence that says why,
+and the consequence is deliberate: with no declared cap the elective lane is refused
+outright, because an unknown budget is not a licence to spend. One sentence closes it:
+*how many extraction tokens and how many synthesised characters may one session spend
+before the discretionary lane is cut, on the deployment we are actually buying?* It is a
+spend decision about hardware that does not exist yet, which is why it sits behind
+**HB-I4** and **HB-I5** rather than beside them.
+
+**Ask 2 — the price.** `cost.per_session` is denominated in USD (files/08 §4 J). Under
+CLAUDE.md invariant 19 every model is self-hosted, so there is no vendor list price to
+read a per-token or per-character rate off; and there is no GPU-hour rate either, because
+**HB-I4** records that no card has been bought and **HB-I5** that no capacity contract
+naming a provider or an SKU exists. `PriceBook` ships empty, `priced_cost` raises
+`CostNotPriced` rather than returning a zero (a zero is a claim that a session was free),
+no `Gauge` is declared for the name, and the catalogue row stays `planned`. One sentence
+closes it: *what USD rate per token, per character and per audio second should a session
+be costed at, and from which invoice or amortisation does it come?*
+
+**Consequence for the issue.** One acceptance line of three is not met —
+*"cost.per_session emitted"* — so **INT-101 stays `todo`**. The other two are met with the
+mechanism rather than with numbers, which docs/evidence/INT-101.md sets out line by line.
+
+Two smaller findings, reported rather than fixed, because closing either means minting a
+metric id the spec has not settled:
+
+- **Backend extraction tokens have no catalogued series.** files/08 §4 group B's
+  `voice.talker_tokens` is *the Talker's* LLM per turn; `extract_slots` is Layer B Work.
+  Group J states *"tokens/chars/audio-seconds by vendor"* **without an id**, and the
+  catalogue's own trailing comment already records that row as id-less. The ledger counts
+  them; no series carries them.
+- **`voice.stt_audio_s` has no source in this tree.** Nothing in `services/voice-runtime`
+  sees patient audio — the Talker is handed transcripts, and the ASR adapter takes opaque
+  bytes with no declared sample format. `charge_audio_seconds` therefore takes a *measured*
+  duration and has no byte-length overload, because a duration inferred from a guessed
+  sample rate would be an invented number about a recording CLAUDE.md invariant 3 says does
+  not exist. The row stays `planned` until the media plane supplies a duration.

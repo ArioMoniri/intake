@@ -20,6 +20,7 @@ __all__ = [
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
+    "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
     "WORK_QUEUE_DEPTH",
@@ -138,4 +139,46 @@ BARGE_IN_STOP_MS = Histogram(
     "Time to stop agent playback after the patient started speaking, in milliseconds.",
     ["tenant", "profile", "branch", "vendor"],
     buckets=(25.0, 50.0, 100.0, 150.0, 250.0, 500.0, 1_000.0, float("inf")),
+)
+
+
+# --- session cost metering (INT-101) ----------------------------------------------
+#
+# files/08 §4 group B names ``voice.tts_chars`` — *"Characters synthesised per
+# turn (TTSMetrics)"* — and this issue is what makes something emit it: the
+# metered synthesizer of ``intake_voice_runtime.metering.adapters`` charges the
+# string it actually sent to the model, so the series moves in the opposite
+# direction to ``voice.clip_cache_hit_ratio``, a clip-cache hit synthesising
+# nothing (CLAUDE.md invariant 10).
+#
+# **The other two axes of files/08 §4 group J get no family here, and neither
+# gap is closed by minting an id.**
+#
+# - Backend ``extract_slots`` tokens: group B's ``voice.talker_tokens`` is *the
+#   Talker's* LLM per turn, and extraction is Layer B Work. Group J states
+#   *"tokens/chars/audio-seconds by vendor"* WITHOUT an id, and this
+#   catalogue's own trailing comment already records that row as id-less. The
+#   ledger counts them; no series carries them.
+# - ``voice.stt_audio_s``: catalogued, and nothing in this service can source
+#   it. The Talker is handed transcripts, not audio, and the ASR adapter takes
+#   opaque bytes with no declared sample format — so a duration here would be
+#   derived from a guessed sample rate, about a recording invariant 3 says does
+#   not exist. The row stays ``planned``.
+# - ``cost.per_session``: no price exists (HB-I4, HB-I5), so no Gauge is
+#   declared and the row stays ``planned``. See
+#   ``intake_voice_runtime.metering.cost``.
+#
+# The label set is group B's own — tenant, profile, branch, vendor — all four
+# non-identifying by construction (invariant 6), with ``vendor`` carrying the
+# constant ``self-hosted`` because invariant 19 leaves no vendor to name.
+
+#: Characters sent to a TTS model in one synthesis. Buckets bracket the shape
+#: of the content rather than a target files/08 §4 does not state for this
+#: series: a short confirmation, a scripted question, a follow-up, and the long
+#: tail of a red-flag action script.
+VOICE_TTS_CHARS = Histogram(
+    "voice_tts_chars",
+    "Characters synthesised per turn, by tenant, profile, branch and vendor.",
+    ["tenant", "profile", "branch", "vendor"],
+    buckets=(16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1_024.0, float("inf")),
 )
