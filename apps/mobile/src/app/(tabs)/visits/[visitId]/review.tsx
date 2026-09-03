@@ -1,11 +1,42 @@
 /**
- * Review & send shell (INT-179): the Garmin review-plan pattern — sectioned
- * note, each section with a visible share-scope chip (default shared), one
- * send CTA. Scope-off excludes the section from what is sent; scope choices
- * never block sending (02 §5.1). Doctor Link QR and CSAT arrive with
- * INT-137's real pipeline. Design pass 3: section titles are kicker pills
- * with a hairline under the header row (Oura card anatomy); the send CTA
- * floats on a glass bar and the note scrolls under it.
+ * Review & send (INT-179's shell, completed by INT-137): the Garmin
+ * review-plan pattern — sectioned note, each section with a visible
+ * share-scope chip (default shared), one send CTA. Scope-off excludes the
+ * section from what is sent; scope choices never block sending (02 §5.1).
+ * Design pass 3: section titles are kicker pills with a hairline under the
+ * header row (Oura card anatomy); the send CTA floats on a glass bar and the
+ * note scrolls under it.
+ *
+ * INT-137 adds the three things 02 §5.4 asks for around that shell:
+ *
+ * - the **consent summary** immediately above Gönder — what leaves, who
+ *   receives it, and the anchor the expiry hangs off (`lib/intake/share`,
+ *   which computes no clock of its own because 02 §2 pins expiry to the
+ *   appointment, never to sending);
+ * - the **status timeline** after send. The send handler used to replace the
+ *   route, so §5.4's after-send surface was never shown at all; the ladder now
+ *   appears here and the patient leaves by the top bar when they choose to;
+ * - the **CSAT prompt**, which owns its own `satisfaction` consent gate
+ *   (`components/CsatPrompt`) and renders only from the sent branch.
+ *
+ * **Never blocks send is a safety property, not a preference.** The send CTA
+ * takes no condition, no disabled state and no await, and this screen reaches
+ * no network at all — so a refused scope, a refused or skipped CSAT, a
+ * withheld consent and an offline device all leave sending exactly as
+ * available as it was. `e2e/review_send.spec.ts` §5 holds each of those, and
+ * the control was proved non-vacuous by inserting a `disabled` prop, watching
+ * it fail, and reverting.
+ *
+ * **The Doctor Link QR is deliberately absent, and INT-150 is why.** The
+ * token, its OTP, expiry, view limit, revoke, watermark and access log are
+ * INT-150's acceptance, and INT-150 is still `todo`; no redemption route
+ * exists to point a code at. A QR carrying clinical data would be a share with
+ * no consent check and no audit entry (invariant 4); a QR carrying a bearer
+ * token would be a credential rendered to a camera and photographable off the
+ * screen (invariant 6). The correct payload is an opaque, short-lived
+ * reference the clinician redeems under their own auth with the scope checked
+ * AT REDEMPTION — and nothing in files/ specifies that flow yet. So no link
+ * format is invented here; §6 of the spec fails the build if one appears.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -13,8 +44,10 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
+import { CsatPrompt } from "@/components/CsatPrompt";
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
+import { StatusLadder } from "@/components/StatusLadder";
 import {
   AppText,
   Card,
@@ -24,13 +57,14 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
-import { withContext } from "@/lib/a11y/labels";
+import { joinParts, withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
 import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
-import { buildNote } from "@/lib/intake/note";
+import { buildNote, effectiveStatus } from "@/lib/intake/note";
 import { missingQuestions, packForVisit } from "@/lib/intake/questions";
+import { shareSummary } from "@/lib/intake/share";
 import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -115,6 +149,16 @@ function ReviewAndSend() {
         note.answers,
       )
     : [];
+  // 02 §5.4's consent summary, derived from the same `sentSections` the send
+  // path uses — one reading, so the summary and the send cannot disagree.
+  const summary = shareSummary(
+    note,
+    account,
+    visit === undefined ? null : { hospital: visit.hospital, department: visit.department },
+  );
+  // The ladder rung the note actually stands on (02 §5.1): a fixture already
+  // viewed or filed keeps its rung rather than dropping back to "sent".
+  const ladderStatus = effectiveStatus(visit?.noteStatus ?? null, note) ?? "sent";
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
@@ -304,10 +348,63 @@ function ReviewAndSend() {
           <AppText role="caption" color="inkFaint">
             {t("review.provenance")}
           </AppText>
+          {sent ? null : (
+            /* 02 §5.4's consent summary, immediately above the CTA it
+               describes: what leaves, who receives it, and what the expiry
+               hangs off. It states the anchor and not a countdown — the device
+               holds no appointment time, and 02 §2 forbids an issue-time
+               clock, so there is no timestamp to render. */
+            <Card>
+              <Kicker label={t("review.consent.title")} />
+              <Hairline />
+              <AppText role="caption" color="inkSoft">
+                {t("review.consent.sections")}
+              </AppText>
+              {summary.sections.length === 0 ? (
+                <AppText role="body">{t("review.consent.nothing")}</AppText>
+              ) : (
+                summary.sections.map((titleKey) => (
+                  <AppText key={titleKey} role="body">
+                    {t(titleKey)}
+                  </AppText>
+                ))
+              )}
+              {summary.recipient === null ? null : (
+                <>
+                  <AppText role="caption" color="inkSoft">
+                    {t("review.consent.recipient")}
+                  </AppText>
+                  <AppText role="body">
+                    {joinParts(summary.recipient.hospital, summary.recipient.department)}
+                  </AppText>
+                </>
+              )}
+              <AppText role="caption" color="inkSoft">
+                {t("review.consent.until")}
+              </AppText>
+              <AppText role="body">{t("review.consent.untilValue")}</AppText>
+            </Card>
+          )}
           {sent ? (
-            <AppText role="body" color="inkSoft">
-              {t("review.sentInfo")}
-            </AppText>
+            <>
+              <AppText role="body" color="inkSoft">
+                {t("review.sentInfo")}
+              </AppText>
+              {/* 02 §5.4 "after send: status timeline". Before INT-137 the
+                  send handler replaced the route with the visit detail, so
+                  this surface — and the CSAT question below it — was never
+                  seen at the moment it is about. */}
+              <Card>
+                <Kicker label={t("visits.detail.noteStatus")} />
+                <Hairline />
+                <StatusLadder current={ladderStatus} />
+              </Card>
+              {/* Owns its own files/06 §2 `satisfaction` gate and renders
+                  nothing without it. It sits after the send by construction,
+                  which is what makes "never blocks send" structural here
+                  rather than a property of this file's ordering. */}
+              <CsatPrompt />
+            </>
           ) : null}
         </ScrollView>
         {sent ? null : (
@@ -317,7 +414,6 @@ function ReviewAndSend() {
               onPress={() => {
                 if (visitId) {
                   updateNote(visitId, { type: "send" });
-                  router.replace(`/(tabs)/visits/${visitId}`);
                 }
               }}
             />
