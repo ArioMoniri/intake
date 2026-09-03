@@ -5,8 +5,9 @@ real line from the booted tier, captured into
 ``tests/fixtures/waf/coraza-blocks.log``, reads in part::
 
     [id "942100"] [msg "SQL Injection Attack Detected via libinjection"]
-    [data "Matched Data: s&sos found within ARGS:json.text_tr: 1' OR '1'='1 …"]
-    [uri "/v1/intake/utterance"] [unique_id "YzWuOpWMGYjVnBjbprE"]
+    [data "Matched Data: sUEv, found within ARGS:json.text_tr: Göğsümde şiddetli
+           ağrı var' UNION SELECT null,version(),null-- ve nefes darlığı"]
+    [uri "/v1/intake/utterance"] [unique_id "PBQUwiXcobicrCsgOXl"]
 
 ``ARGS:json.text_tr`` is the patient's utterance. On a JSON API whose one
 free-text field carries the reason a person is seeing a doctor, ``data`` is a
