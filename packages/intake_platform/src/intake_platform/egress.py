@@ -39,7 +39,9 @@ The layers, so that no single config mistake silently widens the boundary:
 
 :func:`guarded_transport` wraps ``httpx`` so services adopt enforcement by
 construction, and :func:`guarded_client` builds a client with redirects off
-(files/10 §4). Redirects are safe either way by composition: httpx follows one
+(files/10 §4). A transport carrying personal data may not be pointed at the
+forward proxy at all — see :func:`guarded_transport` — because that is the one
+configuration in which neither enforcement point does the resolve-and-pin. Redirects are safe either way by composition: httpx follows one
 by issuing a new request through the same transport, so every hop is checked,
 resolved and pinned independently.
 
@@ -761,7 +763,25 @@ def guarded_transport(
     environment: ``httpx`` ignores proxy environment variables when an
     explicit transport is supplied, so the proxy is only ever the one named
     here.
+
+    **A personal-data transport may not take this path** (INT-203). ADR-025
+    named four ways round this control and INT-160/INT-161 each found another;
+    delegating the pin is the shape the next one would take, because it looks
+    like configuration rather than like a change to a security boundary. The
+    vendor allow-list the proxy enforces has no connector rows and its
+    ``phi_path`` tier is empty, so a PHI or pseudonymous call routed through it
+    would lose the in-process resolve-and-pin and gain no network-tier check in
+    exchange — the two enforcement points would each assume the other had done
+    it. Refused at construction rather than at the first send, so the mistake
+    surfaces where it is made instead of in a receipt.
     """
+    if context.data_class.is_personal and proxy is not None:
+        raise ValueError(
+            f"a {context.data_class} transport cannot delegate its pin to the forward "
+            "proxy: the vendor allow-list the proxy enforces has no connector rows and "
+            "its phi_path tier is empty, so this call would lose the in-process "
+            "resolve-and-pin and gain nothing (files/10 §4; ADR-025)"
+        )
     if inner is None:
         inner = httpx.HTTPTransport(proxy=proxy) if proxy else httpx.HTTPTransport()
     return _GuardedTransport(

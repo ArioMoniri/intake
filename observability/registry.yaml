@@ -541,3 +541,112 @@ components:
       the blob AND a source header on every version bump: a project that
       states its "+" only in headers can drop it in a header sweep without
       touching COPYING at all.
+
+  # INT-203 — the edge (files/10 §4 `Edge:`). Two components, one policy:
+  # infra/security/edge/edge-policy.yaml renders Traefik's static and dynamic
+  # configuration, CrowdSec's scenarios and acquisition, and the cert-manager
+  # manifest, so the four enforcement points cannot drift
+  # (scripts/security/render_edge_conf.py, `make edge-conf`).
+  #
+  # On the PHI path in the sense that matters here: the ingress decides what
+  # reaches the API at all, and the API is where clinical data is. Unlike the
+  # egress proxy this tier IS booted and exercised — `make edge-check` runs
+  # tests/infra/test_edge_stack_integration.py against the real engine, which
+  # is what lets the acceptance's "WAF blocks OWASP CRS suite" be a
+  # measurement rather than a claim.
+  #
+  # The WAF is NOT a third row. Coraza runs as a wasm middleware inside the
+  # Traefik process: it has no address, no endpoint and nothing to probe, and
+  # a row whose `probe` had to be invented to satisfy the schema would be
+  # worse than no row. Its pins and licences are machine-readable in
+  # edge-policy.yaml, which is itself schema-validated
+  # (intake_platform.edge.policy.WafPolicy), and are set out in licence_note
+  # below.
+  - component: edge-ingress
+    self_hostable: true
+    # `false`, on the EHRbase precedent in this file's header: the tier is
+    # built, licence-verified, booted and exercised (`make edge-check` runs the
+    # corpus through it), and it is not running in any deployment — it sits
+    # behind the `edge` compose profile and there is no cluster to put it in
+    # until INT-201. "Enabled" for the release gate means running, and a
+    # boundary control whose only honest fallback is `none` would otherwise
+    # block every release forever on a condition nothing can satisfy.
+    self_hosted_now: false
+    host: "infra/docker-compose.edge.yml, profile `edge` — traefik:v3.3.7 with the Coraza/OWASP-CRS middleware, on loopback 127.0.0.1:18080; traefik.yml and dynamic.yml GENERATED from infra/security/edge/edge-policy.yaml"
+    license: "MIT (LICENSE.md blob verified @v3.3.7) + Apache-2.0 for the WAF middleware and its embedded ruleset — see licence_note"
+    # Traefik's own `/ping`, served on the `metrics` entry point rather than on
+    # either internet-facing one.
+    probe: http_health
+    budget_ms: 1000
+    # A failed ingress means no traffic reaches the API, which is the correct
+    # failure direction. There is nothing to fall back TO that is not "serve
+    # the API with no WAF in front of it".
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-09-03
+    licence_blob_url: "https://raw.githubusercontent.com/traefik/traefik/74bc93308b47a1a03b7dbaedd5ec2c0965f46e80/LICENSE.md"
+    licence_blob_sha256: "4785e89fcc9a0f7ca3dca1aa6caa86b38db00043a669918fe932e1d87a68579b"
+    licence_note: >-
+      THREE licences, read separately on 2026-09-03, because three projects
+      travel in this one process. (a) Traefik, at commit
+      74bc93308b47a1a03b7dbaedd5ec2c0965f46e80 (tag v3.3.7): 20 lines, the
+      stock MIT text, "Copyright (c) 2016-2020 Containous SAS; 2020-2025
+      Traefik Labs" — the structured fields above. Traefik Labs sells
+      Enterprise/Hub separately; nothing here enables either and no licence key
+      exists in this repository, so re-read on every bump, because the
+      open-core line moves and the licence text does not announce it. (b) The
+      WAF middleware, coraza-http-wasm v0.3.0: the LICENSE member of the
+      release archive (archive sha256
+      b96680b46e61287faae243e360db5de34e4f315e2a8ee105fedddc176e79b1e7, module
+      sha256
+      b59fd2266c03699da2de9d6d281ffc2a3e791eb6646069d2b9744543ccd90b1c), 11357
+      bytes, the stock Apache-2.0 text, sha256
+      c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4. Read
+      from the artefact rather than from the repository, because the artefact
+      is what runs. (c) The ruleset, OWASP CRS 4.0.0, embedded in that module
+      (`@owasp_crs/rules/LICENSE` is present in its embedded filesystem),
+      verified against the upstream blob at commit
+      1d95422bb31983a5290720b7fb662ce3dd51f753 (tag v4.0.0),
+      https://raw.githubusercontent.com/coreruleset/coreruleset/1d95422bb31983a5290720b7fb662ce3dd51f753/LICENSE,
+      sha256 66c68b82946c4ed494f793603ef910fef26ac0ae35e1c688302bb9e689edb1a6
+      — the stock Apache-2.0 text. Two things to re-check on every bump: the
+      middleware repository is a PERSONAL namespace (jcchavezs, a Coraza
+      maintainer) rather than the corazawaf organisation, and the pinned
+      release is from October 2024. Neither changes the licence; both change
+      how much a bump needs looking at. The CRS version is stated as 4.0.0
+      because the running engine reports `OWASP_CRS/4.0.0` in every rule line
+      — a measurement, not a card tag.
+
+  # Reputation and behavioural buckets, LOCAL ONLY. The community blocklist is
+  # CrowdSec's headline feature and it works by sending the addresses that
+  # triggered your scenarios to CrowdSec SAS; files/10 §1 counts that as a
+  # transfer nobody consented to, so `online_client` is empty in
+  # infra/security/edge/crowdsec/config.yaml and asserted empty by test. Every
+  # parser and scenario this tier runs is in this repository.
+  - component: edge-crowdsec
+    self_hostable: true
+    # As above: booted and exercised, deployed nowhere.
+    self_hosted_now: false
+    host: "infra/docker-compose.edge.yml, profile `edge` — crowdsecurity/crowdsec:v1.6.8; scenarios and acquisition GENERATED from infra/security/edge/edge-policy.yaml; central API disabled"
+    license: "MIT (LICENSE blob verified @v1.6.8 — see licence_note)"
+    probe: tcp_connect
+    budget_ms: 1000
+    # No fallback, and the honest reading of that is narrower than it looks: a
+    # failed CrowdSec loses behavioural remediation and loses nothing else —
+    # the WAF is a separate process and still decides every request. Degraded
+    # detection, never degraded blocking.
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-09-03
+    licence_blob_url: "https://raw.githubusercontent.com/crowdsecurity/crowdsec/f209766efcf0b66540a4acbe35c0fc572fc2bb60/LICENSE"
+    licence_blob_sha256: "b0d4afcd015e48f7e5936dfaf93259bfc5331687d511fdd39532f7682c748a27"
+    licence_note: >-
+      Read at commit f209766efcf0b66540a4acbe35c0fc572fc2bb60 (tag v1.6.8),
+      2026-09-03: 20 lines, the stock MIT text, "Copyright (c) 2020-2023
+      Crowdsec". The commit is cross-checked against the running container,
+      which reports its build as `crowdsec/v1.6.8-f209766e-docker` — so the
+      blob read is the blob of the binary that runs, not of a tag that happens
+      to share a name. Hub content is a separate question and this tier pulls
+      none: hub parsers and scenarios are MIT too, but they would arrive over
+      the network from a host that is not on the egress allow-list, which is
+      why there are none.
