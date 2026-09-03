@@ -32,6 +32,11 @@ from admin_harness import (
     reachable_admin_routes,
 )
 from api_harness import ApiHarness
+from intake_api.consent_guard import (
+    administrative_action,
+    administrative_action_routes,
+    unguarded_data_routes,
+)
 from intake_platform.admin import ADMIN_ROUTES, DANGEROUS_ACTIONS, AdminAuditSink
 from intake_platform.audit import AuditEntry, verify_entries
 
@@ -206,3 +211,44 @@ class TestChainHeadUnreachable:
         response = call(admin_harness.client, drive, role="platform_owner")
         assert head not in response.text
         assert chain(admin_harness)[-1].entry_hash != head
+
+
+class TestConsentScanDeclaration:
+    """INT-038's route-table scan (files/06 §2; invariant 4).
+
+    A console action has no data subject at the door: the principal is staff,
+    and files/06 §2 enumerates the patient's purposes and contains nothing
+    covering staff access. Naming a scope here would assert a lawful basis the
+    repository does not have. So the routes declare WHY they carry none, under
+    a marker caged to ``/admin`` — and the cage is what stops a ``/v1`` data
+    route borrowing it to dodge a scope.
+    """
+
+    def test_the_admin_surface_is_declared_and_nothing_is_unguarded(
+        self, admin_harness: ApiHarness
+    ) -> None:
+        app = admin_harness.client.app
+        assert unguarded_data_routes(app) == []
+        declared = set(administrative_action_routes(app))
+        assert declared == {f"{method} {path}" for method, path in reachable_admin_routes(app)}
+
+    def test_the_marker_outside_the_admin_prefix_is_not_a_declaration(self) -> None:
+        """Near-miss negative control, mirroring the pre-auth cage test: a
+        data route elsewhere cannot borrow the marker."""
+        from fastapi import FastAPI
+
+        app = FastAPI()
+
+        @app.get("/v1/borrowed", dependencies=[administrative_action()])
+        async def borrowed() -> dict[str, str]:
+            return {"ok": "no"}
+
+        assert unguarded_data_routes(app) == ["GET /v1/borrowed"]
+        # and a lookalike prefix is not the cage either
+        lookalike = FastAPI()
+
+        @lookalike.get("/administration/x", dependencies=[administrative_action()])
+        async def lookalike_route() -> dict[str, str]:
+            return {"ok": "no"}
+
+        assert unguarded_data_routes(lookalike) == ["GET /administration/x"]

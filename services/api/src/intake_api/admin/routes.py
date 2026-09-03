@@ -54,6 +54,7 @@ from intake_platform.admin.metrics import (
 
 from intake_api.admin import views
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
+from intake_api.consent_guard import administrative_action
 from intake_api.errors import admin_refused, break_glass_refused, four_eyes_refused, not_found
 from intake_api.state import get_state
 
@@ -249,4 +250,10 @@ for _route in ADMIN_ROUTES:
         _endpoint(_route),
         methods=[_route.method],
         name=_route.audit_action.replace(".", "_"),
+        # INT-038's route-table scan: a console action has no data subject at
+        # the door, so it declares WHY rather than naming a scope it could not
+        # honestly claim. Attached here, once, for every descriptor — the same
+        # choke point that attaches the audit action, so a route cannot be
+        # added that is undeclared to either.
+        dependencies=[administrative_action()],
     )
