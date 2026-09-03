@@ -1,0 +1,29 @@
+# Gitleaks fingerprints — reviewed findings that are NOT secrets.
+#
+# Format: <commit>:<file>:<rule-id>:<line>. A fingerprint pins ONE finding at
+# ONE coordinate in ONE commit. It is the narrowest suppression gitleaks has:
+# unlike `paths` in .gitleaks.toml it exempts no file, no rule and no other
+# line, so the same string anywhere else — including this file at a different
+# line — is still a finding.
+#
+# INT-019. These three are the gitleaks self-test's own fixtures.
+# gate_selftest.sh plants the two strings the .gitleaks.toml allowlist rows
+# name, asserts they are accepted, then plants a real literal in the same two
+# files and asserts those are rejected — the near-miss negative control that
+# proves the rows are anchored to the captured secret and not to a path.
+# Committing the fixtures as literals was the defect: it put a secret-shaped
+# string in the generator, which the script's own header forbids. Commit
+# 9fae031 removed them; the script now mirrors the lines out of the real files
+# at run time, and HEAD is clean under both gitleaks 8.24.3 and 8.30.1.
+#
+# What survives is only the patch of the superseded commit. Nothing here was
+# ever a credential, so there is nothing to rotate: INDEXER_PASSWORD is a
+# compose-escaped variable reference resolved from OpenBao at run time
+# (invariant 14), and WAF/CrowdSec is two product names in a prose sentence.
+#
+# These go inert when this PR squash-merges, because a68309d5 will not exist
+# on main. They are kept only so the range scan on the PR itself is honest
+# rather than silenced wholesale.
+a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:97
+a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:generic-api-key:99
+a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:110
