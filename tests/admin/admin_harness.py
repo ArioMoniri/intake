@@ -31,6 +31,7 @@ from intake_platform.admin import (
     FourEyesService,
     IpAllowList,
 )
+from intake_platform.admin.principal import ClaimsRejected
 
 #: The tenant deployment map the wiring ships EMPTY (files/08 §2.6): whether
 #: INTAKE is processor or controller for a tenant decides whether a lawful
@@ -41,7 +42,6 @@ TEST_DEPLOYMENTS = {
     "tenant-a": Deployment.PROCESSOR,
     "tenant-c": Deployment.CONTROLLER,
 }
-from intake_platform.admin.principal import ClaimsRejected
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 CLAIMS_FIXTURE = FIXTURES / "keycloak_claims.json"
@@ -167,12 +167,37 @@ def drives_by_route() -> dict[tuple[str, str], RouteDrive]:
     return {(drive.method, drive.path_template): drive for drive in ROUTE_DRIVES}
 
 
+def _walk_routes(routes: Any) -> Iterator[Any]:
+    """Flatten FastAPI's route tree.
+
+    FastAPI >= 0.14 stores an included router as a ``_IncludedRouter`` holding
+    ``original_router`` rather than splicing its routes into ``app.routes``,
+    so a flat read of ``app.routes`` silently returns nothing for every
+    mounted router. A derivation that can return an empty set is a gate that
+    passes by accident, which is why the caller also asserts non-emptiness and
+    cross-checks against the served OpenAPI document.
+    """
+    for route in routes:
+        included = getattr(route, "original_router", None)
+        if included is not None:
+            yield from _walk_routes(included.routes)
+            continue
+        nested = getattr(route, "routes", None)
+        if nested is not None and getattr(route, "methods", None) is None:
+            yield from _walk_routes(nested)
+            continue
+        yield route
+
+
 def reachable_admin_routes(app: Any) -> set[tuple[str, str]]:
-    """Every ``/admin`` route the app actually serves, read off FastAPI's own
-    route table — the ground truth of what is reachable, so a route added by
-    any means at all shows up here."""
+    """Every ``/admin`` route the app actually serves.
+
+    Two independent derivations, both read off the running app: the route tree
+    and the OpenAPI document. They must agree on everything the document can
+    express, so a route that escapes one is caught by the other.
+    """
     found: set[tuple[str, str]] = set()
-    for route in app.routes:
+    for route in _walk_routes(app.routes):
         path = getattr(route, "path", "")
         methods = getattr(route, "methods", None)
         if not path.startswith("/admin") or methods is None:
@@ -181,6 +206,18 @@ def reachable_admin_routes(app: Any) -> set[tuple[str, str]]:
             if method in {"HEAD", "OPTIONS"}:
                 continue
             found.add((method, path))
+    assert found, (
+        "no /admin route was discovered — the route walk has stopped matching "
+        "this FastAPI version, and an empty derived list makes every gate that "
+        "reads it pass by accident"
+    )
+    documented = {
+        (method.upper(), path)
+        for path, operations in app.openapi()["paths"].items()
+        if path.startswith("/admin")
+        for method in operations
+    }
+    assert documented <= found, sorted(documented - found)
     return found
 
 

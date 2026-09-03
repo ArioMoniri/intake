@@ -130,7 +130,7 @@ class AdminActionRecord:
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         traceback: TracebackType | None,
-    ) -> bool:
+    ) -> None:
         outcome = "failure" if (exc_type is not None or self._failed) else "success"
         await self._sink.record(
             actor=self._actor,
@@ -138,4 +138,3 @@ class AdminActionRecord:
             resource_ref=self._resource_ref,
             consent_scope=ADMIN_BASIS_REF,
         )
-        return False

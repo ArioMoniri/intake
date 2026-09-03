@@ -85,6 +85,7 @@ __all__ = [
     "AdminAuditSink",
     "AdminClaimsVerifier",
     "AdminPrincipal",
+    "AdminRole",
     "AdminRoute",
     "AdminWiring",
     "ApprovalBrief",

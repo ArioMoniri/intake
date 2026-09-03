@@ -140,7 +140,7 @@ class TestRouteMatrix:
                 assert response.status_code != 403, (role.value, drive.path_template)
             else:
                 assert response.status_code == 403, (role.value, drive.path_template)
-                assert response.json()["detail"]["error"] == "forbidden"
+                assert response.json()["error"] == "forbidden"
 
     @pytest.mark.parametrize("drive", ROUTE_DRIVES, ids=lambda d: f"{d.method} {d.path_template}")
     def test_tenant_query_parameter_is_refused_below_platform_owner(
@@ -148,11 +148,15 @@ class TestRouteMatrix:
     ) -> None:  # type: ignore[no-untyped-def]
         for role in ADMIN_ROLES:
             response = call(admin_harness.client, drive, role=role.value, query="?tenant=tenant-b")
+            error = response.json().get("error") if response.status_code == 403 else None
             if role is AdminRole.PLATFORM_OWNER:
-                assert response.status_code != 403
+                # it may still be refused for holding no role this route
+                # admits — what it must never be refused for is naming a
+                # tenant, which is the one thing this role may do
+                assert error != "tenant_scope_refused"
             else:
                 assert response.status_code == 403, role.value
-                assert response.json()["detail"]["error"] == "tenant_scope_refused"
+                assert error == "tenant_scope_refused"
 
     def test_token_without_a_console_role_is_refused(self, admin_harness: ApiHarness) -> None:
         response = admin_harness.client.get(
@@ -166,9 +170,7 @@ class TestRouteMatrix:
         )
         assert response.status_code == 401
 
-    def test_whoami_reports_the_claim_tenant_and_the_roles(
-        self, admin_harness: ApiHarness
-    ) -> None:
+    def test_whoami_reports_the_claim_tenant_and_the_roles(self, admin_harness: ApiHarness) -> None:
         body = admin_harness.client.get(
             "/admin/whoami", headers={"Authorization": f"Bearer {token_for('clinical_lead')}"}
         ).json()
@@ -192,7 +194,7 @@ class TestFailClosed:
         try:
             response = harness.client.get("/admin/whoami", headers={"Authorization": "Bearer x"})
             assert response.status_code == 503
-            assert response.json()["detail"]["error"] == "admin_console_unconfigured"
+            assert response.json()["error"] == "admin_console_unconfigured"
         finally:
             harness_iter.close()
 
@@ -204,7 +206,7 @@ class TestFailClosed:
                 "/admin/whoami", headers={"Authorization": f"Bearer {token_for('platform_owner')}"}
             )
             assert response.status_code == 403
-            assert response.json()["detail"]["error"] == "source_ip_refused"
+            assert response.json()["error"] == "source_ip_refused"
         finally:
             harness_iter.close()
 
@@ -216,6 +218,6 @@ class TestFailClosed:
                 "/admin/whoami", headers={"Authorization": f"Bearer {token_for('platform_owner')}"}
             )
             assert response.status_code == 403
-            assert response.json()["detail"]["error"] == "source_ip_refused"
+            assert response.json()["error"] == "source_ip_refused"
         finally:
             harness_iter.close()

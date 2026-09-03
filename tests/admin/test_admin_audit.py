@@ -31,7 +31,7 @@ from admin_harness import (
     drives_by_route,
     reachable_admin_routes,
 )
-from api_harness import ApiHarness, run
+from api_harness import ApiHarness
 from intake_platform.admin import ADMIN_ROUTES, DANGEROUS_ACTIONS, AdminAuditSink
 from intake_platform.audit import AuditEntry, verify_entries
 
@@ -194,7 +194,10 @@ class TestChainHeadUnreachable:
     def test_the_chain_head_moves_but_the_console_never_reads_it(
         self, admin_harness: ApiHarness
     ) -> None:
-        # the writer's head advances; nothing the console returns exposes it
+        # the writer's head advances with every console action; nothing the
+        # console hands back exposes it, so an operator inside the
+        # platform_admin blast radius cannot check their own forgery against
+        # the value HB-I12 publishes outside it
         drive = drives_by_route()[("GET", "/admin/whoami")]
         call(admin_harness.client, drive, role="platform_owner")
         entries = chain(admin_harness)
@@ -202,4 +205,4 @@ class TestChainHeadUnreachable:
         head = entries[-1].entry_hash
         response = call(admin_harness.client, drive, role="platform_owner")
         assert head not in response.text
-        assert run(admin_harness.client.app.state.audit.healthy()) is True
+        assert chain(admin_harness)[-1].entry_hash != head

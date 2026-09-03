@@ -34,12 +34,12 @@ from intake_platform.admin import (
     ADMIN_ROUTES,
     BREAK_GLASS_GRANT_TTL,
     AdminActionRecord,
+    AdminRole,
     AdminRoute,
     AdminWiring,
     BreakGlassReason,
     BreakGlassRefused,
     FourEyesRefused,
-    AdminRole,
     RoleNotPermitted,
     build_break_glass_justification,
     dangerous_action,
@@ -170,7 +170,6 @@ async def _break_glass_approve(
     request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
 ) -> dict[str, Any]:
     _sweep_expired(wiring)
-    action = dangerous_action("admin.break_glass.open")
     payload = await _json_body(request)
     try:
         approved = wiring.four_eyes.approve(
@@ -205,7 +204,19 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
     async def endpoint(request: Request) -> Response:
         wiring = get_admin_wiring(request)
         sink = get_state(request).audit
-        base = {"route": f"{route.method} {route.path}", "action": route.audit_action}
+        # files/08 §8 rule (b): a mutating route that resolves to no
+        # registry entry raises here rather than executing — an unregistered
+        # admin write cannot be logged, so it cannot happen
+        tier = (
+            int(dangerous_action(route.dangerous_action_id).tier)
+            if route.dangerous_action_id is not None
+            else 0
+        )
+        base = {
+            "route": f"{route.method} {route.path}",
+            "action": route.audit_action,
+            "tier": str(tier),
+        }
         try:
             caller = resolve_caller(request, wiring)
         except HTTPException as refusal:
@@ -216,19 +227,17 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
             ) as record:
                 record.mark_failed()
             raise refusal
-        denied: RoleNotPermitted | None = None
-        try:
-            role = caller.principal.role_for(route.permitted_roles)
-            role_name = role.value
-        except RoleNotPermitted as refusal:
-            denied, role_name = refusal, "none"
-            role = None  # type: ignore[assignment]
-        detail = {**base, "role": role_name, "tenant": caller.tenant or "-"}
+        role = caller.principal.first_permitted(route.permitted_roles)
+        detail = {
+            **base,
+            "role": role.value if role is not None else "none",
+            "tenant": caller.tenant or "-",
+        }
         async with AdminActionRecord(
             sink, actor=caller.principal.subject, action=route.audit_action, detail=detail
         ):
-            if denied is not None:
-                raise admin_refused(denied.code)
+            if role is None:
+                raise admin_refused(RoleNotPermitted.code)
             return JSONResponse(await handler(request, caller, wiring, role))
 
     return endpoint

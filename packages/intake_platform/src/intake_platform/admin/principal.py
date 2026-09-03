@@ -103,14 +103,18 @@ class AdminPrincipal:
             session_id=self.session_id,
         )
 
-    def role_for(self, permitted: frozenset[AdminRole]) -> AdminRole:
-        """The role under which this caller reaches a route. Deterministic —
-        registry order — so the audited role does not depend on claim
-        ordering."""
+    def first_permitted(self, permitted: frozenset[AdminRole]) -> AdminRole | None:
+        """The role under which this caller reaches a route, or ``None``.
+
+        Deterministic — registry order — so the audited role does not depend
+        on the order Keycloak happened to list the claims in. Total rather
+        than raising, because the caller must audit the refusal before
+        turning it into a response.
+        """
         for role in ADMIN_ROLES:
             if role in self.roles and role in permitted:
                 return role
-        raise RoleNotPermitted("no held role admits this route")
+        return None
 
 
 def _required_id(claims: Mapping[str, Any], key: str) -> str:

@@ -40,9 +40,7 @@ def whoami(principal: AdminPrincipal, tenant: str | None) -> dict[str, Any]:
         "org": principal.org,
         "tenant": tenant,
         "capabilities": sorted(
-            route.audit_action
-            for route in ADMIN_ROUTES
-            if principal.roles & route.permitted_roles
+            route.audit_action for route in ADMIN_ROUTES if principal.roles & route.permitted_roles
         ),
     }
 
