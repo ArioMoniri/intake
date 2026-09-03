@@ -777,14 +777,23 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §9 records row — ClamAV, file-type sniffing, sandboxed parsing
   (seccomp-isolated PDF rendering, §4), the data boundary, RLS on pgvector with per-patient
   namespaces, provenance on every extracted fact; ingestion unit rule (CLAUDE.md invariant
-  22: magnitude outranks the printed unit token, disagreement flags).
+  22: magnitude outranks the printed unit token, disagreement flags). **No e-Nabız read
+  path exists or may be added** (KSVY m.6, files/06 §1; files/03 §12 — m.6(2) as amended by
+  RG 33096 is a closed list of *physician* access tiers with no category for an
+  application): the record is entered by patient-exported documents only. Enforced rather
+  than noted — the egress allow-list names no Ministry host so default-deny already refuses
+  one, no file under `packages/`·`services/`·`apps/`·`infra/`·`scripts/` names one, and no
+  module on the ingestion path imports an HTTP client or takes a locator (INT-122).
 - **Signals:** upload scan results and parse failures (§9) land with INT-120;
   `sec_injection_suspected_total` is shared with the `llm-boundary` row — INT-121's document
   fence and INT-083's transcript fence are one control in
   `intake_platform.data_boundary`, so one counter covers both.
 - **Tests:** PDF fuzzing lands with INT-120; extraction, the document data boundary, the
   confirm gate and the two invariant-22 guards with INT-121
-  (`tests/records/test_extraction_eval.py`); RLS namespace tests with INT-123.
+  (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
+  six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
+  guard and the three no-scraping checks — with INT-122
+  (`tests/records/test_enabiz_pdf.py`); RLS namespace tests with INT-123.
 
 ## `documents` — the object store
 

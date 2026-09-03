@@ -203,3 +203,61 @@ metric id the spec has not settled:
   duration and has no byte-length overload, because a duration inferred from a guessed
   sample rate would be an invented number about a recording CLAUDE.md invariant 3 says does
   not exist. The row stays `planned` until the media plane supplies a duration.
+
+---
+
+## INT-122 · e-Nabız export / MHRS SMS screenshot — two asks, both the owner's
+
+Both are the same shape and neither may be engineered: **nobody on this project has seen
+either source document**, and inventing what one looks like is the records-path form of
+inventing a clinical value. The parsers ship and refuse; what is missing is two artefacts,
+and one of them already has a HUMAN_BLOCKERS.md row that names this issue by number.
+
+**Ask 1 — the e-Nabız PDF, and it is already filed as HB-A1.** That row states it in terms:
+*"does the e-Nabız PDF have a **text layer** or is it a scanned image, and does it
+**normalise units**?"*, both UNVERIFIED, obtainable only from an authenticated e-Devlet
+citizen login, with the standing instruction *"Do not assume a text layer"* — and it names
+what it blocks as *"INT-122's acceptance; the OCR-vs-text-extraction fork in `03 §10`"*.
+Nothing is re-asked here. What this issue adds to the row is that the fail-closed shape is
+now built: the table parser reads `TextRegion[]` and is agnostic to which seam produced
+them, so the answer changes which seam is wired and changes no line of the parser.
+
+**Ask 2 — one redacted MHRS appointment SMS, and its printed date order.** One sentence
+closes it: *what does an MHRS appointment SMS actually say, and does it print the date as
+`gg.aa.yyyy` or in some other order?* Two consequences today, both fail-closed rather than
+guessed:
+
+- **No message shape is encoded anywhere in this change.** There is no label vocabulary, no
+  field order and no regex over a body layout, because writing one would be describing a
+  message nobody has read. Values are recognised by their own shape and against committed
+  vocabularies — the branch against `packages/protocols/taxonomy/branches.yaml`, the date
+  against the printed-date guard — which is the only recognition that does not require
+  having seen the message. The cost is that a field an SMS states in a form neither of
+  those recognises comes back empty and named, rather than read.
+- **`parse_mhrs_sms` passes no `order`**, so a printed date whose day and month are both
+  ≤ 12 is refused outright — a little under half of all dates. `DateOrder` exists as the
+  seam and has **no default and no `TURKISH` member**: a default would be one engineer
+  choosing once, for every future patient, between two readings a month apart. The wrong
+  choice sends a patient to the hospital on the wrong day and there is no diff that makes
+  it look wrong.
+
+The **HUMAN_BLOCKERS.md id for Ask 2 is for the coordinator to allocate** rather than minted
+here; Ask 1 needs no id, it is HB-A1.
+
+**Consequence for the issue.** One acceptance clause of three is fully met — *"no scraping
+of e-Nabiz … legal note enforced"*, and mechanically rather than by assertion — so
+**INT-122 stays `todo`**. `docs/evidence/INT-122.md` sets the line out clause by clause.
+
+Two findings, reported rather than fixed:
+
+- **`files/02 §3`'s *"Hekiminize ne iletildi"* bullet still cites the repealed KSVY m.10.**
+  `files/06 §1` flags it in those words — *"Flagged rather than edited, because `02` is not
+  this file's to change"* — and 00_STATE §2 marks the class of error *"Fix before any legal
+  review"*. INT-122's own backlog row carried the same citation and **is** corrected here
+  (to `KSVY-5,KSVY-6`) with a test pinning it, because that row is this issue's.
+- **A visit has no time.** `VisitCreate.date` is an ISO date string and the store has no
+  time column, so an appointment *time* read off a screenshot has nowhere to go. The
+  candidate and the confirmed reading both carry it — dropping it silently would leave a
+  patient unable to check the one field they remember — and `as_visit_fields()` carries only
+  what the API has a field for. Giving the visit a time is a schema change and an issue of
+  its own; no id is minted for it here.
