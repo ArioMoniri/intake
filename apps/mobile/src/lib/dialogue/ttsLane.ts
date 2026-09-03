@@ -31,6 +31,22 @@
  *   - every synthesis is capped and falls through to the next tier.
  * The ladder's intent is untouched: VoxCPM2 still wins whenever it is fast.
  *
+ * INT-294 — and admission must fit the budget the clip deadline allots it.
+ * Measured on the host against the live dev daemons on 2 Sep 2026, the serial
+ * walk cost 4024 ms of a 4048 ms clip deadline before the first syllable:
+ * 1721 ms on a health-green VoxCPM2 that cannot speak, 1505 ms on a
+ * configured host the tunnel does not reach, and 798 ms on the Freya that was
+ * going to win from the start (docs/evidence/INT-294.md). It won by 24 ms on
+ * the host and lost about as often inside React Native, and a lost race then
+ * muted the whole visit. Two changes, both about not re-deriving what is
+ * already known:
+ *   - the walk is a RACE resolved by RANK, not a queue: every candidate is
+ *     measured at once and the highest-ranked admissible one wins, so the
+ *     ladder costs ONE admission instead of one per (tier, host) pair;
+ *   - a host that answers nothing is quarantined for the session, so it
+ *     cannot charge the health cap again to say nothing again.
+ * Neither changes which lane wins, only how long it takes to say so.
+ *
  * Deliberately NOT here: how a clip is chunked, shaped or assembled. That is
  * INT-237's `speechShaping.ts` on branch int-237-tts-quality, still unmerged.
  * This module owns the endpoint and the fallback and stops there, so the two
@@ -144,18 +160,58 @@ export function laneCandidates(
  */
 export const LANE_PROBE_TEXT = "Merhaba";
 
+/**
+ * Cap on admitting ONE lane — health leg and probe synthesis together.
+ *
+ * Not a new duration. `clipDeadlineMs` is
+ * `TURN_ROUND_TRIP_BUDGET_MS + sentences × SYNTHESIZE_TIMEOUT_MS`, and tts.ts
+ * says in words what that decomposition means: "ONE lane admission plus ONE
+ * synthesis per sentence". The deadline has therefore always allotted
+ * admission exactly one `TURN_ROUND_TRIP_BUDGET_MS`; INT-294 is the discovery
+ * that admission never honoured the figure the deadline was computed from.
+ * Replaying the owner's walkthrough on the fake clock, the walk cost 4024 ms
+ * of a 4048 ms deadline (docs/evidence/INT-294.md).
+ */
+export const ADMISSION_BUDGET_MS = TURN_ROUND_TRIP_BUDGET_MS;
+
+/**
+ * Cap on the /health leg alone, inside the admission budget above. Health is
+ * a cheap GET whose only job is to tell a refused socket from a slow model,
+ * so it gets a fraction of the admission and never the whole of it.
+ */
+export const HEALTH_TIMEOUT_MS = 1500;
+
+/** The host part of a lane base — the unit a reachability verdict is about. */
+export function laneHost(base: string): string {
+  return /^https?:\/\/([^/]+):\d+$/.exec(base)?.[1] ?? base;
+}
+
 /** Why a lane was or was not admitted to the session. */
 export type LaneVerdict =
   /** Answered /health and spoke inside the budget. */
   | "ok"
-  /** /health did not answer 2xx, or the socket refused. */
+  /** /health answered, and answered non-2xx. The daemon is there. */
   | "unhealthy"
+  /**
+   * Nothing answered at all — refused, DNS, or silent past the cap. INT-294
+   * splits this out of `unhealthy` because the two justify different things:
+   * a 503 is one daemon saying no and tells you nothing about its neighbours
+   * on the same box, while a socket that answers nothing is a statement about
+   * the HOST, and a host that says nothing once will say nothing again.
+   */
+  | "unreachable"
   /** Healthy, but could not produce audio inside the budget. THE defect. */
   | "over_budget"
   /** Healthy and prompt, and answered with nothing. */
   | "silent"
   /** Healthy, and /synthesize answered non-2xx. */
-  | "error";
+  | "error"
+  /**
+   * The walk found its winner and stopped waiting for this one. Carries no
+   * information: it is dropped from the measurements and never reaches the
+   * ledger, because "I stopped listening" is not a verdict on a lane.
+   */
+  | "aborted";
 
 export interface LaneMeasurement {
   readonly id: string;
@@ -166,12 +222,25 @@ export interface LaneMeasurement {
 }
 
 export interface LaneProbeOptions {
-  /** Cap on the /health leg. */
+  /** Cap on the /health leg, inside the admission budget below. */
   timeoutMs?: number;
-  /** Cap on the probe synthesis — the blueprint's turn round-trip. */
+  /**
+   * Cap on admitting ONE lane, health leg included — the blueprint's turn
+   * round-trip.
+   *
+   * INT-249 applied this to the probe synthesis only, so a lane whose /health
+   * was slow could cost `timeoutMs + budgetMs` before the ladder moved on.
+   * It covers both legs now, which is what lets `selectTtsLane` promise that
+   * the WHOLE walk fits inside one admission: every leg runs at once and no
+   * leg can outlast the budget.
+   */
   budgetMs?: number;
   fetchImpl?: typeof fetch;
   now?: () => number;
+  /** Abandons an admission already in flight — the walk found its winner. */
+  signal?: AbortSignal;
+  /** Called once per lane that answered, as it answers (INT-294's ledger). */
+  onMeasured?: (measurement: LaneMeasurement) => void;
 }
 
 /**
@@ -188,14 +257,22 @@ export interface LaneProbeOptions {
  * a slow model; then a real short synthesis under a hard abort at the
  * budget. A lane that trips that abort is `over_budget` — not an error, not
  * down, just not usable for speech — and the ladder moves on.
+ *
+ * INT-294 makes the budget cover BOTH legs rather than the synthesis alone.
+ * A lane whose /health hangs used to cost the health cap and then start the
+ * budget afresh, so one lane could hold the walk for `timeoutMs + budgetMs`;
+ * that is how a host in app.json which answers nothing cost 1505 ms in front
+ * of a Freya that was answering in 798 ms. Admitting a lane is one turn's
+ * worth of work in total, or the lane is not admissible.
  */
 export async function measureLane(
   candidate: TtsLaneBase,
   {
-    timeoutMs = 1500,
-    budgetMs = TURN_ROUND_TRIP_BUDGET_MS,
+    timeoutMs = HEALTH_TIMEOUT_MS,
+    budgetMs = ADMISSION_BUDGET_MS,
     fetchImpl = fetch,
     now = Date.now,
+    signal,
   }: LaneProbeOptions = {},
 ): Promise<LaneMeasurement> {
   const measured = (verdict: LaneVerdict, ms: number | null): LaneMeasurement => ({
@@ -204,40 +281,50 @@ export async function measureLane(
     ms,
     verdict,
   });
+  const started = now();
+  const remaining = () => budgetMs - (now() - started);
 
   const healthController = new AbortController();
-  const healthTimer = setTimeout(() => healthController.abort(), timeoutMs);
+  const stopHealth = () => healthController.abort();
+  signal?.addEventListener("abort", stopHealth);
+  const healthTimer = setTimeout(stopHealth, Math.min(timeoutMs, remaining()));
   try {
     const res = await fetchImpl(`${candidate.base}/health`, { signal: healthController.signal });
     if (!res.ok) {
       return measured("unhealthy", null);
     }
   } catch {
-    // refused, DNS, or slower than the health cap — all "not there"
-    return measured("unhealthy", null);
+    // Refused, DNS, or silent past the cap. None of those is the daemon
+    // answering, so none of them is a verdict about the daemon.
+    return measured(signal?.aborted === true ? "aborted" : "unreachable", null);
   } finally {
     clearTimeout(healthTimer);
+    signal?.removeEventListener("abort", stopHealth);
   }
 
-  const started = now();
+  const spokenFrom = now();
   try {
     const bytes = await synthesizeOnLane(candidate, LANE_PROBE_TEXT, {
       fetchImpl,
-      timeoutMs: budgetMs,
+      timeoutMs: Math.max(0, remaining()),
+      signal,
     });
-    const ms = now() - started;
+    const ms = now() - spokenFrom;
     if (bytes.length === 0) {
       return measured("silent", ms);
     }
-    return measured(ms > budgetMs ? "over_budget" : "ok", ms);
+    return measured(now() - started > budgetMs ? "over_budget" : "ok", ms);
   } catch (error) {
-    const ms = now() - started;
+    const ms = now() - spokenFrom;
+    if (signal?.aborted === true) {
+      return measured("aborted", ms);
+    }
     if (error instanceof Error && error.message === "tts_empty_clip") {
       return measured("silent", ms);
     }
     // An abort is the budget expiring; anything else is the daemon saying no.
     const aborted = error instanceof Error && error.name === "AbortError";
-    return measured(aborted || ms >= budgetMs ? "over_budget" : "error", ms);
+    return measured(aborted || now() - started >= budgetMs ? "over_budget" : "error", ms);
   }
 }
 
@@ -245,44 +332,121 @@ export interface LaneSelection {
   readonly lane: TtsLaneBase;
   /** What the winning lane measured. */
   readonly ms: number;
-  /** Every lane probed, in ladder order — the winner is the last. */
+  /**
+   * Every lane that ANSWERED, in ladder order. Since INT-294 made the walk a
+   * race, a lower-ranked lane can answer before the winner does, so the
+   * winner is no longer necessarily last; a lane whose probe was abandoned
+   * once the winner was known is absent rather than recorded as a failure.
+   */
   readonly measurements: readonly LaneMeasurement[];
 }
 
 /**
- * The first lane in ladder order that can actually speak inside the budget.
+ * The best lane the ladder can offer, inside ONE admission budget.
  *
  * Ladder order IS the quality order (files/03 §4.9.1: rows 10-11 VoxCPM2,
- * row 12 the low-footprint fallback), so taking the first admissible lane is
- * exactly "prefer quality when both are within budget" — INT-243's intent
- * survives untouched whenever VoxCPM2 is genuinely fast, and is overridden
- * only by measurement. Probing stops at the winner: a healthy fast VoxCPM2
- * costs one health call and one short synthesis, and Freya is never woken.
+ * row 12 the low-footprint fallback), so the winner is the FIRST admissible
+ * lane in that order — INT-243's intent, unchanged, and overridden only by
+ * measurement.
+ *
+ * What INT-294 changes is how that answer is reached. It used to be a serial
+ * walk: probe a lane, wait for its verdict, probe the next. Replaying the
+ * owner's configuration, that cost 1721 ms on a VoxCPM2 that is health-green
+ * and cannot speak, plus 1505 ms on a configured host the tunnel does not
+ * reach, plus 798 ms on the Freya that was going to win from the start —
+ * 4024 ms of a 4048 ms clip deadline, spent finding a lane that had been
+ * ready the whole time (docs/evidence/INT-294.md).
+ *
+ * The walk is therefore a RACE resolved by RANK rather than by arrival: every
+ * candidate is measured at once, and the winner is the highest-ranked lane
+ * that measured `ok` once every lane above it has answered. That keeps
+ * quality order exactly — a fast VoxCPM2 still wins, and still settles at its
+ * own figure with the losing probes abandoned — while costing the patient one
+ * lane's admission for the whole ladder instead of one per (tier, host) pair.
+ *
+ * A lane that answers nothing costs the budget once, concurrently with the
+ * lane that is about to win, rather than in front of it.
  */
 export async function selectTtsLane(
   candidates: readonly TtsLaneBase[],
   options: LaneProbeOptions = {},
 ): Promise<LaneSelection | null> {
-  const measurements: LaneMeasurement[] = [];
-  for (const candidate of candidates) {
-    const measured = await measureLane(candidate, options);
-    measurements.push(measured);
-    if (measured.verdict === "ok" && measured.ms !== null) {
-      return { lane: candidate, ms: measured.ms, measurements };
-    }
+  if (candidates.length === 0) {
+    return null;
   }
-  return null;
+  const { onMeasured, signal, ...probeOptions } = options;
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  signal?.addEventListener("abort", stop);
+  const answered: (LaneMeasurement | null)[] = candidates.map(() => null);
+  const settled: boolean[] = candidates.map(() => false);
+
+  try {
+    return await new Promise<LaneSelection | null>((resolve) => {
+      let decided = false;
+      const finish = (selection: LaneSelection | null) => {
+        decided = true;
+        controller.abort(); // the losers stop the moment the winner is known
+        resolve(selection);
+      };
+      const decide = () => {
+        if (decided) {
+          return;
+        }
+        for (let rank = 0; rank < candidates.length; rank += 1) {
+          if (!settled[rank]) {
+            return; // a better lane may still win; nothing is decided yet
+          }
+          const measurement = answered[rank];
+          if (measurement !== null && measurement.verdict === "ok" && measurement.ms !== null) {
+            finish({
+              lane: candidates[rank],
+              ms: measurement.ms,
+              measurements: answered.filter((m): m is LaneMeasurement => m !== null),
+            });
+            return;
+          }
+        }
+        finish(null);
+      };
+      candidates.forEach((candidate, rank) => {
+        void measureLane(candidate, { ...probeOptions, signal: controller.signal }).then(
+          (measurement) => {
+            settled[rank] = true;
+            if (measurement.verdict !== "aborted") {
+              answered[rank] = measurement;
+              onMeasured?.(measurement);
+            }
+            decide();
+          },
+        );
+      });
+    });
+  } finally {
+    signal?.removeEventListener("abort", stop);
+  }
 }
 
 /**
- * The session's lane, chosen once and re-chosen on failure.
+ * The session's lane, chosen once, re-chosen on failure, and never re-derived
+ * from scratch.
  *
- * Probing costs a synthesis, so it happens at session start and not per
- * turn; but a choice cached forever is how a lane that dies at turn nine
- * takes the rest of the visit with it. `invalidate()` is the seam:
+ * Probing costs a synthesis, so it happens at session start and not per turn;
+ * but a choice cached forever is how a lane that dies at turn nine takes the
+ * rest of the visit with it. `invalidate()` is the seam:
  * `synthesizeWithFallback` calls it the moment a synthesis fails, the next
- * `current()` re-probes the whole ladder, and the wedged tier demotes itself
- * because its own probe now trips the budget.
+ * `current()` re-probes, and the wedged tier demotes itself because its own
+ * probe now trips the budget.
+ *
+ * INT-294 gives the selector the one memory it was missing. A host that
+ * answers NOTHING — the walkthrough's `172.20.10.3`, in app.json and behind a
+ * tunnel that binds loopback only — used to cost the full health cap on every
+ * walk, forever, to learn the same thing. It is quarantined for the session
+ * after it says nothing once. Two limits keep that honest: only a
+ * transport-level silence quarantines (a daemon answering 503 says nothing
+ * about its neighbours on the same box), and the LAST reachable host is never
+ * quarantined, so a whole-network blip cannot leave the session permanently
+ * voiceless.
  */
 export interface TtsLaneSelector {
   /** The session's lane; throws `tts_unreachable` when none can speak. */
@@ -291,7 +455,7 @@ export interface TtsLaneSelector {
   invalidate(): void;
   /** What the last selection measured — for the dev diagnostic. */
   lastMeasurements(): readonly LaneMeasurement[];
-  /** How many (tier, host) pairs the ladder can offer. */
+  /** How many (tier, host) pairs the ladder can still offer. */
   candidateCount(): number;
 }
 
@@ -301,13 +465,32 @@ export function createTtsLaneSelector(
 ): TtsLaneSelector {
   let inFlight: Promise<TtsLaneBase> | null = null;
   let measurements: readonly LaneMeasurement[] = [];
+  const silentHosts = new Set<string>();
+  const admissible = () =>
+    candidatesFor().filter((candidate) => !silentHosts.has(laneHost(candidate.base)));
+  const quarantine = (measurement: LaneMeasurement) => {
+    if (measurement.verdict !== "unreachable") {
+      return;
+    }
+    const host = laneHost(measurement.base);
+    const survivors = admissible().filter((candidate) => laneHost(candidate.base) !== host);
+    if (survivors.length > 0) {
+      silentHosts.add(host);
+    }
+  };
   return {
     current() {
       // Concurrent callers share one probe: the session pre-warm fires every
       // question at mount and would otherwise probe the ladder N times.
       if (inFlight === null) {
         const probe: Promise<TtsLaneBase> = (async () => {
-          const chosen = await selectTtsLane(candidatesFor(), options);
+          const chosen = await selectTtsLane(admissible(), {
+            ...options,
+            onMeasured: (measurement) => {
+              quarantine(measurement);
+              options.onMeasured?.(measurement);
+            },
+          });
           if (chosen === null) {
             measurements = [];
             throw new Error("tts_unreachable");
@@ -335,7 +518,7 @@ export function createTtsLaneSelector(
       return measurements;
     },
     candidateCount() {
-      return candidatesFor().length;
+      return admissible().length;
     },
   };
 }
@@ -396,9 +579,11 @@ export async function synthesizeOnLane(
   options: SynthesizeOptions = {},
 ): Promise<Uint8Array> {
   assertSpeakableTr(text); // invariant 22 — before any network call, every tier
-  const { fetchImpl = fetch, timeoutMs = SYNTHESIZE_TIMEOUT_MS } = options;
+  const { fetchImpl = fetch, timeoutMs = SYNTHESIZE_TIMEOUT_MS, signal } = options;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const stop = () => controller.abort();
+  signal?.addEventListener("abort", stop);
+  const timer = setTimeout(stop, timeoutMs);
   try {
     const res = await fetchImpl(`${lane.base}/synthesize`, {
       method: "POST",
@@ -416,5 +601,6 @@ export async function synthesizeOnLane(
     return bytes;
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", stop);
   }
 }
