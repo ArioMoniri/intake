@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from intake_platform.admin import AdminWiring
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
@@ -34,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from intake_api import (
+    admin,
     consents,
     doctor_link,
     documents,
@@ -97,6 +99,13 @@ class ApiWiring:
     # INT-131: the OTP/DPoP tier; None = unconfigured (fail closed) while
     # the dev-bearer tier keeps carrying the demo
     auth: AuthWiring | None = None
+    # INT-180: the admin console. None = no OIDC claims verifier is wired, so
+    # every /admin route answers 503 and the console authenticates nobody.
+    # There is no env path yet on purpose: verifying a Keycloak assertion
+    # needs a JWKS client and a JWT library, neither of them a dependency of
+    # this repository, and a hand-rolled JWS verifier inside the most
+    # privileged surface in the system is not a trade INT-180 made.
+    admin: AdminWiring | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -254,6 +263,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state
     app.state.settings = w.settings
+    app.state.admin = w.admin
 
     app.add_middleware(SecurityHeadersMiddleware)
     mount_http_metrics(app, "api")
@@ -336,4 +346,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(notification_prefs.router)
     app.include_router(experience.router)
     app.include_router(learned.router)
+    app.include_router(admin.router)
     return app

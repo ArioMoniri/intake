@@ -214,6 +214,8 @@ def build_harness(
     taxonomy_path: Path | None = None,
     auth: Any = None,
     dev_otp_peek: bool = False,
+    admin: Any = None,
+    client_addr: tuple[str, int] | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -275,9 +277,15 @@ def build_harness(
             # Redis. None keeps the INT-197 dev-bearer-only shape, in which
             # both tiers answer 503 (fail closed).
             auth=auth,
+            # INT-180: the admin console wiring. None keeps the shipping
+            # default in which every /admin route answers 503.
+            admin=admin,
         )
     )
-    with TestClient(app, raise_server_exceptions=False) as client:
+    # INT-180: the console's IP allow-list reads the transport peer, so the
+    # suite that exercises it needs a real address on the test transport.
+    client_kwargs: dict[str, Any] = {} if client_addr is None else {"client": client_addr}
+    with TestClient(app, raise_server_exceptions=False, **client_kwargs) as client:
         yield ApiHarness(
             client=client,
             engine=engine,
