@@ -7,7 +7,7 @@ protocol_hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 model: synthetic-note-model@rev0
 prompt_version: note-v0
 legal_strings_version: synthetic-int084
-legal_strings_sha256: 3d9f232d1bba171bdbb5d4910cba7bc9763a886cad4ba01eeb53c3f811094811
+legal_strings_sha256: 80fff4853f231a90d871fa68405f67dcd89023d22d49af38bed33dbb3b46ddd9
 
 Triyaj
   level: GREEN

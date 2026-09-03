@@ -3845,7 +3845,7 @@
   - area:engine
   - area:clinical
   - area:i18n
-  status: todo
+  status: done
   acceptance:
   - 'the clinician reads Turkish and the patient may not have spoken it, so a
     line built from a translated answer carries `translated` rather than
@@ -3867,7 +3867,7 @@
     closed: a test walks the enum and asserts the set, so a later locale cannot
     quietly introduce a second translated-ish class'
   tests:
-  - tests/engines/test_note_translated_attribution.py
+  - tests/engine/test_note_translated_attribution.py
   sec_row: "notes"
 - id: INT-300
   epic: E05-voice
