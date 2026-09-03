@@ -597,6 +597,13 @@ export const tr = {
   "dialogue.speakCorrection": "Düzeltmeyi söyleyin",
   "dialogue.typeThisStep": "Yazarak yanıtlayın",
   "dialogue.transcribing": "Yazıya dökülüyor…",
+  // INT-293. Said once, in front of a question the agent is asking a second
+  // time because the patient's words mapped to no answer — here or at the
+  // extract lane. It names what happened without blaming the patient and
+  // without claiming the words were wrong; the question itself follows
+  // verbatim in its own bubble (invariant 10). The warmth is the -alım mood,
+  // not the pronoun: the register stays `siz` throughout.
+  "dialogue.notUnderstood": "Söylediğinizi tam anlayamadım. Aynı soruyu bir kez daha soralım.",
   // INT-261. Shown once when the agent's voice fails mid-conversation. It
   // names what stopped (the reading aloud), leaves no doubt that the rest
   // continues, and tells the patient what to do — instructional prose, so
@@ -1139,6 +1146,91 @@ export const tr = {
   "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
+
+  // --- INT-137 · Gönder'den önceki paylaşım özeti (02 §5.4: ne, kiminle, ne
+  // zamana kadar). Süre bir sayaç değil, bir dayanak: 02 §2 Doctor Link
+  // süresini randevuya bağlar, gönderim anına değil — bu yüzden metinde
+  // rakam yoktur ve cihaz hiçbir saat hesaplamaz.
+  "review.consent.title": "Paylaşım özeti",
+  "review.consent.sections": "Paylaşılan bölümler",
+  "review.consent.nothing": "Şu anda hiçbir bölüm paylaşılmıyor.",
+  "review.consent.recipient": "Kime gidiyor",
+  "review.consent.until": "Ne zamana kadar",
+  "review.consent.untilValue": "Paylaşım, randevunuzun saatinden üç gün sonra sona erer.",
+  // --- INT-137 · gönderimden sonra sorulan memnuniyet sorusu. 06 §2
+  // `satisfaction` izni yoksa kart hiç görünmez ve hiçbir şey toplanmaz.
+  // Ölçek rakamla değil sözcükle sorulur (invariant 22).
+  "csat.title": "Bu görüşme nasıldı?",
+  "csat.optional": "Bu soru isteğe bağlıdır. Yanıtlamasanız da notunuz gönderildi.",
+  "csat.scoreGroup": "Görüşme değerlendirmesi",
+  "csat.score.veryBad": "Çok kötüydü",
+  "csat.score.bad": "Kötüydü",
+  "csat.score.ok": "İdare eder",
+  "csat.score.good": "İyiydi",
+  "csat.score.veryGood": "Çok iyiydi",
+  "csat.reasonGroup": "Bunun nedeni",
+  "csat.reason.tooLong": "Çok uzundu",
+  "csat.reason.didntUnderstandMe": "Beni anlamadı",
+  "csat.reason.feltRushed": "Acele ettirdi",
+  "csat.reason.helpful": "Yardımcı oldu",
+  "csat.reason.feltHeard": "Dinlendiğimi hissettim",
+  "csat.thanks": "Teşekkür ederiz.",
+  // --- INT-136 · validated instruments on the typed surface ----------------
+  // What the screen says when an instrument cannot be administered. It names
+  // no scale and no score: the item text itself is never in this catalogue
+  // (invariant 10 — it comes verbatim from the pack), and today no pack is
+  // servable (HB-C1) and two of the four instruments are licence-BLOCKED
+  // (HB-L2, HB-L3). Deliberately unalarming: an unauthored screening section
+  // costs the patient nothing.
+  "intake.instrument.unavailable.title": "Bu bölüm şimdilik kapalı",
+  "intake.instrument.unavailable.body":
+    "Bu bölümün soruları henüz hazır değil. Hazır olduğunda burada göreceksiniz; şimdilik bu adımı boş bırakabilirsiniz.",
+  // --- INT-139 · Paylaşımlarınız: açık paylaşımlar, durdurma ve erişim
+  // kaydı. Üç kural bu bloğun biçimini belirler: ekranda hiçbir sayı yoktur
+  // (INT-140 yazım kararı — sayılar yalnızca tarih olarak görünür), hiçbir
+  // süre ölçüsü geçmez (invariant 20 — ölçüm docs/evidence/ dosyasındadır),
+  // ve erişim kaydı kişi adı değil rol gösterir (files/10 §3).
+  "shares.title": "Paylaşımlarınız",
+  "shares.sub": "Açık paylaşımlar ve erişim kaydı",
+  "shares.guide.kicker": "Paylaşım",
+  "shares.guide.title": "Notunuza kimin erişimi var",
+  "shares.guide.body":
+    "Notunuzu paylaştığınız her erişim burada listelenir. Dilediğiniz an durdurabilirsiniz.",
+  "shares.active": "Açık paylaşımlar",
+  "shares.empty": "Bu not için açık paylaşım yok.",
+  "shares.unreachable": "Paylaşımlar şu anda okunamadı. Bu liste eksik olabilir.",
+  "shares.until": "Bitiş",
+  "shares.state.live": "Açık",
+  "shares.state.revoked": "Durduruldu",
+  "shares.state.expired": "Süresi doldu",
+  "shares.state.usedUp": "Görüntüleme hakkı bitti",
+  "shares.revoke": "Erişimi durdurun",
+  "shares.revoke.confirm": "Durdurmayı onaylayın",
+  "shares.revoke.effect":
+    "Durdurduğunuz bir paylaşım, bir sonraki açma denemesinde artık çalışmaz.",
+  "shares.revoke.unsent": "Durdurma isteği ulaşmadı. Paylaşım açık kalmış olabilir.",
+  "shares.log": "Erişim kaydı",
+  "shares.log.empty": "Bu not için henüz erişim kaydı yok.",
+  "shares.log.noNames": "Kayıtta kişi adı yer almaz; yalnızca rol görünür.",
+  "shares.log.role.self": "Siz",
+  "shares.log.role.guardian": "Yasal temsilci",
+  "shares.log.role.clinician": "Hekim",
+  "shares.log.role.clinicStaff": "Klinik çalışanı",
+  "shares.log.role.system": "Sistem",
+  "shares.log.role.unknown": "Belirlenemedi",
+  "shares.log.category.recordViewed": "Kayıt görüntülendi",
+  "shares.log.category.recordShared": "Kayıt paylaşıldı",
+  "shares.log.category.recordUpdated": "Kayıt güncellendi",
+  "shares.log.category.consentChanged": "İzin değişti",
+  "shares.log.category.accountSecurity": "Hesap güvenliği",
+  "shares.log.category.dataRequest": "Veri talebi",
+  "shares.log.category.preferencesChanged": "Tercih değişti",
+  "shares.log.category.staffReview": "Klinik incelemesi",
+  "shares.log.category.systemIntegrity": "Sistem kaydı",
+  "shares.log.category.other": "Diğer işlem",
+  "shares.held": "Bu liste sunucudaki kayıttan gelir; telefonunuzda saklanmaz.",
+  "a11y.shares.revokeHint": "İki kez dokunmak bu paylaşımı durdurur.",
+  "a11y.shares.confirmHint": "İki kez dokunmak durdurma isteğini gönderir.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

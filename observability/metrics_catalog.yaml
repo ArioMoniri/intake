@@ -1548,6 +1548,27 @@ metrics:
       (issued, not_yet_due, suppressed_opt_out, blocked_iys_consent_absent,
       blocked_prompts_disabled, refused_schedule_unset, deferred_quiet_hours,
       refused_quiet_hours_unset).
+  # --- INT-150: the Doctor Link signals files/10 §9 names for that row —
+  # "opens, failed OTPs, revocations, time-to-open". Three of the four are
+  # counts of things services/api does and are emitted here as ONE family with
+  # a closed outcome label. The fourth, time-to-open, is the interval
+  # wait.doctor_link_first_open_h; it stays `planned` because its publisher
+  # does not exist, which intake_platform.wait_times records rather than this
+  # file papering over. No tenant, clinic, link or recipient label: a per-link
+  # counter would let a Prometheus scrape — which is not consent-scoped and
+  # which retains what it sees — reconstruct one clinician's reading of one
+  # patient's note (inv. 6).
+  - name: doctor_link_events_total
+    type: counter
+    labels: [event]
+    owner: api
+    unit: "count"
+    description: >-
+      Doctor Link lifecycle outcomes by event (issued, revoked, otp_requested,
+      otp_failed, otp_limited, opened, refused_expired, refused_revoked,
+      refused_view_limit, refused_unknown_token). Emitted by
+      intake_api.doctor_link.metrics on every decision the tokenized clinician
+      surface takes.
   # --- INT-171: the k-anonymity gate on the de-identified analytics views.
   # files/10 §9 learning row names "k-anonymity refusals" as a console signal
   # and files/08 §4 group L repeats it as a prose KPI with no id; these are

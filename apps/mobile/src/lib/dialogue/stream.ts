@@ -42,15 +42,33 @@
  * the rest of the session; it never ends the conversation. `failure` is
  * reserved for what genuinely does end it: no microphone, no ASR.
  *
+ * AN ANSWER IS NEVER SILENTLY DISCARDED (INT-293). The surface used to have
+ * exactly one route from the patient's words to a declared option id — the
+ * extract daemon — and no answer at all when that route produced nothing: the
+ * question was marked asked, the agent moved on, and the note stayed empty
+ * while three questions were answered on screen (docs/evidence/INT-293.md).
+ * Two rules replace that. First, the patient's words are read HERE against the
+ * question's own declared labels (intake/answerMatch.ts) the moment they are
+ * known — with the typed composer that is the same tick, so the confirm turn
+ * opens at once and nothing waits on a service. Second, an utterance that
+ * neither the local read nor the extractor could place does not leave its
+ * question behind: `unclear` un-asks it, the next advance asks it again with
+ * an honest line in front, and only a second miss hands it to the typed
+ * steps. Ask-ahead is untouched — the next question still never waits on a
+ * pipeline, and a reconcile still never moves a live turn.
+ *
  * Invariant 1 posture: candidates are SUGGESTIONS — the only commit
  * paths are the confirm turn, the panel-row confirm and the manual steps
- * after handoff. Nothing auto-commits. Quotes are display-only
- * provenance; agent speech stays catalog-composed (speech.ts).
+ * after handoff. Nothing auto-commits, the local read included: it produces
+ * the same kind of candidate the extractor does and the patient confirms it
+ * exactly the same way. Quotes are display-only provenance; agent speech
+ * stays catalog-composed (speech.ts).
  *
  * The INT-233 single-question engine (turn.ts) remains the tested
  * reference for the blocking per-turn machine; this module supersedes it
  * on the app surface and reuses its candidate/turn vocabulary.
  */
+import { matchOptionsInWords } from "../intake/answerMatch";
 import { askIfMet, type AnsweredValues, type IntakeQuestion } from "../intake/questions";
 import type { DialogueCandidate } from "./turn";
 
@@ -75,6 +93,11 @@ export type StreamTurn =
 export type StreamEntry =
   | { kind: "agent_question"; questionId: string }
   | { kind: "agent_confirm"; questionId: string; values: string[] }
+  /** INT-293: the agent says, before asking again, that the words it was
+   * given mapped to nothing. Always immediately followed by the question's
+   * own `agent_question` entry — the line explains, the question asks, so
+   * one turn still carries one question (invariant 2). */
+  | { kind: "agent_unclear"; questionId: string }
   /** One patient utterance; `transcribing` until the ASR text replaces
    * the bubble in place. Typed utterances are born as `text`. */
   | { kind: "patient"; workId: number; status: "transcribing" | "text"; text: string };
@@ -94,13 +117,58 @@ export interface DialogueStreamState {
   /** The chat transcript, oldest first. */
   stream: readonly StreamEntry[];
   /**
-   * The agent has lost its voice for the rest of this session (INT-261).
-   * Latched by `speech_unavailable` and never cleared: re-probing the TTS
-   * ladder on every subsequent turn would spend the turn budget twice per
-   * question to arrive at the same answer, so once is enough. The surface
-   * says so once; the conversation carries on in text.
+   * The question each in-flight utterance answered (INT-293). Without it an
+   * `extract_settled` cannot tell WHICH question came back empty, and an
+   * answer that mapped to nothing anywhere is indistinguishable from an
+   * utterance that was enrichment for a question asked three turns ago.
+   * Dropped as each work id settles, and never set for an utterance taken
+   * during the end wait, where there is no live question.
+   */
+  utteranceOf: Record<number, string>;
+  /**
+   * How many times the patient's words for a question mapped to nothing —
+   * neither to a declared label here nor to a slot at the extractor. One
+   * miss returns the question to the conversation (it is asked again, under
+   * an honest line); a second leaves it for the typed steps, because a third
+   * ask is a loop and the patient has already said twice that this is not
+   * how they want to answer it.
+   *
+   * This counts what the CONVERSATION could not place, and deliberately not
+   * what the voice could not say: a refused local match and a failed clip are
+   * different failures with different remedies, and `voiceFailures` below is
+   * the other one. Nothing here touches the speech cooldown.
+   */
+  unclear: Record<string, number>;
+  /**
+   * The agent has no voice RIGHT NOW (INT-261, corrected by INT-294).
+   *
+   * INT-261 latched this for the session and gave a cost argument for it:
+   * re-probing the TTS ladder every turn would spend the turn budget twice
+   * per question to arrive at the same answer. That was true of an admission
+   * walk which cost the whole clip deadline, and it is not true of one bounded
+   * to a single admission. What the latch cost instead was measured on 2 Sep
+   * 2026: one slow FIRST turn, and the rest of the visit in silence with a
+   * healthy Freya answering in 0.8 s throughout.
+   *
+   * So this is a report about the last clip, not a property of the session.
+   * A clip that PLAYS clears it; a turn nobody attempted cannot.
    */
   voiceMuted: boolean;
+  /**
+   * Consecutive turns whose clip could not be produced. Only a clip that
+   * played resets it, which is what makes recovery observable rather than
+   * assumed.
+   */
+  voiceFailures: number;
+  /**
+   * Speaking turns still to pass before speech is attempted again.
+   *
+   * Each consecutive failure buys one further turn of silence
+   * (`voiceRetryIn = voiceFailures - 1`), so the first failure retries at
+   * once and a lane that is genuinely gone stops costing an admission per
+   * question. No constant is chosen here: the schedule is the failure count.
+   */
+  voiceRetryIn: number;
 }
 
 export type DialogueStreamAction =
@@ -108,9 +176,17 @@ export type DialogueStreamAction =
   /**
    * The agent could not produce audio for this turn (INT-261). The turn
    * proceeds exactly as `speech_done` would have — the question is already
-   * on screen — and the session goes silent from here.
+   * on screen — and the session is silent until a clip plays again.
    */
   | { type: "speech_unavailable" }
+  /**
+   * The driver did not attempt a clip this turn — the voice is silent and a
+   * cooldown is still owed (INT-294). The turn advances exactly as
+   * `speech_done` does, and the silence is one turn closer to its next
+   * attempt. It can never clear the caption: a turn nobody tried is not
+   * evidence that the voice came back.
+   */
+  | { type: "speech_skipped" }
   | { type: "barge_in" }
   /** From the confirm card: the patient speaks the correction instead. */
   | { type: "speak" }
@@ -138,8 +214,27 @@ export function initialDialogueStreamState(pack: readonly IntakeQuestion[]): Dia
     inflight: [],
     seq: {},
     stream: pack.length > 0 ? [{ kind: "agent_question", questionId: pack[0].id }] : [],
+    utteranceOf: {},
+    unclear: {},
     voiceMuted: false,
+    voiceFailures: 0,
+    voiceRetryIn: 0,
   };
+}
+
+/**
+ * Should the speaking driver ask for a clip on this turn?
+ *
+ * Pure, and exported, because it is the one decision the INT-261 driver took
+ * inline and got wrong: it read a latched `voiceMuted` and never asked again.
+ * A silent session retries as soon as its cooldown is spent, and the cooldown
+ * exists only so that a lane which is genuinely gone costs a bounded
+ * admission every few turns rather than one per question.
+ */
+export function shouldAttemptSpeech(
+  state: Pick<DialogueStreamState, "voiceMuted" | "voiceRetryIn">,
+): boolean {
+  return !state.voiceMuted || state.voiceRetryIn === 0;
 }
 
 function currentQuestionId(pack: readonly IntakeQuestion[], turn: StreamTurn): string | undefined {
@@ -157,6 +252,20 @@ export function committedAnswers(state: Pick<DialogueStreamState, "answers">): A
     questionId,
     values: answer.values,
   }));
+}
+
+/**
+ * The patient's own sentence as the note records it beside one answer
+ * (INT-286): the quote travels with the values, except on a `text` step where
+ * the value IS the words and repeating them would say the same thing twice.
+ *
+ * It lives here because both commit paths on the surface use it and the
+ * hand-over test drives it: the rule that decides what a confirmed dialogue
+ * turn writes into the note must be one rule, not the same ternary written
+ * twice in a screen (INT-293).
+ */
+export function answerWords(question: IntakeQuestion, quote: string): string | undefined {
+  return question.kind === "text" ? undefined : quote;
 }
 
 /**
@@ -199,12 +308,23 @@ function advance(
       };
     }
     if (asked.includes(question.id)) {
-      continue; // awaiting reconcile (or settled empty) — never re-asked
+      continue; // awaiting reconcile — the result decides whether it returns
     }
+    // A question the patient already answered once, whose words mapped to
+    // nothing, is asked again rather than dropped (INT-293) — and the line
+    // saying so goes in front of it, so being asked twice is explained
+    // rather than merely repeated.
+    const reask = (state.unclear[question.id] ?? 0) > 0;
     return {
       ...state,
       turn: { phase: "speaking", step, intent: "question" },
-      stream: [...stream, { kind: "agent_question", questionId: question.id }],
+      stream: reask
+        ? [
+            ...stream,
+            { kind: "agent_unclear", questionId: question.id },
+            { kind: "agent_question", questionId: question.id },
+          ]
+        : [...stream, { kind: "agent_question", questionId: question.id }],
     };
   }
   if (!unansweredLeft) {
@@ -216,34 +336,112 @@ function advance(
   return { ...state, turn: { phase: "handoff" } };
 }
 
+/**
+ * The candidate the patient's own words make for the question they were asked
+ * (INT-293). `answerMatch` recognises a declared option's own label and
+ * nothing else — no synonym, no similarity, no guess — so this is a floor
+ * under the extractor, never a replacement for it: an answer given in the
+ * pack's own words binds with no network at all, and everything else is still
+ * the extract lane's to map. What comes back is a SUGGESTION carrying the
+ * patient's verbatim words; only a confirm commits it.
+ */
+function localCandidate(
+  pack: readonly IntakeQuestion[],
+  questionId: string,
+  text: string,
+): DialogueCandidate | null {
+  const question = pack.find((item) => item.id === questionId);
+  if (question === undefined) {
+    return null;
+  }
+  const values = matchOptionsInWords(question, text);
+  return values === null ? null : { values, quote: text.trim() };
+}
+
 /** One utterance enters the conversation: bubble, asked-mark, pipeline
- * bookkeeping, and the ask-ahead advance. Shared by voice and typed. */
+ * bookkeeping, the local read of its words, and the ask-ahead advance.
+ * Shared by voice and typed; `text` is null when the words are not known
+ * yet, which is every spoken utterance until its ASR lands. */
 function takeUtterance(
   pack: readonly IntakeQuestion[],
   state: DialogueStreamState,
   entry: StreamEntry & { kind: "patient" },
+  text: string | null,
 ): DialogueStreamState {
   const currentId = currentQuestionId(pack, state.turn);
   const asked =
     currentId !== undefined && !state.asked.includes(currentId)
       ? [...state.asked, currentId]
       : state.asked;
+  let pending = state.pending;
+  let seq = state.seq;
+  if (text !== null && currentId !== undefined && state.answers[currentId] === undefined) {
+    const candidate = localCandidate(pack, currentId, text);
+    if (candidate !== null) {
+      // The suggestion is on this question before the turn advances, so the
+      // ask-ahead walk opens its confirm turn at once instead of leaving the
+      // answer to a service that may never answer.
+      pending = { ...pending, [currentId]: candidate };
+      seq = { ...seq, [currentId]: entry.workId };
+    }
+  }
   const next: Omit<DialogueStreamState, "turn"> = {
-    pending: state.pending,
+    pending,
     answers: state.answers,
     asked,
     inflight: [...state.inflight, entry.workId],
-    seq: state.seq,
+    seq,
     stream: [...state.stream, entry],
-    // The mute is a session latch, so it has to survive every rebuild of
-    // the state that is not a spread of the whole thing — this is the one.
+    utteranceOf:
+      currentId !== undefined
+        ? { ...state.utteranceOf, [entry.workId]: currentId }
+        : state.utteranceOf,
+    unclear: state.unclear,
+    // The voice condition has to survive every rebuild of the state that is
+    // not a spread of the whole thing — this is the one. Taking an utterance
+    // says nothing about the voice, so all three carry across untouched: the
+    // patient speaking is not evidence that the agent can.
     voiceMuted: state.voiceMuted,
+    voiceFailures: state.voiceFailures,
+    voiceRetryIn: state.voiceRetryIn,
   };
   if (state.turn.phase === "settling") {
     // No live question — the note keeps enriching while the end settles.
     return { ...next, turn: { phase: "settling" } };
   }
   return advance(pack, next);
+}
+
+type VoiceOutcome = "speech_done" | "speech_unavailable" | "speech_skipped";
+
+/**
+ * What one clip's outcome says about the agent's voice.
+ *
+ *   speech_done        it PLAYED        → the voice is back, on the record
+ *   speech_unavailable it FAILED        → silent, one turn further from the
+ *                                          next attempt
+ *   speech_skipped     NOT ATTEMPTED    → silent, one turn closer
+ *
+ * The asymmetry between the last two is the whole of INT-294: a turn that was
+ * deliberately not attempted carries no information about the lane, so it may
+ * move the cooldown and may not move the caption.
+ */
+function nextVoice(
+  state: DialogueStreamState,
+  outcome: VoiceOutcome,
+): Pick<DialogueStreamState, "voiceMuted" | "voiceFailures" | "voiceRetryIn"> {
+  if (outcome === "speech_done") {
+    return { voiceMuted: false, voiceFailures: 0, voiceRetryIn: 0 };
+  }
+  if (outcome === "speech_unavailable") {
+    const voiceFailures = state.voiceFailures + 1;
+    return { voiceMuted: true, voiceFailures, voiceRetryIn: voiceFailures - 1 };
+  }
+  return {
+    voiceMuted: state.voiceMuted,
+    voiceFailures: state.voiceFailures,
+    voiceRetryIn: Math.max(0, state.voiceRetryIn - 1),
+  };
 }
 
 export function dialogueStreamReducer(
@@ -259,20 +457,27 @@ export function dialogueStreamReducer(
   }
   switch (action.type) {
     case "speech_done":
-    case "speech_unavailable": {
-      // A clip that failed and a clip that finished leave the turn in the
-      // same place: the patient has the question either way (it is rendered
-      // from the same catalog string the clip was synthesized from), so the
-      // only difference the failure makes is that the session is now silent.
-      const voiceMuted = state.voiceMuted || action.type === "speech_unavailable";
+    case "speech_unavailable":
+    case "speech_skipped": {
+      // All three leave the turn in the same place: the patient has the
+      // question either way (it is rendered from the same catalog string the
+      // clip was synthesized from), so the only thing that differs between
+      // them is what they say about the VOICE.
+      const voice = nextVoice(state, action.type);
       if (turn.phase !== "speaking") {
-        // Pre-warm and confirm clips can fail while the patient is talking;
-        // latch the mute without touching a turn that is not the agent's.
-        return voiceMuted === state.voiceMuted ? state : { ...state, voiceMuted };
+        // Pre-warm and confirm clips can land while the patient is talking;
+        // record the voice without touching a turn that is not the agent's,
+        // and hand back the SAME state when nothing about the voice moved so
+        // a late duplicate costs no re-render.
+        const moved =
+          voice.voiceMuted !== state.voiceMuted ||
+          voice.voiceFailures !== state.voiceFailures ||
+          voice.voiceRetryIn !== state.voiceRetryIn;
+        return moved ? { ...state, ...voice } : state;
       }
       return {
         ...state,
-        voiceMuted,
+        ...voice,
         turn:
           turn.intent === "question"
             ? { phase: "listening", step: turn.step }
@@ -293,43 +498,67 @@ export function dialogueStreamReducer(
       if (turn.phase !== "listening") {
         return state;
       }
-      return takeUtterance(pack, state, {
-        kind: "patient",
-        workId: action.workId,
-        status: "transcribing",
-        text: "",
-      });
+      return takeUtterance(
+        pack,
+        state,
+        { kind: "patient", workId: action.workId, status: "transcribing", text: "" },
+        null, // spoken: the words arrive with `transcript_ready`
+      );
     case "typed": {
       const text = action.text.trim();
       if (text.length === 0) {
         return state;
       }
-      return takeUtterance(pack, state, {
-        kind: "patient",
-        workId: action.workId,
-        status: "text",
+      return takeUtterance(
+        pack,
+        state,
+        { kind: "patient", workId: action.workId, status: "text", text },
         text,
-      });
+      );
     }
     case "transcript_ready": {
       const text = action.text.trim();
+      const answeredId = state.utteranceOf[action.workId];
       if (text.length === 0) {
         // Nothing usable was heard: the bubble goes; the question stays
         // asked (skipped) and falls to the manual steps if never filled.
+        // Silence is not a misunderstanding — there were no words to fail to
+        // map — so this utterance is dropped from the unclear bookkeeping.
+        const utteranceOf = { ...state.utteranceOf };
+        delete utteranceOf[action.workId];
         return {
           ...state,
+          utteranceOf,
           stream: state.stream.filter(
             (entry) => entry.kind !== "patient" || entry.workId !== action.workId,
           ),
         };
       }
+      const stream: StreamEntry[] = state.stream.map((entry) =>
+        entry.kind === "patient" && entry.workId === action.workId
+          ? { ...entry, status: "text" as const, text }
+          : entry,
+      );
+      // The spoken half of the local read (INT-293): a voice utterance's
+      // words exist only now, and they are read against the question they
+      // answered on exactly the terms `takeUtterance` reads a typed one. The
+      // suggestion lands; the live turn is never moved by a reconcile, so it
+      // opens as a confirm turn on the next advance like any other.
+      const candidate =
+        answeredId !== undefined &&
+        answeredId !== currentQuestionId(pack, turn) &&
+        state.answers[answeredId] === undefined &&
+        (state.seq[answeredId] ?? -1) < action.workId
+          ? localCandidate(pack, answeredId, text)
+          : null;
+      if (candidate === null || answeredId === undefined) {
+        return { ...state, stream };
+      }
       return {
         ...state,
-        stream: state.stream.map((entry) =>
-          entry.kind === "patient" && entry.workId === action.workId
-            ? { ...entry, status: "text", text }
-            : entry,
-        ),
+        stream,
+        pending: { ...state.pending, [answeredId]: candidate },
+        seq: { ...state.seq, [answeredId]: action.workId },
       };
     }
     case "extract_settled": {
@@ -342,17 +571,53 @@ export function dialogueStreamReducer(
           !known.has(questionId) ||
           questionId === currentId || // the live turn owns its own question
           state.answers[questionId] !== undefined ||
-          (seq[questionId] ?? -1) > action.workId // a newer utterance already spoke
+          // A NEWER utterance already spoke — `>` and not `>=`, so the
+          // extractor is never locked out of the utterance it was given.
+          // The local read (INT-293) records its own candidate under this
+          // same work id, and it is a floor, not an authority: it recognises
+          // a declared label's own words and refuses everything else, so on
+          // the sentences it refuses — every negated one — the extractor's
+          // reading of THIS utterance is the only reading there is. Letting
+          // the local candidate outrank it at equal work ids would trade a
+          // dropped answer for a wrong one.
+          (seq[questionId] ?? -1) > action.workId
         ) {
           continue;
         }
         pending[questionId] = { values: [...candidate.values], quote: candidate.quote };
         seq[questionId] = action.workId;
       }
+      // This utterance's whole fate is now known: the words were read here
+      // and at the extractor, and if neither could place them the question is
+      // NOT left behind as asked-and-answered. It goes back into the
+      // conversation to be asked once more (INT-293) — the defect this
+      // replaces is an answered question silently becoming an empty note
+      // section. A second miss keeps it asked: the typed steps take it at the
+      // hand-over rather than the agent asking a third time.
+      const answeredId = state.utteranceOf[action.workId];
+      const utteranceOf = { ...state.utteranceOf };
+      delete utteranceOf[action.workId];
+      let unclear = state.unclear;
+      let asked = state.asked;
+      if (
+        answeredId !== undefined &&
+        answeredId !== currentId &&
+        state.answers[answeredId] === undefined &&
+        pending[answeredId] === undefined
+      ) {
+        const misses = (state.unclear[answeredId] ?? 0) + 1;
+        unclear = { ...state.unclear, [answeredId]: misses };
+        if (misses === 1) {
+          asked = state.asked.filter((questionId) => questionId !== answeredId);
+        }
+      }
       const next = {
         ...state,
         pending,
         seq,
+        asked,
+        unclear,
+        utteranceOf,
         inflight: state.inflight.filter((workId) => workId !== action.workId),
       };
       // Only the end wait re-advances: fresh suggestions get their confirm

@@ -72,7 +72,7 @@ import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
-import type { StreamEntry } from "@/lib/dialogue/stream";
+import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
@@ -271,7 +271,7 @@ export function DialogueIntake({
         type: "answer",
         questionId: question.id,
         values,
-        words: question.kind === "text" ? undefined : turn.candidate.quote,
+        words: answerWords(question, turn.candidate.quote),
       });
     }
     session.confirm(values);
@@ -285,12 +285,18 @@ export function DialogueIntake({
       return;
     }
     const rowQuestion = questions.find((q) => q.id === questionId);
+    if (rowQuestion === undefined) {
+      // No question, no write — and therefore no confirm either. Confirming
+      // here would clear the row off the panel and out of the hand-over while
+      // the note kept nothing, which is the INT-293 defect with an extra step.
+      return;
+    }
     if (visitId) {
       updateNote(visitId, {
         type: "answer",
         questionId,
         values: [...candidate.values],
-        words: rowQuestion?.kind === "text" ? undefined : candidate.quote,
+        words: answerWords(rowQuestion, candidate.quote),
       });
     }
     session.confirmPending(questionId);
@@ -430,6 +436,29 @@ export function DialogueIntake({
   const renderEntry = (entry: StreamEntry, index: number) => {
     if (entry.kind === "agent_question" || entry.kind === "agent_confirm") {
       return renderAgentBubble(entry, index);
+    }
+    // INT-293: the words the patient gave for the previous question mapped to
+    // nothing — here or at the extractor — so the agent asks it once more and
+    // says why first. Its own quiet bubble rather than a line inside the
+    // question's: the question that follows is spoken verbatim from the pack
+    // (invariant 10), and this sentence is not part of it.
+    if (entry.kind === "agent_unclear") {
+      return (
+        <View
+          key={`u-${index}`}
+          accessible
+          accessibilityLabel={spoken(t("a11y.speaker.agent"), t("dialogue.notUnderstood"))}
+          style={[
+            styles.bubble,
+            styles.agentBubble,
+            { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+          ]}
+        >
+          <AppText role="caption" color="inkSoft">
+            {t("dialogue.notUnderstood")}
+          </AppText>
+        </View>
+      );
     }
     // Patient turns, keyed by work id. A transcribing bubble is the
     // in-place stand-in the ASR text will replace (never a takeover).
@@ -741,8 +770,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: "center",
+    // INT-136: the same bound the typed lane's chips carry. A wrap item gets
+    // no shrink in React Native, so an option label wider than the row would
+    // put the chip off-screen with no horizontal scroll to reach it, and
+    // truncating it is banned (files/00 §2).
+    maxWidth: "100%",
   },
   bottomStack: { position: "absolute", left: 0, right: 0, bottom: 0 },
   barItem: { marginBottom: spacing.sm },

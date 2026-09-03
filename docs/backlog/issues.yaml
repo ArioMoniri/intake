@@ -1297,7 +1297,39 @@
   title: "Document extraction -> FHIR with provenance + confirm cards + eval corpus"
   depends_on: [INT-120, INT-083]
   labels: [area:records]
+  # STAYS OPEN on purpose, 3 Sep 2026. `status: todo` rather than
+  # `awaiting-human`, on the INT-136 / INT-140 precedent: two of the three
+  # clauses are delivered, so the issue is not waiting as a whole, and
+  # `awaiting-human` would make INT-122/123/124 Ready against a clause that is
+  # not met (LOOP.md step 1). The asks are in docs/backlog/blockers.md.
+  # Two of the acceptance line's three
+  # clauses are delivered and evidenced: "extracted with source boxes" (a box
+  # is a defaultless field, the layout seam refuses an empty geometry, and the
+  # box projects onto the INT-031 Provenance and the note trail) and "patient
+  # confirms before use" (INT-170's type-level shape, INT-170's confirmation
+  # vocabulary, and a store that admits the confirmed type alone).
+  #
+  # The third is NOT met and cannot be met here: "accuracy metric on corpus
+  # >=90 percent LOINC+unit". THREE independent human asks stand between the
+  # harness and a figure, and inventing past any of them would produce exactly
+  # the accuracy claim invariant 20 exists to prevent:
+  #   (a) HB-A13 — no corpus exists, and a Turkish lab report is a patient
+  #       record, so where one may live is a data-persistence decision;
+  #   (b) HB-A10 — no LOINC distribution is committed, so nothing binds a code;
+  #   (c) HB-A2  — no Turkish lab-name table, which that row already names as
+  #       blocking "INT-121's LOINC + unit accuracy target" in those words.
+  # The harness is built and REFUSES: `records_corpus_root()` raises when no
+  # corpus is configured, `LoincUnitMeasurement` cannot be constructed without
+  # a named corpus and two dates, and no figure is reported anywhere.
+  #
+  # Separately: HB-C24 (the analyte expected-unit table) leaves the invariant-22
+  # unit guard wired with nothing to check against. That is visible rather than
+  # silent — `DocumentExtraction.units_unchecked` names every analyte the check
+  # did not run for — and it is INT-124's clause, not this one's.
+  #
+  # Reopen against HB-A13; see docs/evidence/INT-121.md "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-121.md
   acceptance:
     - "labs/meds/diagnoses extracted with source boxes; patient confirms before use; accuracy metric on corpus >=90 percent LOINC+unit"
   tests: [tests/records/test_extraction_eval.py]
@@ -1423,7 +1455,27 @@
   title: "Typed intake UI (Detayli) + chips + instruments verbatim"
   depends_on: [INT-096, INT-130]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Of the acceptance line's three clauses,
+  # "progress + resume" is delivered and evidenced. The other two are not.
+  #
+  # (a) INSTRUMENT ITEMS RENDERED VERBATIM. The mechanism ships and is proved
+  #     byte-for-byte against an injected instrument with an NFD near-miss
+  #     control, but NO INSTRUMENT ITEM RENDERS, because none exists to render:
+  #     the app registry is empty, and it is empty because HB-C1 leaves every
+  #     pack unsigned (all 93 are maturity L0 — docs/evidence/INT-096.md F4)
+  #     and HB-L2/HB-L3 block C-SSRS and WHO-5. `done` here would read as
+  #     "instruments render today", which is false.
+  # (b) LOW-LITERACY CHIPS. The chips affordance, its reachability at every
+  #     APP_STEPS size, and the four files/02 §3 delivery gates ship. What does
+  #     not hold is that section's "severity is numeracy-free, using 3-4
+  #     ordinal spoken anchors": pain_score is an 11-point scale with no
+  #     authored Turkish anchor wording, and recoding it is a clinical
+  #     judgement (blockers.md, physician of record).
+  #
+  # Reopen against HB-C1 plus the pain-score anchor ask; see
+  # docs/evidence/INT-136.md §5 "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-136.md
   acceptance:
     - "instrument items rendered verbatim; low-literacy chips; progress + resume"
   tests: [apps/mobile/e2e/typed_intake.spec.ts]
@@ -1434,7 +1486,38 @@
   title: "Review & send + Doctor Link QR + CSAT prompt"
   depends_on: [INT-084, INT-240]
   labels: [area:mobile]
+  # STAYS OPEN on purpose, 3 Sep 2026. Five of the six clauses in the
+  # acceptance line are delivered and evidenced: section-level scope UI,
+  # the consent summary (what / with whom / which expiry anchor), send,
+  # the after-send status timeline, and never-blocks-send - the last held
+  # structurally and proved non-vacuous by three reverted mutants.
+  #
+  # The sixth is delivered as a MECHANISM that is shut. The CSAT prompt
+  # exists, is gated on the files/06 §2 `satisfaction` acika riza, and
+  # renders nothing without it - and nothing can grant it, because
+  # docs/legal/consents/satisfaction.tr.md does not exist until INT-210.
+  # That is the correct state (build the gate, fail closed, leave the
+  # content empty), not a working prompt. Two further gaps are filed
+  # rather than worked around: INT-305 (the spec calls the prompt one-tap
+  # and csat.v1 requires a reason, so one tap cannot form an event and no
+  # reason is defaulted) and INT-304 (the API's SectionId names three
+  # sections against the note's eight, so a withheld allergy list cannot
+  # be recorded in the share scope). The answer also has no transport:
+  # the device holds a visitId, not the IntakeSession id INT-240's route
+  # is keyed on, and INT-142 owns mobile sync.
+  #
+  # The Doctor Link QR in the title is NOT in the acceptance line and is
+  # deliberately not built. INT-150 owns the token, its OTP, expiry, view
+  # limit, revoke, watermark and access log, and is still todo; there is
+  # no redemption route to point a code at, and no QR or barcode
+  # dependency has had the invariant 19 licence audit. review.tsx says so
+  # and e2e/review_send.spec.ts §6 fails the build if a link, scheme,
+  # token or serialised payload appears.
+  #
+  # Reopen against INT-210 (the consent text) and INT-150 (the QR); see
+  # docs/evidence/INT-137.md §"What is not met".
   status: todo
+  evidence: docs/evidence/INT-137.md
   acceptance:
     - "section-level scope UI; consent summary; send; status timeline; one-tap CSAT with reason chips; never blocks send"
   tests: [apps/mobile/e2e/review_send.spec.ts]
@@ -1457,10 +1540,20 @@
   title: "Share centre: active shares, revoke <=1min, access log"
   depends_on: [INT-150]
   labels: [area:mobile]
-  status: todo
+  # INT-150 (PR #446) was OPEN when this branch was cut, so the mobile half was
+  # built against that branch's contract and the cascade clause was left as an
+  # INVERSION in apps/mobile/e2e/shares.spec.ts - a test asserting the router's
+  # absence, which failed the day #446 merged mid-iteration. It did, and both
+  # things its failure message named were then done: section 7 became the real
+  # cross-check against doctor_link/router.py, and the cascade became a test
+  # that runs here. Both acceptance clauses are met.
+  status: done
+  evidence: docs/evidence/INT-139.md
   acceptance:
     - "revocation cascades to tokens within 1 min (test); patient sees access log"
-  tests: [apps/mobile/e2e/shares.spec.ts]
+  tests:
+    - apps/mobile/e2e/shares.spec.ts
+    - tests/clinician/test_share_revocation_budget.py
   legal: "KVKK-11"
   sec_row: "share-centre"
 - id: INT-140
@@ -1562,7 +1655,21 @@
   title: "Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index"
   depends_on: [INT-084, INT-016]
   labels: [area:clinician, risk:security]
+  # STAYS OPEN on purpose, 3 Sep 2026. Three of the four acceptance clauses are
+  # delivered and evidenced (entropy/expiry, watermark carrying recipient +
+  # timestamp through the committed PDF renderer, robots/noindex, and every open
+  # audited and rendered into the patient's access log). What is NOT delivered is
+  # the files/10 §2 delivery channel: the OTP goes "to the phone/e-mail the
+  # patient chose" and this repo records no such destination anywhere (invariant
+  # 14 keeps contact identifiers out of every app table and no file records a
+  # Doctor-Link delivery preference), with no messaging vendor contracted. The
+  # seam is built, the abuse gate runs in front of it and it answers 503; the code
+  # is minted over the patient's own authenticated session instead. Recording a
+  # patient-chosen contact channel is a new category of personal data, which
+  # CLAUDE.md makes a stop-and-ask — it needs a HUMAN_BLOCKERS row and a named
+  # human, which this iteration did not mint. Reopen against that row.
   status: todo
+  evidence: docs/evidence/INT-150.md
   acceptance:
     - "entropy/expiry tests; watermark carries recipient+timestamp; robots/noindex; every open audited and visible to patient"
   tests: [tests/clinician/test_doctor_link.py]
@@ -2585,7 +2692,7 @@
   # a test forbidding the word "anonym" in any public name. The pipeline rides
   # files/06 §75's other route ("All research consented (`research`) or
   # anonymised per KSVY-16"): consent plus a recorded ethics id. Which limb of
-  # m.16 that actually is, is HB-L21 (counsel).
+  # m.16 that actually is, is HB-L26 (counsel).
   # The gate is shipped, tested and FAILING CLOSED: study_registry.yaml holds
   # zero studies (HB-R1, site HB-L1) and research_extracts retention is
   # draft_needs_source (HB-I8), so every export refuses today.
@@ -3169,7 +3276,8 @@
   title: "OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
   depends_on: [INT-131, INT-285]
   labels: [area:api, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-263.md
   acceptance:
     - "the deviation is stated first: auth_store._window_key buckets on floor(now / OTP_WINDOW_S), so a caller who spends its budget just before a boundary is given a fresh budget just after it. INT-285 pinned the worst case as 2 x PHONE_LIMIT_PER_HOUR codes to one phone inside about six minutes, against the files/10 §2 wording '3 requests/hour/phone'"
     - "the budgets are counted so that no more than PHONE_LIMIT_PER_HOUR requests per phone, IP_LIMIT_PER_HOUR per IP and DEVICE_LIMIT_PER_HOUR per device are admitted in ANY OTP_WINDOW_S span rather than in each fixed window; the retry-after the caller is told is the true one for that bound, not the time to the next boundary"
@@ -3284,6 +3392,46 @@
     - apps/mobile/src/lib/intake/history.test.ts
     - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
+- id: INT-293
+  epic: E08-mobile
+  phase: P0
+  # Found by driving the real app on the simulator end to end, 2 Sep 2026
+  # (docs/evidence/INT-293.md). On the DIALOGUE surface I answered three
+  # consecutive questions through the composer. The conversation advanced
+  # correctly every time and the note never moved: "Not olusuyor 0 / 10 bolum"
+  # after three answers, and every section still "Henuz yanitlanmadi" -
+  # including Baslangic, read immediately after answering "Nasil basladi?".
+  # Handing over to typed steps then started at "0 soru yanitlandi", so no
+  # prefill carried either. The `today` branch that fires reliably in the typed
+  # flow did not fire here.
+  #
+  # HONEST CAVEAT, and it is the first thing to test: my typed Turkish had no
+  # diacritics ("Bugun basladi", not "Bugun basladi" with them) because the
+  # driving tool cannot type them. So this may be an extraction-normalisation
+  # failure rather than a missing write path. It does not change the severity.
+  # Diacritic-free Turkish is what people actually type, the answer is silently
+  # discarded, the agent moves on as though it understood, and the note the
+  # clinician receives is empty. A patient who completes the whole voice intake
+  # arrives at the visit with nothing.
+  title: "Answers given on the dialogue surface never reach the note"
+  depends_on: [INT-261, INT-282]
+  labels: [area:mobile, area:engine, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-293.md
+  acceptance:
+    - "the failure is reproduced before it is fixed: a test drives submit_utterance with a diacritic-free Turkish answer that matches an option label modulo diacritics ('Bugun basladi' against 'Bugun basladi'), and asserts the slot is filled - recorded red in the evidence before any fix"
+    - "the two hypotheses are separated in the evidence rather than assumed: a test with FULLY diacritised input proves whether the write path works at all, and the answer decides whether this is a normalisation bug or a missing write - both are stated with their recorded runs"
+    - "Turkish normalisation is exercised in both directions on the real option vocabulary: every option label in questions.ts and baseLayer.ts round-trips through the matcher from its diacritic-free form, with the Turkish dotted/dotless i pair asserted explicitly and NOT via a naive lowercase"
+    - "an answer the extractor cannot map is never silently swallowed: the turn re-asks or says it did not understand, and a test asserts that an unmappable utterance does NOT advance the question index"
+    - "the note-section counter is truthful: a test asserts that N answered dialogue turns produce N filled sections for slot-bearing questions, so 'Not olusuyor 0 / 10 bolum' cannot read 0 after a real answer"
+    - "askIf gates evaluate identically on both surfaces: the same answer sequence through the dialogue and through the typed steps yields the SAME asked-set, asserted for duration=today and duration=month"
+    - "the tidy hand-over carries what was already answered: 'Yazarak devam edin' after N dialogue answers lands on question N+1 with the earlier answers present, not at '0 soru yanitlandi'"
+    - "no placeholder, no skipped test; make check is green"
+  tests:
+    - apps/mobile/src/lib/dialogue/stream.test.ts
+    - apps/mobile/src/lib/intake/answerMatch.test.ts
+    - apps/mobile/src/lib/intake/questions.test.ts
+  sec_row: "intake-voice"
 - id: INT-286
   epic: E08-mobile
   phase: P0
@@ -3394,6 +3542,94 @@
   - apps/mobile/src/lib/dialogue/speechShaping.test.ts
   - apps/mobile/e2e/bargeIn.spec.ts
   sec_row: "intake-voice"
+- id: INT-294
+  epic: E08-mobile
+  phase: P0
+  # Measured on the host against the live dev daemons, 2 Sep 2026
+  # (docs/evidence/INT-293.md). selectTtsLane walks every (tier, host) pair
+  # before the first syllable is synthesised:
+  #   voxcpm2 127.0.0.1:8805    over_budget   1721 ms  (healthy, cannot speak)
+  #   voxcpm2 172.20.10.3:8805  unhealthy     1505 ms  (host not reachable)
+  #   freya   127.0.0.1:8803    ok             798 ms  <- winner
+  #   TOTAL 4024 ms  vs  clipDeadlineMs(1 sentence) = 4048 ms
+  # It wins by 24 ms on the host and loses about as often inside RN. When it
+  # loses, stream.ts:267 latches voiceMuted = voiceMuted || speech_unavailable
+  # and never clears it, so one slow first turn mutes the WHOLE visit with a
+  # healthy Freya (0.8 s) sitting idle. Both outcomes were observed on the
+  # same config within one hour.
+  #
+  # Two independent causes each waste a full budget: a first tier that is
+  # health-green and cannot speak (INT-249 already recorded this about VoxCPM2
+  # on CPU), and a configured host that is unreachable and costs the full
+  # 1500 ms health cap. Meanwhile `make voice-doctor` reports "voice: UP -
+  # every configured lane answered", because voice_doctor.py only did
+  # GET /health - the exact criterion INT-249 proved insufficient one level
+  # down.
+  title: "TTS lane admission consumes the clip deadline, and the resulting mute latches for the session"
+  depends_on: [INT-243, INT-249, INT-261]
+  labels: [area:mobile, area:voice]
+  status: done
+  evidence: docs/evidence/INT-294.md
+  acceptance:
+    - "the race is reproduced before it is fixed: a fake-clock test walks the real ladder shape (a first tier that trips the budget, an unreachable host, a fast third) and asserts admission fits the turn's OWN budget - elapsedMs <= TURN_ROUND_TRIP_BUDGET_MS - with enough of clipDeadlineMs left over for one synthesis, recorded red in the evidence with the measured per-leg figures. This line originally asked for the total to EXCEED clipDeadlineMs, and the measurement contradicts that: 4024 ms against a 4048 ms deadline comes in 24 ms UNDER it. A test written to the original phrasing would have failed on a correct build and passed on the defect, so the line is restated to the property actually asserted rather than the status being claimed against it"
+    - "admission is bounded independently of the clip it precedes: lane selection can no longer consume the patient's whole clip deadline, and a test asserts the FIRST turn still gets a voice when a healthy fast tier exists anywhere on the ladder"
+    - "an unreachable configured host cannot cost a full health cap on every session: a host that fails once is not re-probed for the rest of the session, asserted by counting fetches"
+    - "voiceMuted stops being permanent: a session muted by a transient admission failure recovers when a later turn's lane admits, with a test asserting the caption clears - and a test asserting it does NOT flap mid-turn"
+    - "the ladder's intent is untouched: VoxCPM2 still wins whenever it is genuinely fast, asserted by a test where tier one answers inside the budget"
+    - "make voice-doctor answers the question it claims to: every TTS lane is asked to SPEAK the same probe the app uses and is timed against the same committed budget, a lane that is health-green and over budget is reported as such rather than UP, and the exit code reflects it. A near-miss control: a lane that is healthy and fast is still reported UP"
+    - "no placeholder, no skipped test; make check is green"
+  tests:
+    - apps/mobile/src/lib/dialogue/ttsLane.test.ts
+    - apps/mobile/src/lib/dialogue/stream.test.ts
+    - tests/mobile/test_voice_doctor.py
+  sec_row: "intake-voice"
+- id: INT-295
+  epic: E08-mobile
+  phase: P1
+  # Filed from the INT-293 walkthrough, 2 Sep 2026. The ModeBar rendered
+  # "Hastanedeyim" + "Detayli mod acik" + "Siraniz geldi" as one row that
+  # neither wrapped nor scrolled, with the checkpoint chip pinned to the far
+  # end by an auto margin, so the chip walked off the right edge as the text
+  # grew. "Siraniz geldi" is the control for "I have been called in, give me
+  # my note now" and Detayli is the in-hospital mode, so the one affordance
+  # built for the situation the mode exists for was unreachable in it.
+  #
+  # ONE CORRECTION to the filed report, made before the fix and recorded in
+  # docs/evidence/INT-295.md. The walkthrough said "at the system default
+  # Dynamic Type (UICTContentSizeCategoryL)". The OS category was L, but
+  # INT-260's control REPLACES the OS value rather than composing with it, so
+  # the two can disagree - and the capture itself settles which was true: the
+  # "Hastanedeyim" chip measures 195.7 pt in that PNG, which is the app's
+  # LARGEST step. At an OS-following 1.0 the row does fit. It stops fitting at
+  # 1.20 on that same phone. 1.20 is not a rung of the app's own control - its
+  # steps are 0.9, 1.0, 1.3, 1.6, 2.0 - it is where the row stops fitting as a
+  # continuous measurement, so the first REACHABLE app step that breaks it is
+  # 1.3, the third of the five, and 1.20 is iOS's XL in OS terms
+  # and iOS's XL category, so the defect is real, reachable without touching
+  # any accessibility setting, and simply not at 1.0. Acceptance is written
+  # against the measurement rather than the premise.
+  #
+  # INT-284 swept content that overflows the safe area VERTICALLY and pinned a
+  # tree-wide test for it. This is the horizontal axis, which that test does
+  # not cover; the same class of defect, one axis over.
+  title: "The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing
+    scrolls sideways to bring it back"
+  depends_on: [INT-284]
+  labels: [area:mobile, area:a11y]
+  status: done
+  evidence: docs/evidence/INT-295.md
+  acceptance:
+    - "the defect is reproduced before it is fixed and the reproduction is a MEASUREMENT, not the premise it was filed with: the row's items are measured in the face the app ships (Inter, read from its own hmtx/cmap tables), the model is calibrated against the INT-293 capture to within half a point, and the recorded red run names the scale at which the checkpoint control first leaves the row on the captured 402 pt phone - 1.20, not 1.0"
+    - "every ModeBar control is reachable in BOTH modes across the whole text-size range: a test enumerates the row's items from the component itself rather than checking one width, sweeps the app's five rungs and the clamped OS range in 0.05 steps, on the captured phone and on the narrowest one still in service, in both shipped catalogues"
+    - "the fix is structural and not a font shrink: the row wraps, its chips shrink, and it changes form at the app's one large-text threshold - and a near-miss control re-measures the row exactly as photographed in the SMALLEST role the type scale has and shows a control still leaving the screen, so shrinking type alone is proved not to satisfy the test"
+    - "the horizontal axis is swept the way INT-284 swept the vertical one: a tree-wide test catches a row that pins an item to the far end (space-between, or an auto margin) in a container that cannot break a line, every such row in the tree is fixed with the one-token remedy INT-284 already used, and the allow-list ships empty and may only shrink"
+    - "the caption 'N soru yanitlandi' is likewise not clipped by the progress dot rail at any text size: the rail owns a box that wraps and shrinks, the counter shrinks not at all, and the counter is measured to fit the narrowest phone at the largest step in both catalogues"
+    - "the chips reach the touch floor by BOX rather than by vertical slop, because a row that can stack them four points apart is the case lib/a11y/target.ts already refuses horizontally"
+    - "no new string, no copy change, no placeholder, no skipped test; make check and make safety are green"
+  tests:
+    - apps/mobile/e2e/modeBar.spec.ts
+    - apps/mobile/e2e/overflow.spec.ts
+  sec_row: "mobile"
 - id: INT-296
   epic: E01-platform
   phase: P0
@@ -3412,7 +3648,7 @@
   labels:
   - area:platform
   - area:i18n
-  status: todo
+  status: done
   acceptance:
   - 'a session carries exactly one locale, fixed at the start and changed only
     by an explicit act: the locale is a session field rather than a per-string
@@ -3494,7 +3730,8 @@
   - area:engine
   - area:safety
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-298.md
   acceptance:
   - 'the guard is constructed per locale and cannot be constructed without a
     signed lexicon for it: invariant 2''s content - the diagnosis, treatment and
@@ -3514,7 +3751,7 @@
   - 'no lexicon is authored by this issue: only `tr` ships signed, every other
     locale is absent, and authoring one is a clinical task recorded as HB-C19'
   tests:
-  - tests/engines/test_policyguard_locale.py
+  - tests/engine/test_policyguard_locale.py
   sec_row: "clinical-core"
 - id: INT-299
   epic: E04-engines
@@ -3645,6 +3882,66 @@
   tests:
   - tests/legal/test_locale_binding.py
   sec_row: "consent"
+- id: INT-304
+  epic: E08-mobile
+  phase: P0
+  title: 'The share scope can express three sections and the note has eight, so a
+    withheld section is not recorded anywhere'
+  depends_on:
+  - INT-137
+  labels:
+  - area:mobile
+  - area:api
+  - risk:legal
+  status: todo
+  acceptance:
+  - '`SectionId` in services/api (`schemas.py`) is widened from the three names
+    it carries today - chief_complaint, hpi, medications - to the full set the
+    note actually emits, which `buildNote` fixes at eight including allergies,
+    pmh, family_social, measurements, device_health and the deferral marker;
+    the set is derived from ONE declaration shared by the note builder and the
+    schema rather than restated, because two lists is how they drifted'
+  - 'a patient who scopes a section off has that choice recorded in the
+    share consent scope and in the hash-chained audit entry for the share
+    (invariant 4): a test scopes off `allergies`, sends, and asserts the
+    recorded scope names it - today that assertion cannot even be written,
+    because the field has no value that means allergies'
+  - 'the mobile consent summary and the server-side scope check read the same
+    section ids, so the summary a patient reads before Gonder is the set the
+    audit records afterwards'
+  tests:
+  - tests/api/test_note_scopes.py
+  - apps/mobile/e2e/review_send.spec.ts
+  legal: "KVKK-5"
+  sec_row: "review-send"
+- id: INT-305
+  epic: E16-experience
+  phase: P1
+  title: 'One-tap CSAT cannot form a csat.v1 event, because the schema requires a
+    reason the first tap has not given'
+  depends_on:
+  - INT-240
+  - INT-137
+  labels:
+  - area:experience
+  - area:mobile
+  status: todo
+  acceptance:
+  - 'the contradiction is RESOLVED in one direction and recorded, not papered
+    over: either files/02 §5.4 stops calling the prompt one-tap, or `reason`
+    becomes optional in csat.v1 and the rollups handle its absence - and
+    whichever is chosen, the other file changes in the same PR'
+  - 'no reason is ever defaulted, inferred from the score, or filled from the
+    chip a patient hovered: a fabricated reason is the patient''s words put in
+    their mouth and is indistinguishable from a real one in the rollup'
+  - 'a score recorded without a reason is either a complete event or is not
+    recorded at all - there is no third state where the device holds an answer
+    the patient believes was sent'
+  tests:
+  - tests/experience/test_csat_flow.py
+  - apps/mobile/src/lib/intake/csat.test.ts
+  legal: "KVKK-5-satisfaction"
+  sec_row: "experience"
 - id: INT-303
   epic: E03-protocols
   phase: P0
@@ -3731,3 +4028,202 @@
   - tests/ai/test_extraction_contract.py
   evidence: docs/evidence/INT-303.md
   sec_row: "triage"
+- id: INT-306
+  epic: E02-data
+  phase: P1
+  # Found by INT-150, which could not compute the expiry its own spec states.
+  # files/02 §2b pins Doctor Link expiry to `visit_datetime + 72 h`; the schema
+  # records a `visit.date` slot and no time of day. INT-150 took the
+  # conservative approximation - anchor to the START of the visit day in
+  # Türkiye, which is never later than the appointment and therefore never
+  # later than the spec's value - and refused an undated visit outright rather
+  # than falling back to an issue-time clock. That approximation is correct and
+  # it is still an approximation, so the field it approximates is filed here.
+  title: 'The schema records a visit DATE and the expiry rule needs a visit
+    DATETIME'
+  depends_on: []
+  labels:
+  - area:data
+  status: todo
+  acceptance:
+  - 'the slot carries a time of day where one is known, and states that it is
+    unknown where it is not - an absent time must stay absent rather than
+    defaulting to midnight, because a default midnight is indistinguishable
+    from a real 00:00 appointment and silently shortens every link by up to a
+    day'
+  - 'every producer of a visit time is enumerated and each says which it is:
+    patient entry, an MHRS/e-Nabız connector field, or a document extraction -
+    and an extracted time carries the same provenance an extracted value
+    carries elsewhere, never arriving unattributed'
+  - 'INT-150''s approximation is replaced rather than duplicated: link_expires_at
+    takes the datetime where one exists and keeps the start-of-day anchor only
+    as the documented fallback, with a test asserting the fallback is never
+    LATER than the true appointment'
+  tests:
+  - tests/clinician/test_doctor_link.py
+  sec_row: "visits"
+- id: INT-307
+  epic: E01-platform
+  phase: P2
+  # Found by INT-150 while declining to add a `first_opened_at` column: the
+  # instant has no publisher, so landing it would put intake_platform.wait_times,
+  # the metrics catalogue status and the writer out of step with each other.
+  title: 'publish_wait / roll_up_wait handle only the labelled records_processing
+    family, so an unlabelled wait series has nowhere to be written'
+  depends_on: []
+  labels:
+  - area:platform
+  - area:observability
+  status: todo
+  acceptance:
+  - 'the publisher accepts an unlabelled wait family, so a series such as
+    wait.doctor_link_first_open_h has a writer rather than a catalogue row with
+    nothing behind it'
+  - 'WAIT_SOURCES stops claiming a landing issue for a series nobody publishes:
+    every entry names either its publisher or the issue that owes one, and a
+    test fails on an entry that names neither'
+  - 'invariant 13 holds throughout: any series this enables already exists in
+    metrics_catalog.yaml before it can be written, and a catalogued series with
+    no publisher is reported rather than silently empty - an empty series reads
+    as measured-and-zero, which is the failure this issue exists to prevent'
+  tests:
+  - tests/platform/test_wait_times.py
+  sec_row: "observability-pipeline"
+- id: INT-308
+  epic: E01-platform
+  phase: P1
+  # Reported by INT-263 while replacing the fixed OTP window with a rolling one.
+  # files/10 §2 names "carrier/geo sanity checks against SMS pumping" in the same
+  # sentence as the request budgets, and no code implements it. INT-263 marked it
+  # named-but-unbuilt in §2 and in the threat-model onboarding row rather than
+  # letting the sentence read as describing something that exists, and declined
+  # to mint an id blind because ids were moving mid-iteration. This is that id.
+  title: 'carrier/geo sanity checks against SMS pumping are named in the security
+    spec and implemented nowhere'
+  depends_on:
+  - INT-263
+  labels:
+  - area:security
+  - area:platform
+  status: todo
+  acceptance:
+  - 'the control exists or the sentence stops claiming it: either a carrier/geo
+    check runs on the OTP request path, or files/10 §2 is rewritten to say the
+    budgets are the whole of what stands against SMS pumping - a spec that names
+    a control nobody built is worse than a spec that admits the gap, because it
+    is read as coverage'
+  - 'if built, it fails OPEN on lookup failure and CLOSED on a positive signal:
+    a carrier lookup that times out must not lock a legitimate patient out of
+    their own intake, and the asymmetry is asserted by two tests'
+  - 'no new personal data is stored to achieve it: a carrier or country
+    derivation is a fact about a person, so anything persisted carries the
+    inventory annotation {category,purpose,basis,retention,recipients} - and if
+    the check needs a vendor, that is a HUMAN_BLOCKERS row and not a dependency
+    added quietly (invariant 19 applies to the licence too)'
+  - 'invariant 6 holds: no phone number, carrier name or country reaches a log,
+    a metric label or an error report - the budgets already key on a Tokenizer
+    pseudonym and this must not regress that'
+  tests:
+  - tests/api/test_otp_abuse.py
+  sec_row: "onboarding"
+- id: INT-309
+  epic: E02-data
+  phase: P1
+  # Filed by INT-303's adversarial review. INT-303 closed the seam where a
+  # Decimal read Unknown to the triage engine; three sibling paths still lose or
+  # misreport one, and all three are latent behind the same gap INT-303 declared
+  # open (nothing outside from_r4.py:484 and tests constructs SessionState).
+  title: 'A Decimal still loses its type at three boundaries: the FHIR scalar
+    mapper, the overlay store, and a JSON round trip'
+  depends_on:
+  - INT-303
+  labels:
+  - area:data
+  status: todo
+  acceptance:
+  - 'to_r4._scalar_answer gains a Decimal branch: today it has bool/int/float/str
+    and falls through to raise "a None answer inside a list is malformed", which
+    is a FALSE diagnosis - the value is neither None nor malformed, and a wrong
+    error message costs more debugging time than no error message'
+  - 'overlay/store.py serialises a Decimal LearnedFact value rather than raising
+    TypeError from json.dumps with no default='
+  - 'the JSON round trip stops silently restringing it: Decimal("38.50") dumps to
+    "38.50" and validates back as a str, which canonical_scalar reads as Unknown
+    - the same defect INT-303 fixed, relocated to the wire, and a REGRESSION
+    against the pre-INT-303 float. Whether a clinical quantity crosses the wire
+    as a JSON string or a JSON number is an ADR, not a patch: record the decision
+    before changing the encoding'
+  - 'a near-miss control per boundary, each of which a naive fix passes: a
+    Decimal with trailing zeros (38.50 vs 38.5, equal as floats and distinct in
+    declared scale), and an integer large enough to lose precision as a float'
+  tests:
+  - tests/schemas/test_roundtrip.py
+  sec_row: "records"
+- id: INT-310
+  epic: E13-infra
+  phase: P1
+  # Reported by INT-019, which refused to suppress them: `make security` stays
+  # red at [6/12] on purpose rather than shipping a gate that passes by ignoring
+  # its findings. The advisories are real and the fix is a major-version bump
+  # across the workspace, which is its own change with its own blast radius.
+  title: 'Eight npm advisories block make security, including vitest at CVSS 9.8'
+  depends_on:
+  - INT-019
+  labels:
+  - area:security
+  - area:ci
+  status: todo
+  acceptance:
+  - 'the advisories are cleared by upgrading rather than by suppression: vitest
+    2 to 3 and vite 5 to 6 across the workspace, plus uuid, esbuild and
+    decode-uri-component - and .trivyignore/.osv suppressions do NOT grow, which
+    a test asserts by pinning their line counts'
+  - 'the suite still proves what it proved before: the full mobile and platform
+    vitest runs pass at the same counts or higher, and no test is deleted or
+    skipped to accommodate the major bump - a bump that loses coverage has
+    traded one risk for another'
+  - 'make security reaches further than [6/12], and the step it now stops at is
+    named in the evidence with what remains'
+  tests:
+  - tests/ci/test_security_gates.py
+  sec_row: "cicd"
+- id: INT-311
+  epic: E08-mobile
+  phase: P1
+  # Reported by INT-139, which refused to build it: the share centre lists,
+  # audits and revokes existing shares, and nothing in this repo owns the act of
+  # ISSUING one from the patient's phone. INT-137 refused the QR for the same
+  # reasons and named INT-150; INT-150 built the server side and refused the
+  # delivery channel (HB-O7); INT-139 refused the surface. Three issues have now
+  # declined the same thing for compatible reasons, which is the point at which
+  # it needs an owner rather than a fourth refusal.
+  title: 'Nobody owns issuing a Doctor Link from the patient''s phone, and three
+    issues have refused it in a row'
+  depends_on:
+  - INT-150
+  - INT-139
+  labels:
+  - area:mobile
+  - area:security
+  status: todo
+  acceptance:
+  - 'the act of issuing has one owner and one surface: today INT-137 refuses the
+    QR, INT-150 refuses the delivery channel and INT-139 refuses the issuing
+    screen, each correctly and each citing the others - so the refusals are
+    consistent and the capability is simply absent, which is a state nobody
+    chose'
+  - 'no bearer credential is rendered in the patient app until there is a
+    redemption path whose consent scope and audit entry are checked on the
+    server: INT-137''s four negative controls (no link, no scheme, no token, no
+    serialised note) stay standing and are relaxed only by a change that says in
+    its own body why each one may now go'
+  - 'the copy implies no channel that does not exist: HB-O7 records that the
+    phone or e-mail destination files/10 §2 names has no recorded value and no
+    contracted vendor, so an issuing surface that says "we sent you a code" is
+    false until that is answered'
+  - 'whatever it renders is reachable across the app''s own text steps, because
+    INT-136 measured 52 of 248 Turkish labels overflowing the row at the largest
+    one'
+  tests:
+  - apps/mobile/e2e/shares.spec.ts
+  sec_row: "share-centre"

@@ -43,12 +43,21 @@ from pathlib import Path
 from typing import Final
 
 import pytest
+from intake_platform.locale import (
+    DEFAULT_LOCALE,
+    check_catalogue_completeness,
+    enabled_locales,
+    offerable_app_locales,
+    offerable_intake_locales,
+    registration,
+)
 from intake_voice_runtime.profiles import VoiceProfile
+from intake_voice_runtime.talker.guard_lexicons.tr import B1_MAX_WORDS_PER_SENTENCE
 from intake_voice_runtime.talker.policy_guard import (
-    B1_MAX_WORDS_PER_SENTENCE,
     FormOfAddress,
     PolicyGuard,
     Violation,
+    policy_guard_for,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -297,16 +306,32 @@ def en() -> dict[str, str]:
 
 @pytest.fixture(scope="module")
 def guard() -> PolicyGuard:
-    return PolicyGuard(profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SIZ)
+    return policy_guard_for(
+        locale="tr", profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SIZ
+    )
 
 
 # --- the shipped set -------------------------------------------------------------------
 
 
+#: Modules in ``lib/i18n/`` that are not catalogues. Named rather than
+#: pattern-matched, so a new file has to be classified consciously: a third
+#: catalogue must not be able to slip in by being called something else.
+#:
+#: ``locale`` is INT-296's registry and resolver — which locales this build may
+#: OFFER, which is a different question from which catalogues exist. `en.ts`
+#: existing is exactly the case that makes the distinction load-bearing: it is
+#: the reviewer's mirror of the Turkish source of truth, and it is deliberately
+#: NOT a registered session locale.
+NON_CATALOGUE_MODULES: Final = frozenset({"index", "locale", "locale.test"})
+
+
 def test_exactly_the_shipped_locales_have_a_catalogue() -> None:
     """`ar` is P3 *behind an RTL audit* (INT-253 title). A catalogue appearing
     without that audit would ship an untested bidi surface, so it fails here."""
-    present = sorted(path.stem for path in I18N.glob("*.ts") if path.stem != "index")
+    present = sorted(
+        path.stem for path in I18N.glob("*.ts") if path.stem not in NON_CATALOGUE_MODULES
+    )
     assert present == sorted(SHIPPED_LOCALES), (
         f"catalogues on disk: {present}. Adding {PLANNED_LOCALES} needs the RTL "
         "audit INT-253 plans for P3 — a mirrored catalogue is not the whole job."
@@ -775,3 +800,77 @@ def test_the_catalogue_through_policyguard_matches_the_record(
         "clinical language entering patient copy — fix the copy — or a guard "
         "false positive, which is recorded here with the reason."
     )
+
+
+# --- INT-296: the gate generalises from `tr` to every ENABLED locale --------------------
+#
+# Invariant 5 is not weakened by any of this. The rule was *"`tr` must exist"*;
+# it becomes *"`tr` must exist AND every locale this build actually offers must
+# be complete against it"*. `tr` stays required, stays the source of truth and
+# stays the default.
+#
+# The subject of the generalised lint is the REGISTRY, not the set of files on
+# disk. That is the whole distinction INT-296 draws: a catalogue existing is not
+# a language being offered. `en.ts` is INT-253's reviewer mirror and is not a
+# registered session locale, so it is held to parity by the tests above and is
+# absent from the chooser — which is the honest state while HB-O5 has not named
+# a second language and HB-C19 has not signed one.
+
+
+def _registry_catalogues() -> dict[str, dict[str, str]]:
+    """Every ENABLED locale's real catalogue, keyed by code."""
+    return {code: _catalogue(code) for code in enabled_locales()}
+
+
+def test_turkish_is_registered_and_is_the_default() -> None:
+    """Invariant 5, asserted against the registry rather than assumed."""
+    assert DEFAULT_LOCALE == "tr"
+    assert DEFAULT_LOCALE in enabled_locales()
+
+
+def test_every_enabled_locale_has_a_catalogue_on_disk() -> None:
+    """Enabling a locale with no catalogue must fail the build, not fail the
+    patient at the first screen that has no string for them."""
+    missing = [code for code in enabled_locales() if not (I18N / f"{code}.ts").is_file()]
+    assert not missing, f"registered with no catalogue: {missing}"
+
+
+def test_every_enabled_locale_is_complete_against_turkish() -> None:
+    """The generalised lint itself, run over the real tree by the same resolver
+    the app uses — so the gate and the runtime cannot disagree about what
+    'complete' means."""
+    complaints = check_catalogue_completeness(_registry_catalogues())
+    assert not complaints, "enabled locales are not complete:\n" + "\n".join(complaints)
+
+
+def test_the_registrys_completeness_claim_matches_the_tree() -> None:
+    """Both directions. A locale that CLAIMS completeness and is not must fail
+    the build; a locale that is complete and does not claim it is a chooser
+    entry silently withheld, which is a defect of its own."""
+    catalogues = _registry_catalogues()
+    reference = _catalogue(DEFAULT_LOCALE)
+    for code in enabled_locales():
+        actually_complete = not check_catalogue_completeness(
+            {DEFAULT_LOCALE: reference, code: catalogues[code]}
+        )
+        claimed = registration(code).ui_catalogue_complete
+        assert claimed == actually_complete, (
+            f"{code} claims ui_catalogue_complete={claimed} and the tree says {actually_complete}"
+        )
+
+
+def test_the_chooser_offers_no_locale_this_gate_has_not_cleared() -> None:
+    """The join between the build property and the runtime one: nothing may be
+    offerable that is not enabled, and an intake locale is strictly narrower
+    than an app locale because it speaks red-flag scripts."""
+    assert set(offerable_app_locales()) <= set(enabled_locales())
+    assert set(offerable_intake_locales()) <= set(offerable_app_locales())
+
+
+def test_the_registry_ships_holding_only_turkish() -> None:
+    """The issue's own last acceptance line, pinned where a widening edit is
+    visible: HB-O5 (owner) names which languages, HB-C19 (clinician) signs what
+    they say, HB-L23 (counsel) settles what a translated legal text is, and
+    HB-L24 settles the instrument licences. Enabling one here would answer all
+    four."""
+    assert enabled_locales() == ("tr",)

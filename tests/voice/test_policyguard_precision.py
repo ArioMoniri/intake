@@ -33,6 +33,7 @@ from intake_voice_runtime.talker.policy_guard import (
     FormOfAddress,
     PolicyGuard,
     ViolationClass,
+    policy_guard_for,
 )
 
 #: The classes invariant 2 names, plus the register rule. These are the ones
@@ -53,7 +54,7 @@ _LIFE_THREAT = _REPO / "files/protocols/base.life_threat.yaml"
 
 @pytest.fixture()
 def guard() -> PolicyGuard:
-    return PolicyGuard(profile=VoiceProfile.RESIDENCY_TR)
+    return policy_guard_for(locale="tr", profile=VoiceProfile.RESIDENCY_TR)
 
 
 def _classes(guard: PolicyGuard, text: str) -> set[ViolationClass]:
@@ -225,7 +226,9 @@ def test_every_sen_rule_stands_down_once_the_patient_has_mirrored_it(
 ) -> None:
     """``sen`` is reachable only by mirroring, and mirroring releases the whole
     detector, not the tier that happened to fire first."""
-    mirrored = PolicyGuard(profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SEN)
+    mirrored = policy_guard_for(
+        locale="tr", profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SEN
+    )
     assert ViolationClass.REGISTER not in _classes(mirrored, sentence), form
 
 

@@ -8,12 +8,12 @@
 |---|---|---|---|---|
 | INT-001 | awaiting-human (container evidence) | owner | Free 80–100 GB of disk and raise Docker RAM so `make dev` + the obs/security tiers can run — 18 GiB free and 14.1 GB Docker RAM today. | HB-I1, HB-I2 |
 | INT-038 | awaiting-human (consent texts; mechanism shipped, fails closed) | owner + counsel (via INT-210) | Author the eleven Turkish açık rıza texts (core, voice, wellbeing, lane:affect, lane:linguistic, documents, learning:personal, learning:service_improvement, satisfaction, share, research) into `docs/legal/consents/` in the loader contract (`---` / `consent_text_version: <v>` / `---` / copy; filename = purpose with `:`→`.` + `.tr.md`) — until then every NEW grant refuses fail-closed (ConsentTextMissingError) and the dev tier runs on unbound seed grants only. | — (legal-text authoring is INT-210's deliverable; no HB row exists for it) |
-| INT-016 | awaiting-human (anchor destination; verifier shipped, fails closed) | owner | Which organisation's object store, or which named Turkish TSP, receives the hourly audit-chain head — and who signs that arrangement? Until one is named the verifier has nothing independent to check against, so it sets `sec_audit_chain_ok` 0 and exits 3 rather than reporting a chain that merely agrees with itself. | HB-I8 |
+| INT-016 | awaiting-human (anchor destination; verifier shipped, fails closed) | owner | Which organisation's object store, or which named Turkish TSP, receives the hourly audit-chain head — and who signs that arrangement? Until one is named the verifier has nothing independent to check against, so it sets `sec_audit_chain_ok` 0 and exits 3 rather than reporting a chain that merely agrees with itself. | HB-I12 |
 | INT-016 | awaiting-human (production WORM target) | owner | Accept MinIO with a documented CVE-watch and a paid-support escape hatch, or move audit WORM to a purpose-built target — Garage implements no S3 Object Lock and would void the 10-year guarantee silently? Dev/CI WORM is proven server-side; production has no configured target. | HB-I9 |
 | INT-260 | awaiting-human (persistence basis; mechanism shipped, device-local, no egress) | DPO / counsel owner via HUMAN_BLOCKERS | May text scale, theme, on-screen motion and visit start-mode persist device-locally under {category: device preference, purpose: accessibility, basis: contract, retention: until uninstall or reset, recipients: none}? — the record lives in this device's keychain slot with WHEN_UNLOCKED_THIS_DEVICE_ONLY, so it is excluded from backups and never syncs; returning every control to its default deletes it. | — (no HB row exists for device-local preference persistence; raise one if the answer is anything other than yes) |
 | INT-230 | awaiting-human (no study exists; pipeline shipped, fails closed) | owner + counsel, after HB-L1 | Record the KAEK decision for our study into `packages/intake_platform/src/intake_platform/research/study_registry.yaml` — `ethics_approval_id` (the decision id for OUR study, not the committee's own `2025-KAEK-51`), `approval_date`, `approval_valid_until` (enforced with no grace day), `protocol_version` and the closed `recipients` list — because until one row exists every research export refuses `UnknownStudyError`. | HB-R1 (site: HB-L1) |
 | INT-230 | awaiting-human (retention; the second, independent refusal) | owner + counsel (via INT-212) | State the retention period for `research_extracts` from the ethics protocol, because files/06 §3 says only "per ethics protocol" and the export gate refuses to create data whose destruction date nobody can state. | HB-I8 |
-| INT-230 | awaiting-human (legal basis of the export itself) | Turkish counsel | Confirm whether a consented, pseudonymised research export is lawful under KSVY m.16 — and under which limb — given that m.16(1) requires anonymisation and this pipeline produces a keyed pseudonym, so nothing may be described as anonymised until you answer. | HB-L21 |
+| INT-230 | awaiting-human (legal basis of the export itself) | Turkish counsel | Confirm whether a consented, pseudonymised research export is lawful under KSVY m.16 — and under which limb — given that m.16(1) requires anonymisation and this pipeline produces a keyed pseudonym, so nothing may be described as anonymised until you answer. | HB-L26 |
 | INT-113, INT-114 | awaiting-human (no lawful basis; the lane framework refuses them fail-closed) | counsel + owner | Which consent purpose do the `asr_quality` and `engagement` observer lanes run under — `core`, `voice`, or a new purpose added to files/06 §2 with its own Turkish text — given that files/03 §4.7 says every lane is its own purpose while files/06 §2's closed list names only `lane:affect` and `lane:linguistic`? Until you answer, `LaneRuntime.admit` raises `LaneConsentUndeclared` for both lanes rather than attaching them to a basis nobody chose. | HB-L22 |
 | INT-112 | awaiting-human (lexicon content; the mechanism ships and fails closed) | physician of record (Dr Efe Onganer) + a Turkish-speaking clinical psychologist | Which Turkish surface forms belong in each of the four marker lexicons — `negative_affect`, `hopelessness`, `anhedonia`, `somatic_worry` — and against which committed Turkish source? Until you answer, all four are `draft_needs_source` with no terms, `compile_lexicon` refuses them, and the lane emits timing statistics and no lexicon key at all. | HB-C16 |
 | INT-112, INT-116 | awaiting-human (crisis content AND its destination) | physician of record + counsel | Which Turkish phrases must trigger a consent-independent crisis response, and is that response deterministic **signposting** (`04 §4.2` defect 3: "not a screener, not a score") or an instrument cascade (the INT-112 backlog line's "C-SSRS path", which is licence-BLOCKED and which `03 §4.7.1` puts under `device_functions`)? Until you answer, `CrisisBypass` refuses to build at all rather than never firing silently. | HB-C17 (with HB-C8, HB-L2) |
@@ -21,6 +21,9 @@
 | INT-095 | awaiting-human (model provenance; adapters ship, PHI gate fails closed) | owner | Read the raw LICENSE blob at a pinned revision and hash the mirrored weight files for `qwen3.5-9b` (files/03 §4.9.1 row 7) and `whisper-tr-medical` (row 2), so their `observability/registry.yaml` rows carry `model_id@revision` + `weights_sha256` + `licence_verified_at` + the blob url and sha — because row 7 records its blob reading in prose and row 2 records `UNVERIFIED`, and `require_phi_path_pin` therefore refuses both for the PHI path. | HB-I10 |
 | INT-095 | awaiting-human (row 1 unobtained; the ASR adapter ships and runs on row 2) | owner + model-stack author | Is `nvidia/nemotron-3.5-asr-streaming-0.6b` (files/03 §4.9.1 row 1, the *primary* ASR) obtained, mirrored, hashed and served — or is the row withdrawn and row 2 promoted, given that row 2's evidence is three speakers and 120 clips? | HB-I11 |
 | INT-095 | awaiting-human (on-hardware evidence; a real turn ran, on a dev bridge) | owner (procurement) | The acceptance closes only on a real turn **on the target GPU**; there is no pilot card and no signed capacity contract, so `make live-smoke` records `target=dev-bridge` and the issue stays open. | HB-I4, HB-I5 |
+| INT-121 | awaiting-human (no corpus; the harness ships and refuses) | owner, with the DPO/counsel | Which named, dated, licensed set of Turkish documents is the records eval corpus, and on which machine or store does it live — given that a lab report is a patient record and `06 §5` forbids PHI in this repository and in CI, so it may not be committed here? Until you answer, `records_corpus_root()` refuses, `LoincUnitMeasurement` cannot be built without a named corpus and two dates, and no accuracy figure exists anywhere. | HB-A13 (with HB-A10, HB-A2) |
+| INT-121, INT-124 | awaiting-human (unit expectations; the guard ships and reports itself unchecked) | physician of record (**Dr Efe Onganer**) with a clinical biochemist | For which analytes, in which unit, and against which committed Turkish source, should ingestion check a printed unit token — given that `03 §4.9.6`'s own worked examples are two published Turkish handbooks that printed the unit wrong by 1000x, so the document cannot be its own authority? The guard flags and never converts; with no expectation authored it checks nothing, and every analyte it did not check is named in `units_unchecked` rather than passing silently. | HB-C24 |
+| INT-136 | awaiting-human (ordinal anchors; the overlay ships and reports itself not-ready) | physician of record (**Dr Efe Onganer**) | Under `overlay.low_literacy`, which three or four Turkish ordinal anchors stand in for the eleven-point pain score — or is the numeric scale simply not asked of a patient running that overlay, given that files/02 §3 requires severity to be **numeracy-free** and `packages/protocols`' own base layer records that no anchor wording is authored for either end of that scale? | — (no HB row; ids move under concurrent merges, so the coordinator should allocate one) |
 | licensing | note (non-blocking) | owner | Confirm the split "Apache-2.0 for packages/protocols, proprietary for everything else" (07 §4) — bootstrapped that way pending your word. | — |
 
 ## INT-254 — no CODEOWNERS file, so the protocols review requirement has no mechanism
@@ -118,6 +121,37 @@ anywhere in the repo. The ledger renders the fact's own recorded phrase where th
 value is one and a catalogue label where it is not, and never the slot ref — every
 other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
 is clinical copy against the packs' slot definitions.
+| INT-296 | awaiting-human (KVKK category of a second locale; column shipped, registry holds only `tr`) | DPO / Turkish counsel (with the owner) | Under which KVKK category, lawful basis, retention and recipients does `sessions.locale` sit once a second language is offered — given that with `tr` alone the column records the service's own language and states nothing about the patient, but a language choice among several can proxy ethnic origin (m.6 special category)? | HB-L25 |
+
+## INT-136 — instruments render verbatim, and nothing renders
+
+**Raised:** 3 Sep 2026 · **Named human:** none new — this is HB-C1 and HB-L2/HB-L3
+
+The typed intake's instrument half is built and fails closed. There is exactly
+one route from a pack's `text_tr` to the screen; it copies nothing (proved by
+byte identity against an injected instrument, with an NFD near-miss control);
+the licence is checked before the content, so a fully-authored blocked
+instrument is still refused; and a refusal is rendered as copy rather than as
+`null`, because a step that renders nothing looks finished.
+
+**No instrument item renders**, because none exists to render.
+`apps/mobile/src/lib/intake/instruments.ts` ships `INSTRUMENT_ITEMS = {}` for
+three independent reasons, none of them fixable in this repo: **HB-C1** leaves
+every pack unsigned, so all 93 are `maturity: L0` and none is servable
+(docs/evidence/INT-096.md F4); **HB-L2** and **HB-L3** block C-SSRS and WHO-5;
+and `packages/protocols/base/intake.yaml` states the third itself — *"Instrument
+ITEM text is not authored here: the verbatim Turkish items belong to the
+instrument engine (INT-116)"*.
+
+Nothing extra is owed by a human. When a pack authors a `GO` instrument,
+`apps/mobile/e2e/typed_intake.spec.ts` fails until the app registry carries it
+verbatim, which is how it lands. INT-136 stays `todo` meanwhile.
+
+Separately, and this one **is** a new ask: the pain score. See the table row
+above. `lowLiteracyReadiness` reports the Detaylı pack as not ready and names
+`numeral_anchored:pain_score` rather than inventing a recoding, which is
+HUMAN_BLOCKERS.md rule 1 applied to a scale rather than to a threshold.
+Filed as **HB-C22** (physician of record).
 
 ## INT-019 — two CI gates are wired to a workflow file this session may not edit
 

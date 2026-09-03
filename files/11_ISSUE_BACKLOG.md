@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**227 issues.** By phase: P0 134 · P1 51 · P2 37 · P3 5. By status: awaiting-human 8 · doing 4 · done 107 · todo 107 · withdrawn 1.
+**238 issues.** By phase: P0 137 · P1 58 · P2 38 · P3 5. By status: awaiting-human 8 · doing 4 · done 114 · todo 111 · withdrawn 1.
 
 ## P0
 
@@ -87,7 +87,7 @@
 | INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | todo |
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | todo |
 | INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
-| INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | todo |
+| INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | done |
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | todo |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | todo |
 | INT-151 | Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback | E09-clinician | INT-150, INT-117 | area:clinician | todo |
@@ -134,16 +134,19 @@
 | INT-249 | Latency-aware voice lane selection: a health check that answers is not a lane that can speak | E05-voice | INT-243 | area:voice | done |
 | INT-261 | Voice intake mixes with the typed form: a clip that cannot be spoken ends the whole conversation, and the spoken turn reads the typed form's control copy | E08-mobile | INT-239, INT-249 | area:mobile, area:voice | done |
 | INT-285 | The OTP abuse suite's clock is seeded from the wall clock, so a rate-limit refusal depends on the minute CI starts | E08-mobile | INT-131 | area:api, risk:security | done |
-| INT-263 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-285 | area:api, risk:security | todo |
+| INT-263 | OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour | E08-mobile | INT-131, INT-285 | area:api, risk:security | done |
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | done |
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
 | INT-284 | The screens INT-260 did not reach: content that overflows the safe area at both ends, and a glass bar that reserves less room than it occupies | E08-mobile | INT-260 | area:mobile, area:a11y | done |
+| INT-293 | Answers given on the dialogue surface never reach the note | E08-mobile | INT-261, INT-282 | area:mobile, area:engine, risk:clinical | done |
 | INT-286 | Open-ended asking: the pack declares how each question is asked, and the option list becomes the value space rather than the interaction | E08-mobile | INT-083, INT-239, INT-256, INT-282 | area:mobile, area:voice | done |
 | INT-291 | The patient cannot interrupt by speaking: voice barge-in, a measured chunk floor, and a turn-yielding contour | E05-voice | INT-237, INT-249 | area:voice, area:mobile | done |
-| INT-296 | Session locale: one language per session, chosen rather than detected, and a resource layer that refuses an incomplete one | E01-platform | — | area:platform, area:i18n | todo |
-| INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | todo |
+| INT-294 | TTS lane admission consumes the clip deadline, and the resulting mute latches for the session | E08-mobile | INT-243, INT-249, INT-261 | area:mobile, area:voice | done |
+| INT-296 | Session locale: one language per session, chosen rather than detected, and a resource layer that refuses an incomplete one | E01-platform | — | area:platform, area:i18n | done |
+| INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | done |
 | INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | todo |
 | INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
+| INT-304 | The share scope can express three sections and the note has eight, so a withheld section is not recorded anywhere | E08-mobile | INT-137 | area:mobile, area:api, risk:legal | todo |
 | INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
 
 ## P1
@@ -198,9 +201,16 @@
 | INT-253 | Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit | E17-release | INT-130 | area:release | done |
 | INT-256 | Universal history sections (allergy, medication, PMH, family) composed onto every department pack | E04-engines | INT-247 | area:engine | done |
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
+| INT-295 | The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing scrolls sideways to bring it back | E08-mobile | INT-284 | area:mobile, area:a11y | done |
 | INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | todo |
 | INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
 | INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
+| INT-305 | One-tap CSAT cannot form a csat.v1 event, because the schema requires a reason the first tap has not given | E16-experience | INT-240, INT-137 | area:experience, area:mobile | todo |
+| INT-306 | The schema records a visit DATE and the expiry rule needs a visit DATETIME | E02-data | — | area:data | todo |
+| INT-308 | carrier/geo sanity checks against SMS pumping are named in the security spec and implemented nowhere | E01-platform | INT-263 | area:security, area:platform | todo |
+| INT-309 | A Decimal still loses its type at three boundaries: the FHIR scalar mapper, the overlay store, and a JSON round trip | E02-data | INT-303 | area:data | todo |
+| INT-310 | Eight npm advisories block make security, including vitest at CVSS 9.8 | E13-infra | INT-019 | area:security, area:ci | todo |
+| INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | todo |
 
 ## P2
 
@@ -243,6 +253,7 @@
 | INT-231 | Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation) | E15-research | INT-230 | area:research | todo |
 | INT-262 | Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies) | E15-research | INT-230 | area:research, risk:legal, approval:human-legal | todo |
 | INT-250 | Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook | E17-release | INT-189, INT-213 | area:release, risk:legal | todo |
+| INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | todo |
 
 ## P3
 

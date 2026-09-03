@@ -77,8 +77,14 @@ import re
 from dataclasses import dataclass
 from typing import Final
 
+from intake_platform.locale import DEFAULT_LOCALE
+
 from intake_voice_runtime.profiles import VoiceProfile
-from intake_voice_runtime.talker.policy_guard import PolicyGuard, Violation, ViolationClass
+from intake_voice_runtime.talker.policy_guard import (
+    Violation,
+    ViolationClass,
+    policy_guard_for,
+)
 
 __all__ = [
     "B1_MAX_SUBORDINATE_CLAUSES",
@@ -112,7 +118,7 @@ _VOWELS: Final[frozenset[str]] = frozenset("aeıioöuüâêîôû")
 #: :meth:`PolicyGuard.sentences` hold no per-session state; using the guard for
 #: the split as well as the arms means there is one Turkish sentence splitter
 #: in the project rather than two that can drift.
-_GUARD: Final = PolicyGuard(profile=VoiceProfile.TYPED)
+_GUARD: Final = policy_guard_for(locale=DEFAULT_LOCALE, profile=VoiceProfile.TYPED)
 
 
 class ReadabilityIssue(enum.StrEnum):

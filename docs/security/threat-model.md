@@ -310,12 +310,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Threats (STRIDE/LINDDUN):** [S] account takeover through OTP abuse; [D] SMS pumping
   (cost and lockout); [I/Id] account enumeration through response differences.
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
-  caps, carrier/geo sanity), device attestation on OTP request and session start, rotating
+  caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
-  generic error messages (§9 row 1).
+  generic error messages (§9 row 1). ⚠ `carrier/geo sanity` is named in §2 and no code
+  implements it; the request budgets below are the whole of what enforces §2's SMS-pumping
+  control today.
+- **The request-budget bound, stated (INT-263):** the per-phone, per-IP and per-device
+  budgets are counted in a **rolling** `OTP_WINDOW_S` window, not per fixed hour. No more
+  than 3 requests per phone, 10 per IP and 3 per device are admitted in **any** 3600-second
+  span — measured backwards from each request, so an hour boundary hands no budget back —
+  and a refused caller is told the true wait for that bound (the instant enough of the
+  admissions in its window have left it), never the time to the next boundary. INT-131
+  shipped fixed hourly buckets, which enforced **2 x the limit inside a rolling hour** — six
+  codes to one phone in about six minutes, floored only by the 60 s resend cooldown; INT-285
+  measured that and left it, INT-263 narrowed it. Enforced in
+  `services/api/src/intake_api/auth_store.py` (`otp_request_gate`), constant work per request
+  over a key set of one sorted set per (dimension, identifier) holding at most that
+  dimension's limit.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
-- **Tests:** abuse-path tests land with INT-131; schemathesis with INT-019.
+- **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
+  boundary-crossing refusal on all three dimensions, the true retry-after (including under a
+  budget tightened while windows are live) and the bounded counter key set with INT-263
+  (`tests/security/test_otp_abuse.py`); schemathesis with INT-019.
 
 ## `consent` — layered consent and scope enforcement
 
@@ -745,8 +762,13 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (seccomp-isolated PDF rendering, §4), the data boundary, RLS on pgvector with per-patient
   namespaces, provenance on every extracted fact; ingestion unit rule (CLAUDE.md invariant
   22: magnitude outranks the printed unit token, disagreement flags).
-- **Signals:** upload scan results and parse failures (§9) land with INT-120.
-- **Tests:** PDF fuzzing lands with INT-120; RLS namespace tests with INT-123.
+- **Signals:** upload scan results and parse failures (§9) land with INT-120;
+  `sec_injection_suspected_total` is shared with the `llm-boundary` row — INT-121's document
+  fence and INT-083's transcript fence are one control in
+  `intake_platform.data_boundary`, so one counter covers both.
+- **Tests:** PDF fuzzing lands with INT-120; extraction, the document data boundary, the
+  confirm gate and the two invariant-22 guards with INT-121
+  (`tests/records/test_extraction_eval.py`); RLS namespace tests with INT-123.
 
 ## `documents` — the object store
 
@@ -802,8 +824,54 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §2 clinicians — OTP to the patient-chosen channel, 128-bit random
   token, 72 h default expiry, view limit, instant revoke, watermarked PDFs, no indexing,
   access log (visible to the patient — §3).
-- **Signals:** opens, failed OTPs, revocations, time-to-open (§9) land with INT-150.
-- **Tests:** token entropy and expiry tests land with INT-150.
+- **Controls added by INT-150:** the token is 128 bits from `secrets` and is persisted only as
+  a SHA-256 fingerprint, compared in constant time — a database dump yields no access; it
+  travels in a POST **body** on both redemption routes, so no path or query parameter in the
+  package can carry it into an access log, a Referer header or a browser history entry (inv. 6,
+  asserted over the live OpenAPI document). **Expiry is computed on the server** and anchored on
+  the visit, never on issue time (files/02 §2b); the schema records a date and no time of day,
+  so the anchor is the START of the visit day in Türkiye — never later than the appointment, so
+  never later than the spec's `visit_datetime + 72 h` — and a visit with no recorded date is
+  refused (`visit_date_unknown`) rather than given an invented clock. The **view budget is
+  atomic**: one guarded UPDATE carries "not revoked, not expired, budget left" and the
+  increment together, so two concurrent redemptions cannot both be admitted at the limit. The
+  **OTP is the INT-131 gate**, not a second one, in its own `dlink` Redis namespace and counted
+  against the LINK rather than the patient (two links never share a five-attempt budget, and
+  the two request paths never share a request budget — otherwise a token holder could lock the
+  patient out of their own link). It inherits that gate's stated non-atomicity (INT-263) rather
+  than forking a differently-broken copy. **Revocation cascades**: revoking a share — which
+  every note save does — revokes its links, and the row is the authority, so restoring the
+  Redis routing hint does not resurrect a revoked link. **Consent is checked record-level**
+  inside the redemption endpoint against the note's own patient (inv. 4), through the same
+  evaluator the clinic-admin path uses, and BEFORE the view is spent, so a withdrawal costs the
+  patient no view. The **watermark** carries the recipient the PATIENT named plus the instant of
+  this opening plus the opaque grant ref, and nothing derived from the request — no IP, no user
+  agent, no device fingerprint — so it cannot become a way to identify the reader beyond the
+  consent given. `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet, noimageindex` is set on
+  every API response, including the ones an exception handler builds. **Not delivered:** the
+  §2 channel ("the phone/e-mail the patient chose"). No destination is recorded anywhere in
+  this repo and no messaging vendor is contracted, so the seam refuses (503) behind a live abuse
+  gate; the code is minted over the patient's own authenticated session instead.
+- **Signals:** `doctor_link_events_total{event}` — issued, revoked, otp_requested, otp_failed,
+  otp_limited, opened, refused_expired, refused_revoked, refused_view_limit,
+  refused_unknown_token — catalogued `live` and emitted by `intake_api.doctor_link.metrics`.
+  That is §9's *opens, failed OTPs, revocations*. The fourth, *time-to-open*, is
+  `wait.doctor_link_first_open_h` and stays `planned`: every open is written to the
+  hash-chained audit log, which is evidence rather than an analytics source, and no
+  share-access row exists — publishing the interval needs an unlabelled path through
+  `publish_wait`/`roll_up_wait` that INT-241 did not build, so
+  `intake_platform.wait_times.WAIT_SOURCES` records the gap instead of the catalogue status
+  drifting from the writer (inv. 13). No tenant, clinic, link or recipient label on the counter:
+  a per-link series would let a Prometheus scrape reconstruct one clinician's reading of one
+  patient's note.
+- **Tests:** `tests/clinician/test_doctor_link.py` — token entropy (128 bits, no repeats, and a
+  source check that fails a `random`-based generator that passes every statistical assertion),
+  expiry anchored on the visit and exact to the second on both sides, the (limit + 1)th view,
+  a token used immediately after revocation both with the routing hint gone and with it forcibly
+  restored, a token one character off a valid one, an OTP one digit off and the right code on the
+  attempt after the five-attempt budget, the no-index header on every response including
+  refusals, the watermark through the committed PDF renderer's bytes, and the audited open
+  appearing in the patient's own access log with a role and no identity.
 
 ## `share-centre` — active shares, revocation, visibility
 
@@ -814,8 +882,35 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   after revocation; [U] the patient unable to see who has access.
 - **Controls (files/10):** §9 share row — instant token revocation, crypto-shredding, signed
   export URLs, deletion SLA; §3 patient-visible access log covering shares and staff reads.
-- **Signals:** revocation latency and deletion SLA (§9) land with INT-139/INT-037.
-- **Tests:** revocation and deletion-proof tests land with INT-139/INT-037.
+  **INT-139 adds the patient's surface for the first two**: the grants over a note, a stop
+  control that is offered on every grant not already stopped, and the access log rendered as a
+  category and a role. Three client controls carry the row's threats. *[I] stale access
+  outliving intent* — the client never caches, never persists and never writes optimistically,
+  so there is no copy for a revocation to have to invalidate and the screen cannot show a grant
+  as stopped that the record does not. *[Nc] incomplete deletion after revocation* — the server's
+  row is the only authority the client consults: `linkState` short-circuits on `spent` so no
+  device clock can retire a live grant, and a revocation shows only once the returned row says
+  so. *[U] the patient unable to see who has access* — the log is on the patient's own screen,
+  and its footer states out loud that it carries a role and never a name, so a missing name reads
+  as a design choice rather than as something withheld.
+- **Signals:** revocation latency and the deletion SLA (§9) are **still owed**. INT-139 does not
+  emit one: the interval is a server-side property and a client metric measuring it on a phone
+  would be measuring the wrong clock, while `observability/metrics_catalog.yaml` carries no entry
+  for it — publishing without a catalogued series is the drift invariant 13 exists to prevent.
+  The measurement taken for INT-139's acceptance is in `docs/evidence/INT-139.md` with its date
+  and corpus; the series belongs to whichever issue lands the server-side publisher.
+- **Tests:** landed with INT-139. The patient surface —
+  `apps/mobile/e2e/shares.spec.ts`, `apps/mobile/src/lib/shares/links.test.ts` and
+  `apps/mobile/src/lib/shares/store.test.ts` — including the control that a withdrawal of
+  `share:previsit_note` cannot lock the stop path, checked against the router's own
+  `require_scopes` decorators rather than claimed about the client. The cascade —
+  `tests/clinician/test_share_revocation_budget.py` — bounds the interval between the revoking
+  write returning and the redemption being refused, with the near-miss control that separates a
+  row check from a store that expires on a timer, and a three-grant control for the plural in
+  "cascades to tokens". That third one is worth reading: `redeem` checks the SHARE's `revoked_at`
+  before the link's, so a cascade that stopped after the first row still refused every redemption,
+  and the test had to assert the rows as well as the behaviour to catch it. Deletion-proof tests
+  remain INT-037's.
 
 ## `clinic-console` — the clinician web surface
 

@@ -38,6 +38,7 @@ import enum
 from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
+from intake_platform.locale import DEFAULT_LOCALE
 from pydantic import Field, model_validator
 
 from intake_voice_runtime.ports import (
@@ -68,7 +69,11 @@ from intake_voice_runtime.talker.delivery import (
 )
 from intake_voice_runtime.talker.egress import TurnEgress, text_for
 from intake_voice_runtime.talker.insertion import InsertionScheduler, PendingSpeech, Speak
-from intake_voice_runtime.talker.policy_guard import FormOfAddress, PolicyGuard
+from intake_voice_runtime.talker.policy_guard import (
+    FormOfAddress,
+    PolicyGuard,
+    policy_guard_for,
+)
 from intake_voice_runtime.talker.preemption import (
     BackendResult,
     Priority,
@@ -313,7 +318,15 @@ class TalkerSession:
         self.ask_ledger = (
             self.backend if isinstance(self.backend, AskLedger) else _UnwiredAskLedger()
         )
-        self.guard = self.policy_guard or PolicyGuard(profile=self.config.profile)
+        # One language per guard (INT-298): the guard is built from the
+        # signed lexicon for this session's locale, and there is no signed
+        # lexicon for any language but `tr` (HUMAN_BLOCKERS HB-C19). The
+        # locale is stated rather than inferred — INT-296's registry holds
+        # exactly one, and a second reaches this line as a session field,
+        # never as a fallback.
+        self.guard = self.policy_guard or policy_guard_for(
+            locale=DEFAULT_LOCALE, profile=self.config.profile
+        )
         self.scheduler = InsertionScheduler(
             deadlines=self.config.deadlines, note_flag=self._note_undelivered
         )

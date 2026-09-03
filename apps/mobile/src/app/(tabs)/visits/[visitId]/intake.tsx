@@ -47,19 +47,22 @@ import {
 import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
+import { InstrumentStep } from "@/components/InstrumentStep";
+import { ModeBar } from "@/components/ModeBar";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { joinParts } from "@/lib/a11y/labels";
-import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import { MIN_TAP } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
 import {
-  applicableQuestions,
+  intakeProgress,
   isOpenAsk,
   nextApplicableQuestion,
   packForVisit,
+  resumeQuestion,
   spokenPack,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
@@ -206,15 +209,23 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // the progress denominator is honest ("n of applicable", never the full
   // pack). The advance rule lives in nextApplicableQuestion (pack layer).
   const answers = note?.answers ?? [];
-  const applicable = applicableQuestions(intakeQuestions, answers);
+  // INT-136 moved both rules into the pack layer, so "progress + resume" is
+  // held by unit tests rather than by a screenshot.
+  const {
+    answered: answeredCount,
+    applicable,
+    canGrow: flowCanGrow,
+  } = intakeProgress(intakeQuestions, answers);
 
   // `q` = edit mode: jump straight to that question with its current answer
   // preloaded (the review screen's pencil). Otherwise resume at the first
-  // unanswered APPLICABLE question.
+  // unanswered APPLICABLE question. The `?? intakeQuestions[0]` only keeps the
+  // type total and is unreachable: questions.test.ts pins that every shipped
+  // pack has something applicable before a single answer is given.
   const answeredIds = new Set(answers.map((a) => a.questionId));
   const requested = requestedQ ? intakeQuestions.find((x) => x.id === requestedQ) : undefined;
-  const firstUnanswered = applicable.find((x) => !answeredIds.has(x.id));
-  const initialQuestion = requested ?? firstUnanswered ?? applicable[applicable.length - 1];
+  const initialQuestion =
+    resumeQuestion(intakeQuestions, answers, requestedQ) ?? intakeQuestions[0];
   const initialAnswer = answers.find((a) => a.questionId === initialQuestion.id);
   const initialPrefill = initialAnswer === undefined ? prefill[initialQuestion.id] : undefined;
   const initialKind = initialQuestion.kind;
@@ -255,12 +266,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     applicable.findIndex((x) => x.id === question.id),
     0,
   );
-  // Progress is honest about a flow whose length is not fixed (INT-239):
-  // the count is what has been ANSWERED — never "x / 9" against a total
-  // that the next answer can change — and when a gate could still open we
-  // say so in one line rather than letting the dots imply a finish line.
-  const answeredCount = applicable.filter((item) => answeredIds.has(item.id)).length;
-  const flowCanGrow = applicable.length < intakeQuestions.length;
   // The suggestion for THIS question (saved answers always win over it).
   const suggestion = answers.some((a) => a.questionId === question.id)
     ? undefined
@@ -275,8 +280,11 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
    * Commit one answer. `words` is the patient's own sentence for an open step
    * (INT-286) — recorded beside the coded values, never inside them, so no
    * free text can open a gate or reach a rule (invariant 1). The typed lane
-   * resolves nothing locally: there is exactly one route from words to a
-   * declared option id and it is the INT-083 boundary the dialogue uses.
+   * resolves nothing from those words: the options are on screen and the tap
+   * is the answer, so there is nothing here for a matcher to do. (The spoken
+   * lane, which has no chips, reads the patient's words against the same
+   * declared labels before handing anything the extract boundary cannot place
+   * back to the patient — lib/intake/answerMatch.ts, INT-293.)
    */
   const commit = (values: string[], words?: string) => {
     if (visitId) {
@@ -400,7 +408,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // CTA it never had: without one, words typed and no card tapped would have
   // no way to be committed.
   const openAsk = isOpenAsk(question);
-  const floatingCta = question.kind !== "single" || openAsk;
+  // INT-136 — a step that reproduces one item of a validated instrument. It
+  // owns the whole body: its title line IS the item, verbatim from the pack
+  // (invariant 10), and its choices are the instrument's own, so the screen's
+  // catalogue-driven title and option controls are not rendered beside them.
+  // It commits on the tap, so it carries no CTA either.
+  const instrumentStep = question.instrument !== undefined;
+  const floatingCta = !instrumentStep && (question.kind !== "single" || openAsk);
   // INT-256: the text CTA used to read "Bitir" unconditionally, which was
   // true only while `extra` was the one text step in the pack. The universal
   // history block adds free-text steps mid-flow, so the label now follows
@@ -424,21 +438,30 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <View style={styles.progressRow}>
           {/* SC 1.4.1: per-question progress exists here ONLY as a hue, and
               a hue is not a fact. The dots are hidden as the decoration
-              they are and the counter beside them carries the state. */}
-          {applicable.map((item, i) => (
-            <View
-              key={item.id}
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={[
-                styles.progressDot,
-                {
-                  backgroundColor:
-                    answeredIds.has(item.id) || i === stepIndex ? theme.primary : theme.border,
-                },
-              ]}
-            />
-          ))}
+              they are and the counter beside them carries the state.
+
+              INT-295: the dots own a box that WRAPS and SHRINKS, and the
+              counter does neither. A Detaylı flow reaches about thirty dots,
+              which at 8 pt plus a 4 pt gap is longer than the content width
+              on its own — so the row used to push the counter off the right
+              edge at the DEFAULT text size, and the fact went with it. The
+              decoration yields the room now; the fact keeps it. */}
+          <View style={styles.progressRail}>
+            {applicable.map((item, i) => (
+              <View
+                key={item.id}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={[
+                  styles.progressDot,
+                  {
+                    backgroundColor:
+                      answeredIds.has(item.id) || i === stepIndex ? theme.primary : theme.border,
+                  },
+                ]}
+              />
+            ))}
+          </View>
           <AppText role="caption" color="inkFaint" style={styles.progressCount}>
             {answeredCount} {t("intake.progress.answered")}
           </AppText>
@@ -454,16 +477,28 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </AppText>
         ) : null}
         {/* The bar is untitled by design (pass 6), so the question line is
-            this screen's title and must be a heading (SC 1.3.1). */}
-        <AppText role="hero" heading>
-          {t(question.titleKey)}
-        </AppText>
+            this screen's title and must be a heading (SC 1.3.1). An instrument
+            step's heading is the ITEM, so it is rendered by InstrumentStep and
+            the catalogue title is not shown at all — two askings of one
+            question is how a verbatim item stops being the one that was
+            validated. */}
+        {instrumentStep ? (
+          <InstrumentStep
+            instrument={question.instrument!}
+            options={question.options ?? []}
+            onSelect={(optionId) => commit([optionId])}
+          />
+        ) : (
+          <AppText role="hero" heading>
+            {t(question.titleKey)}
+          </AppText>
+        )}
         {/* On an open step the invitation replaces the pack's control hint
             here: "Birden fazla seçebilirsiniz" describes the chips grid, and
             the grid is now below the answer field, so the hint travels down
             with the control it describes (the same rule INT-261 applied to
             the spoken turn). */}
-        {openAsk ? (
+        {instrumentStep ? null : openAsk ? (
           <AppText role="body" color="inkSoft">
             {t("intake.open.hint")}
           </AppText>
@@ -530,7 +565,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </>
         ) : null}
 
-        {question.kind === "chips" ? (
+        {question.kind === "chips" && !instrumentStep ? (
           <View style={styles.chipWrap}>
             {question.options!.map((o) => {
               const on = selected.includes(o.id);
@@ -561,7 +596,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </View>
         ) : null}
 
-        {question.kind === "single" ? (
+        {question.kind === "single" && !instrumentStep ? (
           <View style={styles.optionColumn}>
             {question.options!.map((o) => {
               const suggested = suggestion?.values.includes(o.id) === true;
@@ -654,7 +689,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           </>
         ) : null}
       </ScrollView>
-      {question.kind === "chips" ? (
+      {question.kind === "chips" && !instrumentStep ? (
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
@@ -699,68 +734,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         </GlassBar>
       ) : null}
     </>
-  );
-}
-
-interface ModeBarProps {
-  detayli: boolean;
-  /** Show the calm one-liner that private questions are deferred (02 §33). */
-  deferredNotice: boolean;
-  onToggleMode: () => void;
-  onQueueCalled: () => void;
-}
-
-/**
- * The quiet mode row (INT-236): the "Hastanedeyim" switch (02 §2 table —
- * Detaylı trigger) and, while Detaylı is on, the persistent "Sıranız geldi"
- * affordance (02 §34). Both are caption-register chips — mode is context,
- * never the screen's subject.
- */
-function ModeBar({ detayli, deferredNotice, onToggleMode, onQueueCalled }: ModeBarProps) {
-  const theme = useTheme();
-  return (
-    <View style={styles.modeBlock}>
-      <View style={styles.modeRow}>
-        <Pressable
-          accessibilityRole="switch"
-          accessibilityLabel={t("intake.mode.hastanedeyim")}
-          accessibilityState={{ checked: detayli }}
-          hitSlop={verticalSlop(26)}
-          onPress={onToggleMode}
-          style={[
-            styles.modeChip,
-            { backgroundColor: detayli ? theme.primarySoft : theme.surfaceRaised },
-          ]}
-        >
-          <AppText role="caption" color={detayli ? "primary" : "inkSoft"}>
-            {t("intake.mode.hastanedeyim")}
-          </AppText>
-        </Pressable>
-        {detayli ? (
-          <>
-            <AppText role="caption" color="inkFaint">
-              {t("intake.mode.detayliOn")}
-            </AppText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("intake.queue.called")}
-              hitSlop={verticalSlop(26)}
-              onPress={onQueueCalled}
-              style={[styles.modeChip, styles.queueChip, { backgroundColor: theme.surfaceRaised }]}
-            >
-              <AppText role="caption" color="primary">
-                {t("intake.queue.called")}
-              </AppText>
-            </Pressable>
-          </>
-        ) : null}
-      </View>
-      {deferredNotice ? (
-        <AppText role="caption" color="inkFaint">
-          {t("intake.privacy.deferredInfo")}
-        </AppText>
-      ) : null}
-    </View>
   );
 }
 
@@ -838,30 +811,40 @@ const styles = StyleSheet.create({
   integrityWarn: { paddingHorizontal: spacing.screen, paddingTop: spacing.sm, gap: 2 },
   body: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  modeBlock: { gap: spacing.xs },
-  modeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  modeChip: {
-    borderRadius: radius.chip,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-  },
-  queueChip: { marginLeft: "auto" },
   // The Card inside is far taller than the floor; declaring it keeps the
   // SC 2.5.8 guarantee a property of the control rather than of its content.
   cardTarget: { minHeight: MIN_TAP },
   progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  // The decoration is the part that gives way: it wraps onto a second line
+  // and shrinks, so the counter beside it never has to leave the screen.
+  progressRail: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.xs,
+    flexShrink: 1,
+  },
   progressDot: { width: 8, height: 8, borderRadius: radius.chip },
   // Tabular figures so the counter doesn't reflow step to step (design
   // pass 6 microtypography — Oura's numeric rows are tabular).
-  progressCount: { fontVariant: ["tabular-nums"] },
+  // Never shrinks: the count is the fact, and it fits the narrowest phone at
+  // the largest step in both catalogues (asserted in e2e/overflow.spec.ts).
+  progressCount: { flexShrink: 0, fontVariant: ["tabular-nums"] },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: "center",
+    // A wrap item gets no shrink in React Native, so without this an option
+    // label wider than the row makes the CHIP wider than the row and there is
+    // no horizontal scroll to reach it. Truncating is banned (files/00 §2), so
+    // the bound is what keeps a long Turkish label reachable at the largest
+    // step the app's own control offers (INT-295: that control REPLACES the OS
+    // value, so 1.0 says nothing about what it can ask for).
+    maxWidth: "100%",
   },
   optionColumn: { gap: spacing.sm },
   measureBlock: { gap: spacing.xs },

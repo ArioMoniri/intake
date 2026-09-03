@@ -24,6 +24,10 @@ EXPECTED_TABLES = {
     "consents",
     "guardian_links",
     "shares",
+    # INT-150 — one tokenized, expiring, countable clinician grant over a
+    # share. It holds no token (a SHA-256 fingerprint), no OTP state (that
+    # is the shared Redis gate) and no section list (that stays on shares).
+    "doctor_links",
     "documents",
     "events",
     "audit_chain",
