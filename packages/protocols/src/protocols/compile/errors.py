@@ -63,6 +63,10 @@ class RefusalCode(enum.StrEnum):
     # --- representation boundaries (CLAUDE.md invariant 22; files/03 §4.9.6)
     TR_EXPANSION_FAILED = "TR_EXPANSION_FAILED"
 
+    # --- one language per session (INT-296; INT-297; CLAUDE.md invariant 10)
+    LOCALE_NOT_SELECTABLE = "LOCALE_NOT_SELECTABLE"
+    CLIP_KEY_COLLISION = "CLIP_KEY_COLLISION"
+
     # --- standards bindings (ADR-002; files/12 §8, §8.1)
     OPENEHR_BINDING_UNDECLARED = "OPENEHR_BINDING_UNDECLARED"
     OPENEHR_BINDING_AMBIGUOUS = "OPENEHR_BINDING_AMBIGUOUS"

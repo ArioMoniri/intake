@@ -36,6 +36,7 @@ from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rul
 from protocols.dsl import Instrument, RedFlagRule, Slot, VoiceSettings
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE, LocaleCode, entry_for, safe_code
 from protocols.ops import (
     DENY_PREFIXES,
     AddRuleOp,
@@ -49,6 +50,7 @@ from protocols.ops import (
     TightenRuleOp,
 )
 from protocols.pack import LIFE_THREAT_SET_ID, ProtocolPack
+from protocols.pack_locale import selectable_locales
 from protocols.types import CrisisNumber, Delivery, Maturity, PackLayer, RuleStatus
 from protocols.validator import FindingCode, resolve_red_flags, validate_packs
 
@@ -69,8 +71,11 @@ _MONOTONICITY_FINDINGS = MONOTONICITY_FINDINGS
 _PARAPHRASE_FINDINGS = frozenset({FindingCode.INSTRUMENT_PARAPHRASE})
 _SERVABLE_MATURITY = frozenset({Maturity.L1, Maturity.L2, Maturity.L3})
 
-# One text-carrying field per slot that override_text may address.
+# One text-carrying field per slot that override_text may address. Two of the
+# three are locale maps since INT-297; ``confirm_tr`` is not, so the op's map is
+# projected to the locale being resolved before it is written there.
 _TEXT_FIELDS = frozenset({"ask_tr", "confirm_tr", "follow_up_tr"})
+_LOCALE_MAP_TEXT_FIELDS = frozenset({"ask_tr", "follow_up_tr"})
 
 
 class ResolvedSlot(FrozenModel):
@@ -98,7 +103,11 @@ class ResolvedSection(FrozenModel):
         default=(), description="Instruments administered here (files/03 §6)."
     )
     allow_paraphrase: bool = Field(
-        description="Effective paraphrase permission (files/04 §1; invariant 10)."
+        description="Effective paraphrase permission FOR THIS DOCUMENT'S LOCALE "
+        "(files/04 §1; invariant 10). Authored per locale since INT-297 and "
+        "projected here, so the runtime keeps one boolean and the pack keeps the "
+        "distinction between a language whose register was checked and one whose "
+        "was not."
     )
     slots: tuple[ResolvedSlot, ...] = Field(default=(), description="Slots in delivery order.")
 
@@ -108,6 +117,13 @@ class ResolvedProtocol(FrozenModel):
 
     pack_id: str = Field(description="Target pack.")
     version: str = Field(description="Target pack version.")
+    locale: LocaleCode = Field(
+        default=DEFAULT_LOCALE,
+        description="The one locale this document was resolved for (INT-296: one "
+        "language per session, chosen rather than inferred). The emitters read "
+        "every ``*_tr`` map through it, so a bundle is a bundle of one language "
+        "and there is nowhere for a second one to leak in (INT-297).",
+    )
     title_tr: str | None = Field(default=None, description="Turkish title (files/03 §6).")
     chain: tuple[str, ...] = Field(description="Resolution order, root first (files/03 §6).")
     overlays: tuple[str, ...] = Field(default=(), description="Applied overlay pack ids.")
@@ -498,14 +514,16 @@ def _merge_chain(packs: Sequence[ProtocolPack]) -> dict[str, _MutableSection]:
 
 
 def _apply_ops(
-    sections: dict[str, _MutableSection], entries: Sequence[tuple[ProtocolPack, int, Op]]
+    sections: dict[str, _MutableSection],
+    entries: Sequence[tuple[ProtocolPack, int, Op]],
+    locale: str,
 ) -> list[Refusal]:
     refusals: list[Refusal] = []
     for pack, _, op in entries:
         pointer = _pointer_of(op)
         if pointer is None:
             continue
-        problem = _apply_one(sections, op, pointer)
+        problem = _apply_one(sections, op, pointer, locale)
         if problem is not None:
             refusals.append(
                 _refusal(RefusalCode.VALIDATION_FINDING, f"{pack.id}{pointer}", problem)
@@ -513,7 +531,9 @@ def _apply_ops(
     return refusals
 
 
-def _apply_one(sections: dict[str, _MutableSection], op: Op, pointer: str) -> str | None:
+def _apply_one(
+    sections: dict[str, _MutableSection], op: Op, pointer: str, locale: str
+) -> str | None:
     parts = pointer.lstrip("/").split("/")
     if not parts or parts[0] != "sections" or len(parts) < 2:
         return f"op target {pointer!r} is not a /sections pointer (files/12 §3.1)"
@@ -554,7 +574,19 @@ def _apply_one(sections: dict[str, _MutableSection], op: Op, pointer: str) -> st
                 f"override_text may only address {sorted(_TEXT_FIELDS)} on a slot "
                 f"(files/12 §3.1-3.2), not {pointer!r}"
             )
-        section.slots[key] = slot.model_copy(update={parts[4]: op.text_tr})
+        field = parts[4]
+        if field in _LOCALE_MAP_TEXT_FIELDS:
+            replacement: object = dict(op.text_tr)
+        else:
+            # A field the migration did not reach still holds one string, so the
+            # op's map is projected onto the locale being resolved rather than
+            # written whole. A pack carrying such a field is clamped to ``tr`` by
+            # protocols.pack_locale, so the entry always exists.
+            try:
+                replacement = entry_for(op.text_tr, locale)
+            except LookupError as exc:
+                return f"override_text carries no entry for the resolved locale: {exc}"
+        section.slots[key] = slot.model_copy(update={field: replacement})
         return None
     if isinstance(op, SetVoiceOp):
         return "set_voice addresses a section in this compiler (files/12 §3.1)"
@@ -629,8 +661,14 @@ def resolve_protocol(
     template: OperationalTemplate,
     overlays: Sequence[str] = (),
     licences: LicenceTable | None = None,
+    locale: str = DEFAULT_LOCALE,
 ) -> ResolvedProtocol:
     """Resolve one pack into the document the emitters project from.
+
+    ``locale`` is the one language this document speaks (INT-296). It is not a
+    preference and there is no fallback behind it: a locale the resolved chain
+    cannot speak in every scripted field is refused here rather than served with
+    the missing sentences in Turkish (CLAUDE.md invariant 10; INT-297).
 
     Raises :class:`CompileError` carrying **every** reason it refused.
     """
@@ -656,6 +694,27 @@ def resolve_protocol(
         raise _refused(refusals)
 
     applied = [*chain, *(p for p in overlay_packs if p.id not in {c.id for c in chain})]
+
+    # One language per session, and the pack has to be able to speak it in every
+    # scripted field before the session may choose it. Checked here, before any
+    # emitter runs, because the alternative to refusing a locale is emitting a
+    # bundle with holes in it and discovering them mid-turn (CLAUDE.md invariant
+    # 10; INT-296; INT-297).
+    speakable = frozenset.intersection(*(selectable_locales(pack) for pack in applied))
+    if locale not in speakable:
+        refusals.append(
+            _refusal(
+                RefusalCode.LOCALE_NOT_SELECTABLE,
+                f"{pack_id}@{safe_code(locale)}",
+                "this pack carries no entry for that locale in every scripted field, "
+                "so it cannot be selected for it: scripted questions, red-flag action "
+                "scripts and validated instruments are spoken verbatim from the "
+                "locale's own entry and there is no per-string fallback (CLAUDE.md "
+                "invariant 10; INT-296). The chain speaks " + ", ".join(sorted(speakable)),
+            )
+        )
+        raise _refused(refusals)
+
     for pack in applied:
         if pack.maturity not in _SERVABLE_MATURITY:
             refusals.append(
@@ -729,14 +788,14 @@ def resolve_protocol(
     refusals.extend(conflicts)
     if not conflicts:
         refusals.extend(
-            _apply_ops(sections_state, [e for e in entries if e[0].id not in superseded])
+            _apply_ops(sections_state, [e for e in entries if e[0].id not in superseded], locale)
         )
 
-    pack_paraphrase = _first_paraphrase(applied)
+    pack_paraphrase = _first_paraphrase(applied, locale)
     sections: list[ResolvedSection] = []
     for section_id, state in sections_state.items():
         section_delivery = state.delivery or Delivery.VOICE
-        allow_paraphrase = _effective_paraphrase(state.voice, pack_paraphrase)
+        allow_paraphrase = _effective_paraphrase(state.voice, pack_paraphrase, locale)
         if state.questionnaires and allow_paraphrase:
             refusals.append(
                 _refusal(
@@ -793,6 +852,7 @@ def resolve_protocol(
     document = ResolvedProtocol(
         pack_id=target.id,
         version=target.version,
+        locale=locale,
         title_tr=target.title_tr,
         chain=tuple(pack.id for pack in chain),
         overlays=composition.overlays,
@@ -810,16 +870,24 @@ def resolve_protocol(
     return document.model_copy(update={"resolved_protocol_hash": digest})
 
 
-def _first_paraphrase(packs: Sequence[ProtocolPack]) -> bool:
-    """Pack-level ``voice.allow_paraphrase``, last declaration in chain order."""
+def _first_paraphrase(packs: Sequence[ProtocolPack], locale: str) -> bool:
+    """Pack-level ``voice.allow_paraphrase`` for this locale, last declaration wins.
+
+    A pack that grants paraphrase in Turkish and says nothing about another
+    language grants nothing there: the map is read for the resolved locale and a
+    missing entry is ``False``, which is the safe reading of silence
+    (CLAUDE.md invariant 10).
+    """
     value = False
     for pack in packs:
         if pack.voice is not None and pack.voice.allow_paraphrase is not None:
-            value = pack.voice.allow_paraphrase
+            value = pack.voice.allow_paraphrase.get(locale, False)
     return value
 
 
-def _effective_paraphrase(section_voice: VoiceSettings | None, inherited: bool) -> bool:
+def _effective_paraphrase(
+    section_voice: VoiceSettings | None, inherited: bool, locale: str
+) -> bool:
     if section_voice is not None and section_voice.allow_paraphrase is not None:
-        return section_voice.allow_paraphrase
+        return section_voice.allow_paraphrase.get(locale, False)
     return inherited

@@ -33,7 +33,7 @@ from clip_harness import (
     speech_like,
     write_recording,
 )
-from conftest import PACK_ID, VOICE
+from conftest import LOCALE, PACK_ID, VOICE
 from minio import Minio
 from minio.error import S3Error
 from protocols.compile import CompiledBundle, write_bundle
@@ -339,7 +339,7 @@ class TestWhatLandsInTheObjectStore:
             cache=cache,
         )
         for key, (payload, content_type) in cache.client.objects(cache.bucket).items():
-            assert key.startswith(f"{CLIP_KEY_PREFIX}/{VOICE}/")
+            assert key.startswith(f"{CLIP_KEY_PREFIX}/{LOCALE}/{VOICE}/")
             assert payload[:4] == b"OggS"
             assert content_type == CLIP_MEDIA_TYPE
 

@@ -17,8 +17,10 @@ instruments:
   - id: SYN-SCALE
     items:
       - id: syn_madde_bir
-        text_tr: "Örnek ölçek maddesi bir."
-        allow_paraphrase: true
+        text_tr:
+          tr: "Örnek ölçek maddesi bir."
+        allow_paraphrase:
+          tr: true
 sections:
   olcek_bolumu:
     delivery: text_only

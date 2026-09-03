@@ -16,6 +16,7 @@ from protocols.bindings import OperationalTemplate, load_opt
 from protocols.cli import load_registry
 from protocols.compile import CompiledBundle, LifeThreatSet, compile_bundle, load_life_threat_set
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "protocols" / "compile"
 SIGNED_LIFE_THREAT = FIXTURES / "life_threat_signed.yaml"
@@ -25,6 +26,9 @@ COMMITTED_OPT = REPO_ROOT / "packages" / "protocols" / "openehr" / "previsit_int
 
 PACK_ID = "base.derlenebilir"
 VOICE = "sentetik-ses"
+#: The clip cache keys on (locale, voice) since INT-297. Taken from the registry
+#: rather than spelled again, so the fixtures cannot drift from what compiles.
+LOCALE = DEFAULT_LOCALE
 
 
 @pytest.fixture

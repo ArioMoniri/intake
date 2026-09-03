@@ -350,21 +350,36 @@ def _pack_slots(pack: ProtocolPack) -> list[tuple[str, Slot]]:
     return slots
 
 
+def _each_locale(subject: str, field: Mapping[str, str] | None) -> list[tuple[str, str]]:
+    """One entry per locale, subject-tagged by locale.
+
+    Every locale's string is scanned, not only Turkish: a digit is a digit in
+    any language, and invariant 22 is about what crosses the representation
+    boundary rather than about which language wrote it (INT-297; the expander
+    itself is per locale and is INT-300's).
+    """
+    if field is None:
+        return []
+    return [(f"{subject}@{code}", text) for code, text in sorted(field.items())]
+
+
 def _tr_texts(pack: ProtocolPack) -> list[tuple[str, str]]:
-    """Every patient-facing Turkish string the Talker could speak or show:
-    slot voice fields (files/04 §1), instrument item text (invariant 10),
-    rule action scripts (files/protocols/base.life_threat.yaml) and
-    override_text payloads. label_tr is clinician-facing and excluded."""
+    """Every patient-facing string the Talker could speak or show, in every
+    locale the pack carries: slot voice fields (files/04 §1), instrument item
+    text (invariant 10), rule action scripts (files/protocols/
+    base.life_threat.yaml) and override_text payloads. label_tr is
+    clinician-facing and excluded."""
     texts: list[tuple[str, str]] = []
     for subject, slot in _pack_slots(pack):
-        for text in (slot.ask_tr, slot.confirm_tr, slot.follow_up_tr):
-            if text is not None:
-                texts.append((subject, text))
-        for choice in slot.choices_tr or ():
-            texts.append((subject, choice))
+        texts.extend(_each_locale(subject, slot.ask_tr))
+        texts.extend(_each_locale(subject, slot.follow_up_tr))
+        if slot.confirm_tr is not None:
+            texts.append((subject, slot.confirm_tr))
+        for code, choices in sorted((slot.choices_tr or {}).items()):
+            texts.extend((f"{subject}@{code}", choice) for choice in choices)
     for instrument in pack.instruments:
         for item in instrument.items:
-            texts.append((f"{instrument.id}.{item.id}", item.text_tr))
+            texts.extend(_each_locale(f"{instrument.id}.{item.id}", item.text_tr))
     for rule in _declared_rules(pack):
         if rule.action is not None:
             # Every branch is checked before it is read. The three location
@@ -376,14 +391,15 @@ def _tr_texts(pack: ProtocolPack) -> list[tuple[str, str]]:
             for location in (rule.action.remote, rule.action.on_site):
                 if location is None:
                     continue
-                for text in (location.action_tr, location.why_tr, *location.do_nots_tr):
+                texts.extend(_each_locale(rule.id, location.why_tr))
+                for text in (location.action_tr, *location.do_nots_tr):
                     if text is not None:
                         texts.append((rule.id, text))
             if rule.action.unknown is not None:
                 texts.append((rule.id, rule.action.unknown.ask_one_tr))
     for op in pack.ops:
         if isinstance(op, OverrideTextOp):
-            texts.append((op.pointer, op.text_tr))
+            texts.extend(_each_locale(op.pointer, op.text_tr))
     return texts
 
 
@@ -429,6 +445,19 @@ def _voice_findings(pack: ProtocolPack) -> list[Finding]:
         for subject, slot in _pack_slots(pack)
         if slot.required and slot.follow_up_tr is None
     ]
+    findings.extend(
+        _finding(
+            FindingCode.MISSING_FOLLOW_UP_TR,
+            pack.id,
+            f"{subject}@{code}",
+            "a slot that can ask in a locale must be able to follow up in it — "
+            "asking in one language and reconciling in another is the seam INT-296 "
+            "refuses (files/04 §1; INT-297)",
+        )
+        for subject, slot in _pack_slots(pack)
+        if slot.required and slot.follow_up_tr is not None and slot.ask_tr is not None
+        for code in sorted(set(slot.ask_tr) - set(slot.follow_up_tr))
+    )
     findings.extend(
         _finding(
             FindingCode.NUMERAL_IN_TR,
@@ -534,10 +563,10 @@ def _paraphrase_finding(pack_id: str, instrument_id: str, subject: str) -> Findi
 def _instrument_findings(pack: ProtocolPack, licences: LicenceTable | None) -> list[Finding]:
     findings: list[Finding] = []
     for instrument in pack.instruments:
-        if instrument.voice is not None and instrument.voice.allow_paraphrase:
+        if instrument.voice is not None and any((instrument.voice.allow_paraphrase or {}).values()):
             findings.append(_paraphrase_finding(pack.id, instrument.id, instrument.id))
         for item in instrument.items:
-            if item.allow_paraphrase:
+            if any(item.allow_paraphrase.values()):
                 findings.append(
                     _paraphrase_finding(pack.id, instrument.id, f"{instrument.id}.{item.id}")
                 )

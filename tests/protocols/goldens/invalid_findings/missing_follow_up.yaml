@@ -20,4 +20,5 @@ sections:
         type: code
         valueset: vs.synthetic_renk
         required: true
-        ask_tr: "Örnek soru: hangi rengi seçersiniz?"
+        ask_tr:
+          tr: "Örnek soru: hangi rengi seçersiniz?"

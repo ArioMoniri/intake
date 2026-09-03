@@ -110,16 +110,20 @@ coverage-matrix:
 
 # INT-041: the deterministic emit (files/03 §6 outputs a-e) for one pack.
 # PACK and VOICE are required and have no defaults: VOICE keys the clip cache
-# (files/03 §4.9.1 row 10 `sha256(text_tr, voice_id)`) and a default would be
+# (files/03 §4.9.1 row 10 `sha256(text_tr, voice_id, locale)`) and a default
+# would be
 # a value chosen once by an engineer for every future build. Includes the tr
 # normalisation round-trip gate (CLAUDE.md invariant 22). Refuses on today's
 # tree — every pack is L0 and the life-threat sign-off is empty (HB-C1).
 protocols-compile:
 	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
-	uv run protocols compile --pack $(PACK) --voice $(VOICE)
+	uv run protocols compile --pack $(PACK) --voice $(VOICE) $(if $(LOCALE),--locale $(LOCALE))
 
 # INT-060: pre-synthesise the compiled clip manifests for one voice into the
-# MinIO clip cache (files/03 §4.9.1 row 10, keyed sha256(text_tr, voice_id)).
+# MinIO clip cache (files/03 §4.9.1 row 10, keyed sha256(text_tr, voice_id,
+# locale) since INT-297: the cache keys on (locale, voice), never on the voice
+# alone, because two locales may be pinned to one voice. LOCALE is optional and
+# defaults to tr, the only registered locale (INT-296).
 # VOICE is required and has no default, like protocols-compile: the key is
 # per-voice, so a default would silently build somebody else's cache. The TTS
 # source is also never guessed — set exactly one of INTAKE_TTS_ENDPOINT (a
@@ -127,7 +131,7 @@ protocols-compile:
 # no-GPU dev path). Refuses on today's tree: no pack compiles yet (HB-C1).
 clips:
 	@test -n "$(VOICE)" || { echo "usage: make clips VOICE=<voice_id>"; exit 2; }
-	uv run intake-clips --voice $(VOICE)
+	uv run intake-clips --voice $(VOICE) $(if $(LOCALE),--locale $(LOCALE))
 
 # INT-238: the clamav profile belongs to `dev`, not only to
 # check-integration. Document ingest fails closed without a scanner, so a dev
