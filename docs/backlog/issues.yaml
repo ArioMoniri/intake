@@ -3693,7 +3693,7 @@
   - 'no lexicon is authored by this issue: only `tr` ships signed, every other
     locale is absent, and authoring one is a clinical task recorded as HB-C19'
   tests:
-  - tests/engines/test_policyguard_locale.py
+  - tests/engine/test_policyguard_locale.py
   sec_row: "clinical-core"
 - id: INT-299
   epic: E04-engines
