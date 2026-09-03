@@ -29,6 +29,7 @@ from protocols import (
     pack_compilable,
     validate_packs,
 )
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.validator import resolve_red_flags
 
 HERE = Path(__file__).resolve().parent
@@ -279,7 +280,7 @@ def test_incomplete_red_action_still_reports_the_rest_of_the_pack(branch: str) -
         update={
             "slots": {
                 **pack.sections["ornek_bolum"].slots,
-                "olay_zamani": slot.model_copy(update={"ask_tr": "Bu 3 gün önce mi oldu?"}),
+                "olay_zamani": slot.model_copy(update={"ask_tr": {TR: "Bu 3 gün önce mi oldu?"}}),
             }
         }
     )

@@ -15,4 +15,5 @@ title_tr: "Sentetik yeniden yazım paketi"
 ops:
   - op: override_text
     pointer: /red_flags/rf.synthetic_kirmizi/when
-    text_tr: "ornek_bulgu == true"
+    text_tr:
+      tr: "ornek_bulgu == true"

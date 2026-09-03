@@ -3,7 +3,7 @@
 .env
 .env.*
 !env.example
-node_modules/
+node_modules
 .venv/
 __pycache__/
 .pytest_cache/
@@ -17,4 +17,4 @@ coverage/
 uv.lock.orig
 .coverage
 coverage.xml
-.cache/
+.cache

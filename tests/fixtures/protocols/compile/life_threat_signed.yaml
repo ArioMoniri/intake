@@ -52,13 +52,15 @@ rules:
         action_tr: "Hemen yardım isteyin."
         do_nots_tr:
           - "Yalnız kalmayın."
-        why_tr: "Bu bir sentetik test metnidir."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
         notify_staff_immediate: true
         action_tr: "Görevlilere haber verin."
-        why_tr: "Bu bir sentetik test metnidir."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
       UNKNOWN:
         ask_one_tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE

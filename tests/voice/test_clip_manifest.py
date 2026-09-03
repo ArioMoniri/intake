@@ -37,7 +37,7 @@ from clip_harness import (
     riff_wave,
     write_recording,
 )
-from conftest import PACK_ID, VOICE
+from conftest import LOCALE, PACK_ID, VOICE
 from protocols.compile import CompiledBundle, write_bundle
 from protocols.dsl import clip_text_hash
 from voice_clips import (
@@ -102,7 +102,7 @@ def _built(dist: Path, recordings: Path, cache: ClipCache) -> RecordingGateway:
 
 def _rewrite_first_row(dist: Path, text: str) -> None:
     """Swap the first row's text and re-key it the way the compiler would."""
-    path = dist / PACK_ID / f"clips.{VOICE}.json"
+    path = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["entries"][0]["text_tr"] = text
     payload["entries"][0]["text_hash"] = clip_text_hash(text)
@@ -114,13 +114,13 @@ class TestTheKeyIsTheCompilersOwn:
         self, bundle: CompiledBundle, dist: Path, recordings: Path, cache: ClipCache
     ) -> None:
         _built(dist, recordings, cache)
-        expected = {f"clips/{VOICE}/{row.entry.clip_id}" for row in bundle.clip_manifest}
+        expected = {f"clips/{LOCALE}/{VOICE}/{row.entry.clip_id}" for row in bundle.clip_manifest}
         assert set(cache.client.objects(cache.bucket)) == expected
         assert len(expected) == len(bundle.clip_manifest) > 0
 
     def test_the_key_helper_takes_the_clip_id_verbatim(self, bundle: CompiledBundle) -> None:
         row = bundle.clip_manifest[0]
-        assert clip_object_key(row.entry) == f"clips/{VOICE}/{row.entry.clip_id}"
+        assert clip_object_key(row.entry) == f"clips/{LOCALE}/{VOICE}/{row.entry.clip_id}"
 
     def test_the_builder_never_hashes_anything_itself(self) -> None:
         """A second hasher is a second normalisation, and a guaranteed miss."""
@@ -294,7 +294,7 @@ class TestNumeralsNeverReachTts:
 class TestManifestIntegrity:
     def test_a_manifest_keyed_for_another_voice_is_refused(self, dist: Path) -> None:
         """A voice swap in the header would key every clip to the wrong id."""
-        path = dist / PACK_ID / f"clips.{VOICE}.json"
+        path = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["voice"] = "baska-ses"
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -302,7 +302,7 @@ class TestManifestIntegrity:
             load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE)
 
     def test_a_row_keyed_for_another_voice_is_refused(self, dist: Path) -> None:
-        path = dist / PACK_ID / f"clips.{VOICE}.json"
+        path = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["entries"][0]["voice"] = "baska-ses"
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -314,13 +314,13 @@ class TestManifestIntegrity:
             load_clip_manifest(dist, pack_id=PACK_ID, voice="baska-ses")
 
     def test_a_manifest_that_is_not_one_is_refused(self, dist: Path) -> None:
-        path = dist / PACK_ID / f"clips.{VOICE}.json"
+        path = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
         path.write_text(json.dumps({"voice": VOICE}), encoding="utf-8")
         with pytest.raises(ManifestSchemaError):
             load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE)
 
     def test_a_row_whose_text_no_longer_hashes_to_its_key_is_refused(self, dist: Path) -> None:
-        path = dist / PACK_ID / f"clips.{VOICE}.json"
+        path = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["entries"][0]["text_tr"] = "Bambaşka bir cümle."
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

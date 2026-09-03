@@ -16,6 +16,8 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
+from protocols.locale_text import DEFAULT_LOCALE
+
 from voice_clips.build import run_clip_build
 from voice_clips.cache import clip_cache_from_env
 from voice_clips.errors import ClipCacheError
@@ -43,6 +45,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--voice",
         required=True,
         help="voice id the clips are keyed for; no default (files/03 §4.9.1)",
+    )
+    parser.add_argument(
+        "--locale",
+        default=DEFAULT_LOCALE,
+        help="locale the clips are keyed for (default: %(default)s). The cache "
+        "keys on (locale, voice) since INT-297: two locales may share a voice, "
+        "and a clip found by text and voice alone is then another language's "
+        "clip played into this session.",
     )
     parser.add_argument(
         "--pack",
@@ -83,4 +93,5 @@ def main(argv: Sequence[str] | None = None) -> int:
         pack_ids=tuple(args.only_packs),
         verify_only=args.verify_only,
         force=args.force,
+        locale=args.locale,
     )

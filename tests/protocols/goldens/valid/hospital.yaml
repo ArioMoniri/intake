@@ -13,10 +13,12 @@ title_tr: "Sentetik hastane katmanı"
 ops:
   - op: override_text
     pointer: /sections/ornek_bolum/slots/renk_tercihi/ask_tr
-    text_tr: "Örnek soru, hastane sürümü: hangi rengi seçersiniz?"
+    text_tr:
+      tr: "Örnek soru, hastane sürümü: hangi rengi seçersiniz?"
   - op: add_slot
     pointer: /sections/ornek_bolum/slots/hastane_ek_soru
     slot:
       type: boolean
       required: false
-      ask_tr: "Örnek hastane sorusu: ek bilgi vermek ister misiniz?"
+      ask_tr:
+        tr: "Örnek hastane sorusu: ek bilgi vermek ister misiniz?"

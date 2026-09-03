@@ -15,14 +15,19 @@ extends: base.synthetic
 instruments:
   - id: SYN-SCALE
     voice:
-      allow_paraphrase: false
+      allow_paraphrase:
+        tr: false
     items:
       - id: syn_madde_bir
-        text_tr: "Örnek ölçek maddesi bir."
-        allow_paraphrase: false
+        text_tr:
+          tr: "Örnek ölçek maddesi bir."
+        allow_paraphrase:
+          tr: false
       - id: syn_madde_iki
-        text_tr: "Örnek ölçek maddesi iki."
-        allow_paraphrase: false
+        text_tr:
+          tr: "Örnek ölçek maddesi iki."
+        allow_paraphrase:
+          tr: false
 sections:
   olcek_bolumu:
     delivery: text_only

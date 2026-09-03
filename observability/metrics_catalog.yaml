@@ -1135,16 +1135,24 @@ metrics:
     labels: []
     owner: security
     unit: "count"
-    status: planned
-    description: Break-glass grants opened (group O attaches detection to this).
+    status: live
+    description: >-
+      Break-glass grants opened (group O attaches detection to this). Emitted by
+      the files/08 §2.5 ceremony in intake_api.admin.routes when a request
+      passes the content rules and a pending action is minted (INT-180).
   - name: sec_admin_actions_total
     id: sec.admin_actions_total
     type: counter
     labels: []
     owner: security
     unit: "count"
-    status: planned
-    description: Admin actions executed (group O attaches detection to this).
+    status: live
+    description: >-
+      Admin actions executed (group O attaches detection to this). Emitted by
+      intake_platform.admin.audit.AdminActionRecord, once per audited console
+      action including refusals — the console router is built from the
+      ADMIN_ROUTES descriptor table, so a route cannot exist without one
+      (INT-180).
   - name: sec_mttd_min
     id: sec.mttd_min
     type: gauge
@@ -1380,8 +1388,11 @@ metrics:
     labels: [actor, reason_class]
     owner: admin
     unit: "count"
-    status: planned
-    description: Break-glass grants opened by actor and reason class.
+    status: live
+    description: >-
+      Break-glass grants opened by actor and reason class. `actor` is a staff
+      account subject and `reason_class` a closed BreakGlassReason member —
+      never a patient and never free text (INT-180).
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge
@@ -1464,18 +1475,21 @@ metrics:
     labels: []
     owner: admin
     unit: "count"
-    status: planned
+    status: live
     description: >-
       Attempts to approve one's own tier-3 action — an intrusion signal,
-      not a hygiene metric.
+      not a hygiene metric. Emitted where the ceremony refuses a self
+      approval (INT-180).
   - name: admin_pending_action_expired_total
     id: admin.pending_action_expired_total
     type: counter
     labels: []
     owner: admin
     unit: "count"
-    status: planned
-    description: Pending dangerous actions that expired unapproved.
+    status: live
+    description: >-
+      Pending dangerous actions that expired unapproved. Emitted by the sweep
+      the break-glass routes run before serving (INT-180).
   - name: admin_access_review_age_days
     id: admin.access_review_age_days
     type: gauge

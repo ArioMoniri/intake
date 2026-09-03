@@ -20,5 +20,7 @@ sections:
         type: quantity
         unit: gun
         required: true
-        ask_tr: "Örnek soru: yaklaşık 2 gün mü sürdü?"
-        follow_up_tr: "Örneğin iki gün gibi, yazıyla söyleyebilir misiniz?"
+        ask_tr:
+          tr: "Örnek soru: yaklaşık 2 gün mü sürdü?"
+        follow_up_tr:
+          tr: "Örneğin iki gün gibi, yazıyla söyleyebilir misiniz?"

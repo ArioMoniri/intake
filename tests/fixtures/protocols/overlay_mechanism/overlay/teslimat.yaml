@@ -18,4 +18,5 @@ ops:
     voice:
       pace: slow
       ack_style: warm
-      allow_paraphrase: false
+      allow_paraphrase:
+        tr: false

@@ -15,4 +15,5 @@ title_tr: "Sentetik metin değiştiren katman"
 ops:
   - op: override_text
     pointer: /sections/ornek_bolum/slots/renk_tercihi/ask_tr
-    text_tr: "Örnek soru, izinsiz sürüm: hangi rengi seçersiniz?"
+    text_tr:
+      tr: "Örnek soru, izinsiz sürüm: hangi rengi seçersiniz?"

@@ -47,7 +47,8 @@ sections:
   sistem_sorgusu:
     delivery: voice
     voice:
-      allow_paraphrase: false
+      allow_paraphrase:
+        tr: false
       backchannel_ok: true
       ack_style: brief
       pace: normal
@@ -59,9 +60,12 @@ sections:
         openehr_deferred_reason: >-
           synthetic simulator fixture; no archetype path is claimed for an
           invented slot (files/12 §8 makes the pair exclusive and exhaustive)
-        ask_tr: "Sentetik birinci alanda bir değişiklik var mı?"
-        follow_up_tr: "Sentetik birinci alandaki durumu belirtebilir misiniz?"
-        choices_tr: ["evet", "hayir"]
+        ask_tr:
+          tr: "Sentetik birinci alanda bir değişiklik var mı?"
+        follow_up_tr:
+          tr: "Sentetik birinci alandaki durumu belirtebilir misiniz?"
+        choices_tr:
+          tr: ["evet", "hayir"]
       ikinci_alan:
         type: boolean
         required: true
@@ -69,9 +73,12 @@ sections:
         openehr_deferred_reason: >-
           synthetic simulator fixture; no archetype path is claimed for an
           invented slot
-        ask_tr: "Sentetik ikinci alanda bir değişiklik var mı?"
-        follow_up_tr: "Sentetik ikinci alandaki durumu belirtebilir misiniz?"
-        choices_tr: ["evet", "hayir"]
+        ask_tr:
+          tr: "Sentetik ikinci alanda bir değişiklik var mı?"
+        follow_up_tr:
+          tr: "Sentetik ikinci alandaki durumu belirtebilir misiniz?"
+        choices_tr:
+          tr: ["evet", "hayir"]
       ucuncu_alan:
         type: code
         valueset: vs.sentetik_alan_durumu
@@ -79,9 +86,12 @@ sections:
         openehr_deferred_reason: >-
           synthetic simulator fixture; no archetype path is claimed for an
           invented slot
-        ask_tr: "Sentetik üçüncü alan nasıl: aynı mı, azalıyor mu, artıyor mu?"
-        follow_up_tr: "Aynı, azalıyor ya da artıyor seçeneklerinden birini söyleyebilirsiniz."
-        choices_tr: ["sentetik_ayni", "sentetik_azaliyor", "sentetik_artiyor"]
+        ask_tr:
+          tr: "Sentetik üçüncü alan nasıl: aynı mı, azalıyor mu, artıyor mu?"
+        follow_up_tr:
+          tr: "Aynı, azalıyor ya da artıyor seçeneklerinden birini söyleyebilirsiniz."
+        choices_tr:
+          tr: ["sentetik_ayni", "sentetik_azaliyor", "sentetik_artiyor"]
   gecmis_delta:
     delivery: text_first
     slots:
@@ -92,15 +102,21 @@ sections:
         openehr_deferred_reason: >-
           synthetic simulator fixture; no archetype path is claimed for an
           invented slot
-        ask_tr: "Sentetik önceki kaydınızda değişen bir şey oldu mu?"
+        ask_tr:
+          tr: "Sentetik önceki kaydınızda değişen bir şey oldu mu?"
         confirm_tr: "Sentetik önceki kaydınız aynı, doğru mu?"
-        follow_up_tr: "Sentetik kaydınızda bir değişiklik olup olmadığını belirtebilirsiniz."
-        choices_tr: ["evet", "hayir"]
+        follow_up_tr:
+          tr: "Sentetik kaydınızda bir değişiklik olup olmadığını belirtebilirsiniz."
+        choices_tr:
+          tr: ["evet", "hayir"]
       yakin_oykusu_degisti:
         type: boolean
         openehr_deferred_reason: >-
           synthetic simulator fixture; no archetype path is claimed for an
           invented slot
-        ask_tr: "Sentetik yakın öykünüzde değişen bir şey oldu mu?"
-        follow_up_tr: "Sentetik yakın öykünüzdeki değişikliği belirtebilirsiniz."
-        choices_tr: ["evet", "hayir"]
+        ask_tr:
+          tr: "Sentetik yakın öykünüzde değişen bir şey oldu mu?"
+        follow_up_tr:
+          tr: "Sentetik yakın öykünüzdeki değişikliği belirtebilirsiniz."
+        choices_tr:
+          tr: ["evet", "hayir"]

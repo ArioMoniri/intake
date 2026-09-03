@@ -26,6 +26,13 @@ from typing import Annotated, Literal
 from clinical_schemas.common import FrozenModel, Ref, Sha256
 from pydantic import Field, StringConstraints, model_validator
 
+from protocols.locale_text import (
+    DEFAULT_LOCALE,
+    LocaleChoices,
+    LocaleCode,
+    LocaleFlag,
+    LocaleText,
+)
 from protocols.types import (
     SLOT_KEY_PATTERN,
     SLOT_REF_PATTERN,
@@ -98,16 +105,26 @@ class ClipManifestEntry(FrozenModel):
     text_hash: Sha256 = Field(description="clip_text_hash of the scripted text (files/03 §6).")
     clip_id: Ref = Field(description="Pre-synthesised clip id (files/03 §6 output (e)).")
     voice: TrText = Field(description="Voice the clip was synthesised for (files/03 §6).")
+    locale: LocaleCode = Field(
+        default=DEFAULT_LOCALE,
+        description="The locale whose string this clip speaks (INT-297). The cache "
+        "keys on (locale, voice) rather than on the voice alone: two locales may "
+        "share a voice, and a clip found by text hash alone is then a clip of "
+        "another language's string played into this session.",
+    )
 
 
 class VoiceSettings(FrozenModel):
     """Voice hints on a protocol or section (files/04 §1 v1.1: ``voice:
     {allow_paraphrase, backchannel_ok, ack_style, pace}``)."""
 
-    allow_paraphrase: bool | None = Field(
+    allow_paraphrase: LocaleFlag | None = Field(
         default=None,
-        description="Paraphrase permission; validated instruments are always false "
-        "(files/04 §1; CLAUDE.md invariant 10).",
+        description="Paraphrase permission PER LOCALE; validated instruments are "
+        "always false (files/04 §1; CLAUDE.md invariant 10). Per locale because "
+        "invariant 10 is about a language: permission granted for Turkish, whose "
+        "register and reading level are checked, asserts nothing about a language "
+        "where neither has been (INT-297).",
     )
     backchannel_ok: bool | None = Field(
         default=None, description="Whether backchannels may play (files/04 §1)."
@@ -153,19 +170,25 @@ class Slot(FrozenModel):
         description="Extraction confidence floor; set_attr may only increase it "
         "(files/12 §3.2). Decimal, never float (files/13 §9.5).",
     )
-    ask_tr: TrText | None = Field(
-        default=None, description="Spoken Turkish question (files/04 §1 ``ask_tr``)."
+    ask_tr: LocaleText | None = Field(
+        default=None,
+        description="Spoken question per locale, ``tr`` required (files/04 §1 "
+        "``ask_tr``; INT-297).",
     )
     confirm_tr: TrText | None = Field(
         default=None, description="Spoken Turkish confirm text (files/04 §1 ``confirm_tr``)."
     )
-    follow_up_tr: TrText | None = Field(
+    follow_up_tr: LocaleText | None = Field(
         default=None,
-        description="Clarification follow-up; mandatory on every required slot because "
-        "the runtime asks ahead and reconciles behind (files/04 §1; files/13 §11.1).",
+        description="Clarification follow-up per locale; mandatory on every required "
+        "slot because the runtime asks ahead and reconciles behind (files/04 §1; "
+        "files/13 §11.1), and required in every locale the slot can ask in "
+        "(INT-297).",
     )
-    choices_tr: tuple[TrText, ...] | None = Field(
-        default=None, description="Spoken answer options (files/04 §1 ``choices_tr[]``)."
+    choices_tr: LocaleChoices | None = Field(
+        default=None,
+        description="Spoken answer options per locale, one order and one arity "
+        "(files/04 §1 ``choices_tr[]``; INT-297).",
     )
     delivery: Delivery | None = Field(
         default=None, description="voice|text_first|text_only (files/13 §13)."
@@ -217,14 +240,17 @@ class InstrumentItem(FrozenModel):
     (files/04 header instrument fidelity; CLAUDE.md invariant 10 ``text_tr``)."""
 
     id: SlotKey = Field(description="Stable item id within the instrument.")
-    text_tr: TrText = Field(
-        description="Verbatim Turkish item text — the tr resource is the source of "
-        "truth (CLAUDE.md invariants 5 and 10)."
+    text_tr: LocaleText = Field(
+        description="Verbatim item text per locale, ``tr`` required — the tr "
+        "resource is the source of truth (CLAUDE.md invariants 5 and 10). An "
+        "instrument item in a second language is new clinical content rather than "
+        "a translation of signed content (HB-C19), which is why the map is keyed "
+        "and not merged."
     )
-    allow_paraphrase: bool = Field(
-        description="Must be exactly false on instrument items (files/04 §1); the "
-        "validator rejects true rather than the schema, so the loader can still "
-        "report the finding with its blueprint citation."
+    allow_paraphrase: LocaleFlag = Field(
+        description="Must be exactly false in every locale the item carries "
+        "(files/04 §1); the validator rejects true rather than the schema, so the "
+        "loader can still report the finding with its blueprint citation."
     )
 
 
@@ -359,10 +385,10 @@ class LocationAction(FrozenModel):
         default=(),
         description="Explicit do-not list (files/04 §8.1 rule 6 do_nots_tr).",
     )
-    why_tr: TrText | None = Field(
+    why_tr: LocaleText | None = Field(
         default=None,
-        description="Explanation, never a diagnosis (files/protocols/"
-        "base.life_threat.yaml why_tr).",
+        description="Explanation per locale, never a diagnosis (files/protocols/"
+        "base.life_threat.yaml why_tr; INT-297).",
     )
     why_tr_ref: str | None = Field(
         default=None,

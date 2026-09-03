@@ -2314,7 +2314,20 @@
   title: "Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives"
   depends_on: [INT-023, INT-016]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-180.md
+  # NOTE 3 Sep 2026: all three acceptance clauses delivered. The audited-route
+  # list is DERIVED — the router is built from the ADMIN_ROUTES descriptor
+  # table and the tests read the served route set off FastAPI itself, so a
+  # route cannot exist without an audit action. The console appends to the
+  # INT-016 chain through a one-method sink and an AST gate proves it names no
+  # chain-head symbol, so HB-I12's gap is not narrowed. Two fail-closed states
+  # are the delivered state, not gaps: the IP allow-list ships EMPTY (08 §2.3
+  # names no range) and the tenant->deployment map ships EMPTY, so break-glass
+  # refuses every tenant until 08 §2.6's controller/processor question is
+  # answered per tenant (adjacent to HB-L6). The §8.2 tier table is
+  # implemented whole but registers only the actions this issue routes; rows
+  # for surfaces that do not exist would be controls in name only (inv. 17).
   acceptance:
     - "roles per 08 §2; break-glass with reason+approver; role-matrix contract tests for /admin/*"
   tests: [tests/admin/test_rbac_matrix.py]
@@ -3791,7 +3804,8 @@
   labels:
   - area:protocols
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-297.md
   acceptance:
   - '`text_tr`, `ask_tr`, `follow_up_tr`, `choices_tr` and `why_tr` become maps
     keyed by locale, with `tr` required by the schema so no pack can lose its
@@ -4419,3 +4433,76 @@
   - tests/safety/test_adversarial_rt12_14.py
   - tests/platform/test_spoken_identifiers.py
   sec_row: "identifiers"
+- id: INT-314
+  epic: E03-protocols
+  phase: P1
+  # Reported by INT-297, which migrated five `*_tr` fields to per-locale maps and
+  # found four more that are SPOKEN and outside that set: confirm_tr, action_tr,
+  # do_nots_tr, ask_one_tr. So invariant 10's "red-flag action scripts are spoken
+  # verbatim from the locale's own entry" is only partially per-locale today.
+  # It is fail-closed rather than ignored: `selectable_locales` clamps any pack
+  # carrying one of the four to `tr`, and the clamp lifts by itself once they
+  # migrate. `action_tr` is the field that closes it.
+  title: 'Four spoken fields are still Turkish-only, so a red-flag action script
+    cannot yet be per-locale'
+  depends_on:
+  - INT-297
+  labels:
+  - area:protocols
+  - area:i18n
+  - area:safety
+  status: todo
+  acceptance:
+  - '`confirm_tr`, `action_tr`, `do_nots_tr` and `ask_one_tr` become per-locale
+    maps on the same schema as the five INT-297 migrated, with `tr` required, so
+    invariant 10 holds for the WHOLE of a red-flag script rather than for its
+    question half'
+  - 'the byte-identity discipline is repeated, not assumed: the pre- and
+    post-migration trees compile to identical served bundles for `tr`, authored
+    string AND `expand_tr` expansion, using the same comparator INT-297
+    committed - a refactor that changes one Turkish RED sentence is the most
+    dangerous edit in this repository'
+  - 'the `selectable_locales` clamp is REMOVED by this issue rather than left
+    dormant, and a test asserts a pack carrying all four in a second locale is
+    now selectable - a clamp that outlives its reason is a silent restriction
+    nobody can see'
+  - 'invariant 21 is untouched: RED stays route x register x location with no
+    permitted default, and nothing here lets a locale change which action
+    resolves for a location'
+  tests:
+  - tests/protocols/test_locale_maps.py
+  sec_row: "protocol-registry"
+- id: INT-315
+  epic: E13-infra
+  phase: P1
+  # Found by INT-180, and found the honest way: two restore-drill PHI-safety
+  # tests failed on its branch, it was told they might mean a widened guard, and
+  # it established they did not - the cause was a .cache SYMLINK the
+  # coordinator's interruption-recovery saves had committed. Removing the
+  # symlink passes 5/5; restoring it reproduces. But the guard is still wrong.
+  title: 'assert_restore_target_outside_workspace resolves the target and not the
+    workspace, so a symlinked directory INSIDE the repo reads as outside'
+  depends_on: []
+  labels:
+  - area:infra
+  - area:security
+  status: todo
+  acceptance:
+  - 'the workspace side is resolved too: a directory that git can see inside the
+    repository must be refused as a restore target even when it is reached
+    through a symlink whose `Path.resolve()` lands elsewhere - today only the
+    target is resolved, so the comparison is between a real path and a symbolic
+    one and it silently answers "outside"'
+  - 'the case that produced it is the regression test: a symlinked `.cache`
+    directory inside the worktree, which is exactly what this repository''s
+    own fresh-worktree deid-model workflow creates, so the fixture is the real
+    workflow rather than an invented one'
+  - 'the near-miss control passes unchanged: a genuinely external target is
+    still accepted, and a relative path that escapes upward is still refused -
+    a fix that refuses everything would pass the first clause and destroy the
+    drill'
+  - 'no restore ever writes patient data inside the repository, which is what
+    this guard exists for and what the symlink quietly permitted'
+  tests:
+  - tests/infra/test_restore_drill.py
+  sec_row: "backups"

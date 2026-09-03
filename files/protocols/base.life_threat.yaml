@@ -291,9 +291,10 @@ rules:
           - "Kendi aracınızla yola çıkmayın."
           - "Bir şey yiyip içmeyin."
           - "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
-        why_tr: >-
-          Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir.
-          112 ile gelen hastalar acil serviste triyaj için bekletilmez.
+        why_tr:
+          tr: >-
+            Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir.
+            112 ile gelen hastalar acil serviste triyaj için bekletilmez.
         # ^ Tebliğ MADDE 8(5). A statement about the service, not about the patient's
         #   condition — safe in every register, and the argument that actually stops
         #   "I'll just drive there myself".
@@ -308,10 +309,11 @@ rules:
           - "Poliklinik sırasında beklemeyin."
           - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
           - "Bir şey yiyip içmeyin."
-        why_tr: >-
-          Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin
-          hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil
-          kabul edilen hastalar sıra beklemez.
+        why_tr:
+          tr: >-
+            Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin
+            hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil
+            kabul edilen hastalar sıra beklemez.
         # ^ EK-4 door-triage fact, the ON_SITE counterpart of the MADDE 8(5) line above.
         #   The MADDE 8(5) line must NOT be reused here: the patient is not travelling.
       UNKNOWN:
@@ -406,9 +408,10 @@ rules:
         action_tr: "Bugün içinde bir acil servise başvurun."
         do_nots_tr:
           - "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — 112'yi arayın."
-        why_tr: >-
-          Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Randevunuzu
-          beklemek uygun değil.
+        why_tr:
+          tr: >-
+            Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Randevunuzu
+            beklemek uygun değil.
       ON_SITE:
         # ⚠️ THE COLLAPSE. Under ON_SITE this is materially the same instruction as
         # EMERGENCY_NOW/ON_SITE above: walk there now, do not wait for the appointment,
@@ -425,9 +428,10 @@ rules:
           Görevlilere haber verildi.
         do_nots_tr:
           - "Poliklinik sırasında beklemeyin."
-        why_tr: >-
-          Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten
-          hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz.
+        why_tr:
+          tr: >-
+            Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten
+            hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz.
       UNKNOWN:
         ask_one_tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
@@ -516,9 +520,10 @@ rules:
           - "Su, yiyecek ya da ilaç vermeyin."
           - "Çocuğunuzu sırtüstü yatırmayın."
           - "Yanından ayrılmayın; onu ağlatacak ya da telaşlandıracak bir şey yapmayın."
-        why_tr: >-
-          Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
-          Şu anda çocuğunuz için en yararlı şey, sizin sakin kalmanız.
+        why_tr:
+          tr: >-
+            Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
+            Şu anda çocuğunuz için en yararlı şey, sizin sakin kalmanız.
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
@@ -534,10 +539,11 @@ rules:
           - "Çocuğunuzu sırtüstü yatırmayın."
           - "Onu ağlatacak ya da telaşlandıracak bir şey yapmayın; koşmayın."
           - "Poliklinik sırasında beklemeyin."
-        why_tr: >-
-          Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
-          Zaten hastanedesiniz; en yararlı şey sakin kalmanız ve doğrudan acil servise
-          gitmeniz.
+        why_tr:
+          tr: >-
+            Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**.
+            Zaten hastanedesiniz; en yararlı şey sakin kalmanız ve doğrudan acil servise
+            gitmeniz.
         open_question: >-
           Tebliğ MADDE 9(1) admits no companion to the kırmızı alan as a rule, waived only
           with physician approval. Whether and how to pre-warn a parent about this is an

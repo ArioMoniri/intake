@@ -86,7 +86,8 @@ voice:
   # Nothing in the base pack is paraphrasable by default. 04 §1 allows paraphrase per
   # protocol/section; invariant 10 makes scripted text verbatim. Opening the default
   # would be a decision taken once, by an engineer, for every question written later.
-  allow_paraphrase: false
+  allow_paraphrase:
+    tr: false
   backchannel_ok: true         # 13 §4: 82.9 % of interruptions are cooperative, and
                                # backchannels mask processing latency.
   ack_style: warm
@@ -112,9 +113,12 @@ sections:
           subject role is a session fact, not a clinical entry; 03 §7 names no
           archetype that hosts it and the committed template carries roots only, so a
           binding here would resolve against a fabrication (12 §8.1).
-        ask_tr: "Bu görüşmeyi kendiniz için mi yapıyorsunuz, yoksa bir yakınınız adına mı?"
-        choices_tr: ["kendim için", "yakınım adına"]
-        follow_up_tr: "Kendiniz için mi, yoksa başka biri adına mı konuşuyorsunuz?"
+        ask_tr:
+          tr: "Bu görüşmeyi kendiniz için mi yapıyorsunuz, yoksa bir yakınınız adına mı?"
+        choices_tr:
+          tr: ["kendim için", "yakınım adına"]
+        follow_up_tr:
+          tr: "Kendiniz için mi, yoksa başka biri adına mı konuşuyorsunuz?"
       proxy_reported:
         type: boolean
         required: false
@@ -123,8 +127,10 @@ sections:
         openehr_deferred_reason: >-
           proxy provenance travels on the note (04 §5 PreVisitNote.screening.provenance),
           not as an openEHR entry; no archetype in 03 §7 hosts it.
-        ask_tr: "Hastanın adına konuştuğunuzu not ediyorum. Doğru mu?"
-        follow_up_tr: "Hastanın kendisi mi konuşuyor, yoksa siz mi anlatıyorsunuz?"
+        ask_tr:
+          tr: "Hastanın adına konuştuğunuzu not ediyorum. Doğru mu?"
+        follow_up_tr:
+          tr: "Hastanın kendisi mi konuşuyor, yoksa siz mi anlatıyorsunuz?"
       consent_recap_confirmed:
         type: boolean
         required: true
@@ -133,8 +139,10 @@ sections:
         openehr_deferred_reason: >-
           consent records live in the consent service with their own hash-bound legal
           text (invariant 18); the pack records only that the recap was shown.
-        ask_tr: "Ekranda gösterdiğim onam özetini onaylıyor musunuz?"
-        follow_up_tr: "Onaylıyorsanız evet, onaylamıyorsanız hayır diyebilirsiniz."
+        ask_tr:
+          tr: "Ekranda gösterdiğim onam özetini onaylıyor musunuz?"
+        follow_up_tr:
+          tr: "Onaylıyorsanız evet, onaylamıyorsanız hayır diyebilirsiniz."
 
   # ===================================================================================
   # 04 §1 row 2 — reason_for_visit. 13 §4: open with a genuine uninterrupted turn.
@@ -152,15 +160,19 @@ sections:
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]"
-        ask_tr: "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim."
-        follow_up_tr: "Sizi en çok rahatsız eden şeyi kısaca anlatabilirsiniz."
+        ask_tr:
+          tr: "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim."
+        follow_up_tr:
+          tr: "Sizi en çok rahatsız eden şeyi kısaca anlatabilirsiniz."
       patient_goals:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]"
-        ask_tr: "Bu ziyaretten en çok ne bekliyorsunuz?"
-        follow_up_tr: "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
+        ask_tr:
+          tr: "Bu ziyaretten en çok ne bekliyorsunuz?"
+        follow_up_tr:
+          tr: "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
 
   # ===================================================================================
   # 04 §1 row 3 — hpi. OLDCARTS/SOCRATES as a COVERAGE SCHEMA, never a sequence:
@@ -177,59 +189,76 @@ sections:
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Bu şikâyetiniz ne zaman başladı?"
-        follow_up_tr: "Gün, hafta ya da ay olarak yaklaşık söyleyebilirsiniz."
+        ask_tr:
+          tr: "Bu şikâyetiniz ne zaman başladı?"
+        follow_up_tr:
+          tr: "Gün, hafta ya da ay olarak yaklaşık söyleyebilirsiniz."
       location_text:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetinizi vücudunuzun neresinde hissediyorsunuz?"
-        follow_up_tr: "Elinizle gösterebileceğiniz bir yer varsa tarif edebilirsiniz."
+        ask_tr:
+          tr: "Şikâyetinizi vücudunuzun neresinde hissediyorsunuz?"
+        follow_up_tr:
+          tr: "Elinizle gösterebileceğiniz bir yer varsa tarif edebilirsiniz."
       duration:
         type: duration
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetiniz başladığından beri ne kadar sürüyor?"
-        follow_up_tr: "Sürekli mi, yoksa arada bir mi oluyor? Süresini yaklaşık söylemeniz yeterli."
+        ask_tr:
+          tr: "Şikâyetiniz başladığından beri ne kadar sürüyor?"
+        follow_up_tr:
+          tr: "Sürekli mi, yoksa arada bir mi oluyor? Süresini yaklaşık söylemeniz yeterli."
       character_text:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Bu şikâyetiniz nasıl bir his veriyor?"
-        follow_up_tr: "Örneğin baskı, yanma, zonklama ya da batma gibi tarif edebilirsiniz."
+        ask_tr:
+          tr: "Bu şikâyetiniz nasıl bir his veriyor?"
+        follow_up_tr:
+          tr: "Örneğin baskı, yanma, zonklama ya da batma gibi tarif edebilirsiniz."
       aggravating_factors:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetinizi ne artırıyor?"
-        follow_up_tr: "Hareket, yemek ya da nefes almak artırıyor mu?"
+        ask_tr:
+          tr: "Şikâyetinizi ne artırıyor?"
+        follow_up_tr:
+          tr: "Hareket, yemek ya da nefes almak artırıyor mu?"
       relieving_factors:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetinizi ne rahatlatıyor?"
-        follow_up_tr: "Dinlenmek ya da pozisyon değiştirmek işe yarıyor mu?"
+        ask_tr:
+          tr: "Şikâyetinizi ne rahatlatıyor?"
+        follow_up_tr:
+          tr: "Dinlenmek ya da pozisyon değiştirmek işe yarıyor mu?"
       radiation_text:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetiniz başka bir yere yayılıyor mu?"
-        follow_up_tr: "Yayıldığı bir yer varsa neresi olduğunu söyleyebilirsiniz."
+        ask_tr:
+          tr: "Şikâyetiniz başka bir yere yayılıyor mu?"
+        follow_up_tr:
+          tr: "Yayıldığı bir yer varsa neresi olduğunu söyleyebilirsiniz."
       timing_pattern:
         type: code
         valueset: vs.timing_pattern
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetiniz günün belli bir saatinde mi artıyor?"
-        choices_tr: ["sabahları", "akşamları", "geceleri", "belli bir saati yok"]
-        follow_up_tr: "Belli bir saatte artmıyorsa belli bir saati yok diyebilirsiniz."
+        ask_tr:
+          tr: "Şikâyetiniz günün belli bir saatinde mi artıyor?"
+        choices_tr:
+          tr: ["sabahları", "akşamları", "geceleri", "belli bir saati yok"]
+        follow_up_tr:
+          tr: "Belli bir saatte artmıyorsa belli bir saati yok diyebilirsiniz."
       severity_nrs:
         type: integer
         required: true
@@ -241,32 +270,41 @@ sections:
         # every numeral out of anything a TTS model will ever see.
         confirm_required: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Şikâyetinizin şiddetini sıfır ile on arasında bir sayıyla söyler misiniz?"
+        ask_tr:
+          tr: "Şikâyetinizin şiddetini sıfır ile on arasında bir sayıyla söyler misiniz?"
         confirm_tr: "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?"
-        follow_up_tr: "Sıfır hiç yok, beş orta, on dayanılmaz demek. Aradan bir sayı söyleyebilirsiniz."
+        follow_up_tr:
+          tr: "Sıfır hiç yok, beş orta, on dayanılmaz demek. Aradan bir sayı söyleyebilirsiniz."
       trajectory:
         type: code
         valueset: vs.trajectory
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "Başladığından beri şikâyetiniz nasıl gidiyor?"
-        choices_tr: ["daha kötü", "aynı", "daha iyi"]
-        follow_up_tr: "Daha kötü, aynı ya da daha iyi diyebilirsiniz."
+        ask_tr:
+          tr: "Başladığından beri şikâyetiniz nasıl gidiyor?"
+        choices_tr:
+          tr: ["daha kötü", "aynı", "daha iyi"]
+        follow_up_tr:
+          tr: "Daha kötü, aynı ya da daha iyi diyebilirsiniz."
       prior_similar_episode:
         type: boolean
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
-        ask_tr: "Daha önce buna benzer bir şikâyetiniz oldu mu?"
-        follow_up_tr: "Benzer bir durum yaşadıysanız evet diyebilirsiniz."
+        ask_tr:
+          tr: "Daha önce buna benzer bir şikâyetiniz oldu mu?"
+        follow_up_tr:
+          tr: "Benzer bir durum yaşadıysanız evet diyebilirsiniz."
       treatments_tried:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
-        ask_tr: "Bu şikâyet için şimdiye kadar ne denediniz?"
-        follow_up_tr: "İlaç, dinlenme ya da başka bir yöntem denediyseniz söyleyebilirsiniz."
+        ask_tr:
+          tr: "Bu şikâyet için şimdiye kadar ne denediniz?"
+        follow_up_tr:
+          tr: "İlaç, dinlenme ya da başka bir yöntem denediyseniz söyleyebilirsiniz."
       time_last_known_well:
         # HB-C6 addition 6 of 6. Without it rf.stroke_fast has no tense_anchor and,
         # per 12 §2.4, cannot fire on an undated symptom.
@@ -279,8 +317,10 @@ sections:
         required: false
         must_ask: false
         openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
-        ask_tr: "En son ne zaman kendinizi tamamen normal hissettiniz?"
-        follow_up_tr: "Saat ya da gün olarak yaklaşık söylemeniz yeterli."
+        ask_tr:
+          tr: "En son ne zaman kendinizi tamamen normal hissettiniz?"
+        follow_up_tr:
+          tr: "Saat ya da gün olarak yaklaşık söylemeniz yeterli."
 
   # ===================================================================================
   # 04 §1 row 4 — red_flags. One layperson-answerable probe per family of 04 §3.
@@ -412,45 +452,58 @@ sections:
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
-        ask_tr: "İlaç listenizi ekranda gösteriyorum. Liste doğru mu?"
-        follow_up_tr: "Listede eksik ya da fazla bir şey varsa söyleyebilirsiniz."
+        ask_tr:
+          tr: "İlaç listenizi ekranda gösteriyorum. Liste doğru mu?"
+        follow_up_tr:
+          tr: "Listede eksik ya da fazla bir şey varsa söyleyebilirsiniz."
       meds_new_or_stopped:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
-        ask_tr: "Bu listede olmayan ya da bıraktığınız bir ilaç var mı?"
-        follow_up_tr: "Yeni başladığınız veya bıraktığınız ilaçların adını söyleyebilirsiniz."
+        ask_tr:
+          tr: "Bu listede olmayan ya da bıraktığınız bir ilaç var mı?"
+        follow_up_tr:
+          tr: "Yeni başladığınız veya bıraktığınız ilaçların adını söyleyebilirsiniz."
       otc_herbal:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
-        ask_tr: "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?"
-        follow_up_tr: "Vitamin, bitki çayı ve takviyeler de bu gruba girer."
+        ask_tr:
+          tr: "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?"
+        follow_up_tr:
+          tr: "Vitamin, bitki çayı ve takviyeler de bu gruba girer."
       anticoagulant_use:
         type: code
         valueset: vs.anticoagulant_use
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-ACTION.medication.v1]"
-        ask_tr: "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
-        choices_tr: ["evet", "hayır", "bilmiyorum"]
-        follow_up_tr: "İlaç kutusundaki adı okuyabilirseniz çok yardımcı olur."
+        ask_tr:
+          tr: "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
+        choices_tr:
+          tr: ["evet", "hayır", "bilmiyorum"]
+        follow_up_tr:
+          tr: "İlaç kutusundaki adı okuyabilirseniz çok yardımcı olur."
       allergies:
         type: string
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-EVALUATION.adverse_reaction_risk.v1]"
-        ask_tr: "Bilinen bir ilaç ya da madde alerjiniz var mı?"
-        follow_up_tr: "Bilinen bir alerjiniz yoksa yok diyebilirsiniz."
+        ask_tr:
+          tr: "Bilinen bir ilaç ya da madde alerjiniz var mı?"
+        follow_up_tr:
+          tr: "Bilinen bir alerjiniz yoksa yok diyebilirsiniz."
       allergy_reaction:
         type: string
         required: false
         must_ask: false
         openehr_path: "/content[openEHR-EHR-EVALUATION.adverse_reaction_risk.v1]"
-        ask_tr: "Alerjiniz olduğunda neler oluyor?"
-        follow_up_tr: "Döküntü, şişme ya da nefes darlığı gibi tarif edebilirsiniz."
+        ask_tr:
+          tr: "Alerjiniz olduğunda neler oluyor?"
+        follow_up_tr:
+          tr: "Döküntü, şişme ya da nefes darlığı gibi tarif edebilirsiniz."
 
   # ===================================================================================
   # 04 §1 row 6 — pmh_fh_sh (delta). Four of the six HB-C6 additions live here.
@@ -474,8 +527,10 @@ sections:
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-EVALUATION.problem_diagnosis.v1]"
-        ask_tr: "Son görüşmenizden bu yana sağlığınızda yeni bir gelişme oldu mu?"
-        follow_up_tr: "Yeni bir tanı aldıysanız ya da hastaneye yattıysanız söyleyebilirsiniz."
+        ask_tr:
+          tr: "Son görüşmenizden bu yana sağlığınızda yeni bir gelişme oldu mu?"
+        follow_up_tr:
+          tr: "Yeni bir tanı aldıysanız ya da hastaneye yattıysanız söyleyebilirsiniz."
       pregnancy_status:
         # HB-C6 addition 1 of 6. Gates every pregnancy rule and the sepsis routing of
         # NG255. text_first per 13 §13 (pregnancy/LMP are named there explicitly).
@@ -488,9 +543,12 @@ sections:
           03 §7 names no archetype for pregnancy status, and EVALUATION.problem_diagnosis
           would file a physiological state as a problem; deferred to INT-032 rather
           than bound to the nearest-looking root.
-        ask_tr: "Şu anda gebe olma ihtimaliniz var mı?"
-        choices_tr: ["evet", "hayır", "emin değilim"]
-        follow_up_tr: "Emin değilseniz emin değilim diyebilirsiniz."
+        ask_tr:
+          tr: "Şu anda gebe olma ihtimaliniz var mı?"
+        choices_tr:
+          tr: ["evet", "hayır", "emin değilim"]
+        follow_up_tr:
+          tr: "Emin değilseniz emin değilim diyebilirsiniz."
       lmp_date:
         # HB-C6 addition 2 of 6, and the ONLY one of the six the DSL can gate today.
         type: date
@@ -500,8 +558,10 @@ sections:
         ask_if: "pregnancy_status != 'hayir'"
         openehr_deferred_reason: >-
           03 §7 names no archetype for menstrual history; deferred to INT-032.
-        ask_tr: "Son âdet kanamanız ne zaman başladı?"
-        follow_up_tr: "Gün ve ay olarak yaklaşık söylemeniz yeterli."
+        ask_tr:
+          tr: "Son âdet kanamanız ne zaman başladı?"
+        follow_up_tr:
+          tr: "Gün ve ay olarak yaklaşık söylemeniz yeterli."
       immunosuppression:
         # HB-C6 addition 3 of 6. Gates neutropenic fever and the sepsis-like family.
         type: code
@@ -512,9 +572,12 @@ sections:
           the concept spans a treatment, a diagnosis and a transplant history; 03 §7
           names no single root that carries all three, and splitting it across roots
           is a modelling decision for INT-032.
-        ask_tr: "Bağışıklığınızı baskılayan bir tedavi görüyor musunuz?"
-        choices_tr: ["evet", "hayır", "bilmiyorum"]
-        follow_up_tr: "Kemoterapi, biyolojik ilaç, kortizon tedavisi ya da organ nakli bu gruba girer."
+        ask_tr:
+          tr: "Bağışıklığınızı baskılayan bir tedavi görüyor musunuz?"
+        choices_tr:
+          tr: ["evet", "hayır", "bilmiyorum"]
+        follow_up_tr:
+          tr: "Kemoterapi, biyolojik ilaç, kortizon tedavisi ya da organ nakli bu gruba girer."
       weight_kg:
         # HB-C6 addition 5 of 6. `confirm_required` is not decoration: invariant 22
         # says no numeric slot value is spoken without a matching inline render on the
@@ -529,9 +592,11 @@ sections:
           body weight belongs to an OBSERVATION.body_weight archetype that 03 §7 does
           not name and the committed template does not carry; inventing the root would
           resolve the binding against a fabrication (12 §8.1).
-        ask_tr: "Kilonuzu biliyorsanız söyler misiniz?"
+        ask_tr:
+          tr: "Kilonuzu biliyorsanız söyler misiniz?"
         confirm_tr: "Söylediğiniz kiloyu ekranda gösteriyorum; doğru mu?"
-        follow_up_tr: "Yaklaşık bir değer de yeterli olur."
+        follow_up_tr:
+          tr: "Yaklaşık bir değer de yeterli olur."
       smoking_status:
         type: code
         valueset: vs.smoking_status
@@ -539,9 +604,12 @@ sections:
         must_ask: false
         openehr_deferred_reason: >-
           social history has no root in 03 §7's list; deferred to INT-032.
-        ask_tr: "Sigara kullanıyor musunuz?"
-        choices_tr: ["evet", "bıraktım", "hiç kullanmadım"]
-        follow_up_tr: "Bıraktıysanız bıraktım diyebilirsiniz."
+        ask_tr:
+          tr: "Sigara kullanıyor musunuz?"
+        choices_tr:
+          tr: ["evet", "bıraktım", "hiç kullanmadım"]
+        follow_up_tr:
+          tr: "Bıraktıysanız bıraktım diyebilirsiniz."
       alcohol_use:
         type: code
         valueset: vs.alcohol_use
@@ -549,33 +617,42 @@ sections:
         must_ask: false
         openehr_deferred_reason: >-
           social history has no root in 03 §7's list; deferred to INT-032.
-        ask_tr: "Alkol kullanıyor musunuz?"
-        choices_tr: ["hiç", "ara sıra", "düzenli"]
-        follow_up_tr: "Hiç, ara sıra ya da düzenli diyebilirsiniz."
+        ask_tr:
+          tr: "Alkol kullanıyor musunuz?"
+        choices_tr:
+          tr: ["hiç", "ara sıra", "düzenli"]
+        follow_up_tr:
+          tr: "Hiç, ara sıra ya da düzenli diyebilirsiniz."
       occupation:
         type: string
         required: false
         must_ask: false
         openehr_deferred_reason: >-
           social history has no root in 03 §7's list; deferred to INT-032.
-        ask_tr: "Ne iş yapıyorsunuz?"
-        follow_up_tr: "Çalışmıyorsanız bunu da söyleyebilirsiniz."
+        ask_tr:
+          tr: "Ne iş yapıyorsunuz?"
+        follow_up_tr:
+          tr: "Çalışmıyorsanız bunu da söyleyebilirsiniz."
       living_situation:
         type: string
         required: false
         must_ask: false
         openehr_deferred_reason: >-
           social history has no root in 03 §7's list; deferred to INT-032.
-        ask_tr: "Evde kiminle yaşıyorsunuz?"
-        follow_up_tr: "Yalnız yaşıyorsanız yalnız diyebilirsiniz."
+        ask_tr:
+          tr: "Evde kiminle yaşıyorsunuz?"
+        follow_up_tr:
+          tr: "Yalnız yaşıyorsanız yalnız diyebilirsiniz."
       caregiver_present:
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
           social history has no root in 03 §7's list; deferred to INT-032.
-        ask_tr: "Günlük işlerinizde size yardım eden biri var mı?"
-        follow_up_tr: "Yardım eden biri varsa evet diyebilirsiniz."
+        ask_tr:
+          tr: "Günlük işlerinizde size yardım eden biri var mı?"
+        follow_up_tr:
+          tr: "Yardım eden biri varsa evet diyebilirsiniz."
 
   # ===================================================================================
   # 04 §1 row 7 — screening. `text_only` per 13 §13, and that is load-bearing:
@@ -600,7 +677,8 @@ sections:
     delivery: text_only
     questionnaires: ["PHQ-2", "GAD-2", "PHQ-9", "GAD-7"]
     voice:
-      allow_paraphrase: false
+      allow_paraphrase:
+        tr: false
     slots:
       phq2:
         type: integer
@@ -654,8 +732,10 @@ sections:
         openehr_deferred_reason: >-
           patient questions travel on the PatientSummary (04 §5), not as an openEHR
           entry; 03 §7 names no root for them.
-        ask_tr: "Doktorunuza sormak istediğiniz bir şey var mı?"
-        follow_up_tr: "Aklınıza gelen soruları şimdi söyleyebilirsiniz."
+        ask_tr:
+          tr: "Doktorunuza sormak istediğiniz bir şey var mı?"
+        follow_up_tr:
+          tr: "Aklınıza gelen soruları şimdi söyleyebilirsiniz."
       anything_else:
         type: string
         required: true
@@ -663,8 +743,10 @@ sections:
         openehr_deferred_reason: >-
           a free wrap-up turn has no archetype; whatever it elicits is filed under the
           entry its content belongs to, which is a runtime decision.
-        ask_tr: "Eklemek istediğiniz başka bir şey var mı?"
-        follow_up_tr: "Küçük gibi görünen bir ayrıntı da önemli olabilir."
+        ask_tr:
+          tr: "Eklemek istediğiniz başka bir şey var mı?"
+        follow_up_tr:
+          tr: "Küçük gibi görünen bir ayrıntı da önemli olabilir."
       summary_confirmed:
         type: boolean
         required: true
@@ -672,16 +754,20 @@ sections:
         openehr_deferred_reason: >-
           patient confirmation of a section is note metadata (04 §5
           patient_confirmed_sections), not a clinical entry.
-        ask_tr: "Özeti ekranda gösteriyorum. Her şey doğru mu?"
-        follow_up_tr: "Düzeltmek istediğiniz bir yer varsa söyleyebilirsiniz."
+        ask_tr:
+          tr: "Özeti ekranda gösteriyorum. Her şey doğru mu?"
+        follow_up_tr:
+          tr: "Düzeltmek istediğiniz bir yer varsa söyleyebilirsiniz."
       bring_list_ack:
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
           the bring list is PatientSummary content (04 §5), not a clinical entry.
-        ask_tr: "Randevunuza getirmeniz gerekenleri ekranda gösteriyorum. Gördünüz mü?"
-        follow_up_tr: "Listeyi görmediyseniz tekrar gösterebilirim."
+        ask_tr:
+          tr: "Randevunuza getirmeniz gerekenleri ekranda gösteriyorum. Gördünüz mü?"
+        follow_up_tr:
+          tr: "Listeyi görmediyseniz tekrar gösterebilirim."
 
 # =====================================================================================
 #  THE UNIVERSAL RED-FLAG FAMILIES — 04 §3, all thirteen, none added, none dropped.

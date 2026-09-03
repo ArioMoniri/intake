@@ -38,6 +38,8 @@ from typing import Final
 
 from clinical_schemas.common import FrozenModel
 from protocols.compile.resolve import ResolvedProtocol
+from protocols.dsl import Slot
+from protocols.locale_text import entry_for
 from protocols.types import SlotType
 from pydantic import Field
 
@@ -131,6 +133,19 @@ class SlotFacts(FrozenModel):
         return AffordanceKind.FREE_TEXT
 
 
+def _choices(slot: Slot, locale: str) -> tuple[str, ...]:
+    """The locale's own answer options, in the pack's order.
+
+    Written as a function rather than inline because ``tuple(mapping or ())``
+    is *silently* wrong on a locale map: it yields the keys, so the chip list
+    would read ``("tr",)`` and every parity test would compare one chip named
+    after a language against three named after answers (INT-297).
+    """
+    if slot.choices_tr is None:
+        return ()
+    return tuple(entry_for(slot.choices_tr, locale))
+
+
 def slot_facts(protocol: ResolvedProtocol) -> Mapping[str, SlotFacts]:
     """Project every slot of a resolved protocol, keyed by step id.
 
@@ -143,7 +158,7 @@ def slot_facts(protocol: ResolvedProtocol) -> Mapping[str, SlotFacts]:
             step_id=f"{section.id}.{resolved.key}",
             slot_type=resolved.slot.type,
             critical_path=resolved.slot.must_ask or resolved.slot.required,
-            choices_tr=tuple(resolved.slot.choices_tr or ()),
+            choices_tr=_choices(resolved.slot, protocol.locale),
             unit=resolved.slot.unit,
         )
         for section in protocol.sections

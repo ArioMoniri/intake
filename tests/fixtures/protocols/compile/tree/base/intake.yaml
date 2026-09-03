@@ -11,7 +11,8 @@ status: clinically-reviewed-synthetic
 language: tr
 title_tr: "Sentetik derlenebilir temel paket"
 voice:
-  allow_paraphrase: false
+  allow_paraphrase:
+    tr: false
   backchannel_ok: true
   ack_style: brief
   pace: normal
@@ -24,16 +25,20 @@ sections:
         required: true
         must_ask: true
         openehr_path: "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]"
-        ask_tr: "Bugün sizi buraya getiren nedir?"
-        follow_up_tr: "En önemli şikâyetinizi söyleyebilir misiniz?"
+        ask_tr:
+          tr: "Bugün sizi buraya getiren nedir?"
+        follow_up_tr:
+          tr: "En önemli şikâyetinizi söyleyebilir misiniz?"
       sure_dakika:
         type: quantity
         unit: min
         required: true
         openehr_path: "/content[openEHR-EHR-OBSERVATION.story.v1]"
-        ask_tr: "Bu şikâyet ne kadar sürüyor?"
+        ask_tr:
+          tr: "Bu şikâyet ne kadar sürüyor?"
         confirm_tr: "Sentetik doz alanı: mg cinsinden mi?"
-        follow_up_tr: "Yaklaşık olarak söyleyebilir misiniz?"
+        follow_up_tr:
+          tr: "Yaklaşık olarak söyleyebilir misiniz?"
       renk_secimi:
         type: code
         valueset: vs.sentetik_renk
@@ -42,8 +47,10 @@ sections:
         openehr_deferred_reason: >-
           leaf-node binding awaits an openEHR informatician; the composition and
           archetype roots are pinned, the at-code path is not authored
-        ask_tr: "Hangi rengi seçersiniz?"
-        choices_tr: ["mavi", "yeşil"]
+        ask_tr:
+          tr: "Hangi rengi seçersiniz?"
+        choices_tr:
+          tr: ["mavi", "yeşil"]
   tarama:
     delivery: text_only
     slots:
@@ -53,7 +60,8 @@ sections:
         openehr_deferred_reason: >-
           screening content is text_only (files/13 §13) and carries no openEHR
           binding in this synthetic fixture
-        ask_tr: "Sentetik metin-yalnız soru."
+        ask_tr:
+          tr: "Sentetik metin-yalnız soru."
 red_flags:
   - id: rf.sentetik_kirmizi
     label_tr: "Sentetik kırmızı kural"
@@ -79,13 +87,15 @@ red_flags:
         action_tr: "Hemen yardım isteyin."
         do_nots_tr:
           - "Yalnız kalmayın."
-        why_tr: "Bu bir sentetik test metnidir."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
         notify_staff_immediate: true
         action_tr: "Görevlilere haber verin."
-        why_tr: "Bu bir sentetik test metnidir."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
       UNKNOWN:
         ask_one_tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE

@@ -36,6 +36,7 @@ from clinical_schemas.common import FrozenModel, Ref, Sha256
 from minio import Minio
 from minio.error import S3Error
 from protocols.dsl import ClipManifestEntry, clip_text_hash
+from protocols.locale_text import DEFAULT_LOCALE
 from pydantic import Field, ValidationError
 
 from voice_clips.errors import ClipCacheError
@@ -52,6 +53,7 @@ __all__ = [
     "ManifestNotFoundError",
     "ManifestSchemaError",
     "ManifestTamperedError",
+    "ManifestLocaleMismatchError",
     "ManifestVoiceMismatchError",
     "as_clip_storage",
     "clip_cache_from_env",
@@ -61,9 +63,11 @@ __all__ = [
     "load_clip_manifest",
 ]
 
-#: One flat namespace per voice under the bucket. No pack id in the key: two
-#: packs that share a scripted sentence share its clip, which is the point of
-#: keying by the text hash in the first place.
+#: One flat namespace per (locale, voice) under the bucket. No pack id in the
+#: key: two packs that share a scripted sentence share its clip, which is the
+#: point of keying by the text hash in the first place. Two *locales* never do,
+#: even where the bytes coincide — a short string can be identical in two
+#: languages and is not the same utterance in either (INT-297).
 CLIP_KEY_PREFIX: Final = "clips"
 CLIP_MEDIA_TYPE: Final = "audio/ogg"
 DEFAULT_CLIPS_BUCKET: Final = "intake-clips"
@@ -96,6 +100,16 @@ class ManifestVoiceMismatchError(ManifestError):
     """The manifest was keyed for another voice than the one requested."""
 
 
+class ManifestLocaleMismatchError(ManifestError):
+    """The manifest was keyed for another locale than the one requested.
+
+    Separate from the voice mismatch on purpose: two locales may be pinned to
+    one voice, so a voice check alone would pass on exactly the confusion that
+    matters — another language's clip, in the right voice, in this session
+    (INT-297).
+    """
+
+
 class ManifestTamperedError(ManifestError):
     """A row's text no longer hashes to the key the compiler wrote."""
 
@@ -109,9 +123,12 @@ class ClipManifestRow(FrozenModel):
     """
 
     text_hash: Sha256 = Field(description="clip_text_hash of the scripted text.")
-    clip_id: Ref = Field(description="sha256(text_tr, voice_id), minted by the compiler.")
+    clip_id: Ref = Field(description="sha256(text_tr, voice_id, locale), minted by the compiler.")
     voice: str = Field(description="Voice the clip id is keyed for.")
-    text_tr: str = Field(description="The tr-expanded script, spoken verbatim.")
+    locale: str = Field(
+        default=DEFAULT_LOCALE, description="Locale the clip id is keyed for (INT-297)."
+    )
+    text_tr: str = Field(description="The expanded script for that locale, spoken verbatim.")
     scripted: bool = Field(description="True where paraphrase is never permitted.")
     subject: str = Field(description="Slot linkId, rule id or instrument item id.")
 
@@ -119,41 +136,56 @@ class ClipManifestRow(FrozenModel):
     def entry(self) -> ClipManifestEntry:
         """The same row as the compiler's in-memory type, so one key helper
         serves both the compiler's manifest and this one."""
-        return ClipManifestEntry(text_hash=self.text_hash, clip_id=self.clip_id, voice=self.voice)
+        return ClipManifestEntry(
+            text_hash=self.text_hash,
+            clip_id=self.clip_id,
+            voice=self.voice,
+            locale=self.locale,
+        )
 
 
 class CompiledClipManifest(FrozenModel):
-    """``clips.<voice>.json`` for one pack."""
+    """``clips.<locale>.<voice>.json`` for one pack."""
 
     pack_id: str = Field(description="Pack the manifest was compiled from.")
     voice: str = Field(description="Voice every clip id is keyed for.")
+    locale: str = Field(
+        default=DEFAULT_LOCALE, description="Locale every clip id is keyed for (INT-297)."
+    )
     resolved_protocol_hash: Sha256 = Field(description="Pinned per session (files/03 §6).")
     entries: tuple[ClipManifestRow, ...] = Field(description="Every clippable string.")
 
 
-def clip_manifest_filename(voice: str) -> str:
+def clip_manifest_filename(voice: str, locale: str = DEFAULT_LOCALE) -> str:
     """The compiler's own artefact name (protocols.compile.bundle)."""
-    return f"clips.{voice}.json"
+    return f"clips.{locale}.{voice}.json"
 
 
 def clip_object_key(entry: ClipManifestEntry) -> str:
-    """``clips/<voice>/<clip_id>`` — the clip id verbatim, never re-derived."""
-    return f"{CLIP_KEY_PREFIX}/{entry.voice}/{entry.clip_id}"
+    """``clips/<locale>/<voice>/<clip_id>`` — the clip id verbatim, never re-derived.
+
+    The locale is a path segment as well as part of the id, so a bucket listing
+    reads as one namespace per language and a misfiled clip is visible rather
+    than merely improbable (INT-297).
+    """
+    return f"{CLIP_KEY_PREFIX}/{entry.locale}/{entry.voice}/{entry.clip_id}"
 
 
-def discover_packs(dist_root: Path, voice: str) -> tuple[str, ...]:
-    """Every compiled pack under ``dist_root`` carrying a manifest for ``voice``."""
-    name = clip_manifest_filename(voice)
+def discover_packs(dist_root: Path, voice: str, locale: str = DEFAULT_LOCALE) -> tuple[str, ...]:
+    """Every compiled pack under ``dist_root`` carrying a manifest for (locale, voice)."""
+    name = clip_manifest_filename(voice, locale)
     return tuple(sorted(path.parent.name for path in dist_root.glob(f"*/{name}")))
 
 
-def load_clip_manifest(dist_root: Path, *, pack_id: str, voice: str) -> CompiledClipManifest:
+def load_clip_manifest(
+    dist_root: Path, *, pack_id: str, voice: str, locale: str = DEFAULT_LOCALE
+) -> CompiledClipManifest:
     """Read and validate one compiled clip manifest."""
-    path = dist_root / pack_id / clip_manifest_filename(voice)
+    path = dist_root / pack_id / clip_manifest_filename(voice, locale)
     if not path.is_file():
         raise ManifestNotFoundError(
             f"no compiled clip manifest at {path} — run `make protocols-compile "
-            f"PACK={pack_id} VOICE={voice}` first"
+            f"PACK={pack_id} VOICE={voice} LOCALE={locale}` first"
         )
     try:
         manifest = CompiledClipManifest.model_validate_json(path.read_text(encoding="utf-8"))
@@ -163,10 +195,27 @@ def load_clip_manifest(dist_root: Path, *, pack_id: str, voice: str) -> Compiled
         raise ManifestVoiceMismatchError(
             f"{path} was compiled for voice {manifest.voice!r}, not {voice!r}"
         )
+    if manifest.locale != locale:
+        raise ManifestLocaleMismatchError(
+            f"{path} was compiled for locale {manifest.locale!r}, not {locale!r}"
+        )
+    keys: dict[str, str] = {}
     for row in manifest.entries:
         if row.voice != voice:
             raise ManifestVoiceMismatchError(
                 f"{path} row {row.clip_id} is keyed for voice {row.voice!r}, not {voice!r}"
+            )
+        if row.locale != locale:
+            raise ManifestLocaleMismatchError(
+                f"{path} row {row.clip_id} is keyed for locale {row.locale!r}, not {locale!r}"
+            )
+        seen = keys.setdefault(row.clip_id, row.text_tr)
+        if seen != row.text_tr:
+            raise ManifestTamperedError(
+                f"{path} row {row.subject}: clip id {row.clip_id} is claimed by two "
+                "different strings — one synthesised clip cannot speak both, and "
+                "storing whichever was written last decides by file order what a "
+                "patient hears (INT-297)"
             )
         if clip_text_hash(row.text_tr) != row.entry.text_hash:
             raise ManifestTamperedError(

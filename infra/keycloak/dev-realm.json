@@ -10,6 +10,54 @@
   "roles": {
     "realm": [
       {
+        "name": "platform_owner",
+        "description": "Everything, all tenants; patient content only via break-glass. Named on every separation-of-duties list (files/08 §2.1)"
+      },
+      {
+        "name": "platform_admin",
+        "description": "Infrastructure only, no clinical surfaces; no pack promotion, device flag, study assertion, connector endpoints or audit configuration (files/08 §2.1)"
+      },
+      {
+        "name": "tenant_admin",
+        "description": "One tenant: branding, contacts, technical onboarding. No connector endpoints, pack enablement, key rotation or clinician provisioning (files/08 §2.1)"
+      },
+      {
+        "name": "tenant_clinical_responsible",
+        "description": "One tenant, clinical governance: approves clinician accounts and acknowledges REDs (files/08 §2.1)"
+      },
+      {
+        "name": "clinical_lead",
+        "description": "Protocol review, safety queues, quarantine; tier-3 approver; patient content only via break-glass (files/08 §2.1)"
+      },
+      {
+        "name": "qms_owner",
+        "description": "ISO 13485 / IEC 62304 change control; second signature on device_functions, the study assertion and all-tenant promotion (files/08 §2.1)"
+      },
+      {
+        "name": "investigator",
+        "description": "The sealed research store, one study_id; never production clinical data (files/08 §2.1)"
+      },
+      {
+        "name": "auditor",
+        "description": "Read-only evidence export for an inspector, notified body or counsel; writes nothing, every read audited (files/08 §2.1)"
+      },
+      {
+        "name": "sre_oncall",
+        "description": "Operations and tier-1 safe-direction actions; no patient content (files/08 §2.1)"
+      },
+      {
+        "name": "compliance_officer",
+        "description": "Consent, DSAR, transfer register, break-glass approval; patient content only via break-glass (files/08 §2.1)"
+      },
+      {
+        "name": "researcher",
+        "description": "De-identified aggregates at k >= 10; no patient content (files/08 §2.1)"
+      },
+      {
+        "name": "support",
+        "description": "One patient, one patient-granted expiring grant on the Doctor Link model (files/08 §2.1)"
+      },
+      {
         "name": "admin",
         "description": "Platform administration (console; tiered actions per files/08 §2)"
       },

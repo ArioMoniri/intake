@@ -1,0 +1,342 @@
+{
+  "_comment": "Recorded Keycloak access-token claim sets for the INT-180 admin shell suite. Synthetic throughout: subs, session ids and credential ids are test values, the AAGUID is the all-zero 'no attestation' value, and the issuer is the committed dev realm. tests/admin/test_rbac_matrix.py holds realm_access.roles against infra/keycloak/dev-realm.json so the fixture cannot drift from the realm the platform declares.",
+  "realm": "intake-dev",
+  "accounts": {
+    "kc:platform_owner": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-platform-owner",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-platform-owner-1",
+      "preferred_username": "synthetic-platform-owner",
+      "realm_access": {
+        "roles": [
+          "platform_owner",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": null,
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-platform-owner-1"
+    },
+    "kc:platform_admin": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-platform-admin",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-platform-admin-1",
+      "preferred_username": "synthetic-platform-admin",
+      "realm_access": {
+        "roles": [
+          "platform_admin",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-platform-admin-1"
+    },
+    "kc:tenant_admin": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-tenant-admin",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-tenant-admin-1",
+      "preferred_username": "synthetic-tenant-admin",
+      "realm_access": {
+        "roles": [
+          "tenant_admin",
+          "offline_access"
+        ]
+      },
+      "org": "org:tenant-a",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-tenant-admin-1"
+    },
+    "kc:tenant_clinical_responsible": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-tenant-clinical-responsible",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-tenant-clinical-responsible-1",
+      "preferred_username": "synthetic-tenant-clinical-responsible",
+      "realm_access": {
+        "roles": [
+          "tenant_clinical_responsible",
+          "offline_access"
+        ]
+      },
+      "org": "org:tenant-a",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-tenant-clinical-responsible-1"
+    },
+    "kc:clinical_lead": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-clinical-lead",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-clinical-lead-1",
+      "preferred_username": "synthetic-clinical-lead",
+      "realm_access": {
+        "roles": [
+          "clinical_lead",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-clinical-lead-1"
+    },
+    "kc:qms_owner": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-qms-owner",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-qms-owner-1",
+      "preferred_username": "synthetic-qms-owner",
+      "realm_access": {
+        "roles": [
+          "qms_owner",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-qms-owner-1"
+    },
+    "kc:investigator": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-investigator",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-investigator-1",
+      "preferred_username": "synthetic-investigator",
+      "realm_access": {
+        "roles": [
+          "investigator",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-investigator-1"
+    },
+    "kc:auditor": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-auditor",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-auditor-1",
+      "preferred_username": "synthetic-auditor",
+      "realm_access": {
+        "roles": [
+          "auditor",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-auditor-1"
+    },
+    "kc:sre_oncall": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-sre-oncall",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-sre-oncall-1",
+      "preferred_username": "synthetic-sre-oncall",
+      "realm_access": {
+        "roles": [
+          "sre_oncall",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-sre-oncall-1"
+    },
+    "kc:compliance_officer": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-compliance-officer",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-compliance-officer-1",
+      "preferred_username": "synthetic-compliance-officer",
+      "realm_access": {
+        "roles": [
+          "compliance_officer",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-compliance-officer-1"
+    },
+    "kc:researcher": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-researcher",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-researcher-1",
+      "preferred_username": "synthetic-researcher",
+      "realm_access": {
+        "roles": [
+          "researcher",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-researcher-1"
+    },
+    "kc:support": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-support",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-support-1",
+      "preferred_username": "synthetic-support",
+      "realm_access": {
+        "roles": [
+          "support",
+          "offline_access"
+        ]
+      },
+      "org": "org:tenant-a",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-support-1"
+    },
+    "kc:clinical_lead_second_account": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-clinical-lead-alt",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-clinical-lead-2",
+      "preferred_username": "synthetic-clinical-lead-alt",
+      "realm_access": {
+        "roles": [
+          "clinical_lead",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-clinical-lead-2"
+    },
+    "kc:clinical_lead_second_tab": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-clinical-lead",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-clinical-lead-tab2",
+      "preferred_username": "synthetic-clinical-lead",
+      "realm_access": {
+        "roles": [
+          "clinical_lead",
+          "offline_access"
+        ]
+      },
+      "org": "org:intake",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-clinical-lead-1"
+    },
+    "kc:qms_owner_other_org": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-qms-owner-ext",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-qms-owner-ext-1",
+      "preferred_username": "synthetic-qms-owner",
+      "realm_access": {
+        "roles": [
+          "qms_owner",
+          "offline_access"
+        ]
+      },
+      "org": "org:notified-body",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-qms-owner-ext-1"
+    },
+    "kc:no_console_role": {
+      "iss": "http://localhost:8080/realms/intake-dev",
+      "sub": "kc-sub-clinician",
+      "aud": "api",
+      "azp": "admin-web",
+      "sid": "sid-clinician-1",
+      "preferred_username": "synthetic-clinician",
+      "realm_access": {
+        "roles": [
+          "clinician",
+          "offline_access"
+        ]
+      },
+      "org": "org:tenant-a",
+      "tenant": "tenant-a",
+      "amr": [
+        "webauthn"
+      ],
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "credential_id": "cred-clinician-1"
+    }
+  }
+}

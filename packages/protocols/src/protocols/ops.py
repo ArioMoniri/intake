@@ -20,7 +20,8 @@ from typing import Annotated, Literal
 from clinical_schemas.common import FrozenModel
 from pydantic import AfterValidator, Field, StringConstraints, model_validator
 
-from protocols.dsl import RedFlagRule, Slot, TrText, VoiceSettings
+from protocols.dsl import RedFlagRule, Slot, VoiceSettings
+from protocols.locale_text import LocaleText
 
 __all__ = [
     "DENY_PREFIXES",
@@ -100,7 +101,12 @@ class OverrideTextOp(FrozenModel):
 
     op: Literal["override_text"] = Field(description="Op tag (files/12 §3.1).")
     pointer: Pointer = Field(description="Pointer to the *_tr field being replaced.")
-    text_tr: TrText = Field(description="Replacement Turkish text (invariant 5: tr first).")
+    text_tr: LocaleText = Field(
+        description="Replacement text per locale, ``tr`` required (invariant 5: tr "
+        "first; INT-297). A hospital copy change is a copy change in every language "
+        "the pack speaks, so the op carries the map rather than one string and the "
+        "resolver takes the entry for the locale it is resolving."
+    )
 
 
 class SetAttrOp(FrozenModel):

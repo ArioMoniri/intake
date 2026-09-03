@@ -8,7 +8,12 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 __all__ = [
+    "admin_console_unconfigured",
+    "admin_refused",
     "age_gate_refused",
+    "break_glass_refused",
+    "four_eyes_refused",
+    "source_ip_refused",
     "proxy_acknowledgement_required",
     "attestation_invalid",
     "attestation_required",
@@ -219,3 +224,44 @@ def doctor_link_revoked() -> HTTPException:
 
 def doctor_link_view_limit() -> HTTPException:
     return HTTPException(status_code=403, detail={"error": "doctor_link_view_limit"})
+
+
+# --- INT-180 admin console (files/08 §2, §8) ----------------------------------------------
+
+
+def admin_console_unconfigured() -> HTTPException:
+    """No OIDC claims verifier is wired, so the console authenticates nobody.
+
+    Validating a Keycloak assertion needs a JWKS client and a JWT library,
+    neither of which is a dependency of this repository, and hand-rolling JWS
+    verification inside the highest-privilege surface in the system is not a
+    trade INT-180 was willing to make. The seam is
+    ``intake_platform.admin.AdminClaimsVerifier``; until one is wired every
+    ``/admin`` route answers 503 rather than admitting anyone.
+    """
+    return HTTPException(status_code=503, detail={"error": "admin_console_unconfigured"})
+
+
+def source_ip_refused() -> HTTPException:
+    """files/08 §2.3's console IP allow-list. Empty admits nobody, which is
+    the correct shipping state — no file in this repository names a range."""
+    return HTTPException(status_code=403, detail={"error": "source_ip_refused"})
+
+
+def admin_refused(code: str) -> HTTPException:
+    """A refusal from the console's own guards — role, tenant scope, or a
+    malformed claim set. ``code`` is machine-shaped and carries no narrative
+    and no claim value (invariant 6)."""
+    return HTTPException(status_code=403, detail={"error": code})
+
+
+def four_eyes_refused(code: str) -> HTTPException:
+    """A ceremony refusal (files/08 §8.2). 409: the request was understood
+    and the ceremony's state or distinctness rule forbids it."""
+    return HTTPException(status_code=409, detail={"error": code})
+
+
+def break_glass_refused(code: str) -> HTTPException:
+    """A §2.5 content-rule refusal — the reason class, the free-text floor,
+    the controller-instruction reference, or the absent lawful basis."""
+    return HTTPException(status_code=422, detail={"error": code})

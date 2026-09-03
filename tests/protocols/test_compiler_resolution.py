@@ -28,6 +28,7 @@ from protocols.compile import (
 )
 from protocols.dsl import Section, Slot, VoiceSettings
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.ops import (
     AddSlotOp,
     OverrideTextOp,
@@ -46,7 +47,7 @@ DEFERRED = "leaf-node binding awaits an openEHR informatician (INT-032, P3)"
 def _slot(**overrides: Any) -> Slot:
     payload: dict[str, Any] = {
         "type": SlotType.STRING,
-        "ask_tr": "Sentetik soru.",
+        "ask_tr": {TR: "Sentetik soru."},
         "openehr_deferred_reason": DEFERRED,
     }
     payload.update(overrides)
@@ -67,7 +68,7 @@ def _base(**overrides: Any) -> ProtocolPack:
             "ziyaret": Section(
                 slots={
                     "birinci": _slot(),
-                    "ikinci": _slot(ask_tr="İkinci sentetik soru."),
+                    "ikinci": _slot(ask_tr={TR: "İkinci sentetik soru."}),
                 }
             )
         },
@@ -122,7 +123,7 @@ def test_add_slot_appends_a_slot(life_threat: LifeThreatSet, template: Operation
     op = AddSlotOp(
         op="add_slot",
         pointer="/sections/ziyaret/slots/ucuncu",
-        slot=_slot(ask_tr="Üçüncü sentetik soru."),
+        slot=_slot(ask_tr={TR: "Üçüncü sentetik soru."}),
     )
     resolved = _resolve(_base(), _hospital(op), life_threat=life_threat, template=template)
     assert _slot_keys(resolved) == ["birinci", "ikinci", "ucuncu"]
@@ -143,8 +144,8 @@ def test_set_attr_tightens_a_slot(
         sections={
             "ziyaret": Section(
                 slots={
-                    "birinci": _slot(follow_up_tr="Sentetik takip."),
-                    "ikinci": _slot(ask_tr="İkinci sentetik soru."),
+                    "birinci": _slot(follow_up_tr={TR: "Sentetik takip."}),
+                    "ikinci": _slot(ask_tr={TR: "İkinci sentetik soru."}),
                 }
             )
         }
@@ -165,11 +166,11 @@ def test_override_text_replaces_the_scripted_turkish(
     op = OverrideTextOp(
         op="override_text",
         pointer="/sections/ziyaret/slots/birinci/ask_tr",
-        text_tr="Hastaneye özgü sentetik soru.",
+        text_tr={TR: "Hastaneye özgü sentetik soru."},
     )
     resolved = _resolve(_base(), _hospital(op), life_threat=life_threat, template=template)
     birinci = next(s for s in resolved.sections[0].slots if s.key == "birinci")
-    assert birinci.slot.ask_tr == "Hastaneye özgü sentetik soru."
+    assert birinci.slot.ask_tr == {TR: "Hastaneye özgü sentetik soru."}
 
 
 def test_set_voice_sets_section_hints(
@@ -195,7 +196,7 @@ def test_an_op_pointing_at_nothing_fails_closed(
     op = OverrideTextOp(
         op="override_text",
         pointer="/sections/yok/slots/birinci/ask_tr",
-        text_tr="Sentetik metin.",
+        text_tr={TR: "Sentetik metin."},
     )
     with pytest.raises(CompileError) as excinfo:
         _resolve(_base(), _hospital(op), life_threat=life_threat, template=template)
@@ -234,7 +235,7 @@ def test_ops_apply_in_the_layer_then_pack_id_order(
                 AddSlotOp(
                     op="add_slot",
                     pointer="/sections/ziyaret/slots/ucuncu",
-                    slot=_slot(ask_tr="Üçüncü sentetik soru."),
+                    slot=_slot(ask_tr={TR: "Üçüncü sentetik soru."}),
                 ),
             ),
         }
@@ -284,7 +285,7 @@ def test_a_text_first_slot_still_produces_a_clip(
         sections={
             "ziyaret": Section(
                 delivery=Delivery.TEXT_FIRST,
-                slots={"birinci": _slot(ask_tr="Metin öncelikli sentetik soru.")},
+                slots={"birinci": _slot(ask_tr={TR: "Metin öncelikli sentetik soru."})},
             )
         }
     )
@@ -337,7 +338,7 @@ def test_skip_if_projects_as_the_inverted_gate(
                 slots={
                     "birinci": _slot(),
                     "ikinci": _slot(
-                        ask_tr="İkinci sentetik soru.",
+                        ask_tr={TR: "İkinci sentetik soru."},
                         skip_if="ziyaret.birinci == 'atla' && ziyaret.birinci != 'kal'",
                     ),
                 }
@@ -381,8 +382,8 @@ def test_numeric_comparisons_project(
         sections={
             "ziyaret": Section(
                 slots={
-                    "birinci": _slot(type=SlotType.INTEGER, ask_tr="Sentetik sayı sorusu."),
-                    "ikinci": _slot(ask_tr="İkinci sentetik soru.", ask_if=expression),
+                    "birinci": _slot(type=SlotType.INTEGER, ask_tr={TR: "Sentetik sayı sorusu."}),
+                    "ikinci": _slot(ask_tr={TR: "İkinci sentetik soru."}, ask_if=expression),
                 }
             )
         }

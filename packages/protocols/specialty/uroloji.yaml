@@ -45,13 +45,17 @@ sections:
       basvuru_nedeni:
         type: string
         required: true
-        ask_tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
-        follow_up_tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        ask_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
       sikayet_suresi:
         type: duration
         required: false
-        ask_tr: Bu şikâyetiniz ne zamandır var?
-        follow_up_tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
 red_flags:
 - id: rf.uroloji_l0_taslak
   label_tr: Üroloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
