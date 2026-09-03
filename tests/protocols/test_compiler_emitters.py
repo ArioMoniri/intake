@@ -22,6 +22,7 @@ from protocols.cli import main
 from protocols.compile import CompiledBundle, LifeThreatSet, compile_bundle
 from protocols.dsl import clip_text_hash
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE as TR
 
 PACK_ID = "base.derlenebilir"
 VOICE = "sentetik-ses"
@@ -171,13 +172,23 @@ def test_typescript_module_mirrors_the_pydantic_one(bundle: CompiledBundle) -> N
 # ------------------------------------------------------------- (e) clips
 
 
-def test_clip_manifest_is_keyed_by_text_hash_per_voice(bundle: CompiledBundle) -> None:
+def test_clip_manifest_is_keyed_by_text_hash_per_locale_and_voice(
+    bundle: CompiledBundle,
+) -> None:
+    """INT-297: the key is (locale, voice), not voice alone.
+
+    Two locales may be pinned to one voice, and after per-locale expansion two
+    languages can produce the same bytes for a short string. A cache found by
+    text hash and voice alone would then serve one language's clip into the
+    other language's turn, so the locale is in the id as well as in the row.
+    """
     rows = bundle.clip_manifest
     by_text = {row.text_tr: row for row in rows}
     ask = by_text["Bugün sizi buraya getiren nedir?"]
     assert ask.entry.voice == VOICE
+    assert ask.entry.locale == TR
     assert ask.entry.text_hash == clip_text_hash(ask.text_tr)
-    assert ask.entry.clip_id.startswith(f"clip.{VOICE}.")
+    assert ask.entry.clip_id.startswith(f"clip.{TR}.{VOICE}.")
 
 
 def test_clip_manifest_carries_the_expanded_text_not_the_authored_one(
@@ -232,7 +243,7 @@ def test_cli_compile_writes_the_bundle(tmp_path: Path, pack_tree: Path) -> None:
     assert exit_code == 0
     written = sorted(p.name for p in (tmp_path / PACK_ID).iterdir())
     assert written == [
-        f"clips.{VOICE}.json",
+        f"clips.{TR}.{VOICE}.json",
         "manifest.json",
         "openehr_bindings.json",
         "questionnaire.json",
