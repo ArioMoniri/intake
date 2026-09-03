@@ -26,11 +26,14 @@ from intake_platform.admin import (
     ApprovalBrief,
     PendingAction,
 )
-from intake_probes.console import BenchmarkKind, BenchmarkPlan, ModelsModule
+from intake_probes.console import BenchmarkKind, BenchmarkPlan, BenchmarkResult, ModelsModule
+
+from intake_api.admin.models_source import PROBE_CLIENTS_ENV
 
 __all__ = [
     "action_registry_view",
     "benchmark_plan_view",
+    "benchmark_result_view",
     "brief_view",
     "models_module_view",
     "pending_view",
@@ -210,4 +213,28 @@ def benchmark_plan_view(plan: BenchmarkPlan) -> dict[str, Any]:
         "corpus": plan.corpus,
         "state": "planned",
         "executes": False,
+        "not_executed_reason": (
+            "no probe client is wired in this environment "
+            f"(set {PROBE_CLIENTS_ENV}=dev against a running dev stack)"
+        ),
+        "measurement": None,
     }
+
+
+def benchmark_result_view(result: BenchmarkResult) -> dict[str, Any]:
+    """The body when the latency lane actually ran.
+
+    ``measurement`` is the rendered string and never a bare number: it carries
+    the probe and host it was taken against and the date it was taken, because
+    a latency figure with neither attached is a claim about the product rather
+    than an observation of one deployment (invariant 20, ADR-022). When the
+    probe could not run at all the field is ``null`` and ``detail`` says why —
+    a benchmark that reached nothing reports that, never a zero.
+    """
+    body = benchmark_plan_view(result.plan)
+    body["state"] = result.status.value
+    body["executes"] = True
+    body["not_executed_reason"] = None
+    body["detail"] = result.detail
+    body["measurement"] = result.measurement.render() if result.measurement is not None else None
+    return body

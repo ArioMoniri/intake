@@ -45,8 +45,10 @@ from intake_probes.console import (
     Measurement,
     models_module,
     plan_benchmark,
+    run_latency_benchmark,
 )
 from intake_probes.gate import ProbeResultRecord
+from intake_probes.probes import Ok, Outcome
 from intake_probes.registry import load_registry
 from intake_probes.runner import ProbeStatus
 
@@ -217,6 +219,65 @@ class TestBenchmarkTrigger:
         assert "2026-09-03" in rendered
 
 
+class TestLatencyBenchmarkRuns:
+    """The latency lane is not a promise: it executes the row's own probe.
+
+    Every client is injected, so this suite opens no socket and the console
+    route opens none either unless ``INTAKE_PROBE_CLIENTS=dev`` is set against
+    a running stack. The point held here is what the run REPORTS.
+    """
+
+    def test_a_healthy_probe_yields_a_measurement_with_corpus_and_date(self) -> None:
+        registry = _registry()
+        plan = plan_benchmark(registry, "postgres", BenchmarkKind.LATENCY)
+
+        def probe() -> Outcome:
+            return Ok("SELECT 1")
+
+        result = run_latency_benchmark(registry, plan, {"postgres": probe}, date(2026, 9, 3))
+        assert result.status is ProbeStatus.HEALTHY
+        assert result.measurement is not None
+        assert result.measurement.corpus == plan.corpus
+        assert result.measurement.measured_on == date(2026, 9, 3)
+        rendered = result.measurement.render()
+        assert "2026-09-03" in rendered
+        assert "http_health" not in rendered  # postgres declares postgres_select1
+        assert "postgres_select1" in rendered
+
+    def test_exactly_one_probe_runs_every_other_row_is_untouched(self) -> None:
+        registry = _registry()
+        plan = plan_benchmark(registry, "postgres", BenchmarkKind.LATENCY)
+        calls: list[str] = []
+
+        def probe() -> Outcome:
+            calls.append("postgres")
+            return Ok("SELECT 1")
+
+        run_latency_benchmark(registry, plan, {"postgres": probe}, date(2026, 9, 3))
+        assert calls == ["postgres"]
+
+    def test_no_client_reports_skipped_and_no_number_at_all(self) -> None:
+        """A benchmark that reached nothing says so. It never reports a zero,
+        which would be a measurement of a deployment that was never touched."""
+        registry = _registry()
+        plan = plan_benchmark(registry, "postgres", BenchmarkKind.LATENCY)
+        result = run_latency_benchmark(registry, plan, {}, date(2026, 9, 3))
+        assert result.status is ProbeStatus.SKIPPED
+        assert result.measurement is None
+        assert "no probe client configured" in result.detail
+
+    def test_a_raising_probe_is_reported_not_swallowed(self) -> None:
+        registry = _registry()
+        plan = plan_benchmark(registry, "postgres", BenchmarkKind.LATENCY)
+
+        def probe() -> Outcome:
+            raise ConnectionRefusedError("dev stack is down")
+
+        result = run_latency_benchmark(registry, plan, {"postgres": probe}, date(2026, 9, 3))
+        assert result.status is ProbeStatus.UNHEALTHY
+        assert "dev stack is down" in result.detail
+
+
 class TestConsoleRoutes:
     """The two files/08 §8 routes, inside the INT-180 shell."""
 
@@ -252,6 +313,11 @@ class TestConsoleRoutes:
         assert body["component"] == "postgres"
         assert body["corpus"]
         assert body["kind"] == "latency"
+        # no probe client is wired in the unit lane, and the body says that
+        # rather than reporting a figure nobody measured
+        assert body["executes"] is False
+        assert body["measurement"] is None
+        assert "INTAKE_PROBE_CLIENTS" in body["not_executed_reason"]
 
     def test_benchmark_route_carries_no_patient_shaped_field(self, harness: ApiHarness) -> None:
         """Invariant 6: a benchmark trigger must not carry patient data. The

@@ -56,7 +56,11 @@ from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
 from intake_api.admin import views
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
-from intake_api.admin.models_source import load_models_module, resolve_benchmark
+from intake_api.admin.models_source import (
+    load_models_module,
+    resolve_benchmark,
+    run_benchmark,
+)
 from intake_api.consent_guard import administrative_action
 from intake_api.errors import (
     admin_refused,
@@ -243,7 +247,10 @@ async def _models_benchmark(
     ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL.labels(
         actor=caller.principal.subject, kind=kind.value, outcome="planned"
     ).inc()
-    return views.benchmark_plan_view(plan)
+    executed = run_benchmark(plan)
+    if executed is None:
+        return views.benchmark_plan_view(plan)
+    return views.benchmark_result_view(executed)
 
 
 _HANDLERS: dict[str, Handler] = {

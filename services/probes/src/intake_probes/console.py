@@ -49,7 +49,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from intake_probes.gate import ProbeResultRecord, evaluate_release_gate
 from intake_probes.registry import Registry, RegistryEntry
-from intake_probes.runner import ProbeStatus
+from intake_probes.runner import ProbeFn, ProbeResult, ProbeStatus, run_probes_once
 
 __all__ = [
     "BENCHMARK_CORPORA",
@@ -57,6 +57,7 @@ __all__ = [
     "BenchmarkKind",
     "BenchmarkPlan",
     "BenchmarkRefused",
+    "BenchmarkResult",
     "BlockReason",
     "CellSeverity",
     "Finding",
@@ -66,6 +67,7 @@ __all__ = [
     "ReleaseDecision",
     "models_module",
     "plan_benchmark",
+    "run_latency_benchmark",
 ]
 
 #: The sentinel observability/registry.yaml uses for a licence that has not
@@ -348,4 +350,62 @@ def plan_benchmark(
         probe=entry.probe.value,
         budget_ms=entry.budget_ms,
         corpus=f"{corpus.corpus_id} ({corpus.description}, {corpus.licence})",
+    )
+
+
+@dataclass(frozen=True)
+class BenchmarkResult:
+    """What a run of :func:`run_latency_benchmark` observed.
+
+    ``measurement`` is ``None`` when the environment had no client for this
+    component — the runner's own ``SKIPPED`` outcome, which is *visible, not
+    faked*. A benchmark that could not reach anything reports that it could
+    not reach anything; it does not report a zero.
+    """
+
+    plan: BenchmarkPlan
+    status: ProbeStatus
+    detail: str
+    measurement: Measurement | None
+
+
+def run_latency_benchmark(
+    registry: Registry,
+    plan: BenchmarkPlan,
+    clients: Mapping[str, ProbeFn],
+    today: date,
+) -> BenchmarkResult:
+    """Execute the latency lane: one probe, once, against one component.
+
+    It is the same sweep the 60-second runner performs, narrowed to a single
+    row and triggered by hand — so a benchmark and a probe cannot disagree
+    about what "healthy" or "over budget" means. ``clients`` is injected:
+    tests supply a callable, the dev wiring supplies
+    :func:`~intake_probes.runner.build_dev_clients`, and neither this module
+    nor any test opens a socket of its own.
+
+    The resulting :class:`Measurement` carries the probe id and the declared
+    host as its corpus and the run date as its date, because a latency figure
+    with neither attached is a claim about the product rather than an
+    observation of one deployment (invariant 20).
+    """
+    # The whole registry is swept with a client map holding this component
+    # alone: every other row answers SKIPPED without touching anything, so
+    # exactly one probe runs and the narrowing needs no second code path.
+    narrowed = {plan.component: clients[plan.component]} if plan.component in clients else {}
+    results: list[ProbeResult] = run_probes_once(registry, narrowed)
+    observed = next(result for result in results if result.component == plan.component)
+    measurement = (
+        Measurement(
+            metric="probe_latency",
+            value=round(observed.latency_ms, 3),
+            unit="ms",
+            corpus=plan.corpus,
+            measured_on=today,
+        )
+        if observed.latency_ms is not None
+        else None
+    )
+    return BenchmarkResult(
+        plan=plan, status=observed.status, detail=observed.detail, measurement=measurement
     )
