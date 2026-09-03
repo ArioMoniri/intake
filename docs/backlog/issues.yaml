@@ -1281,7 +1281,39 @@
   title: "Document extraction -> FHIR with provenance + confirm cards + eval corpus"
   depends_on: [INT-120, INT-083]
   labels: [area:records]
+  # STAYS OPEN on purpose, 3 Sep 2026. `status: todo` rather than
+  # `awaiting-human`, on the INT-136 / INT-140 precedent: two of the three
+  # clauses are delivered, so the issue is not waiting as a whole, and
+  # `awaiting-human` would make INT-122/123/124 Ready against a clause that is
+  # not met (LOOP.md step 1). The asks are in docs/backlog/blockers.md.
+  # Two of the acceptance line's three
+  # clauses are delivered and evidenced: "extracted with source boxes" (a box
+  # is a defaultless field, the layout seam refuses an empty geometry, and the
+  # box projects onto the INT-031 Provenance and the note trail) and "patient
+  # confirms before use" (INT-170's type-level shape, INT-170's confirmation
+  # vocabulary, and a store that admits the confirmed type alone).
+  #
+  # The third is NOT met and cannot be met here: "accuracy metric on corpus
+  # >=90 percent LOINC+unit". THREE independent human asks stand between the
+  # harness and a figure, and inventing past any of them would produce exactly
+  # the accuracy claim invariant 20 exists to prevent:
+  #   (a) HB-A13 — no corpus exists, and a Turkish lab report is a patient
+  #       record, so where one may live is a data-persistence decision;
+  #   (b) HB-A10 — no LOINC distribution is committed, so nothing binds a code;
+  #   (c) HB-A2  — no Turkish lab-name table, which that row already names as
+  #       blocking "INT-121's LOINC + unit accuracy target" in those words.
+  # The harness is built and REFUSES: `records_corpus_root()` raises when no
+  # corpus is configured, `LoincUnitMeasurement` cannot be constructed without
+  # a named corpus and two dates, and no figure is reported anywhere.
+  #
+  # Separately: HB-C24 (the analyte expected-unit table) leaves the invariant-22
+  # unit guard wired with nothing to check against. That is visible rather than
+  # silent — `DocumentExtraction.units_unchecked` names every analyte the check
+  # did not run for — and it is INT-124's clause, not this one's.
+  #
+  # Reopen against HB-A13; see docs/evidence/INT-121.md "Acceptance, line by line".
   status: todo
+  evidence: docs/evidence/INT-121.md
   acceptance:
     - "labs/meds/diagnoses extracted with source boxes; patient confirms before use; accuracy metric on corpus >=90 percent LOINC+unit"
   tests: [tests/records/test_extraction_eval.py]
