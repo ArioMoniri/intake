@@ -4503,7 +4503,7 @@
   labels:
   - area:infra
   - area:security
-  status: done
+  status: doing
   acceptance:
   - 'the workspace side is resolved too: a directory that git can see inside the
     repository must be refused as a restore target even when it is reached
