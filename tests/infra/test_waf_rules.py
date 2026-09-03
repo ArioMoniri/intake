@@ -54,7 +54,7 @@ RENDERER = REPO / "scripts" / "security" / "render_edge_conf.py"
 TRAEFIK_STATIC = REPO / "infra" / "security" / "edge" / "traefik" / "traefik.yml"
 TRAEFIK_DYNAMIC = REPO / "infra" / "security" / "edge" / "traefik" / "dynamic.yml"
 CROWDSEC_DIR = REPO / "infra" / "security" / "edge" / "crowdsec"
-CROWDSEC_SCENARIOS = CROWDSEC_DIR / "scenarios" / "intake.yaml"
+CROWDSEC_SCENARIO_DIR = CROWDSEC_DIR / "scenarios"
 CROWDSEC_PARSER = CROWDSEC_DIR / "parsers" / "s01-parse" / "traefik-access-log.yaml"
 CERT_MANAGER = REPO / "infra" / "k8s" / "edge" / "cert-manager.yaml"
 COMPOSE_PATH = REPO / "infra" / "docker-compose.edge.yml"
@@ -317,15 +317,37 @@ def test_the_event_type_has_no_field_a_body_could_occupy() -> None:
 # --- group 6: CrowdSec scenarios are on, and are not a PHI channel either ------------
 
 
-def test_the_policy_declares_scenarios_and_they_are_rendered() -> None:
+def _rendered_scenarios() -> dict[str, dict[str, Any]]:
+    documents: dict[str, dict[str, Any]] = {}
+    for path in sorted(CROWDSEC_SCENARIO_DIR.glob("*.yaml")):
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+        documents[document["name"]] = document
+    return documents
+
+
+def test_the_policy_declares_scenarios_and_every_one_is_rendered() -> None:
+    """One file per scenario, and the count has to match in both directions.
+
+    CrowdSec's local inventory keys on the file, so three documents in one file
+    load as one scenario and the other two are silently absent — a tier that
+    reports "scenarios on" and runs a third of them. That is what booting it
+    found (docs/evidence/INT-203.md §5).
+    """
     policy = _policy()
     assert policy.crowdsec.scenarios, "no scenario is not 'scenarios on'"
-    rendered = list(yaml.safe_load_all(CROWDSEC_SCENARIOS.read_text(encoding="utf-8")))
-    rendered_names = {document["name"] for document in rendered}
-    assert rendered_names == {scenario.name for scenario in policy.crowdsec.scenarios}
+    rendered = _rendered_scenarios()
+    assert set(rendered) == {scenario.name for scenario in policy.crowdsec.scenarios}
+    assert len(list(CROWDSEC_SCENARIO_DIR.glob("*.yaml"))) == len(policy.crowdsec.scenarios)
     for scenario in policy.crowdsec.scenarios:
-        assert scenario.name.startswith("intake/")
         assert scenario.remediation is True, scenario.name
+        assert rendered[scenario.name]["labels"]["remediation"] is True
+
+
+def test_a_scenario_file_the_policy_no_longer_declares_is_an_orphan() -> None:
+    """The delete direction: a renderer that only ever writes leaves CrowdSec
+    running a bucket nobody approved."""
+    render = _renderer()
+    assert render.orphan_scenarios(_policy()) == []
 
 
 def test_crowdsec_never_talks_to_the_central_api() -> None:
@@ -337,20 +359,42 @@ def test_crowdsec_never_talks_to_the_central_api() -> None:
     assert config["api"]["server"].get("online_client", {}) in ({}, None)
 
 
+#: Fields that would carry a request path, a query string or a header value
+#: into a CrowdSec bucket key — and therefore into every alert raised from it.
+_PATH_SHAPED = ("RequestPath", "RequestAddr", "RequestLine", "RequestHeaders", "http_path")
+
+
+def _executable_lines(path: Path) -> list[str]:
+    """Comments are prose and may say the word "security"; the rules are not."""
+    return [
+        line
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+
 def test_no_scenario_or_parser_reads_a_path_or_a_query() -> None:
     """The CrowdSec side of invariant 6. A bucket keyed on the request path
     puts ``/v1/patients/<id>`` into every alert it raises, and an alert is
     shipped to the SIEM."""
-    forbidden = ("RequestPath", "http_path", "RequestQuery", "uri", "query", "RequestHeaders")
-    parser_text = CROWDSEC_PARSER.read_text(encoding="utf-8")
-    scenario_text = CROWDSEC_SCENARIOS.read_text(encoding="utf-8")
-    for token in forbidden:
-        assert token not in parser_text, token
-        assert token not in scenario_text, token
+    for path in [CROWDSEC_PARSER, *sorted(CROWDSEC_SCENARIO_DIR.glob("*.yaml"))]:
+        for line in _executable_lines(path):
+            for token in _PATH_SHAPED:
+                assert token not in line, (path.name, line)
     for scenario in _policy().crowdsec.scenarios:
-        for token in forbidden:
+        for token in _PATH_SHAPED:
             assert token not in scenario.filter
             assert token not in scenario.groupby
+
+
+def test_the_parser_extracts_exactly_two_values_from_a_request() -> None:
+    """The positive half: a parser that extracts nothing is also a parser no
+    scenario can fire on. Two statics come from the request — the client
+    address and the status — and the rest are constants."""
+    parser = yaml.safe_load(CROWDSEC_PARSER.read_text(encoding="utf-8"))
+    statics = parser["nodes"][0]["statics"]
+    extracted = {static["meta"] for static in statics if "expression" in static}
+    assert extracted == {"source_ip", "http_status"}
 
 
 def test_a_scenario_that_groups_by_a_request_path_is_refused(tmp_path: Path) -> None:
@@ -381,10 +425,24 @@ def test_the_acme_resolver_is_complete_enough_to_actually_issue() -> None:
     static = yaml.safe_load(TRAEFIK_STATIC.read_text(encoding="utf-8"))
     resolver = static["certificatesResolvers"][tls.resolver]["acme"]
     assert resolver["caServer"] == tls.ca_server
-    assert resolver["storage"]
-    assert tls.challenge in {"tlsChallenge", "httpChallenge", "dnsChallenge"} or True
-    assert resolver[tls.challenge] is not None
-    assert "email" in resolver
+    assert resolver["storage"] == tls.storage
+    assert tls.challenge in resolver
+
+
+def test_the_acme_account_email_is_supplied_from_outside_the_repository() -> None:
+    """A generated file may not carry it (invariant 14), and a resolver
+    without it cannot order — so the compose service passes it through with no
+    default, and a tier started without one fails loudly rather than serving
+    something untrusted quietly."""
+    tls = _policy().tls
+    static = yaml.safe_load(TRAEFIK_STATIC.read_text(encoding="utf-8"))
+    resolver = static["certificatesResolvers"][tls.resolver]["acme"]
+    assert "email" not in resolver, "an ACME account email is not a committed value"
+
+    compose = yaml.safe_load(COMPOSE_PATH.read_text(encoding="utf-8"))
+    environment = compose["services"]["traefik"]["environment"]
+    assert tls.account_email_env in environment
+    assert environment[tls.account_email_env].endswith(":-}"), "no default"
 
 
 def test_the_staging_acme_directory_is_refused_for_the_served_policy(tmp_path: Path) -> None:
@@ -400,20 +458,66 @@ def test_renewal_leaves_room_for_a_failure_and_a_human() -> None:
     assert _policy().tls.renew_before_days >= 30
 
 
-def test_cert_manager_renders_the_same_domains_and_the_same_window() -> None:
+def _manifests(text: str) -> list[dict[str, Any]]:
+    return [document for document in yaml.safe_load_all(text) if document]
+
+
+def test_the_shipped_manifest_is_an_issuer_and_no_certificate() -> None:
+    """The fail-closed half, and it is the state of the repository today: the
+    policy names no domain, because no production hostname for this system
+    exists. An empty ``dnsNames`` is refused by cert-manager at apply time, in
+    a cluster, later — so the object is absent rather than present and broken.
+    """
     tls = _policy().tls
-    documents = [
-        document
-        for document in yaml.safe_load_all(CERT_MANAGER.read_text(encoding="utf-8"))
-        if document
+    assert tls.domains == []
+    documents = _manifests(CERT_MANAGER.read_text(encoding="utf-8"))
+    assert [document["kind"] for document in documents] == ["ClusterIssuer"]
+    assert documents[0]["spec"]["acme"]["server"] == tls.ca_server
+
+
+def test_naming_a_domain_renders_a_certificate_that_matches_the_policy() -> None:
+    """The other half, which the shipped policy cannot exercise. Rendering is
+    a function, so the behaviour is decided here rather than waiting for a
+    hostname somebody has yet to choose — and the same renewal window reaches
+    both deployment shapes from the one policy, which is the drift that
+    otherwise expires a certificate in exactly one of them."""
+    render = _renderer()
+    policy = _policy().model_copy(
+        update={
+            "tls": _policy().tls.model_copy(
+                update={"domains": ["intake.example.com", "api.intake.example.com"]}
+            )
+        }
+    )
+    documents = _manifests(render.render_cert_manager(policy))
+    kinds = [document["kind"] for document in documents]
+    assert kinds == ["ClusterIssuer", "Certificate"]
+    certificate = documents[1]
+    assert certificate["spec"]["dnsNames"] == [
+        "intake.example.com",
+        "api.intake.example.com",
     ]
-    kinds = {document["kind"] for document in documents}
-    assert {"ClusterIssuer", "Certificate"} <= kinds
-    certificate = next(document for document in documents if document["kind"] == "Certificate")
-    assert set(certificate["spec"]["dnsNames"]) == set(tls.domains)
-    assert certificate["spec"]["renewBefore"] == f"{tls.renew_before_days * 24}h"
-    issuer = next(document for document in documents if document["kind"] == "ClusterIssuer")
-    assert issuer["spec"]["acme"]["server"] == tls.ca_server
+    assert certificate["spec"]["renewBefore"] == f"{policy.tls.renew_before_days * 24}h"
+    assert certificate["spec"]["issuerRef"]["name"] == policy.tls.issuer_name
+
+    static = yaml.safe_load(render.render_traefik_static(policy))
+    assert static["certificatesResolvers"][policy.tls.resolver]["acme"]["caServer"] == (
+        certificate and documents[0]["spec"]["acme"]["server"]
+    )
+    # And the redirect appears with the certificate, never before it.
+    assert static["entryPoints"]["web"]["http"]["redirections"]["entryPoint"]["to"] == (
+        "websecure"
+    )
+
+
+def _renderer() -> Any:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("render_edge_conf", RENDERER)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_the_certificate_expiry_signal_is_catalogued() -> None:

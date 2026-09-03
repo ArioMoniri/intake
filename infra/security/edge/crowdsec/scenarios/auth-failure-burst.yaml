@@ -1,0 +1,20 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+# Signal: failed logins and OTP anomalies per IP (files/10 §7)
+type: leaky
+name: intake/auth-failure-burst
+description: "Credential stuffing and OTP grinding, seen at the edge"
+filter: "evt.Meta.log_type == 'http_access-log' && evt.Meta.http_status in ['401', '429']"
+groupby: "evt.Meta.source_ip"
+capacity: 15
+leakspeed: 30s
+blackhole: 15m
+labels:
+  service: http
+  remediation: true

@@ -1,0 +1,114 @@
+# INT-203 — the corpus the WAF is judged against, in both directions.
+#
+# Every case is decided against the BOOTED engine
+# (tests/infra/test_edge_stack_integration.py): Traefik + Coraza + the OWASP
+# CRS embedded in the pinned plugin. Nothing here is modelled, and nothing here
+# asserts that a ruleset file exists.
+#
+# ── Why the negative controls are half the file ─────────────────────────────
+# "WAF blocks OWASP CRS suite" is trivially satisfiable by a middleware that
+# returns 403 to everything, and that middleware would take this product off
+# the air: the traffic it exists to carry is Turkish clinical free text, which
+# is full of exactly the tokens a signature reads as an attack —
+#
+#   Ali'nin doktoru      an apostrophe, mid-word, in a possessive
+#   1x1 sabah/akşam      a dose string that looks like `1x1` and a slash
+#   <acil servise>       patients type angle brackets in a text box
+#   şu an 1=1 gibi       "it's like one-to-one", which is also a SQL tautology
+#   göğüs & sırt ağrısı  an ampersand between two symptom words
+#
+# So each `expect: passed` case carries at least one of those tokens AND real
+# Turkish diacritics, checked by
+# tests/infra/test_waf_rules.py::test_the_negative_controls_are_actually_clinical_turkish.
+# A near-miss that is not near enough is a control that never fires.
+#
+# `crs_family` names the CRS REQUEST-9xx file the case is aimed at, so a
+# ruleset change that silently drops a family fails a specific test rather than
+# lowering a total nobody reads.
+cases:
+  # ── The attacks ───────────────────────────────────────────────────────────
+  - name: sqli_in_query_string
+    crs_family: sqli
+    expect: blocked
+    path: /v1/visits
+    query:
+      id: "1' OR '1'='1"
+
+  - name: sqli_in_turkish_utterance_field
+    crs_family: sqli
+    expect: blocked
+    path: /v1/intake/utterance
+    # The one that matters on this API: the allow-list of hosts does nothing
+    # about an injection inside the JSON body, so the body must be inspected.
+    body: '{"text_tr":"1'' OR ''1''=''1'' UNION SELECT null,version(),null--"}'
+
+  - name: xss_script_tag
+    crs_family: xss
+    expect: blocked
+    path: /v1/visits
+    query:
+      q: "<script>alert(1)</script>"
+
+  - name: lfi_traversal
+    crs_family: lfi
+    expect: blocked
+    path: /v1/visits
+    query:
+      f: "../../../../etc/passwd"
+
+  - name: rce_shell_metacharacters
+    crs_family: rce
+    expect: blocked
+    path: /v1/visits
+    query:
+      c: ";cat /etc/passwd"
+
+  - name: scanner_user_agent
+    crs_family: scanner
+    expect: blocked
+    path: /v1/visits
+    headers:
+      User-Agent: "sqlmap/1.7"
+
+  - name: protocol_restricted_file_extension
+    crs_family: protocol
+    expect: blocked
+    # CRS 920440: a request for a backup or configuration file by extension.
+    # It is what a content-discovery sweep asks for and what this API never
+    # serves, and it is a *protocol* refusal rather than a payload one — the
+    # request carries no attack string at all.
+    path: /v1/visits/export.bak
+
+  # ── The near misses: ordinary clinical Turkish that must be served ────────
+  - name: chest_pain_with_apostrophe_and_angle_brackets
+    crs_family: none
+    expect: passed
+    path: /v1/intake/utterance
+    body: '{"text_tr":"Göğsümde bir haftadır süren şiddetli ağrı var; nefes almakta zorlanıyorum. Ali''nin doktoru <acil servise gidin> dedi."}'
+
+  - name: dose_string_that_looks_like_an_expression
+    crs_family: none
+    expect: passed
+    path: /v1/intake/utterance
+    body: '{"text_tr":"İlacı 1x1 sabah/akşam alıyorum; şeker düzeyim 1=1 gibi sabit, ölçüm 110 mg/dL."}'
+
+  - name: ampersand_between_symptom_words
+    crs_family: none
+    expect: passed
+    path: /v1/intake/utterance
+    body: '{"text_tr":"Göğüs & sırt ağrım birlikte başlıyor, öksürünce artıyor; öğle & akşam daha kötü."}'
+
+  - name: turkish_word_that_contains_a_sql_keyword
+    crs_family: none
+    expect: passed
+    path: /v1/intake/utterance
+    # "seçilen" and "birleşik" are ordinary words; a naive keyword list that
+    # matched substrings would refuse both, along with "update" inside
+    # "güncelleme" and "or" inside "boğaz".
+    body: '{"text_tr":"Doktorun seçilen tedavisi işe yaradı; boğazımdaki yanma için güncelleme yapmalı mıyım? select yapmadım."}'
+
+  - name: quoted_family_history_with_dashes
+    crs_family: none
+    expect: passed
+    path: /v1/intake/utterance
+    body: '{"text_tr":"Annemin şeker hastalığı vardı -- babamın da tansiyonu yüksekti; Ayşe''nin raporunda ''yüksek risk'' yazıyor."}'

@@ -153,14 +153,12 @@ def test_the_intake_scenarios_are_loaded_and_enabled() -> None:
     rows = listed["scenarios"] if isinstance(listed, dict) else listed
     by_name = {row["name"]: row for row in rows}
     declared = {
-        document["name"]
-        for document in yaml.safe_load_all(
-            (
-                REPO / "infra" / "security" / "edge" / "crowdsec" / "scenarios" / "intake.yaml"
-            ).read_text(encoding="utf-8")
+        yaml.safe_load(path.read_text(encoding="utf-8"))["name"]
+        for path in (REPO / "infra" / "security" / "edge" / "crowdsec" / "scenarios").glob(
+            "*.yaml"
         )
-        if document
     }
+    assert len(declared) == 3, "the policy declares three scenarios"
     assert declared <= set(by_name), sorted(set(by_name))
     for name in declared:
         assert "enabled" in by_name[name]["status"], by_name[name]
@@ -196,17 +194,12 @@ def test_a_burst_of_blocked_requests_reaches_the_scenario_and_a_clean_one_does_n
 
 
 def _explain(lines: str) -> str:
-    _compose(
-        "exec",
-        "-T",
-        "crowdsec",
-        "sh",
-        "-c",
-        "cat > /tmp/explain.log",
-        check=False,
-    )
-    # `docker compose exec -T` gives no stdin plumbing through our helper, so
-    # the file is written with a here-doc in the container instead.
+    """Write the fixture inside the container, then explain it.
+
+    The file is written with `printf` rather than piped, because
+    `docker compose exec -T` through a helper that captures output has no
+    stdin to plumb.
+    """
     encoded = lines.replace("'", "'\\''")
     _compose("exec", "-T", "crowdsec", "sh", "-c", f"printf '%s\\n' '{encoded}' > /tmp/explain.log")
     result = _compose(
