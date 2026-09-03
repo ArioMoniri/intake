@@ -149,3 +149,4 @@ Separately, and this one **is** a new ask: the pain score. See the table row
 above. `lowLiteracyReadiness` reports the Detaylı pack as not ready and names
 `numeral_anchored:pain_score` rather than inventing a recoding, which is
 HUMAN_BLOCKERS.md rule 1 applied to a scale rather than to a threshold.
+Filed as **HB-C22** (physician of record).
