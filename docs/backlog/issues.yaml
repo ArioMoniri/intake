@@ -4486,7 +4486,7 @@
   labels:
   - area:infra
   - area:security
-  status: todo
+  status: done
   acceptance:
   - 'the workspace side is resolved too: a directory that git can see inside the
     repository must be refused as a restore target even when it is reached
@@ -4506,3 +4506,4 @@
   tests:
   - tests/infra/test_restore_drill.py
   sec_row: "backups"
+  evidence: docs/evidence/INT-315.md

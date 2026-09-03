@@ -77,9 +77,16 @@ behind the `backup` profile, so `make dev` is unaffected by its presence.
 
 - **No decrypted dump in the workspace.** The restore target is the container
   volume `restoredata` mounted at `/restore`.
-  `assert_restore_target_outside_workspace` refuses a resolved path inside the
-  repository, so `infra/../.cache/restore` is caught however it is spelled
-  (invariant 3).
+  `assert_restore_target_outside_workspace` refuses a path inside the
+  repository under **either** reading of it — `os.path.abspath`, which is what
+  `git status` sees, and `Path.resolve()`, which is where the bytes land — and
+  reads the workspace root both ways too, since either side can be the
+  symbolic half. So `infra/../.cache/restore` is caught however it is spelled,
+  and so is a target reached through a symlink that leaves the checkout, which
+  is the shape the fresh-worktree de-identification-model cache creates and
+  which the resolved-target-only check accepted (INT-315). Accepting requires
+  every reading to agree the target is outside, so an ambiguous spelling fails
+  closed (invariant 3).
 - **No record content anywhere.** Verification is
   `intake_platform.backup.ROW_COUNT_SQL`: `count(*)` per public table, run
   server-side through `query_to_xml`, returning integers. No column is ever
