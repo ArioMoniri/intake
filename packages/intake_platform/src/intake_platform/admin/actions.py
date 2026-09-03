@@ -32,6 +32,7 @@ from intake_platform.admin.roles import TIER3_APPROVER_ROLES, AdminRole
 __all__ = [
     "BREAK_GLASS_OPEN",
     "DANGEROUS_ACTIONS",
+    "MODEL_BENCHMARK_RUN",
     "ActionDirection",
     "ActionTier",
     "DangerousAction",
@@ -129,7 +130,40 @@ BREAK_GLASS_OPEN = DangerousAction(
     alert_metric="admin.break_glass_opened_total",
 )
 
-DANGEROUS_ACTIONS: dict[str, DangerousAction] = {BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN}
+#: files/08 §148 "run benchmark", §8 `POST /admin/models/{id}/benchmark`
+#: (INT-183). Tier 2 and DANGEROUS because *executing* a benchmark spends
+#: capacity on a host that serves the PHI path, and a model host degraded
+#: mid-session is a patient waiting on a turn. It is not tier 1: nothing about
+#: running a benchmark moves the system toward the LESS capable state, and a
+#: tier chosen to fit the surface rather than the risk is the failure mode
+#: §8.2's asymmetry exists to prevent.
+#:
+#: What the route registered against it does TODAY is resolve and return the
+#: plan — which component, which probe, which budget, and the named basis any
+#: resulting measurement would carry. Planning reads; it changes nothing and
+#: spends nothing. The two keys guard EXECUTION, and no benchmark runner
+#: exists yet for them to guard: the approve half lands with the runner rather
+#: than as a ceremony over a no-op (the same reason the eighteen unbuilt
+#: §8.2 rows above are absent).
+MODEL_BENCHMARK_RUN = DangerousAction(
+    id="admin.models.benchmark.run",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=frozenset(
+        {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN, AdminRole.SRE_ONCALL}
+    ),
+    approver_roles=frozenset(
+        {AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
+    ),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/model-benchmark.md",
+    alert_metric="admin.model_benchmark_requested_total",
+)
+
+DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
+    BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
+    MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
+}
 
 
 def dangerous_action(action_id: str) -> DangerousAction:
