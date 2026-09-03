@@ -18,6 +18,7 @@ The three things this file exists to pin, beyond the acceptance:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import httpx
@@ -53,6 +54,9 @@ from voice_clips import (
     ClipSilenceBoundError,
     HttpTtsGateway,
     MalformedWavError,
+    ManifestLocaleMismatchError,
+    ManifestNotFoundError,
+    ManifestTamperedError,
     MultiChannelClipError,
     NumeralInScriptError,
     Pcm,
@@ -68,6 +72,7 @@ from voice_clips import (
     as_clip_storage,
     build_clip_cache,
     clip_cache_from_env,
+    clip_object_key,
     decode_opus,
     encode_clip,
     load_clip_manifest,
@@ -480,3 +485,76 @@ class TestTheCommand:
         assert "\nclips:" in makefile
         assert "usage: make clips VOICE=" in makefile
         assert "intake-clips --voice $(VOICE)" in makefile
+
+
+# --------------------------------------------------- (locale, voice) is the key
+
+
+class TestTheManifestIsKeyedByLocaleAndVoice:
+    """INT-297: `make clips` keys on (locale, voice), and a collision is a refusal.
+
+    Two locales may be pinned to one voice — invariant 19 leaves that open, and
+    a locale without its own TTS resolves to `typed` rather than borrowing
+    Turkish. So the voice alone does not identify a clip, and the loader has to
+    refuse the two ways a Turkish clip could otherwise be served for another
+    locale's string: a manifest compiled for one locale read as another, and one
+    clip id claimed by two different strings.
+    """
+
+    def test_another_locale_finds_no_manifest_at_all(self, bundle: CompiledBundle, dist) -> None:
+        """The locale is in the artefact name, so the cross-locale read never
+        reaches a file to misread — it is a not-found, not a wrong answer."""
+        with pytest.raises(ManifestNotFoundError) as raised:
+            load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE, locale="de")
+        assert f"clips.de.{VOICE}.json" in str(raised.value)
+
+    def test_a_manifest_whose_body_disagrees_with_its_name_is_refused(
+        self, bundle: CompiledBundle, dist
+    ) -> None:
+        """The name is not trusted on its own.
+
+        A file placed or generated under the wrong name would otherwise be read
+        as the locale its name claims, which is exactly a Turkish clip served
+        for another locale's string — with every hash inside it checking out.
+        """
+        source = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
+        (dist / PACK_ID / f"clips.de.{VOICE}.json").write_text(
+            source.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        with pytest.raises(ManifestLocaleMismatchError) as raised:
+            load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE, locale="de")
+        assert LOCALE in str(raised.value)
+
+    def test_the_artefact_name_carries_both_and_the_object_key_namespaces_by_locale(
+        self, bundle: CompiledBundle, dist
+    ) -> None:
+        assert (dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json").is_file()
+        manifest = load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE, locale=LOCALE)
+        assert manifest.locale == LOCALE
+        for row in manifest.entries:
+            assert row.locale == LOCALE
+            assert clip_object_key(row.entry) == (
+                f"{CLIP_KEY_PREFIX}/{LOCALE}/{VOICE}/{row.clip_id}"
+            )
+
+    def test_one_clip_id_claimed_by_two_strings_is_refused_not_preferred(
+        self, bundle: CompiledBundle, dist
+    ) -> None:
+        """A collision fails; it does not resolve to whichever row was written last.
+
+        One synthesised clip cannot speak two different sentences, and letting
+        file order decide which one it speaks is how a patient hears the wrong
+        script with every hash still checking out.
+        """
+        path = dist / PACK_ID / f"clips.{LOCALE}.{VOICE}.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        first = payload["entries"][0]
+        twin = dict(first)
+        twin["text_tr"] = "Bambaşka bir cümle."
+        twin["text_hash"] = clip_text_hash(twin["text_tr"])
+        twin["subject"] = f"{first['subject']}.ikiz"
+        payload["entries"] = [first, twin]
+        path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        with pytest.raises(ManifestTamperedError) as raised:
+            load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE, locale=LOCALE)
+        assert first["clip_id"] in str(raised.value)
