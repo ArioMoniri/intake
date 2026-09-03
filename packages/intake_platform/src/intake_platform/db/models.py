@@ -78,6 +78,7 @@ from intake_platform.locale import DEFAULT_LOCALE
 __all__ = [
     "Base",
     "Consent",
+    "DoctorLink",
     "Document",
     "DsarKind",
     "DsarRectification",
@@ -812,6 +813,126 @@ class Share(Base):
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_SHARE)
+
+
+class DoctorLink(Base):
+    """INT-150 — one tokenized clinician grant over one share (files/10 §2).
+
+    Why a table of its own rather than columns on ``shares``: a share is the
+    patient's decision about WHAT is shared; a Doctor Link is one addressed,
+    expiring, countable way of reaching it, and a patient may issue, revoke and
+    re-issue links against a single unchanged share. The scope therefore stays
+    on the share and is never copied here — the section list has exactly one
+    home, so a link can never expose a section the share does not carry.
+
+    What is deliberately NOT a column:
+
+    - **the token.** ``token_fingerprint`` is SHA-256 of a 128-bit random
+      token; a database dump therefore yields no access (invariant 6).
+    - **the OTP code, its attempt count and its request windows.** Those live
+      in Redis behind ``intake_api.auth_store.AuthStore`` — the SAME gate the
+      phone-OTP tier uses (INT-131/INT-263), not a second one.
+    - **the first-open instant.** Every open is written to the hash-chained
+      audit log, which is what invariant 4 requires and what the patient's
+      access log renders. A queryable open-instant column is the missing half
+      of ``wait.doctor_link_first_open_h``, and landing it without the
+      publisher would put ``intake_platform.wait_times``, the metrics
+      catalogue and the writer out of step — the exact drift that registry
+      exists to prevent (docs/evidence/INT-150.md records the ask).
+    """
+
+    __tablename__ = "doctor_links"
+
+    id: Mapped[uuid.UUID] = _uuid_pk("doctor link grant key", RET_SHARE)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_SHARE)
+    share_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shares.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_CONSENT,
+            "the share this link grants access to (the section scope lives there)",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_CLINICIAN,
+        ),
+    )
+    token_fingerprint: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        unique=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "SHA-256 of the 128-bit link token; the token itself is never stored",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_INTERNAL,
+        ),
+    )
+    recipient: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "envelope-encrypted recipient label the patient named, rendered only "
+            "into the watermark of the view that recipient opens",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_CLINICIAN,
+        ),
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        info=inv(
+            CAT_CONSENT,
+            "hard expiry, anchored on the visit date + 72 h (files/02 §2b), never on issue time",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_INTERNAL,
+        ),
+    )
+    view_limit: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "how many openings this grant permits (files/10 §2 view limit)",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_INTERNAL,
+        ),
+    )
+    views_used: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+        default=0,
+        info=inv(
+            CAT_OPERATIONAL,
+            "openings spent; incremented by the same guarded UPDATE that admits one",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_INTERNAL,
+        ),
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=inv(
+            CAT_CONSENT,
+            "instant the link was revoked (by the patient, or by the share it hangs off)",
+            BASIS_HEALTH_CONSENT,
+            RET_SHARE,
+            REC_INTERNAL,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_SHARE)
+
+    __table_args__ = (
+        CheckConstraint("view_limit > 0", name="view_limit_positive"),
+        CheckConstraint("views_used >= 0", name="views_used_not_negative"),
+    )
 
 
 class Document(Base):

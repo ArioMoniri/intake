@@ -18,6 +18,11 @@ __all__ = [
     "consent_text_changed",
     "consent_text_missing",
     "dev_auth_unconfigured",
+    "doctor_link_expired",
+    "doctor_link_revoked",
+    "doctor_link_unconfigured",
+    "doctor_link_view_limit",
+    "note_not_shared",
     "dpop_invalid",
     "forbidden",
     "invalid_window",
@@ -177,3 +182,40 @@ def dpop_invalid(code: str) -> HTTPException:
 
 def refresh_reused() -> HTTPException:
     return HTTPException(status_code=401, detail={"error": "refresh_reused"})
+
+
+# --- INT-150 Doctor Link codes (ids and codes only, invariant 6) ------------------
+
+
+def doctor_link_unconfigured() -> HTTPException:
+    """The Doctor Link tier needs the same Redis the OTP tier needs (the code,
+    its attempt budget and its request windows all live in that one gate).
+    Without it the whole surface answers 503 rather than issuing links whose
+    OTP nobody can check."""
+    return HTTPException(status_code=503, detail={"error": "doctor_link_unconfigured"})
+
+
+def note_not_shared() -> HTTPException:
+    """A link was asked for over a note the patient has not sent. There is no
+    grant to attach it to, so there is nothing to tokenize (invariant 4)."""
+    return HTTPException(status_code=409, detail={"error": "note_not_shared"})
+
+
+def doctor_link_expired() -> HTTPException:
+    """Past ``visit_datetime + 72 h`` (files/02 §2b).
+
+    The reason is stated rather than hidden behind a generic refusal, and only
+    to a caller who already presented the 128-bit token: telling the holder of
+    a valid-but-finished link WHY it stopped is what turns "the doctor
+    couldn't see it" into "ask the patient to send a new one". A caller
+    without the token gets ``not_found`` and learns nothing.
+    """
+    return HTTPException(status_code=410, detail={"error": "doctor_link_expired"})
+
+
+def doctor_link_revoked() -> HTTPException:
+    return HTTPException(status_code=410, detail={"error": "doctor_link_revoked"})
+
+
+def doctor_link_view_limit() -> HTTPException:
+    return HTTPException(status_code=403, detail={"error": "doctor_link_view_limit"})

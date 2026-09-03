@@ -11,10 +11,10 @@ read that cannot be audited must not answer (fail closed).
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TypeVar
 
-from intake_platform.audit import AuditChain, AuditStore
+from intake_platform.audit import AuditChain, AuditEntry, AuditStore
 
 __all__ = ["AuditWriter"]
 
@@ -50,6 +50,17 @@ class AuditWriter:
             )
 
         await self.run_locked(_append)
+
+    async def entries(self) -> Sequence[AuditEntry]:
+        """The whole chain, for a projection that must not miss a row.
+
+        The patient-visible access log (INT-016) is built by narrowing this to
+        the patient's OWN resource refs at the call site; reading the chain
+        whole and filtering there is what makes "nothing silently dropped"
+        checkable — a store-side filter would decide, invisibly, which of a
+        patient's accesses they get to see.
+        """
+        return await asyncio.to_thread(self._store.entries)
 
     async def healthy(self) -> bool:
         """Readiness: the store answers a read. Reported, never raised."""

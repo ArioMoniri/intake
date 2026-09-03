@@ -587,6 +587,7 @@ export const en: Record<MessageKey, string> = {
   "dialogue.speakCorrection": "Say the correction",
   "dialogue.typeThisStep": "Answer by typing",
   "dialogue.transcribing": "Transcribing…",
+  "dialogue.notUnderstood": "I could not quite understand that. Let us ask the same question once more.",
   "dialogue.voiceMuted":
     "Reading aloud is not working right now. You can read the questions on screen and answer by speaking or by typing.",
   "dialogue.noteForming": "Note taking shape",

@@ -57,6 +57,7 @@ if TYPE_CHECKING:
 __all__ = [
     "CONSENT_MANAGEMENT_PREFIX",
     "DATA_SUBJECT_RIGHT_PREFIX",
+    "DOCTOR_LINK_PREFIX",
     "META_ROUTES",
     "NOTIFICATION_PREFERENCE_PREFIX",
     "PRE_AUTH_PREFIX",
@@ -67,6 +68,8 @@ __all__ = [
     "consent_management_routes",
     "data_subject_right",
     "data_subject_right_routes",
+    "doctor_link_redemption",
+    "doctor_link_redemption_routes",
     "ensure_age_actor",
     "ensure_consent",
     "notification_preference",
@@ -270,6 +273,30 @@ class DataSubjectRightDeclaration:
         return
 
 
+class DoctorLinkRedemptionDeclaration:
+    """Explicit declaration that a route IS a Doctor Link redemption
+    (INT-150): the caller is a clinician holding a 128-bit token and no
+    account, so no principal exists for a route-level guard to resolve.
+
+    The consent scope does NOT disappear with the principal — it moves inside
+    the endpoint, which is where the subject can be resolved at all. The token
+    names a grant; the grant names a share; the share names the note and its
+    patient; and ``ensure_consent`` is then called for
+    ``share:previsit_note`` against THAT patient before a single section is
+    read (invariant 4). This is the same record-level shape the clinic-admin
+    branch of ``notes.read_note`` already uses, and it is enforced by the same
+    one evaluator, so a withdrawal or a stale text refuses here too.
+
+    Same class as pre_auth and the other markers: the route cannot enforce a
+    scope at the door, but it may not stay silent either — the scan accepts
+    this marker ONLY under DOCTOR_LINK_PREFIX (as a path segment, not a
+    substring), so a data route elsewhere cannot borrow it.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 class ReferenceDataDeclaration:
     """Explicit declaration that a route serves REFERENCE DATA only
     (INT-134): a versioned projection of a committed artefact — the branch
@@ -317,11 +344,21 @@ REFERENCE_DATA_PREFIX = "/v1/taxonomy"
 #: The only prefix where a notification-preference declaration is accepted.
 NOTIFICATION_PREFERENCE_PREFIX = "/v1/me/notifications"
 
+#: The only prefix where a Doctor Link redemption declaration is accepted.
+DOCTOR_LINK_PREFIX = "/v1/doctor-link"
+
 
 def data_subject_right() -> params.Depends:
     """Declare a route as a statutory data-subject right (see
     DataSubjectRightDeclaration)."""
     dependency: params.Depends = Depends(DataSubjectRightDeclaration())
+    return dependency
+
+
+def doctor_link_redemption() -> params.Depends:
+    """Declare a route as a Doctor Link redemption (see
+    DoctorLinkRedemptionDeclaration)."""
+    dependency: params.Depends = Depends(DoctorLinkRedemptionDeclaration())
     return dependency
 
 
@@ -393,6 +430,13 @@ def _is_consent_management(route: APIRoute) -> bool:
 def _is_data_subject_right(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, DataSubjectRightDeclaration)
+        for dependency in route.dependencies
+    )
+
+
+def _is_doctor_link_redemption(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, DoctorLinkRedemptionDeclaration)
         for dependency in route.dependencies
     )
 
@@ -471,6 +515,18 @@ def data_subject_right_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def doctor_link_redemption_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the Doctor Link redemption declaration, for the
+    pin test (INT-150) — reported wherever it appears; whether the scan
+    ACCEPTS it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_doctor_link_redemption(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def reference_data_routes(app: FastAPI) -> list[str]:
     """Every route carrying the reference-data declaration, for the pin
     test (INT-134) — reported wherever it appears; whether the scan ACCEPTS
@@ -498,7 +554,7 @@ def notification_preference_routes(app: FastAPI) -> list[str]:
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
-    land undeclared (silence always fails). Five markers exist, each caged to
+    land undeclared (silence always fails). Six markers exist, each caged to
     its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
     principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
     (INT-232, the routes ABOUT consent), reference_data under
@@ -506,9 +562,11 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     patient data), data_subject_right under DATA_SUBJECT_RIGHT_PREFIX
     (INT-037, the statutory rights whose basis is legal obligation rather than
     consent) and notification_preference under NOTIFICATION_PREFERENCE_PREFIX
-    (INT-141, the message-refusal register a withdrawal must not lock). Any
-    marker outside its prefix does NOT count as a declaration (the route is
-    reported here instead)."""
+    (INT-141, the message-refusal register a withdrawal must not lock) and
+    doctor_link_redemption under DOCTOR_LINK_PREFIX (INT-150, the clinician
+    holding a token and no account, whose consent check runs record-level
+    inside the endpoint). Any marker outside its prefix does NOT count as a
+    declaration (the route is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -522,6 +580,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_data_subject_right(route) and _under_data_subject_right_prefix(path):
             continue
         if _is_notification_preference(route) and _under_notification_preference_prefix(path):
+            continue
+        if _is_doctor_link_redemption(route) and _under_prefix(path, DOCTOR_LINK_PREFIX):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):
