@@ -68,7 +68,8 @@ sections:
           invented slot (files/12 §8 makes the pair exclusive and exhaustive)
         ask_tr:
           tr: "Soruları kendiniz için mi yanıtlıyorsunuz, yoksa bir yakınınız için mi?"
-        confirm_tr: "Yakınınız adına yanıtlıyorsunuz, doğru mu?"
+        confirm_tr:
+          tr: "Yakınınız adına yanıtlıyorsunuz, doğru mu?"
         follow_up_tr:
           tr: "Kimin adına yanıtladığınızı söyleyebilir misiniz?"
         choices_tr:
@@ -83,7 +84,8 @@ sections:
           invented slot
         ask_tr:
           tr: "Bugün sizi buraya getiren nedir?"
-        confirm_tr: "Geçen sefer belirttiğiniz neden hâlâ geçerli mi?"
+        confirm_tr:
+          tr: "Geçen sefer belirttiğiniz neden hâlâ geçerli mi?"
         follow_up_tr:
           tr: "Sizi en çok rahatsız eden şeyi seçebilir misiniz?"
         choices_tr:
@@ -116,7 +118,8 @@ sections:
           invented slot
         ask_tr:
           tr: "Sentetik belirtiniz şu anda var mı?"
-        confirm_tr: "Sentetik belirti hâlâ sürüyor, doğru mu?"
+        confirm_tr:
+          tr: "Sentetik belirti hâlâ sürüyor, doğru mu?"
         follow_up_tr:
           tr: "Sentetik belirtinin şu anda olup olmadığını söyleyebilir misiniz?"
         choices_tr:
@@ -171,7 +174,8 @@ sections:
           invented slot
         ask_tr:
           tr: "Düzenli kullandığınız sentetik bir ilaç var mı?"
-        confirm_tr: "Kayıtlı sentetik ilacınız hâlâ aynı mı?"
+        confirm_tr:
+          tr: "Kayıtlı sentetik ilacınız hâlâ aynı mı?"
         follow_up_tr:
           tr: "Düzenli bir ilaç kullanıp kullanmadığınızı söyleyebilir misiniz?"
         choices_tr:
@@ -231,20 +235,24 @@ red_flags:
       REMOTE:
         primary: CALL_112
         show_112: true
-        action_tr: "Hemen yardım isteyin."
+        action_tr:
+          tr: "Hemen yardım isteyin."
         do_nots_tr:
-          - "Yalnız kalmayın."
+          tr:
+            - "Yalnız kalmayın."
         why_tr:
           tr: "Bu bir sentetik test metnidir."
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
         notify_staff_immediate: true
-        action_tr: "Görevlilere haber verin."
+        action_tr:
+          tr: "Görevlilere haber verin."
         why_tr:
           tr: "Bu bir sentetik test metnidir."
       UNKNOWN:
-        ask_one_tr: "Şu anda hastanede misiniz?"
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE
         on_no: REMOTE
         on_no_answer: REMOTE

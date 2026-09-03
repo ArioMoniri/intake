@@ -40,14 +40,17 @@ ops:
         REMOTE:
           primary: CALL_112
           show_112: true
-          action_tr: "Hemen yardım isteyin."
+          action_tr:
+            tr: "Hemen yardım isteyin."
         ON_SITE:
           primary: GO_TO_IN_HOUSE_ACIL
           show_112: false
           notify_staff_immediate: true
-          action_tr: "Görevlilere haber verin ve bekleyin."
+          action_tr:
+            tr: "Görevlilere haber verin ve bekleyin."
         UNKNOWN:
-          ask_one_tr: "Şu anda hastanede misiniz?"
+          ask_one_tr:
+            tr: "Şu anda hastanede misiniz?"
           on_yes: ON_SITE
           on_no: REMOTE
           on_no_answer: REMOTE

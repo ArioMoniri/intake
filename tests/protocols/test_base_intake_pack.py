@@ -131,10 +131,12 @@ def _slots(pack: ProtocolPack) -> Iterator[tuple[str, str, Slot]]:
             yield section_id, key, slot
 
 
-#: Fields INT-297 turned into locale maps. ``confirm_tr`` is deliberately absent
-#: — the acceptance names five fields and that is not one of them — so the two
-#: shapes coexist here and the walker has to know which is which.
-_LOCALE_MAPPED = frozenset({"ask_tr", "follow_up_tr"})
+#: Every spoken slot field is a locale map: ``ask_tr`` and ``follow_up_tr``
+#: since INT-297, ``confirm_tr`` since INT-314. The two shapes no longer
+#: coexist, so the walker no longer has to know which is which — but the set is
+#: kept named rather than inlined, because it is the list a reader checks the
+#: DSL against.
+_LOCALE_MAPPED = frozenset({"ask_tr", "confirm_tr", "follow_up_tr"})
 
 
 def _patient_facing(pack: ProtocolPack) -> Iterator[tuple[str, str]]:

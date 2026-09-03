@@ -198,11 +198,14 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                 ask_gates[step_id] = _parse_gate(step_id, "ask_if", slot.ask_if)
             if slot.skip_if is not None:
                 skip_gates[step_id] = _parse_gate(step_id, "skip_if", slot.skip_if)
-            # INT-297: the DSL carries these per locale; the engine step carries
+            # INT-297/INT-314: the DSL carries these per locale; the engine step carries
             # one language, the one the document was resolved for. Projected
             # through entry_for, which raises rather than falling back — a plan
             # built with a hole in it would surface as silence mid-turn.
             ask_tr = entry_for(slot.ask_tr, protocol.locale) if slot.ask_tr is not None else None
+            confirm_tr = (
+                entry_for(slot.confirm_tr, protocol.locale) if slot.confirm_tr is not None else None
+            )
             follow_up_tr = (
                 entry_for(slot.follow_up_tr, protocol.locale)
                 if slot.follow_up_tr is not None
@@ -228,7 +231,7 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                     delivery=resolved.delivery,
                     full_kind=kind,
                     ask_tr=ask_tr,
-                    confirm_tr=slot.confirm_tr,
+                    confirm_tr=confirm_tr,
                     follow_up_tr=follow_up_tr,
                     choices_tr=tuple(choices),
                     ask_if=slot.ask_if,

@@ -50,6 +50,7 @@ from clinical_schemas.triage import (
 )
 from protocols import RedFlagRule, load_pack, resolve_red_flags
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE
 from protocols.triage import SlotAnswer, TriageContext, evaluate_triage, with_candidates
 from protocols.types import EK4Level, RedFlagRoute, RuleStatus
 
@@ -409,11 +410,21 @@ def _check_action(case: GoldenCase, action: object, rule_sets: RuleSets) -> list
     for attr, want in (
         ("primary", case.action_primary),
         ("show_112", case.action_show_112),
-        ("action_tr", case.action_tr),
-        ("ask_one_tr", case.ask_one_tr),
     ):
         if want is not None and getattr(action, attr, None) != want:
             mismatches.append(f"action.{attr} {getattr(action, attr, None)!r} != {want!r}")
+    # INT-314: the two spoken fields are locale maps now. The golden keeps
+    # naming the Turkish SENTENCE rather than the map, because the assertion a
+    # reader has to be able to check is "REMOTE resolves the rule's own REMOTE
+    # script" — and a golden that compared maps would still pass if the map
+    # gained a locale saying something else.
+    for attr, want in (("action_tr", case.action_tr), ("ask_one_tr", case.ask_one_tr)):
+        if want is None:
+            continue
+        carried = getattr(action, attr, None)
+        spoken = carried.get(DEFAULT_LOCALE) if isinstance(carried, Mapping) else carried
+        if spoken != want:
+            mismatches.append(f"action.{attr}[{DEFAULT_LOCALE}] {spoken!r} != {want!r}")
     return mismatches
 
 

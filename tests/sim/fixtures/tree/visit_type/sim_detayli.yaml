@@ -104,7 +104,8 @@ sections:
           invented slot
         ask_tr:
           tr: "Sentetik önceki kaydınızda değişen bir şey oldu mu?"
-        confirm_tr: "Sentetik önceki kaydınız aynı, doğru mu?"
+        confirm_tr:
+          tr: "Sentetik önceki kaydınız aynı, doğru mu?"
         follow_up_tr:
           tr: "Sentetik kaydınızda bir değişiklik olup olmadığını belirtebilirsiniz."
         choices_tr:

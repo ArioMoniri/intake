@@ -1,0 +1,321 @@
+{
+  "files/protocols/base.life_threat.yaml": {
+    "rules/0/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin. Görevlilere haber verildi. Girişte **\"göğüs ağrım var\"** deyin.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin. Görevlilere haber verildi. Girişte **\"göğüs ağrım var\"** deyin."
+    },
+    "rules/0/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      },
+      {
+        "authored": "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.",
+        "expanded": "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
+      },
+      {
+        "authored": "Bir şey yiyip içmeyin.",
+        "expanded": "Bir şey yiyip içmeyin."
+      }
+    ],
+    "rules/0/action/REMOTE/action_tr": {
+      "authored": "Hemen **112**'yi arayın.",
+      "expanded": "!tr-expansion-refused: TrExpansionError: \"**112**'yi\": no Turkish expansion is defined for this numeric form. files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator as demonstrated normaliser corruptions; author the value as words, or as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
+    },
+    "rules/0/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Kendi aracınızla yola çıkmayın.",
+        "expanded": "Kendi aracınızla yola çıkmayın."
+      },
+      {
+        "authored": "Bir şey yiyip içmeyin.",
+        "expanded": "Bir şey yiyip içmeyin."
+      },
+      {
+        "authored": "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin.",
+        "expanded": "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+      }
+    ],
+    "rules/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "rules/1/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevunuzu beklemeyin. Görevlilere haber verildi."
+    },
+    "rules/1/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      }
+    ],
+    "rules/1/action/REMOTE/action_tr": {
+      "authored": "Bugün içinde bir acil servise başvurun.",
+      "expanded": "Bugün içinde bir acil servise başvurun."
+    },
+    "rules/1/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — 112'yi arayın.",
+        "expanded": "!tr-expansion-refused: TrExpansionError: \"112'yi\": no Turkish expansion is defined for this numeric form. files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator as demonstrated normaliser corruptions; author the value as words, or as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
+      }
+    ],
+    "rules/1/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "rules/2/action/ON_SITE/action_tr": {
+      "authored": "Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun ve **Acil Servis'e götürün[ — {{tenant.acil_location_tr}}]**. Randevunuzu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun ve **Acil Servis'e götürün[ — {{tenant.acil_location_tr}}]**. Randevunuzu beklemeyin. Görevlilere haber verildi."
+    },
+    "rules/2/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Ağzını veya boğazını açıp bakmayın.",
+        "expanded": "Ağzını veya boğazını açıp bakmayın."
+      },
+      {
+        "authored": "Su, yiyecek ya da ilaç vermeyin.",
+        "expanded": "Su, yiyecek ya da ilaç vermeyin."
+      },
+      {
+        "authored": "Çocuğunuzu sırtüstü yatırmayın.",
+        "expanded": "Çocuğunuzu sırtüstü yatırmayın."
+      },
+      {
+        "authored": "Onu ağlatacak ya da telaşlandıracak bir şey yapmayın; koşmayın.",
+        "expanded": "Onu ağlatacak ya da telaşlandıracak bir şey yapmayın; koşmayın."
+      },
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      }
+    ],
+    "rules/2/action/REMOTE/action_tr": {
+      "authored": "Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.",
+      "expanded": "!tr-expansion-refused: TrExpansionError: \"**112**'yi\": no Turkish expansion is defined for this numeric form. files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator as demonstrated normaliser corruptions; author the value as words, or as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
+    },
+    "rules/2/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Ağzını veya boğazını açıp bakmayın.",
+        "expanded": "Ağzını veya boğazını açıp bakmayın."
+      },
+      {
+        "authored": "Su, yiyecek ya da ilaç vermeyin.",
+        "expanded": "Su, yiyecek ya da ilaç vermeyin."
+      },
+      {
+        "authored": "Çocuğunuzu sırtüstü yatırmayın.",
+        "expanded": "Çocuğunuzu sırtüstü yatırmayın."
+      },
+      {
+        "authored": "Yanından ayrılmayın; onu ağlatacak ya da telaşlandıracak bir şey yapmayın.",
+        "expanded": "Yanından ayrılmayın; onu ağlatacak ya da telaşlandıracak bir şey yapmayın."
+      }
+    ],
+    "rules/2/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "rules/3/action/REMOTE/do_nots_tr": [],
+    "rules/3/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "packages/protocols/base/intake.yaml": {
+    "sections/hpi/slots/severity_nrs/confirm_tr": {
+      "authored": "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?",
+      "expanded": "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?"
+    },
+    "sections/pmh_fh_sh/slots/weight_kg/confirm_tr": {
+      "authored": "Söylediğiniz kiloyu ekranda gösteriyorum; doğru mu?",
+      "expanded": "Söylediğiniz kiloyu ekranda gösteriyorum; doğru mu?"
+    }
+  },
+  "tests/fixtures/protocols/compile/life_threat_signed.yaml": {
+    "rules/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin.",
+      "expanded": "Görevlilere haber verin."
+    },
+    "rules/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "rules/0/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Yalnız kalmayın.",
+        "expanded": "Yalnız kalmayın."
+      }
+    ],
+    "rules/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/fixtures/protocols/compile/tree/base/intake.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin.",
+      "expanded": "Görevlilere haber verin."
+    },
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "red_flags/0/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Yalnız kalmayın.",
+        "expanded": "Yalnız kalmayın."
+      }
+    ],
+    "red_flags/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "sections/ziyaret/slots/sure_dakika/confirm_tr": {
+      "authored": "Sentetik doz alanı: mg cinsinden mi?",
+      "expanded": "Sentetik doz alanı: miligram cinsinden mi?"
+    }
+  },
+  "tests/protocols/goldens/invalid_findings/narrowed_tighten.yaml": {
+    "ops/0/rule/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "ops/0/rule/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "ops/0/rule/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/protocols/goldens/invalid_findings/tighten_bad_id.yaml": {
+    "ops/0/rule/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "ops/0/rule/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "ops/0/rule/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/protocols/goldens/invalid_schema/onsite_offers_112.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "red_flags/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/protocols/goldens/invalid_schema/red_missing_location.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    }
+  },
+  "tests/protocols/goldens/invalid_schema/red_missing_register.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "red_flags/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/protocols/goldens/valid/base.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "red_flags/0/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Yalnız kalmayın.",
+        "expanded": "Yalnız kalmayın."
+      }
+    ],
+    "red_flags/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/protocols/goldens/valid/child.yaml": {
+    "ops/0/rule/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin ve bekleyin.",
+      "expanded": "Görevlilere haber verin ve bekleyin."
+    },
+    "ops/0/rule/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "ops/0/rule/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    }
+  },
+  "tests/sim/fixtures/tree/base/sim_intake.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "Görevlilere haber verin.",
+      "expanded": "Görevlilere haber verin."
+    },
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yardım isteyin.",
+      "expanded": "Hemen yardım isteyin."
+    },
+    "red_flags/0/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Yalnız kalmayın.",
+        "expanded": "Yalnız kalmayın."
+      }
+    ],
+    "red_flags/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "sections/ilac/slots/ilac_kullanimi/confirm_tr": {
+      "authored": "Kayıtlı sentetik ilacınız hâlâ aynı mı?",
+      "expanded": "Kayıtlı sentetik ilacınız hâlâ aynı mı?"
+    },
+    "sections/oyku/slots/belirti_var/confirm_tr": {
+      "authored": "Sentetik belirti hâlâ sürüyor, doğru mu?",
+      "expanded": "Sentetik belirti hâlâ sürüyor, doğru mu?"
+    },
+    "sections/ziyaret/slots/basvuru_nedeni/confirm_tr": {
+      "authored": "Geçen sefer belirttiğiniz neden hâlâ geçerli mi?",
+      "expanded": "Geçen sefer belirttiğiniz neden hâlâ geçerli mi?"
+    },
+    "sections/ziyaret/slots/bildiren_rol/confirm_tr": {
+      "authored": "Yakınınız adına yanıtlıyorsunuz, doğru mu?",
+      "expanded": "Yakınınız adına yanıtlıyorsunuz, doğru mu?"
+    }
+  },
+  "tests/sim/fixtures/tree/visit_type/sim_detayli.yaml": {
+    "sections/gecmis_delta/slots/onceki_kayit_degisti/confirm_tr": {
+      "authored": "Sentetik önceki kaydınız aynı, doğru mu?",
+      "expanded": "Sentetik önceki kaydınız aynı, doğru mu?"
+    }
+  }
+}

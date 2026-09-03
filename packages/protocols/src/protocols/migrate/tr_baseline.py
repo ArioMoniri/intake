@@ -51,18 +51,18 @@ def _tr_of(value: Any) -> Any:
     return value
 
 
-def _walk(node: Any, path: tuple[str, ...]) -> Iterator[tuple[str, Any]]:
-    """Every migrated field in the document, with a stable pointer."""
+def _walk(node: Any, path: tuple[str, ...], fields: tuple[str, ...]) -> Iterator[tuple[str, Any]]:
+    """Every field of ``fields`` in the document, with a stable pointer."""
     if isinstance(node, dict):
         for key, child in node.items():
             here = (*path, str(key))
-            if key in MIGRATED_FIELDS:
+            if key in fields:
                 yield "/".join(here), _tr_of(child)
             else:
-                yield from _walk(child, here)
+                yield from _walk(child, here, fields)
     elif isinstance(node, list):
         for index, child in enumerate(node):
-            yield from _walk(child, (*path, str(index)))
+            yield from _walk(child, (*path, str(index)), fields)
 
 
 def _expansion(text: str) -> str:
@@ -86,18 +86,28 @@ def _rendered(value: Any) -> Any:
     return {"authored": str(value), "expanded": _expansion(str(value))}
 
 
-def authored_baseline(tree: Path, root: Path) -> dict[str, Any]:
-    """Every migrated field in every YAML document under ``tree``.
+def authored_baseline(
+    tree: Path, root: Path, fields: tuple[str, ...] = MIGRATED_FIELDS
+) -> dict[str, Any]:
+    """Every field of ``fields`` in every YAML document under ``tree``.
 
     Keys are paths relative to ``root`` so the baseline is portable between
     checkouts and readable in a diff.
+
+    ``fields`` defaults to INT-297's five so its committed baseline keeps
+    comparing exactly what it was taken over. INT-314 passes
+    :data:`~protocols.migrate.locale_maps.SPOKEN_FIELDS` and takes its own
+    baseline: one function, two field sets, because a comparator that silently
+    widened would make both baselines fail for a reason that is not a content
+    change — and a comparator that could not widen at all would have left the
+    four spoken fields checked by nothing but a human reading a diff.
     """
     out: dict[str, Any] = {}
     for path in sorted(tree.resolve().rglob("*.yaml")):
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
             continue
-        entries = {pointer: _rendered(value) for pointer, value in _walk(raw, ())}
+        entries = {pointer: _rendered(value) for pointer, value in _walk(raw, (), fields)}
         if entries:
             out[str(path.relative_to(root))] = dict(sorted(entries.items()))
     return out

@@ -73,7 +73,7 @@ def _remote(*, show_112: bool = True) -> LocationAction:
     return LocationAction(
         primary="CALL_112",
         show_112=show_112,
-        action_tr="Hemen yardım isteyin.",
+        action_tr={TR: "Hemen yardım isteyin."},
         why_tr={TR: "Bu bir sentetik test metnidir."},
     )
 
@@ -83,13 +83,15 @@ def _on_site(*, show_112: bool = False) -> LocationAction:
         primary="GO_TO_IN_HOUSE_ACIL",
         show_112=show_112,
         notify_staff_immediate=True,
-        action_tr="Görevlilere haber verin.",
+        action_tr={TR: "Görevlilere haber verin."},
         why_tr={TR: "Bu bir sentetik test metnidir."},
     )
 
 
 def _unknown(ask: str = "Şu anda hastanede misiniz?") -> UnknownAction:
-    return UnknownAction(ask_one_tr=ask, on_yes="ON_SITE", on_no="REMOTE", on_no_answer="REMOTE")
+    return UnknownAction(
+        ask_one_tr={TR: ask}, on_yes="ON_SITE", on_no="REMOTE", on_no_answer="REMOTE"
+    )
 
 
 def _red_action(**kwargs: Any) -> RedFlagAction:
@@ -404,7 +406,10 @@ def test_refuses_an_unknown_branch_that_asks_nothing(
     life_threat: LifeThreatSet, template: OperationalTemplate
 ) -> None:
     unknown = UnknownAction.model_construct(
-        ask_one_tr="Hastanedesiniz.", on_yes="ON_SITE", on_no="REMOTE", on_no_answer="REMOTE"
+        ask_one_tr={TR: "Hastanedesiniz."},
+        on_yes="ON_SITE",
+        on_no="REMOTE",
+        on_no_answer="REMOTE",
     )
     action = RedFlagAction.model_construct(remote=_remote(), on_site=_on_site(), unknown=unknown)
     codes = _refuse(_pack(red_flags=(_red_rule(action=action),)), life_threat, template)
@@ -750,18 +755,18 @@ def _life_threat_rule_yaml(**overrides: Any) -> dict[str, Any]:
             "REMOTE": {
                 "primary": "CALL_112",
                 "show_112": True,
-                "action_tr": "Hemen yardım isteyin.",
+                "action_tr": {TR: "Hemen yardım isteyin."},
                 "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "ON_SITE": {
                 "primary": "GO_TO_IN_HOUSE_ACIL",
                 "show_112": False,
                 "notify_staff_immediate": True,
-                "action_tr": "Görevlilere haber verin.",
+                "action_tr": {TR: "Görevlilere haber verin."},
                 "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "UNKNOWN": {
-                "ask_one_tr": "Şu anda hastanede misiniz?",
+                "ask_one_tr": {TR: "Şu anda hastanede misiniz?"},
                 "on_yes": "ON_SITE",
                 "on_no": "REMOTE",
                 "on_no_answer": "REMOTE",
