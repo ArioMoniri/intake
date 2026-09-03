@@ -3556,7 +3556,7 @@
   labels:
   - area:platform
   - area:i18n
-  status: todo
+  status: done
   acceptance:
   - 'a session carries exactly one locale, fixed at the start and changed only
     by an explicit act: the locale is a session field rather than a per-string
