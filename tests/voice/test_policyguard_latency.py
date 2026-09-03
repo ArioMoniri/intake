@@ -26,13 +26,14 @@ import time
 
 import pytest
 from intake_voice_runtime.profiles import VoiceProfile
+from intake_voice_runtime.talker.guard_lexicons.tr import B1_MAX_WORDS_PER_SENTENCE
 from intake_voice_runtime.talker.policy_guard import (
-    B1_MAX_WORDS_PER_SENTENCE,
     MAX_SENTENCES_PER_TURN,
     POLICY_GUARD_BUDGET_MS,
     FormOfAddress,
     PolicyGuard,
     ViolationClass,
+    policy_guard_for,
 )
 
 CLEAN = "Ağrınız ne zaman başladı?"
@@ -40,7 +41,7 @@ CLEAN = "Ağrınız ne zaman başladı?"
 
 @pytest.fixture()
 def guard() -> PolicyGuard:
-    return PolicyGuard(profile=VoiceProfile.RESIDENCY_TR)
+    return policy_guard_for(locale="tr", profile=VoiceProfile.RESIDENCY_TR)
 
 
 def _classes(guard: PolicyGuard, text: str) -> set[ViolationClass]:
@@ -179,7 +180,9 @@ def test_the_sen_register_is_caught_when_the_patient_has_not_mirrored_it(
 
 
 def test_the_sen_register_passes_once_the_patient_has_mirrored_it() -> None:
-    mirrored = PolicyGuard(profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SEN)
+    mirrored = policy_guard_for(
+        locale="tr", profile=VoiceProfile.RESIDENCY_TR, form_of_address=FormOfAddress.SEN
+    )
     assert ViolationClass.REGISTER not in _classes(mirrored, "Nasılsın?")
 
 
