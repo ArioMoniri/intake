@@ -1,4 +1,5 @@
 {
   "CFBundleDisplayName": "Vizite",
-  "NSMicrophoneUsageDescription": "Sesli görüşme sırasında anlattıklarınızı hekiminize iletebilmek için mikrofon izni gereklidir. Ses kaydınız saklanmaz."
+  "NSMicrophoneUsageDescription": "Sesli görüşme sırasında anlattıklarınızı hekiminize iletebilmek için mikrofon izni gereklidir. Ses kaydınız saklanmaz.",
+  "NSCameraUsageDescription": "Rapor ve tahlil belgelerinizin fotoğrafını çekip vizitinize ekleyebilmeniz için kamera izni gereklidir. Fotoğraf yalnızca sizin yüklediğiniz belge olarak saklanır."
 }

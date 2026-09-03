@@ -700,3 +700,52 @@ because the decisions are design decisions, not layout ones.
 - **Every row is asserted across `APP_STEPS`, not at 1.0** — INT-136's
   measurement and INT-295's finding, taken as standing practice now rather
   than as a thing each screen rediscovers.
+
+## Kayıtlarım: the capture, the card and the locator (INT-138, 2026-09-03)
+
+No new primitive, no new colour, no new type role — the guidance block, the quiet
+pill, the amber status tone and the `Card` interior are all pass-3/5/6 anatomy.
+What is recorded here are the DECISIONS, because each is a design decision rather
+than a layout one.
+
+- **A confirm card has two verdicts and no text field, and the third control is
+  the source rather than an edit.** *Evet, doğru* / *Hayır, doğru değil*, then
+  *Belgede gösterin*. Invariant 22 bars free numeric text entry on the clinical
+  critical path, and an editable lab value on a confirm card is the worst
+  instance of it — the patient retyping a number they are reading off a screen,
+  with a decimal separator free to move. The server agrees by construction:
+  `confirm_record_item` carries the observation over unchanged, so an editor
+  would mint something it cannot accept. The honest way to settle a
+  disagreement is to look at the page, which is why the provenance panel is on
+  the card and not in a detail view somewhere else.
+- **The card expresses provenance, never confidence.** No accuracy figure exists
+  for this pipeline and none may be invented (invariant 20, HB-A13), so where a
+  lesser design would print a percentage this one draws a page-shaped frame with
+  the source rectangle on it. A locator is a stronger answer than a number
+  anyway: it can be checked.
+- **The locator carries no page image.** A PDF renderer is not shipped, and a
+  schematic that shows position honestly beats a thumbnail of content the
+  patient can already open. The full-fidelity provenance is the document, one
+  quiet pill away.
+- **A rectangle is invisible to a screen reader, so the panel says which third
+  of the page it sits in.** "Sayfa 2 · Sayfanın üst bölümü". The frame is a
+  named figure; the highlight inside it is decoration, because announcing the
+  same fact twice with no words of its own is worse than silence.
+- **Scanned and read are two different states and get two different words.** The
+  INT-229 chip answers *did the antivirus pass this file*; the reading section
+  answers *has anything been read out of it*. One chip cannot say both, and a
+  document that could not be read says so calmly — a quiet line that also says
+  the document itself is still there. Nothing the patient did went wrong and
+  nothing they can do would fix it, so it is not styled as an error.
+- **A unit conflict is amber, not the emergency pair, and the value above it is
+  untouched.** 02 §5.3 keeps the emergency colours for the RED route. The copy
+  says what was NOT done — *"Değer belgede yazdığı gibi bırakıldı"* — because
+  the fact that matters is that the app did not convert.
+- **Both action pills stack; neither shares a row.** Half a row at the largest
+  text step is about 148 pt and *"Hayır, doğru değil"* needs more than that on
+  one line, and a `flexWrap` row gives its items no shrink — the INT-295 defect,
+  where the label went off-screen with no horizontal scroll to reach it.
+  Asserted across `APP_STEPS`, not at 1.0, because the app's own text control
+  replaces the OS value.
+- **Accessibility hints state the RESULT, as INT-140 established.** "İki kez
+  dokunmak bu satırı onaylar", never "… için iki kez dokunun".

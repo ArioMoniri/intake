@@ -153,6 +153,41 @@ export const tr = {
   "records.visit.kicker": "Vizit",
   "records.visit.choose": "Belgenin ekleneceği viziti seçin.",
 
+  // INT-138 — camera capture, the reading (extraction) state, confirm cards
+  // and the provenance locator. `summary` on a card is the DOCUMENT's own
+  // line, so it has no key here: it is document content rendered back for
+  // confirmation, never authored clinical copy.
+  "records.camera": "Fotoğraf çekin",
+  "records.err.camera": "Kamera izni kapalı. Telefon ayarlarından açabilirsiniz.",
+  "records.state.reading": "Okunuyor",
+  "records.reading.kicker": "Belge okuma",
+  "records.reading.title": "Belgeleriniz henüz okunmuyor",
+  "records.reading.body":
+    "Belgeleriniz güvenle saklanıyor. İçlerindeki bilgiler şimdilik otomatik okunmuyor.",
+  "records.reading.refused":
+    "Bu belgeden gelen bilgiler gösterilemedi. Belgenizin kendisi kaydınızda duruyor.",
+  "records.confirm.kicker": "Onayınız bekleniyor",
+  "records.confirm.intro":
+    "Aşağıdaki satırlar belgenizden alındı. Yalnızca onayladıklarınız notunuza eklenir.",
+  "records.card.yes": "Evet, doğru",
+  "records.card.no": "Hayır, doğru değil",
+  "records.card.yesHint": "İki kez dokunmak bu satırı onaylar.",
+  "records.card.noHint": "İki kez dokunmak bu satırı notunuzun dışında bırakır.",
+  "records.card.show": "Belgede gösterin",
+  "records.card.hide": "Belgedeki yeri kapatın",
+  "records.card.showHint": "İki kez dokunmak satırın belgedeki yerini gösterir.",
+  "records.card.unitConflict":
+    "Bu satırdaki birim beklenenden farklı. Değer belgede yazdığı gibi bırakıldı.",
+  "records.card.confirmed": "Onayladınız",
+  "records.card.declined": "Notunuza eklenmeyecek",
+  "records.card.notSaved": "Onayınız kaydedilemedi. Lütfen daha sonra tekrar deneyin.",
+  "records.prov.page": "Sayfa",
+  "records.prov.figure": "Belgedeki yerin şeması",
+  "records.prov.top": "Sayfanın üst bölümü",
+  "records.prov.middle": "Sayfanın orta bölümü",
+  "records.prov.bottom": "Sayfanın alt bölümü",
+  "records.prov.open": "Belgeyi açın",
+
   "wellbeing.title": "İyilik hâli",
   "wellbeing.intro":
     "Kendinizi nasıl hissettiğinizi takip edin; paylaşım her zaman sizin kontrolünüzde.",
