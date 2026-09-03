@@ -155,9 +155,9 @@ Filed as **HB-C22** (physician of record).
 
 ## INT-101 — the budgets have no numbers, and the cost has no price
 
-**Raised:** 3 Sep 2026 · **Named humans:** the owner (both asks) · **HUMAN_BLOCKERS.md
-id: not yet allocated** — the coordinator allocates it; the two asks below are the rows
-verbatim, and neither is a re-ask of an existing one.
+**Raised:** 3 Sep 2026 · **Named humans:** the owner (both asks) · **HUMAN_BLOCKERS.md id: HB-O8** — allocated by the
+coordinator; the two asks below are the rows verbatim, and neither is a re-ask
+of an existing one.
 
 The mechanism ships and fails closed. `intake_voice_runtime.metering` decides which
 *kind* of object each budget is — a cap for extraction tokens, a target for TTS
