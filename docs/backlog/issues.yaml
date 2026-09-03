@@ -3868,3 +3868,64 @@
   - tests/ai/test_extraction_contract.py
   evidence: docs/evidence/INT-303.md
   sec_row: "triage"
+- id: INT-306
+  epic: E02-data
+  phase: P1
+  # Found by INT-150, which could not compute the expiry its own spec states.
+  # files/02 §2b pins Doctor Link expiry to `visit_datetime + 72 h`; the schema
+  # records a `visit.date` slot and no time of day. INT-150 took the
+  # conservative approximation - anchor to the START of the visit day in
+  # Türkiye, which is never later than the appointment and therefore never
+  # later than the spec's value - and refused an undated visit outright rather
+  # than falling back to an issue-time clock. That approximation is correct and
+  # it is still an approximation, so the field it approximates is filed here.
+  title: 'The schema records a visit DATE and the expiry rule needs a visit
+    DATETIME'
+  depends_on: []
+  labels:
+  - area:data
+  status: todo
+  acceptance:
+  - 'the slot carries a time of day where one is known, and states that it is
+    unknown where it is not - an absent time must stay absent rather than
+    defaulting to midnight, because a default midnight is indistinguishable
+    from a real 00:00 appointment and silently shortens every link by up to a
+    day'
+  - 'every producer of a visit time is enumerated and each says which it is:
+    patient entry, an MHRS/e-Nabız connector field, or a document extraction -
+    and an extracted time carries the same provenance an extracted value
+    carries elsewhere, never arriving unattributed'
+  - 'INT-150''s approximation is replaced rather than duplicated: link_expires_at
+    takes the datetime where one exists and keeps the start-of-day anchor only
+    as the documented fallback, with a test asserting the fallback is never
+    LATER than the true appointment'
+  tests:
+  - tests/clinician/test_doctor_link.py
+  sec_row: "visits"
+- id: INT-307
+  epic: E01-platform
+  phase: P2
+  # Found by INT-150 while declining to add a `first_opened_at` column: the
+  # instant has no publisher, so landing it would put intake_platform.wait_times,
+  # the metrics catalogue status and the writer out of step with each other.
+  title: 'publish_wait / roll_up_wait handle only the labelled records_processing
+    family, so an unlabelled wait series has nowhere to be written'
+  depends_on: []
+  labels:
+  - area:platform
+  - area:observability
+  status: todo
+  acceptance:
+  - 'the publisher accepts an unlabelled wait family, so a series such as
+    wait.doctor_link_first_open_h has a writer rather than a catalogue row with
+    nothing behind it'
+  - 'WAIT_SOURCES stops claiming a landing issue for a series nobody publishes:
+    every entry names either its publisher or the issue that owes one, and a
+    test fails on an entry that names neither'
+  - 'invariant 13 holds throughout: any series this enables already exists in
+    metrics_catalog.yaml before it can be written, and a catalogued series with
+    no publisher is reported rather than silently empty - an empty series reads
+    as measured-and-zero, which is the failure this issue exists to prevent'
+  tests:
+  - tests/platform/test_wait_times.py
+  sec_row: "observability-pipeline"
