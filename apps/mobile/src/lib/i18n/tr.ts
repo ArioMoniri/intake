@@ -597,6 +597,13 @@ export const tr = {
   "dialogue.speakCorrection": "Düzeltmeyi söyleyin",
   "dialogue.typeThisStep": "Yazarak yanıtlayın",
   "dialogue.transcribing": "Yazıya dökülüyor…",
+  // INT-293. Said once, in front of a question the agent is asking a second
+  // time because the patient's words mapped to no answer — here or at the
+  // extract lane. It names what happened without blaming the patient and
+  // without claiming the words were wrong; the question itself follows
+  // verbatim in its own bubble (invariant 10). The warmth is the -alım mood,
+  // not the pronoun: the register stays `siz` throughout.
+  "dialogue.notUnderstood": "Söylediğinizi tam anlayamadım. Aynı soruyu bir kez daha soralım.",
   // INT-261. Shown once when the agent's voice fails mid-conversation. It
   // names what stopped (the reading aloud), leaves no doubt that the rest
   // continues, and tells the patient what to do — instructional prose, so

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**233 issues.** By phase: P0 136 · P1 54 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 111 · todo 109 · withdrawn 1.
+**234 issues.** By phase: P0 137 · P1 54 · P2 38 · P3 5. By status: awaiting-human 7 · doing 5 · done 112 · todo 109 · withdrawn 1.
 
 ## P0
 
@@ -138,6 +138,7 @@
 | INT-258 | Overlay composition mechanism + monotonicity property test (content stays with INT-056) | E03-protocols | INT-041 | area:protocols | done |
 | INT-260 | Görünüm: an in-app appearance screen, and the four mechanisms that make its controls do something | E08-mobile | INT-144, INT-193 | area:mobile | done |
 | INT-284 | The screens INT-260 did not reach: content that overflows the safe area at both ends, and a glass bar that reserves less room than it occupies | E08-mobile | INT-260 | area:mobile, area:a11y | done |
+| INT-293 | Answers given on the dialogue surface never reach the note | E08-mobile | INT-261, INT-282 | area:mobile, area:engine, risk:clinical | done |
 | INT-286 | Open-ended asking: the pack declares how each question is asked, and the option list becomes the value space rather than the interaction | E08-mobile | INT-083, INT-239, INT-256, INT-282 | area:mobile, area:voice | done |
 | INT-291 | The patient cannot interrupt by speaking: voice barge-in, a measured chunk floor, and a turn-yielding contour | E05-voice | INT-237, INT-249 | area:voice, area:mobile | done |
 | INT-294 | TTS lane admission consumes the clip deadline, and the resulting mute latches for the session | E08-mobile | INT-243, INT-249, INT-261 | area:mobile, area:voice | done |

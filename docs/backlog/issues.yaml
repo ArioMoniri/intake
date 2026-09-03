@@ -3334,6 +3334,46 @@
     - apps/mobile/src/lib/intake/history.test.ts
     - apps/mobile/src/lib/intake/baseLayer.test.ts
   sec_row: "intake-typed"
+- id: INT-293
+  epic: E08-mobile
+  phase: P0
+  # Found by driving the real app on the simulator end to end, 2 Sep 2026
+  # (docs/evidence/INT-293.md). On the DIALOGUE surface I answered three
+  # consecutive questions through the composer. The conversation advanced
+  # correctly every time and the note never moved: "Not olusuyor 0 / 10 bolum"
+  # after three answers, and every section still "Henuz yanitlanmadi" -
+  # including Baslangic, read immediately after answering "Nasil basladi?".
+  # Handing over to typed steps then started at "0 soru yanitlandi", so no
+  # prefill carried either. The `today` branch that fires reliably in the typed
+  # flow did not fire here.
+  #
+  # HONEST CAVEAT, and it is the first thing to test: my typed Turkish had no
+  # diacritics ("Bugun basladi", not "Bugun basladi" with them) because the
+  # driving tool cannot type them. So this may be an extraction-normalisation
+  # failure rather than a missing write path. It does not change the severity.
+  # Diacritic-free Turkish is what people actually type, the answer is silently
+  # discarded, the agent moves on as though it understood, and the note the
+  # clinician receives is empty. A patient who completes the whole voice intake
+  # arrives at the visit with nothing.
+  title: "Answers given on the dialogue surface never reach the note"
+  depends_on: [INT-261, INT-282]
+  labels: [area:mobile, area:engine, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-293.md
+  acceptance:
+    - "the failure is reproduced before it is fixed: a test drives submit_utterance with a diacritic-free Turkish answer that matches an option label modulo diacritics ('Bugun basladi' against 'Bugun basladi'), and asserts the slot is filled - recorded red in the evidence before any fix"
+    - "the two hypotheses are separated in the evidence rather than assumed: a test with FULLY diacritised input proves whether the write path works at all, and the answer decides whether this is a normalisation bug or a missing write - both are stated with their recorded runs"
+    - "Turkish normalisation is exercised in both directions on the real option vocabulary: every option label in questions.ts and baseLayer.ts round-trips through the matcher from its diacritic-free form, with the Turkish dotted/dotless i pair asserted explicitly and NOT via a naive lowercase"
+    - "an answer the extractor cannot map is never silently swallowed: the turn re-asks or says it did not understand, and a test asserts that an unmappable utterance does NOT advance the question index"
+    - "the note-section counter is truthful: a test asserts that N answered dialogue turns produce N filled sections for slot-bearing questions, so 'Not olusuyor 0 / 10 bolum' cannot read 0 after a real answer"
+    - "askIf gates evaluate identically on both surfaces: the same answer sequence through the dialogue and through the typed steps yields the SAME asked-set, asserted for duration=today and duration=month"
+    - "the tidy hand-over carries what was already answered: 'Yazarak devam edin' after N dialogue answers lands on question N+1 with the earlier answers present, not at '0 soru yanitlandi'"
+    - "no placeholder, no skipped test; make check is green"
+  tests:
+    - apps/mobile/src/lib/dialogue/stream.test.ts
+    - apps/mobile/src/lib/intake/answerMatch.test.ts
+    - apps/mobile/src/lib/intake/questions.test.ts
+  sec_row: "intake-voice"
 - id: INT-286
   epic: E08-mobile
   phase: P0
