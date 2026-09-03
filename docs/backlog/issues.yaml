@@ -2560,8 +2560,15 @@
   # renders, the edge log boundary, and the whole prod-egress-proxy half
   # (registered destinations, denied ranges, resolve-once-and-pin with
   # re-validation on connect, redirects, the denial metric).
-  # docs/evidence/INT-203.md §9 is the clause-by-clause account and names the
-  # one thing a human must supply.
+  # docs/evidence/INT-203.md §9 is the clause-by-clause account. The two asks
+  # are registered as HB-I13 (where the tier may run — permission and siting,
+  # explicitly NOT the HB-I1/HB-I2 capacity questions: it is ~200 MB and boots
+  # in 28 s) and HB-I14 (the FQDNs it serves and the mailbox owning the ACME
+  # account). The boundary decision is ADR-028: two enforcement points rendered
+  # from one generator, the proxy's six-hour rebinding window closed where it
+  # exists, and a personal-data transport pointed at the forward proxy refused
+  # at construction — the fourth shape of the ADR-025 bypass, a configuration
+  # rather than a call site.
   status: awaiting-human
   acceptance:
     - "WAF blocks OWASP CRS suite; CrowdSec scenarios on; certs automated"
