@@ -35,6 +35,8 @@ importers:
         specifier: ^3.2.6
         version: 3.2.7(@types/node@26.4.0)(jiti@2.6.1)(lightningcss@1.33.0)(terser@5.51.2)(yaml@2.9.0)
 
+  apps/admin-web: {}
+
   apps/mobile:
     dependencies:
       '@expo-google-fonts/fraunces':

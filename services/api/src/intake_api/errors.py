@@ -10,6 +10,7 @@ from fastapi import HTTPException
 __all__ = [
     "admin_console_unconfigured",
     "admin_refused",
+    "benchmark_refused",
     "age_gate_refused",
     "break_glass_refused",
     "four_eyes_refused",
@@ -259,6 +260,16 @@ def four_eyes_refused(code: str) -> HTTPException:
     """A ceremony refusal (files/08 §8.2). 409: the request was understood
     and the ceremony's state or distinctness rule forbids it."""
     return HTTPException(status_code=409, detail={"error": code})
+
+
+def benchmark_refused(code: str, reason: str) -> HTTPException:
+    """INT-183: the models module refused to plan a benchmark. 409 — the
+    request was understood and cannot honestly be answered: an unknown
+    component, an unexpected field, or (today, for every quality request) no
+    named evaluation corpus to measure over. ``reason`` is static operator
+    text: it names an invariant and a blocker id, never a value from the
+    request and never anything patient-shaped (invariant 6)."""
+    return HTTPException(status_code=409, detail={"error": code, "reason": reason})
 
 
 def break_glass_refused(code: str) -> HTTPException:
