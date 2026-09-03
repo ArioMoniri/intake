@@ -1,0 +1,49 @@
+# INT-183 — the near-miss negative control for "red cell blocks release".
+#
+# Every enabled PHI-path row here HAS a healthy self-hosted fallback, so the
+# INT-022 release gate returns no violation and the release proceeds. What the
+# rows do carry is everything else the console must still say out loud:
+#
+#   anchor              — clean: self-hosted, probed, in-process fallback.
+#   unverified-licence  — its licence has never been read from a raw LICENSE
+#                         blob, which is a real invariant-19 finding and an
+#                         amber cell. It must NOT block, or the acceptance
+#                         clause would be satisfied by an implementation that
+#                         blocks on any imperfection.
+#   planned-phi         — declared on the PHI path and not running, so the
+#                         gate does not bind to it yet (INT-022: "a planned
+#                         row binds the moment it runs, never before").
+#
+# It lives under tests/fixtures so it can never be mistaken for
+# observability/registry.yaml, which is the only registry the console serves.
+
+components:
+  - component: anchor
+    self_hostable: true
+    self_hosted_now: true
+    host: "fixture host — never dialled; the suite injects the probe result"
+    license: "Apache-2.0 (fixture)"
+    probe: http_health
+    budget_ms: 500
+    fallback: "in-process:intake_probes.console"
+    phi_path: true
+
+  - component: unverified-licence
+    self_hostable: true
+    self_hosted_now: true
+    host: "fixture host — never dialled"
+    license: "UNVERIFIED (card tag apache-2.0, no blob)"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "component:anchor"
+    phi_path: true
+
+  - component: planned-phi
+    self_hostable: true
+    self_hosted_now: false
+    host: "fixture host — scripted, not booted"
+    license: "Apache-2.0 (fixture)"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: true

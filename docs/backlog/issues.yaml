@@ -2377,7 +2377,28 @@
   title: "Models & self-hosting registry module + release gate surface"
   depends_on: [INT-022, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-183.md
+  # NOTE 3 Sep 2026: all three clauses delivered, and the module is a
+  # PROJECTION of observability/registry.yaml rather than a second matrix —
+  # intake-probes became a declared dependency of intake-api so the console
+  # calls the INT-022 gate instead of reimplementing it (inv. 13). "Red" is
+  # that gate's verdict and nothing else, and the near-miss control
+  # (tests/fixtures/registry/amber_only.yaml) proves amber does not block —
+  # without it, "red blocks" would be satisfied by blocking on any
+  # imperfection. renderModelsModule THROWS on a payload claiming an
+  # unblocked release over a blocking cell, so the block cannot be rendered
+  # away by a stale tab. The benchmark trigger's latency lane executes the
+  # row's own probe through the INT-022 runner; its QUALITY lane refuses,
+  # because BENCHMARK_CORPORA ships EMPTY while HB-C10 and HB-A13 are open
+  # and a figure over an unnamed set is the claim inv. 20 forbids — the
+  # fail-closed state, not a gap. Two findings reported rather than repaired:
+  # whisper-tr-medical's licence is still UNVERIFIED against a raw LICENSE
+  # blob (inv. 19), and three pre-INT-243 model rows carry no machine-readable
+  # model_id@revision. Not built, each with a reason in the evidence:
+  # enable/disable, fallback ordering and version pinning (each writes to a
+  # signed release-gate input and needs its own ceremony), and live telemetry
+  # (ADR-015 sequences it to INT-181).
   acceptance:
     - "registry rendered; benchmark trigger; red cell blocks release visibly"
   tests: [apps/admin-web/e2e/models.spec.ts]

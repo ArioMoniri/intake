@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim live-smoke
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim live-smoke admin-fixtures
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -46,7 +46,7 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
@@ -92,6 +92,14 @@ safety:
 .PHONY: nightly-red-team
 nightly-red-team:
 	uv run python scripts/safety/nightly_red_team.py --run
+
+# INT-183: re-record the `GET /admin/models` body apps/admin-web renders.
+# Not a code generator with a mind of its own: it emits the same projection
+# the route emits, and tests/admin/test_models_module.py fails `make check`
+# when the committed file and the served payload disagree — so the fixture is
+# a recording of the registry, never a second copy of it (invariant 13).
+admin-fixtures:
+	uv run python scripts/dev/record_models_fixture.py
 
 check-ts:
 	pnpm -r lint

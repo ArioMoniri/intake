@@ -1393,6 +1393,18 @@ metrics:
       Break-glass grants opened by actor and reason class. `actor` is a staff
       account subject and `reason_class` a closed BreakGlassReason member —
       never a patient and never free text (INT-180).
+  - name: admin_model_benchmark_requested_total
+    id: admin.model_benchmark_requested_total
+    type: counter
+    labels: [actor, kind, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Model benchmark triggers on the self-hosting registry module, by actor,
+      lane (latency|quality) and outcome (planned|refused). `actor` is a staff
+      account subject and both other labels are closed enums — never a patient
+      and never free text (INT-183).
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge
