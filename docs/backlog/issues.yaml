@@ -1524,10 +1524,20 @@
   title: "Share centre: active shares, revoke <=1min, access log"
   depends_on: [INT-150]
   labels: [area:mobile]
-  status: todo
+  # INT-150 (PR #446) was OPEN when this branch was cut, so the mobile half was
+  # built against that branch's contract and the cascade clause was left as an
+  # INVERSION in apps/mobile/e2e/shares.spec.ts - a test asserting the router's
+  # absence, which failed the day #446 merged mid-iteration. It did, and both
+  # things its failure message named were then done: section 7 became the real
+  # cross-check against doctor_link/router.py, and the cascade became a test
+  # that runs here. Both acceptance clauses are met.
+  status: done
+  evidence: docs/evidence/INT-139.md
   acceptance:
     - "revocation cascades to tokens within 1 min (test); patient sees access log"
-  tests: [apps/mobile/e2e/shares.spec.ts]
+  tests:
+    - apps/mobile/e2e/shares.spec.ts
+    - tests/clinician/test_share_revocation_budget.py
   legal: "KVKK-11"
   sec_row: "share-centre"
 - id: INT-140
@@ -4161,3 +4171,43 @@
   tests:
   - tests/ci/test_security_gates.py
   sec_row: "cicd"
+- id: INT-311
+  epic: E08-mobile
+  phase: P1
+  # Reported by INT-139, which refused to build it: the share centre lists,
+  # audits and revokes existing shares, and nothing in this repo owns the act of
+  # ISSUING one from the patient's phone. INT-137 refused the QR for the same
+  # reasons and named INT-150; INT-150 built the server side and refused the
+  # delivery channel (HB-O7); INT-139 refused the surface. Three issues have now
+  # declined the same thing for compatible reasons, which is the point at which
+  # it needs an owner rather than a fourth refusal.
+  title: 'Nobody owns issuing a Doctor Link from the patient''s phone, and three
+    issues have refused it in a row'
+  depends_on:
+  - INT-150
+  - INT-139
+  labels:
+  - area:mobile
+  - area:security
+  status: todo
+  acceptance:
+  - 'the act of issuing has one owner and one surface: today INT-137 refuses the
+    QR, INT-150 refuses the delivery channel and INT-139 refuses the issuing
+    screen, each correctly and each citing the others - so the refusals are
+    consistent and the capability is simply absent, which is a state nobody
+    chose'
+  - 'no bearer credential is rendered in the patient app until there is a
+    redemption path whose consent scope and audit entry are checked on the
+    server: INT-137''s four negative controls (no link, no scheme, no token, no
+    serialised note) stay standing and are relaxed only by a change that says in
+    its own body why each one may now go'
+  - 'the copy implies no channel that does not exist: HB-O7 records that the
+    phone or e-mail destination files/10 §2 names has no recorded value and no
+    contracted vendor, so an issuing surface that says "we sent you a code" is
+    false until that is answered'
+  - 'whatever it renders is reachable across the app''s own text steps, because
+    INT-136 measured 52 of 248 Turkish labels overflowing the row at the largest
+    one'
+  tests:
+  - apps/mobile/e2e/shares.spec.ts
+  sec_row: "share-centre"
