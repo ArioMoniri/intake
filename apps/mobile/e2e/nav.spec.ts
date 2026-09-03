@@ -33,6 +33,8 @@ const NAV_MAP = [
   "(tabs)/visits/[visitId]/index.tsx",
   "(tabs)/visits/[visitId]/intake.tsx",
   "(tabs)/visits/[visitId]/review.tsx",
+  // INT-139 — Paylaşımlarınız: the share centre for this visit's note
+  "(tabs)/visits/[visitId]/shares.tsx",
   "(tabs)/records.tsx",
   "(tabs)/wellbeing.tsx",
   "(tabs)/me/index.tsx",

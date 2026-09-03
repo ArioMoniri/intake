@@ -1185,6 +1185,52 @@ export const tr = {
   "intake.instrument.unavailable.title": "Bu bölüm şimdilik kapalı",
   "intake.instrument.unavailable.body":
     "Bu bölümün soruları henüz hazır değil. Hazır olduğunda burada göreceksiniz; şimdilik bu adımı boş bırakabilirsiniz.",
+  // --- INT-139 · Paylaşımlarınız: açık paylaşımlar, durdurma ve erişim
+  // kaydı. Üç kural bu bloğun biçimini belirler: ekranda hiçbir sayı yoktur
+  // (INT-140 yazım kararı — sayılar yalnızca tarih olarak görünür), hiçbir
+  // süre ölçüsü geçmez (invariant 20 — ölçüm docs/evidence/ dosyasındadır),
+  // ve erişim kaydı kişi adı değil rol gösterir (files/10 §3).
+  "shares.title": "Paylaşımlarınız",
+  "shares.sub": "Açık paylaşımlar ve erişim kaydı",
+  "shares.guide.kicker": "Paylaşım",
+  "shares.guide.title": "Notunuza kimin erişimi var",
+  "shares.guide.body":
+    "Notunuzu paylaştığınız her erişim burada listelenir. Dilediğiniz an durdurabilirsiniz.",
+  "shares.active": "Açık paylaşımlar",
+  "shares.empty": "Bu not için açık paylaşım yok.",
+  "shares.unreachable": "Paylaşımlar şu anda okunamadı. Bu liste eksik olabilir.",
+  "shares.until": "Bitiş",
+  "shares.state.live": "Açık",
+  "shares.state.revoked": "Durduruldu",
+  "shares.state.expired": "Süresi doldu",
+  "shares.state.usedUp": "Görüntüleme hakkı bitti",
+  "shares.revoke": "Erişimi durdurun",
+  "shares.revoke.confirm": "Durdurmayı onaylayın",
+  "shares.revoke.effect":
+    "Durdurduğunuz bir paylaşım, bir sonraki açma denemesinde artık çalışmaz.",
+  "shares.revoke.unsent": "Durdurma isteği ulaşmadı. Paylaşım açık kalmış olabilir.",
+  "shares.log": "Erişim kaydı",
+  "shares.log.empty": "Bu not için henüz erişim kaydı yok.",
+  "shares.log.noNames": "Kayıtta kişi adı yer almaz; yalnızca rol görünür.",
+  "shares.log.role.self": "Siz",
+  "shares.log.role.guardian": "Yasal temsilci",
+  "shares.log.role.clinician": "Hekim",
+  "shares.log.role.clinicStaff": "Klinik çalışanı",
+  "shares.log.role.system": "Sistem",
+  "shares.log.role.unknown": "Belirlenemedi",
+  "shares.log.category.recordViewed": "Kayıt görüntülendi",
+  "shares.log.category.recordShared": "Kayıt paylaşıldı",
+  "shares.log.category.recordUpdated": "Kayıt güncellendi",
+  "shares.log.category.consentChanged": "İzin değişti",
+  "shares.log.category.accountSecurity": "Hesap güvenliği",
+  "shares.log.category.dataRequest": "Veri talebi",
+  "shares.log.category.preferencesChanged": "Tercih değişti",
+  "shares.log.category.staffReview": "Klinik incelemesi",
+  "shares.log.category.systemIntegrity": "Sistem kaydı",
+  "shares.log.category.other": "Diğer işlem",
+  "shares.held": "Bu liste sunucudaki kayıttan gelir; telefonunuzda saklanmaz.",
+  "a11y.shares.revokeHint": "İki kez dokunmak bu paylaşımı durdurur.",
+  "a11y.shares.confirmHint": "İki kez dokunmak durdurma isteğini gönderir.",
 } as const;
 
 export type MessageKey = keyof typeof tr;
