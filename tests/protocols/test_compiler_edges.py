@@ -31,6 +31,7 @@ from protocols.compile import (
 )
 from protocols.dsl import Section, Slot
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.ops import OverrideTextOp, SetAttrOp, SetVoiceOp
 from protocols.pack import ProtocolPack
 from protocols.types import Maturity, PackLayer, SlotType
@@ -223,7 +224,7 @@ def test_a_blank_signoff_string_counts_as_missing(
 def _slot(**overrides: Any) -> Slot:
     payload: dict[str, Any] = {
         "type": SlotType.STRING,
-        "ask_tr": "Sentetik soru.",
+        "ask_tr": {TR: "Sentetik soru."},
         "openehr_deferred_reason": DEFERRED,
     }
     payload.update(overrides)
@@ -314,7 +315,9 @@ def test_an_op_pointer_outside_sections_is_refused(
 def test_a_section_level_pointer_that_is_not_a_slot_is_refused(
     life_threat: LifeThreatSet, template: OperationalTemplate
 ) -> None:
-    op = OverrideTextOp(op="override_text", pointer="/sections/ziyaret/title", text_tr="Sentetik.")
+    op = OverrideTextOp(
+        op="override_text", pointer="/sections/ziyaret/title", text_tr={TR: "Sentetik."}
+    )
     codes = _codes((_pack(), _hospital(op)), life_threat, template)
     assert RefusalCode.VALIDATION_FINDING in codes
 
@@ -325,7 +328,7 @@ def test_override_text_may_not_address_an_arbitrary_field(
     """The closed set is ask_tr / confirm_tr / follow_up_tr; ``/type`` would
     let a copy change re-type a slot."""
     op = OverrideTextOp(
-        op="override_text", pointer="/sections/ziyaret/slots/birinci/type", text_tr="code"
+        op="override_text", pointer="/sections/ziyaret/slots/birinci/type", text_tr={TR: "code"}
     )
     codes = _codes((_pack(), _hospital(op)), life_threat, template)
     assert RefusalCode.VALIDATION_FINDING in codes
@@ -380,7 +383,9 @@ def test_an_unexpandable_script_becomes_a_refusal(
     upstream by the INT-040 validator (NUMERAL_IN_TR), so the form that
     actually reaches the expander is an unknown unit symbol."""
     pack = _pack(
-        sections={"ziyaret": Section(slots={"birinci": _slot(ask_tr="Ölçü mg/sentetikbirim mi?")})}
+        sections={
+            "ziyaret": Section(slots={"birinci": _slot(ask_tr={TR: "Ölçü mg/sentetikbirim mi?"})})
+        }
     )
     with pytest.raises(CompileError) as excinfo:
         compile_bundle(
@@ -452,7 +457,9 @@ def test_a_go_licensed_instrument_emits_its_items_verbatim(
         id="SYN-X",
         items=(
             InstrumentItem(
-                id="madde_bir", text_tr="Sentetik ölçek maddesi.", allow_paraphrase=False
+                id="madde_bir",
+                text_tr={TR: "Sentetik ölçek maddesi."},
+                allow_paraphrase={TR: False},
             ),
         ),
     )
@@ -483,7 +490,7 @@ def test_a_boolean_literal_projects_to_answer_boolean(
             "ziyaret": Section(
                 slots={
                     "birinci": _slot(type=SlotType.BOOLEAN),
-                    "ikinci": _slot(ask_tr="İkinci.", ask_if="ziyaret.birinci == true"),
+                    "ikinci": _slot(ask_tr={TR: "İkinci."}, ask_if="ziyaret.birinci == true"),
                 }
             )
         }
@@ -529,7 +536,7 @@ def test_ask_if_and_skip_if_with_different_behaviours_are_refused(
                 slots={
                     "birinci": _slot(),
                     "ikinci": _slot(
-                        ask_tr="İkinci.",
+                        ask_tr={TR: "İkinci."},
                         ask_if="ziyaret.birinci == 'a' && ziyaret.birinci != 'b'",
                         skip_if="ziyaret.birinci == 'c' && ziyaret.birinci != 'd'",
                     ),
@@ -558,7 +565,7 @@ def test_a_quoted_separator_inside_a_literal_is_not_a_split_point(
             "ziyaret": Section(
                 slots={
                     "birinci": _slot(),
-                    "ikinci": _slot(ask_tr="İkinci.", ask_if="ziyaret.birinci == 'a && b'"),
+                    "ikinci": _slot(ask_tr={TR: "İkinci."}, ask_if="ziyaret.birinci == 'a && b'"),
                 }
             )
         }

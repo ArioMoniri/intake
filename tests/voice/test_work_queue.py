@@ -73,6 +73,7 @@ from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import InlinePayload, Priority
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.types import Delivery, SlotType
 from talker_harness import FakeClock, build_session, scripted_step
 
@@ -126,8 +127,8 @@ def _protocol() -> ResolvedProtocol:
                 step_id.split(".", 1)[1],
                 _slot(
                     type=SlotType.INTEGER,
-                    ask_tr=f"Sentetik soru {step_id}.",
-                    follow_up_tr=f"Sentetik takip {step_id}.",
+                    ask_tr={TR: f"Sentetik soru {step_id}."},
+                    follow_up_tr={TR: f"Sentetik takip {step_id}."},
                 ),
             )
             for step_id in STEP_IDS

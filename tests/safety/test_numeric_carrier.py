@@ -149,7 +149,11 @@ class TestTheExtractionSeamHandsOverADecimal:
     numeric type met the engine's. It bridged by casting to ``float``, which
     is the crossing files/13 §9.5 forbids and invariant 22 calls unguarded."""
 
-    SLOTS = {"hpi.olcum_c": Slot(type=SlotType.QUANTITY, unit="c", ask_tr="Sentetik ölçüm sorusu?")}
+    SLOTS = {
+        "hpi.olcum_c": Slot(
+            type=SlotType.QUANTITY, unit="c", ask_tr={"tr": "Sentetik ölçüm sorusu?"}
+        )
+    }
 
     def _parsed(self, literal: str) -> object:
         raw = (

@@ -36,6 +36,8 @@ from protocols.bindings import OperationalTemplate
 from protocols.compile import CompileError, LifeThreatSet, RefusalCode, resolve_protocol
 from protocols.dsl import RedFlagRule, Slot
 from protocols.loader import PackRegistry, load_pack
+from protocols.locale_text import DEFAULT_LOCALE as TR
+from protocols.locale_text import entry_for
 from protocols.pack import ProtocolPack
 from protocols.types import Delivery, EK4Level, Maturity, PackLayer, RuleStatus
 from protocols.validator import PLACEHOLDER_SIGNOFF_RE, pack_compilable, validate_packs
@@ -129,15 +131,31 @@ def _slots(pack: ProtocolPack) -> Iterator[tuple[str, str, Slot]]:
             yield section_id, key, slot
 
 
+#: Fields INT-297 turned into locale maps. ``confirm_tr`` is deliberately absent
+#: — the acceptance names five fields and that is not one of them — so the two
+#: shapes coexist here and the walker has to know which is which.
+_LOCALE_MAPPED = frozenset({"ask_tr", "follow_up_tr"})
+
+
 def _patient_facing(pack: ProtocolPack) -> Iterator[tuple[str, str]]:
-    """Every string a patient could hear or read, with its tr resource key."""
+    """Every string a patient could hear or read, with its tr resource key.
+
+    The resource key spelling is unchanged by INT-297 — ``<section>.<slot>.ask_tr``,
+    ``…choices_tr[0]`` — because the English mirror is keyed BY it and a key that
+    moved would silently orphan every mirror entry. What changed is where the
+    Turkish is read from: the locale's own entry, via ``entry_for``, which raises
+    rather than falling back.
+    """
     for section_id, key, slot in _slots(pack):
         for field in ("ask_tr", "confirm_tr", "follow_up_tr"):
-            text = getattr(slot, field)
-            if text is not None:
-                yield f"{section_id}.{key}.{field}", text
-        for index, choice in enumerate(slot.choices_tr or ()):
-            yield f"{section_id}.{key}.choices_tr[{index}]", choice
+            value = getattr(slot, field)
+            if value is None:
+                continue
+            text = entry_for(value, TR) if field in _LOCALE_MAPPED else value
+            yield f"{section_id}.{key}.{field}", text
+        if slot.choices_tr is not None:
+            for index, choice in enumerate(entry_for(slot.choices_tr, TR)):
+                yield f"{section_id}.{key}.choices_tr[{index}]", choice
 
 
 def _tr_keys(pack: ProtocolPack) -> dict[str, str]:

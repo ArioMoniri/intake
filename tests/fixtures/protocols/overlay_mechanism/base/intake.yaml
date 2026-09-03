@@ -14,7 +14,8 @@ status: clinically-reviewed-synthetic
 language: tr
 title_tr: "Sentetik bindirme temeli"
 voice:
-  allow_paraphrase: false
+  allow_paraphrase:
+    tr: false
   ack_style: brief
   pace: normal
 # files/03 §6 `overlays: [{id, when}]` — the activation declarations the
@@ -37,15 +38,18 @@ sections:
         openehr_deferred_reason: >-
           synthetic overlay-mechanism fixture; no archetype path is authored and
           none is needed to exercise the compose step
-        ask_tr: "Sentetik bir belirtiniz var mı?"
-        follow_up_tr: "Sentetik takip sorusu."
+        ask_tr:
+          tr: "Sentetik bir belirtiniz var mı?"
+        follow_up_tr:
+          tr: "Sentetik takip sorusu."
       sure_gun:
         type: integer
         required: false
         openehr_deferred_reason: >-
           synthetic overlay-mechanism fixture; no archetype path is authored and
           none is needed to exercise the compose step
-        ask_tr: "Sentetik süre sorusu."
+        ask_tr:
+          tr: "Sentetik süre sorusu."
 red_flags:
   - id: rf.sentetik_sari
     label_tr: "Sentetik sarı kural"

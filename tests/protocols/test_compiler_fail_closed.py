@@ -37,6 +37,7 @@ from protocols.dsl import (
 )
 from protocols.licences import InstrumentLicence
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.ops import SetVoiceOp
 from protocols.pack import ProtocolPack
 from protocols.types import (
@@ -73,7 +74,7 @@ def _remote(*, show_112: bool = True) -> LocationAction:
         primary="CALL_112",
         show_112=show_112,
         action_tr="Hemen yardım isteyin.",
-        why_tr="Bu bir sentetik test metnidir.",
+        why_tr={TR: "Bu bir sentetik test metnidir."},
     )
 
 
@@ -83,7 +84,7 @@ def _on_site(*, show_112: bool = False) -> LocationAction:
         show_112=show_112,
         notify_staff_immediate=True,
         action_tr="Görevlilere haber verin.",
-        why_tr="Bu bir sentetik test metnidir.",
+        why_tr={TR: "Bu bir sentetik test metnidir."},
     )
 
 
@@ -128,8 +129,8 @@ def _slot(**overrides: Any) -> Slot:
     payload: dict[str, Any] = {
         "type": SlotType.STRING,
         "required": True,
-        "ask_tr": "Bugün sizi buraya getiren nedir?",
-        "follow_up_tr": "En önemli şikâyetinizi söyleyebilir misiniz?",
+        "ask_tr": {TR: "Bugün sizi buraya getiren nedir?"},
+        "follow_up_tr": {TR: "En önemli şikâyetinizi söyleyebilir misiniz?"},
         "openehr_path": "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]",
     }
     payload.update(overrides)
@@ -575,7 +576,7 @@ def test_refuses_a_paraphrasable_section_that_administers_an_instrument(
     section = Section(
         slots={"basvuru_nedeni": _slot()},
         questionnaires=("SYN-X",),
-        voice=VoiceSettings(allow_paraphrase=True),
+        voice=VoiceSettings(allow_paraphrase={TR: True}),
     )
     pack = _pack(sections={"ziyaret": section}, instruments=(_instrument(),))
     with pytest.raises(CompileError) as excinfo:
@@ -601,7 +602,7 @@ def test_refuses_an_instrument_item_marked_paraphrasable(
         id="SYN-X",
         items=(
             InstrumentItem(
-                id="madde_bir", text_tr="Sentetik ölçek maddesi.", allow_paraphrase=True
+                id="madde_bir", text_tr={TR: "Sentetik ölçek maddesi."}, allow_paraphrase={TR: True}
             ),
         ),
     )
@@ -750,14 +751,14 @@ def _life_threat_rule_yaml(**overrides: Any) -> dict[str, Any]:
                 "primary": "CALL_112",
                 "show_112": True,
                 "action_tr": "Hemen yardım isteyin.",
-                "why_tr": "Bu bir sentetik test metnidir.",
+                "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "ON_SITE": {
                 "primary": "GO_TO_IN_HOUSE_ACIL",
                 "show_112": False,
                 "notify_staff_immediate": True,
                 "action_tr": "Görevlilere haber verin.",
-                "why_tr": "Bu bir sentetik test metnidir.",
+                "why_tr": {TR: "Bu bir sentetik test metnidir."},
             },
             "UNKNOWN": {
                 "ask_one_tr": "Şu anda hastanede misiniz?",
@@ -801,7 +802,9 @@ def _instrument() -> Instrument:
         id="SYN-X",
         items=(
             InstrumentItem(
-                id="madde_bir", text_tr="Sentetik ölçek maddesi.", allow_paraphrase=False
+                id="madde_bir",
+                text_tr={TR: "Sentetik ölçek maddesi."},
+                allow_paraphrase={TR: False},
             ),
         ),
     )

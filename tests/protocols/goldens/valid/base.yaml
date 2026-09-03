@@ -12,7 +12,8 @@ status: awaiting-clinical-review
 language: tr
 title_tr: "Sentetik temel paket"
 voice:
-  allow_paraphrase: true
+  allow_paraphrase:
+    tr: true
   backchannel_ok: true
   ack_style: brief
   pace: normal
@@ -24,18 +25,24 @@ sections:
         valueset: vs.synthetic_renk
         required: true
         must_ask: true
-        ask_tr: "Örnek soru: hangi rengi seçersiniz?"
-        follow_up_tr: "Bir renk adı söyleyebilir misiniz?"
-        choices_tr: ["mavi", "yeşil"]
+        ask_tr:
+          tr: "Örnek soru: hangi rengi seçersiniz?"
+        follow_up_tr:
+          tr: "Bir renk adı söyleyebilir misiniz?"
+        choices_tr:
+          tr: ["mavi", "yeşil"]
       bekleme_suresi:
         type: quantity
         unit: gun
         required: true
-        ask_tr: "Örnek soru: ne kadar süredir bekliyorsunuz?"
-        follow_up_tr: "Gün olarak yaklaşık söyleyebilir misiniz?"
+        ask_tr:
+          tr: "Örnek soru: ne kadar süredir bekliyorsunuz?"
+        follow_up_tr:
+          tr: "Gün olarak yaklaşık söyleyebilir misiniz?"
       olay_zamani:
         type: date
-        ask_tr: "Örnek soru: bu ne zaman oldu?"
+        ask_tr:
+          tr: "Örnek soru: bu ne zaman oldu?"
 red_flags:
   - id: rf.synthetic_kirmizi
     label_tr: "Sentetik kırmızı kural"
@@ -61,13 +68,15 @@ red_flags:
         action_tr: "Hemen yardım isteyin."
         do_nots_tr:
           - "Yalnız kalmayın."
-        why_tr: "Bu bir sentetik test metnidir."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false
         notify_staff_immediate: true
         action_tr: "Görevlilere haber verin ve bekleyin."
-        why_tr: "Bu bir sentetik test metnidir."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
       UNKNOWN:
         ask_one_tr: "Şu anda hastanede misiniz?"
         on_yes: ON_SITE

@@ -44,6 +44,7 @@ from hypothesis import strategies as st
 from protocols.compile import RefusalCode, compose_overlay_rules
 from protocols.dsl import RedFlagRule, Section, Slot
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.ops import SuppressSlotOp, TightenRuleOp
 from protocols.pack import ProtocolPack
 from protocols.types import (
@@ -82,14 +83,14 @@ _ACTION: dict[str, Any] = {
         "primary": "CALL_112",
         "show_112": True,
         "action_tr": "Hemen yardım isteyin.",
-        "why_tr": "Bu bir sentetik test metnidir.",
+        "why_tr": {TR: "Bu bir sentetik test metnidir."},
     },
     "ON_SITE": {
         "primary": "GO_TO_IN_HOUSE_ACIL",
         "show_112": False,
         "notify_staff_immediate": True,
         "action_tr": "Görevlilere haber verin.",
-        "why_tr": "Bu bir sentetik test metnidir.",
+        "why_tr": {TR: "Bu bir sentetik test metnidir."},
     },
     "UNKNOWN": {
         "ask_one_tr": "Şu anda hastanede misiniz?",
@@ -125,7 +126,7 @@ def _slot(slot_type: SlotType, ask_tr: str) -> Slot:
     return Slot(
         type=slot_type,
         required=False,
-        ask_tr=ask_tr,
+        ask_tr={TR: ask_tr},
         openehr_deferred_reason=(
             "synthetic property fixture; no archetype path is authored and none is "
             "needed to exercise the compose step"

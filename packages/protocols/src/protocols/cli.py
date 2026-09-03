@@ -22,7 +22,8 @@ today the real pack tree is all L0, so on that tree it refuses, which is the
 honest state and not a failure of the command.
 
 ``--voice`` has no default on purpose: the clip cache is keyed by
-``sha256(text_tr, voice_id)`` (files/03 §4.9.1 row 10), and a default voice
+``sha256(text_tr, voice_id, locale)`` (files/03 §4.9.1 row 10 plus INT-297's
+locale), and a default voice
 id would be a value chosen once by an engineer for every future build.
 """
 
@@ -46,6 +47,7 @@ from protocols.compile import (
     write_bundle,
 )
 from protocols.loader import PackRegistry, PackSchemaError, load_pack
+from protocols.locale_text import DEFAULT_LOCALE
 from protocols.taxonomy import (
     BranchResolution,
     BranchResolutionError,
@@ -164,6 +166,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     com.add_argument("--opt", type=Path, default=OPT_PATH, help="the pinned .opt")
     com.add_argument(
+        "--locale",
+        default=DEFAULT_LOCALE,
+        help="locale the bundle speaks (default: %(default)s). The clip manifest "
+        "keys on (locale, voice), so the artefact is clips.<locale>.<voice>.json "
+        "(INT-297); a locale the pack cannot speak in every scripted field is "
+        "refused rather than served with the gaps in Turkish.",
+    )
+    com.add_argument(
         "--voice",
         required=True,
         help="voice id the clip manifest is keyed for; no default (files/03 §4.9.1)",
@@ -208,6 +218,7 @@ def _compile_command(args: argparse.Namespace) -> int:
             life_threat=life_threat,
             template=template,
             voice=args.voice,
+            locale=args.locale,
             overlays=tuple(args.overlays),
         )
     except CompileError as exc:

@@ -97,9 +97,9 @@ def _protocol() -> ResolvedProtocol:
                     type=SlotType.BOOLEAN,
                     required=True,
                     must_ask=True,
-                    ask_tr="Sentetik belirtiniz var mı?",
+                    ask_tr={"tr": "Sentetik belirtiniz var mı?"},
                     confirm_tr="Sentetik belirti hâlâ var, doğru mu?",
-                    follow_up_tr="Sentetik belirti takip sorusu.",
+                    follow_up_tr={"tr": "Sentetik belirti takip sorusu."},
                 ),
             ),
             _resolved(
@@ -109,8 +109,8 @@ def _protocol() -> ResolvedProtocol:
                     type=SlotType.INTEGER,
                     required=True,
                     ask_if="oyku.belirti_var",
-                    ask_tr="Sentetik süre sorusu.",
-                    follow_up_tr="Sentetik süre takip sorusu.",
+                    ask_tr={"tr": "Sentetik süre sorusu."},
+                    follow_up_tr={"tr": "Sentetik süre takip sorusu."},
                 ),
             ),
             _resolved(
@@ -120,8 +120,8 @@ def _protocol() -> ResolvedProtocol:
                     type=SlotType.CODE,
                     valueset="vs.sentetik_siddet",
                     must_ask=True,
-                    ask_tr="Sentetik şiddet sorusu.",
-                    choices_tr=("sentetik_az", "sentetik_çok"),
+                    ask_tr={"tr": "Sentetik şiddet sorusu."},
+                    choices_tr={"tr": ("sentetik_az", "sentetik_çok")},
                 ),
             ),
             # ask-ahead eligible — nothing is known when it is offered — and
@@ -137,8 +137,8 @@ def _protocol() -> ResolvedProtocol:
                 _slot(
                     type=SlotType.STRING,
                     skip_if="!oyku.belirti_var",
-                    ask_tr="Sentetik ek not sorusu.",
-                    follow_up_tr="Sentetik ek not takip sorusu.",
+                    ask_tr={"tr": "Sentetik ek not sorusu."},
+                    follow_up_tr={"tr": "Sentetik ek not takip sorusu."},
                 ),
             ),
         ),
@@ -151,7 +151,7 @@ def _protocol() -> ResolvedProtocol:
             _resolved(
                 "beklenti",
                 "beklenti_metni",
-                _slot(type=SlotType.STRING, ask_tr="Sentetik beklenti sorusu."),
+                _slot(type=SlotType.STRING, ask_tr={"tr": "Sentetik beklenti sorusu."}),
             ),
         ),
     )
@@ -311,7 +311,7 @@ class TestPlan:
                             _slot(
                                 type=SlotType.BOOLEAN,
                                 required=True,
-                                ask_tr="Sentetik soru.",
+                                ask_tr={"tr": "Sentetik soru."},
                             ),
                         ),
                     ),
@@ -341,7 +341,7 @@ class TestPlan:
                             _slot(
                                 type=SlotType.STRING,
                                 ask_if="meds.any(class == DMARD)",
-                                ask_tr="Sentetik soru.",
+                                ask_tr={"tr": "Sentetik soru."},
                             ),
                         ),
                     ),
@@ -358,7 +358,9 @@ class TestPlan:
             delivery=Delivery.VOICE,
             allow_paraphrase=False,
             slots=(
-                _resolved("oyku", "siddet", _slot(type=SlotType.STRING, ask_tr="Sentetik soru.")),
+                _resolved(
+                    "oyku", "siddet", _slot(type=SlotType.STRING, ask_tr={"tr": "Sentetik soru."})
+                ),
             ),
         )
         with pytest.raises(PlanError, match="duplicate step id"):

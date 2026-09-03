@@ -31,6 +31,7 @@ from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.resolve import ResolvedProtocol, resolve_protocol
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
+from protocols.locale_text import DEFAULT_LOCALE
 
 __all__ = ["DIST_ROOT", "CompiledBundle", "compile_bundle", "write_bundle"]
 
@@ -50,6 +51,11 @@ class CompiledBundle(FrozenModel):
     pack_id: str = Field(description="Target pack.")
     version: str = Field(description="Target pack version.")
     voice: str = Field(description="Voice the clip manifest was keyed for.")
+    locale: str = Field(
+        default=DEFAULT_LOCALE,
+        description="Locale the bundle speaks. The clip manifest keys on "
+        "(locale, voice), so the artefact name carries both (INT-297).",
+    )
     resolved_protocol_hash: Sha256 = Field(
         description="Pinned per session (files/03 §6; files/12 §8)."
     )
@@ -93,6 +99,7 @@ def compile_bundle(
     voice: str,
     overlays: Sequence[str] = (),
     licences: LicenceTable | None = None,
+    locale: str = DEFAULT_LOCALE,
 ) -> CompiledBundle:
     """Resolve, project, and hash. Raises :class:`CompileError` on any refusal."""
     document = resolve_protocol(
@@ -102,8 +109,9 @@ def compile_bundle(
         template=template,
         overlays=overlays,
         licences=licences,
+        locale=locale,
     )
-    clips, prompts, clip_refusals = clip_manifest(document, voice)
+    clips, prompts, clip_refusals = clip_manifest(document, voice, locale=locale)
     doc, fhir_refusals = questionnaire(document, prompts)
     refusals = (*clip_refusals, *fhir_refusals)
     if refusals:
@@ -113,9 +121,10 @@ def compile_bundle(
         BINDINGS: _dump(_bindings_rows(document)),
         PYDANTIC: pydantic_module(document),
         TYPESCRIPT: typescript_module(document),
-        f"clips.{voice}.json": _dump(
+        f"clips.{locale}.{voice}.json": _dump(
             {
                 "voice": voice,
+                "locale": locale,
                 "pack_id": document.pack_id,
                 "resolved_protocol_hash": document.resolved_protocol_hash,
                 "entries": [
@@ -123,6 +132,7 @@ def compile_bundle(
                         "text_hash": row.entry.text_hash,
                         "clip_id": row.entry.clip_id,
                         "voice": row.entry.voice,
+                        "locale": row.entry.locale,
                         "text_tr": row.text_tr,
                         "scripted": row.scripted,
                         "subject": row.subject,
@@ -139,6 +149,7 @@ def compile_bundle(
             "chain": list(document.chain),
             "overlays": list(document.overlays),
             "voice": voice,
+            "locale": locale,
             "resolved_protocol_hash": document.resolved_protocol_hash,
             "opt_template_id": template.template_id,
             "opt_sha256": template.sha256,
@@ -152,6 +163,7 @@ def compile_bundle(
         pack_id=document.pack_id,
         version=document.version,
         voice=voice,
+        locale=locale,
         resolved_protocol_hash=document.resolved_protocol_hash,
         opt_template_id=template.template_id,
         opt_sha256=template.sha256,

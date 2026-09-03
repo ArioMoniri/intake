@@ -1,0 +1,2152 @@
+{
+  "files/protocols/base.life_threat.yaml": {
+    "rules/0/action/ON_SITE/why_tr": {
+      "authored": "Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez.",
+      "expanded": "Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez."
+    },
+    "rules/0/action/REMOTE/why_tr": {
+      "authored": "Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir. 112 ile gelen hastalar acil serviste triyaj için bekletilmez.",
+      "expanded": "Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir. yüz on iki ile gelen hastalar acil serviste triyaj için bekletilmez."
+    },
+    "rules/1/action/ON_SITE/why_tr": {
+      "authored": "Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz.",
+      "expanded": "Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz."
+    },
+    "rules/1/action/REMOTE/why_tr": {
+      "authored": "Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Randevunuzu beklemek uygun değil.",
+      "expanded": "Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Randevunuzu beklemek uygun değil."
+    },
+    "rules/2/action/ON_SITE/why_tr": {
+      "authored": "Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**. Zaten hastanedesiniz; en yararlı şey sakin kalmanız ve doğrudan acil servise gitmeniz.",
+      "expanded": "Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**. Zaten hastanedesiniz; en yararlı şey sakin kalmanız ve doğrudan acil servise gitmeniz."
+    },
+    "rules/2/action/REMOTE/why_tr": {
+      "authored": "Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**. Şu anda çocuğunuz için en yararlı şey, sizin sakin kalmanız.",
+      "expanded": "Nefes yolu daralmış olabilir. Ağlamak ve telaş bu daralmayı **artırabilir**. Şu anda çocuğunuz için en yararlı şey, sizin sakin kalmanız."
+    }
+  },
+  "packages/protocols/base/intake.yaml": {
+    "sections/expectations_wrapup/slots/anything_else/ask_tr": {
+      "authored": "Eklemek istediğiniz başka bir şey var mı?",
+      "expanded": "Eklemek istediğiniz başka bir şey var mı?"
+    },
+    "sections/expectations_wrapup/slots/anything_else/follow_up_tr": {
+      "authored": "Küçük gibi görünen bir ayrıntı da önemli olabilir.",
+      "expanded": "Küçük gibi görünen bir ayrıntı da önemli olabilir."
+    },
+    "sections/expectations_wrapup/slots/bring_list_ack/ask_tr": {
+      "authored": "Randevunuza getirmeniz gerekenleri ekranda gösteriyorum. Gördünüz mü?",
+      "expanded": "Randevunuza getirmeniz gerekenleri ekranda gösteriyorum. Gördünüz mü?"
+    },
+    "sections/expectations_wrapup/slots/bring_list_ack/follow_up_tr": {
+      "authored": "Listeyi görmediyseniz tekrar gösterebilirim.",
+      "expanded": "Listeyi görmediyseniz tekrar gösterebilirim."
+    },
+    "sections/expectations_wrapup/slots/open_questions/ask_tr": {
+      "authored": "Doktorunuza sormak istediğiniz bir şey var mı?",
+      "expanded": "Doktorunuza sormak istediğiniz bir şey var mı?"
+    },
+    "sections/expectations_wrapup/slots/open_questions/follow_up_tr": {
+      "authored": "Aklınıza gelen soruları şimdi söyleyebilirsiniz.",
+      "expanded": "Aklınıza gelen soruları şimdi söyleyebilirsiniz."
+    },
+    "sections/expectations_wrapup/slots/summary_confirmed/ask_tr": {
+      "authored": "Özeti ekranda gösteriyorum. Her şey doğru mu?",
+      "expanded": "Özeti ekranda gösteriyorum. Her şey doğru mu?"
+    },
+    "sections/expectations_wrapup/slots/summary_confirmed/follow_up_tr": {
+      "authored": "Düzeltmek istediğiniz bir yer varsa söyleyebilirsiniz.",
+      "expanded": "Düzeltmek istediğiniz bir yer varsa söyleyebilirsiniz."
+    },
+    "sections/hpi/slots/aggravating_factors/ask_tr": {
+      "authored": "Şikâyetinizi ne artırıyor?",
+      "expanded": "Şikâyetinizi ne artırıyor?"
+    },
+    "sections/hpi/slots/aggravating_factors/follow_up_tr": {
+      "authored": "Hareket, yemek ya da nefes almak artırıyor mu?",
+      "expanded": "Hareket, yemek ya da nefes almak artırıyor mu?"
+    },
+    "sections/hpi/slots/character_text/ask_tr": {
+      "authored": "Bu şikâyetiniz nasıl bir his veriyor?",
+      "expanded": "Bu şikâyetiniz nasıl bir his veriyor?"
+    },
+    "sections/hpi/slots/character_text/follow_up_tr": {
+      "authored": "Örneğin baskı, yanma, zonklama ya da batma gibi tarif edebilirsiniz.",
+      "expanded": "Örneğin baskı, yanma, zonklama ya da batma gibi tarif edebilirsiniz."
+    },
+    "sections/hpi/slots/duration/ask_tr": {
+      "authored": "Şikâyetiniz başladığından beri ne kadar sürüyor?",
+      "expanded": "Şikâyetiniz başladığından beri ne kadar sürüyor?"
+    },
+    "sections/hpi/slots/duration/follow_up_tr": {
+      "authored": "Sürekli mi, yoksa arada bir mi oluyor? Süresini yaklaşık söylemeniz yeterli.",
+      "expanded": "Sürekli mi, yoksa arada bir mi oluyor? Süresini yaklaşık söylemeniz yeterli."
+    },
+    "sections/hpi/slots/location_text/ask_tr": {
+      "authored": "Şikâyetinizi vücudunuzun neresinde hissediyorsunuz?",
+      "expanded": "Şikâyetinizi vücudunuzun neresinde hissediyorsunuz?"
+    },
+    "sections/hpi/slots/location_text/follow_up_tr": {
+      "authored": "Elinizle gösterebileceğiniz bir yer varsa tarif edebilirsiniz.",
+      "expanded": "Elinizle gösterebileceğiniz bir yer varsa tarif edebilirsiniz."
+    },
+    "sections/hpi/slots/onset_date/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zaman başladı?",
+      "expanded": "Bu şikâyetiniz ne zaman başladı?"
+    },
+    "sections/hpi/slots/onset_date/follow_up_tr": {
+      "authored": "Gün, hafta ya da ay olarak yaklaşık söyleyebilirsiniz.",
+      "expanded": "Gün, hafta ya da ay olarak yaklaşık söyleyebilirsiniz."
+    },
+    "sections/hpi/slots/prior_similar_episode/ask_tr": {
+      "authored": "Daha önce buna benzer bir şikâyetiniz oldu mu?",
+      "expanded": "Daha önce buna benzer bir şikâyetiniz oldu mu?"
+    },
+    "sections/hpi/slots/prior_similar_episode/follow_up_tr": {
+      "authored": "Benzer bir durum yaşadıysanız evet diyebilirsiniz.",
+      "expanded": "Benzer bir durum yaşadıysanız evet diyebilirsiniz."
+    },
+    "sections/hpi/slots/radiation_text/ask_tr": {
+      "authored": "Şikâyetiniz başka bir yere yayılıyor mu?",
+      "expanded": "Şikâyetiniz başka bir yere yayılıyor mu?"
+    },
+    "sections/hpi/slots/radiation_text/follow_up_tr": {
+      "authored": "Yayıldığı bir yer varsa neresi olduğunu söyleyebilirsiniz.",
+      "expanded": "Yayıldığı bir yer varsa neresi olduğunu söyleyebilirsiniz."
+    },
+    "sections/hpi/slots/relieving_factors/ask_tr": {
+      "authored": "Şikâyetinizi ne rahatlatıyor?",
+      "expanded": "Şikâyetinizi ne rahatlatıyor?"
+    },
+    "sections/hpi/slots/relieving_factors/follow_up_tr": {
+      "authored": "Dinlenmek ya da pozisyon değiştirmek işe yarıyor mu?",
+      "expanded": "Dinlenmek ya da pozisyon değiştirmek işe yarıyor mu?"
+    },
+    "sections/hpi/slots/severity_nrs/ask_tr": {
+      "authored": "Şikâyetinizin şiddetini sıfır ile on arasında bir sayıyla söyler misiniz?",
+      "expanded": "Şikâyetinizin şiddetini sıfır ile on arasında bir sayıyla söyler misiniz?"
+    },
+    "sections/hpi/slots/severity_nrs/follow_up_tr": {
+      "authored": "Sıfır hiç yok, beş orta, on dayanılmaz demek. Aradan bir sayı söyleyebilirsiniz.",
+      "expanded": "Sıfır hiç yok, beş orta, on dayanılmaz demek. Aradan bir sayı söyleyebilirsiniz."
+    },
+    "sections/hpi/slots/time_last_known_well/ask_tr": {
+      "authored": "En son ne zaman kendinizi tamamen normal hissettiniz?",
+      "expanded": "En son ne zaman kendinizi tamamen normal hissettiniz?"
+    },
+    "sections/hpi/slots/time_last_known_well/follow_up_tr": {
+      "authored": "Saat ya da gün olarak yaklaşık söylemeniz yeterli.",
+      "expanded": "Saat ya da gün olarak yaklaşık söylemeniz yeterli."
+    },
+    "sections/hpi/slots/timing_pattern/ask_tr": {
+      "authored": "Şikâyetiniz günün belli bir saatinde mi artıyor?",
+      "expanded": "Şikâyetiniz günün belli bir saatinde mi artıyor?"
+    },
+    "sections/hpi/slots/timing_pattern/choices_tr": [
+      {
+        "authored": "sabahları",
+        "expanded": "sabahları"
+      },
+      {
+        "authored": "akşamları",
+        "expanded": "akşamları"
+      },
+      {
+        "authored": "geceleri",
+        "expanded": "geceleri"
+      },
+      {
+        "authored": "belli bir saati yok",
+        "expanded": "belli bir saati yok"
+      }
+    ],
+    "sections/hpi/slots/timing_pattern/follow_up_tr": {
+      "authored": "Belli bir saatte artmıyorsa belli bir saati yok diyebilirsiniz.",
+      "expanded": "Belli bir saatte artmıyorsa belli bir saati yok diyebilirsiniz."
+    },
+    "sections/hpi/slots/trajectory/ask_tr": {
+      "authored": "Başladığından beri şikâyetiniz nasıl gidiyor?",
+      "expanded": "Başladığından beri şikâyetiniz nasıl gidiyor?"
+    },
+    "sections/hpi/slots/trajectory/choices_tr": [
+      {
+        "authored": "daha kötü",
+        "expanded": "daha kötü"
+      },
+      {
+        "authored": "aynı",
+        "expanded": "aynı"
+      },
+      {
+        "authored": "daha iyi",
+        "expanded": "daha iyi"
+      }
+    ],
+    "sections/hpi/slots/trajectory/follow_up_tr": {
+      "authored": "Daha kötü, aynı ya da daha iyi diyebilirsiniz.",
+      "expanded": "Daha kötü, aynı ya da daha iyi diyebilirsiniz."
+    },
+    "sections/hpi/slots/treatments_tried/ask_tr": {
+      "authored": "Bu şikâyet için şimdiye kadar ne denediniz?",
+      "expanded": "Bu şikâyet için şimdiye kadar ne denediniz?"
+    },
+    "sections/hpi/slots/treatments_tried/follow_up_tr": {
+      "authored": "İlaç, dinlenme ya da başka bir yöntem denediyseniz söyleyebilirsiniz.",
+      "expanded": "İlaç, dinlenme ya da başka bir yöntem denediyseniz söyleyebilirsiniz."
+    },
+    "sections/identity_check/slots/consent_recap_confirmed/ask_tr": {
+      "authored": "Ekranda gösterdiğim onam özetini onaylıyor musunuz?",
+      "expanded": "Ekranda gösterdiğim onam özetini onaylıyor musunuz?"
+    },
+    "sections/identity_check/slots/consent_recap_confirmed/follow_up_tr": {
+      "authored": "Onaylıyorsanız evet, onaylamıyorsanız hayır diyebilirsiniz.",
+      "expanded": "Onaylıyorsanız evet, onaylamıyorsanız hayır diyebilirsiniz."
+    },
+    "sections/identity_check/slots/proxy_reported/ask_tr": {
+      "authored": "Hastanın adına konuştuğunuzu not ediyorum. Doğru mu?",
+      "expanded": "Hastanın adına konuştuğunuzu not ediyorum. Doğru mu?"
+    },
+    "sections/identity_check/slots/proxy_reported/follow_up_tr": {
+      "authored": "Hastanın kendisi mi konuşuyor, yoksa siz mi anlatıyorsunuz?",
+      "expanded": "Hastanın kendisi mi konuşuyor, yoksa siz mi anlatıyorsunuz?"
+    },
+    "sections/identity_check/slots/subject_role/ask_tr": {
+      "authored": "Bu görüşmeyi kendiniz için mi yapıyorsunuz, yoksa bir yakınınız adına mı?",
+      "expanded": "Bu görüşmeyi kendiniz için mi yapıyorsunuz, yoksa bir yakınınız adına mı?"
+    },
+    "sections/identity_check/slots/subject_role/choices_tr": [
+      {
+        "authored": "kendim için",
+        "expanded": "kendim için"
+      },
+      {
+        "authored": "yakınım adına",
+        "expanded": "yakınım adına"
+      }
+    ],
+    "sections/identity_check/slots/subject_role/follow_up_tr": {
+      "authored": "Kendiniz için mi, yoksa başka biri adına mı konuşuyorsunuz?",
+      "expanded": "Kendiniz için mi, yoksa başka biri adına mı konuşuyorsunuz?"
+    },
+    "sections/meds_allergies/slots/allergies/ask_tr": {
+      "authored": "Bilinen bir ilaç ya da madde alerjiniz var mı?",
+      "expanded": "Bilinen bir ilaç ya da madde alerjiniz var mı?"
+    },
+    "sections/meds_allergies/slots/allergies/follow_up_tr": {
+      "authored": "Bilinen bir alerjiniz yoksa yok diyebilirsiniz.",
+      "expanded": "Bilinen bir alerjiniz yoksa yok diyebilirsiniz."
+    },
+    "sections/meds_allergies/slots/allergy_reaction/ask_tr": {
+      "authored": "Alerjiniz olduğunda neler oluyor?",
+      "expanded": "Alerjiniz olduğunda neler oluyor?"
+    },
+    "sections/meds_allergies/slots/allergy_reaction/follow_up_tr": {
+      "authored": "Döküntü, şişme ya da nefes darlığı gibi tarif edebilirsiniz.",
+      "expanded": "Döküntü, şişme ya da nefes darlığı gibi tarif edebilirsiniz."
+    },
+    "sections/meds_allergies/slots/anticoagulant_use/ask_tr": {
+      "authored": "Kan sulandırıcı bir ilaç kullanıyor musunuz?",
+      "expanded": "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
+    },
+    "sections/meds_allergies/slots/anticoagulant_use/choices_tr": [
+      {
+        "authored": "evet",
+        "expanded": "evet"
+      },
+      {
+        "authored": "hayır",
+        "expanded": "hayır"
+      },
+      {
+        "authored": "bilmiyorum",
+        "expanded": "bilmiyorum"
+      }
+    ],
+    "sections/meds_allergies/slots/anticoagulant_use/follow_up_tr": {
+      "authored": "İlaç kutusundaki adı okuyabilirseniz çok yardımcı olur.",
+      "expanded": "İlaç kutusundaki adı okuyabilirseniz çok yardımcı olur."
+    },
+    "sections/meds_allergies/slots/meds_confirmed/ask_tr": {
+      "authored": "İlaç listenizi ekranda gösteriyorum. Liste doğru mu?",
+      "expanded": "İlaç listenizi ekranda gösteriyorum. Liste doğru mu?"
+    },
+    "sections/meds_allergies/slots/meds_confirmed/follow_up_tr": {
+      "authored": "Listede eksik ya da fazla bir şey varsa söyleyebilirsiniz.",
+      "expanded": "Listede eksik ya da fazla bir şey varsa söyleyebilirsiniz."
+    },
+    "sections/meds_allergies/slots/meds_new_or_stopped/ask_tr": {
+      "authored": "Bu listede olmayan ya da bıraktığınız bir ilaç var mı?",
+      "expanded": "Bu listede olmayan ya da bıraktığınız bir ilaç var mı?"
+    },
+    "sections/meds_allergies/slots/meds_new_or_stopped/follow_up_tr": {
+      "authored": "Yeni başladığınız veya bıraktığınız ilaçların adını söyleyebilirsiniz.",
+      "expanded": "Yeni başladığınız veya bıraktığınız ilaçların adını söyleyebilirsiniz."
+    },
+    "sections/meds_allergies/slots/otc_herbal/ask_tr": {
+      "authored": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?",
+      "expanded": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?"
+    },
+    "sections/meds_allergies/slots/otc_herbal/follow_up_tr": {
+      "authored": "Vitamin, bitki çayı ve takviyeler de bu gruba girer.",
+      "expanded": "Vitamin, bitki çayı ve takviyeler de bu gruba girer."
+    },
+    "sections/pmh_fh_sh/slots/alcohol_use/ask_tr": {
+      "authored": "Alkol kullanıyor musunuz?",
+      "expanded": "Alkol kullanıyor musunuz?"
+    },
+    "sections/pmh_fh_sh/slots/alcohol_use/choices_tr": [
+      {
+        "authored": "hiç",
+        "expanded": "hiç"
+      },
+      {
+        "authored": "ara sıra",
+        "expanded": "ara sıra"
+      },
+      {
+        "authored": "düzenli",
+        "expanded": "düzenli"
+      }
+    ],
+    "sections/pmh_fh_sh/slots/alcohol_use/follow_up_tr": {
+      "authored": "Hiç, ara sıra ya da düzenli diyebilirsiniz.",
+      "expanded": "Hiç, ara sıra ya da düzenli diyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/caregiver_present/ask_tr": {
+      "authored": "Günlük işlerinizde size yardım eden biri var mı?",
+      "expanded": "Günlük işlerinizde size yardım eden biri var mı?"
+    },
+    "sections/pmh_fh_sh/slots/caregiver_present/follow_up_tr": {
+      "authored": "Yardım eden biri varsa evet diyebilirsiniz.",
+      "expanded": "Yardım eden biri varsa evet diyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/immunosuppression/ask_tr": {
+      "authored": "Bağışıklığınızı baskılayan bir tedavi görüyor musunuz?",
+      "expanded": "Bağışıklığınızı baskılayan bir tedavi görüyor musunuz?"
+    },
+    "sections/pmh_fh_sh/slots/immunosuppression/choices_tr": [
+      {
+        "authored": "evet",
+        "expanded": "evet"
+      },
+      {
+        "authored": "hayır",
+        "expanded": "hayır"
+      },
+      {
+        "authored": "bilmiyorum",
+        "expanded": "bilmiyorum"
+      }
+    ],
+    "sections/pmh_fh_sh/slots/immunosuppression/follow_up_tr": {
+      "authored": "Kemoterapi, biyolojik ilaç, kortizon tedavisi ya da organ nakli bu gruba girer.",
+      "expanded": "Kemoterapi, biyolojik ilaç, kortizon tedavisi ya da organ nakli bu gruba girer."
+    },
+    "sections/pmh_fh_sh/slots/living_situation/ask_tr": {
+      "authored": "Evde kiminle yaşıyorsunuz?",
+      "expanded": "Evde kiminle yaşıyorsunuz?"
+    },
+    "sections/pmh_fh_sh/slots/living_situation/follow_up_tr": {
+      "authored": "Yalnız yaşıyorsanız yalnız diyebilirsiniz.",
+      "expanded": "Yalnız yaşıyorsanız yalnız diyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/lmp_date/ask_tr": {
+      "authored": "Son âdet kanamanız ne zaman başladı?",
+      "expanded": "Son âdet kanamanız ne zaman başladı?"
+    },
+    "sections/pmh_fh_sh/slots/lmp_date/follow_up_tr": {
+      "authored": "Gün ve ay olarak yaklaşık söylemeniz yeterli.",
+      "expanded": "Gün ve ay olarak yaklaşık söylemeniz yeterli."
+    },
+    "sections/pmh_fh_sh/slots/new_diagnoses_since_last_visit/ask_tr": {
+      "authored": "Son görüşmenizden bu yana sağlığınızda yeni bir gelişme oldu mu?",
+      "expanded": "Son görüşmenizden bu yana sağlığınızda yeni bir gelişme oldu mu?"
+    },
+    "sections/pmh_fh_sh/slots/new_diagnoses_since_last_visit/follow_up_tr": {
+      "authored": "Yeni bir tanı aldıysanız ya da hastaneye yattıysanız söyleyebilirsiniz.",
+      "expanded": "Yeni bir tanı aldıysanız ya da hastaneye yattıysanız söyleyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/occupation/ask_tr": {
+      "authored": "Ne iş yapıyorsunuz?",
+      "expanded": "Ne iş yapıyorsunuz?"
+    },
+    "sections/pmh_fh_sh/slots/occupation/follow_up_tr": {
+      "authored": "Çalışmıyorsanız bunu da söyleyebilirsiniz.",
+      "expanded": "Çalışmıyorsanız bunu da söyleyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/pregnancy_status/ask_tr": {
+      "authored": "Şu anda gebe olma ihtimaliniz var mı?",
+      "expanded": "Şu anda gebe olma ihtimaliniz var mı?"
+    },
+    "sections/pmh_fh_sh/slots/pregnancy_status/choices_tr": [
+      {
+        "authored": "evet",
+        "expanded": "evet"
+      },
+      {
+        "authored": "hayır",
+        "expanded": "hayır"
+      },
+      {
+        "authored": "emin değilim",
+        "expanded": "emin değilim"
+      }
+    ],
+    "sections/pmh_fh_sh/slots/pregnancy_status/follow_up_tr": {
+      "authored": "Emin değilseniz emin değilim diyebilirsiniz.",
+      "expanded": "Emin değilseniz emin değilim diyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/smoking_status/ask_tr": {
+      "authored": "Sigara kullanıyor musunuz?",
+      "expanded": "Sigara kullanıyor musunuz?"
+    },
+    "sections/pmh_fh_sh/slots/smoking_status/choices_tr": [
+      {
+        "authored": "evet",
+        "expanded": "evet"
+      },
+      {
+        "authored": "bıraktım",
+        "expanded": "bıraktım"
+      },
+      {
+        "authored": "hiç kullanmadım",
+        "expanded": "hiç kullanmadım"
+      }
+    ],
+    "sections/pmh_fh_sh/slots/smoking_status/follow_up_tr": {
+      "authored": "Bıraktıysanız bıraktım diyebilirsiniz.",
+      "expanded": "Bıraktıysanız bıraktım diyebilirsiniz."
+    },
+    "sections/pmh_fh_sh/slots/weight_kg/ask_tr": {
+      "authored": "Kilonuzu biliyorsanız söyler misiniz?",
+      "expanded": "Kilonuzu biliyorsanız söyler misiniz?"
+    },
+    "sections/pmh_fh_sh/slots/weight_kg/follow_up_tr": {
+      "authored": "Yaklaşık bir değer de yeterli olur.",
+      "expanded": "Yaklaşık bir değer de yeterli olur."
+    },
+    "sections/reason_for_visit/slots/chief_complaint_text/ask_tr": {
+      "authored": "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim.",
+      "expanded": "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim."
+    },
+    "sections/reason_for_visit/slots/chief_complaint_text/follow_up_tr": {
+      "authored": "Sizi en çok rahatsız eden şeyi kısaca anlatabilirsiniz.",
+      "expanded": "Sizi en çok rahatsız eden şeyi kısaca anlatabilirsiniz."
+    },
+    "sections/reason_for_visit/slots/patient_goals/ask_tr": {
+      "authored": "Bu ziyaretten en çok ne bekliyorsunuz?",
+      "expanded": "Bu ziyaretten en çok ne bekliyorsunuz?"
+    },
+    "sections/reason_for_visit/slots/patient_goals/follow_up_tr": {
+      "authored": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?",
+      "expanded": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
+    }
+  },
+  "packages/protocols/specialty/adli_tip.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/agiz_dis_cene_radyolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/agiz_dis_ve_cene_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/aile_hekimligi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/algoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/amatem.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/anesteziyoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/asi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/beslenme_ve_diyet.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/beyin_ve_sinir_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cematem.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cerrahi_onkoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_endokrinolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_enfeksiyon_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_gastroenterolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_genetik_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_gogus_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_hematolojisi_ve_onkolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_immunolojisi_ve_alerjisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_kardiyolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_metabolizma_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_nefrolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_norolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_romatolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_sagligi_ve_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_urolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/cocuk_ve_ergen_ruh_sagligi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/deri_ve_zuhrevi_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/dis_hekimligi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/diyabet_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/el_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/endodonti.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/endokrinoloji_ve_metabolizma.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/enfeksiyon_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/evde_saglik.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/fiziksel_tip_ve_rehabilitasyon.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/fizyoterapi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/gastroenteroloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/gastroenteroloji_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/gebe_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/gelisimsel_pediatri.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/genel_cerrahi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/geriatri.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/getat.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/gogus_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/gogus_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/goz_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/halk_sagligi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/hava_ve_uzay_hekimligi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/hematoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/hemsirelik_egitim_poliklinikleri.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/ic_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/immunoloji_ve_alerji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/is_ve_meslek_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/jinekolojik_onkoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/kadin_hastaliklari_ve_dogum.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/kalp_ve_damar_cerrahisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/kardiyoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/klinik_norofizyoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/klinik_psikoloji_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/kulak_burun_bogaz_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/nefroloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/neonatoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/noroloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/nukleer_tip.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/obezite_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/odyoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/ortodonti.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/ortopedi_ve_travmatoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/pedodonti.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/perinatoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/periodontoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/plastik_rekonstruktif_ve_estetik_cerrahi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/protetik.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/radyasyon_onkolojisi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/restoratif.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/romatoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/ruh_sagligi_ve_hastaliklari.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/saglik_kurulu.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/sigara_birakma_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/sosyal_pediatri.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/spor_hekimligi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/sualti_ve_hiperbarik_tip.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/tibbi_ekoloji_ve_hidroklimatoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/tibbi_genetik.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/tibbi_onkoloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/ureme_endokrinolojisi_ve_infertilite.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/uroloji.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/uyku_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "packages/protocols/specialty/yasli_sagligi_poliklinigi.yaml": {
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zamandır var?",
+      "expanded": "Bu şikâyetiniz ne zamandır var?"
+    },
+    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
+      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
+      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+    }
+  },
+  "tests/fixtures/protocols/compile/life_threat_signed.yaml": {
+    "rules/0/action/ON_SITE/why_tr": {
+      "authored": "Bu bir sentetik test metnidir.",
+      "expanded": "Bu bir sentetik test metnidir."
+    },
+    "rules/0/action/REMOTE/why_tr": {
+      "authored": "Bu bir sentetik test metnidir.",
+      "expanded": "Bu bir sentetik test metnidir."
+    }
+  },
+  "tests/fixtures/protocols/compile/tree/base/intake.yaml": {
+    "red_flags/0/action/ON_SITE/why_tr": {
+      "authored": "Bu bir sentetik test metnidir.",
+      "expanded": "Bu bir sentetik test metnidir."
+    },
+    "red_flags/0/action/REMOTE/why_tr": {
+      "authored": "Bu bir sentetik test metnidir.",
+      "expanded": "Bu bir sentetik test metnidir."
+    },
+    "sections/tarama/slots/sessiz_soru/ask_tr": {
+      "authored": "Sentetik metin-yalnız soru.",
+      "expanded": "Sentetik metin-yalnız soru."
+    },
+    "sections/ziyaret/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün sizi buraya getiren nedir?",
+      "expanded": "Bugün sizi buraya getiren nedir?"
+    },
+    "sections/ziyaret/slots/basvuru_nedeni/follow_up_tr": {
+      "authored": "En önemli şikâyetinizi söyleyebilir misiniz?",
+      "expanded": "En önemli şikâyetinizi söyleyebilir misiniz?"
+    },
+    "sections/ziyaret/slots/renk_secimi/ask_tr": {
+      "authored": "Hangi rengi seçersiniz?",
+      "expanded": "Hangi rengi seçersiniz?"
+    },
+    "sections/ziyaret/slots/renk_secimi/choices_tr": [
+      {
+        "authored": "mavi",
+        "expanded": "mavi"
+      },
+      {
+        "authored": "yeşil",
+        "expanded": "yeşil"
+      }
+    ],
+    "sections/ziyaret/slots/sure_dakika/ask_tr": {
+      "authored": "Bu şikâyet ne kadar sürüyor?",
+      "expanded": "Bu şikâyet ne kadar sürüyor?"
+    },
+    "sections/ziyaret/slots/sure_dakika/follow_up_tr": {
+      "authored": "Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Yaklaşık olarak söyleyebilir misiniz?"
+    }
+  },
+  "tests/fixtures/protocols/overlay_mechanism/base/intake.yaml": {
+    "sections/oyku/slots/belirti_var/ask_tr": {
+      "authored": "Sentetik bir belirtiniz var mı?",
+      "expanded": "Sentetik bir belirtiniz var mı?"
+    },
+    "sections/oyku/slots/belirti_var/follow_up_tr": {
+      "authored": "Sentetik takip sorusu.",
+      "expanded": "Sentetik takip sorusu."
+    },
+    "sections/oyku/slots/sure_gun/ask_tr": {
+      "authored": "Sentetik süre sorusu.",
+      "expanded": "Sentetik süre sorusu."
+    }
+  }
+}

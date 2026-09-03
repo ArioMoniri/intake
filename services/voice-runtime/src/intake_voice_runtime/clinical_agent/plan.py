@@ -37,6 +37,7 @@ from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
 from protocols.compile.resolve import ResolvedProtocol
+from protocols.locale_text import entry_for
 from protocols.triage.expr import (
     Lookup,
     Truth,
@@ -197,7 +198,19 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                 ask_gates[step_id] = _parse_gate(step_id, "ask_if", slot.ask_if)
             if slot.skip_if is not None:
                 skip_gates[step_id] = _parse_gate(step_id, "skip_if", slot.skip_if)
-            choices = slot.choices_tr or ()
+            # INT-297: the DSL carries these per locale; the engine step carries
+            # one language, the one the document was resolved for. Projected
+            # through entry_for, which raises rather than falling back — a plan
+            # built with a hole in it would surface as silence mid-turn.
+            ask_tr = entry_for(slot.ask_tr, protocol.locale) if slot.ask_tr is not None else None
+            follow_up_tr = (
+                entry_for(slot.follow_up_tr, protocol.locale)
+                if slot.follow_up_tr is not None
+                else None
+            )
+            choices = (
+                entry_for(slot.choices_tr, protocol.locale) if slot.choices_tr is not None else ()
+            )
             if choices:
                 kind = StepKind.CHOICE
             elif section.allow_paraphrase:
@@ -214,9 +227,9 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                     required=slot.required,
                     delivery=resolved.delivery,
                     full_kind=kind,
-                    ask_tr=slot.ask_tr,
+                    ask_tr=ask_tr,
                     confirm_tr=slot.confirm_tr,
-                    follow_up_tr=slot.follow_up_tr,
+                    follow_up_tr=follow_up_tr,
                     choices_tr=tuple(choices),
                     ask_if=slot.ask_if,
                     skip_if=slot.skip_if,
