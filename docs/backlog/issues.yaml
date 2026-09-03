@@ -4229,3 +4229,42 @@
   tests:
   - apps/mobile/e2e/shares.spec.ts
   sec_row: "share-centre"
+- id: INT-312
+  epic: E01-platform
+  phase: P0
+  # Found by INT-102's adversarial suite, which asserted the gap rather than
+  # pre-normalising its own input to make itself pass. Both redaction tiers -
+  # intake_platform.deid._TCKN and redaction._TCKN_CANDIDATE - are
+  # \b[1-9]\d{10}\b, a CONTIGUOUS eleven-digit run. An identifier said aloud
+  # does not arrive that way. The forms are committed as SPOKEN_TCKN_FORMS in
+  # tests/safety/adversarial_corpus.py; INT-102 stays todo because of this line.
+  title: 'A TCKN said aloud is not masked: the redactors match a contiguous
+    eleven-digit run and speech arrives as groups or as words'
+  depends_on:
+  - INT-102
+  labels:
+  - area:security
+  - area:platform
+  - area:voice
+  status: todo
+  acceptance:
+  - 'the redactors see what speech actually produces: digit groups (a spaced or
+    hyphenated eleven-digit run), Turkish digit words, and the mixtures a
+    recogniser emits mid-utterance - with the committed SPOKEN_TCKN_FORMS
+    corpus as the input rather than a normalised copy of it'
+  - 'the checksum stays the discriminator, so this remains a TCKN redactor and
+    does not become a number shredder: a checksum-FAILING eleven-digit
+    accession number still survives untouched, which is INT-102''s existing
+    near-miss control and must keep passing unchanged'
+  - 'the normalisation happens where it can see the whole utterance and cannot
+    reach the note: it is a redaction concern, not an ASR feature, and nothing
+    added here may put identifier handling on the speech critical path
+    (invariant 9) or retain audio (invariant 3)'
+  - 'the two controls that hold the line today are not weakened: deidentify_for_egress
+    still fails closed ENTIRELY without the NER tier, and LlmSpan still has no
+    field a transcript could occupy - both asserted before and after'
+  - 'any leak-rate figure lives only in docs/evidence/ with a date and the named
+    corpus, described as a measurement of that corpus on that day (invariant 20)'
+  tests:
+  - tests/safety/test_adversarial_rt09_14.py
+  sec_row: "identifiers"
