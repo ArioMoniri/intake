@@ -64,6 +64,7 @@ import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
   dialogueStreamReducer,
   initialDialogueStreamState,
+  shouldAttemptSpeech,
   type DialogueStreamAction,
   type DialogueStreamState,
 } from "./stream";
@@ -330,11 +331,18 @@ export function useDialogueSession({
   // about AUDIO OUTPUT: a TTS ladder that cannot admit a lane inside the turn
   // budget, a clip that comes back empty, a player that will not start. None
   // of that stops the patient answering, so it raises `speech_unavailable`
-  // instead: the turn advances, the session is silent from here, and the
-  // screen says so once. Before this, a clip failure on question two ended
-  // the whole intake and the typed form re-asked question one.
+  // instead: the turn advances, the session goes silent, and the screen says
+  // so. Before this, a clip failure on question two ended the whole intake
+  // and the typed form re-asked question one.
+  //
+  // INT-294: "silent from here" was too strong. The silence is a report about
+  // the last clip, so the driver tries again once the cooldown the reducer
+  // set has been spent, and a clip that plays clears the caption. The retry
+  // is affordable because admission is now bounded to ONE turn round-trip
+  // (ttsLane.ts ADMISSION_BUDGET_MS) instead of one per (tier, host) pair.
   const speaking = state.turn.phase === "speaking" ? state.turn : null;
   const voiceMuted = state.voiceMuted;
+  const voiceRetryIn = state.voiceRetryIn;
   useEffect(() => {
     if (speaking === null) {
       return;
@@ -355,10 +363,18 @@ export function useDialogueSession({
       if (stale) {
         return;
       }
-      if (voiceMuted) {
-        // Already silent — do not spend another ladder probe per turn to
-        // rediscover it. The question text is on screen; move the turn on.
-        dispatch({ type: "speech_done" });
+      if (!shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
+        // Silent, and a cooldown is still owed: do not spend an admission on
+        // this turn to rediscover it. The question text is on screen; move
+        // the turn on, one turn closer to the next attempt.
+        //
+        // `speech_skipped`, NOT `speech_done` (INT-294). Until this split the
+        // silent path dispatched the action that means "the clip played",
+        // which is why the mute could only ever be a latch: the state had no
+        // way to tell a turn that was heard from a turn that was never tried,
+        // so clearing on `speech_done` would have cleared on the first silent
+        // turn and the voice would have been declared back without evidence.
+        dispatch({ type: "speech_skipped" });
         return;
       }
       try {
@@ -416,7 +432,7 @@ export function useDialogueSession({
       clearBargeInWatch();
       setPlaying(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session, and voiceMuted is a latch the same dispatch sets alongside the turn, so this closure always reads the current value
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session, and the voice fields are set by the same dispatch that sets the turn, so this closure always reads the current values
   }, [speaking]);
 
   // Listening driver: the mic opens when the machine says listen.

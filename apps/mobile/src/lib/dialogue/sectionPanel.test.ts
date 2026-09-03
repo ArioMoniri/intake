@@ -43,6 +43,8 @@ function idle(overrides: Partial<DialogueStreamState> = {}): DialogueStreamState
     seq: {},
     stream: [],
     voiceMuted: false,
+    voiceFailures: 0,
+    voiceRetryIn: 0,
     ...overrides,
   };
 }

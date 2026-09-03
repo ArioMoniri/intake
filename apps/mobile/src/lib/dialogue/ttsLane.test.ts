@@ -21,9 +21,13 @@
  * same one, it throws before any request leaves the app, and a fallback must
  * never be a second chance for text the guard already refused.
  */
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SYNTHESIZE_TIMEOUT_MS, TURN_ROUND_TRIP_BUDGET_MS } from "./tts";
+import { SYNTHESIZE_TIMEOUT_MS, TURN_ROUND_TRIP_BUDGET_MS, clipDeadlineMs } from "./tts";
 import {
   DEFAULT_TTS_LANES,
   LANE_PROBE_TEXT,
@@ -46,6 +50,13 @@ const WAV = new Uint8Array([82, 73, 70, 70, 1, 2, 3, 4]);
 interface LaneBehaviour {
   /** Does GET /health answer 2xx? */
   readonly healthy: boolean;
+  /**
+   * Fake-clock milliseconds GET /health takes to answer. A host that is in
+   * app.json and answers NOTHING — the tunnel binds loopback only, so
+   * 172.20.10.3 is exactly this — is a very large number here, not a
+   * refusal: a refusal is cheap and this is the expensive case.
+   */
+  readonly healthMs?: number;
   /** Fake-clock milliseconds POST /synthesize takes to answer. */
   readonly synthesizeMs: number;
   /** Bytes the synthesis answers with; empty means the lane went silent. */
@@ -74,23 +85,28 @@ function laneServer(spec: Record<string, LaneBehaviour>): {
       throw new Error("ECONNREFUSED");
     }
     const lane = spec[base];
-    if (target.endsWith("/health")) {
-      return (lane.healthy ? { ok: true, status: 200 } : { ok: false, status: 503 }) as Response;
-    }
-    return new Promise<Response>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const status = lane.synthesizeStatus ?? 200;
-        const bytes = lane.bytes ?? WAV;
-        resolve({
-          ok: status >= 200 && status < 300,
-          status,
-          arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteLength),
-        } as Response);
-      }, lane.synthesizeMs);
-      init?.signal?.addEventListener("abort", () => {
-        clearTimeout(timer);
-        reject(new DOMException("Aborted", "AbortError"));
+    const answerAfter = (ms: number, make: () => Response) =>
+      new Promise<Response>((resolve, reject) => {
+        const timer = setTimeout(() => resolve(make()), ms);
+        init?.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new DOMException("Aborted", "AbortError"));
+        });
       });
+    if (target.endsWith("/health")) {
+      return answerAfter(
+        lane.healthMs ?? 0,
+        () => (lane.healthy ? { ok: true, status: 200 } : { ok: false, status: 503 }) as Response,
+      );
+    }
+    return answerAfter(lane.synthesizeMs, () => {
+      const status = lane.synthesizeStatus ?? 200;
+      const bytes = lane.bytes ?? WAV;
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteLength),
+      } as Response;
     });
   }) as typeof fetch;
   return { fetchImpl, calls };
@@ -272,8 +288,15 @@ describe("measureLane (a lane must prove it can speak)", () => {
     expect((await settle(measureLane(VOX, { fetchImpl }))).verdict).toBe("silent");
   });
 
-  it("treats a transport error as down, not as a crash", async () => {
+  it("treats a transport error as unreachable, not as a crash", async () => {
+    // INT-294 splits this from `unhealthy`. A socket that answers nothing is
+    // a fact about the HOST; a 503 is one daemon on it saying no.
     const { fetchImpl } = laneServer({});
+    expect((await settle(measureLane(VOX, { fetchImpl }))).verdict).toBe("unreachable");
+  });
+
+  it("keeps a daemon that answers 503 apart from a host that answers nothing", async () => {
+    const { fetchImpl } = laneServer({ [VOX.base]: { healthy: false, synthesizeMs: 10 } });
     expect((await settle(measureLane(VOX, { fetchImpl }))).verdict).toBe("unhealthy");
   });
 
@@ -306,10 +329,19 @@ describe("selectTtsLane (latency-aware, ladder intent preserved)", () => {
     expect(chosen?.ms).toBe(VOX_ON_GPU_MS);
   });
 
-  it("stops at the first lane inside budget rather than probing the rest", async () => {
+  it("settles at the winning tier's own figure and abandons the rest", async () => {
+    // Until INT-294 this test asserted that Freya was never woken, which was
+    // true of a serial walk and cost the patient the whole ladder whenever
+    // tier one was slow. The race wakes every tier and waits for none of
+    // them: the walk still ends at VoxCPM2's own measurement.
     const { fetchImpl, calls } = laneServer(FAST_BOTH);
-    await settle(selectTtsLane(LADDER, { fetchImpl }));
-    expect(calls.some((c) => c.startsWith(FREYA.base))).toBe(false);
+    const { value: chosen, elapsedMs } = await settleTimed(selectTtsLane(LADDER, { fetchImpl }));
+    expect(chosen?.lane).toEqual(VOX);
+    expect(elapsedMs).toBe(VOX_ON_GPU_MS);
+    expect(elapsedMs).toBeLessThan(FREYA_MS);
+    // one health call and at most one probe synthesis per lane — bounded,
+    // and never multiplied by the walk
+    expect(calls.filter((c) => c.startsWith(FREYA.base)).length).toBeLessThanOrEqual(2);
   });
 
   it("reports what every probed lane measured, so the choice is explicable", async () => {
@@ -349,11 +381,18 @@ describe("createTtsLaneSelector (one probe per session, re-probe on failure)", (
   });
 
   it("shares one in-flight probe between concurrent callers", async () => {
-    const { fetchImpl, calls } = laneServer(FAST_BOTH);
-    const selector = createTtsLaneSelector(() => LADDER, { fetchImpl });
-    const both = Promise.all([selector.current(), selector.current()]);
+    const one = laneServer(FAST_BOTH);
+    const selectorOne = createTtsLaneSelector(() => LADDER, { fetchImpl: one.fetchImpl });
+    expect(await settle(selectorOne.current())).toEqual(VOX);
+    const oneWalk = one.calls.filter((c) => c.endsWith("/health")).length;
+
+    const two = laneServer(FAST_BOTH);
+    const selectorTwo = createTtsLaneSelector(() => LADDER, { fetchImpl: two.fetchImpl });
+    const both = Promise.all([selectorTwo.current(), selectorTwo.current()]);
     expect(await settle(both)).toEqual([VOX, VOX]);
-    expect(calls.filter((c) => c.endsWith("/health")).length).toBe(1);
+    // Two callers, one walk — not two. The session pre-warm fires every
+    // question at mount and would otherwise probe the ladder N times.
+    expect(two.calls.filter((c) => c.endsWith("/health")).length).toBe(oneWalk);
   });
 
   it("re-probes after invalidate, so a lane that dies mid-session is replaced", async () => {
@@ -506,5 +545,214 @@ describe("synthesizeOnLane (invariant 22 holds on every tier)", () => {
     await expect(synthesizeOnLane(VOX, "Hangi tarafta?", { fetchImpl })).rejects.toThrow(
       "tts_unavailable",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// INT-294 — admission is not allowed to spend the deadline it precedes
+// ---------------------------------------------------------------------------
+
+/**
+ * The shape the owner's walkthrough measured (docs/evidence/INT-293.md,
+ * 2 Sep 2026, both dev daemons on one Mac behind an SSH tunnel that binds
+ * loopback only):
+ *
+ *   voxcpm2  127.0.0.1:8805     over_budget   1721 ms  (healthy, cannot speak)
+ *   voxcpm2  172.20.10.3:8805   unhealthy     1505 ms  (host not reachable)
+ *   freya    127.0.0.1:8803     ok             798 ms  <- winner
+ *   TOTAL                                     4024 ms   vs a 4048 ms deadline
+ *
+ * Every per-leg figure below is one of those measurements. The LAN host is
+ * modelled as a black hole rather than a refusal because that is what it was:
+ * the tunnel answers nothing on it, so the caller pays its own cap in full.
+ */
+const LAN = "172.20.10.3";
+const VOX_LAN: TtsLaneBase = { id: "voxcpm2", base: `http://${LAN}:8805` };
+const FREYA_LAN: TtsLaneBase = { id: "freya", base: `http://${LAN}:8803` };
+
+/** What `laneCandidates` actually builds from the committed app.json. */
+const WALKTHROUGH_LADDER = [VOX, VOX_LAN, FREYA, FREYA_LAN];
+
+const HEALTH_MS = 21; // measured: 21–23 ms on both loopback daemons
+const FREYA_PROBE_MS = 798; // measured: the winning leg
+const NEVER_MS = 30_000; // "answers nothing": longer than any cap in play
+
+const WALKTHROUGH: Record<string, LaneBehaviour> = {
+  [VOX.base]: { healthy: true, healthMs: HEALTH_MS, synthesizeMs: VOX_ON_CPU_MS },
+  [FREYA.base]: { healthy: true, healthMs: HEALTH_MS, synthesizeMs: FREYA_PROBE_MS },
+  [VOX_LAN.base]: { healthy: true, healthMs: NEVER_MS, synthesizeMs: NEVER_MS },
+  [FREYA_LAN.base]: { healthy: true, healthMs: NEVER_MS, synthesizeMs: NEVER_MS },
+};
+
+/** One sentence, numeral-free — the first question of the real pack. */
+const ONE_SENTENCE = "Sizi bugün hekime getiren nedir?";
+
+function hostOfCall(url: string): string {
+  return new URL(url).hostname;
+}
+
+describe("INT-294 · lane admission inside the budget the deadline allots it", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("the one-sentence deadline is the walkthrough's 4048 ms and not some other clip", () => {
+    // Pins the figure the next test is measured against: one admission plus
+    // ONE synthesis. Without this the comparison would still pass for a clip
+    // that delivery had split, and the claim would be about a bigger budget.
+    expect(clipDeadlineMs(ONE_SENTENCE)).toBe(TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS);
+    expect(clipDeadlineMs(ONE_SENTENCE)).toBe(4048);
+  });
+
+  it("does not spend the clip deadline discovering which lane can speak", async () => {
+    const { fetchImpl } = laneServer(WALKTHROUGH);
+    const { value: chosen, elapsedMs } = await settleTimed(
+      selectTtsLane(WALKTHROUGH_LADDER, { fetchImpl }),
+    );
+    // It does find the voice. That was never the problem.
+    expect(chosen?.lane).toEqual(FREYA);
+
+    // clipDeadlineMs is TURN_ROUND_TRIP_BUDGET_MS + one SYNTHESIZE_TIMEOUT_MS
+    // per sentence, and tts.ts says in words what that decomposition means:
+    // "ONE lane admission plus ONE synthesis per sentence". Admission that
+    // costs more than ONE admission has taken the synthesis's share.
+    expect(elapsedMs).toBeLessThanOrEqual(TURN_ROUND_TRIP_BUDGET_MS);
+    expect(clipDeadlineMs(ONE_SENTENCE) - elapsedMs).toBeGreaterThanOrEqual(SYNTHESIZE_TIMEOUT_MS);
+  });
+
+  it("still gets the first turn a voice when a fast tier exists anywhere on the ladder", async () => {
+    const { fetchImpl } = laneServer(WALKTHROUGH);
+    const chosen = await settle(selectTtsLane(WALKTHROUGH_LADDER, { fetchImpl }));
+    expect(chosen?.lane).toEqual(FREYA);
+    expect(chosen?.ms).toBe(FREYA_PROBE_MS);
+  });
+
+  it("keeps VoxCPM2 whenever it is genuinely fast — the ladder is quality order", async () => {
+    const { fetchImpl } = laneServer({
+      ...WALKTHROUGH,
+      [VOX.base]: { healthy: true, healthMs: HEALTH_MS, synthesizeMs: VOX_ON_GPU_MS },
+    });
+    const chosen = await settle(selectTtsLane(WALKTHROUGH_LADDER, { fetchImpl }));
+    expect(chosen?.lane).toEqual(VOX);
+  });
+
+  it("abandons the losing probes the moment the winner is known", async () => {
+    // Quality order is preserved by RANK, not by making the patient wait for
+    // each tier in turn. Once tier one has answered, nothing else is owed a
+    // reply: the walk must settle at tier one's own figure.
+    const { fetchImpl } = laneServer({
+      ...WALKTHROUGH,
+      [VOX.base]: { healthy: true, healthMs: HEALTH_MS, synthesizeMs: VOX_ON_GPU_MS },
+    });
+    const { elapsedMs } = await settleTimed(selectTtsLane(WALKTHROUGH_LADDER, { fetchImpl }));
+    expect(elapsedMs).toBe(HEALTH_MS + VOX_ON_GPU_MS);
+  });
+
+  it("does not re-probe a host that answered nothing, for the rest of the session", async () => {
+    const { fetchImpl, calls } = laneServer(WALKTHROUGH);
+    const selector = createTtsLaneSelector(() => WALKTHROUGH_LADDER, { fetchImpl });
+    expect(await settle(selector.current())).toEqual(FREYA);
+    expect(calls.filter((c) => hostOfCall(c) === LAN).length).toBeGreaterThan(0);
+
+    calls.length = 0;
+    selector.invalidate();
+    expect(await settle(selector.current())).toEqual(FREYA);
+    expect(calls.filter((c) => hostOfCall(c) === LAN)).toEqual([]);
+  });
+
+  it("never quarantines the last host it has — a whole network blip is not a verdict", async () => {
+    // Near-miss control for the rule above. If EVERY host looks unreachable
+    // there is nothing to prefer, and a ladder that quarantined them all
+    // would never speak again however healthy the daemons became.
+    const dark: Record<string, LaneBehaviour> = {
+      [VOX.base]: { healthy: true, healthMs: NEVER_MS, synthesizeMs: NEVER_MS },
+      [FREYA.base]: { healthy: true, healthMs: NEVER_MS, synthesizeMs: NEVER_MS },
+      [VOX_LAN.base]: { healthy: true, healthMs: NEVER_MS, synthesizeMs: NEVER_MS },
+      [FREYA_LAN.base]: { healthy: true, healthMs: NEVER_MS, synthesizeMs: NEVER_MS },
+    };
+    const { fetchImpl, calls } = laneServer(dark);
+    const selector = createTtsLaneSelector(() => WALKTHROUGH_LADDER, { fetchImpl });
+    await expect(settle(selector.current())).rejects.toThrow("tts_unreachable");
+    calls.length = 0;
+    await expect(settle(selector.current())).rejects.toThrow("tts_unreachable");
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  it("keeps working when a host genuinely is down: the reachable tier still wins", async () => {
+    const { fetchImpl } = laneServer({
+      [VOX.base]: { healthy: true, healthMs: HEALTH_MS, synthesizeMs: VOX_ON_CPU_MS },
+      [FREYA.base]: { healthy: true, healthMs: HEALTH_MS, synthesizeMs: FREYA_PROBE_MS },
+    });
+    // Neither LAN base is registered at all now — a refusal, not a black hole.
+    const chosen = await settle(selectTtsLane(WALKTHROUGH_LADDER, { fetchImpl }));
+    expect(chosen?.lane).toEqual(FREYA);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Invariant 21 — nothing this module does can end up in front of a RED
+// ---------------------------------------------------------------------------
+
+/**
+ * "The RED script is PRE-POSITIONED on the device and triggered over the DATA
+ * channel — the RED path touches no media transport" (CLAUDE.md invariant 21).
+ *
+ * INT-294 makes admission race every lane at once, which is more concurrent
+ * network work than before, so the question has to be asked rather than
+ * assumed: can any of it get between a RED trigger and the words on screen?
+ * It cannot, and the reason is structural rather than a matter of scheduling
+ * — the RED module reaches no TTS code at all, so there is nothing for a
+ * probe to be ahead of. This walks the import graph and says so; a future
+ * import that made the RED path resolve a voice would fail here.
+ */
+describe("invariant 21 · the RED path reaches no lane, probe or clip", () => {
+  const HERE = dirname(fileURLToPath(import.meta.url));
+  const LIB = join(HERE, "..");
+
+  function resolveImport(fromFile: string, specifier: string): string | null {
+    if (!specifier.startsWith(".")) {
+      return null; // a package, not our tree
+    }
+    const base = resolve(dirname(fromFile), specifier);
+    for (const candidate of [`${base}.ts`, `${base}.tsx`, join(base, "index.ts")]) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  function reachableFrom(entry: string): Set<string> {
+    const seen = new Set<string>();
+    const queue = [entry];
+    while (queue.length > 0) {
+      const file = queue.pop() as string;
+      if (seen.has(file)) {
+        continue;
+      }
+      seen.add(file);
+      const source = readFileSync(file, "utf8");
+      for (const match of source.matchAll(/from\s+"([^"]+)"/g)) {
+        const target = resolveImport(file, match[1]);
+        if (target !== null) {
+          queue.push(target);
+        }
+      }
+    }
+    return seen;
+  }
+
+  it("decoding and resolving a RED pulls in no dialogue module", () => {
+    const reached = [...reachableFrom(join(LIB, "livekit", "red.ts"))];
+    expect(reached.length).toBeGreaterThan(0);
+    expect(reached.filter((file) => file.includes(`${sep}dialogue${sep}`))).toEqual([]);
+  });
+
+  it("and the lane ladder reaches nothing on the RED path either", () => {
+    const reached = [...reachableFrom(join(LIB, "dialogue", "ttsLane.ts"))];
+    expect(reached.filter((file) => file.includes(`${sep}livekit${sep}`))).toEqual([]);
   });
 });

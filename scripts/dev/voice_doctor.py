@@ -17,8 +17,20 @@ Lanes, and what "expected" means for each:
 * ``asr`` (8802) — REQUIRED. Down means the dialogue never starts; this is
   the lane whose silence cost the hours.
 * ``tts:*`` (the app.json ladder, VoxCPM2 8805 then Freya 8803) — REQUIRED as
-  a GROUP. One tier answering is a healthy ladder; that is the whole point of
-  a ladder, and the app picks the first that answers.
+  a GROUP. One tier that can SPEAK is a healthy ladder; that is the whole
+  point of a ladder, and the app picks the first tier it can be admitted on.
+
+  INT-294: a TTS tier is asked to speak, not merely to answer. INT-249 had
+  already proved one level down that ``GET /health`` is the wrong question —
+  a VoxCPM2 pinned to CPU answers it in milliseconds and cannot finish a turn
+  — and the doctor had not caught up, so on 2 Sep 2026 it printed
+  ``voice: UP — every configured lane answered`` while the app was muting
+  itself (docs/evidence/INT-293.md). Each tier now gets the app's own probe
+  word over ``POST /synthesize``, timed against the app's own committed
+  admission budget, and a tier that is health-green and over that budget is
+  reported for what it is rather than as UP. ``asr`` and ``extract`` keep the
+  health probe: neither has a healthy-but-unusable mode that costs a turn,
+  and POSTing a synthesis at an ASR daemon probes something else.
 * ``extract`` (8804) — DEGRADED, not required. The dialogue runs without it:
   ``useDialogueSession`` keeps the verbatim transcript when the extract call
   fails and simply carries no slot suggestions. Exiting non-zero on a lane
@@ -54,6 +66,20 @@ APP_JSON = REPO / "apps" / "mobile" / "app.json"
 ASR_PORT = 8802
 EXTRACT_PORT = 8804
 DEFAULT_TTS_LANES: tuple[tuple[str, int], ...] = (("voxcpm2", 8805), ("freya", 8803))
+
+#: The app's own lane probe (``LANE_PROBE_TEXT`` in ttsLane.ts): one short
+#: Turkish word, numeral-free like everything else that crosses this boundary
+#: (invariant 22). Pinned by tests/mobile/test_voice_doctor.py — a doctor that
+#: probes with its own sentence measures its own sentence.
+TTS_PROBE_TEXT = "Merhaba"
+
+#: The app's own admission budget (``TURN_ROUND_TRIP_BUDGET_MS`` in tts.ts,
+#: files/03 §4.4's stated round-trip for ``residency_tr``). Pinned the same
+#: way. A tier that needs longer than this to say one word is a tier the app
+#: will refuse to be admitted on, so the doctor must refuse it too.
+TTS_BUDGET_MS = 1684
+
+SYNTHESIZE_PATH = "/synthesize"
 
 #: Groups the dev voice profile cannot run without.
 REQUIRED_GROUPS: tuple[str, ...] = ("asr", "tts")
@@ -165,10 +191,64 @@ def probe(host: str, port: int, timeout_s: float) -> Verdict:
         conn.close()
 
 
-def check(lanes: Sequence[Lane], hosts: Sequence[str], timeout_s: float) -> list[LaneResult]:
+def probe_speech(host: str, port: int, budget_ms: int) -> Verdict:
+    """Ask one TTS tier to SPEAK the app's probe word, and time it.
+
+    The bytes are counted and dropped: nothing here can write agent audio
+    anywhere, which is invariant 3's posture for the patient's audio applied
+    by construction to the agent's. The request is capped at the budget, so a
+    wedged tier costs the doctor exactly what it costs the app.
+    """
+    base = f"http://{host}:{port}"
+    payload = json.dumps({"text": TTS_PROBE_TEXT}).encode("utf-8")
+    started = time.monotonic()
+    conn = http.client.HTTPConnection(host, port, timeout=budget_ms / 1000)
+    try:
+        conn.request(
+            "POST", SYNTHESIZE_PATH, body=payload, headers={"Content-Type": "application/json"}
+        )
+        response = conn.getresponse()
+        status = response.status
+        spoken = len(response.read())
+        elapsed = time.monotonic() - started
+        if not 200 <= status < 300:
+            return Verdict(base, False, f"speak http {status}", elapsed)
+        if spoken == 0:
+            return Verdict(base, False, "silent", elapsed)
+        if elapsed * 1000 > budget_ms:
+            return Verdict(base, False, f"over budget ({elapsed * 1000:.0f} ms)", elapsed)
+        return Verdict(base=base, ok=True, detail="ok", elapsed_s=elapsed)
+    except TimeoutError:
+        # The cap fired, which is the whole defect: health-green, and past the
+        # budget. The figure is a bound rather than a measurement, and says so.
+        return Verdict(base, False, f"over budget (>{budget_ms} ms)", time.monotonic() - started)
+    except OSError as exc:
+        name = type(exc).__name__
+        return Verdict(base, False, f"speak unreachable ({name})", time.monotonic() - started)
+    finally:
+        conn.close()
+
+
+def probe_lane(lane: Lane, host: str, timeout_s: float, budget_ms: int) -> Verdict:
+    """Health for every lane; and for a TTS tier, the question the app asks."""
+    health = probe(host, lane.port, timeout_s)
+    if not health.ok or lane.group != "tts":
+        return health
+    return probe_speech(host, lane.port, budget_ms)
+
+
+def check(
+    lanes: Sequence[Lane],
+    hosts: Sequence[str],
+    timeout_s: float,
+    budget_ms: int = TTS_BUDGET_MS,
+) -> list[LaneResult]:
     """Probe every host for every lane — the whole picture, not the first hit."""
     return [
-        LaneResult(lane=lane, verdicts=tuple(probe(host, lane.port, timeout_s) for host in hosts))
+        LaneResult(
+            lane=lane,
+            verdicts=tuple(probe_lane(lane, host, timeout_s, budget_ms) for host in hosts),
+        )
         for lane in lanes
     ]
 
@@ -198,25 +278,37 @@ def _down_groups(results: Sequence[LaneResult], groups: Sequence[str]) -> list[s
     return down
 
 
+def _why(result: LaneResult) -> str:
+    """The first reason a lane is not usable, in its own words.
+
+    INT-294: the summary used to append the word "unreachable" to every lane
+    that was not UP, which was exactly wrong for the lane this issue is about
+    — a VoxCPM2 that is reachable, health-green, and cannot speak in time. A
+    summary that renames a verdict is the same overstatement as one that hides
+    it, so the detail the probe produced is the detail that is printed.
+    """
+    return next((v.detail for v in result.verdicts if not v.ok), "down")
+
+
 def summary_line(results: Sequence[LaneResult]) -> str:
     """One sentence, and it never overstates.
 
     A dead VoxCPM2 behind a live Freya is a healthy ladder, so the verdict is
-    UP — but the summary still NAMES the tier that did not answer. Saying
-    "every configured lane answered" when one did not is the same failure
-    this whole issue is about, one level up.
+    UP — but the summary still NAMES the tier that did not answer, and says
+    what it did instead. Saying "every configured lane answered" when one did
+    not is the same failure this whole issue is about, one level up.
     """
     required_down = _down_groups(results, REQUIRED_GROUPS)
     if required_down:
         return (
-            f"voice: DOWN — {', '.join(required_down)} unreachable; "
+            f"voice: DOWN — {', '.join(required_down)} not usable; "
             "the app falls through to the typed steps"
         )
-    down = [r.lane.id for r in results if not lane_up(r)]
+    down = [f"{r.lane.id} {_why(r)}" for r in results if not lane_up(r)]
     if not down:
         return "voice: UP — every configured lane answered"
     note = " (no answer suggestions)" if _down_groups(results, DEGRADED_GROUPS) else ""
-    return f"voice: UP — {', '.join(down)} unreachable{note}"
+    return f"voice: UP — {', '.join(down)}{note}"
 
 
 def exit_code(results: Sequence[LaneResult]) -> int:
@@ -255,6 +347,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="extra host to probe first (the Metro LAN address, typically)",
     )
     parser.add_argument("--timeout", type=float, default=1.5, help="per-probe timeout in seconds")
+    parser.add_argument(
+        "--budget",
+        type=int,
+        default=TTS_BUDGET_MS,
+        metavar="MS",
+        help="TTS admission budget in ms (the app's own; a tier past it is not UP)",
+    )
     parser.add_argument("--config", type=Path, default=APP_JSON, help="path to app.json")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args(argv)
@@ -267,7 +366,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"voice-doctor: {exc}", file=sys.stderr)
         return 2
 
-    results = check(lanes, hosts, args.timeout)
+    results = check(lanes, hosts, args.timeout, args.budget)
 
     if args.json:
         print(_as_json(hosts, results))
