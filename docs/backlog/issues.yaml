@@ -1129,7 +1129,18 @@
   # voice runtime — two packages and two acceptance surfaces, so a second issue
   # rather than a second half of this PR. No id minted here; the reproduction is
   # committed as SPOKEN_TCKN_FORMS in tests/safety/adversarial_corpus.py.
-  status: todo
+  #
+  # CLOSED 3 Sep 2026 by INT-312 (PR #462). The seventh clause is delivered: 8 of
+  # 8 spoken forms masked, 0 survived, and the matched checksum-FAILING control
+  # survives untouched 8 of 8 - so it is still a TCKN redactor and not a number
+  # shredder. RT-13 now carries no `gaps`, and this issue's own tests pass on
+  # main (test_adversarial_rt12_14.py + test_spoken_identifiers.py, 69 passed).
+  # Note what INT-312 did NOT do: the ASR-side digit-run normalisation this
+  # comment predicted was refused, because invariant 9 keeps identifier handling
+  # off the speech critical path. The redaction tier alone closes the clause,
+  # which makes the prediction above wrong in a useful direction and is recorded
+  # rather than quietly deleted.
+  status: done
   evidence: docs/evidence/INT-102.md
   acceptance:
     - "injection by speech and hidden-PDF text, triage manipulation, proxy impersonation, spoken TCKN masking, vendor failover — all pass; nightly job budgeted"
