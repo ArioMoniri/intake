@@ -92,6 +92,16 @@ const AUDIO_PERMISSIONS = [
 const FORBIDDEN_PERMISSIONS = [
   "android.permission.READ_EXTERNAL_STORAGE",
   "android.permission.WRITE_EXTERNAL_STORAGE",
+  // The location family is blocked rather than merely undeclared, and the
+  // difference is the whole point of the mechanism: a permission this app never
+  // writes can still arrive from a dependency's AAR at Gradle merge time, and
+  // `expo.android.permissions` — the only thing a checklist can read before a
+  // prebuild — would not show it. There is no code path in this product that
+  // reads a position, and `records/store/checklist.py` requires every sensor
+  // family to be either declared-with-a-path or blocked here.
+  "android.permission.ACCESS_FINE_LOCATION",
+  "android.permission.ACCESS_COARSE_LOCATION",
+  "android.permission.ACCESS_BACKGROUND_LOCATION",
 ];
 
 function withAudioOnlyPermissions(config) {

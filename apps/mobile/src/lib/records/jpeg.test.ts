@@ -15,15 +15,23 @@
  * metadata containers that hold coordinates. APP0 (JFIF) and APP2 (ICC colour)
  * stay, and the entropy-coded image data is never touched.
  *
- * Orientation was the one real cost, and it turns out not to be paid: on iOS
- * `ImageUtils.readImageFrom` calls `fixOrientation()` and re-encodes from the
- * bitmap, and on Android `copyExifData` lists TAG_ORIENTATION among the
- * `omittableTags` it deliberately does NOT copy — both exporters hand over an
- * upright image with no orientation tag to lose.
+ * Orientation IS a real cost, and this file used to claim it was not. The old
+ * claim cited Android's `copyExifData` omitting TAG_ORIENTATION — true of
+ * `copyExifData`, and `copyExifData` is on a path this app does not take.
+ * `MediaHandler.kt` picks `RawImageExporter` while `quality` sits at its `1.0`
+ * default, and that exporter is a straight `copyFile`: the camera's own file,
+ * orientation tag and all. iOS has the same shape, with `imageModified` false
+ * and `tryCopyingOriginalImageFrom` one non-nil `mediaInfo[.imageURL]` away from
+ * a raw copy of the original.
+ *
+ * So the tag is CARRIED rather than assumed away: the strip reads Orientation out
+ * of the old APP1 and writes a 34-byte APP1 of its own holding that tag and
+ * nothing else. Correct on every path — raw copy or re-encode, capture or file
+ * pick — which is what an assumption about one exporter was not.
  */
 import { describe, expect, it } from "vitest";
 
-import { stripJpegMetadata } from "./jpeg";
+import { readJpegOrientation, stripJpegMetadata } from "./jpeg";
 
 const SOI = [0xff, 0xd8];
 const EOI = [0xff, 0xd9];
@@ -130,5 +138,194 @@ describe("anything it cannot read whole is returned untouched", () => {
   it("tolerates 0xFF fill bytes between segments", () => {
     const padded = bytes([...SOI, 0xff, ...APP1, ...SOS, ...SCAN, ...EOI]);
     expect(stripJpegMetadata(padded)).toEqual(jpeg(SOI, SOS, SCAN, EOI));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Orientation: the one tag that survives, and the ways it can be lost  */
+/* ------------------------------------------------------------------ */
+
+interface Entry {
+  tag: number;
+  type?: number;
+  count?: number;
+  value: number;
+}
+
+/** A TIFF/EXIF APP1 payload with the entries asked for, in either byte order. */
+function exifPayload(opts: {
+  little?: boolean;
+  ifd0: readonly Entry[];
+  ifd1?: readonly Entry[];
+}): number[] {
+  const little = opts.little === true;
+  const w16 = (n: number): number[] =>
+    little ? [n & 0xff, (n >> 8) & 0xff] : [(n >> 8) & 0xff, n & 0xff];
+  const w32 = (n: number): number[] =>
+    little
+      ? [n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >> 24) & 0xff]
+      : [(n >> 24) & 0xff, (n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+  const entry = (e: Entry): number[] => [
+    ...w16(e.tag),
+    ...w16(e.type ?? 3),
+    ...w32(e.count ?? 1),
+    // a SHORT sits in the first half of the 4-byte value field
+    ...((e.type ?? 3) === 3 ? [...w16(e.value), 0x00, 0x00] : w32(e.value)),
+  ];
+  const ifd = (entries: readonly Entry[], next: number): number[] => [
+    ...w16(entries.length),
+    ...entries.flatMap(entry),
+    ...w32(next),
+  ];
+  const ifd0Size = 2 + opts.ifd0.length * 12 + 4;
+  const ifd1Offset = opts.ifd1 === undefined ? 0 : 8 + ifd0Size;
+  return [
+    ...EXIF_PAYLOAD.slice(0, 6), // "Exif\0\0"
+    ...(little ? [0x49, 0x49] : [0x4d, 0x4d]),
+    ...w16(42),
+    ...w32(8),
+    ...ifd(opts.ifd0, ifd1Offset),
+    ...(opts.ifd1 === undefined ? [] : ifd(opts.ifd1, 0)),
+  ];
+}
+
+const ORIENTATION_TAG = 0x0112;
+const GPS_POINTER = { tag: 0x8825, type: 4, value: 0 };
+
+function app1(payload: readonly number[]): number[] {
+  return segment(0xe1, payload);
+}
+
+/** Every APP1 segment in a stream, as `[markerIndex, declaredLength]`. */
+function app1Segments(image: Uint8Array): [number, number][] {
+  const found: [number, number][] = [];
+  for (let i = 2; i + 3 < image.length; i += 1) {
+    if (image[i] === 0xff && image[i + 1] === 0xe1) {
+      found.push([i, (image[i + 2] << 8) | image[i + 3]]);
+    }
+    if (image[i] === 0xff && image[i + 1] === 0xda) {
+      break; // entropy-coded data is not a segment stream
+    }
+  }
+  return found;
+}
+
+describe("the orientation tag is carried, and it is carried alone", () => {
+  it("keeps the orientation and drops the GPS pointer sitting beside it", () => {
+    const source = jpeg(
+      SOI,
+      APP0,
+      app1(exifPayload({ ifd0: [GPS_POINTER, { tag: ORIENTATION_TAG, value: 6 }] })),
+      SOS,
+      SCAN,
+      EOI,
+    );
+    expect(readJpegOrientation(source)).toBe(6);
+    const stripped = stripJpegMetadata(source);
+    expect(readJpegOrientation(stripped)).toBe(6);
+    expect(Array.from(stripped).join(",")).not.toContain("37,136");
+  });
+
+  it("writes exactly one APP1, 34 declared bytes, in the position the old one held", () => {
+    const source = jpeg(
+      SOI,
+      APP0,
+      app1(exifPayload({ ifd0: [{ tag: ORIENTATION_TAG, value: 3 }] })),
+      APP2,
+      SOS,
+      SCAN,
+      EOI,
+    );
+    const stripped = stripJpegMetadata(source);
+    const segments = app1Segments(stripped);
+    expect(segments).toHaveLength(1);
+    expect(segments[0][1]).toBe(34);
+    // SOI, APP0, then the replacement, then APP2 — order preserved
+    expect(segments[0][0]).toBe(SOI.length + APP0.length);
+  });
+
+  it.each([2, 3, 4, 5, 6, 7, 8])("round-trips orientation %i", (orientation) => {
+    const source = jpeg(
+      SOI,
+      app1(exifPayload({ ifd0: [{ tag: ORIENTATION_TAG, value: orientation }] })),
+      SOS,
+      SCAN,
+      EOI,
+    );
+    expect(readJpegOrientation(stripJpegMetadata(source))).toBe(orientation);
+  });
+
+  it("NEAR MISS: reads a little-endian TIFF block in its own byte order", () => {
+    // A reader that assumed big-endian would read orientation 8 as 0x0800 —
+    // out of range, so `null`, so the tag silently vanishes and the clinician
+    // gets a sideways report. Byte order is load-bearing, not cosmetic.
+    const source = jpeg(
+      SOI,
+      app1(exifPayload({ little: true, ifd0: [{ tag: ORIENTATION_TAG, value: 8 }] })),
+      SOS,
+      SCAN,
+      EOI,
+    );
+    expect(readJpegOrientation(source)).toBe(8);
+    expect(readJpegOrientation(stripJpegMetadata(source))).toBe(8);
+  });
+
+  it("NEAR MISS: ignores an orientation that belongs to the THUMBNAIL", () => {
+    // IFD1 describes the embedded preview. Rotating the document by whatever
+    // the camera did to its thumbnail is a different image's fact.
+    const source = jpeg(
+      SOI,
+      app1(exifPayload({ ifd0: [GPS_POINTER], ifd1: [{ tag: ORIENTATION_TAG, value: 6 }] })),
+      SOS,
+      SCAN,
+      EOI,
+    );
+    expect(readJpegOrientation(source)).toBeNull();
+    expect(app1Segments(stripJpegMetadata(source))).toHaveLength(0);
+  });
+
+  it("writes no segment for orientation 1 — upright needs no tag to say so", () => {
+    const source = jpeg(
+      SOI,
+      app1(exifPayload({ ifd0: [{ tag: ORIENTATION_TAG, value: 1 }] })),
+      SOS,
+      SCAN,
+      EOI,
+    );
+    expect(app1Segments(stripJpegMetadata(source))).toHaveLength(0);
+  });
+
+  it("writes no segment when the source declared no orientation", () => {
+    const source = jpeg(SOI, app1(exifPayload({ ifd0: [GPS_POINTER] })), SOS, SCAN, EOI);
+    expect(app1Segments(stripJpegMetadata(source))).toHaveLength(0);
+  });
+
+  it("refuses an orientation in the wrong shape rather than reading it anyway", () => {
+    const source = jpeg(
+      SOI,
+      app1(exifPayload({ ifd0: [{ tag: ORIENTATION_TAG, type: 4, count: 1, value: 6 }] })),
+      SOS,
+      SCAN,
+      EOI,
+    );
+    expect(readJpegOrientation(source)).toBeNull();
+  });
+
+  it("reads nothing out of an APP1 that is not EXIF at all (XMP)", () => {
+    const xmp = [0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x6e, 0x73];
+    const source = jpeg(SOI, app1(xmp), SOS, SCAN, EOI);
+    expect(readJpegOrientation(source)).toBeNull();
+    expect(app1Segments(stripJpegMetadata(source))).toHaveLength(0);
+  });
+
+  it("reads nothing out of a truncated directory rather than walking off the end", () => {
+    const short = exifPayload({ ifd0: [{ tag: ORIENTATION_TAG, value: 6 }] }).slice(0, 14);
+    const source = jpeg(SOI, app1(short), SOS, SCAN, EOI);
+    expect(readJpegOrientation(source)).toBeNull();
+    expect(stripJpegMetadata(source)).toEqual(jpeg(SOI, SOS, SCAN, EOI));
+  });
+
+  it("reads nothing out of a non-JPEG", () => {
+    expect(readJpegOrientation(bytes([0x89, 0x50, 0x4e, 0x47]))).toBeNull();
   });
 });

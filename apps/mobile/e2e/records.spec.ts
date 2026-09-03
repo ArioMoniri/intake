@@ -104,15 +104,14 @@ describe("the patient can photograph a report as well as pick a file", () => {
     expect(trPlist.NSCameraUsageDescription).not.toBe(enPlist.NSCameraUsageDescription);
   });
 
-  it("strips the JPEG metadata container before the bytes are hashed", () => {
-    // expo-image-picker's Android exporter copies TAG_GPS_* into the exported
-    // file. The digest is declared to the server from the bytes that actually
-    // travel, so the strip has to happen BEFORE sha256 or the ingest is
-    // refused for a digest mismatch.
-    const api = code(read(API));
-    const upload = api.slice(api.indexOf("export async function upload("));
-    expect(upload).toContain("stripJpegMetadata");
-    expect(upload.indexOf("stripJpegMetadata")).toBeLessThan(upload.indexOf("sha256(bytes)"));
+  it("pins MAXIMUM_QUALITY so the document's pixels are not re-encoded", () => {
+    // `quality: 1` routes Android to RawImageExporter (a straight copyFile).
+    // Compressing a photograph of printed text degrades the one thing the
+    // extraction pipeline exists to read; the metadata that rides along with a
+    // raw copy is handled by the JPEG strip instead. Behaviour of the strip
+    // itself is asserted in api.test.ts against real bytes, not in source text.
+    const camera = screen.slice(screen.indexOf("launchCameraAsync"));
+    expect(camera.slice(0, 200)).toContain("quality: 1");
   });
 });
 

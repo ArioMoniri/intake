@@ -626,20 +626,39 @@ def test_a_declared_sensor_with_no_code_path_fails_the_rule(tmp_path: Path) -> N
     assert "android.permission.CAMERA" in result.detail
 
 
+def _sensor_repo(tmp_path: Path, permissions: list[str], blocked: list[str] | None = None) -> Path:
+    """A minimal tree the sensor rule can read: an app.json and the plugin."""
+    mobile = tmp_path / "apps" / "mobile"
+    (mobile / "plugins").mkdir(parents=True)
+    (mobile / "app.json").write_text(
+        json.dumps({"expo": {"android": {"permissions": permissions}}}), encoding="utf-8"
+    )
+    names = ",\n".join(f'  "{name}"' for name in (blocked or []))
+    (mobile / "plugins" / "withVoiceAudio.js").write_text(
+        f"const FORBIDDEN_PERMISSIONS = [\n{names}\n];\n", encoding="utf-8"
+    )
+    return tmp_path
+
+
+#: Every sensor family the rule guards, so a family added to `_SENSOR_MARKERS`
+#: cannot be added without a case proving it is actually enforced.
+_ALL_BLOCKED = [
+    "android.permission.CAMERA",
+    "android.permission.MICROPHONE",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.ACCESS_FINE_LOCATION",
+]
+
+
 def test_a_sensor_permission_with_no_recorded_row_fails_rather_than_passes(
     tmp_path: Path,
 ) -> None:
     """A new sensor cannot arrive unnoticed: an unknown CAMERA/MICROPHONE/
     LOCATION permission is refused rather than ignored for lack of a row."""
-    (tmp_path / "apps" / "mobile").mkdir(parents=True)
-    (tmp_path / "apps" / "mobile" / "app.json").write_text(
-        json.dumps(
-            {"expo": {"android": {"permissions": ["android.permission.ACCESS_FINE_LOCATION"]}}}
-        ),
-        encoding="utf-8",
-    )
     result = checklist_mod._check_no_sensor_without_a_code_path(
-        checklist_mod.CheckContext(repo=tmp_path)
+        checklist_mod.CheckContext(
+            repo=_sensor_repo(tmp_path, ["android.permission.ACCESS_FINE_LOCATION"], _ALL_BLOCKED)
+        )
     )
     assert result.verdict is checklist_mod.Verdict.FAILED
     assert "no recorded path" in result.detail
@@ -648,17 +667,44 @@ def test_a_sensor_permission_with_no_recorded_row_fails_rather_than_passes(
 def test_a_non_sensor_permission_needs_no_path(tmp_path: Path) -> None:
     """The control that keeps the rule from flagging everything: network state
     is not a sensor and has no module to name."""
-    (tmp_path / "apps" / "mobile").mkdir(parents=True)
-    (tmp_path / "apps" / "mobile" / "app.json").write_text(
-        json.dumps(
-            {"expo": {"android": {"permissions": ["android.permission.ACCESS_NETWORK_STATE"]}}}
-        ),
-        encoding="utf-8",
-    )
     result = checklist_mod._check_no_sensor_without_a_code_path(
-        checklist_mod.CheckContext(repo=tmp_path)
+        checklist_mod.CheckContext(
+            repo=_sensor_repo(tmp_path, ["android.permission.ACCESS_NETWORK_STATE"], _ALL_BLOCKED)
+        )
     )
     assert result.verdict is checklist_mod.Verdict.SATISFIED
+
+
+@pytest.mark.parametrize("family", sorted(checklist_mod._SENSOR_FAMILIES))
+def test_a_sensor_family_neither_declared_nor_blocked_fails(tmp_path: Path, family: str) -> None:
+    """The blind spot the rule was rewritten to close (INT-138 review).
+
+    `expo.android.permissions` is what this app WRITES; the manifest a device
+    installs is that merged with every dependency's AAR, and the merged file
+    does not exist until a prebuild — which is exactly how `expo-image-picker`
+    brings CAMERA in. A family with no code path must therefore be REMOVED from
+    the merge with tools:node="remove", not merely left unwritten.
+    """
+    fragments = checklist_mod._SENSOR_FAMILIES[family]
+    kept = [name for name in _ALL_BLOCKED if not any(f in name for f in fragments)]
+    result = checklist_mod._check_no_sensor_without_a_code_path(
+        checklist_mod.CheckContext(repo=_sensor_repo(tmp_path, [], kept))
+    )
+    assert result.verdict is checklist_mod.Verdict.FAILED
+    assert family in result.detail
+
+
+def test_the_shipped_plugin_blocks_every_sensor_family_it_has_no_path_for() -> None:
+    """The rule above, against the real tree rather than a fixture."""
+    blocked = checklist_mod._blocked_permissions(REPO)
+    assert "android.permission.ACCESS_FINE_LOCATION" in blocked
+    assert "android.permission.READ_EXTERNAL_STORAGE" in blocked
+    declared = set(
+        json.loads(APP_JSON.read_text(encoding="utf-8"))["expo"]["android"]["permissions"]
+    )
+    for family, fragments in checklist_mod._SENSOR_FAMILIES.items():
+        covered = any(f in p for f in fragments for p in (*declared, *blocked))
+        assert covered, f"{family} is neither declared with a path nor blocked"
 
 
 def test_clinical_health_records_is_not_declared_anywhere_in_the_mobile_app() -> None:

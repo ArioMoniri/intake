@@ -239,9 +239,19 @@ function OtpRecords() {
   }, [ingest]);
 
   /**
-   * Photograph a report. `exif: false` keeps the metadata dictionary out of
-   * the app entirely; the bytes are stripped separately in `upload`, because
-   * this flag governs what JavaScript is HANDED, not what the file carries.
+   * Photograph a report.
+   *
+   * `quality: 1` is pinned rather than inherited, and it is a decision: it is
+   * `MAXIMUM_QUALITY`, which routes Android to `RawImageExporter` — a straight
+   * `copyFile`, no re-encode — so the document's pixels reach the extractor
+   * exactly as the sensor wrote them. Compressing a photograph of printed text
+   * to save bytes degrades the one thing the pipeline exists to read. The
+   * metadata that rides along with a raw copy is handled where it belongs, in
+   * `upload`'s JPEG strip, which carries the orientation tag across and drops
+   * everything else.
+   *
+   * `exif: false` is separate and narrower: it governs what JavaScript is
+   * HANDED, not what the file carries.
    */
   const onCapture = useCallback(async () => {
     setNotice(null);
@@ -253,6 +263,7 @@ function OtpRecords() {
     const shot = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       allowsEditing: false,
+      quality: 1,
       exif: false,
     });
     if (shot.canceled) {

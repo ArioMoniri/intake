@@ -23,6 +23,7 @@ Clinical Health Records capability.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
@@ -211,34 +212,86 @@ SENSOR_PERMISSION_PATHS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType
     }
 )
 
-#: Name fragments that make a permission a SENSOR for this rule's purposes. A
-#: declared permission matching one of these with no row above fails: the point
-#: is that a new sensor cannot arrive unnoticed.
-_SENSOR_MARKERS: Final[tuple[str, ...]] = ("CAMERA", "MICROPHONE", "RECORD_AUDIO", "LOCATION")
+#: The sensor families this rule guards, and the Android name fragments that
+#: identify each. A family is a family and not a single string because the
+#: microphone permission is spelled RECORD_AUDIO on Android and MICROPHONE in
+#: Apple's usage-description key — one sensor, two names, and a rule that
+#: treated them as two families would demand a block for a permission Android
+#: does not have.
+_SENSOR_FAMILIES: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType(
+    {
+        "camera": ("CAMERA",),
+        "microphone": ("RECORD_AUDIO", "MICROPHONE"),
+        "location": ("LOCATION",),
+    }
+)
+
+#: Every fragment, flattened — a permission matching one of these is a sensor.
+_SENSOR_MARKERS: Final[tuple[str, ...]] = tuple(
+    fragment for fragments in _SENSOR_FAMILIES.values() for fragment in fragments
+)
+
+#: Where `withVoiceAudio.js` keeps the permissions it removes from the merged
+#: manifest with ``tools:node="remove"``.
+_VOICE_PLUGIN = "apps/mobile/plugins/withVoiceAudio.js"
+
+
+def _blocked_permissions(repo: Path) -> tuple[str, ...]:
+    """The plugin's ``FORBIDDEN_PERMISSIONS`` list, read from its source."""
+    plugin = repo / _VOICE_PLUGIN
+    if not plugin.exists():
+        return ()
+    source = plugin.read_text(encoding="utf-8")
+    start = source.find("const FORBIDDEN_PERMISSIONS = [")
+    if start < 0:
+        return ()
+    end = source.find("];", start)
+    return tuple(re.findall(r'"(android\.permission\.[A-Z_]+)"', source[start:end]))
 
 
 def _check_no_sensor_without_a_code_path(ctx: CheckContext) -> CheckResult:
+    """Every sensor family is either declared with a path, or blocked.
+
+    Two directions, and the second is the one a manifest read alone cannot see.
+    `expo.android.permissions` is what this app WRITES; the manifest a device
+    installs is that merged with every dependency's AAR, and the merged file
+    does not exist until a prebuild. So a sensor a library declares would be
+    invisible here — which is precisely the mechanism that retired the CAMERA
+    entry from `withVoiceAudio.js` (`expo-image-picker`'s own manifest declares
+    it). The belt is the blocked list: a family with no code path must be
+    removed with ``tools:node="remove"``, which reaches the merge, rather than
+    merely left unwritten.
+    """
     config = json.loads(ctx.app_json.read_text(encoding="utf-8"))["expo"]
     declared = sorted(set(config.get("android", {}).get("permissions", [])))
-    sensors = [p for p in declared if any(marker in p for marker in _SENSOR_MARKERS)]
-    unpathed: list[str] = []
-    for permission in sensors:
+    blocked = _blocked_permissions(ctx.repo)
+    problems: list[str] = []
+
+    for permission in (p for p in declared if any(m in p for m in _SENSOR_MARKERS)):
         row = SENSOR_PERMISSION_PATHS.get(permission)
         if row is None:
-            unpathed.append(f"{permission} (no recorded path)")
+            problems.append(f"{permission} (no recorded path)")
             continue
         relative, token = row
         module = ctx.repo / relative
         if not module.exists() or token not in module.read_text(encoding="utf-8"):
-            unpathed.append(f"{permission} ({relative} no longer calls {token})")
-    if unpathed:
+            problems.append(f"{permission} ({relative} no longer calls {token})")
+
+    for family, fragments in _SENSOR_FAMILIES.items():
+        if any(f in permission for f in fragments for permission in declared):
+            continue  # covered by the loop above
+        if any(f in permission for f in fragments for permission in blocked):
+            continue  # removed from the merged manifest, library manifests included
+        problems.append(f"{family} (neither declared with a path nor blocked in the merge)")
+
+    if problems:
         return CheckResult(
             Verdict.FAILED,
-            f"the manifest asks for a sensor the product has no path for: {unpathed}",
+            f"the manifest asks for a sensor the product has no path for: {problems}",
         )
     return CheckResult(
         Verdict.SATISFIED,
-        f"every declared sensor has a shipped code path: {sensors}",
+        f"every sensor family is pathed or blocked: declared={declared}, blocked={list(blocked)}",
     )
 
 

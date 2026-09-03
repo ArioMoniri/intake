@@ -352,8 +352,12 @@ _CLASSIFICATIONS: Final[tuple[PermissionClassification, ...]] = (
         "android.permission.CAMERA",
         "document_object",
         "photographs the patient's own report so it can be uploaded as a document; "
-        "the capture never reaches the photo library and its EXIF/XMP container is "
-        "stripped before the bytes leave the device (INT-138)",
+        "this app requests no photo-library access and stores the capture nowhere but "
+        "the upload, and strips its EXIF/XMP container — orientation excepted — before "
+        "the bytes leave the device (INT-138). What the handset's own camera app does "
+        "with the frame it captured is outside this app's control: on Android the OEM "
+        "app servicing ACTION_IMAGE_CAPTURE commonly writes its own copy to DCIM, and "
+        "no application flag prevents it",
     ),
     PermissionClassification(
         "NSMicrophoneUsageDescription",

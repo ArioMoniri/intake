@@ -334,20 +334,15 @@ describe("Expo configuration", () => {
 
   it("keeps the no-video guarantee where it actually lives (INT-138)", () => {
     // The CAMERA permission left this app's forbidden list when the records
-    // screen gained a still capture (INT-138). The guarantee it was standing in
-    // for is unchanged and is asserted at its real home: the room token grants
-    // the microphone alone, and the LiveKit plugin's multitasking camera switch
-    // is off. A manifest line was never the control.
+    // screen gained a still capture (INT-138). The guarantee it stood in for is
+    // unchanged, and this file does not restate it by grepping a Python
+    // literal — `tests/voice/test_room_tokens.py` DECODES a minted JWT and
+    // asserts the grant surface, which is the behaviour rather than the text.
+    // What is asserted here is the half that lives in this app's own config.
     expect(plugins).toContain('"enableMultitaskingCameraAccess":false');
-    const token = read(
-      REPO,
-      "packages",
-      "intake_platform",
-      "src",
-      "intake_platform",
-      "room_tokens.py",
-    );
-    expect(token).toContain('"canPublishSources": ["microphone"]');
+    const tokenSuite = read(REPO, "tests", "voice", "test_room_tokens.py");
+    expect(tokenSuite).toContain('assert video["canPublishSources"] == ["microphone"]');
+    expect(tokenSuite).toContain("def test_video_grant_is_exactly_the_minimal_surface");
   });
 
   it("the plugin blocks the storage permissions and background audio", () => {
