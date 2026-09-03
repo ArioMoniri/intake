@@ -2634,7 +2634,7 @@
   # a test forbidding the word "anonym" in any public name. The pipeline rides
   # files/06 §75's other route ("All research consented (`research`) or
   # anonymised per KSVY-16"): consent plus a recorded ethics id. Which limb of
-  # m.16 that actually is, is HB-L21 (counsel).
+  # m.16 that actually is, is HB-L26 (counsel).
   # The gate is shipped, tested and FAILING CLOSED: study_registry.yaml holds
   # zero studies (HB-R1, site HB-L1) and research_extracts retention is
   # draft_needs_source (HB-I8), so every export refuses today.
@@ -4030,3 +4030,101 @@
   tests:
   - tests/platform/test_wait_times.py
   sec_row: "observability-pipeline"
+- id: INT-308
+  epic: E01-platform
+  phase: P1
+  # Reported by INT-263 while replacing the fixed OTP window with a rolling one.
+  # files/10 §2 names "carrier/geo sanity checks against SMS pumping" in the same
+  # sentence as the request budgets, and no code implements it. INT-263 marked it
+  # named-but-unbuilt in §2 and in the threat-model onboarding row rather than
+  # letting the sentence read as describing something that exists, and declined
+  # to mint an id blind because ids were moving mid-iteration. This is that id.
+  title: 'carrier/geo sanity checks against SMS pumping are named in the security
+    spec and implemented nowhere'
+  depends_on:
+  - INT-263
+  labels:
+  - area:security
+  - area:platform
+  status: todo
+  acceptance:
+  - 'the control exists or the sentence stops claiming it: either a carrier/geo
+    check runs on the OTP request path, or files/10 §2 is rewritten to say the
+    budgets are the whole of what stands against SMS pumping - a spec that names
+    a control nobody built is worse than a spec that admits the gap, because it
+    is read as coverage'
+  - 'if built, it fails OPEN on lookup failure and CLOSED on a positive signal:
+    a carrier lookup that times out must not lock a legitimate patient out of
+    their own intake, and the asymmetry is asserted by two tests'
+  - 'no new personal data is stored to achieve it: a carrier or country
+    derivation is a fact about a person, so anything persisted carries the
+    inventory annotation {category,purpose,basis,retention,recipients} - and if
+    the check needs a vendor, that is a HUMAN_BLOCKERS row and not a dependency
+    added quietly (invariant 19 applies to the licence too)'
+  - 'invariant 6 holds: no phone number, carrier name or country reaches a log,
+    a metric label or an error report - the budgets already key on a Tokenizer
+    pseudonym and this must not regress that'
+  tests:
+  - tests/api/test_otp_abuse.py
+  sec_row: "onboarding"
+- id: INT-309
+  epic: E02-data
+  phase: P1
+  # Filed by INT-303's adversarial review. INT-303 closed the seam where a
+  # Decimal read Unknown to the triage engine; three sibling paths still lose or
+  # misreport one, and all three are latent behind the same gap INT-303 declared
+  # open (nothing outside from_r4.py:484 and tests constructs SessionState).
+  title: 'A Decimal still loses its type at three boundaries: the FHIR scalar
+    mapper, the overlay store, and a JSON round trip'
+  depends_on:
+  - INT-303
+  labels:
+  - area:data
+  status: todo
+  acceptance:
+  - 'to_r4._scalar_answer gains a Decimal branch: today it has bool/int/float/str
+    and falls through to raise "a None answer inside a list is malformed", which
+    is a FALSE diagnosis - the value is neither None nor malformed, and a wrong
+    error message costs more debugging time than no error message'
+  - 'overlay/store.py serialises a Decimal LearnedFact value rather than raising
+    TypeError from json.dumps with no default='
+  - 'the JSON round trip stops silently restringing it: Decimal("38.50") dumps to
+    "38.50" and validates back as a str, which canonical_scalar reads as Unknown
+    - the same defect INT-303 fixed, relocated to the wire, and a REGRESSION
+    against the pre-INT-303 float. Whether a clinical quantity crosses the wire
+    as a JSON string or a JSON number is an ADR, not a patch: record the decision
+    before changing the encoding'
+  - 'a near-miss control per boundary, each of which a naive fix passes: a
+    Decimal with trailing zeros (38.50 vs 38.5, equal as floats and distinct in
+    declared scale), and an integer large enough to lose precision as a float'
+  tests:
+  - tests/schemas/test_roundtrip.py
+  sec_row: "records"
+- id: INT-310
+  epic: E13-infra
+  phase: P1
+  # Reported by INT-019, which refused to suppress them: `make security` stays
+  # red at [6/12] on purpose rather than shipping a gate that passes by ignoring
+  # its findings. The advisories are real and the fix is a major-version bump
+  # across the workspace, which is its own change with its own blast radius.
+  title: 'Eight npm advisories block make security, including vitest at CVSS 9.8'
+  depends_on:
+  - INT-019
+  labels:
+  - area:security
+  - area:ci
+  status: todo
+  acceptance:
+  - 'the advisories are cleared by upgrading rather than by suppression: vitest
+    2 to 3 and vite 5 to 6 across the workspace, plus uuid, esbuild and
+    decode-uri-component - and .trivyignore/.osv suppressions do NOT grow, which
+    a test asserts by pinning their line counts'
+  - 'the suite still proves what it proved before: the full mobile and platform
+    vitest runs pass at the same counts or higher, and no test is deleted or
+    skipped to accommodate the major bump - a bump that loses coverage has
+    traded one risk for another'
+  - 'make security reaches further than [6/12], and the step it now stops at is
+    named in the evidence with what remains'
+  tests:
+  - tests/ci/test_security_gates.py
+  sec_row: "cicd"

@@ -1145,3 +1145,13 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: INT-293 (answers on the dialogue surface never reach the note) and INT-295 (the Detaylı mode bar clips "Sıranız geldi") remain open from the same walkthrough.
 - LOOP_STATUS: CONTINUE
+### 2026-09-03T04:05:00+03:00 · INT-308…INT-310 filed · blocker ids de-duplicated
+- Goal: clear the findings four issues handed back rather than minted blind, and fix the duplicate blocker ids that INT-019 spotted on `main`.
+- Plan: allocate ids centrally — every agent that was told not to mint one complied and reported instead, which is the practice that made this possible.
+- Tests added (with the near-miss negative for any safety rule): none; this is backlog and ledger maintenance. `tests/backlog` and `tests/smoke` green, 237 entries, three pinned counts repinned, `files/11` regenerated.
+- Result: **INT-308** carrier/geo SMS-pumping control (named in files/10 §2, implemented nowhere — INT-263); **INT-309** a Decimal still loses its type at the FHIR scalar mapper, the overlay store, and a JSON round trip (INT-303's adversarial review); **INT-310** eight npm advisories including vitest at CVSS 9.8, which INT-019 refused to suppress so `make security` stays honestly red at [6/12].
+- Invariants touched and still passing: none weakened. INT-309's third clause records that whether a clinical quantity crosses the wire as a JSON string or a number is an **ADR, not a patch** — invariant 22's boundary rule applied to the serialisation layer.
+- Decisions / ADRs / 00_STATE.md rows: **three duplicate blocker ids resolved by citation weight, not by date** — all six rows were raised on the same day, so the id stays with the ask that downstream documents already cite. `HB-I8` keeps the **backup retention** meaning (nine citations, several with sub-parts `HB-I8(a)/(b)`) and the audit-chain anchor destination becomes **HB-I12**; `HB-L21` keeps the **store-listing** meaning (INT-224 cites `HB-L21(a)`) and the KSVY m.16 research-export limb becomes **HB-L26**. `HB-I7` was one ask written twice — the shorter copy is deleted, the fuller one kept because it carries the note distinguishing it from HB-I9.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new. This entry files work, it does not ask for any.
+- Next: INT-121 document extraction, INT-298 PolicyGuard per locale and INT-139 the share centre are in flight.
+- LOOP_STATUS: CONTINUE
