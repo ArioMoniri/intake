@@ -173,6 +173,24 @@ def test_the_producers_are_a_closed_set_of_three() -> None:
     }
 
 
+@pytest.mark.parametrize("source", list(VisitTimeSource))
+def test_every_enumerated_producer_has_a_working_door(
+    harness: ApiHarness, source: VisitTimeSource
+) -> None:
+    """Driven off the enum itself, so a member added without a path that can
+    actually write it fails here rather than sitting in the vocabulary as a
+    provenance nothing produces."""
+    ref = None if source is VisitTimeSource.PATIENT_ENTRY else SCREENSHOT
+    created = _post(harness, time="08:05", time_source=source.value, time_source_ref=ref)
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert (body["time"], body["time_source"], body["time_source_ref"]) == (
+        "08:05",
+        source.value,
+        ref,
+    )
+
+
 def test_a_time_without_a_producer_is_refused(harness: ApiHarness) -> None:
     assert _post(harness, time="14:30").status_code == 422
     assert _post(harness, time="14:30").json() == {"error": "time_source_required"}
