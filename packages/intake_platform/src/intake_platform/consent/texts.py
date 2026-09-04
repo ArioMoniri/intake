@@ -35,11 +35,13 @@ from pathlib import Path
 from intake_platform.consent.registry import resolve_scope
 
 __all__ = [
+    "BoundLegalText",
     "ConsentText",
     "ConsentTextCatalog",
     "ConsentTextError",
     "ConsentTextInvalidError",
     "ConsentTextMissingError",
+    "bind_legal_document",
     "text_filename",
 ]
 
@@ -78,10 +80,45 @@ class ConsentText:
     body: str
 
 
+@dataclass(frozen=True)
+class BoundLegalText:
+    """A hash-bound legal text that is NOT a files/06 §2 consent purpose — an
+    aydınlatma/disclosure shown to a data subject (e.g. the embed partner-
+    processor statement, INT-320). Same binding as :class:`ConsentText` (the
+    hash covers the whole file, front matter included), but it carries no
+    ``purpose`` because it is displayed, never granted through the ledger."""
+
+    version: str
+    text_hash: str  # SHA-256 hex over the exact file bytes
+    body: str
+
+
 def text_filename(purpose_id: str) -> str:
     """``lane:affect`` → ``lane.affect.tr.md`` — Turkish-first (invariant 5),
     colon-free for the filesystem."""
     return purpose_id.replace(":", ".") + ".tr.md"
+
+
+def bind_legal_document(path: Path) -> BoundLegalText:
+    """Bind a legal text by path with the SAME hash-binding as a consent purpose
+    (invariant 18) but WITHOUT the closed-registry ``resolve_scope`` check —
+    for a disclosure that is shown to the patient but never granted (INT-320's
+    partner-processor statement). Fail closed exactly like the catalog: an
+    absent file is :class:`ConsentTextMissingError`, an unversionable one is
+    :class:`ConsentTextInvalidError`. Never authors copy; only binds."""
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError as exc:
+        raise ConsentTextMissingError(
+            f"no legal document at {path} — texts are authored into the legal tree; "
+            "nothing may be shown without one"
+        ) from exc
+    version, body = _parse(path, raw)
+    return BoundLegalText(
+        version=version,
+        text_hash=hashlib.sha256(raw).hexdigest(),
+        body=body,
+    )
 
 
 def _parse(path: Path, raw: bytes) -> tuple[str, str]:

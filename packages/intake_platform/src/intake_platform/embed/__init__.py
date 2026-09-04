@@ -17,6 +17,14 @@ it to OpenBao signing keys, the audit chain and the consent catalogue lives in
 
 from __future__ import annotations
 
+from intake_platform.embed.consent import (
+    CORE_DOC_ID,
+    DISCLOSURE_DOC_ID,
+    EmbedConsentDocument,
+    EmbedConsentDocumentSet,
+    embed_disclosure_root,
+    resolve_embed_consent_documents,
+)
 from intake_platform.embed.launch import LaunchContext, resolve_launch_context
 from intake_platform.embed.registry import (
     EmbedConfigError,
@@ -50,10 +58,14 @@ from intake_platform.embed.tickets import (
 )
 
 __all__ = [
+    "CORE_DOC_ID",
     "DEFAULT_TTL_S",
+    "DISCLOSURE_DOC_ID",
     "MAX_TTL_S",
     "PURPOSE",
     "EmbedConfigError",
+    "EmbedConsentDocument",
+    "EmbedConsentDocumentSet",
     "EmbedRegistryError",
     "EmbedTheme",
     "EmbedThemeError",
@@ -72,8 +84,10 @@ __all__ = [
     "TicketTenantMismatch",
     "TicketTtlTooLong",
     "UnknownTenantError",
+    "embed_disclosure_root",
     "load_shipped_registry",
     "mint_launch_ticket",
+    "resolve_embed_consent_documents",
     "resolve_launch_context",
     "shipped_registry_path",
     "unverified_tenant",
