@@ -124,7 +124,7 @@ class NotEvaluatedReason(enum.StrEnum):
 
 
 class TriageNotEvaluated(FrozenModel):
-    """"No rules-engine determination exists for this previsit", stated.
+    """ "No rules-engine determination exists for this previsit", stated.
 
     The alternative — omitting ``triage`` — reads as GREEN to any receiver
     that has ever seen a GREEN document, which is exactly the assertion this
@@ -140,9 +140,7 @@ class TriageNotEvaluated(FrozenModel):
     )
 
 
-type OutputTriage = Annotated[
-    RulesTriageResult | TriageNotEvaluated, Field(discriminator="source")
-]
+type OutputTriage = Annotated[RulesTriageResult | TriageNotEvaluated, Field(discriminator="source")]
 """Discriminated on ``source``. The two members are the only two things this
 document may say about triage; ``LlmCandidateTriage`` is not among them."""
 

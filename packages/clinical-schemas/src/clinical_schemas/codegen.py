@@ -31,8 +31,8 @@ from clinical_schemas.consent import ConsentScope
 from clinical_schemas.events import EVENT_MODELS
 from clinical_schemas.note import PatientSummary, PreVisitNote
 from clinical_schemas.observers import LaneSignal, ObserverState
-from clinical_schemas.previsit_output import PreVisitOutput
 from clinical_schemas.overlay import PatientOverlay
+from clinical_schemas.previsit_output import PreVisitOutput
 from clinical_schemas.proposal import Proposal
 from clinical_schemas.records import ExtractedRecordItem
 from clinical_schemas.session import SessionState

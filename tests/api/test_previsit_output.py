@@ -206,9 +206,7 @@ def test_a_draft_save_produces_no_output(wired: ApiHarness) -> None:
     draft would publish a document the patient never sent."""
     created = wired.client.post("/v1/visits", json=VISIT_BODY, headers=wired.patient())
     visit_id = str(created.json()["id"])
-    saved = wired.client.put(
-        f"/v1/visits/{visit_id}/note", json=NOTE_BODY, headers=wired.patient()
-    )
+    saved = wired.client.put(f"/v1/visits/{visit_id}/note", json=NOTE_BODY, headers=wired.patient())
     assert saved.status_code == 200
     assert output_rows(wired) == []
 

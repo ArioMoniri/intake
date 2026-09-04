@@ -93,9 +93,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["patient_id"], ["patients.id"], name="fk_previsit_outputs_patient_id_patients"
         ),
-        sa.UniqueConstraint(
-            "tenant_id", "session_id", name="uq_previsit_outputs_tenant_id"
-        ),
+        sa.UniqueConstraint("tenant_id", "session_id", name="uq_previsit_outputs_tenant_id"),
     )
     op.create_index("ix_previsit_outputs_tenant_id", "previsit_outputs", ["tenant_id"])
     op.create_index("ix_previsit_outputs_session_id", "previsit_outputs", ["session_id"])
@@ -105,9 +103,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(
-        "DROP POLICY IF EXISTS previsit_outputs_tenant_isolation ON previsit_outputs"
-    )
+    op.execute("DROP POLICY IF EXISTS previsit_outputs_tenant_isolation ON previsit_outputs")
     op.drop_index("ix_previsit_outputs_patient_id", table_name="previsit_outputs")
     op.drop_index("ix_previsit_outputs_session_id", table_name="previsit_outputs")
     op.drop_index("ix_previsit_outputs_tenant_id", table_name="previsit_outputs")
