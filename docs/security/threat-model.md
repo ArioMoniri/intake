@@ -1016,7 +1016,7 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** views per user and anomaly review (§9) land with INT-152 and INT-192.
 - **Tests:** RBAC matrix tests land with INT-152 and INT-180.
 
-## `connectors` — pushing to hospital systems
+## `connectors` — pushing to and ingesting from hospital systems
 
 - **Assets:** connector credentials, endpoint registry, push payloads (full clinical notes),
   receipts.
@@ -1072,6 +1072,45 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   clamped by the share consent's expiry, one token per push with no cache, an unsupported
   key refused before anything leaves, and the framework headers an adapter cannot
   overwrite.
+
+### INT-162 — the inbound direction (HBYS/SBYS → us): HL7v2 ORU, file drop, USVS mapping
+
+- **Assets:** the inbound-source registry, inbound messages (HL7v2 ORU / dropped files
+  carrying lab results — PHI), the USVS mapping tables, the KTS application pack.
+- **Trust boundaries:** hospital LAN ↔ our PHI network (a feed is untrusted input on the
+  PHI path); the sending HBYS ↔ our record store.
+- **Threats (STRIDE/LINDDUN):** [E] a crafted HL7 segment used as a command or injection
+  surface — the central inbound risk (invariant 14: a segment can never issue a command);
+  [S] a spoofed or plaintext-LAN feed of special-category data; [T] an inbound message
+  claiming a RED/YELLOW triage level (invariant 1: an inbound message may carry
+  `candidate_flags` only, at most `YELLOW_REVIEW`, and only the rules engine yields
+  RED/YELLOW); [I] a guessed or mis-bound USVS code silently entering a record; [Dd] a value
+  from a malformed message reaching a log.
+- **Controls (files/10):** parsing is a table lookup on the segment name — `OBX` is read and
+  every other segment is inert text, so no name dispatches code; the delimiters are read from
+  MSH-2 (the message's own declaration) and an escape *inside* a value is decoded to a
+  literal character, never re-interpreted as structure; the byte cap is checked before the
+  body is split; the parsed `InboundObservation` has no field a triage level could occupy;
+  the USVS code bindings are `draft_needs_source` and the loader refuses to serve them, so an
+  inbound lab resolves to an item with **no code** rather than a guessed one
+  (`ExtractedRecordItem` already forbids a guessed code); a source is registered, bound to a
+  DPA and an approval, and — for `lan_plaintext` — a **separate** recorded approval
+  (invariant 14); ingest clears a consent scope and is audited as ids only (invariants 4, 6).
+  `infra/connectors/inbound_sources.yaml` ships with zero rows, so every message refuses.
+- **Signals:** `connector_inbound_messages_total{source,outcome}` — the inbound mirror of
+  `connector_push_total`, by `ingested` / `refused`, both labels closed sets bounded by the
+  registry and the module (catalogued in `observability/metrics_catalog.yaml`).
+- **Tests:** `tests/connectors/test_inbound_channels.py` — the ORU parse, MSH-2-driven
+  delimiters, an unknown segment proven inert, an escaped delimiter decoded as a character, a
+  non-ORU message refused, the oversized-message refusal, the no-value-in-errors sweep, and
+  the source registry (zero rows, cross-tenant refusal, the plaintext-approval requirement
+  both ways). `tests/connectors/test_usvs_mapping.py` — a draft binding never becomes a code,
+  the served map excludes drafts, the HBYS field bindings checked against their committed
+  source with a near-miss negative, and the no-triage-field / `Decimal`-not-float guarantees.
+  `tests/connectors/test_inbound_ingest.py` — consent cleared and audited (ids only) before a
+  message is mapped, and refused otherwise. `tests/connectors/test_kts_and_dpa.py` — the KTS
+  pack fails closed while the SBSGM list is uncommitted, and the processor-role DPA clause set
+  anchors to real repo documents.
 
 ## `embed` — the partner white-label launch handshake
 

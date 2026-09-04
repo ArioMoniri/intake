@@ -51,7 +51,23 @@ from intake_connectors.destinations import (
     load_destinations,
     require_public_hostname,
 )
+from intake_connectors.dpa import ProcessorDpaClause, processor_role_references
 from intake_connectors.fhir import FHIR_JSON, FhirR4PushAdapter, PayloadNotFhir
+from intake_connectors.filedrop import FileDropChannel, FileDropError
+from intake_connectors.hl7v2 import Hl7v2OruChannel, Hl7v2ParseError
+from intake_connectors.inbound import (
+    InboundChannel,
+    InboundMessage,
+    InboundNotRegistered,
+    InboundObservation,
+    InboundParseError,
+    InboundRequest,
+    InboundSource,
+    InboundSourceRegistry,
+    load_inbound_sources,
+)
+from intake_connectors.ingest import InboundIngest, IngestResult
+from intake_connectors.kts import KtsPack, KtsPackError, KtsRequirement, build_kts_pack
 from intake_connectors.receipts import (
     InMemoryPushLedger,
     InMemoryReceiptStore,
@@ -81,6 +97,12 @@ from intake_connectors.smart import (
     scope_covers,
 )
 from intake_connectors.tls import mtls_context, mtls_transport
+from intake_connectors.usvs import (
+    UsvsBinding,
+    UsvsMap,
+    UsvsMappingError,
+    load_usvs_map,
+)
 
 __all__ = [
     "ASSERTION_TYPE",
@@ -100,12 +122,30 @@ __all__ = [
     "DestinationRegistry",
     "FHIR_JSON",
     "FhirR4PushAdapter",
+    "FileDropChannel",
+    "FileDropError",
+    "Hl7v2OruChannel",
+    "Hl7v2ParseError",
     "InMemoryCredentialResolver",
     "InMemoryPushLedger",
     "InMemoryReceiptStore",
+    "InboundChannel",
+    "InboundIngest",
+    "InboundMessage",
+    "InboundNotRegistered",
+    "InboundObservation",
+    "InboundParseError",
+    "InboundRequest",
+    "InboundSource",
+    "InboundSourceRegistry",
+    "IngestResult",
+    "KtsPack",
+    "KtsPackError",
+    "KtsRequirement",
     "OpenBaoCredentialResolver",
     "OutboundCall",
     "PayloadNotFhir",
+    "ProcessorDpaClause",
     "PushLedger",
     "PushRequest",
     "PushState",
@@ -118,11 +158,18 @@ __all__ = [
     "TlsMaterial",
     "TokenTransportFactory",
     "TransportFactory",
+    "UsvsBinding",
+    "UsvsMap",
+    "UsvsMappingError",
     "build_client_assertion",
+    "build_kts_pack",
     "idempotency_key",
     "load_destinations",
+    "load_inbound_sources",
+    "load_usvs_map",
     "mtls_context",
     "mtls_transport",
+    "processor_role_references",
     "request_access_token",
     "require_public_hostname",
     "scope_covers",

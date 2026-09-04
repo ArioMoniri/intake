@@ -1,0 +1,58 @@
+# KTS (SBYS Kayıt Tescil) application-pack checklist — INT-162.
+#
+# Derived verbatim from files/06 §63 (legal source SBYS-6: SBYS Hk. Yönetmelik,
+# RG 31934 25.08.2022, değişik RG 33299 03.07.2026). Each row is an item a KTS
+# registration must satisfy; `present` rows anchor to where this repository
+# already meets the duty, `blocked` rows name what only a human — SBSGM's live
+# list, or counsel — can supply. build_kts_pack() renders these into
+# docs/regulatory/kts_pack.md and refuses to call the pack complete while any
+# row is blocked, the same fail-closed shape docs/legal/documents.yaml uses.
+version: 1
+requirements:
+  - id: usvs_conformance
+    title: "MoH data-definitions (USVS) conformance — the mapping mechanism"
+    status: present
+    repo_anchor: packages/connectors/src/intake_connectors/usvs_map.yaml
+    blocked_reason: null
+  - id: data_submission_services
+    title: "Data-submission services followed (SBYS data-gönderim)"
+    status: present
+    repo_anchor: files/06_COMPLIANCE_TR.md
+    blocked_reason: null
+  - id: version_notes
+    title: "Version notes / iteration record"
+    status: present
+    repo_anchor: docs/PROGRESS.md
+    blocked_reason: null
+  - id: processor_duties
+    title: "Processor duties (veri işleyen) under the hospital DPA"
+    status: present
+    repo_anchor: files/06_COMPLIANCE_TR.md
+    blocked_reason: null
+  - id: security_annex
+    title: "Security annex = files/10 (KVKK m.12 technical measures)"
+    status: present
+    repo_anchor: files/10_SECURITY_AND_TECHNICAL_MONITORING.md
+    blocked_reason: null
+  - id: iso27001_pursuit
+    title: "ISO/IEC 27001 pursuit (tender requirement; the m.6/3 paragraph was repealed 03.07.2026)"
+    status: present
+    repo_anchor: files/06_COMPLIANCE_TR.md
+    blocked_reason: null
+  - id: sbsgm_published_document_list
+    title: "The SBSGM-published KTS required-document list"
+    status: blocked
+    repo_anchor: null
+    blocked_reason: >-
+      The required documents are the live list SBSGM publishes, which files/06
+      §63 says to track and no committed source in this repository holds. Until
+      the current list is recorded, the pack cannot enumerate every artefact a
+      registration needs, so it is not complete.
+  - id: usvs_dictionary_source
+    title: "The committed USVS data-dictionary the code bindings are checked against"
+    status: blocked
+    repo_anchor: null
+    blocked_reason: >-
+      The USVS code bindings in usvs_map.yaml are draft_needs_source: no
+      committed USVS dictionary vouches for a code or an element, so conformance
+      is a mechanism awaiting content, not a proven fact.

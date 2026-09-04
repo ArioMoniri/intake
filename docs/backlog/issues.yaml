@@ -1854,7 +1854,8 @@
   title: "HBYS/SBYS adapter kit (HL7v2 ORU / file drop / FHIR) + USVS mapping + KTS registration pack"
   depends_on: [INT-160]
   labels: [area:connectors, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-162.md
   acceptance:
     - "mapping tables to USVS data dictionary; KTS (SBYS Kayit Tescil) application pack generated from repo docs; processor-role DPA references"
   tests: [tests/connectors/test_usvs_mapping.py]
