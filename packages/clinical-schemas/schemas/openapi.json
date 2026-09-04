@@ -1177,6 +1177,14 @@
         "title": "MedicationItem",
         "type": "object"
       },
+      "NotEvaluatedReason": {
+        "description": "Why no rules-engine determination accompanies this previsit.\n\nA closed set, because this value is the receiver's cue about what it is\nNOT being told, and free text there would be a place to write a level in\nprose.",
+        "enum": [
+          "rules_engine_not_on_this_path"
+        ],
+        "title": "NotEvaluatedReason",
+        "type": "string"
+      },
       "NoteMeta": {
         "additionalProperties": false,
         "description": "files/04 §5 ``PreVisitNote.meta``.",
@@ -1432,6 +1440,84 @@
         },
         "title": "Oldcarts",
         "type": "object"
+      },
+      "OutputMeasurement": {
+        "additionalProperties": false,
+        "description": "A self-reported quantity: magnitude and unit as one indivisible atom.\n\nCLAUDE.md invariant 22 — *number + unit is one non-breaking atom* — is a\ntyping decision here, not a rendering one. A hospital that read a\nmagnitude out of one field and a unit out of another could pair them\nwrongly; a hospital that reads this object cannot.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/MeasureCode",
+            "description": "Which self-reported measure this is (files/04 §5)."
+          },
+          "magnitude": {
+            "$ref": "#/components/schemas/JsonValue",
+            "description": "Exact magnitude on the shared JSON carrier — a Decimal keeps its declared scale across the wire (INT-309/ADR-029); never a float."
+          },
+          "unit": {
+            "description": "Unit as the patient's control was labelled; never silently converted.",
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "magnitude",
+          "unit"
+        ],
+        "title": "OutputMeasurement",
+        "type": "object"
+      },
+      "OutputSection": {
+        "additionalProperties": false,
+        "description": "One section of the finished previsit, as the patient reviewed it.\n\nThe id set is the note's own (``chief_complaint`` / ``hpi`` /\n``medications`` today) rather than a second vocabulary invented for the\nhospital: a receiver joining on a section id must be joining on the id the\npatient's own share scope was expressed in, or the two can disagree about\nwhat was sent.",
+        "properties": {
+          "id": {
+            "description": "Section id, the same id the share scope names.",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "lines": {
+            "description": "The section's lines, verbatim as the patient confirmed them.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Lines",
+            "type": "array"
+          },
+          "title_tr": {
+            "description": "Section heading in Turkish (invariant 5: tr is the source).",
+            "minLength": 1,
+            "title": "Title Tr",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title_tr",
+          "lines"
+        ],
+        "title": "OutputSection",
+        "type": "object"
+      },
+      "OutputTriage": {
+        "discriminator": {
+          "mapping": {
+            "not_evaluated": "#/components/schemas/TriageNotEvaluated",
+            "rules": "#/components/schemas/RulesTriageResult"
+          },
+          "propertyName": "source"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/RulesTriageResult"
+          },
+          {
+            "$ref": "#/components/schemas/TriageNotEvaluated"
+          }
+        ]
       },
       "PatientOverlay": {
         "additionalProperties": false,
@@ -1696,6 +1782,103 @@
           "screening"
         ],
         "title": "PreVisitNote",
+        "type": "object"
+      },
+      "PreVisitOutput": {
+        "additionalProperties": false,
+        "description": "The frozen, versioned previsit a hospital fetches.\n\nKeyed on the visit and nothing else. The hospital's ``patient_number``\nresolves to a patient through the Tokenizer at request time and is echoed\nfrom the request into the response envelope, so this document — the thing\nthat is actually stored — names no person at all.",
+        "properties": {
+          "completed_at": {
+            "description": "When the previsit finished — the output's own clock, never the row's.",
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "llm_candidates": {
+            "default": [],
+            "description": "LLM candidate concerns — clinician-review material with a YELLOW_REVIEW ceiling (files/03 §4.6). A sibling of triage, never a component of it.",
+            "items": {
+              "$ref": "#/components/schemas/CandidateFlag"
+            },
+            "title": "Llm Candidates",
+            "type": "array"
+          },
+          "locale": {
+            "description": "The language the patient was actually asked in (INT-296 sessions.locale).",
+            "minLength": 2,
+            "title": "Locale",
+            "type": "string"
+          },
+          "measurements": {
+            "default": [],
+            "description": "Self-reported quantities, each an indivisible number+unit atom.",
+            "items": {
+              "$ref": "#/components/schemas/OutputMeasurement"
+            },
+            "title": "Measurements",
+            "type": "array"
+          },
+          "protocol_id": {
+            "description": "Which protocol container ran (files/04 §5 meta).",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Protocol Id",
+            "type": "string"
+          },
+          "protocol_version": {
+            "description": "Its exact version, for reproducibility.",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Protocol Version",
+            "type": "string"
+          },
+          "proxy_reported": {
+            "description": "files/06 §6 — a companion answered on the patient's behalf. A clinician must be able to tell a reported symptom from an observed one before reading a word.",
+            "title": "Proxy Reported",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "const": "intake.clinical.previsit_output.v1",
+            "default": "intake.clinical.previsit_output.v1",
+            "description": "The versioned identity of this structure; a receiver branches on it.",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "sections": {
+            "description": "The sections this output carries (see the serving filter).",
+            "items": {
+              "$ref": "#/components/schemas/OutputSection"
+            },
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          },
+          "third_party_present": {
+            "description": "files/02 §3 — someone else was in the room during the intake.",
+            "title": "Third Party Present",
+            "type": "boolean"
+          },
+          "triage": {
+            "$ref": "#/components/schemas/OutputTriage",
+            "description": "The rules-engine determination, or an explicit statement that none exists. Never derived from llm_candidates (invariant 1)."
+          },
+          "visit_ref": {
+            "description": "The visit (intake session) this output was produced from.",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$",
+            "title": "Visit Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "visit_ref",
+          "completed_at",
+          "locale",
+          "protocol_id",
+          "protocol_version",
+          "proxy_reported",
+          "third_party_present",
+          "sections",
+          "triage"
+        ],
+        "title": "PreVisitOutput",
         "type": "object"
       },
       "Proposal": {
@@ -2421,6 +2604,28 @@
         ],
         "title": "TriageLevel",
         "type": "string"
+      },
+      "TriageNotEvaluated": {
+        "additionalProperties": false,
+        "description": "\"No rules-engine determination exists for this previsit\", stated.\n\nThe alternative — omitting ``triage`` — reads as GREEN to any receiver\nthat has ever seen a GREEN document, which is exactly the assertion this\nrepository may not make without a rule having fired (invariant 1).",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/NotEvaluatedReason",
+            "description": "Why the rules engine produced nothing, from a closed set."
+          },
+          "source": {
+            "const": "not_evaluated",
+            "default": "not_evaluated",
+            "description": "Provenance discriminator: no rules-engine determination (invariant 1).",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "TriageNotEvaluated",
+        "type": "object"
       },
       "TriageResult": {
         "discriminator": {
