@@ -42,10 +42,12 @@ from collections.abc import Iterable
 from typing import Literal
 from urllib.parse import urlsplit
 
+import httpx
 from fastapi import APIRouter
 from intake_connectors.acibadem import (
     ADAPTER_ID,
     AcibademAppointmentsClient,
+    AcibademUpstreamError,
     Appointment,
     UpcomingPatient,
 )
@@ -202,7 +204,12 @@ async def sync(payload: SyncBody, principal: Principal, state: State) -> VisitsO
 
     # One directory read, then the connector's terminal-on-ambiguous matcher —
     # never a first-match guess (that is the shared-handset leak this avoids).
-    rows = tuple(await asyncio.to_thread(client.upcoming))
+    try:
+        rows = tuple(await asyncio.to_thread(client.upcoming))
+    except (httpx.HTTPError, AcibademUpstreamError):
+        # A blip on the hospital feed degrades to an honest empty result,
+        # never a 500 that breaks the whole login / home flow.
+        return VisitsOut(outcome="upstream_unavailable", visits=[])
     resolution = resolve_identity((row.as_candidate() for row in rows), phone=feed_phone, tckn=None)
 
     # Invariant 4: the disclosure is audited with ids only — the resolved
@@ -229,7 +236,10 @@ async def sync(payload: SyncBody, principal: Principal, state: State) -> VisitsO
 
     patient_number = resolution.patient_number
     display_name = _display_name(rows, patient_number)
-    appointments = await asyncio.to_thread(client.appointments_for, patient_number)
+    try:
+        appointments = await asyncio.to_thread(client.appointments_for, patient_number)
+    except (httpx.HTTPError, AcibademUpstreamError):
+        return VisitsOut(outcome="upstream_unavailable", visits=[])
     today = _today()
     visits = [
         VisitOut(
