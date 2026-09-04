@@ -785,7 +785,7 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   paraphrased or edited clip breaking the verbatim rule (invariant 10); [D] the vendor being
   unavailable — not a runtime failure, because the fixed set is cached and playback needs no
   vendor.
-- **Controls (files/10; ADR-028):** OFFLINE ONLY — the vendor is on no runtime or PHI path and
+- **Controls (files/10):** ADR-028; OFFLINE ONLY — the vendor is on no runtime or PHI path and
   the runtime cannot reach it, so this does not weaken invariant 19; the key is read from the
   environment only (`TTS_ELEVENLABS_API_KEY`, never a source file or a log, files/10 §2) and is
   never placed in an exception message; the live paid call is spend-gated on `EVAL_BUDGET_USD`
