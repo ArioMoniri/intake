@@ -8,6 +8,7 @@
  * code or a token.
  */
 import { configuredServiceCandidates } from "@/lib/dev/expoHosts";
+import type { VisitFixture } from "@/lib/dev/accounts";
 
 import { buildAttestation } from "./attestation";
 import { dpopProof } from "./dpop";
