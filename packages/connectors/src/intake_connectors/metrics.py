@@ -14,6 +14,7 @@ from __future__ import annotations
 from prometheus_client import Counter, Histogram
 
 __all__ = [
+    "CONNECTOR_INBOUND_MESSAGES_TOTAL",
     "CONNECTOR_PUSH_DURATION_SECONDS",
     "CONNECTOR_PUSH_TOTAL",
     "CONNECTOR_RECEIPTS_UNRESOLVED_TOTAL",
@@ -54,4 +55,17 @@ CONNECTOR_TOKEN_EXCHANGE_TOTAL = Counter(
     "connector_token_exchange_total",
     "SMART backend services token exchanges by registered endpoint and bucketed outcome.",
     ("endpoint", "outcome"),
+)
+
+#: INT-162. The inbound mirror of ``connector_push_total``: a hospital feed
+#: (HL7v2 ORU or a file drop) ingested for a registered source, by settled
+#: outcome — ``ingested`` or ``refused`` (a consent scope that did not stand).
+#: Both labels are closed sets — a source id bounded by the registry and an
+#: outcome bounded by this module — so nothing a sender supplies can widen the
+#: cardinality (invariant 6). The registry ships with zero rows, so this series
+#: only moves once a feed is contracted, exactly as the push series does.
+CONNECTOR_INBOUND_MESSAGES_TOTAL = Counter(
+    "connector_inbound_messages_total",
+    "Inbound hospital-feed messages ingested for a registered source, by settled outcome.",
+    ("source", "outcome"),
 )
