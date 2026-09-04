@@ -290,10 +290,21 @@ export interface ClipStore {
   clear(): Promise<void>;
 }
 
+/**
+ * A prebaked-clip source consulted before the synthesizer (INT-demo ElevenLabs
+ * dev lane). Given a clip's cache name and its verbatim text, it answers with a
+ * ready clip's URI or `null`. `null` means "not prebaked" and the store
+ * synthesizes on the live lane exactly as before; it must never throw, because
+ * a resolver on the speech path degrades to the live voice, it does not end the
+ * turn.
+ */
+export type PrebakedClip = (name: string, text: string) => Promise<string | null>;
+
 export function createClipStore(
   dir: string,
   fs: ClipFs,
   synth: (text: string) => Promise<Uint8Array>,
+  prebaked?: PrebakedClip,
 ): ClipStore {
   const root = dir.endsWith("/") ? dir : `${dir}/`;
   // Concurrent ensures of one clip share a single synthesis: the session
@@ -303,12 +314,23 @@ export function createClipStore(
   const running = new Map<string, Promise<string>>();
   return {
     async ensure(name, text) {
-      assertSpeakableTr(text); // defense in depth: no digit reaches synth
+      assertSpeakableTr(text); // defense in depth: no digit reaches synth OR the prebaked lookup
       const inFlight = running.get(name);
       if (inFlight !== undefined) {
         return inFlight;
       }
       const task = (async () => {
+        // A bundled ElevenLabs clip for this exact text wins over the live
+        // lane — it is offline, keyed on the verbatim text (invariant 10), and
+        // its URI is played directly, so nothing is written under `root` and
+        // `clear()` never touches it. A miss (or any hiccup) returns null and
+        // the live-lane path below runs unchanged.
+        if (prebaked !== undefined) {
+          const ready = await prebaked(name, text);
+          if (ready !== null) {
+            return ready;
+          }
+        }
         const path = `${root}${name}`;
         if (await fs.exists(path)) {
           return path;
