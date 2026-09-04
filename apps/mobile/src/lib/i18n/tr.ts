@@ -839,6 +839,7 @@ export const tr = {
   "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
   "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
   "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
+  "a11y.dialogue.finishHint": "Görüşmeyi bitirip özeti görmek için iki kez dokunun.",
   // ── INT-141 · Bildirimler ────────────────────────────────────────────
   // The patient's own opt-out and quiet window. Two rules the copy has to
   // carry honestly: a bildirim never says anything about health (the bodies

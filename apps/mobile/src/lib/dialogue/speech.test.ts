@@ -75,11 +75,13 @@ describe("an open question is asked, never enumerated (INT-286)", () => {
     expect(speech).not.toContain(tr["intake.opt.rest"]);
   });
 
-  it("the aside becomes the authored invitation to answer in the patient's own words", () => {
-    expect(questionAsideTr(breathTiming)).toBe(tr["dialogue.openInvite"]);
-    expect(questionSpeechTr(duration)).toBe(
-      `${tr["intake.q.duration"]} ${tr["dialogue.openInvite"]}`,
-    );
+  it("an open question adds no spoken aside — the invitation moved to the top of the flow (INT-318)", () => {
+    // The per-turn "kendi sözlerinizle" invitation read as noise repeated on
+    // every open turn, so it was dropped from the spoken lane (INT-318's
+    // questionAsideTr change); the typed flow now shows it once at the top
+    // instead. An open question is asked verbatim, with nothing appended.
+    expect(questionAsideTr(breathTiming)).toBeNull();
+    expect(questionSpeechTr(duration)).toBe(tr["intake.q.duration"]);
   });
 
   it("no open question in any pack enumerates its options", () => {
@@ -157,17 +159,17 @@ describe("questionSpeechTr — the typed lane's control copy never crosses (INT-
     expect(questionAsideTr(substance)).toBe(
       `${tr["dialogue.optionsIntro"]} ${tr["intake.opt.no"]}, ${tr["intake.opt.yes"]} ${tr["dialogue.or"]} ${tr["intake.opt.notStated"]}.`,
     );
-    // An open question: the invitation, at every list length.
-    expect(questionAsideTr(complaint)).toBe(tr["dialogue.openInvite"]);
+    // An open question adds nothing spoken — the invitation is a once-at-top
+    // affordance now (INT-318), not a per-turn aside.
+    expect(questionAsideTr(complaint)).toBeNull();
     // Free text is already the patient's own words: nothing to add.
     expect(questionAsideTr(extra)).toBeNull();
     // Speech is exactly question + aside, so the two channels cannot drift.
     expect(questionSpeechTr(substance)).toBe(
       `${tr["intake.q.substance"]} ${questionAsideTr(substance)}`,
     );
-    expect(questionSpeechTr(duration)).toBe(
-      `${tr["intake.q.duration"]} ${questionAsideTr(duration)}`,
-    );
+    // …and an open question is spoken as just the scripted question.
+    expect(questionSpeechTr(duration)).toBe(tr["intake.q.duration"]);
   });
 });
 
