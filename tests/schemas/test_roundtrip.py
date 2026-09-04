@@ -911,14 +911,22 @@ class TestADecimalCrossesTheWireAsItself:
 
     def test_a_string_that_looks_like_the_tag_round_trips_as_that_string(self) -> None:
         """The reserved prefix is escaped, never refused: a patient answer is
-        never rejected for the shape of its first character."""
-        restored = SessionState.model_validate_json(
-            _state_with(a="~d38.50", b="~", c="~~x").model_dump_json()
-        )
+        never rejected for the shape of its first character, and never
+        silently becomes a number once it is on the wire.
+
+        The inputs are spelled in wire form (``~~`` for a literal ``~``)
+        because ``JsonValue`` decodes in both validation modes — it has to,
+        since FastAPI validates a parsed request body in *python* mode, so a
+        json-only decoder would leave every inbound API quantity a string.
+        ADR-029 records that consequence."""
+        state = _state_with(a="~~d38.50", b="~~", c="~~~x")
+        assert state.slots["a"] == "~d38.50"  # decoded once, on the way in
+        restored = SessionState.model_validate_json(state.model_dump_json())
         assert restored.slots["a"] == "~d38.50"
         assert not isinstance(restored.slots["a"], Decimal)
         assert restored.slots["b"] == "~"
         assert restored.slots["c"] == "~~x"
+        assert restored == state
 
     def test_a_decimal_nested_in_a_list_or_a_map_survives(self) -> None:
         state = _state_with(xs=[Decimal("1.10")], m={"k": Decimal("0.10")})
