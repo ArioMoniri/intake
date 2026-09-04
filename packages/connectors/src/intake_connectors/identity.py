@@ -177,7 +177,9 @@ def resolve_identity(
     from outside and only one of them is a bug worth finding.
     """
     if normalise_tr_msisdn(phone) != phone:
-        raise ValueError("phone must already be normalised to E.164 (+90, then the ten-digit mobile)")
+        raise ValueError(
+            "phone must already be normalised to E.164 (+90, then the ten-digit mobile)"
+        )
 
     matches: Sequence[IdentityCandidate] = [
         candidate for candidate in candidates if candidate.msisdn == phone

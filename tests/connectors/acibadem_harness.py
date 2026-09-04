@@ -55,10 +55,7 @@ PORT = 8091
 
 
 UPCOMING: dict[str, Any] = {
-    "date_range": {
-        "from": "2026-09-04",
-        "to": "2026-09-06"
-    },
+    "date_range": {"from": "2026-09-04", "to": "2026-09-06"},
     "count": 8,
     "data": [
         {
@@ -66,58 +63,58 @@ UPCOMING: dict[str, Any] = {
             "patient_name": "MEHMET",
             "patient_surname": "YILMAZ",
             "cell_phone": "905321110001",
-            "tckimlik_no": "10000000146"
+            "tckimlik_no": "10000000146",
         },
         {
             "patient_number": "40000002",
             "patient_name": "AYSE",
             "patient_surname": "YILMAZ",
             "cell_phone": "905321110001",
-            "tckimlik_no": "12345678950"
+            "tckimlik_no": "12345678950",
         },
         {
             "patient_number": "40000003",
             "patient_name": "FATMA",
             "patient_surname": "KAYA",
             "cell_phone": "905321110003",
-            "tckimlik_no": null
+            "tckimlik_no": None,
         },
         {
             "patient_number": "40000004",
             "patient_name": "ALI",
             "patient_surname": "DEMIR",
             "cell_phone": "905321110004",
-            "tckimlik_no": null
+            "tckimlik_no": None,
         },
         {
             "patient_number": "40000005",
             "patient_name": "ZEYNEP",
             "patient_surname": "CELIK",
-            "cell_phone": null,
-            "tckimlik_no": "22222222220"
+            "cell_phone": None,
+            "tckimlik_no": "22222222220",
         },
         {
             "patient_number": "40000006",
             "patient_name": "CAN",
             "patient_surname": "OZTURK",
             "cell_phone": "905321110006",
-            "tckimlik_no": "31415926562"
+            "tckimlik_no": "31415926562",
         },
         {
             "patient_number": "40000007",
             "patient_name": "EMRE",
             "patient_surname": "ARSLAN",
             "cell_phone": "905321110007",
-            "tckimlik_no": null
+            "tckimlik_no": None,
         },
         {
             "patient_number": "40000008",
             "patient_name": "SELIN",
             "patient_surname": "ARSLAN",
             "cell_phone": "905321110007",
-            "tckimlik_no": null
-        }
-    ]
+            "tckimlik_no": None,
+        },
+    ],
 }
 
 PATIENT_DETAIL: dict[str, Any] = {
@@ -126,21 +123,21 @@ PATIENT_DETAIL: dict[str, Any] = {
     "data": [
         {
             "patient_number": "40000003",
-            "tckimlik_no": null,
+            "tckimlik_no": None,
             "app_date": "05-09-2026",
             "start_time": 156,
-            "unplanned_app": null,
+            "unplanned_app": None,
             "doctor_id": 31663,
             "cell_phone": "905321110003",
             "patient_name": "FATMA",
             "patient_surname": "KAYA",
             "facility_name": "Acıbadem Hst. Ataşehir",
             "specialty_name": "Kardiyoloji",
-            "randevu_saati": "13:00"
+            "randevu_saati": "13:00",
         },
         {
             "patient_number": "40000003",
-            "tckimlik_no": null,
+            "tckimlik_no": None,
             "app_date": "05-09-2026",
             "start_time": 300,
             "unplanned_app": "13:05",
@@ -150,23 +147,23 @@ PATIENT_DETAIL: dict[str, Any] = {
             "patient_surname": "KAYA",
             "facility_name": "Acıbadem Hst. Ataşehir",
             "specialty_name": "Kadın Hastalıkları ve Doğum",
-            "randevu_saati": "13:05"
+            "randevu_saati": "13:05",
         },
         {
             "patient_number": "40000003",
-            "tckimlik_no": null,
+            "tckimlik_no": None,
             "app_date": "11-10-2021",
             "start_time": 99,
-            "unplanned_app": null,
-            "doctor_id": null,
+            "unplanned_app": None,
+            "doctor_id": None,
             "cell_phone": "905321110003",
             "patient_name": "FATMA",
             "patient_surname": "KAYA",
             "facility_name": "Acıbadem Hst. Kartal",
             "specialty_name": "Göz Hastalıkları",
-            "randevu_saati": "08:15"
-        }
-    ]
+            "randevu_saati": "08:15",
+        },
+    ],
 }
 
 PATIENT_DETAIL_WITH_A_FOREIGN_ROW: dict[str, Any] = {
@@ -178,30 +175,30 @@ PATIENT_DETAIL_WITH_A_FOREIGN_ROW: dict[str, Any] = {
             "tckimlik_no": "31415926562",
             "app_date": "06-09-2026",
             "start_time": 120,
-            "unplanned_app": null,
+            "unplanned_app": None,
             "doctor_id": 79072,
             "cell_phone": "905321110006",
             "patient_name": "CAN",
             "patient_surname": "OZTURK",
             "facility_name": "Acıbadem Hst. Altunizade",
             "specialty_name": "İç Hastalıkları",
-            "randevu_saati": "10:00"
+            "randevu_saati": "10:00",
         },
         {
             "patient_number": "40000004",
-            "tckimlik_no": null,
+            "tckimlik_no": None,
             "app_date": "06-09-2026",
             "start_time": 126,
-            "unplanned_app": null,
+            "unplanned_app": None,
             "doctor_id": 31663,
             "cell_phone": "905321110004",
             "patient_name": "ALI",
             "patient_surname": "DEMIR",
             "facility_name": "Acıbadem Hst. Altunizade",
             "specialty_name": "Ortopedi ve Travmatoloji",
-            "randevu_saati": "10:30"
-        }
-    ]
+            "randevu_saati": "10:30",
+        },
+    ],
 }
 
 
