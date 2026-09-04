@@ -1108,9 +1108,9 @@ def test_a_carrier_lookup_that_fails_still_lets_the_patient_in(
     # asserting over it here would make this test fail for another route's
     # reason.
     ours = [r for r in caplog.records if r.name.startswith("intake_api")]
-    assert any(
-        "fail open" in r.getMessage() for r in ours
-    ), "a lookup that did not happen must be visible"
+    assert any("fail open" in r.getMessage() for r in ours), (
+        "a lookup that did not happen must be visible"
+    )
     for record in ours:
         assert "5051114455" not in record.getMessage(), record.getMessage()
     # The check's own line is a fixed string with no arguments, so nothing from
