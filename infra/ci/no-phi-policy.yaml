@@ -58,41 +58,6 @@ synthetic_corpora:
     licence: CC-BY-4.0
     sha256: 903e7616732539e01ea0f21848657bf4bd25422504339399a454ff677dae243a
 
-  - path: tests/fixtures/connectors/acibadem/upcoming.json
-    origin: authored
-    provenance: >-
-      Authored for the Acibadem read connector as the upcoming-directory
-      fixture. It mirrors the measured upstream schema and nothing else: the
-      row shape, the twelve-character 905-prefixed mobile spelling, the
-      null-heavy TC Kimlik column, and one handset shared by two patients with
-      the same surname. Every TC Kimlik in it is checksum-valid and belongs to
-      nobody, and every mobile is constructed. The identifiers are not
-      repeated here: a declaration that quotes what it declares becomes a
-      second copy of it.
-    licence: proprietary (repo LICENSE)
-    sha256: ecca98c2b493cfab6687072982edb566e39ecd43116c95cd8561f66ed6327b32
-
-  - path: tests/fixtures/connectors/acibadem/patient_40000003.json
-    origin: authored
-    provenance: >-
-      Authored for the Acibadem read connector as the per-patient detail
-      fixture. Constructed identifiers only, and shaped from the measured
-      endpoint: DD-MM-YYYY dates, a HH:MM randevu_saati, the five-minute
-      start_time slot index including the sentinel value that decodes to
-      25:00, and a row from 2021 so the upcoming filter has something to drop.
-    licence: proprietary (repo LICENSE)
-    sha256: 04ad3bd507b3120d22553b7238ffcb6a43b166c25405dea2731e8ce48f993dfd
-
-  - path: tests/fixtures/connectors/acibadem/patient_40000006_foreign_row.json
-    origin: authored
-    provenance: >-
-      Authored for the Acibadem read connector as the near-miss control: a
-      per-patient response that carries one row belonging to a DIFFERENT
-      patient number, so the client's own re-check has something to drop.
-      Constructed identifiers only.
-    licence: proprietary (repo LICENSE)
-    sha256: dfa7789401747fdf1cb8b3824384432e26d2878e9ccc0cf0d407f260381742f0
-
   - path: tests/fixtures/logs/app_lines.txt
     origin: authored
     provenance: >-
