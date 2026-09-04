@@ -70,7 +70,7 @@ def identifier_digest(value: str) -> str:
 
 
 def normalise_tr_msisdn(raw: str | None) -> str | None:
-    """A Turkish mobile in any accepted spelling → ``+905XXXXXXXXX``.
+    """A Turkish mobile in any accepted spelling → ``+905`` plus nine digits.
 
     ``None`` when it is not one, which includes a landline: a feed row whose
     ``cell_phone`` is a fixed line can never be reached by a mobile login, and
@@ -171,13 +171,13 @@ def resolve_identity(
 ) -> IdentityResolution:
     """Match a verified phone to at most one feed row.
 
-    ``phone`` must already be canonical (``+905XXXXXXXXX``); passing anything
+    ``phone`` must already be canonical (``+905`` plus nine digits); passing anything
     else raises rather than quietly matching nothing, because "no appointment"
     and "your caller normalised the number wrongly" are the same observation
     from outside and only one of them is a bug worth finding.
     """
     if normalise_tr_msisdn(phone) != phone:
-        raise ValueError("phone must already be normalised to +905XXXXXXXXX")
+        raise ValueError("phone must already be normalised to E.164 (+90, then the ten-digit mobile)")
 
     matches: Sequence[IdentityCandidate] = [
         candidate for candidate in candidates if candidate.msisdn == phone
