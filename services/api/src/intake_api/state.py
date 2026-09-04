@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, Request
 from intake_platform.consent import ConsentTextCatalog
+from intake_platform.egress import TransferRecord
 from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
@@ -61,6 +62,12 @@ class ApiState:
     # flags are pre-declared False in BOTH providers — a call-site default
     # cannot open one.
     flags: FlagProvider = field(default_factory=default_provider)
+    # INT-189: the egress transfer feed the compliance vendor-transfer register
+    # auto-fills from (intake_platform.compliance.register). Empty by default:
+    # the durable egress log lives in Loki and querying it is a follow-up, so
+    # an unwired deployment shows an empty register rather than a fabricated one
+    # (files/08 §4; the register is a projection, never a second store).
+    transfer_feed: tuple[TransferRecord, ...] = ()
     # INT-038: the docs/legal consent-text catalog the guard binds against;
     # defaults from settings.legal_root in __post_init__ so every state has
     # one (an absent legal tree is an EMPTY catalog — grants fail closed).

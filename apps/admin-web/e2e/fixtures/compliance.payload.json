@@ -1,0 +1,172 @@
+{
+  "audit_search": {
+    "rows": [
+      {
+        "action": "admin.compliance.vendor_register.read.intent",
+        "actor": "kc-sub-auditor",
+        "occurred_at_utc": "2026-09-04T22:11:09.216579+00:00",
+        "seq": 1
+      },
+      {
+        "action": "admin.compliance.vendor_register.read.success",
+        "actor": "kc-sub-auditor",
+        "occurred_at_utc": "2026-09-04T22:11:09.248984+00:00",
+        "seq": 2
+      },
+      {
+        "action": "admin.compliance.consents.read.intent",
+        "actor": "kc-sub-auditor",
+        "occurred_at_utc": "2026-09-04T22:11:09.261987+00:00",
+        "seq": 3
+      },
+      {
+        "action": "admin.compliance.consents.read.success",
+        "actor": "kc-sub-auditor",
+        "occurred_at_utc": "2026-09-04T22:11:09.268234+00:00",
+        "seq": 4
+      },
+      {
+        "action": "admin.compliance.audit_search.read.intent",
+        "actor": "kc-sub-auditor",
+        "occurred_at_utc": "2026-09-04T22:11:09.277169+00:00",
+        "seq": 5
+      }
+    ]
+  },
+  "consents": {
+    "rows": []
+  },
+  "dsar": {
+    "rows": []
+  },
+  "evidence": {
+    "digest": "y1pI971LItKQKPqm1vaOSgZEsUxgp2XucdTESIjwt5g",
+    "generated_at": "2026-09-04T22:11:09.736962+00:00",
+    "legal_refs": [
+      "KVKK-9",
+      "TRANSFER-2024"
+    ],
+    "sections": [
+      {
+        "columns": [
+          "host",
+          "purpose",
+          "category",
+          "basis",
+          "retention",
+          "recipients",
+          "data_class",
+          "first_seen",
+          "last_seen",
+          "transfers",
+          "bytes_out",
+          "notification_due",
+          "window_open"
+        ],
+        "rows": [
+          [
+            "pypi.org",
+            "Python package index metadata (uv/pip resolution)",
+            "operational_metadata",
+            "no-personal-data; public package registry pull",
+            "no personal data transferred; no KVKK retention obligation",
+            "pypi",
+            "non_personal",
+            "2026-09-01T09:00:00+00:00",
+            "2026-09-01T09:00:00+00:00",
+            "1",
+            "2048",
+            "2026-09-08",
+            "open"
+          ],
+          [
+            "github.com",
+            "git fetch/push of this repository",
+            "operational_metadata",
+            "no-personal-data; source code only (invariant 6 keeps PHI out of the repo)",
+            "no personal data transferred; no KVKK retention obligation",
+            "github",
+            "non_personal",
+            "2026-09-02T11:00:00+00:00",
+            "2026-09-02T11:00:00+00:00",
+            "1",
+            "8192",
+            "2026-09-09",
+            "open"
+          ]
+        ],
+        "title": "vendor_transfer_register"
+      },
+      {
+        "columns": [
+          "scope",
+          "version",
+          "granted",
+          "withdrawn"
+        ],
+        "rows": [],
+        "title": "consent_coverage"
+      },
+      {
+        "columns": [
+          "status",
+          "count",
+          "oldest_due"
+        ],
+        "rows": [],
+        "title": "dsar_sla"
+      },
+      {
+        "columns": [
+          "verified",
+          "checked_at"
+        ],
+        "rows": [
+          [
+            "false",
+            "'-"
+          ]
+        ],
+        "title": "audit_chain"
+      }
+    ]
+  },
+  "vendor_register": {
+    "rows": [
+      {
+        "basis": "no-personal-data; public package registry pull",
+        "bytes_out": 2048,
+        "category": "operational_metadata",
+        "data_class": "non_personal",
+        "first_seen": "2026-09-01T09:00:00+00:00",
+        "host": "pypi.org",
+        "last_seen": "2026-09-01T09:00:00+00:00",
+        "notification_due": "2026-09-08",
+        "notification_window_open": true,
+        "port": 443,
+        "purpose": "Python package index metadata (uv/pip resolution)",
+        "purpose_id": "package_registry",
+        "recipients": "pypi",
+        "retention": "no personal data transferred; no KVKK retention obligation",
+        "transfer_count": 1
+      },
+      {
+        "basis": "no-personal-data; source code only (invariant 6 keeps PHI out of the repo)",
+        "bytes_out": 8192,
+        "category": "operational_metadata",
+        "data_class": "non_personal",
+        "first_seen": "2026-09-02T11:00:00+00:00",
+        "host": "github.com",
+        "last_seen": "2026-09-02T11:00:00+00:00",
+        "notification_due": "2026-09-09",
+        "notification_window_open": true,
+        "port": 443,
+        "purpose": "git fetch/push of this repository",
+        "purpose_id": "source_control",
+        "recipients": "github",
+        "retention": "no personal data transferred; no KVKK retention obligation",
+        "transfer_count": 1
+      }
+    ]
+  }
+}

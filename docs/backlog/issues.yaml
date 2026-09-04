@@ -2466,7 +2466,7 @@
   title: "Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports"
   depends_on: [INT-036, INT-037, INT-038, INT-180]
   labels: [area:admin, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "vendor-transfer register auto-filled from egress logs with notification due-dates (5 business days rule); evidence export bundles for audits"
   tests: [apps/admin-web/e2e/compliance.spec.ts]

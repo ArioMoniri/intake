@@ -303,6 +303,14 @@ def four_eyes_refused(code: str) -> HTTPException:
     return HTTPException(status_code=409, detail={"error": code})
 
 
+def compliance_query_refused(code: str) -> HTTPException:
+    """A compliance-search query the module will not run (INT-189). 422: the
+    query is understood and refused — a free-text filter or one aimed at
+    patient content that the audit search must not answer (HB-L6, invariant
+    6). ``code`` is machine-shaped and echoes no filter value."""
+    return HTTPException(status_code=422, detail={"error": code})
+
+
 def benchmark_refused(code: str, reason: str) -> HTTPException:
     """INT-183: the models module refused to plan a benchmark. 409 — the
     request was understood and cannot honestly be answered: an unknown
