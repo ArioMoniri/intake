@@ -168,6 +168,25 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "qms_owner",
         {"assertion_id": "assn-unit-lane-1"},
     ),
+    # INT-189 — the compliance module (files/08 §4). All reads, driven by
+    # `auditor`, one of the three roles §2.1 admits to these surfaces.
+    RouteDrive(
+        "GET",
+        "/admin/compliance/vendor-register",
+        "/admin/compliance/vendor-register",
+        "auditor",
+    ),
+    RouteDrive("GET", "/admin/compliance/consents", "/admin/compliance/consents", "auditor"),
+    RouteDrive(
+        "GET", "/admin/compliance/audit-search", "/admin/compliance/audit-search", "auditor"
+    ),
+    RouteDrive("GET", "/admin/compliance/dsar", "/admin/compliance/dsar", "auditor"),
+    RouteDrive(
+        "GET",
+        "/admin/compliance/evidence-export",
+        "/admin/compliance/evidence-export",
+        "auditor",
+    ),
 )
 
 

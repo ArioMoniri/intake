@@ -25,7 +25,9 @@ this issue exists to close.
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Awaitable, Callable, Mapping
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -52,9 +54,11 @@ from intake_platform.admin.metrics import (
     ADMIN_PENDING_ACTION_EXPIRED_TOTAL,
     SEC_BREAK_GLASS_TOTAL,
 )
+from intake_platform.compliance import AuditSearchQuery
+from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
-from intake_api.admin import views
+from intake_api.admin import compliance_source, views
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
     load_models_module,
@@ -62,10 +66,12 @@ from intake_api.admin.models_source import (
     run_benchmark,
 )
 from intake_api.consent_guard import administrative_action
+from intake_api.db import tenant_session
 from intake_api.errors import (
     admin_refused,
     benchmark_refused,
     break_glass_refused,
+    compliance_query_refused,
     four_eyes_refused,
     not_found,
 )
@@ -253,6 +259,98 @@ async def _models_benchmark(
     return views.benchmark_result_view(executed)
 
 
+# --------------------------------------------------------------------------
+# INT-189 — the compliance module (files/08 §4). All reads; the tenant-scoped
+# ones (consents, DSAR, evidence) take the tenant from the resolved caller,
+# never from a query string (files/08 §8 rule a; effective_tenant already
+# refused ?tenant= below platform_owner).
+# --------------------------------------------------------------------------
+
+
+def _tenant_scope(caller: AdminCaller) -> uuid.UUID | None:
+    """The DB tenant a scoped read runs against, or ``None`` for no scope.
+
+    Production hands a tenant claim that is the tenant's UUID; a claim that is
+    absent (``platform_owner`` names one via ``?tenant=`` or sees nothing) or
+    does not resolve to a UUID scopes the read to **no rows** rather than being
+    refused. That is fail-safe for a read: the wrong direction is returning
+    another tenant's rows, never returning none of your own. Tenant isolation
+    is unchanged — a caller only ever reaches rows under its own claim tenant.
+    """
+    if caller.tenant is None:
+        return None
+    try:
+        return uuid.UUID(caller.tenant)
+    except ValueError:
+        return None
+
+
+async def _compliance_vendor_register(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    state = get_state(request)
+    rows = compliance_source.load_vendor_register(state.transfer_feed, now=datetime.now(UTC))
+    return views.vendor_register_view(rows)
+
+
+async def _compliance_consents(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    state = get_state(request)
+    tenant_id = _tenant_scope(caller)
+    if tenant_id is None:
+        return views.consent_coverage_view(())
+    async with tenant_session(state.engine, tenant_id) as session:
+        rows = await compliance_source.consent_coverage(session, tenant_id=tenant_id)
+    return views.consent_coverage_view(rows)
+
+
+async def _compliance_audit_search(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    state = get_state(request)
+    params = request.query_params
+    try:
+        query = AuditSearchQuery(
+            action_prefix=params.get("action_prefix"),
+            actor=params.get("actor"),
+            since=params.get("since"),
+            until=params.get("until"),
+        )
+        rows = await compliance_source.audit_search(state.audit, query=query)
+    except AuditSearchContentRefused as refusal:
+        # a search that would reach content is refused, never emptied (HB-L6)
+        raise compliance_query_refused(refusal.code) from None
+    return views.audit_search_view(rows)
+
+
+async def _compliance_dsar(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    state = get_state(request)
+    tenant_id = _tenant_scope(caller)
+    if tenant_id is None:
+        return views.dsar_queue_view(())
+    async with tenant_session(state.engine, tenant_id) as session:
+        rows = await compliance_source.dsar_queue(
+            session, tenant_id=tenant_id, now=datetime.now(UTC)
+        )
+    return views.dsar_queue_view(rows)
+
+
+async def _compliance_evidence(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    state = get_state(request)
+    bundle = await compliance_source.build_evidence(
+        state,
+        tenant_id=_tenant_scope(caller),
+        feed=state.transfer_feed,
+        now=datetime.now(UTC),
+    )
+    return views.evidence_bundle_view(bundle)
+
+
 _HANDLERS: dict[str, Handler] = {
     "admin.whoami.read": _whoami,
     "admin.access.roles.read": _roles,
@@ -262,6 +360,11 @@ _HANDLERS: dict[str, Handler] = {
     "admin.break_glass.open": _break_glass_open,
     "admin.break_glass.brief.read": _break_glass_brief,
     "admin.break_glass.approve": _break_glass_approve,
+    "admin.compliance.vendor_register.read": _compliance_vendor_register,
+    "admin.compliance.consents.read": _compliance_consents,
+    "admin.compliance.audit_search.read": _compliance_audit_search,
+    "admin.compliance.dsar.read": _compliance_dsar,
+    "admin.compliance.evidence.export": _compliance_evidence,
 }
 
 
