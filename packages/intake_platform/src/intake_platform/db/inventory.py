@@ -119,6 +119,22 @@ RET_SATISFACTION = (
     "with account: due the moment the account is deleted, never before; "
     "DSAR-erasable (06 §3 satisfaction row)"
 )
+# Owner directive (the previsit OUTPUT store): the frozen hospital-facing copy
+# rides the files/06 §3 RECORD clock, and that is a reading of the matrix
+# rather than a new period. The row is a projection of the note it derives
+# from, it lives in the same database under the same tenant, and it is reached
+# by the same DSAR erasure and the same crypto-shred; a derived copy that
+# outlived the record it derives from would be the invention here, not this.
+# What is NOT decided by this constant is the retention of the copy the
+# HOSPITAL holds once it has fetched — that is a DPA clause, it is named per
+# row in infra/previsit_output/recipients.yaml, and the registry refuses a row
+# that does not name it.
+RET_PREVISIT_OUTPUT = (
+    "life of the record, on the 06 §3 record clock: patient-deletable, 30-day grace, "
+    "then crypto-shred — a frozen projection of the note cannot outlive the note. "
+    "The receiving hospital's own retention is a DPA clause named per recipient row "
+    "(infra/previsit_output/recipients.yaml retention_ref), never a period set here"
+)
 # INT-223: files/06 §3 has no row for guardian linkage, and inventing one
 # would be inventing a retention clock. The gate stays shut instead.
 RET_AWAITING_HUMAN_GUARDIAN = (
@@ -138,6 +154,17 @@ REC_AUDITOR = "supervisory authority or auditor on lawful request; WORM export"
 REC_ON_DEVICE = (
     "nobody: the data stays on the patient's own device until the patient adds a "
     "summary to the note, from which point the notes.payload row governs"
+)
+# Owner directive: the previsit output exists TO BE fetched by a hospital
+# system, but no DPA names one and no reader is approved, so there is no
+# recipient beyond the PHI boundary to declare yet. Same shape as the guardian
+# row above: the column ships annotated with the absence rather than with a
+# recipient somebody assumed, and the recipient registry is empty so the
+# read-back refuses everyone.
+REC_HOSPITAL_SYSTEM_AWAITING_HUMAN = (
+    "internal services only while the recipient registry is empty; the hospital system "
+    "that will fetch this is defined by an executed DPA and a recorded tier-3 approval "
+    "(infra/previsit_output/recipients.yaml), neither of which exists"
 )
 REC_GUARDIAN_INTERNAL = (
     "internal services only while the guardian_link gate is shut; no recipient is defined "

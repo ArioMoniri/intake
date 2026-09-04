@@ -196,6 +196,8 @@ export interface MedicationItem {
   "reconciliation": "matches" | "new" | "stopped" | "conflict";
 }
 
+export type NotEvaluatedReason = "rules_engine_not_on_this_path";
+
 export interface NoteMeta {
   "visit_id": string;
   "protocol_hash": string;
@@ -239,6 +241,20 @@ export interface Oldcarts {
   "trajectory"?: string;
 }
 
+export interface OutputMeasurement {
+  "code": MeasureCode;
+  "magnitude": JsonValue;
+  "unit": string;
+}
+
+export interface OutputSection {
+  "id": string;
+  "title_tr": string;
+  "lines": string[];
+}
+
+export type OutputTriage = RulesTriageResult | TriageNotEvaluated;
+
 export interface PatientOverlay {
   "patient_ref": string;
   "version": number;
@@ -277,6 +293,21 @@ export interface PreVisitNote {
   "suggested_focus_questions"?: string[];
   "considerations"?: Consideration[];
   "patient_confirmed_sections"?: string[];
+}
+
+export interface PreVisitOutput {
+  "schema_version"?: "intake.clinical.previsit_output.v1";
+  "visit_ref": string;
+  "completed_at": string;
+  "locale": string;
+  "protocol_id": string;
+  "protocol_version": string;
+  "proxy_reported": boolean;
+  "third_party_present": boolean;
+  "sections": OutputSection[];
+  "measurements"?: OutputMeasurement[];
+  "triage": OutputTriage;
+  "llm_candidates"?: CandidateFlag[];
 }
 
 export interface Proposal {
@@ -392,6 +423,11 @@ export interface SummaryCard {
 }
 
 export type TriageLevel = "GREEN" | "YELLOW" | "RED";
+
+export interface TriageNotEvaluated {
+  "source"?: "not_evaluated";
+  "reason": NotEvaluatedReason;
+}
 
 export type TriageResult = RulesTriageResult | LlmCandidateTriage;
 

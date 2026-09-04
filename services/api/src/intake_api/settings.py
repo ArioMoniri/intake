@@ -68,6 +68,12 @@ class ApiSettings:
     taxonomy_path: Path = field(
         default_factory=lambda: Path("packages/protocols/taxonomy/branches.yaml")
     )
+    # Which hospital systems may FETCH a finished previsit (owner directive).
+    # The committed file has zero rows — no DPA is executed and no reader is
+    # approved — so the read-back refuses every caller until a human adds one.
+    previsit_output_recipients_path: Path = field(
+        default_factory=lambda: Path("infra/previsit_output/recipients.yaml")
+    )
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -105,5 +111,9 @@ class ApiSettings:
             legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
             legal_strings_path=Path(
                 os.environ.get("INTAKE_LEGAL_STRINGS") or "docs/legal/strings.yaml"
+            ),
+            previsit_output_recipients_path=Path(
+                os.environ.get("INTAKE_PREVISIT_OUTPUT_RECIPIENTS")
+                or "infra/previsit_output/recipients.yaml"
             ),
         )
