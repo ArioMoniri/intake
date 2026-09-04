@@ -35,7 +35,7 @@ Near-miss negative controls, each named where it lives:
   both directions at the wire boundary, so "always require a ref" and "never
   require one" both fail. Their type-level halves, which prove the same two
   states are unconstructible rather than merely rejected, live in
-  ``tests/schemas/test_visit_time.py``;
+  ``tests/schemas/test_visit_time_vocabulary.py``;
 - ``test_a_time_that_is_not_hh_mm_is_refused`` — ``9:30``, ``14:30:00`` and
   ``24:00`` all denote something a lenient parser would accept, and accepting
   two spellings of one minute is the representation slack invariant 22 exists

@@ -11,6 +11,10 @@ the issue the type system carries, with no API and no database in the way:
 * an unknown hour as a first-class recorded state rather than a defaulted
   midnight that no later reader can tell from a real 00:00 booking.
 
+The file is named for the vocabulary rather than for the field because pytest
+imports test modules by basename with no package, so two ``test_visit_time.py``
+under different directories collide at collection.
+
 Every case here is a **construction** that must raise, not a validator that must
 return False — which is the point of the frozen dataclass. A value this file
 says is impossible has no code path that produces it, so no boundary anywhere
