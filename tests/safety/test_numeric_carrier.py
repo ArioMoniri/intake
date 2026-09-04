@@ -40,7 +40,7 @@ from pathlib import Path
 import protocols.triage as triage_pkg
 import pytest
 from clinical_schemas import common
-from clinical_schemas.common import JsonValue, TAGGED_DECIMAL_PREFIX
+from clinical_schemas.common import TAGGED_DECIMAL_PREFIX, JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, TriageLevel
 from intake_voice_runtime.extraction import parse_extraction
