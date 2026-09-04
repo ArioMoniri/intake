@@ -1245,9 +1245,8 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
         assert harness.request_otp(PHONE).status_code == 422
         harness.clock.advance(RESEND_COOLDOWN_S + 1)
         assert harness.request_otp(PHONE_ALLOCATED).status_code == 202
-        namespaces = {
-            ":".join(key.decode().split(":")[:2]) for key in harness.redis_client.keys("*")
-        }
+        keys = [key.decode() for key in harness.redis_client.keys("*")]
+        namespaces = {":".join(key.split(":")[:2]) for key in keys}
         assert namespaces <= {
             "auth:otp",
             "auth:chal",
@@ -1256,10 +1255,25 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
             "auth:fam",
             "auth:jti",
         }, f"the carrier check opened a new keyspace: {namespaces}"
-        for key in harness.redis_client.keys("*"):
-            blob = key.decode() + " " + str(harness.redis_client.dump(key))
-            assert "532" not in blob, "an operator prefix reached Redis"
-            assert "505" not in blob, "an operator prefix reached Redis"
+        # Structural, not a substring hunt: a three-digit prefix matches inside a
+        # sha256 hex digest by accident nearly every run, so the assertion is
+        # over the SHAPE of what is stored. A stored carrier or country would
+        # need either a key outside this grammar or a field outside the code
+        # record's closed set, and both are checked.
+        for key in keys:
+            parts = key.split(":")
+            if parts[:3] == ["auth", "otp", "w"]:
+                assert parts[3] in {"ip", "device", "phone"}, key
+            elif parts[:2] == ["auth", "otp"]:
+                assert parts[2] in {"cool", "code", "peek"}, key
+            if parts[:3] == ["auth", "otp", "code"]:
+                record = json.loads(harness.redis_client.get(key))
+                assert set(record) == {"digest", "attempts", "expires"}, record
+        # and the numbers themselves, which ARE specific enough to grep for
+        for key in keys:
+            blob = key + " " + str(harness.redis_client.dump(key))
+            assert "5321114455" not in blob
+            assert "5051114455" not in blob
 
 
 def test_a_carrier_refusal_writes_no_audit_row(tmp_path: Path) -> None:
