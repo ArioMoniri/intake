@@ -37,6 +37,12 @@ importers:
 
   apps/admin-web: {}
 
+  apps/embed-sample-partner:
+    dependencies:
+      '@intake/embed-sdk':
+        specifier: workspace:*
+        version: link:../../packages/embed-sdk
+
   apps/mobile:
     dependencies:
       '@expo-google-fonts/fraunces':

@@ -1,0 +1,153 @@
+/* INT-320 follow-up — sample partner page styling (ADR-029). Neutral, synthetic
+   branding only; the real tenant theme is returned by /embed/v1/launch and
+   applied inside Vizite, not here. */
+
+:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --ink: #10233b;
+  --muted: #5b6b81;
+  --line: #dce3ee;
+  --brand: #0b5fff;
+  --ok: #0a7d54;
+  --err: #b42318;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.banner {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  background: #fff8e6;
+  border-bottom: 1px solid #f0e0b0;
+  color: #6b5300;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.site {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0 1.25rem;
+  font-weight: 700;
+}
+
+.site .mark {
+  color: var(--brand);
+  font-size: 1.4rem;
+}
+
+.wordmark {
+  letter-spacing: 0.01em;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgb(16 35 59 / 6%);
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+}
+
+.appt {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+
+.appt div {
+  background: #f7f9fd;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+}
+
+.appt dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.appt dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+
+.lede {
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+}
+
+#previsit-slot button[data-vizite-embed] {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.8rem 1.4rem;
+  cursor: pointer;
+}
+
+#previsit-slot button[data-vizite-embed]:hover {
+  filter: brightness(0.95);
+}
+
+#previsit-slot button[data-vizite-embed]:focus-visible {
+  outline: 3px solid #9dc0ff;
+  outline-offset: 2px;
+}
+
+.status {
+  min-height: 1.25rem;
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.status[data-state="ok"] {
+  color: var(--ok);
+}
+
+.status[data-state="error"] {
+  color: var(--err);
+}
+
+.foot {
+  margin-top: 1.5rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+code {
+  background: #eef2f9;
+  border-radius: 5px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.85em;
+}

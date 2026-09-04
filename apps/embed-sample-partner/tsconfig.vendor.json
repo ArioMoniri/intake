@@ -1,0 +1,18 @@
+{
+  // Vendor the published SDK as a browser-loadable ESM file the import map
+  // resolves `@intake/embed-sdk` to. The SDK is a single zero-dependency
+  // module, so this compiles it standalone to dist/web/vendor/index.js.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": [],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": false,
+    "rootDir": "../../packages/embed-sdk/src",
+    "outDir": "dist/web/vendor"
+  },
+  "include": ["../../packages/embed-sdk/src/index.ts"]
+}

@@ -1,0 +1,22 @@
+{
+  // Emit the Node-side partner backend to dist/ so server.mjs (plain ESM,
+  // runnable with a bare `node`) imports the SAME typed, tested module the
+  // vitest proof exercises. types:[] keeps ambient @types out of a browser/
+  // Node-neutral compile; DOM carries the `fetch`/`Response` global types.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "types": [],
+    "lib": ["ES2022", "DOM"],
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/partnerBackend.ts"]
+}
