@@ -16,13 +16,28 @@
  * between rows only, quiet footer), fade-only motion (02 §5.2a); state is
  * always labelled, never colour alone (02 §8.2).
  */
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+} from "react-native";
 import { SymbolView } from "expo-symbols";
 
 import { ListGroup } from "@/components/ListRow";
-import { AppText, useScheme, useTheme } from "@/components/Themed";
+import { AppText, useFontScale, useScheme, useTheme } from "@/components/Themed";
 import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
 import { modalAnimation } from "@/lib/a11y/motion";
+import {
+  ROW_GAP,
+  ROW_PADDING,
+  TRAILING_SLOT_FLEX,
+  labelColumnStyle,
+  pairedRowMetrics,
+} from "@/lib/a11y/pairedRow";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import type { SectionPanelModel, SectionRow } from "@/lib/dialogue/sectionPanel";
@@ -85,10 +100,38 @@ interface SectionRowViewProps {
 function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
   const theme = useTheme();
   const dark = useScheme() === "dark";
+  const fontScale = useFontScale();
+  const [rowWidth, setRowWidth] = useState<number | null>(null);
+  const onRowLayout = useCallback((event: LayoutChangeEvent) => {
+    const width = Math.floor(event.nativeEvent.layout.width);
+    setRowWidth((previous) => (previous === width ? previous : width));
+  }, []);
   const values = valueText(row);
+  // The same paired shape as a consent row, and the most exposed instance of
+  // it in the app: this column holds the section name, its value AND the
+  // patient's own words, so its longest unbreakable token is the least
+  // predictable text the tree renders — while "Onaylayın" beside it keeps its
+  // intrinsic width. Without a floor the quote is what gets squeezed, and a
+  // patient's own sentence coming down one glyph per line on the dialogue
+  // surface reads as the app garbling what they said.
+  const column = joinParts(t(row.labelKey), values, row.quote);
+  // Only a confirmable row carries a trailing CONTROL; a settled row is text
+  // beside nothing, so it never changes form — it wraps and grows.
+  const stacked =
+    row.confirmable &&
+    pairedRowMetrics(
+      { label: column, trailingText: t("dialogue.confirm") },
+      fontScale,
+      rowWidth,
+    ).form === "stacked";
   const body = (
     <>
-      <View style={styles.rowText}>
+      <View
+        style={[
+          styles.rowText,
+          stacked ? styles.rowTextStacked : labelColumnStyle(column, fontScale),
+        ]}
+      >
         <AppText role="caption" color="inkFaint">
           {t(row.labelKey)}
         </AppText>
@@ -127,6 +170,8 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
         <View
           style={[
             styles.confirmChip,
+            TRAILING_SLOT_FLEX,
+            stacked ? styles.confirmChipStacked : null,
             {
               backgroundColor: theme.primarySoft,
               borderColor: dark ? "transparent" : theme.primary,
@@ -149,8 +194,13 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
         // follow as the context the eye takes from the row's position.
         accessibilityLabel={withContext(t("dialogue.confirm"), labelled(t(row.labelKey), values))}
         accessibilityHint={t("a11y.confirmHint")}
+        onLayout={onRowLayout}
         onPress={() => onConfirm(row.questionId)}
-        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
+        style={({ pressed }) => [
+          styles.row,
+          stacked ? styles.rowStacked : styles.rowBeside,
+          { opacity: pressed ? 0.7 : 1 },
+        ]}
       >
         {body}
       </Pressable>
@@ -166,7 +216,8 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
         t(row.labelKey),
         joinParts(row.status === "empty" ? t("dialogue.sectionEmpty") : values, row.quote),
       )}
-      style={styles.row}
+      onLayout={onRowLayout}
+      style={[styles.row, styles.rowBeside]}
     >
       {body}
     </View>
@@ -277,14 +328,22 @@ const styles = StyleSheet.create({
   },
   sheetContent: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xl },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm + 4,
+    // One source for the gap and the padding, shared with ListRow through
+    // lib/a11y/pairedRow.ts — this file copied those numbers once, and they
+    // are exactly what the fit arithmetic has to agree with.
+    gap: ROW_GAP,
     minHeight: 56,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: ROW_PADDING,
     paddingVertical: spacing.sm + 2,
   },
-  rowText: { flex: 1, gap: 2 },
+  rowBeside: { flexDirection: "row", alignItems: "center" },
+  // Column form: the chip sits under the words it confirms, left-aligned with
+  // them, once the two can no longer share a line (00 §2 — a form change,
+  // never a harder clamp and never a truncation).
+  rowStacked: { flexDirection: "column", alignItems: "flex-start" },
+  rowText: { gap: 2 },
+  rowTextStacked: { alignSelf: "stretch", gap: 2 },
+  confirmChipStacked: { alignSelf: "flex-start" },
   confirmChip: {
     borderRadius: radius.chip,
     borderWidth: 1,

@@ -40,8 +40,10 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { readFontMetrics } from "./fontMetrics";
+import { longestUnbreakableToken, textWidth } from "@/lib/a11y/pairedRow";
 import { en } from "@/lib/i18n/en";
 import { tr } from "@/lib/i18n/tr";
+import { APP_STEPS } from "@/lib/prefs/appearance";
 import { scaledSize, spacing } from "@/lib/theme";
 
 const MOBILE = join(__dirname, "..");
@@ -444,5 +446,60 @@ describe("the progress counter is never pushed off the row", () => {
       }
     }
     expect(tooWide).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* The paired row's estimator never under-reserves for a Turkish word  */
+/* ------------------------------------------------------------------ */
+
+describe("lib/a11y/pairedRow's width model is safe against the shipped face", () => {
+  // The module decides, at render time and inside the app bundle, whether a
+  // label and a control can still share a line. It cannot read a font file, so
+  // it estimates in three glyph-advance classes — and an estimate is only
+  // acceptable in ONE direction. Over-reserving changes a row's form one step
+  // early: visible, recoverable, harmless. Under-reserving squeezes a Turkish
+  // word until React Native breaks it mid-syllable, which 00 §2 forbids
+  // tree-wide and which is the defect the module exists to end.
+  //
+  // The test runner CAN read the font, with the same reader the gates above
+  // use, so the bias is proved rather than asserted in a comment.
+  const metrics = readFontMetrics(
+    join(MOBILE, "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"),
+  );
+
+  const LABELS = [
+    ...Object.values(tr as Record<string, string>),
+    ...Object.values(en as Record<string, string>),
+  ].filter((value) => typeof value === "string" && value.length > 0 && value.length <= 60);
+
+  it("reserves at least what the real face needs, at every step, in both catalogues", () => {
+    const under: string[] = [];
+    for (const step of APP_STEPS) {
+      const size = scaledSize("body", step);
+      for (const label of LABELS) {
+        const token = longestUnbreakableToken(label);
+        if (token.length === 0) {
+          continue;
+        }
+        if (textWidth(token, size) < metrics.advance(token, size)) {
+          under.push(`${token} @ ${step}`);
+        }
+      }
+    }
+    expect(under).toEqual([]);
+  });
+
+  it("is an estimate, not a second measurement — it must not be wildly loose either", () => {
+    // Over-reserving is safe but not free: a model twice the real width would
+    // stack every row and pass the assertion above vacuously. This bounds the
+    // slack, so the safety bias stays a bias rather than becoming a blunt
+    // always-stack in disguise.
+    const size = scaledSize("body", 1.0);
+    for (const token of ["Paylaşımlarınız", "iyileştirme", "görüşme", "Araştırma"]) {
+      const ratio = textWidth(token, size) / metrics.advance(token, size);
+      expect(ratio, token).toBeGreaterThanOrEqual(1);
+      expect(ratio, token).toBeLessThan(1.35);
+    }
   });
 });

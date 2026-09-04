@@ -441,8 +441,83 @@ describe("T-17 — SwitchRow is a switch, with its state", () => {
     // At 2.0 "Ekran hareketini azaltın" wraps and a right-aligned toggle reads
     // as an afterthought beside it. Above the large-text scale the row becomes
     // a column, so the control sits under the words it governs.
-    expect(row()).toContain("isLargeText(");
+    //
+    // The rule is TWO terms now. `pairedRowMetrics` carries the app-wide scale
+    // ruling (`isLargeText` — still the only ceiling; no second scalar was
+    // minted) AND this row's own geometry, because a label whose longest
+    // Turkish word no longer fits beside the track has to stack below 1.6 as
+    // well. The thresholds are proved in node against the pure module; what is
+    // asserted here is the wiring.
+    expect(row()).toContain("pairedRowMetrics(");
     expect(row()).toContain("styles.rowStacked");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* The paired row: one label, one control, and a floor under the words */
+/* ------------------------------------------------------------------ */
+
+describe("a paired row never squeezes its label below one Turkish word", () => {
+  // The defect, in one sentence: `labels: { flex: 1 }` beside a trailing child
+  // that React Native will not shrink hands the label whatever is left, and on
+  // the narrowest supported phone what is left is less than one word at the
+  // DEFAULT text size. The arithmetic is proved in
+  // src/lib/a11y/pairedRow.test.ts; these are the three components that render
+  // the shape, and this is the gate that says they are actually wired to it.
+  const PAIRED = [
+    "src/components/ListRow.tsx",
+    "src/components/SwitchRow.tsx",
+    "src/components/SectionPanel.tsx",
+  ];
+
+  it.each(PAIRED)("%s takes the shared contract rather than its own guess", (name) => {
+    expect(file(name)).toContain("@/lib/a11y/pairedRow");
+    expect(file(name)).toContain("labelColumnStyle(");
+    expect(file(name)).toContain("pairedRowMetrics(");
+  });
+
+  // tests/release/test_i18n_complete.py exempts lib/a11y/pairedRow.ts from the
+  // hardcoded-string gate because its Turkish literals are glyph-width classes
+  // rather than copy. That exemption is only safe while the module cannot put a
+  // string on screen, so the condition is pinned here rather than trusted.
+  it("the width model renders nothing, which is what makes its i18n exemption safe", () => {
+    const source = file("src/lib/a11y/pairedRow.ts");
+    expect(source).not.toMatch(/from\s*["']react["']/);
+    expect(source).not.toMatch(/from\s*["']react-native["']/);
+    expect(source).not.toContain("createElement");
+  });
+
+  it.each(PAIRED)("%s no longer lets the label column shrink to nothing", (name) => {
+    // The literal that WAS the defect. A column with `flex: 1` and no minimum
+    // does not wrap when it runs out of room — it breaks a Turkish word
+    // mid-syllable, which 00 §2 forbids tree-wide.
+    expect(file(name)).not.toMatch(/labels: \{\s*flex: 1/);
+    expect(file(name)).not.toMatch(/rowText: \{\s*flex: 1/);
+  });
+
+  it.each(PAIRED)("%s changes FORM rather than clamping or hiding the text", (name) => {
+    // 00 §2: a row that cannot survive the patient's scale becomes a column.
+    // The banned levers are asserted absent tree-wide above; this pins that
+    // the permitted one is present here.
+    expect(file(name)).toContain("rowStacked");
+  });
+
+  it("the row's chrome takes the same multiplier as the words beside it", () => {
+    // The owner's report, verbatim: "navbar and sizes dont match". INT-260
+    // reached the tab rail and never reached inside the rows, where the
+    // chevron sat at 13 and the icon well at 36 beside a label that doubles.
+    const listRow = file("src/components/ListRow.tsx");
+    expect(listRow).toContain("scaledControl(");
+    expect(listRow).not.toMatch(/size=\{13\}/);
+    expect(listRow).not.toMatch(/size=\{17\}/);
+    expect(listRow).not.toMatch(/borderRadius: 18/);
+  });
+
+  it("the trailing control's own word reaches the row, so frame one is right", () => {
+    // While INT-210 leaves the consent texts empty every row shows the longest
+    // pill state there is, which is the state the collapse was reported in.
+    // Without this the row renders beside on frame one and stacks on frame two.
+    expect(file("src/components/ConsentList.tsx")).toContain("trailingText={pillLabel(view)}");
   });
 });
 

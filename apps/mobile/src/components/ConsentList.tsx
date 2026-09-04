@@ -18,6 +18,21 @@
  * Turning something ON always goes through layer 2 (the versioned text);
  * turning something OFF is a single tap right here — withdrawal must be at
  * least as easy as grant, and it is easier.
+ *
+ * The pill is the row's TRAILING CONTROL, and it is why this screen is where
+ * the paired-row collapse was first seen: the row gave the label column
+ * `flex: 1` with no floor and the pill nothing at all, so the pill kept its
+ * intrinsic width and the purpose name was squeezed to one character per
+ * line. The floor and the form change now live in ListRow, on
+ * lib/a11y/pairedRow.ts's arithmetic. What belongs HERE is the pill's own
+ * word, handed to the row up front so the first frame is already in the right
+ * form — and while INT-210 leaves the texts empty that word is "Metin
+ * hazırlanıyor" on every row, which is the state the defect was reported in.
+ *
+ * The pill's padding deliberately does NOT scale. A card gives its MEASURE
+ * priority over its air at large text (the `cardTight` ruling), and growing
+ * the chrome of the control would take that measure from the label this
+ * change exists to protect.
  */
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -129,6 +144,14 @@ export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps)
         }
         onPress={() => onOpenDetail(id)}
         trailing={<StatePill view={view} onPress={() => onToggle(id)} />}
+        // The pill's own visible word, so the row picks its form on the FIRST
+        // frame rather than one frame after the pill has measured itself.
+        // "Yeniden onay gerekli" and "Metin hazırlanıyor" are the two states
+        // that stop fitting first — most rows are past the boundary at scale
+        // 1.0 — and they are not edge cases while INT-210 leaves the texts
+        // empty. Same source as the secondary action's name, so the word the
+        // row reserves for and the word it speaks cannot drift apart.
+        trailingText={pillLabel(view)}
       />
     );
   };
