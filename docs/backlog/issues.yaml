@@ -4277,7 +4277,7 @@
   labels:
   - area:security
   - area:platform
-  status: todo
+  status: awaiting-human
   acceptance:
   - 'the control exists or the sentence stops claiming it: either a carrier/geo
     check runs on the OTP request path, or files/10 §2 is rewritten to say the

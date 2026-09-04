@@ -312,9 +312,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
   caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
-  generic error messages (§9 row 1). ⚠ `carrier/geo sanity` is named in §2 and no code
-  implements it; the request budgets below are the whole of what enforces §2's SMS-pumping
-  control today.
+  generic error messages (§9 row 1). §2's `carrier/geo sanity` check runs on the request
+  path as of INT-308, in two halves: **geo** is enforced by Turkish-mobile-only
+  normalisation, so an international premium range never reaches a delivery adapter;
+  **carrier** is `intake_api.carrier_geo` over `infra/security/msisdn_allocation.yaml`,
+  which declares **zero allocated prefixes** and therefore admits every request. ⚠ Until
+  a human supplies that list (docs/backlog/blockers.md — which 5XX prefixes the BTK has
+  allocated, against a source that can be re-read), the request budgets below and the
+  Turkish-only normalisation remain the whole of what enforces §2's SMS-pumping control.
+- **The carrier/geo asymmetry, stated (INT-308):** a lookup that cannot be made **admits**
+  — no authority, an unreadable table, an authority that raises or times out, a prefix the
+  authority has no opinion about — and only a **positive** signal refuses: a prefix absent
+  from a list that declares itself `exhaustive`. A carrier check that failed closed would
+  lock a patient out of their own intake the first time a lookup timed out, which is a
+  worse failure than the cost it prevents. The refusal reuses the generic `phone_invalid`
+  code, so it is not an oracle for which numbers exist, and it sits **after** the abuse
+  gate so a refused caller still spends its budget. The seam is handed a country code and
+  an operator prefix, never the subscriber number: a vendor lookup that needs the whole
+  MSISDN is a different control with its own lawful-basis and licence question, and is
+  deliberately not built. Nothing is persisted, so no new inventory annotation is owed.
 - **The request-budget bound, stated (INT-263):** the per-phone, per-IP and per-device
   budgets are counted in a **rolling** `OTP_WINDOW_S` window, not per fixed hour. No more
   than 3 requests per phone, 10 per IP and 3 per device are admitted in **any** 3600-second
@@ -332,7 +348,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263
-  (`tests/security/test_otp_abuse.py`); schemathesis with INT-019.
+  (`tests/security/test_otp_abuse.py`); the carrier/geo asymmetry (a failing lookup admits,
+  a positive signal refuses before any SMS), its near-miss controls (an allocated prefix
+  under the same table still gets its SMS; a partial list has no opinion) and the
+  no-new-storage assertion with INT-308 (same file); schemathesis with INT-019.
 
 ## `consent` — layered consent and scope enforcement
 

@@ -255,6 +255,17 @@ class OtpAuthService:
         )
         if retry_after is not None:
             raise otp_limited(retry_after)
+        # INT-308 — files/10 §2's carrier/geo sanity check, and it sits HERE for
+        # two reasons. AFTER the gate, so a refusal costs the caller its budget
+        # and probing which prefixes refuse is not free; and BEFORE the code is
+        # minted, because the whole point is that no SMS is sent to a number no
+        # operator has allocated. The refusal reuses ``phone_invalid`` rather
+        # than a code of its own: 422 is what it is, and a distinct code would
+        # be an oracle telling a caller which of its numbers exist (files/10 §9
+        # row 1, generic errors). It fails OPEN — see carrier_geo — so today,
+        # with an empty authority, this branch is unreachable in production.
+        if self._wiring.carrier_geo.evaluate(phone).refuses:
+            raise phone_invalid()
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
         await asyncio.to_thread(
             self._store.store_code,
