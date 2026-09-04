@@ -88,33 +88,87 @@ export const ICON_GLYPH_BASE = 17;
 export const TRAILING_PADDING_BASE = spacing.sm + 4;
 
 /**
- * Glyph advance widths as a fraction of the em, in three classes.
+ * Glyph advance widths as a fraction of the em, in six measured bands.
  *
- * Inter's lowercase advances run from about 0.26 em (i, ı, l, j) to 0.87 em
- * (m, w), with the great majority near 0.55. Three classes reproduce a
- * Turkish word closely enough to decide a layout and are cheap enough to be
- * exact and testable in the app bundle, which cannot read a font file.
+ * Every number below is the WIDEST advance in its band, read out of
+ * `Inter_400Regular.ttf` — the face `theme.ts` names as `fonts.sans`, the one
+ * the root layout loads — and rounded up to two places. A ceiling rather than
+ * an average, because an estimate here is only acceptable in one direction:
+ * over-reserving changes a row's form one step early, which is visible and
+ * harmless, while under-reserving squeezes a word until React Native breaks it
+ * mid-syllable, which is the harm this module exists to prevent.
  *
- * Two deliberate biases, both toward reserving MORE width than the text
- * needs, because over-reserving changes a row's form one step early — visible
- * and harmless — while under-reserving squeezes a word, which is the harm
- * this module exists to prevent: `t` and `f` (about 0.36 em) count as normal,
- * and capitals (about 0.62 em) count as normal, of which sentence case allows
- * at most one per word.
+ * The three classes this started with were a guess at the face, and the guess
+ * was wrong in the unsafe direction — measured against the shipped file, 610
+ * of the 1383 longest-word tokens in the two catalogues reserved LESS than the
+ * text needs, the worst of them by 17 %. Two of the three bands were drawn in
+ * the wrong place, and the capitals had no band at all:
  *
- * That safety bias is not left as an intention. `e2e/overflow.spec.ts` proves
- * it against the real `Inter_400Regular.ttf` the app ships, across every
- * APP_STEPS rung and both catalogues, using the same TrueType reader the
- * overflow gates already use. A measured `onLayout` width always wins over
- * this estimate anyway; the estimate only has to be right for frame one.
+ *   hairline ≤ 0.269  the dotted and dotless I family, `j` and `l`: a stem and
+ *                     its sidebearings, nothing else (0.242; I and İ 0.269).
+ *   stem     ≤ 0.377  `t` (0.327), `f` (0.370) and `r` (0.377) — called
+ *                     "normal, toward safety" before and in fact the narrowest
+ *                     letters after the i family — with the thin punctuation,
+ *                     the bracket and solidus family and the space (0.281).
+ *   slim     ≤ 0.571  the shallow-bowl lowercase: a â c ç k s ş v x y z, and
+ *                     `?` (0.511), which ends a Turkish question inside the
+ *                     last token rather than beside it.
+ *   normal   ≤ 0.662  the round lowercase (`g`/`ğ` widest at 0.613), the
+ *                     digits (`4` widest at 0.646) and the rest of the middle,
+ *                     up to the arithmetic signs at 0.662. This is the DEFAULT
+ *                     band, so its ceiling is the whole middle: a glyph no set
+ *                     below names still cannot under-reserve.
+ *   capital  ≤ 0.765  the capitals, which are NOT normal-width — `A` is 0.690,
+ *                     `O` and `Ö` are 0.765, against the 0.56 they were given.
+ *                     Turkish sentence case puts one at the head of nearly
+ *                     every label and in a short word it decides the whole
+ *                     width: "On", "No" and "Üç" were the three worst
+ *                     under-reservations in the catalogues.
+ *   wide     ≤ 1.000  m w M W, the ellipsis (0.864), `%` and `@` (0.982,
+ *                     0.966) and the em dash (1.000). `@` is here because
+ *                     BREAK_OPPORTUNITY deliberately does not break there, so
+ *                     a share recipient is one token.
+ *
+ * The I family sits in `hairline` and M and W sit in `wide`, both ahead of the
+ * capital test, because a band is a width and not a case.
+ *
+ * Six bands and not fewer: each one is load-bearing, and dropping any of them
+ * takes a near-miss in `pairedRow.test.ts` out of the beside form — a model
+ * too loose stacks a row that fits, which is the failure the near-misses
+ * exist to catch. Six and not more: the remaining splits buy a dp or two and
+ * every band is another thing to be wrong.
+ *
+ * None of this is left as an intention. `e2e/overflow.spec.ts` proves it
+ * against the real `Inter_400Regular.ttf` across every APP_STEPS rung and both
+ * catalogues, using the same TrueType reader the overflow gates already use —
+ * and bounds the slack in the other direction, so the bias stays a bias rather
+ * than becoming an always-stack in disguise. A measured `onLayout` width
+ * always wins over this estimate anyway; the estimate only has to be right for
+ * frame one.
  */
-export const GLYPH_ADVANCE_EM = { narrow: 0.28, normal: 0.56, wide: 0.85 } as const;
+export const GLYPH_ADVANCE_EM = {
+  hairline: 0.27,
+  stem: 0.38,
+  slim: 0.58,
+  normal: 0.67,
+  capital: 0.77,
+  wide: 1.0,
+} as const;
 
-/** Inter's semibold is marginally wider; trailing pills render at 600. */
+/**
+ * Trailing pills render at 600, which is wider than the 400 the bands above
+ * were read from. This is a whole-string allowance and NOT a per-glyph ratio —
+ * Inter's 600 runs up to 1.06× its 400 on individual letters — and it holds
+ * because the band ceilings absorb the difference: measured across both
+ * catalogues, no string's 600 advance reaches the estimate.
+ */
 export const SEMIBOLD_WIDENING = 1.02;
 
-const NARROW_GLYPHS = new Set("iıIİjl.,:;!|()[]{}'’ -");
-const WIDE_GLYPHS = new Set("mwMW");
+const HAIRLINE_GLYPHS = new Set("iıIİîÎjl");
+const STEM_GLYPHS = new Set("tfr.,:;!·'‘’|()[]/\\ ");
+const SLIM_GLYPHS = new Set("aâcçksşvxyz?");
+const WIDE_GLYPHS = new Set("mwMW…%@—");
+const CAPITAL_GLYPH = /\p{Lu}/u;
 
 /**
  * Where a line MAY break, and nowhere else.
@@ -126,15 +180,28 @@ const WIDE_GLYPHS = new Set("mwMW");
  */
 export const BREAK_OPPORTUNITY = /[\s\-‐-―­/]+/u;
 
+/** The band `glyph` falls in, as a fraction of the em. */
+function glyphAdvanceEm(glyph: string): number {
+  if (HAIRLINE_GLYPHS.has(glyph)) {
+    return GLYPH_ADVANCE_EM.hairline;
+  }
+  if (STEM_GLYPHS.has(glyph)) {
+    return GLYPH_ADVANCE_EM.stem;
+  }
+  if (SLIM_GLYPHS.has(glyph)) {
+    return GLYPH_ADVANCE_EM.slim;
+  }
+  if (WIDE_GLYPHS.has(glyph)) {
+    return GLYPH_ADVANCE_EM.wide;
+  }
+  return CAPITAL_GLYPH.test(glyph) ? GLYPH_ADVANCE_EM.capital : GLYPH_ADVANCE_EM.normal;
+}
+
 /** Advance width of `text` at `fontSizeDp`, in dp. */
 export function textWidth(text: string, fontSizeDp: number, semibold = false): number {
   let em = 0;
   for (const glyph of text) {
-    em += NARROW_GLYPHS.has(glyph)
-      ? GLYPH_ADVANCE_EM.narrow
-      : WIDE_GLYPHS.has(glyph)
-        ? GLYPH_ADVANCE_EM.wide
-        : GLYPH_ADVANCE_EM.normal;
+    em += glyphAdvanceEm(glyph);
   }
   return em * fontSizeDp * (semibold ? SEMIBOLD_WIDENING : 1);
 }
