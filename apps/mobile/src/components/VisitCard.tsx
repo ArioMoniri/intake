@@ -69,37 +69,54 @@ export function VisitCard({
       ) : null}
       {chevron && !hero ? (
         // Oura list rows always carry the "›" affordance (pass 4
-        // measurement) — these cards navigate, so say so.
-        <SymbolView
-          name="chevron.right"
-          size={14}
-          tintColor={theme.inkFaint}
-          style={styles.chevron}
-        />
-      ) : null}
-      {/* Design pass 5: the hero date is tracked but INK — Oura spends the
-          accent once per screen, and here that moment is the CTA below.
-          Pass 6: dates carry tabular figures so day numbers hold a steady
-          column in stacked lists (Oura microtypography). */}
-      <AppText role="caption" color="inkSoft" style={[styles.date, hero ? styles.heroDate : null]}>
-        {formatVisitDate(visit.date, getLocale())}
-      </AppText>
-      <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>
-      <AppText role="body" color="inkSoft">
-        {visit.hospital}
-      </AppText>
-      {status === null ? null : (
-        <View style={styles.chipRow}>
-          <StatusChip status={status} />
+        // measurement) — these cards navigate, so say so. It rides an
+        // absolute full-height column so it centres against a card of any
+        // height, and the body reserves room on its right (bodyInset) so a
+        // long Turkish department name — "Kadın Hastalıkları ve Doğum" —
+        // wraps BEFORE the arrow instead of running underneath it.
+        <View pointerEvents="none" style={styles.chevronWrap}>
+          <SymbolView name="chevron.right" size={14} tintColor={theme.inkFaint} />
         </View>
-      )}
+      ) : null}
+      <View style={[styles.body, chevron && !hero ? styles.bodyInset : null]}>
+        {/* Design pass 5: the hero date is tracked but INK — Oura spends the
+            accent once per screen, and here that moment is the CTA below.
+            Pass 6: dates carry tabular figures so day numbers hold a steady
+            column in stacked lists (Oura microtypography). */}
+        <AppText
+          role="caption"
+          color="inkSoft"
+          style={[styles.date, hero ? styles.heroDate : null]}
+        >
+          {formatVisitDate(visit.date, getLocale())}
+        </AppText>
+        <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>
+        <AppText role="body" color="inkSoft">
+          {visit.hospital}
+        </AppText>
+        {status === null ? null : (
+          <View style={styles.chipRow}>
+            <StatusChip status={status} />
+          </View>
+        )}
+      </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   chipRow: { marginTop: spacing.xs },
-  chevron: { position: "absolute", right: spacing.lg, top: "50%" },
+  body: { gap: spacing.sm },
+  // Room on the right so a wrapping department name clears the chevron
+  // (right: lg + a 14 pt glyph); text wraps instead of running under it.
+  bodyInset: { paddingRight: spacing.lg },
+  chevronWrap: {
+    position: "absolute",
+    right: spacing.lg,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
   hero: {
     borderRadius: radius.hero,
     padding: spacing.lg,
