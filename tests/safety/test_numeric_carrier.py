@@ -39,7 +39,7 @@ from pathlib import Path
 import protocols.triage as triage_pkg
 import pytest
 from clinical_schemas import common
-from clinical_schemas.common import DECIMAL_WIRE_TAG, JsonValue
+from clinical_schemas.common import JsonValue, TAGGED_DECIMAL_PREFIX
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, TriageLevel
 from intake_voice_runtime.extraction import parse_extraction
@@ -225,12 +225,12 @@ class TestTheWireTagNeverReachesAHuman:
         offenders = sorted(
             str(path.relative_to(REPO))
             for path in REPO.glob("packages/*/src/**/*.py")
-            if path != owner and DECIMAL_WIRE_TAG in path.read_text(encoding="utf-8")
+            if path != owner and TAGGED_DECIMAL_PREFIX in path.read_text(encoding="utf-8")
         )
         offenders += sorted(
             str(path.relative_to(REPO))
             for path in REPO.glob("services/*/src/**/*.py")
-            if DECIMAL_WIRE_TAG in path.read_text(encoding="utf-8")
+            if TAGGED_DECIMAL_PREFIX in path.read_text(encoding="utf-8")
         )
         assert offenders == []
 
@@ -248,7 +248,7 @@ class TestTheWireTagNeverReachesAHuman:
             )
         }
         rail = numeric_rail({FEVER: Decimal("38.50")}, facts)
-        assert DECIMAL_WIRE_TAG not in rail[FEVER]
+        assert TAGGED_DECIMAL_PREFIX not in rail[FEVER]
         assert "38.50" in rail[FEVER]
 
         crossed = _through_the_wire(Decimal("38.50"))
@@ -262,7 +262,7 @@ class TestTheWireTagNeverReachesAHuman:
         )
         assert evaluation.result.level is TriageLevel.RED
         evidence = evaluation.result.fired[0].evidence
-        assert DECIMAL_WIRE_TAG not in evidence
+        assert TAGGED_DECIMAL_PREFIX not in evidence
         assert "38.50" in evidence
 
     def test_a_patient_answer_beginning_with_the_prefix_is_carried_not_refused(
