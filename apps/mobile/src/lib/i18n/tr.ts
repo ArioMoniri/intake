@@ -293,7 +293,7 @@ export const tr = {
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
-  "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
+  "intake.q.complaint": "Bugün sizi buraya getiren şeyi kendi sözlerinizle anlatır mısınız?",
   "intake.q.complaint.hint": "Birden fazla seçebilirsiniz.",
   "intake.opt.pain": "Ağrı",
   "intake.opt.fever": "Ateş",
@@ -326,16 +326,16 @@ export const tr = {
   "intake.opt.nausea": "Bulantı",
   "intake.opt.palpitations": "Çarpıntı",
   "intake.opt.none": "Yok",
-  "intake.q.onset": "Nasıl başladı?",
+  "intake.q.onset": "Şikâyetiniz nasıl başladı?",
   "intake.hpi.onset": "Başlangıç",
   "intake.opt.sudden": "Aniden başladı",
   "intake.opt.gradual": "Yavaş yavaş gelişti",
-  "intake.q.severity": "Şiddetini nasıl tarif edersiniz?",
+  "intake.q.severity": "Şikâyetinizin şiddetini nasıl tarif edersiniz?",
   "intake.hpi.severity": "Şiddet",
   "intake.opt.mild": "Hafif",
   "intake.opt.moderate": "Orta",
   "intake.opt.severe": "Şiddetli",
-  "intake.q.side": "Hangi tarafta?",
+  "intake.q.side": "Şikâyetiniz hangi tarafta?",
   "intake.hpi.side": "Taraf",
   "intake.opt.right": "Sağ",
   "intake.opt.left": "Sol",
@@ -490,7 +490,7 @@ export const tr = {
   "intake.opt.vomiting": "Kusma",
   "intake.opt.heartburn": "Göğse doğru yanma ya da ekşime",
   "intake.opt.appetiteLoss": "İştahta azalma",
-  "intake.q.extra": "Eklemek istediğiniz bir şey var mı?",
+  "intake.q.extra": "Eklemek istediğiniz başka bir şey var mı?",
   "intake.q.extra.hint": "İsterseniz boş bırakabilirsiniz.",
   // INT-239 — answer-gated follow-ups. Each asks for a further detail of
   // something the patient already named; none names a condition, a treatment
@@ -584,7 +584,7 @@ export const tr = {
   // The flow length follows the answers, so the progress row counts what is
   // answered and says plainly that more questions may follow (INT-239).
   "intake.progress.answered": "soru yanıtlandı",
-  "intake.progress.grows": "Yanıtlarınıza göre birkaç soru daha gelebilir.",
+  "intake.progress.grows": "Anlattıklarınıza göre birkaç soru daha sorabiliriz.",
   "voice.speakToAdd": "Konuşarak ekleyin",
   "voice.listening": "Dinliyor… durdurmak için dokunun",
   "voice.processing": "Yazıya dökülüyor…",
@@ -631,7 +631,7 @@ export const tr = {
   "dialogue.kicker": "Karşılıklı konuşma",
   "dialogue.entryTitle": "Sizinle konuşarak ilerleyelim",
   "dialogue.entryBody":
-    "Soruları sesli soracağız, siz de konuşarak yanıtlayın. İstediğiniz an yazarak da devam edebilirsiniz.",
+    "Ben Vizite; muayeneden önce sizi kısaca dinlemek istiyorum. Acele yok — dilediğiniz gibi, kendi sözlerinizle anlatabilirsiniz. İstediğiniz an yazarak da devam edebilirsiniz.",
   "dialogue.preparing": "Soru hazırlanıyor…",
   "dialogue.speakingHint": "Araya girmek için dokunun",
   "dialogue.listeningHint": "Bitirince dokunun",
@@ -1198,7 +1198,7 @@ export const tr = {
   // speaks the scripted question verbatim and adds this; the typed screen
   // puts the same invitation over the answer field and keeps the options
   // under it as the fallback.
-  "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
+  "dialogue.openInvite": "Acele etmeden, kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 
