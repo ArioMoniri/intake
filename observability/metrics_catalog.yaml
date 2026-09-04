@@ -1802,6 +1802,35 @@ metrics:
       a receiver can choose. The precise code still lands in the receipt's
       outcome_code, which nothing indexes. A failed exchange never produces an
       unresolved receipt, because no clinical byte was ever in flight.
+  # INT-320 (ADR-029): the partner white-label embed handshake. Planned —
+  # files/08 §4 names no id for this surface, so these enter the catalogue
+  # under names of ours, and they are emitted when the embed console lands
+  # (the threat-model `embed` row names them as its signals). Both labels are
+  # closed sets: `tenant` is the embed tenant id and `outcome` is a bucketed
+  # code of ours (minted, unknown_tenant, no_key for the ticket; launched,
+  # expired, replayed, signature, tenant, malformed, purpose for the launch) —
+  # never free text and never a patient value (invariant 6).
+  - name: embed_launch_ticket_total
+    type: counter
+    labels: [tenant, outcome]
+    owner: platform
+    unit: "count"
+    status: planned
+    description: >-
+      Partner embed launch tickets minted, by embed tenant id and bucketed
+      outcome (minted, unknown_tenant, no_key). Emitted by intake_api.embed
+      when the embed console lands.
+  - name: embed_launch_total
+    type: counter
+    labels: [tenant, outcome]
+    owner: platform
+    unit: "count"
+    status: planned
+    description: >-
+      Partner embed launches attempted, by embed tenant id and bucketed outcome
+      (launched, or a refusal class: expired, replayed, signature, tenant,
+      malformed, purpose). Emitted by intake_api.embed when the embed console
+      lands.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):

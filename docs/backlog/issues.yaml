@@ -4609,3 +4609,21 @@
   - tests/voice/test_tts_latency.py
   - tests/voice/test_elevenlabs_clipgen.py
   sec_row: "cloud-clipgen"
+- id: INT-320
+  epic: E10-connectors
+  phase: P2
+  title: "Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold)"
+  depends_on: [INT-250]
+  labels: [area:release, risk:security, risk:legal, approval:human-legal]
+  status: doing
+  evidence: docs/evidence/INT-320.md
+  acceptance:
+    - "ADR-029 proposes the embed surface (signed launch-ticket handshake vs an embedded UI, with a recommendation and tradeoffs), the constrained tenant-branding model, the auth/consent handshake, and how tenant isolation is preserved within D1-D15 and ADR-001..028"
+    - "signed, single-use, short-lived launch ticket: the partner backend mints it server-to-server; the patient device launches it; the tenant is bound INSIDE the signature so a ticket cannot cross tenants; no PHI in the ticket; the nonce is single-use; device_functions stays off (ADR-020)"
+    - "tenant embed registry (infra/tenants/embed_registry.yaml): branding is constrained data not partner markup, fail-closed, ships with ZERO prod rows and one dev-tier synthetic tenant; a prod row is refused without recorded DPA + brand-permission facts (human sign-off)"
+    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Vizite's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
+    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Vizite launch url, never holding a Vizite secret"
+    - "NO real partner secrets or branding; a partner-supplied patient identifier / note-back correlation is out of scope pending human sign-off (a new personal-data category + recipient), built as the mechanism only, fail-closed, content empty"
+  tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
+  legal: "KVKK-8,DPA"
+  sec_row: "embed"

@@ -22,6 +22,7 @@ from intake_api.taxonomy_feed import LoadedTaxonomy, load_taxonomy_feed
 if TYPE_CHECKING:
     from intake_api.doctor_link.service import DoctorLinkService
     from intake_api.documents import DocumentsGateway
+    from intake_api.embed.service import EmbedService
     from intake_api.otp import OtpAuthService
 
 __all__ = ["ApiState", "State", "get_state"]
@@ -45,6 +46,10 @@ class ApiState:
     # needs (one shared abuse gate, one code store), so it is wired from the
     # same AuthWiring and is None — every route 503 — without it.
     doctor_link: DoctorLinkService | None = None
+    # INT-320: the partner white-label embed handshake. None = unconfigured
+    # (no OpenBao signing key, or the registry ships dev-only and none is
+    # seeded) → every /embed route answers 503 (fail closed).
+    embed: EmbedService | None = None
     # INT-223: where ensure_consent gets the subject's age context. The
     # default reports "no date of birth is recorded" truthfully; a source
     # that reads a verified DOB replaces it when onboarding has one, and

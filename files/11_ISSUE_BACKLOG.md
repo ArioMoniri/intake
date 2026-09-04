@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**243 issues.** By phase: P0 139 · P1 61 · P2 38 · P3 5. By status: awaiting-human 11 · doing 4 · done 123 · todo 104 · withdrawn 1.
+**244 issues.** By phase: P0 139 · P1 61 · P2 39 · P3 5. By status: awaiting-human 11 · doing 5 · done 123 · todo 104 · withdrawn 1.
 
 ## P0
 
@@ -259,6 +259,7 @@
 | INT-262 | Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies) | E15-research | INT-230 | area:research, risk:legal, approval:human-legal | todo |
 | INT-250 | Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook | E17-release | INT-189, INT-213 | area:release, risk:legal | todo |
 | INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | todo |
+| INT-320 | Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold) | E10-connectors | INT-250 | area:release, risk:security, risk:legal, approval:human-legal | doing |
 
 ## P3
 
