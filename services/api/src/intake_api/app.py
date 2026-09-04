@@ -263,6 +263,7 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
     """
     if not settings.embed_launch_base_url:
         return None
+    from intake_platform.consent.texts import ConsentTextCatalog
     from intake_platform.embed import InMemoryNonceStore, TenantEmbedRegistry
 
     from intake_api.embed import OpenBaoSigningKeys
@@ -280,6 +281,13 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
         # dev/single-replica store; a shared store (Redis) is required for
         # multi-replica single-use and is awaiting-human, not stubbed here
         nonce_store=InMemoryNonceStore(),
+        # INT-320 (follow-up): the consent render reads ``core`` from the SAME
+        # global tree the grant binds against (settings.legal_root), and each
+        # tenant's partner-processor disclosure from its own ``legal_root``
+        # under the legal base (the parent of the global consents dir — in dev
+        # the ~/.config/intake/dev-legal tree, in prod docs/legal).
+        consent_catalog=ConsentTextCatalog(settings.legal_root),
+        legal_base=settings.legal_root.parent,
     )
 
 
