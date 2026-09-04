@@ -144,9 +144,10 @@ def link_expires_at(schedule: VisitSchedule) -> dt.datetime:
     records one. Where it does not, the anchor falls back to the START of the
     visit date — never later than the appointment, therefore never later than
     the spec's value, so the fallback can only shorten the window and never
-    lengthen it (see the module docstring; ``tests/clinician/test_doctor_link.
-    py::test_the_fallback_is_never_later_than_the_true_appointment`` asserts
-    that direction for every minute of the day).
+    lengthen it. The module docstring carries the reasoning;
+    ``test_the_fallback_is_never_later_than_the_true_appointment`` in
+    ``tests/clinician/test_doctor_link.py`` asserts that direction for every
+    minute of the day.
 
     The zone is applied here and only here: a :class:`VisitTime` is a civil
     time in the visit's own calendar, so combining it with the visit's date

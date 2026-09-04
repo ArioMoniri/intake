@@ -122,8 +122,8 @@ class VisitFields:
     field for it; a patient could not check the one thing they remember. The
     two provenance fields travel WITH it rather than beside it: an extracted
     value never reaches a record unattributed, and here that is not a rule to
-    remember because both are derived in :meth:`ConfirmedVisitFields.
-    as_visit_fields` from the candidate's own ``document_ref``.
+    remember, because both are derived from the candidate's own
+    ``document_ref`` in :meth:`ConfirmedVisitFields.as_visit_fields`.
     """
 
     hospital: str
