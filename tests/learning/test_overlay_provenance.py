@@ -709,9 +709,7 @@ class TestDecimalFactValue:
         assert fact.value == big
         assert fact.value != Decimal(2**53)
 
-    def test_a_numeric_looking_string_value_is_still_a_string(
-        self, harness: StoreHarness
-    ) -> None:
+    def test_a_numeric_looking_string_value_is_still_a_string(self, harness: StoreHarness) -> None:
         # Negative control: the store must not start promoting strings.
         harness.confirm(_candidate(key="olcum.ates", value="38.50"), _confirmation())
         (fact,) = harness.facts()
@@ -739,9 +737,7 @@ class TestADecimalFactSurvivesTheEnvelope:
     string (which ``canonical_scalar`` would read as Unknown).
     """
 
-    def test_a_decimal_value_is_stored_rather_than_raising(
-        self, harness: StoreHarness
-    ) -> None:
+    def test_a_decimal_value_is_stored_rather_than_raising(self, harness: StoreHarness) -> None:
         fact = harness.confirm(
             _candidate(key="baseline.ates", value=Decimal("38.50")), _confirmation()
         )
@@ -775,9 +771,7 @@ class TestADecimalFactSurvivesTheEnvelope:
         assert value == "38.50"
         assert not isinstance(value, Decimal)
 
-    def test_a_decimal_fact_is_still_an_envelope_at_rest(
-        self, harness: StoreHarness
-    ) -> None:
+    def test_a_decimal_fact_is_still_an_envelope_at_rest(self, harness: StoreHarness) -> None:
         """Invariant 14 does not bend for the new codec: the digits are not
         readable in the row, tag or no tag."""
         harness.confirm(_candidate(key="baseline.ates", value=Decimal("38.50")), _confirmation())

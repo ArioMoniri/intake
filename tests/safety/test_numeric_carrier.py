@@ -93,6 +93,7 @@ def _string_literals(source: str) -> list[str]:
         and id(node) not in docstrings
     ]
 
+
 # The synthetic fever-shaped gate: one numeric threshold, both directions.
 FEVER = "sentetik.olcum_c"
 FEVER_RULE = make_rule("rf.sentetik_olcum", EK4Level.KIRMIZI_K2, f"{FEVER} >= 38")
