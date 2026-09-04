@@ -52,6 +52,7 @@ from intake_api import (
     satisfaction,
     taxonomy_routes,
     visits,
+    visits_acibadem,
 )
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
@@ -366,6 +367,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     )
 
     app.include_router(visits.router)
+    app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)

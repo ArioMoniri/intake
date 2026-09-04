@@ -20,7 +20,7 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
-import { AuthApiError, devPeekOtp, requestOtp, verifyOtp } from "@/lib/auth/api";
+import { AuthApiError, devPeekOtp, requestOtp, syncVisits, verifyOtp } from "@/lib/auth/api";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
 import { OTP_LENGTH, isCompleteOtp, maskPhone } from "@/lib/auth/phone";
 import { labelled } from "@/lib/a11y/labels";
@@ -54,7 +54,7 @@ export default function OtpEntry() {
   const theme = useTheme();
   const fontScale = useFontScale();
   const headerOptions = useStackHeader();
-  const { signInOtp } = useSession();
+  const { signInOtp, setApiVisits, setDisplayName } = useSession();
   const phone = getPendingPhone();
 
   const [digits, setDigits] = useState<readonly string[]>(EMPTY);
@@ -109,6 +109,17 @@ export default function OtpEntry() {
       signedIn.current = true;
       setPendingPhone(null);
       signInOtp(patientId, maskPhone(phone));
+      // INT-318: pull the patient's upcoming visits from the hospital feed now,
+      // while the verified phone is in hand. Best-effort — a failure leaves a
+      // working home screen, never blocks sign-in.
+      void syncVisits(phone)
+        .then((result) => {
+          setApiVisits(result.visits);
+          if (result.patientName) {
+            setDisplayName(result.patientName);
+          }
+        })
+        .catch(() => {});
       // Consent first-run (INT-132): a consent needs a subject, so it comes
       // right after account creation — and grants nothing by itself.
       router.replace("/(auth)/consent");
