@@ -1,0 +1,34 @@
+# DEMO-TIER previsit-output recipient overlay — NOT the shipping registry.
+#
+# The committed registry (infra/previsit_output/recipients.yaml) ships with
+# zero rows and MUST stay empty: `test_the_shipped_recipient_registry_refuses_
+# every_fetch` asserts the default path serves nobody (invariant 17, fail
+# closed). This overlay is a SEPARATE file, loaded only when the demo API is
+# started with
+#
+#     INTAKE_PREVISIT_OUTPUT_RECIPIENTS=infra/previsit_output/recipients.demo.yaml
+#
+# so the Acıbadem read-back loop can be exercised end-to-end for the demo
+# patient without touching the shipping registry or its test.
+#
+# EVERY ref below is DEMO-TIER and deliberately names nothing real. There is
+# no executed DPA, no recorded tier-3 approval, and no agreed retention
+# clause for a hospital read interface (files/10 §8, files/06 §3). Inventing
+# any of those would be inventing a legal fact, which CLAUDE.md forbids, so
+# each ref says "demo, none agreed" in as many words — the same way the
+# dev-tier consent grants are marked unbound. A real recipient row is a
+# stop-and-ask human decision (HB-A18 covers the machine-to-machine principal
+# this demo stands in for with the admin dev token).
+#
+# tenant_id is the dev-clinic tenant (intake_api.dev_fixture.DEV_TENANT_ID =
+# uuid5(NAMESPACE_URL, "https://intake.dev/tenants/dev-clinic")), because that
+# is the tenant the admin dev credential (INTAKE_DEV_TOKEN_ADMIN → ADMIN_ACCOUNT)
+# authenticates into, and the fetch scopes the recipient, the patient lookup
+# and the audit entry to the caller's own tenant.
+version: 1
+recipients:
+  - recipient_id: acibadem-demo-previsit-read
+    tenant_id: 323f0010-be85-5ea6-bc7d-c5e23425a8c6
+    dpa_ref: demo/no-dpa-executed#INT-317-finale
+    approval_ref: demo/no-tier3-approval#acibadem-demo
+    retention_ref: demo/no-retention-clause#demo-only
