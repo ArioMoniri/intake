@@ -206,6 +206,22 @@ class EgressPurpose(StrEnum):
     #: Like the push purpose, its destinations are per-tenant registry data,
     #: so it never appears in ``infra/security/egress-allowlist.yaml`` either.
     CONNECTOR_AUTHORIZATION = "connector_authorization"
+    #: Reading a patient's own record back OUT of a hospital system, rather
+    #: than pushing one in. Separated from ``CLINICAL_RECORD_PUSH`` for the
+    #: reason ADR-025 gives for separating any two purposes — a purpose is a
+    #: permission, and a read endpoint that inherited the push purpose would
+    #: be a destination approved to *receive* patient records. Its
+    #: destinations are per-tenant registry rows in
+    #: ``infra/connectors/sources.yaml``, so like the other two connector
+    #: purposes it never appears in ``infra/security/egress-allowlist.yaml``.
+    #:
+    #: The hospital sources this purpose serves are on-premises hosts reached
+    #: by a private IPv4 literal, which :class:`EgressPolicy` refuses
+    #: outright; they are enforced by the strictly narrower
+    #: ``intake_connectors.sources.LanSourcePolicy`` instead, which in turn
+    #: refuses every hostname. The two policies therefore reach disjoint sets
+    #: of destinations and neither is a route around the other.
+    CLINICAL_RECORD_READ = "clinical_record_read"
 
 
 class DataClass(StrEnum):

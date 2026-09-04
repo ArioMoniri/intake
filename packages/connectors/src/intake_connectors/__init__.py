@@ -12,6 +12,14 @@ reasoning for its own piece:
   replacing it (ADR-026).
 - :mod:`intake_connectors.credentials` — OpenBao at send time, and objects
   with no representation containing their own bytes (invariant 14).
+- :mod:`intake_connectors.sources` — the READ side: an on-premises hospital
+  host, and the strictly narrower guard that is the only thing able to reach
+  one. ``EgressPolicy`` refuses every IP literal and this one refuses every
+  hostname, so the two reach disjoint destinations by construction.
+- :mod:`intake_connectors.identity` — matching a verified phone to a feed row,
+  and refusing when the data cannot tell two patients apart.
+- :mod:`intake_connectors.acibadem` — the Acıbadem appointments read adapter
+  and the phone-first login it feeds.
 - :mod:`intake_connectors.adapter` — the adapter seam, deliberately unable to
   read a response body (invariant 6).
 - :mod:`intake_connectors.fhir` — the FHIR R4 push adapter (INT-161), which
@@ -29,6 +37,18 @@ no hospital endpoint is contracted, so the mechanism ships wired and refusing.
 
 from __future__ import annotations
 
+from intake_connectors.acibadem import (
+    ADAPTER_ID,
+    API_KEY_HEADER,
+    UPCOMING_PATH,
+    AcibademAppointmentsClient,
+    AcibademLogin,
+    AcibademUpstreamError,
+    Appointment,
+    LoginResult,
+    UpcomingPatient,
+    patient_appointments_path,
+)
 from intake_connectors.adapter import (
     AdapterNotRegistered,
     ClinicalPayload,
@@ -38,6 +58,7 @@ from intake_connectors.adapter import (
 from intake_connectors.credentials import (
     CredentialMissing,
     CredentialResolver,
+    EnvCredentialResolver,
     InMemoryCredentialResolver,
     OpenBaoCredentialResolver,
     TlsMaterial,
@@ -52,6 +73,15 @@ from intake_connectors.destinations import (
     require_public_hostname,
 )
 from intake_connectors.fhir import FHIR_JSON, FhirR4PushAdapter, PayloadNotFhir
+from intake_connectors.identity import (
+    IdentityCandidate,
+    IdentityOutcome,
+    IdentityResolution,
+    identifier_digest,
+    normalise_tr_msisdn,
+    resolve_identity,
+    tckn_is_valid,
+)
 from intake_connectors.receipts import (
     InMemoryPushLedger,
     InMemoryReceiptStore,
@@ -80,14 +110,33 @@ from intake_connectors.smart import (
     request_access_token,
     scope_covers,
 )
+from intake_connectors.sources import (
+    LAN_SOURCE_ENV,
+    LAN_SOURCE_VALUE,
+    ClinicalSource,
+    LanSourcePolicy,
+    SourceNotRegistered,
+    SourceRegistry,
+    SourceRegistryError,
+    lan_source_client,
+    lan_source_transport,
+    load_sources,
+)
 from intake_connectors.tls import mtls_context, mtls_transport
 
 __all__ = [
+    "ADAPTER_ID",
+    "API_KEY_HEADER",
     "ASSERTION_TYPE",
     "AccessToken",
+    "AcibademAppointmentsClient",
+    "AcibademLogin",
+    "AcibademUpstreamError",
     "AdapterNotRegistered",
+    "Appointment",
     "CREDENTIAL_ROOT",
     "ClinicalPayload",
+    "ClinicalSource",
     "ConnectorAdapter",
     "ConnectorDestination",
     "ConnectorSender",
@@ -98,11 +147,19 @@ __all__ = [
     "CredentialResolver",
     "DestinationNotRegistered",
     "DestinationRegistry",
+    "EnvCredentialResolver",
     "FHIR_JSON",
     "FhirR4PushAdapter",
+    "IdentityCandidate",
+    "IdentityOutcome",
+    "IdentityResolution",
     "InMemoryCredentialResolver",
     "InMemoryPushLedger",
     "InMemoryReceiptStore",
+    "LAN_SOURCE_ENV",
+    "LAN_SOURCE_VALUE",
+    "LanSourcePolicy",
+    "LoginResult",
     "OpenBaoCredentialResolver",
     "OutboundCall",
     "PayloadNotFhir",
@@ -115,15 +172,28 @@ __all__ = [
     "RegistryError",
     "ReplayRefused",
     "SmartAuthorizationFailed",
+    "SourceNotRegistered",
+    "SourceRegistry",
+    "SourceRegistryError",
     "TlsMaterial",
     "TokenTransportFactory",
     "TransportFactory",
+    "UPCOMING_PATH",
+    "UpcomingPatient",
     "build_client_assertion",
     "idempotency_key",
+    "identifier_digest",
+    "lan_source_client",
+    "lan_source_transport",
     "load_destinations",
+    "load_sources",
     "mtls_context",
     "mtls_transport",
+    "normalise_tr_msisdn",
+    "patient_appointments_path",
     "request_access_token",
     "require_public_hostname",
+    "resolve_identity",
     "scope_covers",
+    "tckn_is_valid",
 ]
