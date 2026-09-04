@@ -23,6 +23,8 @@ ENV_REDIS_URL = "INTAKE_REDIS_URL"
 # Dev-only gates (INT-131): anything but the exact phrase is OFF (fail closed).
 ENV_DEV_OTP_PEEK = "INTAKE_DEV_OTP_PEEK"
 ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
+# INT-308: where the carrier/geo allocation table lives.
+ENV_MSISDN_ALLOCATION = "INTAKE_MSISDN_ALLOCATION"
 EXPLICIT_YES = "explicit-yes"
 
 KekMode = Literal["transit", "file-dev"]
@@ -68,6 +70,14 @@ class ApiSettings:
     taxonomy_path: Path = field(
         default_factory=lambda: Path("packages/protocols/taxonomy/branches.yaml")
     )
+    # INT-308: the carrier/geo authority for the OTP request path (files/10
+    # §2). Absent, unreadable or empty → the check ADMITS, which is the
+    # opposite of every other fail-closed default here and is deliberate: a
+    # lookup that cannot be made must not lock a patient out of their own
+    # intake. See intake_api.carrier_geo.
+    msisdn_allocation_path: Path = field(
+        default_factory=lambda: Path("infra/security/msisdn_allocation.yaml")
+    )
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -105,5 +115,8 @@ class ApiSettings:
             legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
             legal_strings_path=Path(
                 os.environ.get("INTAKE_LEGAL_STRINGS") or "docs/legal/strings.yaml"
+            ),
+            msisdn_allocation_path=Path(
+                os.environ.get(ENV_MSISDN_ALLOCATION) or "infra/security/msisdn_allocation.yaml"
             ),
         )

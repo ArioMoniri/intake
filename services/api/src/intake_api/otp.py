@@ -29,7 +29,7 @@ import secrets
 import time
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 import redis
@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.attestation import AttestationPayload, AttestationVerifier, parse_attestation
 from intake_api.audit import AuditWriter
+from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.auth_store import (
     ACCESS_TTL_S,
     CHALLENGE_TTL_S,
@@ -144,6 +145,10 @@ class AuthWiring:
     attestation: AttestationVerifier
     dev_otp_peek: bool = False
     now_fn: Callable[[], float] | None = None
+    # INT-308: files/10 §2's carrier/geo sanity check. The default has no
+    # authority and therefore admits everything, which is the correct state for
+    # a wiring nobody gave one to; the env path builds the file-backed one.
+    carrier_geo: CarrierGeoCheck = field(default_factory=CarrierGeoCheck)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
