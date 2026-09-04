@@ -21,8 +21,8 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, Request
 from clinical_schemas.visit_time import VisitSchedule
+from fastapi import APIRouter, Depends, Request
 from intake_platform.access_log import build_access_log
 from intake_platform.db.models import DoctorLink, Note
 from intake_platform.doctor_link import (
