@@ -31,6 +31,7 @@ Two near-miss negative controls, because a naive fix passes the positives:
 
 from __future__ import annotations
 
+import ast as python_ast
 import inspect
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -62,6 +63,35 @@ _WIRE = TypeAdapter(JsonValue)
 
 def _through_the_wire(value: object) -> object:
     return _WIRE.validate_json(_WIRE.dump_json(value))
+
+
+def _string_literals(source: str) -> list[str]:
+    """Every string literal in a module except its docstrings.
+
+    A docstring is prose about the code; a literal is the code. Only the
+    second can smuggle a second copy of the wire tag into a running path.
+    """
+    tree = python_ast.parse(source)
+    docstrings = {
+        id(node.body[0].value)
+        for node in python_ast.walk(tree)
+        if isinstance(
+            node,
+            (python_ast.Module, python_ast.ClassDef)
+            + (python_ast.FunctionDef, python_ast.AsyncFunctionDef),
+        )
+        and node.body
+        and isinstance(node.body[0], python_ast.Expr)
+        and isinstance(node.body[0].value, python_ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    }
+    return [
+        node.value
+        for node in python_ast.walk(tree)
+        if isinstance(node, python_ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+    ]
 
 # The synthetic fever-shaped gate: one numeric threshold, both directions.
 FEVER = "sentetik.olcum_c"
@@ -219,19 +249,26 @@ class TestTheWireTagNeverReachesAHuman:
     """
 
     def test_one_module_owns_the_reserved_prefix(self) -> None:
-        """The prefix is a reserved character only if a single module spells
-        it. A second hand-rolled tag is a second, drifting encoding."""
+        """The prefix is reserved only while a single module spells it. A
+        second hand-rolled tag is a second, drifting encoding, and the two
+        would disagree the first time one of them changed.
+
+        The sweep reads string *literals* rather than raw file text, because
+        ``:class:`~decimal.Decimal``` is a Sphinx cross-reference in three
+        docstrings and matching it would make the gate cry wolf until
+        somebody deleted it.
+        """
         owner = Path(inspect.getsourcefile(common) or "")
-        offenders = sorted(
-            str(path.relative_to(REPO))
-            for path in REPO.glob("packages/*/src/**/*.py")
-            if path != owner and TAGGED_DECIMAL_PREFIX in path.read_text(encoding="utf-8")
-        )
-        offenders += sorted(
-            str(path.relative_to(REPO))
-            for path in REPO.glob("services/*/src/**/*.py")
-            if TAGGED_DECIMAL_PREFIX in path.read_text(encoding="utf-8")
-        )
+        offenders: list[str] = []
+        for path in sorted(
+            [*REPO.glob("packages/*/src/**/*.py"), *REPO.glob("services/*/src/**/*.py")]
+        ):
+            if path == owner:
+                continue
+            if any(
+                TAGGED_DECIMAL_PREFIX in text for text in _string_literals(path.read_text("utf-8"))
+            ):
+                offenders.append(str(path.relative_to(REPO)))
         assert offenders == []
 
     def test_the_typed_numeric_rail_shows_the_digits_and_not_the_tag(self) -> None:
@@ -261,7 +298,7 @@ class TestTheWireTagNeverReachesAHuman:
             (FEVER_RULE,), ctx(**{FEVER: present(crossed)}), RedLocation.REMOTE
         )
         assert evaluation.result.level is TriageLevel.RED
-        evidence = evaluation.result.fired[0].evidence
+        evidence = evaluation.result.rules[0].evidence
         assert TAGGED_DECIMAL_PREFIX not in evidence
         assert "38.50" in evidence
 
