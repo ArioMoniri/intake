@@ -1102,7 +1102,16 @@ def test_a_carrier_lookup_that_fails_still_lets_the_patient_in(
     assert delivery.sends == 1, "the SMS went out despite the failed lookup"
     logged = "\n".join(record.getMessage() for record in caplog.records)
     assert "fail open" in logged, "a lookup that did not happen must be visible"
-    assert "505" not in logged, "the operator prefix must not reach a log line (invariant 6)"
+    assert "5051114455" not in logged, "the subscriber number reached a log line (invariant 6)"
+    # The check's own log line is a fixed string with no arguments, so nothing
+    # from the number — prefix included — can reach it. Asserted as "no digit at
+    # all" rather than "not this prefix": a three-digit needle matches by
+    # accident in a DEBUG capture that also holds byte counts and uuid hex,
+    # which would make this assertion pass or fail for reasons unrelated to it.
+    ours = [r.getMessage() for r in caplog.records if r.name == "intake_api.carrier_geo"]
+    assert ours, "the fail-open path must say so"
+    for message in ours:
+        assert not any(char.isdigit() for char in message), message
 
 
 def test_a_positively_unallocated_prefix_refuses_before_any_sms(tmp_path: Path) -> None:
