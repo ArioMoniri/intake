@@ -267,8 +267,9 @@ def _validated_date(raw: str | None) -> str | None:
 def _validated_visit_time(payload: VisitCreate, *, date: str | None) -> VisitTime | None:
     """INT-306 — the appointment's hour, or nothing, and never a default.
 
-    Five refusals, each naming a different engineering problem so a client can
-    tell them apart:
+    Seven reason codes, kept apart rather than collapsed into one ``bad_time``,
+    because each names a different engineering problem and a client that cannot
+    tell them apart cannot fix any of them:
 
     - ``time_source_without_time`` — provenance for nothing is a claim that a
       reading happened with the reading missing;

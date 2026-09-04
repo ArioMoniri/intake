@@ -304,4 +304,3 @@ def test_the_parsed_screenshot_fields_are_accepted_by_the_api(harness: ApiHarnes
     assert created.status_code == 201, created.text
     assert created.json()["time"] == "14:30"
     assert created.json()["time_source"] == "document_extraction"
-
