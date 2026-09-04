@@ -1,4 +1,4 @@
-"""INT-320 — request/response models for the embed handshake (ADR-028).
+"""INT-320 — request/response models for the embed handshake (ADR-029).
 
 The wire carries ids, constrained branding tokens and the opaque ticket only —
 no clinical or personal value in either direction (invariant 6).

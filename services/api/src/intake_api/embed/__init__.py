@@ -1,4 +1,4 @@
-"""INT-320 — the partner white-label embed API surface (ADR-028).
+"""INT-320 — the partner white-label embed API surface (ADR-029).
 
 Two routes under ``/embed/v1``: the partner backend mints a signed, single-use
 launch ticket server-to-server, and the patient's device presents it to resolve

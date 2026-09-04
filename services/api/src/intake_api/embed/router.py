@@ -1,4 +1,4 @@
-"""INT-320 — the ``/embed/v1`` handshake routes (ADR-028).
+"""INT-320 — the ``/embed/v1`` handshake routes (ADR-029).
 
 Two routes, both carrying the ``partner_embed`` consent-scan marker (there is
 no Vizite data subject at the door — the patient grants consent inside Vizite's

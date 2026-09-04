@@ -1,5 +1,5 @@
 /**
- * INT-320 — partner "Start pre-visit" embed SDK (ADR-028).
+ * INT-320 — partner "Start pre-visit" embed SDK (ADR-029).
  *
  * A partner embeds Vizite as a button. This SDK is the thin launcher: on a tap
  * it asks the PARTNER'S OWN backend for a launch response (the ticket is minted

@@ -1,5 +1,5 @@
 # infra/tenants/embed_registry.yaml — the registered embed tenants (INT-320,
-# ADR-028). The white-label "Start pre-visit" handshake resolves a partner only
+# ADR-029). The white-label "Start pre-visit" handshake resolves a partner only
 # against a row here, addressed by tenant_id — the connector-destination shape
 # (ADR-026) in a second list.
 #

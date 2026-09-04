@@ -1,4 +1,4 @@
-# ADR-028 · Embeddable white-label integration: a signed launch-ticket handshake, not an embedded UI
+# ADR-029 · Embeddable white-label integration: a signed launch-ticket handshake, not an embedded UI
 
 Status: Accepted
 

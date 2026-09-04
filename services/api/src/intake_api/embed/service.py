@@ -1,4 +1,4 @@
-"""INT-320 — the embed handshake service (ADR-028).
+"""INT-320 — the embed handshake service (ADR-029).
 
 Wires the DB-free core (``intake_platform.embed``) to a per-tenant signing key
 from OpenBao, a single-use nonce store and the hash-chained audit log. Every
