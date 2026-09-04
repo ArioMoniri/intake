@@ -108,3 +108,24 @@ def test_a_missing_registry_file_is_a_refusal_not_an_empty_list(tmp_path: Path) 
 def test_an_unknown_top_level_key_is_refused(tmp_path: Path) -> None:
     with pytest.raises(RecipientRegistryError):
         load_recipients(write(tmp_path, ONE_ROW + "\nallow_all: true\n"))
+
+
+def test_registering_a_reader_forces_the_store_label_to_be_reclassified() -> None:
+    """The one gate that stops a published privacy label going quietly stale.
+
+    ``REC_HOSPITAL_SYSTEM_AWAITING_HUMAN`` is classified ``Sharing.NONE``, and
+    that is true only because no reader is registered — the string says as much
+    in its own words. Nothing about adding a row to the registry would change
+    the constant, so without this the label would keep saying "not shared" on
+    the day the data starts being shared. Registering a reader fails here
+    instead, which forces a new recipient constant and a new classification.
+    """
+    from intake_platform.db.inventory import REC_HOSPITAL_SYSTEM_AWAITING_HUMAN
+    from intake_platform.store.facts import Sharing, sharing_for
+
+    assert sharing_for(REC_HOSPITAL_SYSTEM_AWAITING_HUMAN) is Sharing.NONE
+    assert load_recipients(SHIPPED).rows == (), (
+        "a previsit-output reader is registered, so the finished previsit now leaves the "
+        "PHI boundary: REC_HOSPITAL_SYSTEM_AWAITING_HUMAN must be replaced by a recipient "
+        "that names the hospital system, and RECIPIENT_SHARING must classify it"
+    )
