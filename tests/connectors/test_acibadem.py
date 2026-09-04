@@ -187,6 +187,40 @@ def test_a_digest_is_stable_truncated_and_not_the_value() -> None:
     assert MEHMET_TCKN not in digest
 
 
+def test_the_connector_checksum_is_the_gates_checksum() -> None:
+    """One implementation of the TC Kimlik algorithm, pinned to the other.
+
+    ``scripts/ci/tckn_check.py`` has carried this arithmetic since INT-019 and
+    is not importable as a package, so the runtime copy here is a second
+    implementation of a published algorithm. A second implementation is only
+    safe while the two agree, so the agreement is a test rather than a
+    comment.
+    """
+    import importlib.util
+    from pathlib import Path
+
+    helper = Path("scripts/ci/tckn_check.py").resolve()
+    spec = importlib.util.spec_from_file_location("tckn_check", helper)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    table = (
+        MEHMET_TCKN,
+        AYSE_TCKN,
+        UNRELATED_TCKN,
+        "22222222220",
+        "31415926562",
+        "90000000100",
+        "10000000147",
+        "10000000156",
+        "12345678951",
+        "99999999999",
+    )
+    for value in table:
+        assert tckn_is_valid(value) is module.is_valid_tckn(value), value
+
+
 def test_the_connector_digest_is_the_repositorys_own_digest() -> None:
     """One definition of "safe to print". A second would drift."""
     from intake_platform.ci.phi import identifier_digest as ci_digest
