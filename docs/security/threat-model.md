@@ -767,6 +767,49 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (the dev proxy topology, and an eleven-host table decided through both enforcement points
   so they cannot drift).
 
+## `cloud-clipgen` — offline cloud pre-synthesis of the fixed clip set
+
+- **Assets:** the offline clip cache (non-patient, verbatim scripted audio — the fixed set of
+  protocol questions, red-flag scripts and instruments); the vendor TTS API key; the scripted
+  `text_tr` handed to the vendor at BUILD time. INT-319 / ADR-028 reintroduces a cloud vendor
+  for exactly this one offline job.
+- **Trust boundaries:** build host ↔ cloud TTS vendor (a new external destination reached only
+  at clip-generation time, never at runtime); runtime ↔ clip cache (playback only — the
+  session never reaches the vendor, and the self-hosted speech seam
+  `intake_voice_runtime.adapters.speech.refuse_external_host` refuses every public host, so it
+  structurally cannot).
+- **Threats (STRIDE/LINDDUN):** [I] the API key leaking into a source file, a log, a trace or
+  an exception; [Nc] a cross-border transfer of scripted text with no recorded basis — the
+  text is non-PHI protocol content, but it still leaves the country; [S/Td] the vendor's own
+  text normaliser reintroducing a numeral and speaking a wrong dose (invariant 22); [T] a
+  paraphrased or edited clip breaking the verbatim rule (invariant 10); [D] the vendor being
+  unavailable — not a runtime failure, because the fixed set is cached and playback needs no
+  vendor.
+- **Controls (files/10; ADR-028):** OFFLINE ONLY — the vendor is on no runtime or PHI path and
+  the runtime cannot reach it, so this does not weaken invariant 19; the key is read from the
+  environment only (`TTS_ELEVENLABS_API_KEY`, never a source file or a log, files/10 §2) and is
+  never placed in an exception message; the live paid call is spend-gated on `EVAL_BUDGET_USD`
+  so a test and CI never take it (recorded fixtures there); the vendor normaliser is disabled
+  (`apply_text_normalization: "off"`) and `assert_speakable_tr` refuses any numeral before the
+  wire (invariant 22); the text is sent verbatim and a recorded clip that carries other text is
+  refused (invariant 10); no vendor hostname is a literal anywhere in the tree
+  (`scripts/ci/assert_no_vendor_calls.sh`); NO runtime egress-allow-list row is added, because
+  the runtime never calls the vendor. Licence/terms and the KVKK Art. 9 transfer question are
+  human blockers (docs/backlog/blockers.md).
+- **Signals:** build-time tool, so its runtime evidence is a NEGATIVE — the per-session egress
+  socket count for TTS stays zero (shared with `cloud-boundary`/`observer-lanes`) and the clip
+  cache serves the fixed set (`voice.clip_cache_hit_ratio` high, no runtime synth for scripted
+  lines). Generation cost/characters are recorded per run in docs/evidence/, never emitted as a
+  series.
+- **Tests:** tests/voice/test_elevenlabs_clipgen.py (the adapter: numeral refused, key never
+  echoed on any failure, normaliser off, the key+budget selection gate); tests/voice/
+  test_tts_latency.py (the harness: numeral-free corpus, the A/B reported blocked without the
+  key); scripts/ci/assert_no_vendor_calls.sh (no vendor FQDN in the build); tests/voice/
+  test_audio_retention_guard.py (no audio content-type strings leak into the package). The live
+  small-run validation (7 Turkish questions, 229 characters) is recorded in
+  docs/evidence/INT-319.md with its date and named corpus, described as a measurement (invariant
+  20).
+
 ## `records` — patient document upload and ingestion
 
 - **Assets:** uploaded documents, extracted structured data, pgvector record index.

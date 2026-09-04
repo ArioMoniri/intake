@@ -334,3 +334,30 @@ immediately reports 8 real npm advisories (1 Critical, 3 High) that no gate in t
 ever run against. That is the gate doing its job on a tree that has never been scanned, not a
 regression from INT-019. Bumping `vitest`, `vite`, `uuid`, `esbuild` and `decode-uri-component`
 is a `pnpm-lock.yaml` change that races every open branch and needs its own issue.
+
+## INT-319 — a cloud TTS vendor is used for OFFLINE clip-gen; the terms are a human call
+
+**Raised:** 4 Sep 2026 · **Named human:** owner + Turkish counsel · **HUMAN_BLOCKERS id:** _to be
+assigned by the coordinator (do not mint an HB id in this session)_
+
+INT-319 / ADR-028 reintroduces a cloud vendor (ElevenLabs) for **offline** clip generation of
+the FIXED, non-patient, verbatim scripted set. The mechanism is shipped and fails closed: the
+runtime cannot reach a vendor (`refuse_external_host`), the key is env-only and never logged,
+the live call is spend-gated on `EVAL_BUDGET_USD`, the vendor normaliser is disabled (inv 22)
+and the text is verbatim (inv 10). Three asks are a human's, not an agent's:
+
+- **(a) Vendor licence / commercial-use terms.** *"May we commercially use
+  ElevenLabs-generated Turkish audio of our scripted questions, including the voice identity,
+  under their terms?"* This is a vendor-contract decision (CLAUDE.md "When to stop and ask the
+  human"). — owner.
+- **(b) KVKK Art. 9 transfer.** *"Is sending our (non-PHI) scripted protocol text to a US
+  vendor for offline synthesis acceptable, and under which basis?"* — Turkish counsel.
+- **(c) The Turkish voice id.** The supplied key is a scoped TTS key with no `voices_read`, so
+  the voice library cannot be browsed; the small-run used a stable public multilingual voice.
+  *"Which warm Turkish ElevenLabs voice id should the fixed set be built with?"* — owner.
+
+Also open and separate: a **fresh on-hardware on-prem run** over `int319-scripted-tr-v1` waits
+on GPU access (server unreachable this build, `gpu`); a production `make clips VOICE=<elevenlabs-…>`
+end-to-end waits on served packs (HB-C1); and **CosyVoice2** stays a blocked benchmark candidate
+(files/00_STATE.md line 99 rules it out for Turkish, LICENSE blob unread). The delivered harness,
+adapter and offline clip-gen mechanism are green and do not wait on any of these.

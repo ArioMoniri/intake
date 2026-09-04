@@ -4559,3 +4559,53 @@
   tests:
   - tests/infra/test_restore_drill.py
   sec_row: "backups"
+- id: INT-319
+  epic: E05-voice
+  phase: P1
+  # The scripted protocol questions carry no patient answer, so they can be
+  # voiced with the best available quality without a PHI-path egress. INT-319
+  # adds (a) `make tts-latency`, a dev harness that measures four delays per lane
+  # over one fixed named corpus; (b) the on-prem expressive runtime lane for
+  # dynamic / allow_paraphrase lines (VoxCPM2, files/03 §4.9.1 rows 10-12); and
+  # (c) an OFFLINE cloud clip-gen path (ElevenLabs, ADR-028) that pre-synthesises
+  # the FIXED set into the clip cache with zero per-session egress. CosyVoice2 is
+  # a blocked benchmark candidate only: files/00_STATE.md line 99 rules it out
+  # for Turkish and its licence is unverified against a raw LICENSE blob.
+  title: 'Dev on-prem expressive-TTS lane for scripted questions + latency assessment
+    harness'
+  depends_on: []
+  labels:
+  - area:voice
+  - area:lanes
+  - gpu
+  - approval:human-vendor
+  status: awaiting-human
+  evidence: docs/evidence/INT-319.md
+  acceptance:
+  - '`make tts-latency` measures four delays per lane - compiled-text to synth
+    start, time-to-first-audio, time-to-full-audio, and total delivery delay -
+    over one fixed named corpus, records them with a date and the corpus name
+    (invariant 20), and reports a lane it could not measure as blocked rather
+    than a filled-in number (invariant 17)'
+  - 'the expressive runtime lane speaks the scripted line verbatim from text_tr
+    (invariant 10) and no numeral reaches any TTS model (invariant 22: the
+    compiler expands numerals to Turkish orthography and every model normaliser,
+    self-hosted and cloud alike, is disabled) - the harness and the adapters
+    assert both'
+  - 'the offline cloud clip-gen adapter (ADR-028) sits behind the existing
+    gateway, resolves its key from the environment only and never logs it,
+    disables the vendor normaliser, is spend-gated so no test or CI dials it, and
+    puts no vendor hostname literal in the tree (assert_no_vendor_calls.sh stays
+    green)'
+  - 'the runtime never calls the cloud vendor - it plays cached clips, so there
+    is no per-session egress and invariant 19 is not weakened; the ElevenLabs
+    licence/terms and the KVKK Art. 9 transfer question are recorded as human
+    blockers'
+  - 'evidence records the per-model latency measurements - the on-prem prior
+    numbers with provenance, the offline cloud small-run, and the clip-cache
+    playback path - with a date and the named corpus, described as measurements
+    only'
+  tests:
+  - tests/voice/test_tts_latency.py
+  - tests/voice/test_elevenlabs_clipgen.py
+  sec_row: "cloud-clipgen"

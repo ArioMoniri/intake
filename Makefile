@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim live-smoke admin-fixtures
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -248,6 +248,21 @@ runtime-sim:
 	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1] [PARITY=1]"; exit 2; }
 	uv run python scripts/voice/runtime_sim.py --scenario $(SCENARIO) --profile $(PROFILE) \
 	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,) $(if $(PARITY),--parity,)
+
+# INT-319: the dev TTS latency harness (files/03 §4.9.1 rows 10-12). Measures
+# four delays per lane over one fixed, named corpus of scripted questions:
+# compiled-text->synth start, time-to-first-audio, time-to-full-audio, and the
+# total delivery delay. Exactly one mode, and neither has a default:
+#   make tts-latency RECORDED=<run.json>   # replay a committed run - the CI/no-GPU path
+#   make tts-latency LIVE=1 [HOST=<addr>]  # measure the self-hosted lanes on this host
+# RECORDED calls nothing. LIVE reaches ONLY self-hosted endpoints (the harness
+# reuses adapters.speech.refuse_external_host, so a public host is refused), and
+# it never touches ElevenLabs: the cloud lane is offline clip-gen only (ADR-028).
+# Everything printed is a measurement of one bridge on one day against the named
+# corpus, never a property of a model and never an NFR (CLAUDE.md invariant 20).
+tts-latency:
+	uv run python scripts/voice/tts_latency.py \
+	  $(if $(RECORDED),--recorded $(RECORDED),) $(if $(LIVE),--live,) $(if $(HOST),--host $(HOST),)
 
 # INT-095: one REAL residency_tr turn against the self-hosted lanes, timed per
 # term. PROFILE is required and has no default; `typed` is refused (it has no
