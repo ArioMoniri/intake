@@ -769,6 +769,8 @@ export const tr = {
   "consent.detail.withdraw": "İzni geri çekin",
   "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
   "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
+  "consent.inline.details": "Ayrıntılı görünüm",
+  "consent.sweep.start": "Kalan izinleri tek tek gözden geçirin",
   "consent.queue.note":
     "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
 
@@ -813,8 +815,11 @@ export const tr = {
   "a11y.shareHint": "Bu bölümün paylaşımını açıp kapatmak için iki kez dokunun.",
   "a11y.typedHint": "Konuşmak yerine yazarak devam etmek için iki kez dokunun.",
   "a11y.otp.digit": "Doğrulama kodu hanesi",
-  "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açmak için iki kez dokunun.",
+  "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açıp kapatmak için iki kez dokunun.",
   "a11y.consent.switchHint": "Bu izni açıp kapatmak için iki kez dokunun.",
+  "a11y.consent.grantHint": "Yukarıdaki izin metnini onaylar.",
+  "a11y.consent.sweepHint": "Kapalı izinleri sırayla açar; her birinin metnini önce gösterir.",
+  "a11y.consent.detailsHint": "İznin tüm metnini ayrı bir ekranda açar.",
   // INT-140 — ipuçları eylemin SONUCUNU söyler (iOS HIG): ekran okuyucu
   // kullanan hasta, dokunmadan önce ne olacağını bilir.
   "a11y.data.exportHint": "İki kez dokunmak kopya isteğinizi gönderir.",

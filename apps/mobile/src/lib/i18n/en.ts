@@ -748,6 +748,8 @@ export const en: Record<MessageKey, string> = {
   "consent.detail.withdrawNote": "Withdrawal takes effect immediately.",
   "consent.detail.needsVoice":
     "This option can only be switched on while the voice session permission is on.",
+  "consent.inline.details": "Detailed view",
+  "consent.sweep.start": "Review the remaining permissions one by one",
   "consent.queue.note":
     "Your changes were applied on this device; they will reach the server once a connection is available.",
 
@@ -787,8 +789,11 @@ export const en: Record<MessageKey, string> = {
   "a11y.shareHint": "Double tap to share or stop sharing this section.",
   "a11y.typedHint": "Double tap to continue by typing instead of speaking.",
   "a11y.otp.digit": "Verification code digit",
-  "a11y.consent.rowHint": "Double tap to open the consent text and details.",
+  "a11y.consent.rowHint": "Double tap to open or close the consent text and details.",
   "a11y.consent.switchHint": "Double tap to turn this consent on or off.",
+  "a11y.consent.grantHint": "Approves the consent text shown above.",
+  "a11y.consent.sweepHint": "Opens the off permissions in turn, showing each text first.",
+  "a11y.consent.detailsHint": "Opens the full text of this permission on a separate screen.",
   // INT-140 — hints state the RESULT of the action (iOS HIG): a screen-reader
   // user knows what will happen before they act.
   "a11y.data.exportHint": "Double tapping sends your copy request.",

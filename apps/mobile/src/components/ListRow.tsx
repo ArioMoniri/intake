@@ -70,6 +70,13 @@ interface ListRowProps {
   trailing?: ReactNode;
   /** "›" affordance; set it ONLY on rows that navigate. */
   chevron?: boolean;
+  /**
+   * Accordion disclosure (INT consent UX): pass a boolean to make the row an
+   * expander rather than a navigator. It swaps the "›" for a "⌄ / ⌃" glyph and
+   * declares `accessibilityState.expanded`, so a screen-reader user hears the
+   * row is collapsed or open. Left undefined the row behaves exactly as before.
+   */
+  expanded?: boolean;
   /** Nested child row (INT-132 lane sub-toggles): indented text column. */
   inset?: boolean;
   onPress?: () => void;
@@ -110,6 +117,7 @@ export function ListRow({
   icon,
   trailing,
   chevron = false,
+  expanded,
   inset = false,
   onPress,
   hint,
@@ -135,7 +143,15 @@ export function ListRow({
         ) : null}
       </View>
       {trailing ?? null}
-      {chevron ? <SymbolView name="chevron.right" size={13} tintColor={theme.inkFaint} /> : null}
+      {expanded !== undefined ? (
+        <SymbolView
+          name={expanded ? "chevron.up" : "chevron.down"}
+          size={13}
+          tintColor={theme.inkFaint}
+        />
+      ) : chevron ? (
+        <SymbolView name="chevron.right" size={13} tintColor={theme.inkFaint} />
+      ) : null}
     </>
   );
   if (onPress) {
@@ -144,10 +160,9 @@ export function ListRow({
         accessibilityRole="button"
         accessibilityLabel={withContext(label, labelContext, sublabel)}
         accessibilityHint={hint}
+        accessibilityState={expanded === undefined ? undefined : { expanded }}
         accessibilityActions={
-          secondaryAction
-            ? [{ name: SECONDARY_ACTION, label: secondaryAction.label }]
-            : undefined
+          secondaryAction ? [{ name: SECONDARY_ACTION, label: secondaryAction.label }] : undefined
         }
         onAccessibilityAction={
           secondaryAction

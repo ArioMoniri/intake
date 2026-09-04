@@ -18,7 +18,12 @@ import { ConsentList } from "@/components/ConsentList";
 import { AppText, PrimaryButton, Screen } from "@/components/Themed";
 import { viewOf } from "@/lib/consent/ledger";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
-import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
+import {
+  grantLocal,
+  seedLedgerForAccount,
+  useConsentLedger,
+  withdrawLocal,
+} from "@/lib/consent/store";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
@@ -40,27 +45,27 @@ export default function FirstRunConsent() {
   const views = viewOf(ledger);
 
   const openDetail = (id: PurposeId) => {
-    // Layer 2 is the shared detail route; the account exists, so the shell
-    // is reachable and back returns here.
+    // The focused detail screen is the shared route; the account exists, so the
+    // shell is reachable and back returns here. Grant happens inline, though.
     router.push(`/(tabs)/me/consents/${purposeParam(id)}`);
   };
 
-  const onToggle = (id: PurposeId) => {
-    const view = views.find((v) => v.id === id);
-    if (view === undefined || view.ui === "info") {
-      return;
-    }
-    if (view.withdrawable) {
-      const flipped = withdrawLocal(id);
-      for (const scope of flipped) {
-        const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined && key !== "core") {
-          setConsent(key, false);
-        }
+  // Mirror a ledger change into the legacy session gate in the same handler.
+  const mirror = (flipped: readonly PurposeId[], on: boolean) => {
+    for (const scope of flipped) {
+      const key = purposeDef(scope)?.sessionKey;
+      if (key !== null && key !== undefined && key !== "core") {
+        setConsent(key, on);
       }
-      return;
     }
-    openDetail(id);
+  };
+
+  const onGrant = (id: PurposeId) => {
+    mirror(grantLocal(id), true);
+  };
+
+  const onWithdraw = (id: PurposeId) => {
+    mirror(withdrawLocal(id), false);
   };
 
   return (
@@ -77,7 +82,13 @@ export default function FirstRunConsent() {
         <AppText role="body" color="inkSoft">
           {t("consent.firstRun.body")}
         </AppText>
-        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
+        <ConsentList
+          views={views}
+          texts={ledger.texts}
+          onGrant={onGrant}
+          onWithdraw={onWithdraw}
+          onOpenDetail={openDetail}
+        />
         <PrimaryButton
           label={t("consent.firstRun.continue")}
           onPress={() => router.replace("/(tabs)/today")}

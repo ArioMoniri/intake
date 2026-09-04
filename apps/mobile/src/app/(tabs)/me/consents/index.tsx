@@ -20,7 +20,12 @@ import { ConsentList } from "@/components/ConsentList";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
-import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
+import {
+  grantLocal,
+  seedLedgerForAccount,
+  useConsentLedger,
+  withdrawLocal,
+} from "@/lib/consent/store";
 import { viewOf } from "@/lib/consent/ledger";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -48,24 +53,26 @@ export default function Consents() {
     router.push(`/(tabs)/me/consents/${purposeParam(id)}`);
   };
 
-  const onToggle = (id: PurposeId) => {
-    const view = views.find((v) => v.id === id);
-    if (view === undefined || view.ui === "info") {
-      return;
-    }
-    if (view.withdrawable) {
-      // Instant: ledger + session gate flip in this same handler.
-      const flipped = withdrawLocal(id);
-      for (const scope of flipped) {
-        const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined && key !== "core") {
-          setConsent(key, false);
-        }
+  // Mirror a ledger change into the legacy session gate in the SAME handler, so
+  // the existing visibleTabs gate (wellbeing) reacts before the next frame.
+  const mirror = (flipped: readonly PurposeId[], on: boolean) => {
+    for (const scope of flipped) {
+      const key = purposeDef(scope)?.sessionKey;
+      if (key !== null && key !== undefined && key !== "core") {
+        setConsent(key, on);
       }
-      return;
     }
-    // OFF / pending / stale → the decision belongs next to the text.
-    openDetail(id);
+  };
+
+  // Grant happens inline, beneath the loaded, hash-bound text (invariant 4).
+  // The ledger fails closed itself — a missing text grants nothing.
+  const onGrant = (id: PurposeId) => {
+    mirror(grantLocal(id), true);
+  };
+
+  // Withdrawal is instant and cascading; one tap on the row's pill.
+  const onWithdraw = (id: PurposeId) => {
+    mirror(withdrawLocal(id), false);
   };
 
   return (
@@ -77,7 +84,13 @@ export default function Consents() {
         <AppText role="body" color="inkSoft">
           {t("consent.entry.sub")}
         </AppText>
-        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
+        <ConsentList
+          views={views}
+          texts={ledger.texts}
+          onGrant={onGrant}
+          onWithdraw={onWithdraw}
+          onOpenDetail={openDetail}
+        />
         {ledger.queue.length > 0 ? (
           <AppText role="caption" color="inkFaint">
             {t("consent.queue.note")}
