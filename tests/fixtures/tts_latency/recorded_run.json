@@ -1,0 +1,91 @@
+{
+  "corpus_id": "int319-scripted-tr-v1",
+  "recorded_on": "2026-09-04",
+  "provenance": "Hand-authored fixture that exercises the make tts-latency harness arithmetic on the no-GPU CI path. These are NOT device measurements: the team GPU server (10.6.110.10) was unreachable when INT-319 was built, so a fresh per-lane run over this corpus is blocked (see docs/evidence/INT-319.md, which cites the real prior on-prem numbers from INT-291/INT-261/INT-249 with their own corpora and dates). The shape mirrors those runs so the moment the GPU box is reachable a real run replaces this file byte for byte.",
+  "lanes": {
+    "voxcpm2": {
+      "status": "measured",
+      "timings": [
+        {
+          "compile_to_synth_ms": 0.4,
+          "ttfa_ms": 3990.0,
+          "full_audio_ms": 3990.0,
+          "delivery_ms": 3990.4,
+          "audio_bytes": 92204
+        },
+        {
+          "compile_to_synth_ms": 0.4,
+          "ttfa_ms": 6120.0,
+          "full_audio_ms": 6120.0,
+          "delivery_ms": 6120.4,
+          "audio_bytes": 138284
+        },
+        {
+          "compile_to_synth_ms": 0.5,
+          "ttfa_ms": 6510.0,
+          "full_audio_ms": 6510.0,
+          "delivery_ms": 6510.5,
+          "audio_bytes": 138284
+        },
+        {
+          "compile_to_synth_ms": 0.5,
+          "ttfa_ms": 11440.0,
+          "full_audio_ms": 11440.0,
+          "delivery_ms": 11440.5,
+          "audio_bytes": 200000
+        },
+        {
+          "compile_to_synth_ms": 0.6,
+          "ttfa_ms": 20930.0,
+          "full_audio_ms": 20930.0,
+          "delivery_ms": 20930.6,
+          "audio_bytes": 338000
+        }
+      ]
+    },
+    "freya": {
+      "status": "measured",
+      "timings": [
+        {
+          "compile_to_synth_ms": 0.3,
+          "ttfa_ms": 780.0,
+          "full_audio_ms": 840.0,
+          "delivery_ms": 840.3,
+          "audio_bytes": 103724
+        },
+        {
+          "compile_to_synth_ms": 0.3,
+          "ttfa_ms": 900.0,
+          "full_audio_ms": 940.0,
+          "delivery_ms": 940.3,
+          "audio_bytes": 161324
+        },
+        {
+          "compile_to_synth_ms": 0.4,
+          "ttfa_ms": 900.0,
+          "full_audio_ms": 940.0,
+          "delivery_ms": 940.4,
+          "audio_bytes": 161324
+        },
+        {
+          "compile_to_synth_ms": 0.4,
+          "ttfa_ms": 940.0,
+          "full_audio_ms": 980.0,
+          "delivery_ms": 980.4,
+          "audio_bytes": 222764
+        },
+        {
+          "compile_to_synth_ms": 0.5,
+          "ttfa_ms": 940.0,
+          "full_audio_ms": 980.0,
+          "delivery_ms": 980.5,
+          "audio_bytes": 222764
+        }
+      ]
+    },
+    "cosyvoice2-expressive": {
+      "status": "blocked",
+      "reason": "CosyVoice2 licence UNVERIFIED against the raw LICENSE blob; files/00_STATE.md line 99 rules it out for Turkish; GPU unreachable so nothing was served. Benchmark candidate only, awaiting a human licence reading and a Turkish-capability decision."
+    }
+  }
+}
