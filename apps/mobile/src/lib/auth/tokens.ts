@@ -9,6 +9,8 @@
  */
 import * as SecureStore from "expo-secure-store";
 
+import { SESSION_SNAPSHOT_SLOT } from "./sessionSnapshot";
+
 const REFRESH_SLOT = "intake.auth.refresh";
 const PATIENT_SLOT = "intake.auth.patient";
 
@@ -40,9 +42,12 @@ export async function getPatientId(): Promise<string | null> {
   return SecureStore.getItemAsync(PATIENT_SLOT);
 }
 
-/** Sign-out / family-revoked hygiene: drop every credential at once. */
+/** Sign-out / family-revoked hygiene: drop every credential at once — and the
+ * restore snapshot bound to the same session (INT-131), so a revoked family can
+ * never leave the patient's name or visits restorable on the next launch. */
 export async function clearSession(): Promise<void> {
   accessToken = null;
   await SecureStore.deleteItemAsync(REFRESH_SLOT);
   await SecureStore.deleteItemAsync(PATIENT_SLOT);
+  await SecureStore.deleteItemAsync(SESSION_SNAPSHOT_SLOT);
 }
