@@ -138,6 +138,17 @@ HARDCODED_EXEMPT = {
         "A Turkish character class inside the MHRS-message parser's regex. It "
         "is matched against text the patient pastes and is never rendered."
     ),
+    "lib/a11y/pairedRow.ts": (
+        "Turkish character classes inside the glyph-advance width model — the "
+        "letters grouped by how wide they are in the shipped Inter face, so a "
+        "row can decide whether a label still fits beside its control. They are "
+        "measured against, never rendered: the module returns numbers and a "
+        "form, and imports nothing that can draw. The same category as "
+        "mhrsSms.ts above. The cost of this row is that a genuinely visible "
+        "Turkish literal added to this file later would not be caught here — "
+        "acceptable only while the module renders nothing, which "
+        "appearance.spec.ts pins by asserting it exports no component."
+    ),
 }
 
 #: Instructional prose and form labels carrying the SHORT imperative (`-in`)

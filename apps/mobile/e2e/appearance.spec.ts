@@ -476,6 +476,17 @@ describe("a paired row never squeezes its label below one Turkish word", () => {
     expect(file(name)).toContain("pairedRowMetrics(");
   });
 
+  // tests/release/test_i18n_complete.py exempts lib/a11y/pairedRow.ts from the
+  // hardcoded-string gate because its Turkish literals are glyph-width classes
+  // rather than copy. That exemption is only safe while the module cannot put a
+  // string on screen, so the condition is pinned here rather than trusted.
+  it("the width model renders nothing, which is what makes its i18n exemption safe", () => {
+    const source = file("src/lib/a11y/pairedRow.ts");
+    expect(source).not.toMatch(/from\s*["']react["']/);
+    expect(source).not.toMatch(/from\s*["']react-native["']/);
+    expect(source).not.toContain("createElement");
+  });
+
   it.each(PAIRED)("%s no longer lets the label column shrink to nothing", (name) => {
     // The literal that WAS the defect. A column with `flex: 1` and no minimum
     // does not wrap when it runs out of room — it breaks a Turkish word
