@@ -19,6 +19,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
+import { resolvePrebakedClip } from "./prebakedClipSource";
 import { createClipStore, synthesizeClipWith, type ClipFs, type ClipStore } from "./tts";
 import { createTtsLaneSelector, synthesizeWithFallback, type TtsLaneSelector } from "./ttsLane";
 
@@ -73,8 +74,17 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // INT-237 shaping is unchanged: one request per SENTENCE, trimmed, faded
   // and joined with a real sentence gap. INT-249 only changes where each of
   // those requests lands.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) =>
-    synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text),
+  //
+  // INT-demo: the store first consults the bundled ElevenLabs clips
+  // (`resolvePrebakedClip`). A prebaked hit plays offline in the demo voice
+  // and never touches the live lane; a miss falls through to `synthesizeClipWith`
+  // exactly as before, so the option-confirm turns and any un-baked string
+  // still use the dev TTS ladder.
+  return createClipStore(
+    dialogueClipDir(),
+    expoClipFs,
+    (text) => synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text),
+    resolvePrebakedClip,
   );
 }
 
