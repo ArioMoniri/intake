@@ -40,8 +40,10 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { readFontMetrics } from "./fontMetrics";
+import { longestUnbreakableToken, textWidth } from "@/lib/a11y/pairedRow";
 import { en } from "@/lib/i18n/en";
 import { tr } from "@/lib/i18n/tr";
+import { APP_STEPS } from "@/lib/prefs/appearance";
 import { scaledSize, spacing } from "@/lib/theme";
 
 const MOBILE = join(__dirname, "..");
