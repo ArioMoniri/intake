@@ -38,8 +38,10 @@ def test_ids_unique_and_well_formed() -> None:
     # 175 blueprint + INT-176..178 (security review) + INT-179/193 (mobile,
     # owner directive 2026-08-27) + INT-294 (the end-to-end walkthrough
     # measured TTS admission consuming the clip deadline, and the resulting
-    # mute latching for the session). Grow this count only with a stated reason.
-    assert len(ids) == 242
+    # mute latching for the session) + INT-320 (embeddable white-label
+    # integration: partner "Start pre-visit" button + tenant handshake, ADR-028).
+    # Grow this count only with a stated reason.
+    assert len(ids) == 243
     import re
 
     for i in ids:

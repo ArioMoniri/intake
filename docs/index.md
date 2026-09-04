@@ -62,3 +62,6 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-023 RED three axes](adr/ADR-023-red-three-axes.md)
 - [ADR-024 life_threat schema reconciliation](adr/ADR-024-life-threat-schema-reconciliation.md)
 - [ADR-025 One egress allow-list, two enforcers, a purpose on every call](adr/ADR-025-egress-one-list-two-enforcers.md)
+- [ADR-026 Connector destinations: a second list, one engine](adr/ADR-026-connector-destinations-second-list-one-engine.md)
+- [ADR-027 SMART backend services: a second auth mode, a second host](adr/ADR-027-smart-second-auth-mode-second-host.md)
+- [ADR-028 Embeddable white-label handshake](adr/ADR-028-embeddable-white-label-handshake.md)

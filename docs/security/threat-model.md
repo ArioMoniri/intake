@@ -1030,6 +1030,43 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   key refused before anything leaves, and the framework headers an adapter cannot
   overwrite.
 
+## `embed` — the partner white-label launch handshake
+
+- **Assets:** the tenant embed registry (branding + recorded human facts), per-tenant
+  ticket signing keys (OpenBao), launch tickets in flight, the single-use nonce store.
+- **Trust boundaries:** partner backend ↔ our mint endpoint; partner app/patient device ↔
+  our launch endpoint; tenant ↔ tenant (a ticket must never cross); partner page ↔ the
+  branded intake (must not be an injection surface).
+- **Threats (STRIDE/LINDDUN):** [S] a forged or replayed launch ticket; [E] a ticket minted
+  for tenant A launching tenant B (inv. 37: the tenant is data bound in the signature, never
+  a request parameter); [T] tampered branding turning the embed into an XSS/injection surface;
+  [I/Dd] a partner-supplied patient identifier becoming a cross-tenant PHI path or an
+  unlawful new recipient; [Nc] a live partner served without a DPA, brand permission or
+  authored consent texts; a device function reaching a tenant with no CE certificate.
+- **Controls (files/10):** signed HS256 ticket over the `room_tokens` primitive with a
+  **closed** claim set `{tenant_id, nonce, iat, exp≤120s, purpose}` and no clinical or
+  personal value; tenant bound inside the signature and verified against the tenant whose
+  OpenBao key verified it (ADR-028); single-use nonce consumed only after every other check
+  (a tampered replay never burns a genuine nonce); branding is constrained data validated at
+  load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
+  refused — so there is no injection surface; `device_functions` may not be enabled for an
+  embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
+  through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
+  refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out
+  of scope** — linking it is a new personal-data category and recipient awaiting human
+  sign-off (docs/backlog/blockers.md INT-320), built as nothing rather than invented.
+- **Signals:** `embed_launch_ticket_total{tenant,outcome}` and `embed_launch_total{tenant,outcome}`
+  (planned — catalogued in `observability/metrics_catalog.yaml`, emitted when the embed
+  console lands); the hash-chained audit carries `embed.ticket_minted` and `embed.launched`
+  entries (ids only, `basis:embed-handshake`).
+- **Tests:** `tests/embed/` — the ticket round-trip, the cross-tenant refusal, tamper/expiry/
+  replay/purpose/ttl fail-closed paths, the constrained-branding and zero-prod-rows registry
+  rules, the fail-closed 503s (no signing key, unconfigured surface), the admin-only mint,
+  and the audit entries; the consent route-scan (`tests/legal/test_consent_guard.py`) proving
+  both routes carry the `partner_embed` marker and nothing is left undeclared.
+
 ## `kiosk` — shared devices in clinics
 
 - **Assets:** kiosk sessions, clinic PIN, the physical device.

@@ -1,0 +1,37 @@
+# infra/tenants/embed_registry.yaml — the registered embed tenants (INT-320,
+# ADR-028). The white-label "Start pre-visit" handshake resolves a partner only
+# against a row here, addressed by tenant_id — the connector-destination shape
+# (ADR-026) in a second list.
+#
+# THIS FILE SHIPS WITH DEV-TIER SYNTHETIC TENANTS ONLY. A real partner is a
+# `prod` row and a prod row is refused (fail closed) unless a human has recorded
+# its executed DPA (`dpa_ref`) and its brand-use permission (`brand_permission_ref`);
+# no engineer may supply those (invariant 17; see docs/backlog/blockers.md
+# INT-320). Branding is constrained data — six-digit hex colours, a bounded
+# display name and id-shaped asset/consent references — never partner markup, so
+# the embed is not an injection surface. `device_functions` may not be enabled
+# here at all (ADR-020: no CE certificate).
+#
+# The dev tenant's signing key, consent texts and logo asset are NOT present:
+# the signing key is resolved from OpenBao at runtime (dev server locally) and
+# the launch fails closed without it; the consent texts under `legal_root` are
+# unauthored, so the branded intake's consent step fails closed exactly like the
+# rest of the app until INT-210 counsel sign-off. The dev tenant is synthetic —
+# "dev-partner-alpha" is not a real company.
+
+registry_version: "v0-dev"
+
+tenants:
+  - tenant_id: "0b6f9d2e-1111-5aaa-8bbb-000000000001"
+    tier: dev
+    signing_key_ref: "embed/dev-partner-alpha/signing-key"
+    legal_root: "docs/legal/embed/dev-partner-alpha"
+    device_functions: false
+    partner_backend_origin: "https://dev-partner-alpha.localhost"
+    theme:
+      display_name: "Vizite Dev Partner"
+      locale: "tr"
+      primary_color: "#0B5FFF"
+      accent_color: "#00303C"
+      logo_asset_id: "embed.dev-partner-alpha.logo"
+      consent_doc_set_id: "embed.dev-partner-alpha"

@@ -68,6 +68,15 @@ class ApiSettings:
     taxonomy_path: Path = field(
         default_factory=lambda: Path("packages/protocols/taxonomy/branches.yaml")
     )
+    # INT-320: the partner white-label embed handshake (ADR-028). The registry
+    # of embed tenants (dev-only in the committed file); the base URL the
+    # branded launch opens. Absent launch URL → the embed surface stays
+    # unconfigured (503). The signing key comes from OpenBao (invariant 14) or
+    # the surface fails closed — no key is ever read from the environment.
+    embed_registry_path: Path = field(
+        default_factory=lambda: Path("infra/tenants/embed_registry.yaml")
+    )
+    embed_launch_base_url: str | None = None
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -106,4 +115,8 @@ class ApiSettings:
             legal_strings_path=Path(
                 os.environ.get("INTAKE_LEGAL_STRINGS") or "docs/legal/strings.yaml"
             ),
+            embed_registry_path=Path(
+                os.environ.get("INTAKE_EMBED_REGISTRY") or "infra/tenants/embed_registry.yaml"
+            ),
+            embed_launch_base_url=os.environ.get("INTAKE_EMBED_LAUNCH_URL") or None,
         )
