@@ -918,8 +918,12 @@ metrics:
       cleared the k >= 10 floor and whose every document-type cell has cleared
       it too — never observed raw, because a histogram scraped after one
       observation exposes that patient's exact wait. The other five group G
-      ids stay planned: intake_platform.wait_times.WAIT_SOURCES records which
-      of their two instants this repo does not yet write.
+      ids stay planned: since INT-307 they all have a writer, so what
+      intake_platform.wait_times.WAIT_SOURCES records is the one thing still
+      missing — which of their two instants this repo does not yet write.
+      wait.answer_latency_s has no source entry at all and
+      intake_platform.wait_times.unpublished_wait_series reports it by id with
+      that reason, because an empty series reads as measured-and-zero.
   # --- files/08 §4 I. Operations — the two ids 08 §4 names (LiveKit worker exporter :8081)
   - name: worker_load
     type: gauge
@@ -1593,9 +1597,11 @@ metrics:
   # "opens, failed OTPs, revocations, time-to-open". Three of the four are
   # counts of things services/api does and are emitted here as ONE family with
   # a closed outcome label. The fourth, time-to-open, is the interval
-  # wait.doctor_link_first_open_h; it stays `planned` because its publisher
-  # does not exist, which intake_platform.wait_times records rather than this
-  # file papering over. No tenant, clinic, link or recipient label: a per-link
+  # wait.doctor_link_first_open_h; INT-307 gave it a writer (the unlabelled
+  # path through intake_metrics.metrics.observe_wait), so it stays `planned`
+  # for the one remaining reason: nothing records a first-open instant on the
+  # share. intake_platform.wait_times says so, rather than this file papering
+  # over it. No tenant, clinic, link or recipient label: a per-link
   # counter would let a Prometheus scrape — which is not consent-scoped and
   # which retains what it sees — reconstruct one clinician's reading of one
   # patient's note (inv. 6).

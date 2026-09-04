@@ -142,7 +142,9 @@ def test_every_registry_source_can_be_written_in_its_own_unit(source: WaitSource
     rollup = observe_wait(
         family,
         source=source,
-        observations=_observations(MIN_COHORT, duration_ms=one_unit_ms, document_type=document_type),
+        observations=_observations(
+            MIN_COHORT, duration_ms=one_unit_ms, document_type=document_type
+        ),
         cohort=_cohort(),
     )
     assert rollup.suppressed is False
@@ -196,6 +198,23 @@ def test_an_unlabelled_family_refuses_a_labelled_observation() -> None:
             cohort=_cohort(),
         )
     assert _sum(family) == pytest.approx(0.0)
+
+
+def test_an_unlabelled_family_refuses_a_labelled_observation_below_the_floor_too() -> None:
+    """Near-miss negative control on WHERE the guard sits. A suppressed cohort
+    is a fact about the data; handing the writer a label its family cannot
+    carry is a defect, and a quiet return would hide it until the week the
+    cohort happened to clear."""
+    source = wait_source(WaitKind.DOCTOR_LINK_FIRST_OPEN)
+    with pytest.raises(ValueError, match="carries no label"):
+        observe_wait(
+            _family(source),
+            source=source,
+            observations=_observations(
+                MIN_COHORT - 1, duration_ms=3_600_000, document_type=DocumentKind.PDF
+            ),
+            cohort=_cohort(),
+        )
 
 
 def test_a_labelled_family_still_refuses_a_partly_labelled_cohort() -> None:

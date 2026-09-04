@@ -4246,7 +4246,7 @@
   labels:
   - area:platform
   - area:observability
-  status: todo
+  status: done
   acceptance:
   - 'the publisher accepts an unlabelled wait family, so a series such as
     wait.doctor_link_first_open_h has a writer rather than a catalogue row with
