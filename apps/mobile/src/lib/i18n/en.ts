@@ -620,7 +620,8 @@ export const en: Record<MessageKey, string> = {
   "dialogue.speakCorrection": "Say the correction",
   "dialogue.typeThisStep": "Answer by typing",
   "dialogue.transcribing": "Transcribing…",
-  "dialogue.notUnderstood": "I could not quite understand that. Let us ask the same question once more.",
+  "dialogue.notUnderstood":
+    "I could not quite understand that. Let us ask the same question once more.",
   "dialogue.voiceMuted":
     "Reading aloud is not working right now. You can read the questions on screen and answer by speaking or by typing.",
   "dialogue.noteForming": "Note taking shape",
@@ -810,6 +811,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.dialogue.composerHint": "You can type here instead of speaking.",
   "a11y.dialogue.sectionsHint": "Double tap to see the sections going into your note.",
   "a11y.dialogue.exitHint": "Double tap to leave the conversation and continue by typing.",
+  "a11y.dialogue.finishHint": "Double tap to finish and see the summary.",
   // ── INT-141 · Notifications ──────────────────────────────────────────────
   // Mirror of the tr block; tr is the source of truth (invariant 5).
   "me.notifications": "Notifications",

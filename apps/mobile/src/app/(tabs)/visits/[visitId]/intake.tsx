@@ -493,15 +493,21 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             {t(question.titleKey)}
           </AppText>
         )}
-        {/* On an open step the invitation replaces the pack's control hint
-            here: "Birden fazla seçebilirsiniz" describes the chips grid, and
-            the grid is now below the answer field, so the hint travels down
-            with the control it describes (the same rule INT-261 applied to
-            the spoken turn). */}
+        {/* The "kendi sözlerinizle" invitation belongs to the flow, not to
+            every turn: shown ONCE at the top (the first applicable step, which
+            is always open), it read as noise repeated under each question. The
+            open answer field still carries `intake.open.orChoose` below it and
+            the same hint as its accessibilityHint, so a step reached mid-flow
+            is not left unexplained. A non-open step keeps its own control hint
+            ("Birden fazla seçebilirsiniz" etc.), which describes the chips
+            grid right under it. (The spoken lane made the same move in
+            INT-318, dropping the per-turn aside from questionAsideTr.) */}
         {instrumentStep ? null : openAsk ? (
-          <AppText role="body" color="inkSoft">
-            {t("intake.open.hint")}
-          </AppText>
+          stepIndex === 0 ? (
+            <AppText role="body" color="inkSoft">
+              {t("intake.open.hint")}
+            </AppText>
+          ) : null
         ) : question.hintKey ? (
           <AppText role="body" color="inkSoft">
             {t(question.hintKey)}
