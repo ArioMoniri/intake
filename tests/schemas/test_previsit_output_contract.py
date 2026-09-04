@@ -85,10 +85,12 @@ def test_the_schema_version_cannot_be_overstated() -> None:
 
 
 def test_the_document_is_closed_and_frozen() -> None:
+    """``extra=forbid`` and ``frozen=True``: a receiver reads a value, and a
+    key nobody declared is a contract nobody agreed."""
     with pytest.raises(ValidationError):
         build(hospital_note="anything")
     with pytest.raises(ValidationError):
-        build().sections[0].__init__(id="x", title_tr="y", lines=("z",))  # type: ignore[misc]
+        build().sections[0].title_tr = "rewritten"  # type: ignore[misc]
 
 
 # --- invariant 1: RED/YELLOW come only from the rules engine ----------------------------

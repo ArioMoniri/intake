@@ -244,10 +244,7 @@ def test_a_fetch_with_no_consent_scope_is_refused_and_not_audited(wired: ApiHarn
     complete_previsit(wired)
     response = fetch(wired)
     assert response.status_code == 403
-    assert response.json()["detail"] == {
-        "error": "consent_required",
-        "scope": PREVISIT_OUTPUT_SCOPE,
-    }
+    assert response.json() == {"error": "consent_required", "scope": PREVISIT_OUTPUT_SCOPE}
     assert shares_recorded(wired) == []
 
 
@@ -256,7 +253,7 @@ def test_a_patient_with_no_stored_previsit_is_404_not_an_empty_shell(wired: ApiH
     grant_output_scope(wired)
     response = fetch(wired)
     assert response.status_code == 404
-    assert response.json()["detail"] == {"error": "not_found"}
+    assert response.json() == {"error": "not_found"}
     assert shares_recorded(wired) == []
 
 
@@ -344,7 +341,7 @@ def test_the_shipped_recipient_registry_refuses_every_fetch(harness: ApiHarness)
     grant_output_scope(harness)
     response = fetch(harness)
     assert response.status_code == 503
-    assert response.json()["detail"] == {"error": "previsit_output_recipient_unregistered"}
+    assert response.json() == {"error": "previsit_output_recipient_unregistered"}
 
 
 def test_without_a_tokenization_key_the_read_back_fails_closed(tmp_path: Path) -> None:
@@ -358,7 +355,7 @@ def test_without_a_tokenization_key_the_read_back_fails_closed(tmp_path: Path) -
     ):
         response = fetch(harness)
         assert response.status_code == 503
-        assert response.json()["detail"] == {"error": "previsit_output_unconfigured"}
+        assert response.json() == {"error": "previsit_output_unconfigured"}
 
 
 def test_a_patient_principal_cannot_use_the_read_back(wired: ApiHarness) -> None:
