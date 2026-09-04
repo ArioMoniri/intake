@@ -33,6 +33,7 @@ __all__ = [
     "BREAK_GLASS_OPEN",
     "DANGEROUS_ACTIONS",
     "MODEL_BENCHMARK_RUN",
+    "SAFETY_FLAG_ENABLE",
     "ActionDirection",
     "ActionTier",
     "DangerousAction",
@@ -160,9 +161,41 @@ MODEL_BENCHMARK_RUN = DangerousAction(
     alert_metric="admin.model_benchmark_requested_total",
 )
 
+#: files/08 §0b F1/F2, §3, §8.2 and invariant 34 (INT-188). Enabling a
+#: safety-list capability — `device_functions`, `s2s`, `learning_apply`,
+#: `satisfaction_prompts`, `guardian_link`, `commercial_messaging` — is the
+#: DANGEROUS direction and takes two keys. Tier 3 mirrors the device-mode
+#: ceremony (F2): a second human from {clinical_lead, qms_owner,
+#: compliance_officer}, on a distinct authenticator and session, from a
+#: DIFFERENT organisation. The code behind it is
+#: :class:`intake_platform.admin.flag_governance.FlagGovernor`, which opens the
+#: ceremony and applies the flip only after a distinct principal approves — the
+#: same relationship MODEL_BENCHMARK_RUN has with its runner.
+#:
+#: The SAFE direction (turning a safety flag OFF) is deliberately NOT a
+#: DangerousAction: it takes one key (`SAFETY_FLAG_DISABLE_ROLES` in
+#: :mod:`~intake_platform.admin.flag_governance`), because a two-key ceremony on
+#: the safe direction is an availability control on a safety control — the
+#: exact failure §0c F17 exists to prevent, and the asymmetry the tier-1
+#: constructor enforces (a tier-1 action may only move toward the LESS capable
+#: state).
+SAFETY_FLAG_ENABLE = DangerousAction(
+    id="admin.flags.safety.enable",
+    tier=ActionTier.T3,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=frozenset({AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD}),
+    approver_roles=frozenset(
+        {AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
+    ),
+    approver_must_differ_org=True,
+    runbook="docs/runbooks/flag-governance.md",
+    alert_metric="admin.four_eyes_self_approval_attempt_total",
+)
+
 DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
     MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
+    SAFETY_FLAG_ENABLE.id: SAFETY_FLAG_ENABLE,
 }
 
 

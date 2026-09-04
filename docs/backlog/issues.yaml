@@ -2454,7 +2454,7 @@
   title: "Flags module (Unleash) + 4-eyes on safety flags"
   depends_on: [INT-023, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
   acceptance:
     - "change reasons mandatory; safety flags list incl. device_functions, s2s, learning-apply"
   tests: [tests/admin/test_flag_governance.py]
