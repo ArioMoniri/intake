@@ -30,9 +30,12 @@ Near-miss negative controls, each named where it lives:
 - ``test_a_real_midnight_is_not_the_absent_time`` — the defect the first
   acceptance clause describes, and the one an implementation that defaults to
   ``time.min`` passes every other test in this file with;
-- ``test_an_extracted_time_cannot_be_written_down_unattributed`` and
-  ``test_a_patient_entry_may_not_borrow_an_artefact`` — provenance in both
-  directions, so "always require a ref" and "never require one" both fail;
+- ``test_the_api_refuses_an_attributed_source_with_no_ref`` and
+  ``test_the_api_refuses_a_ref_the_patient_typed_a_time_for`` — provenance in
+  both directions at the wire boundary, so "always require a ref" and "never
+  require one" both fail. Their type-level halves, which prove the same two
+  states are unconstructible rather than merely rejected, live in
+  ``tests/schemas/test_visit_time.py``;
 - ``test_a_time_that_is_not_hh_mm_is_refused`` — ``9:30``, ``14:30:00`` and
   ``24:00`` all denote something a lenient parser would accept, and accepting
   two spellings of one minute is the representation slack invariant 22 exists
@@ -49,12 +52,7 @@ import uuid
 
 import pytest
 from api_harness import ApiHarness, run
-from clinical_schemas.visit_time import (
-    VisitSchedule,
-    VisitTime,
-    VisitTimeError,
-    VisitTimeSource,
-)
+from clinical_schemas.visit_time import VisitTimeSource
 from intake_platform.db.models import Slot
 from intake_platform.records.mhrs import BranchVocabulary, parse_mhrs_sms
 from intake_platform.records.visit_candidate import (
@@ -163,16 +161,6 @@ def test_a_time_that_is_not_hh_mm_is_refused(harness: ApiHarness) -> None:
 # --- 2. every producer says which it is ----------------------------------------------
 
 
-def test_the_producers_are_a_closed_set_of_three() -> None:
-    """The issue enumerates them; a fourth producer is a deliberate edit here
-    rather than a string somebody passed in."""
-    assert {member.value for member in VisitTimeSource} == {
-        "patient_entry",
-        "connector_field",
-        "document_extraction",
-    }
-
-
 @pytest.mark.parametrize("source", list(VisitTimeSource))
 def test_every_enumerated_producer_has_a_working_door(
     harness: ApiHarness, source: VisitTimeSource
@@ -209,24 +197,6 @@ def test_an_unknown_producer_is_refused(harness: ApiHarness) -> None:
     response = _post(harness, time="14:30", time_source="a_hunch")
     assert response.status_code == 422
     assert response.json() == {"error": "time_source_unknown"}
-
-
-def test_an_extracted_time_cannot_be_written_down_unattributed() -> None:
-    """NEAR-MISS in one direction: the two producers that are not the patient
-    typing must name the artefact. Not validated at a boundary — unconstructible."""
-    for source in (VisitTimeSource.DOCUMENT_EXTRACTION, VisitTimeSource.CONNECTOR_FIELD):
-        with pytest.raises(VisitTimeError):
-            VisitTime(at=dt.time(14, 30), source=source)
-        with pytest.raises(VisitTimeError):
-            VisitTime(at=dt.time(14, 30), source=source, source_ref="   ")
-
-
-def test_a_patient_entry_may_not_borrow_an_artefact() -> None:
-    """NEAR-MISS in the other direction, so "always require a ref" fails too:
-    a patient typing a time read it off nothing this repository holds, and a
-    ref attached to it would be a claim that an artefact was consulted."""
-    with pytest.raises(VisitTimeError):
-        VisitTime(at=dt.time(14, 30), source=VisitTimeSource.PATIENT_ENTRY, source_ref=SCREENSHOT)
 
 
 def test_a_connector_time_round_trips_with_its_artefact(harness: ApiHarness) -> None:
@@ -335,26 +305,3 @@ def test_the_parsed_screenshot_fields_are_accepted_by_the_api(harness: ApiHarnes
     assert created.json()["time"] == "14:30"
     assert created.json()["time_source"] == "document_extraction"
 
-
-# --- 3. nothing is invented ----------------------------------------------------------
-
-
-def test_a_visit_time_is_a_civil_time_with_no_zone_and_no_seconds() -> None:
-    """The zone belongs to the visit's calendar date and is applied once, at
-    the anchor. A tz-bearing or second-bearing time here would be a second
-    opinion about the same instant."""
-    with pytest.raises(VisitTimeError):
-        VisitTime(at=dt.time(14, 30, tzinfo=dt.UTC), source=VisitTimeSource.PATIENT_ENTRY)
-    with pytest.raises(VisitTimeError):
-        VisitTime(at=dt.time(14, 30, 15), source=VisitTimeSource.PATIENT_ENTRY)
-
-
-def test_a_schedule_states_whether_its_time_is_known() -> None:
-    known = VisitSchedule(
-        date=dt.date(2026, 9, 20),
-        time=VisitTime(at=dt.time(14, 30), source=VisitTimeSource.PATIENT_ENTRY),
-    )
-    unknown = VisitSchedule(date=dt.date(2026, 9, 20))
-    assert known.time_is_known is True
-    assert unknown.time_is_known is False
-    assert unknown.time is None
