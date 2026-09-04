@@ -77,7 +77,6 @@ from intake_api.auth_store import (  # noqa: E402
     RESEND_COOLDOWN_S,
     AuthStore,
 )
-from intake_api.dev_fixture import ensure_dev_fixture  # noqa: E402
 from intake_api.carrier_geo import (  # noqa: E402
     MSISDN_ALLOCATION_PATH,
     AllocationSource,
@@ -90,6 +89,7 @@ from intake_api.carrier_geo import (  # noqa: E402
     load_allocation_table,
     split_e164,
 )
+from intake_api.dev_fixture import ensure_dev_fixture  # noqa: E402
 from intake_api.otp import (  # noqa: E402
     CONSUMER_TENANT_ID,
     AuthWiring,
@@ -1108,7 +1108,9 @@ def test_a_carrier_lookup_that_fails_still_lets_the_patient_in(
     # asserting over it here would make this test fail for another route's
     # reason.
     ours = [r for r in caplog.records if r.name.startswith("intake_api")]
-    assert any("fail open" in r.getMessage() for r in ours), "a lookup that did not happen must be visible"
+    assert any(
+        "fail open" in r.getMessage() for r in ours
+    ), "a lookup that did not happen must be visible"
     for record in ours:
         assert "5051114455" not in record.getMessage(), record.getMessage()
     # The check's own line is a fixed string with no arguments, so nothing from
@@ -1136,7 +1138,8 @@ def test_a_positively_unallocated_prefix_refuses_before_any_sms(tmp_path: Path) 
         assert response.json() == {"error": "phone_invalid"}
         assert delivery.sends == 0, "an SMS was sent to a number no operator allocated"
         # no code was minted either, so there is nothing to verify against
-        assert harness.client.get("/v1/auth/dev/otp-peek", params={"phone": PHONE}).status_code == 404
+        peek = harness.client.get("/v1/auth/dev/otp-peek", params={"phone": PHONE})
+        assert peek.status_code == 404
 
 
 # --- near-miss negative controls -----------------------------------------------------
@@ -1193,9 +1196,7 @@ def test_a_non_turkish_number_never_reaches_the_delivery_adapter(tmp_path: Path)
     a consequence of being a Turkish-only product, so it is pinned rather than
     claimed."""
     delivery = RecordingDelivery()
-    with _carrier_harness(
-        tmp_path / "geo", check=CarrierGeoCheck(), delivery=delivery
-    ) as harness:
+    with _carrier_harness(tmp_path / "geo", check=CarrierGeoCheck(), delivery=delivery) as harness:
         for foreign in ("+15551114455", "+447700900123", "+992001114455"):
             assert harness.request_otp(foreign).status_code == 422
         assert delivery.sends == 0

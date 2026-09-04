@@ -41,7 +41,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.attestation import AttestationPayload, AttestationVerifier, parse_attestation
 from intake_api.audit import AuditWriter
-from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.auth_store import (
     ACCESS_TTL_S,
     CHALLENGE_TTL_S,
@@ -50,6 +49,7 @@ from intake_api.auth_store import (
     AuthStore,
     code_digest,
 )
+from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DevAccount
 from intake_api.dpop import DpopError, verify_dpop_proof
