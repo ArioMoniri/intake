@@ -9,6 +9,9 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
+    "ConsentDocumentOut",
+    "ConsentRequest",
+    "ConsentResponse",
     "LaunchRequest",
     "LaunchResponse",
     "MintRequest",
@@ -53,3 +56,30 @@ class LaunchResponse(BaseModel):
     theme: ThemeOut
     consent_doc_set_id: str
     device_functions: bool
+
+
+class ConsentRequest(BaseModel):
+    """A branded shell asking for the consent document set to show, by the
+    tenant + doc-set ids the launch returned (both public, no PHI)."""
+
+    model_config = ConfigDict(extra="forbid")
+    tenant_id: str = Field(min_length=1, max_length=64)
+    consent_doc_set_id: str = Field(min_length=1, max_length=128)
+
+
+class ConsentDocumentOut(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    doc_id: str
+    #: ``consent`` (grantable açık rıza) or ``disclosure`` (shown, never granted)
+    kind: str
+    #: the files/06 §2 scope a grant records against, or null for a disclosure
+    grant_scope: str | None
+    version: str
+    text_hash: str
+    body: str
+
+
+class ConsentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    consent_doc_set_id: str
+    documents: list[ConsentDocumentOut]

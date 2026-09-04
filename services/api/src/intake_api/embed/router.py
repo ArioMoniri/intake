@@ -24,6 +24,9 @@ from fastapi import APIRouter, Depends
 from intake_api.auth import Principal, require_admin
 from intake_api.consent_guard import partner_embed
 from intake_api.embed.schemas import (
+    ConsentDocumentOut,
+    ConsentRequest,
+    ConsentResponse,
     LaunchRequest,
     LaunchResponse,
     MintRequest,
@@ -75,4 +78,26 @@ async def launch(body: LaunchRequest, service: Service) -> LaunchResponse:
         ),
         consent_doc_set_id=context.consent_doc_set_id,
         device_functions=context.device_functions,
+    )
+
+
+@router.post("/consent", response_model=ConsentResponse, dependencies=[partner_embed()])
+async def consent(body: ConsentRequest, service: Service) -> ConsentResponse:
+    """Render the branded intake's consent document set (the step after the
+    launch): the hash-bound documents the patient must see before any clinical
+    turn. Fails closed (503) until the texts are authored (invariant 18)."""
+    doc_set = await service.consent_documents(body.tenant_id, body.consent_doc_set_id)
+    return ConsentResponse(
+        consent_doc_set_id=doc_set.doc_set_id,
+        documents=[
+            ConsentDocumentOut(
+                doc_id=document.doc_id,
+                kind=document.kind,
+                grant_scope=document.grant_scope,
+                version=document.version,
+                text_hash=document.text_hash,
+                body=document.body,
+            )
+            for document in doc_set.documents
+        ],
     )

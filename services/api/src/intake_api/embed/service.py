@@ -15,10 +15,13 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Protocol, runtime_checkable
 
+from intake_platform.consent.texts import ConsentTextCatalog
 from intake_platform.embed import (
     DEFAULT_TTL_S,
+    EmbedConsentDocumentSet,
     InMemoryNonceStore,
     LaunchContext,
     LaunchTicketError,
@@ -32,7 +35,9 @@ from intake_platform.embed import (
     TicketTenantMismatch,
     TicketTtlTooLong,
     UnknownTenantError,
+    embed_disclosure_root,
     mint_launch_ticket,
+    resolve_embed_consent_documents,
     resolve_launch_context,
     unverified_tenant,
     verify_launch_ticket,
@@ -41,6 +46,7 @@ from intake_platform.secrets import SecretsProvider
 
 from intake_api.audit import AuditWriter
 from intake_api.errors import (
+    embed_consent_unavailable,
     embed_signing_key_unavailable,
     embed_ticket_refused,
     unknown_embed_tenant,
@@ -124,6 +130,14 @@ class EmbedWiring:
     launch_base_url: str
     nonce_store: NonceStore
     ttl_s: int = DEFAULT_TTL_S
+    # INT-320 (follow-up): the consent catalogue the embed launch renders its
+    # ``core`` service consent from — the SAME global tree a later grant binds
+    # against, so what the patient reads and what is recorded cannot drift. The
+    # per-tenant partner-processor disclosure lives under ``legal_base`` +
+    # the tenant's ``legal_root``. Both absent → the consent step fails closed
+    # (503), exactly like an unauthored legal tree elsewhere (invariant 18).
+    consent_catalog: ConsentTextCatalog | None = None
+    legal_base: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -209,6 +223,46 @@ class EmbedService:
         )
         return context
 
+    async def consent_documents(
+        self, tenant_id: str, consent_doc_set_id: str
+    ) -> EmbedConsentDocumentSet:
+        """Render the branded intake's consent document set (the launch step
+        after the handshake). ``tenant_id`` and ``consent_doc_set_id`` are the
+        public ids the launch returned; they must name the same registered
+        tenant, and the set fails closed (503) when its texts are unauthored —
+        never an empty consent shown to a patient (invariant 18). No ticket is
+        needed and none is consumed: the doc set carries only public consent
+        copy, and the patient still grants through Vizite's own hash-bound flow.
+        """
+        try:
+            config = self._wiring.registry.resolve(tenant_id)
+        except UnknownTenantError as exc:
+            raise unknown_embed_tenant() from exc
+        # the doc set id must match the one bound to this tenant's row — a
+        # mismatch is a refused request, not a peek at another tenant's set
+        if config.theme.consent_doc_set_id != consent_doc_set_id:
+            raise embed_consent_unavailable()
+        catalog = self._wiring.consent_catalog
+        legal_base = self._wiring.legal_base
+        if catalog is None or legal_base is None:
+            # the render is unconfigured (no consent catalogue wired) — fail
+            # closed rather than answer with no documents
+            raise embed_consent_unavailable()
+        doc_set = resolve_embed_consent_documents(
+            doc_set_id=consent_doc_set_id,
+            consent_catalog=catalog,
+            disclosure_root=embed_disclosure_root(config.legal_root, legal_base),
+        )
+        if not doc_set.documents:
+            raise embed_consent_unavailable()
+        await self._audit.record(
+            actor=f"embed:{tenant_id}",
+            action="embed.consent_rendered",
+            resource_ref=f"tenant:{tenant_id}",
+            consent_scope=_AUDIT_BASIS,
+        )
+        return doc_set
+
 
 def build_embed_service(
     registry: TenantEmbedRegistry,
@@ -218,10 +272,14 @@ def build_embed_service(
     audit: AuditWriter,
     nonce_store: NonceStore | None = None,
     ttl_s: int = DEFAULT_TTL_S,
+    consent_catalog: ConsentTextCatalog | None = None,
+    legal_base: Path | None = None,
 ) -> EmbedService:
     """Assemble an :class:`EmbedService`. The default nonce store is the
     process-local one — a production deployment needs a SHARED store so
     single-use holds across API replicas (flagged awaiting-human, not stubbed).
+    ``consent_catalog``/``legal_base`` wire the consent render; without them the
+    consent step fails closed (503).
     """
     wiring = EmbedWiring(
         registry=registry,
@@ -229,5 +287,7 @@ def build_embed_service(
         launch_base_url=launch_base_url,
         nonce_store=nonce_store if nonce_store is not None else InMemoryNonceStore(),
         ttl_s=ttl_s,
+        consent_catalog=consent_catalog,
+        legal_base=legal_base,
     )
     return EmbedService(wiring, audit)

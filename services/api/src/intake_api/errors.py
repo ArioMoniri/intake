@@ -30,6 +30,7 @@ __all__ = [
     "doctor_link_view_limit",
     "note_not_shared",
     "dpop_invalid",
+    "embed_consent_unavailable",
     "embed_signing_key_unavailable",
     "embed_ticket_refused",
     "embed_unconfigured",
@@ -236,6 +237,15 @@ def embed_ticket_refused(code: str) -> HTTPException:
     ttl) derived from the refusal TYPE — never the token, a key or any decoded
     content (invariant 6)."""
     return HTTPException(status_code=400, detail={"error": "embed_ticket_refused", "reason": code})
+
+
+def embed_consent_unavailable() -> HTTPException:
+    """INT-320 (follow-up). The launch resolved a consent document set but its
+    documents are not authored (the tenant's disclosure, or the global consent
+    tree), so the branded intake's consent step fails closed rather than showing
+    the patient an empty consent (invariant 18). The counsel-vetted texts remain
+    a human blocker (HB-L27)."""
+    return HTTPException(status_code=503, detail={"error": "embed_consent_unavailable"})
 
 
 def doctor_link_expired() -> HTTPException:

@@ -12,12 +12,18 @@
 # the embed is not an injection surface. `device_functions` may not be enabled
 # here at all (ADR-020: no CE certificate).
 #
-# The dev tenant's signing key, consent texts and logo asset are NOT present:
-# the signing key is resolved from OpenBao at runtime (dev server locally) and
-# the launch fails closed without it; the consent texts under `legal_root` are
-# unauthored, so the branded intake's consent step fails closed exactly like the
-# rest of the app until INT-210 counsel sign-off. The dev tenant is synthetic —
-# "dev-partner-alpha" is not a real company.
+# The dev tenant's signing key, consent texts and logo asset are NOT present in
+# this committed file: the signing key is resolved from OpenBao at runtime (dev
+# server locally — seed it with scripts/dev/seed_embed_dev_key.py) and the launch
+# fails closed without it. The COUNSEL-VETTED consent texts under `legal_root`
+# (docs/legal/embed/dev-partner-alpha/) remain a human blocker (HB-L27, via
+# INT-210) and this tree stays empty. For LOCAL dev the consent step reads
+# dev-only sample texts from the dev-legal tree instead (INT-320 follow-up): the
+# `core` service consent from the global dev consents dir, and this tenant's
+# partner-processor disclosure at `<dev-legal-base>/embed/dev-partner-alpha/`
+# (the same path `legal_root` resolves to under the dev base) — clearly marked
+# dev, never counsel-vetted. The dev tenant is synthetic — "dev-partner-alpha"
+# is not a real company.
 
 registry_version: "v0-dev"
 
