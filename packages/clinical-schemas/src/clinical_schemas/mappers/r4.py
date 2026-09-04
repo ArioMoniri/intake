@@ -172,8 +172,23 @@ class Flag(R4Base):
 class QrAnswer(R4Base):
     value_string: str | None = None
     value_integer: int | None = None
-    value_decimal: float | None = None
+    #: ``Decimal`` first so a clinical quantity keeps its declared scale on
+    #: the Python side (INT-309); ``float`` stays because an answer that
+    #: arrived as a float must come back a float — ``Decimal(str(0.1))`` is
+    #: not ``0.1``, so promoting one would change the number.
+    value_decimal: Decimal | float | None = None
     value_boolean: bool | None = None
+
+    @field_serializer("value_decimal", when_used="json")
+    def _value_as_json_number(self, value: Decimal | float | None) -> float | None:
+        # FHIR decimal is a JSON number, so the FHIR wire gets a number and
+        # the Python side keeps the Decimal — the same split ``Quantity``
+        # already makes. The documented consequence: trailing zeros
+        # normalise when the resource is actually emitted as FHIR JSON.
+        # INTAKE's own wire does not have to accept that and does not
+        # (``clinical_schemas.common.encode_json_value``); FHIR's format is
+        # not ours to reinterpret.
+        return None if value is None else float(value)
 
 
 class QrItem(R4Base):

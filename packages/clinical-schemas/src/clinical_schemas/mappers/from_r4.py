@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Sequence
+from decimal import Decimal
 from typing import Literal
 
 from clinical_schemas.common import JsonScalar, JsonValue
@@ -430,7 +431,11 @@ def _item_value(item: QrItem) -> JsonValue:
     return _answer_scalar(item)
 
 
-def _answer_scalar(item: QrItem, index: int = 0) -> str | int | float | bool:
+def _answer_scalar(item: QrItem, index: int = 0) -> str | int | Decimal | float | bool:
+    """``Decimal`` is in the return type because ``QrAnswer.value_decimal``
+    carries one (INT-309): a clinical quantity that went out with a declared
+    scale comes back with it, rather than as the ``float`` the pre-INT-303
+    carrier would have flattened it to."""
     answer = (item.answer or ())[index]
     if answer.value_boolean is not None:
         return answer.value_boolean
