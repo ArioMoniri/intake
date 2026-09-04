@@ -31,20 +31,37 @@ Two near-miss negative controls, because a naive fix passes the positives:
 
 from __future__ import annotations
 
+import inspect
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import protocols.triage as triage_pkg
 import pytest
+from clinical_schemas import common
+from clinical_schemas.common import DECIMAL_WIRE_TAG, JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, TriageLevel
 from intake_voice_runtime.extraction import parse_extraction
+from intake_voice_runtime.typed.affordance import SlotFacts
+from intake_voice_runtime.typed.render import numeric_rail
 from protocols import EK4Level
 from protocols.dsl import Slot
 from protocols.triage import SlotAnswer, TriageContext, canonical_scalar, evaluate_triage
 from protocols.triage import context as triage_context
 from protocols.types import SlotType
+from pydantic import TypeAdapter
 from synthetic_triage import ANCHOR, ctx, make_rule, present
+
+REPO = Path(__file__).resolve().parents[2]
+
+#: One JsonValue, dumped to INTAKE's own wire and validated straight back —
+#: the crossing ADR-029 is about, in one call.
+_WIRE = TypeAdapter(JsonValue)
+
+
+def _through_the_wire(value: object) -> object:
+    return _WIRE.validate_json(_WIRE.dump_json(value))
 
 # The synthetic fever-shaped gate: one numeric threshold, both directions.
 FEVER = "sentetik.olcum_c"
@@ -186,3 +203,75 @@ class TestTheExtractionSeamHandsOverADecimal:
         assert evaluate_triage((FEVER_RULE,), context, RedLocation.REMOTE).result.level is (
             TriageLevel.RED
         )
+
+
+# ------------------------------------------------- INT-309 · the wire (ADR-029)
+
+
+class TestTheWireTagNeverReachesAHuman:
+    """ADR-029 makes a ``Decimal`` self-describing on INTAKE's own wire by
+    reserving a one-character prefix. That is total and bijective only while
+    every reader goes through the codec: if one path does not, a patient or a
+    clinician reads the literal ``~d38.50``, which is invariant 22's failure
+    mode wearing a different mask and worse than the trailing zero the tag
+    exists to protect. These are the gate, in the shape of the gate that
+    stops a numeral reaching TTS.
+    """
+
+    def test_one_module_owns_the_reserved_prefix(self) -> None:
+        """The prefix is a reserved character only if a single module spells
+        it. A second hand-rolled tag is a second, drifting encoding."""
+        owner = Path(inspect.getsourcefile(common) or "")
+        offenders = sorted(
+            str(path.relative_to(REPO))
+            for path in REPO.glob("packages/*/src/**/*.py")
+            if path != owner and DECIMAL_WIRE_TAG in path.read_text(encoding="utf-8")
+        )
+        offenders += sorted(
+            str(path.relative_to(REPO))
+            for path in REPO.glob("services/*/src/**/*.py")
+            if DECIMAL_WIRE_TAG in path.read_text(encoding="utf-8")
+        )
+        assert offenders == []
+
+    def test_the_typed_numeric_rail_shows_the_digits_and_not_the_tag(self) -> None:
+        """files/03 §4.6 invariant 30: in typed, the rail is the only channel
+        the number has. A tagged string reaching it would either print the
+        tag or — worse, because it is silent — be skipped as a non-magnitude
+        and the number would vanish from the patient's screen."""
+        facts = {
+            FEVER: SlotFacts(
+                step_id=FEVER,
+                slot_type=SlotType.QUANTITY,
+                critical_path=True,
+                unit="°C",
+            )
+        }
+        rail = numeric_rail({FEVER: Decimal("38.50")}, facts)
+        assert DECIMAL_WIRE_TAG not in rail[FEVER]
+        assert "38.50" in rail[FEVER]
+
+        crossed = _through_the_wire(Decimal("38.50"))
+        assert numeric_rail({FEVER: crossed}, facts) == rail
+
+    def test_the_clinician_evidence_line_shows_the_digits_and_not_the_tag(self) -> None:
+        """``triage.rules[].evidence`` is read by a clinician (files/04 §5)."""
+        crossed = _through_the_wire(Decimal("38.50"))
+        evaluation = evaluate_triage(
+            (FEVER_RULE,), ctx(**{FEVER: present(crossed)}), RedLocation.REMOTE
+        )
+        assert evaluation.result.level is TriageLevel.RED
+        evidence = evaluation.result.fired[0].evidence
+        assert DECIMAL_WIRE_TAG not in evidence
+        assert "38.50" in evidence
+
+    def test_a_patient_answer_beginning_with_the_prefix_is_carried_not_refused(
+        self,
+    ) -> None:
+        """Near-miss control on the escape rule: the reserved prefix must
+        never turn a patient's own words into a validation error, and must
+        never turn them into a number."""
+        for spoken in ("~d38.50", "~", "~~", "~dokuz"):
+            carried = _through_the_wire(spoken)
+            assert carried == spoken
+            assert not isinstance(carried, Decimal)

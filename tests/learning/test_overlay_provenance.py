@@ -725,3 +725,62 @@ class TestDecimalFactValue:
         payload = dict(harness.rows()[0].payload)
         assert set(payload) == {"key_version", "wrapped_dek", "nonce", "ciphertext"}
         assert "38.50" not in _blob(payload)
+
+
+# --- INT-309 boundary 2: the overlay store ----------------------------------
+
+
+class TestADecimalFactSurvivesTheEnvelope:
+    """INT-309. ``OverlayStore._encrypt`` called ``json.dumps`` with no
+    ``default=``, so a ``Decimal`` learned fact — a baseline measurement is
+    exactly what files/09 §3 names first — raised ``TypeError`` and the
+    confirmation was lost. ADR-029 gives the payload the one codec the rest
+    of the wire uses, so the value comes back as itself rather than as a
+    string (which ``canonical_scalar`` would read as Unknown).
+    """
+
+    def test_a_decimal_value_is_stored_rather_than_raising(
+        self, harness: StoreHarness
+    ) -> None:
+        fact = harness.confirm(
+            _candidate(key="baseline.ates", value=Decimal("38.50")), _confirmation()
+        )
+        assert fact.value == Decimal("38.50")
+        assert harness.facts()[0].value == Decimal("38.50")
+
+    def test_the_declared_scale_survives_the_envelope(self, harness: StoreHarness) -> None:
+        """Near-miss control: ``default=float`` serialises and passes on 38.5,
+        then loses the scale here."""
+        harness.confirm(_candidate(key="baseline.ates", value=Decimal("38.50")), _confirmation())
+        value = harness.facts()[0].value
+        assert isinstance(value, Decimal)
+        assert value.as_tuple() == Decimal("38.50").as_tuple()
+        assert value.as_tuple() != Decimal("38.5").as_tuple()
+
+    def test_an_integer_too_large_for_a_float_survives_the_envelope(
+        self, harness: StoreHarness
+    ) -> None:
+        """Near-miss control: 2**53 + 1, the smallest integer a float cannot
+        hold."""
+        big = Decimal("9007199254740993")
+        assert Decimal(float(big)) != big  # the control's premise
+        harness.confirm(_candidate(key="baseline.sayac", value=big), _confirmation())
+        assert harness.facts()[0].value == big
+
+    def test_a_numeric_string_fact_is_still_a_string(self, harness: StoreHarness) -> None:
+        """Negative control: ``default=str`` serialises and passes the first
+        test above, then hands a rule a value that reads Unknown."""
+        harness.confirm(_candidate(key="baseline.metin", value="38.50"), _confirmation())
+        value = harness.facts()[0].value
+        assert value == "38.50"
+        assert not isinstance(value, Decimal)
+
+    def test_a_decimal_fact_is_still_an_envelope_at_rest(
+        self, harness: StoreHarness
+    ) -> None:
+        """Invariant 14 does not bend for the new codec: the digits are not
+        readable in the row, tag or no tag."""
+        harness.confirm(_candidate(key="baseline.ates", value=Decimal("38.50")), _confirmation())
+        payload = dict(harness.rows()[0].payload)
+        assert set(payload) == {"key_version", "wrapped_dek", "nonce", "ciphertext"}
+        assert "38.50" not in _blob(payload)

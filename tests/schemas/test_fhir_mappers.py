@@ -582,6 +582,64 @@ class TestQuestionnaireResponse:
         with pytest.raises(MappingError):
             session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
 
+    # --- INT-309 boundary 1: the FHIR scalar mapper -----------------------
+
+    def test_a_decimal_answer_is_mapped_rather_than_falsely_diagnosed(self) -> None:
+        """INT-309. ``_scalar_answer`` had bool/int/float/str and fell through
+        to *"a None answer inside a list is malformed"* — a FALSE diagnosis:
+        the value is neither None nor malformed, and a wrong error message
+        costs more debugging time than no error message."""
+        state = _session_state(slots={"vitals.temp_c": Decimal("38.50")})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        answer = (qr.item or ())[0].answer or ()
+        assert answer[0].value_decimal == Decimal("38.50")
+
+    def test_the_declared_scale_survives_the_mapper(self) -> None:
+        """Near-miss control: 38.50 and 38.5 are one float and two declared
+        scales. A branch that hands the Decimal to ``value_decimal`` while it
+        is typed ``float`` passes the equality and fails this."""
+        state = _session_state(slots={"vitals.temp_c": Decimal("38.50")})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        carried = ((qr.item or ())[0].answer or ())[0].value_decimal
+        assert isinstance(carried, Decimal)
+        assert carried.as_tuple() == Decimal("38.50").as_tuple()
+        assert carried.as_tuple() != Decimal("38.5").as_tuple()
+
+    def test_an_integer_too_large_for_a_float_survives_the_mapper(self) -> None:
+        """Near-miss control: 2**53 + 1 as a Decimal. The int branch would
+        refuse it for the FHIR 32-bit bound; a float would round it."""
+        big = Decimal("9007199254740993")
+        assert Decimal(float(big)) != big  # the control's premise
+        state = _session_state(slots={"n": big})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        assert ((qr.item or ())[0].answer or ())[0].value_decimal == big
+
+    def test_a_float_answer_is_still_carried_as_a_float(self) -> None:
+        """The public signature widened to ``Decimal | float | None``; the
+        float half is an observer-lane value (invariant 11) and must not
+        quietly disappear, nor be promoted through ``Decimal(0.1)``."""
+        state = _session_state(slots={"vitals.temp_c": 0.1})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        carried = ((qr.item or ())[0].answer or ())[0].value_decimal
+        assert isinstance(carried, float)
+        assert carried == 0.1
+
+    def test_a_decimal_survives_the_mapper_round_trip(self) -> None:
+        state = _session_state(slots={"vitals.temp_c": Decimal("38.50")})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        restored = questionnaire_response_to_session_state(
+            qr, step_states=dict(state.step_states), budget=state.budget
+        )
+        assert restored.slots["vitals.temp_c"] == Decimal("38.50")
+        assert isinstance(restored.slots["vitals.temp_c"], Decimal)
+
+    def test_a_none_inside_a_list_still_gets_its_own_true_diagnosis(self) -> None:
+        """Negative control. The old message was wrong for a Decimal and RIGHT
+        for this case, so the fix must keep it here and not merely delete it."""
+        state = _session_state(slots={"xs": ["a", None]})
+        with pytest.raises(MappingError, match="None answer inside a list"):
+            session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+
     @pytest.mark.parametrize(
         ("status", "fhir_status"),
         [
