@@ -19,6 +19,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -70,6 +71,9 @@ from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ApiSettings
 from intake_api.state import ApiState
 
+if TYPE_CHECKING:
+    from intake_connectors.acibadem import AcibademAppointmentsClient
+
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
 logger = logging.getLogger("intake_api")
@@ -107,6 +111,9 @@ class ApiWiring:
     # INT-180: the admin console. None = unconfigured, so every /admin route
     # answers 503 and the console authenticates nobody (fail closed).
     admin: AdminWiring | None = None
+    # INT-318: the Acibadem appointments read client (demo tier). None =
+    # unconfigured, so /v1/visits/sync answers "unavailable" (fail closed).
+    acibadem: AcibademAppointmentsClient | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -262,6 +269,7 @@ def wiring_from_env() -> ApiWiring:
         documents=_documents_from_env(),
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
+        acibadem=visits_acibadem.acibadem_client_from_env(),
     )
 
 
@@ -277,6 +285,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
         doctor_link=_doctor_link_service(w.auth),
+        acibadem=w.acibadem,
     )
 
     @asynccontextmanager

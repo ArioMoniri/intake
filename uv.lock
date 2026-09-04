@@ -868,6 +868,7 @@ source = { editable = "services/api" }
 dependencies = [
     { name = "fastapi" },
     { name = "intake-clinical-schemas" },
+    { name = "intake-connectors" },
     { name = "intake-metrics" },
     { name = "intake-platform" },
     { name = "intake-probes" },
@@ -881,6 +882,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-connectors", editable = "packages/connectors" },
     { name = "intake-metrics", editable = "services/metrics" },
     { name = "intake-platform", editable = "packages/intake_platform" },
     { name = "intake-probes", editable = "services/probes" },
