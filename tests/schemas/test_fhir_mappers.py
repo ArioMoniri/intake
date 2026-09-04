@@ -95,6 +95,7 @@ from clinical_schemas.mappers.r4 import (
     QuestionnaireResponse,
     RiskAssessment,
 )
+from clinical_schemas.mappers.to_r4 import _scalar_answer
 from clinical_schemas.triage import RedLocation, RedRegister
 
 SUBJECT = "urn:uuid:00000000-0000-4000-8000-000000000001"
@@ -969,3 +970,88 @@ class TestQuestionnaireResponseIngestionRefusals:
             )
         with pytest.raises(MappingError):  # answer with no value at all
             _item_value(QrItem(link_id="v", answer=(QrAnswer(),)))
+
+
+# ------------------------------------------- INT-309: the FHIR scalar mapper
+
+
+class TestDecimalScalarAnswer:
+    """INT-309 boundary 1 — ``to_r4._scalar_answer`` had bool/int/float/str
+    and no ``Decimal``, so the type files/13 §9.5 names for a clinical
+    quantity fell through to a raise that says *"a None answer inside a list
+    is malformed"*. That diagnosis is false twice over: the value is neither
+    ``None`` nor inside a list, and a wrong error message costs more
+    debugging time than no error message at all.
+
+    The near-miss controls are the point of the class. A naive fix —
+    ``isinstance(value, (float, Decimal))`` into a ``float``-typed
+    ``valueDecimal`` — passes ``Decimal("37.5")`` and fails both of these:
+    it flattens the declared scale of ``38.50`` and it rounds an integer
+    past 2**53. Invariant 22: numbers never cross a representation boundary
+    unguarded.
+    """
+
+    def test_a_decimal_slot_maps_to_value_decimal_rather_than_a_false_diagnosis(
+        self,
+    ) -> None:
+        state = _session_state(slots={"vitals.temp_c": Decimal("38.5")})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        answer = (qr.item or ())[0].answer or ()
+        assert answer[0].value_decimal == Decimal("38.5")
+
+    def test_the_declared_scale_survives_the_mapper(self) -> None:
+        # Near-miss control: 38.50 and 38.5 are the same float and two
+        # different clinical quantities. A float-typed carrier passes the
+        # test above and fails this one.
+        state = _session_state(slots={"vitals.temp_c": Decimal("38.50")})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        carried = ((qr.item or ())[0].answer or ())[0].value_decimal
+        assert isinstance(carried, Decimal)
+        assert carried.as_tuple() == Decimal("38.50").as_tuple()
+        assert carried.as_tuple() != Decimal("38.5").as_tuple()
+
+    def test_an_integer_too_large_for_a_float_survives_the_mapper(self) -> None:
+        # Near-miss control: 2**53 + 1 is the first integer a float cannot
+        # hold. As a Decimal it is exact; through a float it becomes 2**53.
+        big = Decimal(2**53 + 1)
+        state = _session_state(slots={"labs.count": big})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        carried = ((qr.item or ())[0].answer or ())[0].value_decimal
+        assert carried == big
+        assert carried != Decimal(2**53)
+
+    def test_a_decimal_survives_the_mapper_round_trip(self) -> None:
+        state = _session_state(slots={"vitals.temp_c": Decimal("38.50")})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        restored = questionnaire_response_to_session_state(
+            qr, step_states=dict(state.step_states), budget=state.budget
+        )
+        assert restored.slots["vitals.temp_c"] == Decimal("38.50")
+        assert isinstance(restored.slots["vitals.temp_c"], Decimal)
+
+    def test_a_float_slot_is_still_a_float_and_is_not_promoted(self) -> None:
+        # Negative control: adding the Decimal branch must not quietly
+        # convert every float. Decimal(str(0.1)) != 0.1, so a promotion here
+        # would change an observer-lane-shaped value into a different number
+        # and break the INT-033 property round trip.
+        state = _session_state(slots={"vitals.temp_c": 0.1})
+        qr = session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+        carried = ((qr.item or ())[0].answer or ())[0].value_decimal
+        assert carried == 0.1
+        assert isinstance(carried, float)
+
+    def test_a_none_inside_a_list_still_reads_as_the_true_diagnosis(self) -> None:
+        # Negative control: the message this class exists to fix is CORRECT
+        # for the one case it was written for, and must survive the fix.
+        state = _session_state(slots={"xs": ["a", None]})
+        with pytest.raises(MappingError, match="a None answer inside a list is malformed"):
+            session_state_to_questionnaire_response(state, subject_ref=SUBJECT)
+
+    def test_a_type_outside_the_carrier_is_named_by_type_and_never_by_value(self) -> None:
+        # Invariant 6: an error that interpolated a slot value would put what
+        # the patient said into a log.
+        planted = datetime.date(2026, 8, 30)
+        with pytest.raises(MappingError) as caught:
+            _scalar_answer(planted, "vitals.temp_c")  # type: ignore[arg-type]
+        assert "date" in str(caught.value)
+        assert "2026-08-30" not in str(caught.value)

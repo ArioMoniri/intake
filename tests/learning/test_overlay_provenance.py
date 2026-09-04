@@ -53,6 +53,7 @@ import sys
 import uuid
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 _TESTS_DIR = Path(__file__).resolve().parents[1]
@@ -662,3 +663,65 @@ class TestNoPhiEscapes:
         for probe in (TURKISH_SYMPTOM, "Göğsümde", "ağrı"):
             assert probe not in exposition
         assert _blob([dict(row.payload) for row in harness.rows()]).count("Göğsümde") == 0
+
+
+# --- INT-309: a Decimal fact value at rest -----------------------------------
+
+
+class TestDecimalFactValue:
+    """INT-309 boundary 2 — ``OverlayStore._encrypt`` built the envelope
+    plaintext with ``json.dumps`` and no ``default=``, so a ``LearnedFact``
+    whose value is a ``Decimal`` — the type files/13 §9.5 names for a
+    clinical quantity, and the type extraction produces — could not be
+    stored at all: ``TypeError: Object of type Decimal is not JSON
+    serializable``, raised from inside the write path, after the fact had
+    already been minted.
+
+    The near-miss controls are why the fix is one shared codec and not a
+    ``default=`` argument. ``default=str`` makes the write succeed and the
+    read return a ``str``; ``default=float`` makes it return a number that
+    is no longer the quantity. Both pass "it serialises" and fail here.
+    """
+
+    def test_a_decimal_value_is_stored_and_read_back_as_a_decimal(
+        self, harness: StoreHarness
+    ) -> None:
+        harness.confirm(_candidate(key="olcum.ates", value=Decimal("38.5")), _confirmation())
+        (fact,) = harness.facts()
+        assert isinstance(fact.value, Decimal)
+        assert fact.value == Decimal("38.5")
+
+    def test_the_declared_scale_survives_the_envelope(self, harness: StoreHarness) -> None:
+        # Near-miss control: 38.50 and 38.5 are one float and two quantities.
+        harness.confirm(_candidate(key="olcum.ates", value=Decimal("38.50")), _confirmation())
+        (fact,) = harness.facts()
+        assert isinstance(fact.value, Decimal)
+        assert fact.value.as_tuple() == Decimal("38.50").as_tuple()
+        assert fact.value.as_tuple() != Decimal("38.5").as_tuple()
+
+    def test_an_integer_too_large_for_a_float_survives_the_envelope(
+        self, harness: StoreHarness
+    ) -> None:
+        # Near-miss control: the first integer a float cannot represent.
+        big = Decimal(2**53 + 1)
+        harness.confirm(_candidate(key="olcum.sayim", value=big), _confirmation())
+        (fact,) = harness.facts()
+        assert fact.value == big
+        assert fact.value != Decimal(2**53)
+
+    def test_a_numeric_looking_string_value_is_still_a_string(
+        self, harness: StoreHarness
+    ) -> None:
+        # Negative control: the store must not start promoting strings.
+        harness.confirm(_candidate(key="olcum.ates", value="38.50"), _confirmation())
+        (fact,) = harness.facts()
+        assert fact.value == "38.50"
+        assert not isinstance(fact.value, Decimal)
+
+    def test_a_decimal_value_is_still_an_envelope_at_rest(self, harness: StoreHarness) -> None:
+        # Invariant 14 does not bend for a number: the digits must not be
+        # readable in the row, and the tag must not leak the encoding either.
+        harness.confirm(_candidate(key="olcum.ates", value=Decimal("38.50")), _confirmation())
+        payload = dict(harness.rows()[0].payload)
+        assert set(payload) == {"key_version", "wrapped_dek", "nonce", "ciphertext"}
+        assert "38.50" not in _blob(payload)
