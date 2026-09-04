@@ -38,12 +38,13 @@ import sys
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
 import fakeredis
 import pytest
+from clinical_schemas.visit_time import VisitSchedule, VisitTime, VisitTimeSource
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from intake_platform.audit import verify_entries
@@ -317,23 +318,107 @@ def test_the_token_never_appears_in_a_log_line(
 # --- expiry (acceptance: "... expiry tests"; files/02 §2b) --------------------------
 
 
+def _timed_visit(fixture: Fixture, at: str) -> str:
+    """A second visit on the SAME calendar day with an appointment time
+    recorded, note sent, ready for a link. INT-306 is the field that makes
+    this constructible at all."""
+    visit = fixture.client.post(
+        "/v1/visits",
+        json={**VISIT_BODY, "time": at, "time_source": "patient_entry"},
+        headers=fixture.patient(),
+    )
+    assert visit.status_code == 201, visit.text
+    visit_id = str(visit.json()["id"])
+    note = fixture.client.put(
+        f"/v1/visits/{visit_id}/note", json=NOTE_BODY, headers=fixture.patient()
+    )
+    assert note.status_code == 200, note.text
+    return visit_id
+
+
 def test_expiry_is_anchored_on_the_visit_and_not_on_issue_time(fixture: Fixture) -> None:
     issued = fixture.issue()
     expires = datetime.fromisoformat(str(issued["expires_at"]))
-    assert expires == link_expires_at(datetime.fromisoformat(VISIT_DATE).date())
+    assert expires == link_expires_at(VisitSchedule(date=date.fromisoformat(VISIT_DATE)))
     # the whole point of 02 §2b: a note prepared days early must NOT expire on
     # an issue-time clock, which here would be five days too early
     assert expires > fixture.clock.utc + DOCTOR_LINK_TTL
 
 
-def test_the_anchor_is_the_start_of_the_visit_day_in_turkiye() -> None:
-    """The start of the day is never later than the appointment, so the
-    computed expiry is never later than files/02 §2b's ``visit_datetime + 72 h``
-    — the schema records no time of day and none is invented."""
-    expires = link_expires_at(datetime.fromisoformat("2026-09-20").date())
+def test_the_fallback_anchor_is_the_start_of_the_visit_day_in_turkiye() -> None:
+    """INT-306: with no recorded time this is still the anchor, and it is now
+    the documented FALLBACK rather than the only rule. The start of the day is
+    never later than the appointment, so the computed expiry is never later
+    than files/02 §2b's ``visit_datetime + 72 h`` — and no hour is invented."""
+    expires = link_expires_at(VisitSchedule(date=date(2026, 9, 20)))
     # 2026-09-20 00:00 +03:00 is 2026-09-19 21:00 UTC; + 72 h
     assert expires == datetime(2026, 9, 22, 21, 0, tzinfo=UTC)
     assert expires - datetime(2026, 9, 20, 21, 0, tzinfo=UTC) == timedelta(hours=48)
+
+
+def test_a_recorded_visit_time_is_the_anchor() -> None:
+    """INT-306, acceptance 3: where a datetime exists, files/02 §2b's own rule
+    applies unapproximated. 2026-09-20 14:30 +03:00 is 11:30 UTC; + 72 h."""
+    schedule = VisitSchedule(
+        date=date(2026, 9, 20),
+        time=VisitTime(at=time(14, 30), source=VisitTimeSource.PATIENT_ENTRY),
+    )
+    assert link_expires_at(schedule) == datetime(2026, 9, 23, 11, 30, tzinfo=UTC)
+
+
+def test_the_fallback_is_never_later_than_the_true_appointment() -> None:
+    """INT-306, acceptance 3, stated as the property that makes the fallback
+    SAFE rather than merely different: for every minute of the day the start-
+    of-day anchor errs towards LESS exposure, and it coincides with the real
+    anchor only at the one minute where the two are the same instant.
+
+    A fallback that could land LATER would hand a clinician a window the spec
+    never granted, which is the same failure files/02 §2b names, from the
+    other side.
+    """
+    day = date(2026, 9, 20)
+    fallback = link_expires_at(VisitSchedule(date=day))
+    for hour in range(24):
+        for minute in (0, 1, 15, 30, 45, 59):
+            exact = link_expires_at(
+                VisitSchedule(
+                    date=day,
+                    time=VisitTime(at=time(hour, minute), source=VisitTimeSource.PATIENT_ENTRY),
+                )
+            )
+            assert fallback <= exact, (hour, minute)
+            assert (fallback == exact) is (hour == 0 and minute == 0), (hour, minute)
+
+
+def test_a_midnight_appointment_shares_the_fallback_instant_and_not_its_record() -> None:
+    """NEAR-MISS: the two anchors coincide at 00:00 and that is correct — it is
+    the same instant. What must NOT coincide is the RECORD, because a defaulted
+    midnight would shorten the 23:30 link beside it by 23.5 h without anything
+    saying so. The instants are asserted equal here; tests/api/test_visit_time.py
+    asserts the stored fields stay distinguishable."""
+    day = date(2026, 9, 20)
+    midnight = VisitSchedule(
+        date=day, time=VisitTime(at=time(0, 0), source=VisitTimeSource.PATIENT_ENTRY)
+    )
+    assert link_expires_at(midnight) == link_expires_at(VisitSchedule(date=day))
+    assert midnight.time_is_known is True
+    assert VisitSchedule(date=day).time_is_known is False
+
+
+def test_a_timed_visit_issues_a_longer_link_than_the_fallback(fixture: Fixture) -> None:
+    """End to end through the API: the same calendar day, one visit with the
+    23:30 appointment recorded and one without, and the difference between the
+    two links is the 23.5 h files/02 §2b was losing before INT-306."""
+    fallback = datetime.fromisoformat(str(fixture.issue()["expires_at"]))
+    timed_id = _timed_visit(fixture, "23:30")
+    issued = fixture.client.post(
+        f"/v1/visits/{timed_id}/note/doctor-links",
+        json={"recipient": RECIPIENT},
+        headers=fixture.patient(),
+    )
+    assert issued.status_code == 201, issued.text
+    exact = datetime.fromisoformat(str(issued.json()["expires_at"]))
+    assert exact - fallback == timedelta(hours=23, minutes=30)
 
 
 def test_a_visit_with_no_date_gets_no_link(fixture: Fixture) -> None:
