@@ -60,6 +60,7 @@ from intake_platform.db.inventory import (
     REC_AUDITOR,
     REC_CLINICIAN,
     REC_GUARDIAN_INTERNAL,
+    REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
     REC_INTERNAL,
     REC_PATIENT_CLINICIAN,
     RET_AWAITING_HUMAN_GUARDIAN,
@@ -68,6 +69,7 @@ from intake_platform.db.inventory import (
     RET_EVENTS,
     RET_NOTIFICATION_PREFERENCE,
     RET_RECORD,
+    RET_PREVISIT_OUTPUT,
     RET_SATISFACTION,
     RET_SHARE,
     RET_TENANT,
@@ -93,6 +95,7 @@ __all__ = [
     "OverlayFact",
     "Patient",
     "PatientOverlayHeader",
+    "PreVisitOutputRow",
     "SessionAttribution",
     "SessionStatus",
     "Share",
@@ -1610,3 +1613,113 @@ class OverlayFact(Base):
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_RECORD)
+
+
+class PreVisitOutputRow(Base):
+    """The finished previsit as a hospital receives it — one frozen document
+    per completed previsit (owner directive: *"after the previsit is done write
+    output version of json which is worked on in a sql in the data folder under
+    intake"*).
+
+    **Why a table rather than a second read of ``notes``.** ``notes.payload``
+    is the working artefact: it is rewritten in place on every save, and its
+    shape is the review screen's. This row is the finished thing — produced
+    once, at completion, and stable afterwards — and it carries three facts the
+    note has nowhere to put: the ``schema_version`` a receiver branches on, the
+    ``completed_at`` instant the previsit actually ended, and a
+    ``payload_sha256`` the receiver can dedupe on without decrypting anything.
+
+    **What it deliberately does not hold.** No patient number, no name, no
+    TCKN: the hospital's own key is resolved to ``patients.pseudonym`` through
+    the Tokenizer at request time and echoed back from the request, so the
+    direct identifier has no column anywhere in this database (invariant 14).
+    No section scope either — that stays on ``shares.scope_sections``, so a
+    fetch can never widen what the patient sent (the rule the Doctor Link view
+    already obeys).
+
+    ``payload`` is an EncryptedField envelope like ``notes.payload``
+    (invariant 14), and ``recipients`` on every column is the awaiting-human
+    one: this row exists to be fetched by a hospital system, and no DPA names
+    one yet.
+    """
+
+    __tablename__ = "previsit_outputs"
+    # One output per completed previsit: a resend replaces the document rather
+    # than appending a second one, so "the finished previsit" stays singular.
+    __table_args__ = (UniqueConstraint("tenant_id", "session_id"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk("previsit output key", RET_PREVISIT_OUTPUT)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_PREVISIT_OUTPUT)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("sessions.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the completed intake session this output was produced from",
+            BASIS_CONTRACT,
+            RET_PREVISIT_OUTPUT,
+            REC_INTERNAL,
+        ),
+    )
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient this output belongs to — the lookup key a "
+            "hospital patient number resolves to through the Tokenizer",
+            BASIS_CONTRACT,
+            RET_PREVISIT_OUTPUT,
+            REC_INTERNAL,
+        ),
+    )
+    schema_version: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "versioned identity of the stored structure (clinical_schemas."
+            "previsit_output); the receiver branches on it",
+            BASIS_CONTRACT,
+            RET_PREVISIT_OUTPUT,
+            REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
+        ),
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the finished previsit as EncryptedField JSON (field-level envelope "
+            "encryption; never plaintext at rest)",
+            BASIS_HEALTH_CONSENT,
+            RET_PREVISIT_OUTPUT,
+            REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
+        ),
+    )
+    payload_sha256: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "digest of the canonical plaintext document — content identity for the "
+            "receiver's own de-duplication; a digest of clinical text, not the text",
+            BASIS_CONTRACT,
+            RET_PREVISIT_OUTPUT,
+            REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
+        ),
+    )
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "when the previsit finished (a completed intake is a health fact)",
+            BASIS_HEALTH_CONSENT,
+            RET_PREVISIT_OUTPUT,
+            REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_PREVISIT_OUTPUT)
