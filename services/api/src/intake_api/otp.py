@@ -221,6 +221,19 @@ class OtpAuthService:
             raise phone_invalid()
         return phone, self._tokenizer.pseudonym(phone)
 
+    def pseudonym_for(self, phone_raw: str) -> str | None:
+        """The pseudonym the OTP tier keys a patient by for a raw phone, or
+        ``None`` when it is not a Turkish mobile.
+
+        Same normalisation + tokenisation ``verify`` used to create the
+        account, exposed so an ownership check elsewhere (INT-318: is this the
+        caller's *own* number?) resolves the identical pseudonym rather than a
+        second, divergent one."""
+        phone = normalise_tr_phone(phone_raw)
+        if phone is None:
+            return None
+        return self._tokenizer.pseudonym(phone)
+
     async def _verify_proof(self, request: Request, access_token: str | None = None) -> str:
         header = request.headers.get("DPoP")
         if header is None:

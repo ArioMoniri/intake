@@ -20,6 +20,8 @@ from intake_api.settings import ApiSettings
 from intake_api.taxonomy_feed import LoadedTaxonomy, load_taxonomy_feed
 
 if TYPE_CHECKING:
+    from intake_connectors.acibadem import AcibademAppointmentsClient
+
     from intake_api.doctor_link.service import DoctorLinkService
     from intake_api.documents import DocumentsGateway
     from intake_api.otp import OtpAuthService
@@ -45,6 +47,10 @@ class ApiState:
     # needs (one shared abuse gate, one code store), so it is wired from the
     # same AuthWiring and is None — every route 503 — without it.
     doctor_link: DoctorLinkService | None = None
+    # INT-318: the Acibadem appointments read client, injected so the unit
+    # lane drives it over an httpx.MockTransport and never dials the network;
+    # None = unconfigured, so /v1/visits/sync answers "unavailable" (fail closed).
+    acibadem: AcibademAppointmentsClient | None = None
     # INT-223: where ensure_consent gets the subject's age context. The
     # default reports "no date of birth is recorded" truthfully; a source
     # that reads a verified DOB replaces it when onboarding has one, and

@@ -1,40 +1,92 @@
-"""Demo route: a logged-in patient's upcoming visits, pulled from the Acibadem
-appointments feed after OTP verification.
+"""INT-318 — a logged-in patient's upcoming visits, read from the Acıbadem
+appointments feed right after OTP verification.
 
-This is the read side of the connector INT-160/INT-161 framework wired to the
-auth tier. The OTP is the authentication; this runs after it, on a phone the
-OTP tier has already verified, and re-checks that the submitted phone tokenizes
-to the *caller's own* pseudonym before anything leaves the process — so a
-patient can never learn another patient's visits by submitting their number
-(invariant 14: the raw phone is used transiently, never stored). The feed read
-is a clinical-data read and clears a consent scope first (invariant 4).
+This is the read side of the INT-160/INT-161 connector framework wired to the
+auth tier, and it is the one missing piece between a working OTP login and the
+"Bugün" screen showing a real visit. The OTP is the authentication; this runs
+after it, on a phone the OTP tier has already verified.
+
+Three properties this route is responsible for, each an invariant:
+
+* **Ownership (invariant 14).** The submitted phone must tokenize to *this*
+  caller's own pseudonym — the same normalisation + tokenisation the OTP tier
+  keyed the account by — before anything leaves the process. A patient can
+  therefore never learn another patient's visits by submitting their number,
+  and the raw phone is used transiently and never written to an app table.
+* **Consent (invariant 4).** The feed read is a clinical-data read, so the
+  ``core`` scope is declared and enforced at the door via ``require_scopes``
+  (INT-038: staleness and the INT-223 age/guardian gate are handled by the one
+  evaluator), and every disclosure is written to the hash-chained audit. NOTE:
+  ``core`` is a **dev-tier stand-in** — "reading a patient's hospital record"
+  is arguably a distinct INT-038 purpose that ``docs/legal/`` does not yet bind
+  (HB-L27). The mechanism gates and audits correctly; the canonical
+  purpose is awaiting-human.
+* **No first-match guess.** Identity resolution is delegated to the connector's
+  :func:`resolve_identity`, which returns a *terminal* ``refused_ambiguous``
+  when a phone maps to more than one patient and no TC settles it. A shared
+  handset therefore surfaces as a clean "couldn't identify you", never one
+  patient's visits shown to the other.
+
+The client is injected (``state.acibadem``) so the unit lane drives it over an
+``httpx.MockTransport`` and never touches the network; production builds it from
+``ACIBADEM_BASE_URL`` + ``ACIBADEM_API_KEY`` (no in-code default), and the read
+still passes the LanSourcePolicy runtime gate (``INTAKE_ALLOW_LAN_SOURCE``).
 """
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import os
+from collections.abc import Iterable
+from typing import Literal
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter
+from intake_connectors.acibadem import (
+    ADAPTER_ID,
+    AcibademAppointmentsClient,
+    Appointment,
+    UpcomingPatient,
+)
+from intake_connectors.credentials import EnvCredentialResolver
+from intake_connectors.identity import IdentityOutcome, normalise_tr_msisdn, resolve_identity
+from intake_connectors.sources import ClinicalSource
+from intake_platform.db.models import Patient
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 
-from intake_connectors.acibadem import ADAPTER_ID, AcibademAppointmentsClient
-from intake_connectors.credentials import EnvCredentialResolver
-from intake_connectors.identity import normalise_tr_msisdn
-from intake_connectors.sources import ClinicalSource
-from intake_platform.db.models import Consent, Patient
-
 from intake_api.auth import Principal, require_patient
+from intake_api.consent_guard import require_scopes
 from intake_api.db import tenant_session
-from intake_api.otp import normalise_tr_phone
 from intake_api.state import State
+
+__all__ = ["acibadem_client_from_env", "router"]
 
 router = APIRouter(prefix="/v1/visits", tags=["visits"])
 
-#: The read clears this scope before the feed is touched (invariant 4). It is a
-#: closed-registry purpose that a docs/legal text binds.
+#: The scope the read clears before the feed is touched (invariant 4). A
+#: dev-tier stand-in on the seed grants — see the module docstring and HB-L27.
 READ_SCOPE = "core"
+
+#: The demo-tier credential reference. Its material is delivered as an
+#: environment variable through EnvCredentialResolver (invariant 14: no value
+#: in code, and an unset/empty var is a missing credential, never a default).
+_CREDENTIAL_REF = "connectors/acibadem-demo/api-key"
+
+
+#: A stable, non-PHI id for one appointment row: a hash-free composite of the
+#: hospital-side identifier, the date and the clock time, so the two same-day
+#: visits (13:00 and 13:05) stay distinct and a re-login does not churn ids.
+def _visit_id(row: Appointment) -> str:
+    clock = row.randevu_saati.strftime("%H%M")
+    return f"acb-{row.patient_number}-{row.app_date.isoformat()}-{clock}"
+
+
+def _today() -> dt.date:
+    """Seam so a test can pin the upcoming/past boundary (the connector passes
+    ``today`` for the same reason); production reads the clock."""
+    return dt.date.today()
 
 
 class SyncBody(BaseModel):
@@ -54,51 +106,81 @@ class VisitOut(BaseModel):
 
 
 class VisitsOut(BaseModel):
+    #: A closed vocabulary, safe to log: matched | no_upcoming | no_appointment
+    #: | ambiguous | not_your_number | phone_invalid | unavailable.
     outcome: str
+    #: The matched patient's display name, read explicitly off the redacted
+    #: feed row (invariant 6: it is never logged from here).
     patient_name: str | None = None
     visits: list[VisitOut]
 
 
-def _source(tenant_id: str) -> ClinicalSource:
-    base = os.environ["ACIBADEM_BASE_URL"]
-    hostport = base.split("://", 1)[1]
-    host, port = hostport.split(":")
-    return ClinicalSource(
+def acibadem_client_from_env() -> AcibademAppointmentsClient | None:
+    """Build the demo-tier client from the environment, or ``None`` when it is
+    not configured (the route then answers ``unavailable`` — fail closed).
+
+    ``None`` rather than a raise on an unset ``ACIBADEM_BASE_URL`` mirrors every
+    other optional tier (auth, documents, admin): an unconfigured connector is a
+    deployment state, not a crash.
+    """
+    base = os.environ.get("ACIBADEM_BASE_URL")
+    if not base:
+        return None
+    parts = urlsplit(base)
+    if parts.scheme not in ("http", "https") or parts.hostname is None or parts.port is None:
+        return None
+    protocol: Literal["http", "https"] = "http" if parts.scheme == "http" else "https"
+    source = ClinicalSource(
         source_id="acibadem-demo",
-        tenant_id=tenant_id,
+        tenant_id="acibadem-demo",
         adapter_id=ADAPTER_ID,
-        address=host,
-        port=int(port),
-        protocol="http",
-        base_path="",
+        address=parts.hostname,
+        port=parts.port,
+        protocol=protocol,
+        base_path=parts.path.rstrip("/"),
         consent_scope=READ_SCOPE,
-        credential_ref="connectors/acibadem",
-        dpa_ref="demo-dpa",
-        approval_ref="demo-approval",
-        plaintext_approval="demo-lan-plaintext",
+        credential_ref=_CREDENTIAL_REF,
+        # Dev-tier binding refs: the production sources.yaml row needs a signed
+        # DPA and recorded tier-3 approvals no agent may mint (HB-L27), so this
+        # is the runtime stand-in, not a committed registration.
+        dpa_ref="dev-acibadem-dpa",
+        approval_ref="dev-acibadem-approval",
+        plaintext_approval="dev-acibadem-plaintext" if protocol == "http" else None,
     )
-
-
-def _client(tenant_id: str) -> AcibademAppointmentsClient:
     return AcibademAppointmentsClient(
-        source=_source(tenant_id),
-        credentials=EnvCredentialResolver({"connectors/acibadem": {"api_key": "ACIBADEM_API_KEY"}}),
+        source=source,
+        credentials=EnvCredentialResolver({_CREDENTIAL_REF: {"api_key": "ACIBADEM_API_KEY"}}),
     )
 
 
-@router.post("/sync", response_model=VisitsOut)
+def _display_name(rows: Iterable[UpcomingPatient], patient_number: str) -> str | None:
+    for row in rows:
+        if row.patient_number == patient_number:
+            name = " ".join(
+                part.strip()
+                for part in (row.patient_name, row.patient_surname)
+                if part and part.strip()
+            ).title()
+            return name or None
+    return None
+
+
+@router.post("/sync", response_model=VisitsOut, dependencies=[require_scopes(READ_SCOPE)])
 async def sync(payload: SyncBody, principal: Principal, state: State) -> VisitsOut:
     patient, patient_id = require_patient(principal)
-    if state.auth is None:
+    client = state.acibadem
+    if state.auth is None or client is None:
+        # Without the OTP tokenizer the ownership check cannot run, and without
+        # a client there is nothing to read: fail closed, gracefully empty.
         return VisitsOut(outcome="unavailable", visits=[])
 
-    normalised = normalise_tr_phone(payload.phone)
-    if normalised is None:
+    pseudonym = state.auth.pseudonym_for(payload.phone)
+    if pseudonym is None:
         return VisitsOut(outcome="phone_invalid", visits=[])
 
-    # Ownership: the phone must belong to THIS caller. Tokenise it the same way
-    # the OTP tier does and require the row it names to be the caller's own.
-    pseudonym = state.auth._tokenizer.pseudonym(normalised)
+    # Ownership (invariant 14): the phone must tokenize to the caller's own
+    # pseudonym. Anyone else's number resolves to a different pseudonym (or
+    # none), so this returns before a single byte reaches the feed.
     async with tenant_session(state.engine, patient.tenant_id) as session:
         owner = (
             await session.scalars(
@@ -108,46 +190,59 @@ async def sync(payload: SyncBody, principal: Principal, state: State) -> VisitsO
                 )
             )
         ).first()
-        if owner is None or owner.id != patient_id:
-            return VisitsOut(outcome="not_your_number", visits=[])
-        granted = (
-            await session.scalars(
-                select(Consent.scope).where(
-                    Consent.tenant_id == patient.tenant_id,
-                    Consent.patient_id == patient_id,
-                    Consent.scope == READ_SCOPE,
-                    Consent.revoked_at.is_(None),
-                )
-            )
-        ).first()
-        if granted is None:
-            return VisitsOut(outcome="consent_required", visits=[])
+    if owner is None or owner.id != patient_id:
+        return VisitsOut(outcome="not_your_number", visits=[])
+
+    # Consent (invariant 4) was enforced at the door by require_scopes(core):
+    # a stale or absent grant, or an age/guardian refusal, is a 403 before here.
 
     feed_phone = normalise_tr_msisdn(payload.phone)
-    client = _client(str(patient.tenant_id))
-    match = next((u for u in client.upcoming() if u.msisdn == feed_phone), None)
-    if match is None:
-        return VisitsOut(outcome="no_appointment", visits=[])
+    if feed_phone is None:  # pragma: no cover - pseudonym check already proved it
+        return VisitsOut(outcome="phone_invalid", visits=[])
 
-    display_name = " ".join(
-        part.strip() for part in (match.patient_name, match.patient_surname) if part and part.strip()
-    ).title() or None
+    # One directory read, then the connector's terminal-on-ambiguous matcher —
+    # never a first-match guess (that is the shared-handset leak this avoids).
+    rows = tuple(await asyncio.to_thread(client.upcoming))
+    resolution = resolve_identity((row.as_candidate() for row in rows), phone=feed_phone, tckn=None)
 
-    today = dt.date.today()
-    visits: list[VisitOut] = []
-    for a in client.appointments_for(match.patient_number):
-        if a.app_date < today:
-            continue
-        visits.append(
-            VisitOut(
-                id=f"acb-{a.patient_number}-{a.app_date.isoformat()}-{a.randevu_saati.strftime('%H%M')}",
-                hospital=a.facility_name,
-                department=a.specialty_name,
-                date=a.app_date.isoformat(),
-                time=a.randevu_saati.strftime("%H:%M"),
-                noteStatus=None,
-            )
+    # Invariant 4: the disclosure is audited with ids only — the resolved
+    # hospital-side patient_number when matched, the app patient id otherwise.
+    await state.audit.record(
+        actor=f"patient:{patient_id}",
+        action="api.visit.acibadem.sync",
+        resource_ref=(
+            f"acibadem:{resolution.patient_number}"
+            if resolution.patient_number is not None
+            else f"patient:{patient_id}"
+        ),
+        consent_scope=f"scope:{READ_SCOPE}",
+    )
+
+    if resolution.outcome is not IdentityOutcome.MATCHED or resolution.patient_number is None:
+        # NO_MATCH → this number has no record; NEEDS_TCKN / REFUSED_AMBIGUOUS →
+        # a shared handset the feed cannot disambiguate → a clean refusal that
+        # shows neither patient's visits.
+        outcome = (
+            "no_appointment" if resolution.outcome is IdentityOutcome.NO_MATCH else "ambiguous"
         )
+        return VisitsOut(outcome=outcome, visits=[])
+
+    patient_number = resolution.patient_number
+    display_name = _display_name(rows, patient_number)
+    appointments = await asyncio.to_thread(client.appointments_for, patient_number)
+    today = _today()
+    visits = [
+        VisitOut(
+            id=_visit_id(a),
+            hospital=a.facility_name,
+            department=a.specialty_name,
+            date=a.app_date.isoformat(),
+            time=a.randevu_saati.strftime("%H:%M"),
+            noteStatus=None,
+        )
+        for a in appointments
+        if a.app_date >= today
+    ]
     visits.sort(key=lambda v: (v.date or "", v.time or ""))
     return VisitsOut(
         outcome="matched" if visits else "no_upcoming",
