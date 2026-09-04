@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Örnek Sağlık Portalı — Vizite embed örneği</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <!-- The browser resolves the SDK's bare specifier to the vendored ESM file
+         served by this app. No bundler, no CDN, no Vizite secret in the page. -->
+    <script type="importmap">
+      { "imports": { "@intake/embed-sdk": "/web/vendor/index.js" } }
+    </script>
+  </head>
+  <body>
+    <p class="banner" role="note">
+      Synthetic sample. “Örnek Sağlık Portalı” is not a real organisation and
+      carries no real branding — it stands in for any partner app embedding
+      Vizite at the dev tier.
+    </p>
+
+    <main>
+      <header class="site">
+        <span class="mark" aria-hidden="true">◐</span>
+        <span class="wordmark">Örnek Sağlık Portalı</span>
+      </header>
+
+      <section class="card" aria-labelledby="appt-heading">
+        <h1 id="appt-heading">Randevunuz yaklaşıyor</h1>
+        <dl class="appt">
+          <div><dt>Bölüm</dt><dd>Kardiyoloji</dd></div>
+          <div><dt>Hekim</dt><dd>Dr. Örnek Hekim</dd></div>
+          <div><dt>Tarih</dt><dd>Yarın, 10.30</dd></div>
+        </dl>
+        <p class="lede">
+          Randevunuzdan önce birkaç dakikanızı ayırıp ön muayeneyi
+          tamamlayabilirsiniz. Bu adım Vizite tarafından yürütülür.
+        </p>
+
+        <!-- @intake/embed-sdk renders the button here. -->
+        <div id="previsit-slot"></div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <footer class="foot">
+        <p>
+          The button calls this app's own backend (<code>POST /vizite/ticket</code>),
+          which mints a launch ticket server-to-server and then hands off to the
+          branded Vizite intake. See <code>README.md</code> for the full path.
+        </p>
+      </footer>
+    </main>
+
+    <script type="module" src="/web/main.js"></script>
+  </body>
+</html>
