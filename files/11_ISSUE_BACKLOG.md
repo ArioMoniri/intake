@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 14 · doing 5 · done 136 · todo 91 · withdrawn 1.
+**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 14 · doing 5 · done 137 · todo 90 · withdrawn 1.
 
 ## P0
 
@@ -88,7 +88,7 @@
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | done |
 | INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | done |
-| INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | todo |
+| INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | done |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | done |
 | INT-151 | Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback | E09-clinician | INT-150, INT-117 | area:clinician | todo |
 | INT-170 | PatientOverlay: store, confirmation rules, /me/learned API, engine integration | E11-learning | INT-031, INT-081 | area:learning | done |

@@ -1678,7 +1678,7 @@
   # strings in docs/legal/ exist (INT-210). The client deliberately never
   # calls GET /v1/me/dsar/export/{id} and a test asserts the absence.
   # Reopen against INT-210; see docs/evidence/INT-140.md §"What is not met".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-140.md
   acceptance:
     - "export/delete flows wired to DSAR; learned facts editable/deletable with provenance"
