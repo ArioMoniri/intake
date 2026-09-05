@@ -40,6 +40,7 @@ from intake_platform.profiles import (
     SubjectRole,
     resolve_attribution,
 )
+from protocols.department_routing import DepartmentMatch, map_department
 from protocols.taxonomy import Taxonomy, UnknownBranchError
 from protocols.types import VisitType
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
@@ -144,6 +145,13 @@ class VisitCreate(BaseModel):
     visit_type: str | None = Field(default=None, max_length=40)
     # INT-197 mirror path only; refused when branch_id is present.
     department: str | None = Field(default=None, max_length=300)
+    # INT-323: an inbound source (Acıbadem/MHRS connector, or any bridge) that
+    # carries only a free-text department asks the server to MAP it onto the
+    # branch taxonomy — department-dynamic previsit routing. Default False
+    # keeps the INT-197 mirror path byte-for-byte: a patient's pre-taxonomy
+    # local visit derives no branch. An unmappable department fails closed
+    # (free text kept, no branch), never a silent wrong specialty.
+    resolve_department: bool = False
     # Optional since INT-134: a planned visit may not be booked yet, and an
     # invented date would be a lie the whole timing model then trusts (02 §2b).
     date: str | None = Field(default=None, max_length=40)
@@ -355,6 +363,32 @@ def validated_new_visit(payload: VisitCreate, taxonomy: Taxonomy | None) -> NewV
         # beyond set membership (already done above).
         if not department:
             raise visit_invalid("missing_fields")
+        if payload.resolve_department:
+            # INT-323: an inbound source asks the server to map the free-text
+            # department onto the branch taxonomy (department-dynamic routing).
+            # The branch path needs the loaded taxonomy; without it, fail CLOSED
+            # (503) rather than trust the client — same rule as the branch path.
+            if taxonomy is None:
+                raise taxonomy_unconfigured()
+            routing = map_department(taxonomy, department)
+            if routing.match is not DepartmentMatch.UNMAPPED and routing.branch_id is not None:
+                branch = taxonomy.branch(routing.branch_id)
+                # A department that maps to Acil Tıp books no pre-visit intake —
+                # RED routing only (files/09 §1), the same refusal the branch
+                # path gives via `excluded_branch`.
+                if not taxonomy.cluster_of(branch).intake:
+                    raise visit_invalid("excluded_branch")
+                return NewVisitData(
+                    hospital=hospital,
+                    # invariant 5: the tr label is the taxonomy's own name_tr.
+                    department=branch.name_tr,
+                    branch_id=branch.id,
+                    visit_type=visit_type,
+                    date=date,
+                    time=time,
+                )
+            # UNMAPPED: fall through and keep the free-text department with no
+            # branch — an unknown department never silently gets a specialty.
         return NewVisitData(
             hospital=hospital,
             department=department,

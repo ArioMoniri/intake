@@ -4668,3 +4668,18 @@
   tests: [tests/embed/test_mode.py]
   legal: "KVKK-8,DPA"
   sec_row: "embed"
+- id: INT-323
+  epic: E03-protocols
+  phase: P1
+  title: "Department-dynamic previsit routing: inbound department → branch → served pack"
+  depends_on: [INT-042, INT-134]
+  labels: [area:protocols, area:connectors]
+  status: done
+  evidence: docs/evidence/INT-323.md
+  acceptance:
+    - "packages/protocols department_routing maps a normalised inbound department (fold_department mirrors the mobile foldDepartment: Turkish-aware lowercase + diacritic strip + ı→i) onto a branches.yaml branch_id by exact name_tr plus the aliases DERIVED from the committed mobile PACKS regexes; no branch id is invented and department_index fails closed (TaxonomyError) on an ambiguous folded name or a stale/colliding alias"
+    - "fail closed: an unmapped department is an explicit UNMAPPED state (DepartmentRouting/DepartmentMatch) and resolve_department raises DepartmentNotRoutableError with NO pack — never a silent specialty; a test proves an unknown department gets no specialty pack even when specialty packs are present, and a near-miss does not fuzzy-match"
+    - "branch→served pack reuses resolve_branch (invariant 13): specialty.<id> at L1+ else the cluster pack; an L0 pack resolved for a live session raises L0PackServedError; Acil Tıp raises ExcludedBranchError; nothing servable raises NoServablePackError rather than bare base.intake"
+    - "wired to the inbound visit-create path (services/api) as an opt-in (resolve_department) that maps a free-text department onto the branch and threads it onto the visit; the default INT-197 mirror path is unchanged; a department mapping to Acil Tıp is refused (excluded_branch); the served pack CONTENT past L0 stays gated on HB-C1"
+  tests: [tests/protocols/test_department_routing.py, tests/api/test_visit_department_routing.py]
+  sec_row: "protocol-registry"

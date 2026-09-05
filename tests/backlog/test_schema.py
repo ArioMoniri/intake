@@ -42,9 +42,10 @@ def test_ids_unique_and_well_formed() -> None:
     # harness) + INT-320 (embeddable white-label integration: partner
     # "Start pre-visit" button + tenant handshake, ADR-029) + INT-321 (mobile
     # intake mode chooser up front) + INT-322 (embed intake mode bound inside
-    # the signed launch ticket).
+    # the signed launch ticket) + INT-323 (department-dynamic previsit routing:
+    # inbound department → branch → served pack).
     # Grow this count only with a stated reason.
-    assert len(ids) == 246
+    assert len(ids) == 247
     import re
 
     for i in ids:
