@@ -43,7 +43,7 @@ from collections.abc import Mapping, Sequence
 
 from clinical_schemas.events import WaitKind
 from intake_platform.export_safety import sanitise_cell
-from intake_platform.wait_times import WAIT_SOURCES, WaitSource
+from intake_platform.wait_times import WAIT_SOURCES, WaitSource, ms_to_unit
 
 from intake_metrics.wait_rollups import MIN_COHORT, WaitRollup
 
@@ -94,12 +94,14 @@ def _mean_cell(rollup: WaitRollup, source: WaitSource) -> str:
     """The mean in the metric's own unit, or empty when nothing may be shown.
 
     Observations are milliseconds; group G states the unit per id, so the
-    conversion is the catalogue's, not a choice made here.
+    conversion is the catalogue's, not a choice made here. It is
+    ``intake_platform.wait_times.ms_to_unit`` — the same table the Prometheus
+    writer uses, imported rather than repeated, because two conversion tables
+    in one service is one table that gets a unit wrong on its own.
     """
     if rollup.mean_ms is None:
         return ""
-    divisor = {"s": 1_000.0, "min": 60_000.0, "h": 3_600_000.0}[source.unit]
-    return f"{rollup.mean_ms / divisor:.3f}"
+    return f"{ms_to_unit(rollup.mean_ms, source.unit):.3f}"
 
 
 def sds01_table(

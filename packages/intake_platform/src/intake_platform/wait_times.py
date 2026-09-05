@@ -29,6 +29,16 @@ ends inside a single request handler (`intake_api.documents.ingest_content`).
 The other four are named, gated and empty — build the mechanism, wire the
 gate, make it fail closed, leave the content empty (CLAUDE.md).
 
+**A missing instant and a missing writer are different sentences (INT-307).**
+Until INT-307 the only publisher was bound to the one labelled family, so a
+group G id that carries no label had a catalogue row, a registry entry, an
+admin column and no way to be written even once its instants landed — which
+is why INT-150 declined to add ``shares.first_opened_at`` rather than land an
+instant into a gap. The writer is now generic over the label set (declared
+here in ``labels``) and over the catalogued unit, and every entry states
+``publisher`` or the issue that owes one. So the four gaps are gaps in
+*measurement*, said once, in ``missing_instant``.
+
 **What an observation carries.** A duration in milliseconds and, for the
 records kind, a closed content-type enumeration. Not two instants: an instant
 plus a session id is a queue position that correlates to a person, a duration
@@ -42,7 +52,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -51,24 +61,76 @@ from clinical_schemas.events import DocumentKind, WaitKind, WaitV1
 
 from intake_platform.db.models import Event
 from intake_platform.documents import ALLOWED_CONTENT_TYPES
+from intake_platform.slo import MetricsCatalog
 
 __all__ = [
     "DOCUMENT_KIND_BY_CONTENT_TYPE",
+    "MS_PER_UNIT",
+    "UNACCOUNTED",
+    "UNREGISTERED_WAIT_SERIES",
     "WAIT_EVENT_TYPE",
+    "WAIT_LABEL_SETS",
+    "WAIT_PUBLISHER",
     "WAIT_SOURCES",
     "Elapsed",
+    "UnpublishedSeries",
     "WaitSource",
     "WaitSourceUnavailableError",
     "document_kind",
     "measure_ms",
+    "ms_to_unit",
     "observable_wait_kinds",
     "record_wait",
+    "unpublished_wait_series",
     "wait_source",
 ]
 
 #: The ``events.event_type`` value, in the short form the table already uses
 #: for csat.v1 / nps.v1 (the pydantic ``schema_id`` keeps the long form).
 WAIT_EVENT_TYPE = "wait.v1"
+
+
+#: Milliseconds in one of the units files/08 §4 group G states. The catalogue
+#: gives every wait id a unit and the observations are all milliseconds, so
+#: every wait figure crosses one representation boundary on its way out — into
+#: a Prometheus family named ``_h``, into an SDS-01 cell, into a console. One
+#: table does that conversion for all of them (invariant 22: a number never
+#: crosses a boundary unguarded), and a unit nobody catalogued raises rather
+#: than falling through to milliseconds-as-seconds.
+MS_PER_UNIT: Mapping[str, float] = {
+    "s": 1_000.0,
+    "min": 60_000.0,
+    "h": 3_600_000.0,
+}
+
+#: The label sets a group G family may carry. files/08 §4 G states exactly one
+#: label anywhere in the group — ``wait.records_processing_s`` "by document
+#: type" — so a wait family is either unlabelled or labelled by document type.
+#: A third shape is a data-inventory decision under invariant 18, not a
+#: keyword argument, and the registry refuses one.
+WAIT_LABEL_SETS: tuple[tuple[str, ...], ...] = ((), ("document_type",))
+
+#: Catalogued ``wait.*`` ids deliberately outside :data:`WAIT_SOURCES`, each
+#: with the reason it is outside. The point is that the reason is *written
+#: down*: a catalogued series nothing writes is reported by
+#: :func:`unpublished_wait_series` either way, and the difference between a
+#: recorded decision and an oversight is this table.
+UNREGISTERED_WAIT_SERIES: Mapping[str, str] = {
+    "wait.answer_latency_s": (
+        "files/08 §4 G calls this context for design and no acceptance names it; "
+        "it stays catalogued as planned, with no source entry and no writer"
+    ),
+}
+
+
+def ms_to_unit(duration_ms: float, unit: str) -> float:
+    """A millisecond duration in one of the catalogued units.
+
+    Raises ``KeyError`` for a unit the catalogue does not state, because the
+    alternative — assuming seconds — publishes an hour-scaled figure into a
+    series named ``_h`` and nobody finds out from the number itself.
+    """
+    return duration_ms / MS_PER_UNIT[unit]
 
 
 class WaitSourceUnavailableError(RuntimeError):
@@ -97,9 +159,24 @@ class WaitSource:
     #: Which end of the interval this repo does not record. Required — and
     #: only meaningful — when the source is not observable.
     missing_instant: str = ""
-    #: The backlog issue that would land it, when one claims it. ``None`` is
-    #: honest where no issue does; it is not a synonym for "unknown".
+    #: The backlog issue that would land the missing INSTANT, when one claims
+    #: it. ``None`` is honest where no issue does; it is not a synonym for
+    #: "unknown". Nothing to do with the publisher: a series can have a writer
+    #: and still have nothing to write.
     blocked_by: str | None = None
+    #: The label names this series' Prometheus family carries, one of
+    #: :data:`WAIT_LABEL_SETS`. The writer dispatches on this, so it is the
+    #: single statement of whether the family is labelled — held against the
+    #: catalogue row's ``labels`` by test.
+    labels: tuple[str, ...] = ()
+    #: The dotted name of the code that writes this series into its family.
+    #: Required unless :attr:`publisher_owed_by` names the issue that owes
+    #: one: a catalogued series with neither is how a row ends up permanently
+    #: empty, and an empty series reads as measured-and-zero.
+    publisher: str | None = None
+    #: The issue that owes a publisher, when there is none. Exactly one of
+    #: this and :attr:`publisher` is set.
+    publisher_owed_by: str | None = None
 
     def __post_init__(self) -> None:
         if self.observable and (self.missing_instant or self.blocked_by is not None):
@@ -109,7 +186,34 @@ class WaitSource:
                 f"{self.kind}: a source that cannot be measured must say which instant "
                 'is absent — "blocked" is a status with an ask, not an excuse'
             )
+        if self.unit not in MS_PER_UNIT:
+            raise ValueError(
+                f"{self.kind}: unit {self.unit!r} is not one files/08 §4 G states "
+                f"({sorted(MS_PER_UNIT)}) — a wait figure has no way out of milliseconds"
+            )
+        if self.labels not in WAIT_LABEL_SETS:
+            raise ValueError(
+                f"{self.kind}: label set {self.labels!r} is not one of {WAIT_LABEL_SETS} — "
+                "a new wait label is a data-inventory decision (inv. 18), not an argument"
+            )
+        if self.publisher and self.publisher_owed_by:
+            raise ValueError(
+                f"{self.kind}: names both a publisher and an issue owing one — "
+                "one of them is wrong and the reader cannot tell which"
+            )
+        if not self.publisher and not self.publisher_owed_by:
+            raise ValueError(
+                f"{self.kind}: names neither its publisher nor the issue that owes one — "
+                "a catalogued series nothing can write reads as measured-and-zero"
+            )
 
+
+#: The one entry point that writes a wait series into its Prometheus family.
+#: INT-307 made it generic over the label set the source declares and over the
+#: catalogued unit, so every group G id has a writer whether or not it carries
+#: a label — what four of them still lack is an instant, which is a different
+#: sentence and is said in ``missing_instant``.
+WAIT_PUBLISHER = "intake_metrics.metrics.publish_wait"
 
 #: files/08 §4 group G, in the order the section lists them, restricted to the
 #: five ids INT-241's acceptance enumerates. ``wait.answer_latency_s`` is group
@@ -129,6 +233,7 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
             "both: the Talker holds the turn in memory and writes no lifecycle row, "
             "and sessions.started_at has no writer outside the test harness"
         ),
+        publisher=WAIT_PUBLISHER,
     ),
     WaitSource(
         kind=WaitKind.NOTE_READY_AFTER_WRAPUP,
@@ -142,6 +247,7 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
             "the start: notes.created_at exists, but nothing transitions a session to "
             "COMPLETED, so sessions.completed_at is never written"
         ),
+        publisher=WAIT_PUBLISHER,
     ),
     WaitSource(
         kind=WaitKind.DOCTOR_LINK_FIRST_OPEN,
@@ -155,13 +261,12 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
             "the end: INT-150 landed the redemption route, and every open is written "
             "to the hash-chained audit log — which is EVIDENCE, not an analytics "
             "source, and is never mined for aggregates. No share-access row and no "
-            "first_opened_at column exist, deliberately: publishing this interval "
-            "needs an unlabelled path through publish_wait/roll_up_wait that INT-241 "
-            "did not build, and landing the instant without the publisher would put "
-            "this registry, the catalogue status and the writer out of step — the "
-            "exact drift this module exists to prevent"
+            "first_opened_at column exist. INT-307 built the unlabelled path this "
+            "series needed, so the writer is no longer what is missing: landing a "
+            "first-open instant on the share is, and no issue claims it"
         ),
         blocked_by=None,
+        publisher=WAIT_PUBLISHER,
     ),
     WaitSource(
         kind=WaitKind.CHECKIN_TO_SEEN,
@@ -176,6 +281,7 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
             "packages/connectors does not exist"
         ),
         blocked_by="INT-163",
+        publisher=WAIT_PUBLISHER,
     ),
     WaitSource(
         kind=WaitKind.RECORDS_PROCESSING,
@@ -185,10 +291,57 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
         start_moment="the uploaded bytes arriving at the ingest handler",
         end_moment="the scan-and-promote pipeline returning a verdict",
         observable=True,
+        labels=("document_type",),
+        publisher=WAIT_PUBLISHER,
     ),
 )
 
 _BY_KIND: Mapping[WaitKind, WaitSource] = {source.kind: source for source in WAIT_SOURCES}
+
+
+@dataclass(frozen=True)
+class UnpublishedSeries:
+    """A catalogued ``wait.*`` series nothing in this repo can write."""
+
+    metric_id: str
+    #: Why, in one sentence: the issue that owes a publisher, the recorded
+    #: decision to leave the id out of the registry, or — the case that fails
+    #: a build — that nobody has said anything at all.
+    reason: str
+
+
+#: The prefix :func:`unpublished_wait_series` reports for an id nobody has
+#: accounted for. Grep-able on purpose: a test asserts no live catalogue entry
+#: carries it.
+UNACCOUNTED = "unaccounted: no source registry entry and no recorded reason"
+
+
+def unpublished_wait_series(
+    catalog: MetricsCatalog, *, sources: Sequence[WaitSource] = WAIT_SOURCES
+) -> tuple[UnpublishedSeries, ...]:
+    """Every catalogued ``wait.*`` id that no writer can reach, with the reason.
+
+    Invariant 13 from its second side. The first side — nothing is emitted
+    that the catalogue does not carry — is enforced by
+    tests/observability/test_metrics_catalog.py. This is the other: a
+    catalogue row whose series nothing writes is *reported by id*, because on
+    a console an empty series and a measured zero render identically, and the
+    reader has no way to tell "nobody waited" from "nobody can measure".
+    """
+    by_id = {source.metric_id: source for source in sources}
+    reported: list[UnpublishedSeries] = []
+    for metric in catalog.metrics:
+        if not metric.spec_id.startswith("wait."):
+            continue
+        source = by_id.get(metric.spec_id)
+        if source is not None and source.publisher:
+            continue
+        if source is not None:
+            reason = f"no publisher; {source.publisher_owed_by} owes one"
+        else:
+            reason = UNREGISTERED_WAIT_SERIES.get(metric.spec_id, UNACCOUNTED)
+        reported.append(UnpublishedSeries(metric_id=metric.spec_id, reason=reason))
+    return tuple(sorted(reported, key=lambda entry: entry.metric_id))
 
 
 def wait_source(kind: WaitKind) -> WaitSource:
