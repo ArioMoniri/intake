@@ -8,7 +8,14 @@ codes; the calendar check here is stricter on purpose (the server is the
 boundary of record). Since INT-134 a visit is created against the branch
 TAXONOMY (files/09 §1): ``branch_id`` + ``visit_type`` with the department
 label derived from the taxonomy's own ``name_tr`` (invariant 5); the
-free-text ``department`` body survives only as the INT-197 mirror path."""
+free-text ``department`` body survives only as the INT-197 mirror path.
+
+Since INT-306 a visit may also carry the appointment's TIME of day, with the
+producer that stated it. Absent means unknown and stays unknown: a defaulted
+midnight is indistinguishable from a real 00:00 booking and would silently
+shorten every Doctor Link on that visit by up to a day (files/02 §2b). The
+spelling and provenance rules live in :mod:`clinical_schemas.visit_time`, so
+this boundary and the document-extraction path cannot disagree about them."""
 
 from __future__ import annotations
 
@@ -19,6 +26,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
+from clinical_schemas.visit_time import (
+    ATTRIBUTED_SOURCES,
+    VisitTime,
+    VisitTimeError,
+    VisitTimeSource,
+    parse_visit_time,
+)
 from intake_platform.profiles import (
     AttributionDecision,
     ProxyAcknowledgement,
@@ -133,6 +147,20 @@ class VisitCreate(BaseModel):
     # Optional since INT-134: a planned visit may not be booked yet, and an
     # invented date would be a lie the whole timing model then trusts (02 §2b).
     date: str | None = Field(default=None, max_length=40)
+    # INT-306: the hour of the appointment where a producer knows it, ``HH:MM``.
+    # Absent means UNKNOWN and stays unknown — never a defaulted midnight, which
+    # is indistinguishable from a real 00:00 booking and would silently shorten
+    # every Doctor Link on that visit by up to a day (files/02 §2b).
+    time: str | None = Field(default=None, max_length=40)
+    # INT-306: which of the three producers stated it. Declared by the producer
+    # rather than derived by the server, and the comparison with INT-133's
+    # ``proxy_reported`` is the reason: that flag is a CONSEQUENCE the platform
+    # rules engine computes, so a client-settable one would be client-clearable.
+    # Where a time was read is not a consequence of anything the server holds —
+    # only the producer knows, and the two non-patient sources must name the
+    # artefact, which is what makes the claim checkable rather than free.
+    time_source: str | None = Field(default=None, max_length=40)
+    time_source_ref: str | None = Field(default=None, max_length=200)
     # INT-133: absent means the default self-report session.
     attribution: AttributionIn | None = None
 
@@ -144,6 +172,12 @@ class VisitOut(BaseModel):
     branch_id: str | None
     visit_type: str | None
     date: str | None
+    # INT-306 — on EVERY record, and ``None`` is a stated fact rather than a
+    # missing one: "we do not know the hour" is what the patient and the expiry
+    # rule both have to be able to read.
+    time: str | None = None
+    time_source: str | None = None
+    time_source_ref: str | None = None
     note_status: Literal["draft", "sent"] | None
     # INT-133 / files/06 §6 — on EVERY record, not only the ones a companion
     # created: an absent flag reads as "unknown", and a clinician must be
@@ -168,13 +202,19 @@ class ProfileOut(BaseModel):
 
 @dataclass(frozen=True)
 class NewVisitData:
-    """A validated visit-to-be: what the store persists."""
+    """A validated visit-to-be: what the store persists.
+
+    ``time`` is the typed :class:`VisitTime` rather than the wire strings,
+    because the store writes the provenance beside the value and a triple of
+    loose strings is three chances to write two of them.
+    """
 
     hospital: str
     department: str
     branch_id: str | None
     visit_type: str | None
     date: str | None
+    time: VisitTime | None = None
 
 
 _VISIT_TYPE_IDS = frozenset(member.value for member in VisitType)
@@ -224,6 +264,57 @@ def _validated_date(raw: str | None) -> str | None:
     return date
 
 
+def _validated_visit_time(payload: VisitCreate, *, date: str | None) -> VisitTime | None:
+    """INT-306 — the appointment's hour, or nothing, and never a default.
+
+    Seven reason codes, kept apart rather than collapsed into one ``bad_time``,
+    because each names a different engineering problem and a client that cannot
+    tell them apart cannot fix any of them:
+
+    - ``time_source_without_time`` — provenance for nothing is a claim that a
+      reading happened with the reading missing;
+    - ``time_source_required`` — a time with no producer is exactly the
+      unattributed value the issue exists to stop;
+    - ``time_source_unknown`` — the producer set is closed (files/09 §3's rule
+      for a fact's provenance, and the same shape as ``LearnedFactSource``);
+    - ``time_without_date`` — a time of day is not a schedule; storing one
+      against no date hands the expiry rule half an anchor to guess the rest of;
+    - ``bad_time`` / ``time_source_ref_*`` — the spelling and the artefact rules,
+      both owned by :mod:`clinical_schemas.visit_time` so the wire boundary and
+      the extraction path cannot disagree about them.
+
+    An empty or whitespace-only ``time`` is ``bad_time`` rather than "absent":
+    a client that sends the field is asserting it has a value, and silently
+    reading that as unknown is how a dropped field becomes a shortened link.
+    """
+    raw_time = payload.time
+    raw_source = (payload.time_source or "").strip()
+    raw_ref = payload.time_source_ref
+    if raw_time is None:
+        if raw_source or raw_ref is not None:
+            raise visit_invalid("time_source_without_time")
+        return None
+    if not raw_source:
+        raise visit_invalid("time_source_required")
+    try:
+        source = VisitTimeSource(raw_source)
+    except ValueError:
+        raise visit_invalid("time_source_unknown") from None
+    if date is None:
+        raise visit_invalid("time_without_date")
+    ref = raw_ref.strip() if raw_ref is not None else None
+    if source in ATTRIBUTED_SOURCES and not ref:
+        raise visit_invalid("time_source_ref_required")
+    if source not in ATTRIBUTED_SOURCES and ref:
+        raise visit_invalid("time_source_ref_refused")
+    try:
+        return parse_visit_time(raw_time, source=source, source_ref=ref or None)
+    except VisitTimeError:
+        # the rule, never the value: an appointment time is patient content
+        # and a 422 body is a place it must not appear (invariant 6)
+        raise visit_invalid("bad_time") from None
+
+
 def _validated_visit_type(raw: str | None) -> str | None:
     """Membership in the closed files/09 §1 set; per-branch narrowing is the
     caller's taxonomy check."""
@@ -254,6 +345,7 @@ def validated_new_visit(payload: VisitCreate, taxonomy: Taxonomy | None) -> NewV
     department = (payload.department or "").strip()
     visit_type = _validated_visit_type(payload.visit_type)
     date = _validated_date(payload.date)
+    time = _validated_visit_time(payload, date=date)
     if not hospital:
         raise visit_invalid("missing_fields")
     if branch_id and department:
@@ -269,6 +361,7 @@ def validated_new_visit(payload: VisitCreate, taxonomy: Taxonomy | None) -> NewV
             branch_id=None,
             visit_type=visit_type,
             date=date,
+            time=time,
         )
     if taxonomy is None:
         raise taxonomy_unconfigured()
@@ -290,4 +383,5 @@ def validated_new_visit(payload: VisitCreate, taxonomy: Taxonomy | None) -> NewV
         branch_id=branch.id,
         visit_type=visit_type,
         date=date,
+        time=time,
     )

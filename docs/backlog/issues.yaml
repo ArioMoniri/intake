@@ -4217,7 +4217,8 @@
   depends_on: []
   labels:
   - area:data
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-306.md
   acceptance:
   - 'the slot carries a time of day where one is known, and states that it is
     unknown where it is not - an absent time must stay absent rather than
