@@ -3,9 +3,11 @@
 A launch ticket is HS256 over the stdlib ``hmac`` primitive ``room_tokens``
 already uses — no token library. It carries a closed key set and nothing else:
 
-    {tid, nonce, iat, exp, purpose}
+    {tid, nonce, iat, exp, purpose, mode}
 
-``tid`` is the tenant id, bound INSIDE the signature. The signing key is the
+``tid`` is the tenant id, bound INSIDE the signature. ``mode`` is the intake
+depth (INT-322), likewise bound inside the signature so it cannot be tampered
+or re-supplied at launch — a UI-depth flag, never personal data. The signing key is the
 tenant's own (resolved from its registry row), so a ticket minted for one
 tenant cannot verify under another's key; and the verifier additionally checks
 the claimed tenant against the tenant whose key it used, so a shared-key
@@ -26,19 +28,23 @@ import json
 import secrets
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
 __all__ = [
     "CLOCK_SKEW_S",
+    "DEFAULT_INTAKE_MODE",
     "DEFAULT_TTL_S",
+    "INTAKE_MODES",
     "MAX_TTL_S",
     "PURPOSE",
     "InMemoryNonceStore",
+    "IntakeMode",
     "LaunchTicketClaims",
     "LaunchTicketError",
     "NonceStore",
     "TicketExpired",
     "TicketMalformed",
+    "TicketModeInvalid",
     "TicketPurposeInvalid",
     "TicketReplayed",
     "TicketSignatureInvalid",
@@ -53,6 +59,18 @@ __all__ = [
 #: credential; it authorises exactly the start of a pre-visit intake.
 PURPOSE = "previsit_intake"
 
+#: The two intake DEPTHS a launched intake may run in — the mobile app's
+#: "Detaylı" (``hastanede`` / detailed) and "Hızlı" (``brief`` / quick). A
+#: launch ticket binds exactly one, INSIDE its signature. This is a UI-depth
+#: flag, never personal or clinical data (invariant 6).
+IntakeMode = Literal["hastanede", "brief"]
+
+#: The closed set of intake modes, for membership checks at the boundaries.
+INTAKE_MODES: frozenset[str] = frozenset({"hastanede", "brief"})
+
+#: The default depth when a partner does not ask for one — the quick intake.
+DEFAULT_INTAKE_MODE: IntakeMode = "brief"
+
 #: Default lifetime — a launch ticket is handed off immediately, so it lives
 #: for seconds, not minutes.
 DEFAULT_TTL_S = 120
@@ -66,7 +84,7 @@ MAX_TTL_S = 300
 CLOCK_SKEW_S = 5
 
 _HEADER = {"alg": "HS256", "typ": "JWT"}
-_CLAIM_KEYS = frozenset({"tid", "nonce", "iat", "exp", "purpose"})
+_CLAIM_KEYS = frozenset({"tid", "nonce", "iat", "exp", "purpose", "mode"})
 
 
 class LaunchTicketError(ValueError):
@@ -92,6 +110,12 @@ class TicketTenantMismatch(LaunchTicketError):
 
 class TicketPurposeInvalid(LaunchTicketError):
     """The ticket does not carry the single permitted purpose."""
+
+
+class TicketModeInvalid(LaunchTicketError):
+    """The ticket carries an intake mode outside the closed set (INT-322).
+    Refused at mint and, defence-in-depth, again at verify — a leaked-key
+    forgery cannot smuggle in an unknown depth."""
 
 
 class TicketReplayed(LaunchTicketError):
@@ -139,6 +163,7 @@ class LaunchTicketClaims:
     issued_at: int
     expires_at: int
     purpose: str
+    mode: str
 
 
 def _b64u_encode(raw: bytes) -> str:
@@ -165,17 +190,22 @@ def mint_launch_ticket(
     now: datetime,
     ttl_s: int = DEFAULT_TTL_S,
     nonce: str | None = None,
+    mode: str = DEFAULT_INTAKE_MODE,
 ) -> tuple[str, LaunchTicketClaims]:
     """Mint a signed launch ticket for ``tenant_id`` under its ``signing_key``.
 
     Returns the compact token and its claims. ``ttl_s`` is bounded by
     ``MAX_TTL_S``; a longer request is refused rather than clamped, because a
     caller asking for an hour has misunderstood what a launch ticket is.
+    ``mode`` is the intake depth, bound INSIDE the signature; a value outside
+    the closed set is refused rather than emitted (INT-322).
     """
     if ttl_s > MAX_TTL_S:
         raise TicketTtlTooLong(f"ttl {ttl_s}s exceeds the {MAX_TTL_S}s ceiling")
     if ttl_s <= 0:
         raise TicketTtlTooLong("ttl must be positive")
+    if mode not in INTAKE_MODES:
+        raise TicketModeInvalid("intake mode is not a known depth")
     issued_at = int(now.timestamp())
     expires_at = issued_at + ttl_s
     claims = LaunchTicketClaims(
@@ -184,6 +214,7 @@ def mint_launch_ticket(
         issued_at=issued_at,
         expires_at=expires_at,
         purpose=PURPOSE,
+        mode=mode,
     )
     header_segment = _b64u_encode(json.dumps(_HEADER, separators=(",", ":")).encode("ascii"))
     payload = {
@@ -192,6 +223,7 @@ def mint_launch_ticket(
         "iat": claims.issued_at,
         "exp": claims.expires_at,
         "purpose": claims.purpose,
+        "mode": claims.mode,
     }
     payload_segment = _b64u_encode(json.dumps(payload, separators=(",", ":")).encode("ascii"))
     signing_input = f"{header_segment}.{payload_segment}"
@@ -211,12 +243,18 @@ def _parse_claims(payload_segment: str) -> LaunchTicketClaims:
     iat = payload["iat"]
     exp = payload["exp"]
     purpose = payload["purpose"]
-    if not (isinstance(tid, str) and isinstance(nonce, str) and isinstance(purpose, str)):
+    mode = payload["mode"]
+    if not (
+        isinstance(tid, str)
+        and isinstance(nonce, str)
+        and isinstance(purpose, str)
+        and isinstance(mode, str)
+    ):
         raise TicketMalformed("id claims must be strings")
     if not (isinstance(iat, int) and isinstance(exp, int)) or isinstance(iat, bool):
         raise TicketMalformed("timestamps must be integers")
     return LaunchTicketClaims(
-        tenant_id=tid, nonce=nonce, issued_at=iat, expires_at=exp, purpose=purpose
+        tenant_id=tid, nonce=nonce, issued_at=iat, expires_at=exp, purpose=purpose, mode=mode
     )
 
 
@@ -260,6 +298,8 @@ def verify_launch_ticket(
     claims = _parse_claims(payload_segment)
     if claims.purpose != PURPOSE:
         raise TicketPurposeInvalid("ticket purpose is not a pre-visit launch")
+    if claims.mode not in INTAKE_MODES:
+        raise TicketModeInvalid("ticket mode is not a known intake depth")
     if claims.expires_at - claims.issued_at > max_ttl_s:
         raise TicketExpired("ticket lifetime exceeds the ceiling")
 

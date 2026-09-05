@@ -6,6 +6,7 @@ no clinical or personal value in either direction (invariant 6).
 
 from __future__ import annotations
 
+from intake_platform.embed import DEFAULT_INTAKE_MODE, IntakeMode
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
@@ -25,6 +26,10 @@ class MintRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     tenant_id: str = Field(min_length=1, max_length=64)
+    #: The intake depth to launch in (INT-322). A closed enum of exactly
+    #: ``{"hastanede", "brief"}``; defaults to the quick intake. Bound inside the
+    #: signed ticket, so it cannot be tampered or re-supplied at launch.
+    mode: IntakeMode = DEFAULT_INTAKE_MODE
 
 
 class MintResponse(BaseModel):
@@ -56,6 +61,8 @@ class LaunchResponse(BaseModel):
     theme: ThemeOut
     consent_doc_set_id: str
     device_functions: bool
+    #: The resolved intake depth, from the signed ticket claims (INT-322).
+    mode: IntakeMode
 
 
 class ConsentRequest(BaseModel):

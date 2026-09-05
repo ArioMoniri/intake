@@ -4628,3 +4628,20 @@
   tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
   legal: "KVKK-8,DPA"
   sec_row: "embed"
+- id: INT-322
+  epic: E10-connectors
+  phase: P2
+  title: "Embed handshake: intake mode (hastanede/brief) bound inside the signed launch ticket"
+  depends_on: [INT-320]
+  labels: [area:release, risk:security, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-322.md
+  acceptance:
+    - "MintRequest gains an optional mode field, a closed enum of exactly {hastanede, brief} defaulting to brief, with model_config extra=forbid kept; an unknown mode string is rejected by the schema"
+    - "the mode is carried INSIDE the signed launch-ticket claims (LaunchTicketClaims) so it is covered by the signature - never a query param, never re-supplied at launch; it is a UI-depth flag, not personal data (invariant 6)"
+    - "resolve_launch_context resolves the mode into LaunchContext and LaunchResponse returns the resolved mode; the mode comes ONLY from the signed claims and cannot be injected or overridden at launch"
+    - "tenant gating: a tenant declares allowed_modes in infra/tenants/embed_registry.yaml (defaulting to both modes when absent so existing tenants keep working); minting a ticket for a mode the tenant does not allow FAILS CLOSED with a clear id-shaped error"
+    - "the mint->launch flow threads the mode through the router and service; a forged mode outside the closed set is refused at mint and, defence-in-depth, again at verify"
+  tests: [tests/embed/test_mode.py]
+  legal: "KVKK-8,DPA"
+  sec_row: "embed"

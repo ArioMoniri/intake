@@ -24,6 +24,8 @@ from typing import Literal
 
 import yaml
 
+from intake_platform.embed.tickets import INTAKE_MODES
+
 __all__ = [
     "EmbedConfigError",
     "EmbedRegistryError",
@@ -137,6 +139,10 @@ class TenantEmbedConfig:
     dpa_ref: str | None
     brand_permission_ref: str | None
     partner_backend_origin: str | None
+    #: The intake depths this tenant may offer (INT-322). Absent → both modes,
+    #: so existing rows keep working; minting a ticket for a mode outside this
+    #: set is refused, fail closed.
+    allowed_modes: frozenset[str]
 
     @classmethod
     def from_mapping(cls, raw: object) -> TenantEmbedConfig:
@@ -178,6 +184,7 @@ class TenantEmbedConfig:
             "brand_permission_ref", raw.get("brand_permission_ref")
         )
         partner_backend_origin = _optional_origin(raw.get("partner_backend_origin"))
+        allowed_modes = _require_allowed_modes(raw.get("allowed_modes"))
 
         if tier == "prod" and not (dpa_ref and brand_permission_ref):
             # fail closed: a live partner tenant costs recorded human facts,
@@ -196,7 +203,27 @@ class TenantEmbedConfig:
             dpa_ref=dpa_ref,
             brand_permission_ref=brand_permission_ref,
             partner_backend_origin=partner_backend_origin,
+            allowed_modes=allowed_modes,
         )
+
+
+def _require_allowed_modes(value: object) -> frozenset[str]:
+    """INT-322: the intake depths a tenant may offer. Absent → both modes, so
+    every existing row keeps working; a present value must be a non-empty list of
+    known modes — anything else fails closed at load rather than silently
+    widening what the tenant can offer."""
+    if value is None:
+        return frozenset(INTAKE_MODES)
+    if not isinstance(value, list) or not value:
+        raise EmbedConfigError("allowed_modes must be a non-empty list of intake modes")
+    modes: set[str] = set()
+    for entry in value:
+        if not isinstance(entry, str) or entry not in INTAKE_MODES:
+            raise EmbedConfigError(
+                f"allowed_modes entries must each be one of {sorted(INTAKE_MODES)}"
+            )
+        modes.add(entry)
+    return frozenset(modes)
 
 
 def _optional_ref(name: str, value: object) -> str | None:

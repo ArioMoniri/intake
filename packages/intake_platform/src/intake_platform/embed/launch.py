@@ -10,9 +10,10 @@ device function the tenant is not certified for.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from intake_platform.embed.registry import TenantEmbedConfig
-from intake_platform.embed.tickets import LaunchTicketClaims
+from intake_platform.embed.tickets import IntakeMode, LaunchTicketClaims
 
 __all__ = ["LaunchContext", "resolve_launch_context"]
 
@@ -30,6 +31,9 @@ class LaunchContext:
     logo_asset_id: str
     consent_doc_set_id: str
     device_functions: bool
+    #: The intake depth the branded intake runs in (INT-322), resolved from the
+    #: signed launch-ticket claims — never re-supplied at launch.
+    mode: IntakeMode
 
 
 def resolve_launch_context(claims: LaunchTicketClaims, config: TenantEmbedConfig) -> LaunchContext:
@@ -51,4 +55,8 @@ def resolve_launch_context(claims: LaunchTicketClaims, config: TenantEmbedConfig
         logo_asset_id=theme.logo_asset_id,
         consent_doc_set_id=theme.consent_doc_set_id,
         device_functions=config.device_functions,
+        # claims.mode has been validated to be a member of the closed set by
+        # whichever path produced these claims (mint refuses an unknown mode,
+        # verify re-checks membership); narrow the deserialized str here
+        mode=cast(IntakeMode, claims.mode),
     )
