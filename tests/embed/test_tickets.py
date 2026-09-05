@@ -74,10 +74,12 @@ def test_no_personal_or_clinical_value_in_the_token() -> None:
     token, claims = _mint()
     header_b64, payload_b64, _sig = token.split(".")
     payload = json.loads(base64.urlsafe_b64decode(payload_b64 + "=="))
-    # only ids, a nonce, timestamps and the fixed purpose — a closed key set
-    assert set(payload) == {"tid", "nonce", "iat", "exp", "purpose"}
+    # only ids, a nonce, timestamps, the fixed purpose and the intake-depth mode
+    # (INT-322: a UI flag, not personal data) — a closed key set, no PHI
+    assert set(payload) == {"tid", "nonce", "iat", "exp", "purpose", "mode"}
     assert payload["tid"] == TENANT_A
     assert payload["purpose"] == PURPOSE
+    assert payload["mode"] == "brief"
 
 
 def test_a_ticket_for_one_tenant_cannot_verify_as_another() -> None:
@@ -159,7 +161,14 @@ def test_purpose_is_fixed() -> None:
     payload = (
         base64.urlsafe_b64encode(
             json.dumps(
-                {"tid": TENANT_A, "nonce": "n", "iat": 0, "exp": 9_999_999_999, "purpose": "other"}
+                {
+                    "tid": TENANT_A,
+                    "nonce": "n",
+                    "iat": 0,
+                    "exp": 9_999_999_999,
+                    "purpose": "other",
+                    "mode": "brief",
+                }
             ).encode()
         )
         .rstrip(b"=")
@@ -236,27 +245,39 @@ def test_payload_with_an_open_claim_set_fails_closed() -> None:
 
 def test_payload_with_extra_key_fails_closed() -> None:
     token = _sign_payload(
-        {"tid": TENANT_A, "nonce": "n", "iat": 0, "exp": 9, "purpose": PURPOSE, "x": 1}
+        {
+            "tid": TENANT_A,
+            "nonce": "n",
+            "iat": 0,
+            "exp": 9,
+            "purpose": PURPOSE,
+            "mode": "brief",
+            "x": 1,
+        }
     )
     with pytest.raises(TicketMalformed):
         _verify(token)
 
 
 def test_id_claims_that_are_not_strings_fail_closed() -> None:
-    token = _sign_payload({"tid": 123, "nonce": "n", "iat": 0, "exp": 9, "purpose": PURPOSE})
+    token = _sign_payload(
+        {"tid": 123, "nonce": "n", "iat": 0, "exp": 9, "purpose": PURPOSE, "mode": "brief"}
+    )
     with pytest.raises(TicketMalformed):
         _verify(token)
 
 
 def test_timestamps_that_are_not_ints_fail_closed() -> None:
-    token = _sign_payload({"tid": TENANT_A, "nonce": "n", "iat": "0", "exp": 9, "purpose": PURPOSE})
+    token = _sign_payload(
+        {"tid": TENANT_A, "nonce": "n", "iat": "0", "exp": 9, "purpose": PURPOSE, "mode": "brief"}
+    )
     with pytest.raises(TicketMalformed):
         _verify(token)
 
 
 def test_boolean_timestamp_is_not_an_int() -> None:
     token = _sign_payload(
-        {"tid": TENANT_A, "nonce": "n", "iat": True, "exp": 9, "purpose": PURPOSE}
+        {"tid": TENANT_A, "nonce": "n", "iat": True, "exp": 9, "purpose": PURPOSE, "mode": "brief"}
     )
     with pytest.raises(TicketMalformed):
         _verify(token)
@@ -266,7 +287,14 @@ def test_forged_long_ttl_is_bounded_at_verify() -> None:
     # a token signed under a leaked key claiming a huge lifetime is still
     # refused: exp - iat exceeds the ceiling, checked before the clock
     token = _sign_payload(
-        {"tid": TENANT_A, "nonce": "n", "iat": 0, "exp": 99_999, "purpose": PURPOSE}
+        {
+            "tid": TENANT_A,
+            "nonce": "n",
+            "iat": 0,
+            "exp": 99_999,
+            "purpose": PURPOSE,
+            "mode": "brief",
+        }
     )
     with pytest.raises(TicketExpired):
         _verify(token)

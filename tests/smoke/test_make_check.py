@@ -227,9 +227,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # 175 blueprint issues (07 §3.11) + INT-176..178 from the 2026-08-27
     # security review (tracker issue #195) + INT-294 (TTS admission eats the
     # clip deadline; the mute then latches) + INT-319 (dev on-prem TTS lane +
-    # latency harness) + INT-320 (embeddable white-label integration, ADR-029);
-    # grows only with a stated reason.
-    assert len(ids) == 245, f"expected 175 blueprint + 70 added issues, got {len(ids)}"
+    # latency harness) + INT-320 (embeddable white-label integration, ADR-029)
+    # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
+    # mode bound inside the signed launch ticket); grows only with a stated reason.
+    assert len(ids) == 246, f"expected 175 blueprint + 71 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

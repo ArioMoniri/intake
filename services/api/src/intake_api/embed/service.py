@@ -20,6 +20,7 @@ from typing import Protocol, runtime_checkable
 
 from intake_platform.consent.texts import ConsentTextCatalog
 from intake_platform.embed import (
+    DEFAULT_INTAKE_MODE,
     DEFAULT_TTL_S,
     EmbedConsentDocumentSet,
     InMemoryNonceStore,
@@ -29,6 +30,7 @@ from intake_platform.embed import (
     TenantEmbedRegistry,
     TicketExpired,
     TicketMalformed,
+    TicketModeInvalid,
     TicketPurposeInvalid,
     TicketReplayed,
     TicketSignatureInvalid,
@@ -47,6 +49,7 @@ from intake_platform.secrets import SecretsProvider
 from intake_api.audit import AuditWriter
 from intake_api.errors import (
     embed_consent_unavailable,
+    embed_mode_not_allowed,
     embed_signing_key_unavailable,
     embed_ticket_refused,
     unknown_embed_tenant,
@@ -75,6 +78,7 @@ _REFUSAL_CODES: dict[type[LaunchTicketError], str] = {
     TicketSignatureInvalid: "signature",
     TicketTenantMismatch: "tenant",
     TicketPurposeInvalid: "purpose",
+    TicketModeInvalid: "mode",
     TicketTtlTooLong: "ttl",
     TicketMalformed: "malformed",
 }
@@ -165,11 +169,17 @@ class EmbedService:
     def _now(self) -> datetime:
         return self._now_fn()
 
-    async def mint(self, tenant_id: str, *, actor: str) -> MintResult:
+    async def mint(
+        self, tenant_id: str, *, actor: str, mode: str = DEFAULT_INTAKE_MODE
+    ) -> MintResult:
         try:
             config = self._wiring.registry.resolve(tenant_id)
         except UnknownTenantError as exc:
             raise unknown_embed_tenant() from exc
+        # gate the requested depth against what this tenant may offer, before we
+        # touch its key — a mode the tenant does not allow fails closed
+        if mode not in config.allowed_modes:
+            raise embed_mode_not_allowed()
         key = self._wiring.signing_keys.signing_key(config.signing_key_ref)
         if key is None:
             raise embed_signing_key_unavailable()
@@ -178,6 +188,7 @@ class EmbedService:
             signing_key=key,
             now=self._now(),
             ttl_s=self._wiring.ttl_s,
+            mode=mode,
         )
         await self._audit.record(
             actor=actor,

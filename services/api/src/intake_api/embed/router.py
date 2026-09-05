@@ -55,7 +55,7 @@ Service = Annotated[EmbedService, Depends(_service)]
 async def mint_ticket(body: MintRequest, principal: Principal, service: Service) -> MintResponse:
     """Mint a signed, single-use launch ticket for a registered embed tenant."""
     require_admin(principal)
-    result = await service.mint(body.tenant_id, actor=principal.account_id)
+    result = await service.mint(body.tenant_id, actor=principal.account_id, mode=body.mode)
     return MintResponse(
         ticket=result.ticket,
         launch_url=result.launch_url,
@@ -78,6 +78,7 @@ async def launch(body: LaunchRequest, service: Service) -> LaunchResponse:
         ),
         consent_doc_set_id=context.consent_doc_set_id,
         device_functions=context.device_functions,
+        mode=context.mode,
     )
 
 

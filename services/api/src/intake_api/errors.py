@@ -31,6 +31,7 @@ __all__ = [
     "note_not_shared",
     "dpop_invalid",
     "embed_consent_unavailable",
+    "embed_mode_not_allowed",
     "embed_signing_key_unavailable",
     "embed_ticket_refused",
     "embed_unconfigured",
@@ -229,6 +230,13 @@ def embed_signing_key_unavailable() -> HTTPException:
     """INT-320. The tenant is registered but its signing key is not available
     from OpenBao (dev server not seeded, or the ref is empty). Fail closed."""
     return HTTPException(status_code=503, detail={"error": "embed_signing_key_unavailable"})
+
+
+def embed_mode_not_allowed() -> HTTPException:
+    """INT-322. The partner asked to mint a ticket for an intake mode the tenant
+    is not allowed to offer (its ``allowed_modes``). Fail closed with an
+    id-shaped code — the requested mode is not echoed (invariant 6)."""
+    return HTTPException(status_code=400, detail={"error": "embed_mode_not_allowed"})
 
 
 def embed_ticket_refused(code: str) -> HTTPException:

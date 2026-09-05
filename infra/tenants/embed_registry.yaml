@@ -34,6 +34,11 @@ tenants:
     legal_root: "docs/legal/embed/dev-partner-alpha"
     device_functions: false
     partner_backend_origin: "https://dev-partner-alpha.localhost"
+    # INT-322: the intake depths this tenant may offer. `hastanede` (detailed /
+    # "Detaylı") and `brief` (quick / "Hızlı"). Omitting this field defaults to
+    # both, so existing rows keep working; minting a ticket for a mode outside
+    # this set is refused, fail closed.
+    allowed_modes: ["hastanede", "brief"]
     theme:
       display_name: "Vizite Dev Partner"
       locale: "tr"
