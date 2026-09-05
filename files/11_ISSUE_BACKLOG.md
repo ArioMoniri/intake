@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 11 · doing 5 · done 130 · todo 100 · withdrawn 1.
+**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 11 · doing 5 · done 133 · todo 97 · withdrawn 1.
 
 ## P0
 
@@ -208,13 +208,13 @@
 | INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
 | INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
 | INT-305 | One-tap CSAT cannot form a csat.v1 event, because the schema requires a reason the first tap has not given | E16-experience | INT-240, INT-137 | area:experience, area:mobile | todo |
-| INT-306 | The schema records a visit DATE and the expiry rule needs a visit DATETIME | E02-data | — | area:data | todo |
+| INT-306 | The schema records a visit DATE and the expiry rule needs a visit DATETIME | E02-data | — | area:data | done |
 | INT-308 | carrier/geo sanity checks against SMS pumping are named in the security spec and implemented nowhere | E01-platform | INT-263 | area:security, area:platform | todo |
 | INT-309 | A Decimal still loses its type at three boundaries: the FHIR scalar mapper, the overlay store, and a JSON round trip | E02-data | INT-303 | area:data | done |
 | INT-310 | Eight npm advisories block make security, including vitest at CVSS 9.8 | E13-infra | INT-019 | area:security, area:ci | done |
 | INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | todo |
 | INT-314 | Four spoken fields are still Turkish-only, so a red-flag action script cannot yet be per-locale | E03-protocols | INT-297 | area:protocols, area:i18n, area:safety | done |
-| INT-315 | assert_restore_target_outside_workspace resolves the target and not the workspace, so a symlinked directory INSIDE the repo reads as outside | E13-infra | — | area:infra, area:security | todo |
+| INT-315 | assert_restore_target_outside_workspace resolves the target and not the workspace, so a symlinked directory INSIDE the repo reads as outside | E13-infra | — | area:infra, area:security | done |
 | INT-319 | Dev on-prem expressive-TTS lane for scripted questions + latency assessment harness | E05-voice | — | area:voice, area:lanes, gpu, approval:human-vendor | awaiting-human |
 | INT-321 | Intake asks its mode up front; 'Sıranız geldi' becomes 'Bitirdim' and the per-question mode row is retired | E08-mobile | INT-295, INT-286 | area:mobile, area:a11y | done |
 | INT-323 | Department-dynamic previsit routing: inbound department → branch → served pack | E03-protocols | INT-042, INT-134 | area:protocols, area:connectors | done |
@@ -260,7 +260,7 @@
 | INT-231 | Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation) | E15-research | INT-230 | area:research | todo |
 | INT-262 | Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies) | E15-research | INT-230 | area:research, risk:legal, approval:human-legal | todo |
 | INT-250 | Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook | E17-release | INT-189, INT-213 | area:release, risk:legal | todo |
-| INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | todo |
+| INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | done |
 | INT-320 | Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold) | E10-connectors | INT-250 | area:release, risk:security, risk:legal, approval:human-legal | doing |
 | INT-322 | Embed handshake: intake mode (hastanede/brief) bound inside the signed launch ticket | E10-connectors | INT-320 | area:release, risk:security, risk:legal | done |
 

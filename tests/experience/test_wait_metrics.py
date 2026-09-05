@@ -59,6 +59,7 @@ from intake_platform.export_safety import sanitise_cell
 from intake_platform.slo import load_metrics_catalog
 from intake_platform.wait_times import (
     DOCUMENT_KIND_BY_CONTENT_TYPE,
+    WAIT_PUBLISHER,
     WAIT_SOURCES,
     WaitSource,
     WaitSourceUnavailableError,
@@ -445,6 +446,7 @@ def test_the_export_neutralises_a_formula_lead_in_a_registry_note() -> None:
         end_moment="clinician calls the patient",
         observable=False,
         missing_instant='=HYPERLINK("https://attacker.example","tikla")',
+        publisher=WAIT_PUBLISHER,
     )
     rollup = roll_up_wait([], cohort=_cohort(), kind=WaitKind.CHECKIN_TO_SEEN)
     row = sds01_table([rollup], sources=(hostile,))[1]

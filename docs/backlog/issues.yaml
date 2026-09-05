@@ -4217,7 +4217,8 @@
   depends_on: []
   labels:
   - area:data
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-306.md
   acceptance:
   - 'the slot carries a time of day where one is known, and states that it is
     unknown where it is not - an absent time must stay absent rather than
@@ -4247,7 +4248,8 @@
   labels:
   - area:platform
   - area:observability
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-307.md
   acceptance:
   - 'the publisher accepts an unlabelled wait family, so a series such as
     wait.doctor_link_first_open_h has a writer rather than a catalogue row with
@@ -4544,7 +4546,8 @@
   labels:
   - area:infra
   - area:security
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-315.md
   acceptance:
   - 'the workspace side is resolved too: a directory that git can see inside the
     repository must be refused as a restore target even when it is reached

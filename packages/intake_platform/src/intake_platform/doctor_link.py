@@ -13,14 +13,18 @@ encode have one home and one test:
 - the **expiry anchor**: files/02 §2b pins Doctor Link expiry to
   ``visit_datetime + 72 h`` and says in terms that ``issue_time + 72 h`` is the
   wrong clock — *"the single most likely cause of 'the doctor couldn't see it'
-  at P1"*. This repo records a visit **date** and no time of day (the
-  ``visit.date`` slot, INT-134), so the exact datetime cannot be computed.
-  :func:`link_expires_at` therefore anchors to the **start** of the visit date
-  in Türkiye and adds 72 h. That direction is deliberate: the start of the day
-  is never later than the appointment, so the computed expiry is never later
-  than the spec's value — it errs strictly towards LESS exposure — while still
-  leaving at least 48 h after any appointment on that date. An hour of the day
-  is not invented anywhere.
+  at P1"*. Since INT-306 a visit records a time of day where one is known
+  (:class:`~clinical_schemas.visit_time.VisitSchedule`), so
+  :func:`link_expires_at` applies the spec's own rule unapproximated whenever
+  the schedule carries one. Where it does not — an honest recorded state, not a
+  missing value — INT-150's anchor stays as the documented **fallback**: the
+  start of the visit date in Türkiye, plus 72 h. That direction is what makes
+  the fallback safe rather than merely different — the start of the day is
+  never later than the appointment, so the fallback expiry is never later than
+  the spec's value; it errs strictly towards LESS exposure while still leaving
+  at least 48 h after any appointment on that date. An hour of the day is not
+  invented anywhere, and taking a ``VisitSchedule`` rather than a bare date is
+  what makes the caller say which of the two rules it is asking for.
 - the **watermark**: files/10 §2 wants the recipient and the timestamp on
   every rendered view and download. :class:`Watermark` composes exactly those,
   plus the opaque link reference that ties a leaked page back to one grant.
@@ -42,6 +46,8 @@ import secrets
 from dataclasses import dataclass
 from datetime import UTC, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from clinical_schemas.visit_time import VisitSchedule
 
 __all__ = [
     "DEFAULT_VIEW_LIMIT",
@@ -131,14 +137,24 @@ def _tz() -> ZoneInfo:
         ) from exc
 
 
-def link_expires_at(visit_date: dt.date) -> dt.datetime:
-    """``start of the visit date in Türkiye + 72 h``, as an aware UTC instant.
+def link_expires_at(schedule: VisitSchedule) -> dt.datetime:
+    """``the visit's instant in Türkiye + 72 h``, as an aware UTC instant.
 
-    See the module docstring for why the anchor is the start of the day: the
-    schema records a date and no time, and the start of the day is the only
-    anchor that cannot land later than the appointment it is protecting.
+    files/02 §2b's rule, applied to the appointment itself where the schedule
+    records one. Where it does not, the anchor falls back to the START of the
+    visit date — never later than the appointment, therefore never later than
+    the spec's value, so the fallback can only shorten the window and never
+    lengthen it. The module docstring carries the reasoning;
+    ``test_the_fallback_is_never_later_than_the_true_appointment`` in
+    ``tests/clinician/test_doctor_link.py`` asserts that direction for every
+    minute of the day.
+
+    The zone is applied here and only here: a :class:`VisitTime` is a civil
+    time in the visit's own calendar, so combining it with the visit's date
+    under ``Europe/Istanbul`` is the one place the two halves become an instant.
     """
-    start = dt.datetime.combine(visit_date, dt.time.min, tzinfo=_tz())
+    anchor = schedule.time.at if schedule.time is not None else dt.time.min
+    start = dt.datetime.combine(schedule.date, anchor, tzinfo=_tz())
     return (start + DOCTOR_LINK_TTL).astimezone(UTC)
 
 
