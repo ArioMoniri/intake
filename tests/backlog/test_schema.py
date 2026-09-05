@@ -42,7 +42,7 @@ def test_ids_unique_and_well_formed() -> None:
     # harness) + INT-320 (embeddable white-label integration: partner
     # "Start pre-visit" button + tenant handshake, ADR-029).
     # Grow this count only with a stated reason.
-    assert len(ids) == 244
+    assert len(ids) == 245
     import re
 
     for i in ids:

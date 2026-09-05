@@ -620,7 +620,8 @@ export const en: Record<MessageKey, string> = {
   "dialogue.speakCorrection": "Say the correction",
   "dialogue.typeThisStep": "Answer by typing",
   "dialogue.transcribing": "Transcribing…",
-  "dialogue.notUnderstood": "I could not quite understand that. Let us ask the same question once more.",
+  "dialogue.notUnderstood":
+    "I could not quite understand that. Let us ask the same question once more.",
   "dialogue.voiceMuted":
     "Reading aloud is not working right now. You can read the questions on screen and answer by speaking or by typing.",
   "dialogue.noteForming": "Note taking shape",
@@ -633,10 +634,18 @@ export const en: Record<MessageKey, string> = {
   "intake.next": "Continue",
   "intake.finish": "See the summary",
 
-  // INT-236 — Hızlı/Detaylı mode (02 §2), environment check (02 §33) and
-  // the "your turn" checkpoint (02 §34).
-  "intake.mode.hastanedeyim": "I am at the hospital",
-  "intake.mode.detayliOn": "Detailed mode on",
+  // INT-321 — the mode is asked once, up front (02 §2), not on every
+  // question. Two calm doors; the old per-question row is gone; the
+  // checkpoint survives as the first-person "I am done".
+  "intake.mode.q": "How shall we go about this?",
+  "intake.mode.hospital": "I am at the hospital",
+  "intake.mode.hospitalSub":
+    "Let us go in detail. If your turn comes, you can finish whenever you like.",
+  "intake.mode.brief": "Let us keep it short",
+  "intake.mode.briefSub": "Only the few most essential questions.",
+  // The clinic-interruptible checkpoint (02 §34): first-person, plain.
+  "intake.finishNow": "I am done",
+  // Environment self-check (02 §33) — asked only in the detailed flow.
   "intake.privacy.q": "Is anyone with you right now?",
   "intake.privacy.hint":
     "Some questions are private. If the setting is not suitable, we leave them for later.",
@@ -644,7 +653,6 @@ export const en: Record<MessageKey, string> = {
   "intake.privacy.notAlone": "Yes, someone is with me",
   "intake.privacy.deferredInfo":
     "Private questions will not be asked now. You can continue in a suitable setting.",
-  "intake.queue.called": "It is your turn",
 
   "review.title": "The note going to your doctor",
   "review.intro": "Check the sections. What gets shared is your decision.",
@@ -672,7 +680,7 @@ export const en: Record<MessageKey, string> = {
   "review.eksik.intro": "These questions have not been answered yet:",
   "review.resume": "Continue where you left off",
   "review.checkpointInfo":
-    "Paused because it was your turn. The note is ready as it is; you can continue later if you wish.",
+    "Your note is ready as it is; you can continue where you left off later if you wish.",
 
   "visit.prepare": "Prepare for the visit",
   "visit.reviewNote": "Review the note",

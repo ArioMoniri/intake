@@ -4628,3 +4628,19 @@
   tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
   legal: "KVKK-8,DPA"
   sec_row: "embed"
+- id: INT-321
+  epic: E08-mobile
+  phase: P1
+  title: "Intake asks its mode up front; 'Sıranız geldi' becomes 'Bitirdim' and the per-question mode row is retired"
+  depends_on: [INT-295, INT-286]
+  labels: [area:mobile, area:a11y]
+  status: done
+  evidence: docs/evidence/INT-321.md
+  acceptance:
+    - "the intake mode (Hastanedeyim=ayrıntılı or Kısa=brief) is asked ONCE, up front, before either lane, and recorded on the note as modeChosen; a default value is never a silent choice (the chooser shows until a choice is recorded)"
+    - "the per-question ModeBar is removed (component and its spec deleted), so a patient meets the question and its one CTA, not a mode switch riding on top of every screen"
+    - "the clinic-interruptible checkpoint (02 §34) survives, relabelled from 'Sıranız geldi' to the plain first-person 'Bitirdim', shown only in the ayrıntılı flow once something is answered; committed answers are untouched (zero lost turns)"
+    - "patient copy is siz throughout with warmth in verb mood not the pronoun, no numeral reaches it (invariant 22 posture), tr is the source of truth with an en mirror (invariant 5), and the register gate stays green with no new PROSE_REGISTER_FINDINGS entry"
+    - "make check-ts green on the loading suite; no placeholder, no skipped test"
+  tests: [apps/mobile/e2e/intakeMode.spec.ts, apps/mobile/src/lib/intake/note.test.ts]
+  sec_row: "mobile"
