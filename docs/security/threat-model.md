@@ -166,12 +166,38 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Threats (STRIDE/LINDDUN):** [D] volumetric and bot traffic; [I/Dd] exfiltration to a
   non-allow-listed host; [T] allow-list drift between CI assertion and live configuration
   (inv. 25 runs in CI, "the wrong place to notice that production diverged" — §4).
+  **[I/Dd] added INT-203, found by booting the tier:** the WAF itself is a PHI channel.
+  CRS rules carry `logdata`, so a blocked request's log line quotes the matched argument
+  back — on this API that argument is `ARGS:json.text_tr`, the patient's utterance, and
+  `[uri …]` carries the query string. Shipping the line to the SIEM trades an injection
+  attempt for a disclosure that succeeds, is durable, and looks like a control working.
+  **[D] added INT-203:** the opposite failure is equally invisible from a config file —
+  a WAF that refuses ordinary Turkish clinical prose (`Ali'nin`, `1x1 sabah/akşam`,
+  `<acil>`) takes the product off the air while every dashboard reads "protected".
 - **Controls (files/10):** §4 edge — Traefik/Envoy with Coraza (OWASP CRS), CrowdSec,
   egress proxy with allow-list where every call is logged with vendor, purpose and bytes
   (doubling as KVKK transfer evidence); allow-list as live console configuration.
-- **Signals:** WAF/CrowdSec blocks and egress denials — a hard alert (§7); land with
-  INT-203 and INT-018.
-- **Tests:** egress policy tests land with INT-018; edge stack tests with INT-203/INT-204.
+  **INT-203:** one policy (`infra/security/edge/edge-policy.yaml`) renders Traefik's
+  static and dynamic configuration, the CrowdSec scenarios and acquisition, and the
+  cert-manager manifest, so the four enforcement points cannot drift; the schema refuses
+  `DetectionOnly`, a threshold looser than the CRS default, an exclusion wider than one
+  rule × one route × one parameter, and an exclusion past its expiry. `EdgeEvent` is a
+  closed record with no field a sentence could occupy — the discipline `TransferRecord`
+  already applies to the egress register. Traefik's access log is field-selected `drop`
+  by default and the CrowdSec parser extracts exactly two values, neither a path.
+  CrowdSec's central API is off: sending client addresses to a third-party reputation
+  service is a §1 transfer nobody consented to.
+- **Signals:** WAF/CrowdSec blocks and egress denials — a hard alert (§7);
+  `sec.cert_expiry_days` for the renewal countdown. `sec.egress_denied_total` is live
+  (INT-018); the WAF and certificate series are served by Traefik's own `/metrics` on a
+  non-internet entry point and stay `planned` in the catalogue until a deployment scrapes
+  them.
+- **Tests:** `tests/infra/test_waf_rules.py` (the policy, the renders, the log boundary,
+  the CrowdSec and certificate clauses); `tests/infra/test_edge_stack_integration.py` —
+  the corpus in `tests/fixtures/waf/corpus.yaml` decided against the **booted** engine in
+  both directions, seven CRS families refused and five ordinary Turkish clinical turns
+  served; `tests/infra/test_edge_egress.py` (the prod proxy: denied ranges, rebinding,
+  redirects, the denial metric). Mesh mTLS lands with INT-204.
 
 ## `monitoring-contract` — health, metrics, SLOs
 

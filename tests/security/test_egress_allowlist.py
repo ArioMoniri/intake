@@ -705,8 +705,9 @@ def test_the_allow_list_still_refuses_behind_the_proxy() -> None:
 
 
 def test_a_wrong_purpose_is_still_refused_behind_the_proxy() -> None:
+    """Delegating the pin does not delegate the purpose check either."""
     policy = _policy(_resolver({}))
-    wrong = EgressContext(purpose=EgressPurpose.MODEL_WEIGHTS, data_class=DataClass.PHI)
+    wrong = EgressContext(purpose=EgressPurpose.MODEL_WEIGHTS, data_class=DataClass.NON_PERSONAL)
     transport = guarded_transport(
         policy,
         wrong,
@@ -715,6 +716,29 @@ def test_a_wrong_purpose_is_still_refused_behind_the_proxy() -> None:
     )
     with httpx.Client(transport=transport) as client, pytest.raises(EgressDenied):
         client.get("https://pypi.org/simple/")
+
+
+def test_a_personal_data_transport_may_not_delegate_its_pin_at_all() -> None:
+    """INT-203. This case used to be reachable and refused later, on the
+    purpose; it is now refused at construction, which is strictly earlier.
+
+    The reason is that the proxy path is the one configuration in which
+    NEITHER enforcement point resolves: the process passes the hostname
+    through so the CONNECT line carries it, and the proxy's allow-list has no
+    connector rows and an empty PHI tier. A PHI call configured that way loses
+    the in-process pin and gains nothing — the fourth shape of the bypass
+    ADR-025 catalogued, and the one that looks like configuration rather than
+    like a change to a security boundary.
+    """
+    policy = _policy(_resolver({}))
+    for data_class in (DataClass.PHI, DataClass.PSEUDONYMOUS):
+        with pytest.raises(ValueError, match="delegate its pin"):
+            guarded_transport(
+                policy,
+                EgressContext(purpose=EgressPurpose.MODEL_WEIGHTS, data_class=data_class),
+                inner=httpx.MockTransport(_ok),
+                proxy="http://egress-proxy:3128",
+            )
 
 
 def test_the_denial_message_carries_no_path_or_query() -> None:

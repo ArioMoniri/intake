@@ -53,6 +53,7 @@ This is not INT-254's content to fix and it does not block the work, which is co
 
 Neither blocks this issue: the mechanism ships, the enum is closed, and both choices are recorded in `docs/evidence/INT-084.md`.
 | INT-208 | deferred (merge ordering, not a blocker) | coordinator | `int-200-health-connectors` carries device-local Apple Health / Health Connect and is nine source conflicts behind main, including `apps/mobile/src/lib/intake/note.ts` and its tests — which INT-084's note composer is rewriting right now. Resolving those conflicts against a file being rewritten would produce a merge nobody can review. Package it AFTER INT-084 lands, then re-resolve from the new note shape. Branch is intact at `13feef7`; nothing is lost. |
+| INT-203 | awaiting-human (no container runtime; the tier is built, rendered from one policy, licence-verified and was MEASURED against the real engine on 3 Sep 2026 before the constraint) | owner | Where may the edge tier run — a cluster, a container runtime on a machine we are allowed to install one on, or is the acceptance descoped — given that "WAF blocks OWASP CRS suite; CrowdSec scenarios on; certs automated" is a property of a RUNNING Traefik + Coraza + CrowdSec + cert-manager, the laptop may run no Docker at all and the GPU server is itself a pod with no runtime nested inside it? Until you answer, the corpus in `tests/fixtures/waf/corpus.yaml` has nowhere to be decided, and no clause is claimed from a config file. | HB-I13, HB-I14 |
 
 ## INT-085 — one patient-facing decision the summary refused to take
 
@@ -312,6 +313,51 @@ server rather than against *the partner's* — which is precisely what HB-A5 say
 still refuses, and the SMART path fails closed at each of its own gates: an unregistered
 token host is refused by the egress guard, an unloadable key never reaches the wire, and a
 grant narrower than the row declares stops the push before a byte of the bundle leaves.
+
+---
+
+## INT-203 — the edge has nowhere to run
+
+**What is blocked is a *place*, not a build.** The tier exists, renders from one policy, is
+licence-verified against raw LICENSE blobs, and on **3 Sep 2026** it was booted and
+**measured**: twelve corpus cases decided by a real Traefik 3.3.7 + Coraza + OWASP CRS
+4.0.0, seven CRS families refused and five ordinary Turkish clinical turns served, from a
+cold `docker compose up` to green in 28 seconds. `docs/evidence/INT-203.md` §3–§5 records
+that run with its date, in the repository's usual form: a measurement of one stack on one
+day, never a property of the product.
+
+Then the owner removed the only machine it could run on — no Docker on the laptop at all —
+and the GPU server turned out to have no container runtime either, being itself a pod.
+Installing one on a box several other people share, to make one issue pass, is not a
+decision an agent takes.
+
+**The consequence, stated plainly.** "WAF blocks OWASP CRS suite; CrowdSec scenarios on;
+certs automated" is a property of a **running** tier. Nothing in a YAML file can stand in
+for it: a middleware that returns 403 to everything satisfies a config-file assertion and
+takes the product off the air, and that is precisely the failure the corpus's five Turkish
+negative controls exist to catch. So no clause is claimed from configuration, and the issue
+stays open at `awaiting-human` with `blocked:runtime`.
+
+**Nothing is built around it.** The suite that decides the corpus is committed and
+unmarked-as-skipped — `tests/infra/test_edge_stack_integration.py` boots its own tier and
+**fails**, naming `make edge-plugin`, when the artefact is absent. It does not skip, because
+a WAF suite that silently does not run is worse than no suite. It will go green the moment
+there is somewhere to run it.
+
+**What does NOT need a runtime is merged and green** and is most of the value of the issue:
+the policy schema that refuses `DetectionOnly`, a loosened threshold and a wide or expired
+exclusion; the renderer that keeps five enforcement points from drifting; the edge log
+boundary (`EdgeEvent`), which came out of a real captured line in which Coraza quoted a
+patient's Turkish utterance back into the log; and the whole prod-egress-proxy half —
+registered destinations, denied ranges, resolve-once-and-pin with re-validation on connect,
+redirects disabled, and the denial metric — decided with a local resolver stub and recorded
+fixtures, with no container anywhere.
+
+**The id is the coordinator's to allocate.** It is emphatically *not* HB-I1/HB-I2: those are
+disk and RAM on a machine that may now run nothing at all regardless of how much of either
+it has.
+
+---
 
 ## INT-019 — two CI gates are wired to a workflow file this session may not edit
 

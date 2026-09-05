@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 11 · doing 5 · done 133 · todo 97 · withdrawn 1.
+**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 12 · doing 5 · done 133 · todo 96 · withdrawn 1.
 
 ## P0
 
@@ -187,7 +187,7 @@
 | INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | todo |
 | INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | todo |
 | INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
-| INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security | todo |
+| INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security, blocked:runtime | awaiting-human |
 | INT-205 | Wazuh + Falco deployment + rules + console feed | E13-infra | INT-023 | area:infra, risk:security | done |
 | INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra, approval:human-infra, blocked:contract | awaiting-human |
 | INT-213 | DPIA v1 + vendor transfer register + SCC set + Board notification workflow (5 business days) + hospital DPA template | E14-legal | INT-018, INT-210 | area:legal, risk:legal, approval:human-legal | todo |

@@ -1,0 +1,185 @@
+# INT-203 — the edge policy (files/10 §4 `Edge:`, §7 signals; CLAUDE.md
+# invariants 6, 13, 14).
+#
+# This file is DATA, not code, and it is the ONLY file anyone edits. Every
+# other file under infra/security/edge/ and infra/k8s/edge/ is GENERATED from
+# it by scripts/security/render_edge_conf.py (`make edge-conf`), on the INT-018
+# arrangement: one source, several enforcement points, and a CI failure the
+# moment a generated file is edited by hand
+# (tests/infra/test_waf_rules.py::test_the_rendered_edge_configuration_is_current).
+#
+# Every change here is a security-relevant change. files/10 §5 pages on edge
+# and allow-list changes; the WAF section decides what reaches the API at all.
+#
+# ── Why a WAF policy is mostly a list of things you may NOT write ───────────
+# The OWASP CRS is the ruleset; nothing below re-implements it. What is
+# configurable — and therefore what can be got wrong — is the *tuning*, and
+# the two ways to get it wrong are opposite and equally invisible from a
+# dashboard:
+#
+#   blocks nothing   an exclusion written at `ARGS` instead of one named
+#                    parameter, or at `/` instead of one route, or a threshold
+#                    raised until the alerts stopped.
+#   blocks everything  which for this product means every Turkish clinical
+#                    free-text turn. "Ali'nin doktoru" carries an apostrophe;
+#                    "1x1 sabah/akşam" carries a slash and a digit pair;
+#                    patients write "<acil>" in a text box. The system exists
+#                    to carry exactly that traffic.
+#
+# So the schema (intake_platform.edge.policy) refuses a wide exclusion, refuses
+# a threshold looser than the CRS default, refuses `DetectionOnly`, and refuses
+# an exclusion past its expiry — and the corpus in tests/fixtures/waf/corpus.yaml
+# is decided against the booted engine in both directions.
+version: 1
+
+waf:
+  # ── The engine ───────────────────────────────────────────────────────────
+  # `DetectionOnly` logs an attack and serves it anyway. It is the right mode
+  # for a two-week tuning window on live traffic and the wrong mode to ship,
+  # and the difference between the two is one word nobody re-reads — so the
+  # schema admits one value and a tuning window is a deliberate, reviewed
+  # change to the type rather than to this line.
+  engine: "On"
+
+  # OWASP CRS paranoia level. 1 is the CRS default and the level whose
+  # false-positive behaviour on non-English prose is understood; 2+ adds rules
+  # that match ordinary text and would need an exclusion per clinical field,
+  # which is the "blocks everything" failure arriving one approval at a time.
+  paranoia_level: 1
+
+  # CRS anomaly scoring: a request is refused once the accumulated score
+  # reaches the threshold. 5 is the CRS default — one `critical` rule. The
+  # schema refuses anything above it, so this number may only ever go DOWN,
+  # matching the coverage-thresholds rule in CLAUDE.md invariant 8.
+  inbound_anomaly_threshold: 5
+  outbound_anomaly_threshold: 4
+
+  # Request bodies are inspected, which is the whole point on a JSON API: an
+  # allow-list of hosts does nothing about an injection inside
+  # `{"text_tr": "…"}`. The limit is above the largest intake turn and far
+  # below a document upload, which does not traverse this route.
+  request_body_limit_bytes: 131072
+
+  # ── The ruleset artefact ─────────────────────────────────────────────────
+  # The CRS is embedded in the Coraza http-wasm plugin, so "which ruleset is
+  # deployed" is answered by a hash rather than by a directory listing. The
+  # artefact is fetched and verified by `make edge-plugin`; the sha256 is of
+  # the release zip as published, read on 3 Sep 2026.
+  crs_version: "4.0.0"
+  plugin_version: "v0.3.0"
+  plugin_url: "https://github.com/jcchavezs/coraza-http-wasm-traefik/releases/download/v0.3.0/coraza-http-wasm-v0.3.0.zip"
+  plugin_sha256: "b96680b46e61287faae243e360db5de34e4f315e2a8ee105fedddc176e79b1e7"
+  # The unpacked module, hashed separately: the zip is what we download, the
+  # wasm is what Traefik executes, and pinning only the container leaves the
+  # thing that runs unpinned.
+  wasm_sha256: "b59fd2266c03699da2de9d6d281ffc2a3e791eb6646069d2b9744543ccd90b1c"
+  # Apache-2.0, read from the raw LICENSE blob inside the artefact (files/03
+  # §4.9.0 rule 3: never a badge, never a card tag).
+  licence: "Apache-2.0"
+  licence_blob_sha256: "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  licence_verified_at: "2026-09-03"
+
+  # ── Exclusions ───────────────────────────────────────────────────────────
+  # EMPTY, and that is a finding rather than an oversight: the corpus in
+  # tests/fixtures/waf/corpus.yaml runs real Turkish clinical turns — diacritics,
+  # apostrophes, angle brackets, dose strings — through the booted engine at
+  # paranoia level 1 and none of them is refused, so there is nothing to
+  # exclude yet. An exclusion added later must name ONE CRS rule, at ONE route,
+  # on ONE parameter, with the approval that authorised it and a date it stops
+  # being true; the schema refuses every wider shape, because a wide exclusion
+  # is how a WAF is switched off without anyone editing a rule.
+  exclusions: []
+
+crowdsec:
+  # files/10 §1 lists a third-party reputation service receiving our client
+  # addresses as a transfer nobody consented to, and CrowdSec's value here is
+  # the local behavioural scenarios, not the community blocklist. The scenarios
+  # run; the telemetry does not leave. `online_api: false` is a Literal in the
+  # schema, so turning it on is a type change under review.
+  online_api: false
+  # Traefik's access log, and only the fields the log is allowed to contain
+  # (see tls/accessLog in the rendered traefik.yml — `defaultMode: drop`).
+  acquisition_path: /var/log/traefik/access.log
+  acquisition_type: traefik
+
+  scenarios:
+    - name: intake/waf-block-burst
+      type: leaky
+      description: "One address collecting WAF refusals faster than a person can"
+      # Only fields the parser is permitted to extract appear here. A bucket
+      # keyed on the request path would put `/v1/patients/<id>` into every
+      # alert it raises, and an alert is shipped to the SIEM (invariant 6).
+      filter: "evt.Meta.log_type == 'http_access-log' && evt.Meta.http_status == '403'"
+      groupby: "evt.Meta.source_ip"
+      capacity: 6
+      leakspeed: 60s
+      blackhole: 5m
+      remediation: true
+      signal: "WAF/CrowdSec blocks (files/10 §7)"
+
+    - name: intake/auth-failure-burst
+      type: leaky
+      description: "Credential stuffing and OTP grinding, seen at the edge"
+      filter: "evt.Meta.log_type == 'http_access-log' && evt.Meta.http_status in ['401', '429']"
+      groupby: "evt.Meta.source_ip"
+      capacity: 15
+      leakspeed: 30s
+      blackhole: 15m
+      remediation: true
+      signal: "failed logins and OTP anomalies per IP (files/10 §7)"
+
+    - name: intake/not-found-sweep
+      type: leaky
+      description: "Content discovery: many distinct 404s from one address"
+      filter: "evt.Meta.log_type == 'http_access-log' && evt.Meta.http_status == '404'"
+      groupby: "evt.Meta.source_ip"
+      capacity: 25
+      leakspeed: 20s
+      blackhole: 10m
+      remediation: true
+      signal: "volumetric and bot traffic (threat-model `edge`, [D])"
+
+tls:
+  # ── Certificates, automated in both deployment shapes ────────────────────
+  # Traefik's own ACME client is what runs in the compose tier; cert-manager is
+  # what runs in the cluster (INT-201). One policy renders both, so the renewal
+  # window and the domain list cannot differ between them — which is the drift
+  # that produces an expired certificate on exactly one of the two.
+  resolver: intake-acme
+  ca_server: "https://acme-v02.api.letsencrypt.org/directory"
+  # tlsChallenge needs no inbound HTTP listener and no DNS credential: the edge
+  # already terminates TLS on 443, which is the port the challenge uses.
+  challenge: tlsChallenge
+  storage: /data/acme/acme.json
+  key_algorithm: ECDSA-P256
+  # 30 days is Let's Encrypt's own renewal advice; below that a failed renewal
+  # leaves no room for a human to notice `sec.cert_expiry_days` falling and act.
+  renew_before_days: 30
+  # The ACME account email is a credential-adjacent value and never a literal
+  # in a generated file (invariant 14). Traefik reads it from the environment
+  # variable below, which the deploy sources from OpenBao; it has no default,
+  # so a tier started without it fails to obtain a certificate loudly rather
+  # than serving a self-signed one quietly.
+  account_email_env: TRAEFIK_CERTIFICATESRESOLVERS_INTAKE-ACME_ACME_EMAIL
+  # cert-manager side of the same statement.
+  issuer_name: intake-acme
+  secret_name: intake-edge-tls
+
+  # ── EMPTY, and fail-closed ───────────────────────────────────────────────
+  # No production hostname exists for this system. No file in this repository
+  # names one, no DNS zone is held, and no tenant is contracted — so a domain
+  # written here would be an invented value, and an ACME order for a name we do
+  # not control fails on every renewal while the dashboard reads "automated".
+  # With the list empty the renderer emits the ClusterIssuer (which needs no
+  # domain) and NO Certificate, and Traefik's resolver is armed with nothing to
+  # order. That is the mechanism wired and the content left empty
+  # (CLAUDE.md invariant 17), and the ask is recorded in docs/evidence/INT-203.md
+  # §8 for the coordinator to file: which fully-qualified names does the edge
+  # serve, and which mailbox owns the ACME account?
+  domains: []
+
+  # The name the local tier routes on. `.test` is reserved by RFC 6761 for
+  # exactly this and can never be a real registration, so it cannot quietly
+  # become a production claim; it carries no certificate and the local tier
+  # serves plain HTTP behind loopback.
+  local_host: intake.test

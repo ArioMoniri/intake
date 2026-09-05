@@ -2545,11 +2545,36 @@
   phase: P1
   title: "Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy"
   depends_on: [INT-018]
-  labels: [area:infra, risk:security]
-  status: todo
+  labels: [area:infra, risk:security, blocked:runtime]
+  # The edge is built, rendered from one policy, licence-verified and — on
+  # 3 Sep 2026, before the constraint below — MEASURED against the real engine:
+  # twelve corpus cases decided by a booted Traefik + Coraza + OWASP CRS 4.0.0,
+  # seven CRS families refused and five ordinary Turkish clinical turns served.
+  # That run is recorded in docs/evidence/INT-203.md §3-§5 with its date.
+  #
+  # The issue stays open because the acceptance is a property of a RUNNING
+  # tier and there is now nowhere sanctioned to run one: no container runtime
+  # on the laptop (owner constraint, 3 Sep 2026) and none on the GPU server,
+  # which is itself a pod. A WAF asserted from a config file is the fake
+  # invariant 17 forbids, so no clause is claimed on that basis. What DOES
+  # stand without any runtime is merged and green: the policy schema, the
+  # renders, the edge log boundary, and the whole prod-egress-proxy half
+  # (registered destinations, denied ranges, resolve-once-and-pin with
+  # re-validation on connect, redirects, the denial metric).
+  # docs/evidence/INT-203.md §9 is the clause-by-clause account. The two asks
+  # are registered as HB-I13 (where the tier may run — permission and siting,
+  # explicitly NOT the HB-I1/HB-I2 capacity questions: it is ~200 MB and boots
+  # in 28 s) and HB-I14 (the FQDNs it serves and the mailbox owning the ACME
+  # account). The boundary decision is ADR-032: two enforcement points rendered
+  # from one generator, the proxy's six-hour rebinding window closed where it
+  # exists, and a personal-data transport pointed at the forward proxy refused
+  # at construction — the fourth shape of the ADR-025 bypass, a configuration
+  # rather than a call site.
+  status: awaiting-human
   acceptance:
     - "WAF blocks OWASP CRS suite; CrowdSec scenarios on; certs automated"
   tests: [tests/infra/test_waf_rules.py]
+  evidence: docs/evidence/INT-203.md
   legal: "KVKK-12"
   sec_row: "edge"
 - id: INT-204

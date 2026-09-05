@@ -1,0 +1,20 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+# Signal: volumetric and bot traffic (threat-model `edge`, [D])
+type: leaky
+name: intake/not-found-sweep
+description: "Content discovery: many distinct 404s from one address"
+filter: "evt.Meta.log_type == 'http_access-log' && evt.Meta.http_status == '404'"
+groupby: "evt.Meta.source_ip"
+capacity: 25
+leakspeed: 20s
+blackhole: 10m
+labels:
+  service: http
+  remediation: true
