@@ -125,6 +125,13 @@ export interface NoteState {
   healthLines: string[] | null;
   /** Intake mode (INT-236): Hızlı by default, Hastanedeyim sets Detaylı. */
   mode: IntakeMode;
+  /**
+   * Whether the patient has picked a mode yet (INT-321). The mode is asked
+   * ONCE, up front, before the questions — not as a switch on every screen.
+   * Until this is true the chooser is shown; the default `mode` value is a
+   * fallback, never a silent choice.
+   */
+  modeChosen: boolean;
   /** Environment self-check result (02 §33); asked only in Detaylı. */
   privacy: PrivacyState;
   /** Deferred section ids carried into the note as `eksik` markers. */
@@ -159,6 +166,7 @@ export function emptyNoteState(): NoteState {
     status: "draft",
     healthLines: null,
     mode: "hizli",
+    modeChosen: false,
     privacy: "unchecked",
     deferred: [],
     checkpointed: false,
@@ -188,8 +196,12 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
     case "send":
       return { ...state, status: "sent" };
     case "mode":
-      // A sent note is frozen — the same rule as attachHealth.
-      return state.status === "sent" ? state : { ...state, mode: action.mode };
+      // A sent note is frozen — the same rule as attachHealth. Picking a
+      // mode (INT-321) records the choice, which is what dismisses the
+      // up-front chooser — for either value, so "kısa" is a choice too.
+      return state.status === "sent"
+        ? state
+        : { ...state, mode: action.mode, modeChosen: true };
     case "privacy": {
       if (state.status === "sent") {
         return state;

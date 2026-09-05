@@ -655,17 +655,25 @@ export const tr = {
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
 
-  // INT-236 — Hızlı/Detaylı mod (02 §2), ortam kontrolü (02 §33) ve
-  // "Sıranız geldi" kesme noktası (02 §34).
-  "intake.mode.hastanedeyim": "Hastanedeyim",
-  "intake.mode.detayliOn": "Detaylı mod açık",
+  // INT-321 — the mode is asked ONCE, up front (02 §2), not as a switch on
+  // every question. Two calm doors; warmth is in the verb mood (-elim/-alım),
+  // never in the pronoun. The old per-question row ("Hastanedeyim" switch +
+  // "Sıranız geldi" chip) is gone; the checkpoint survives as "Bitirdim".
+  "intake.mode.q": "Nasıl ilerleyelim?",
+  "intake.mode.hospital": "Hastanedeyim",
+  "intake.mode.hospitalSub":
+    "Ayrıntılı soralım. Sıra size gelirse dilediğinizde bitirebilirsiniz.",
+  "intake.mode.brief": "Kısa tutalım",
+  "intake.mode.briefSub": "Yalnızca en gerekli birkaç soru.",
+  // The clinic-interruptible checkpoint (02 §34): first-person, plain.
+  "intake.finishNow": "Bitirdim",
+  // Environment self-check (02 §33) — asked only in the ayrıntılı flow.
   "intake.privacy.q": "Yanınızda başkası var mı?",
   "intake.privacy.hint": "Bazı sorular özeldir. Ortam uygun değilse onları sonraya bırakırız.",
   "intake.privacy.alone": "Hayır, yalnızım",
   "intake.privacy.notAlone": "Evet, yanımda biri var",
   "intake.privacy.deferredInfo":
     "Özel sorular şimdi sorulmayacak. Uygun bir ortamda devam edebilirsiniz.",
-  "intake.queue.called": "Sıranız geldi",
 
   "review.title": "Hekiminize gidecek not",
   "review.intro": "Bölümleri kontrol edin. Neyin paylaşılacağına siz karar verirsiniz.",
@@ -693,7 +701,7 @@ export const tr = {
   "review.eksik.intro": "Bu sorular henüz yanıtlanmadı:",
   "review.resume": "Kaldığınız yerden devam edin",
   "review.checkpointInfo":
-    "Sıranız geldiği için ara verildi. Not bu haliyle hazır; dilerseniz sonra devam edebilirsiniz.",
+    "Notunuz bu haliyle hazır; dilerseniz sonra kaldığınız yerden devam edebilirsiniz.",
 
   "visit.prepare": "Muayeneye hazırlanın",
   "visit.reviewNote": "Notu kontrol edin",

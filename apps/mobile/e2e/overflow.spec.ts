@@ -311,8 +311,9 @@ describe("the review card header", () => {
  *
  * This does not claim to catch every horizontal overflow — a plain row of
  * two long labels can still overflow without pinning anything, and only a
- * width model catches that (`e2e/modeBar.spec.ts` runs one over the mode
- * row). It catches the shape that has now produced the defect three times.
+ * width model catches that. (INT-321 retired the per-question mode row and
+ * its width model with it; the mode is a one-time choice now.) It catches
+ * the shape that has produced the defect three times.
  */
 const FAR_END = /(justifyContent: "space-between"|marginLeft: "auto")/;
 
