@@ -229,7 +229,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # clip deadline; the mute then latches) + INT-319 (dev on-prem TTS lane +
     # latency harness) + INT-320 (embeddable white-label integration, ADR-029);
     # grows only with a stated reason.
-    assert len(ids) == 244, f"expected 175 blueprint + 69 added issues, got {len(ids)}"
+    assert len(ids) == 245, f"expected 175 blueprint + 70 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
