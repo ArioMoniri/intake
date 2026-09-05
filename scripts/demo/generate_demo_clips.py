@@ -33,7 +33,7 @@ The constraints ADR-028 enforces, enforced here too:
   hash is re-verified here against sha256(text).
 
 Usage (from the repo root):
-    export TTS_ELEVENLABS_BASE_URL=https://api.elevenlabs.io
+    export TTS_ELEVENLABS_BASE_URL=...        # the ElevenLabs API base, kept in tts.env
     export TTS_ELEVENLABS_API_KEY=...        # from ~/.config/intake/tts.env
     export EVAL_BUDGET_USD=5
     uv run python scripts/demo/generate_demo_clips.py            # full run
@@ -217,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     budget_raw = os.environ.get(ENV_BUDGET, "").strip()
     if not base or not key:
         raise SystemExit(
-            f"set {ENV_BASE} (e.g. https://api.elevenlabs.io) and {ENV_KEY} "
+            f"set {ENV_BASE} and {ENV_KEY} "
             "(from ~/.config/intake/tts.env) — the key is read from the environment only"
         )
     if not budget_raw:

@@ -16,6 +16,7 @@ Two things are deliberately absent:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from intake_platform.admin import (
@@ -26,18 +27,29 @@ from intake_platform.admin import (
     ApprovalBrief,
     PendingAction,
 )
+from intake_platform.compliance import (
+    ConsentCoverageRow,
+    EvidenceBundle,
+    VendorRegisterRow,
+)
+from intake_platform.compliance.audit_search import AuditSearchRow
 from intake_probes.console import BenchmarkKind, BenchmarkPlan, BenchmarkResult, ModelsModule
 
 from intake_api.admin.models_source import PROBE_CLIENTS_ENV
 
 __all__ = [
     "action_registry_view",
+    "audit_search_view",
     "benchmark_plan_view",
     "benchmark_result_view",
     "brief_view",
+    "consent_coverage_view",
+    "dsar_queue_view",
+    "evidence_bundle_view",
     "models_module_view",
     "pending_view",
     "role_registry_view",
+    "vendor_register_view",
     "whoami",
 ]
 
@@ -238,3 +250,100 @@ def benchmark_result_view(result: BenchmarkResult) -> dict[str, Any]:
     body["detail"] = result.detail
     body["measurement"] = result.measurement.render() if result.measurement is not None else None
     return body
+
+
+# --------------------------------------------------------------------------
+# INT-189 — the compliance module (files/08 §4)
+# --------------------------------------------------------------------------
+
+
+def vendor_register_view(rows: Sequence[VendorRegisterRow]) -> dict[str, Any]:
+    """`GET /admin/compliance/vendor-register`.
+
+    The KVKK transfer register auto-filled from the egress feed. Every field is
+    id-shaped, numeric or a date (invariant 6), and every row carries the
+    ``{category, purpose, basis, retention, recipients}`` inventory shape and
+    its five-business-day notification due-date (invariant 18).
+    """
+    return {
+        "rows": [
+            {
+                "host": row.host,
+                "port": row.port,
+                "purpose_id": row.purpose_id.value,
+                "purpose": row.purpose,
+                "category": row.category,
+                "basis": row.basis,
+                "retention": row.retention,
+                "recipients": row.recipients,
+                "data_class": row.data_class.value,
+                "first_seen": row.first_seen.isoformat(),
+                "last_seen": row.last_seen.isoformat(),
+                "transfer_count": row.transfer_count,
+                "bytes_out": row.bytes_out,
+                "notification_due": row.notification_due.isoformat(),
+                "notification_window_open": row.notification_window_open,
+            }
+            for row in rows
+        ]
+    }
+
+
+def consent_coverage_view(rows: Sequence[ConsentCoverageRow]) -> dict[str, Any]:
+    """`GET /admin/compliance/consents` — coverage by scope/version, counts only."""
+    return {
+        "rows": [
+            {
+                "scope": row.scope,
+                "version": row.version,
+                "granted": row.granted,
+                "withdrawn": row.withdrawn,
+            }
+            for row in rows
+        ]
+    }
+
+
+def audit_search_view(rows: Sequence[AuditSearchRow]) -> dict[str, Any]:
+    """`GET /admin/compliance/audit-search` — ids only, no chain material."""
+    return {
+        "rows": [
+            {
+                "seq": row.seq,
+                "occurred_at_utc": row.occurred_at_utc,
+                "actor": row.actor,
+                "action": row.action,
+            }
+            for row in rows
+        ]
+    }
+
+
+def dsar_queue_view(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """`GET /admin/compliance/dsar` — the open DSAR queue with the m.13 clock.
+
+    The rows already arrive ids/clocks only from the source; this wraps them so
+    the body shape matches the other module reads.
+    """
+    return {"rows": list(rows)}
+
+
+def evidence_bundle_view(bundle: EvidenceBundle) -> dict[str, Any]:
+    """`GET /admin/compliance/evidence-export` — the text-typed bundle.
+
+    Every cell is already neutralised by the invariant-47 guard; the digest
+    lets an inspector tell two exports apart and detect a later edit.
+    """
+    return {
+        "generated_at": bundle.generated_at,
+        "legal_refs": list(bundle.legal_refs),
+        "digest": bundle.digest,
+        "sections": [
+            {
+                "title": section.title,
+                "columns": list(section.columns),
+                "rows": [list(row) for row in section.rows],
+            }
+            for section in bundle.sections
+        ],
+    }

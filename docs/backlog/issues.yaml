@@ -1854,7 +1854,8 @@
   title: "HBYS/SBYS adapter kit (HL7v2 ORU / file drop / FHIR) + USVS mapping + KTS registration pack"
   depends_on: [INT-160]
   labels: [area:connectors, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-162.md
   acceptance:
     - "mapping tables to USVS data dictionary; KTS (SBYS Kayit Tescil) application pack generated from repo docs; processor-role DPA references"
   tests: [tests/connectors/test_usvs_mapping.py]
@@ -2454,7 +2455,7 @@
   title: "Flags module (Unleash) + 4-eyes on safety flags"
   depends_on: [INT-023, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
   acceptance:
     - "change reasons mandatory; safety flags list incl. device_functions, s2s, learning-apply"
   tests: [tests/admin/test_flag_governance.py]
@@ -2465,7 +2466,7 @@
   title: "Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports"
   depends_on: [INT-036, INT-037, INT-038, INT-180]
   labels: [area:admin, risk:legal]
-  status: todo
+  status: done
   acceptance:
     - "vendor-transfer register auto-filled from egress logs with notification due-dates (5 business days rule); evidence export bundles for audits"
   tests: [apps/admin-web/e2e/compliance.spec.ts]
@@ -4629,3 +4630,104 @@
   - tests/schemas/test_previsit_output_contract.py
   - tests/platform/test_previsit_output_recipients.py
   sec_row: "connectors"
+- id: INT-319
+  epic: E05-voice
+  phase: P1
+  # The scripted protocol questions carry no patient answer, so they can be
+  # voiced with the best available quality without a PHI-path egress. INT-319
+  # adds (a) `make tts-latency`, a dev harness that measures four delays per lane
+  # over one fixed named corpus; (b) the on-prem expressive runtime lane for
+  # dynamic / allow_paraphrase lines (VoxCPM2, files/03 §4.9.1 rows 10-12); and
+  # (c) an OFFLINE cloud clip-gen path (ElevenLabs, ADR-028) that pre-synthesises
+  # the FIXED set into the clip cache with zero per-session egress. CosyVoice2 is
+  # a blocked benchmark candidate only: files/00_STATE.md line 99 rules it out
+  # for Turkish and its licence is unverified against a raw LICENSE blob.
+  title: 'Dev on-prem expressive-TTS lane for scripted questions + latency assessment
+    harness'
+  depends_on: []
+  labels:
+  - area:voice
+  - area:lanes
+  - gpu
+  - approval:human-vendor
+  status: awaiting-human
+  evidence: docs/evidence/INT-319.md
+  acceptance:
+  - '`make tts-latency` measures four delays per lane - compiled-text to synth
+    start, time-to-first-audio, time-to-full-audio, and total delivery delay -
+    over one fixed named corpus, records them with a date and the corpus name
+    (invariant 20), and reports a lane it could not measure as blocked rather
+    than a filled-in number (invariant 17)'
+  - 'the expressive runtime lane speaks the scripted line verbatim from text_tr
+    (invariant 10) and no numeral reaches any TTS model (invariant 22: the
+    compiler expands numerals to Turkish orthography and every model normaliser,
+    self-hosted and cloud alike, is disabled) - the harness and the adapters
+    assert both'
+  - 'the offline cloud clip-gen adapter (ADR-028) sits behind the existing
+    gateway, resolves its key from the environment only and never logs it,
+    disables the vendor normaliser, is spend-gated so no test or CI dials it, and
+    puts no vendor hostname literal in the tree (assert_no_vendor_calls.sh stays
+    green)'
+  - 'the runtime never calls the cloud vendor - it plays cached clips, so there
+    is no per-session egress and invariant 19 is not weakened; the ElevenLabs
+    licence/terms and the KVKK Art. 9 transfer question are recorded as human
+    blockers'
+  - 'evidence records the per-model latency measurements - the on-prem prior
+    numbers with provenance, the offline cloud small-run, and the clip-cache
+    playback path - with a date and the named corpus, described as measurements
+    only'
+  tests:
+  - tests/voice/test_tts_latency.py
+  - tests/voice/test_elevenlabs_clipgen.py
+  sec_row: "cloud-clipgen"
+- id: INT-320
+  epic: E10-connectors
+  phase: P2
+  title: "Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold)"
+  depends_on: [INT-250]
+  labels: [area:release, risk:security, risk:legal, approval:human-legal]
+  status: doing
+  evidence: docs/evidence/INT-320.md
+  acceptance:
+    - "ADR-029 proposes the embed surface (signed launch-ticket handshake vs an embedded UI, with a recommendation and tradeoffs), the constrained tenant-branding model, the auth/consent handshake, and how tenant isolation is preserved within D1-D15 and ADR-001..028"
+    - "signed, single-use, short-lived launch ticket: the partner backend mints it server-to-server; the patient device launches it; the tenant is bound INSIDE the signature so a ticket cannot cross tenants; no PHI in the ticket; the nonce is single-use; device_functions stays off (ADR-020)"
+    - "tenant embed registry (infra/tenants/embed_registry.yaml): branding is constrained data not partner markup, fail-closed, ships with ZERO prod rows and one dev-tier synthetic tenant; a prod row is refused without recorded DPA + brand-permission facts (human sign-off)"
+    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Vizite's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
+    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Vizite launch url, never holding a Vizite secret"
+    - "NO real partner secrets or branding; a partner-supplied patient identifier / note-back correlation is out of scope pending human sign-off (a new personal-data category + recipient), built as the mechanism only, fail-closed, content empty"
+  tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
+  legal: "KVKK-8,DPA"
+  sec_row: "embed"
+- id: INT-321
+  epic: E08-mobile
+  phase: P1
+  title: "Intake asks its mode up front; 'Sıranız geldi' becomes 'Bitirdim' and the per-question mode row is retired"
+  depends_on: [INT-295, INT-286]
+  labels: [area:mobile, area:a11y]
+  status: done
+  evidence: docs/evidence/INT-321.md
+  acceptance:
+    - "the intake mode (Hastanedeyim=ayrıntılı or Kısa=brief) is asked ONCE, up front, before either lane, and recorded on the note as modeChosen; a default value is never a silent choice (the chooser shows until a choice is recorded)"
+    - "the per-question ModeBar is removed (component and its spec deleted), so a patient meets the question and its one CTA, not a mode switch riding on top of every screen"
+    - "the clinic-interruptible checkpoint (02 §34) survives, relabelled from 'Sıranız geldi' to the plain first-person 'Bitirdim', shown only in the ayrıntılı flow once something is answered; committed answers are untouched (zero lost turns)"
+    - "patient copy is siz throughout with warmth in verb mood not the pronoun, no numeral reaches it (invariant 22 posture), tr is the source of truth with an en mirror (invariant 5), and the register gate stays green with no new PROSE_REGISTER_FINDINGS entry"
+    - "make check-ts green on the loading suite; no placeholder, no skipped test"
+  tests: [apps/mobile/e2e/intakeMode.spec.ts, apps/mobile/src/lib/intake/note.test.ts]
+  sec_row: "mobile"
+- id: INT-322
+  epic: E10-connectors
+  phase: P2
+  title: "Embed handshake: intake mode (hastanede/brief) bound inside the signed launch ticket"
+  depends_on: [INT-320]
+  labels: [area:release, risk:security, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-322.md
+  acceptance:
+    - "MintRequest gains an optional mode field, a closed enum of exactly {hastanede, brief} defaulting to brief, with model_config extra=forbid kept; an unknown mode string is rejected by the schema"
+    - "the mode is carried INSIDE the signed launch-ticket claims (LaunchTicketClaims) so it is covered by the signature - never a query param, never re-supplied at launch; it is a UI-depth flag, not personal data (invariant 6)"
+    - "resolve_launch_context resolves the mode into LaunchContext and LaunchResponse returns the resolved mode; the mode comes ONLY from the signed claims and cannot be injected or overridden at launch"
+    - "tenant gating: a tenant declares allowed_modes in infra/tenants/embed_registry.yaml (defaulting to both modes when absent so existing tenants keep working); minting a ticket for a mode the tenant does not allow FAILS CLOSED with a clear id-shaped error"
+    - "the mint->launch flow threads the mode through the router and service; a forged mode outside the closed set is refused at mint and, defence-in-depth, again at verify"
+  tests: [tests/embed/test_mode.py]
+  legal: "KVKK-8,DPA"
+  sec_row: "embed"

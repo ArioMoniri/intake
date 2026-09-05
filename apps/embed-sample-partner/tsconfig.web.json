@@ -1,0 +1,22 @@
+{
+  // Emit the browser glue to dist/web/main.js. The bare `@intake/embed-sdk`
+  // import is preserved verbatim and resolved in the browser by the import map
+  // in public/index.html (which points at the vendored SDK below) — no bundler
+  // and no new dependency.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "types": [],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": false,
+    "rootDir": "src/browser",
+    "outDir": "dist/web"
+  },
+  "include": ["src/browser/main.ts"]
+}

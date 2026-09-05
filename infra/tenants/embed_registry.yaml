@@ -1,0 +1,48 @@
+# infra/tenants/embed_registry.yaml — the registered embed tenants (INT-320,
+# ADR-029). The white-label "Start pre-visit" handshake resolves a partner only
+# against a row here, addressed by tenant_id — the connector-destination shape
+# (ADR-026) in a second list.
+#
+# THIS FILE SHIPS WITH DEV-TIER SYNTHETIC TENANTS ONLY. A real partner is a
+# `prod` row and a prod row is refused (fail closed) unless a human has recorded
+# its executed DPA (`dpa_ref`) and its brand-use permission (`brand_permission_ref`);
+# no engineer may supply those (invariant 17; see docs/backlog/blockers.md
+# INT-320). Branding is constrained data — six-digit hex colours, a bounded
+# display name and id-shaped asset/consent references — never partner markup, so
+# the embed is not an injection surface. `device_functions` may not be enabled
+# here at all (ADR-020: no CE certificate).
+#
+# The dev tenant's signing key, consent texts and logo asset are NOT present in
+# this committed file: the signing key is resolved from OpenBao at runtime (dev
+# server locally — seed it with scripts/dev/seed_embed_dev_key.py) and the launch
+# fails closed without it. The COUNSEL-VETTED consent texts under `legal_root`
+# (docs/legal/embed/dev-partner-alpha/) remain a human blocker (HB-L27, via
+# INT-210) and this tree stays empty. For LOCAL dev the consent step reads
+# dev-only sample texts from the dev-legal tree instead (INT-320 follow-up): the
+# `core` service consent from the global dev consents dir, and this tenant's
+# partner-processor disclosure at `<dev-legal-base>/embed/dev-partner-alpha/`
+# (the same path `legal_root` resolves to under the dev base) — clearly marked
+# dev, never counsel-vetted. The dev tenant is synthetic — "dev-partner-alpha"
+# is not a real company.
+
+registry_version: "v0-dev"
+
+tenants:
+  - tenant_id: "0b6f9d2e-1111-5aaa-8bbb-000000000001"
+    tier: dev
+    signing_key_ref: "embed/dev-partner-alpha/signing-key"
+    legal_root: "docs/legal/embed/dev-partner-alpha"
+    device_functions: false
+    partner_backend_origin: "https://dev-partner-alpha.localhost"
+    # INT-322: the intake depths this tenant may offer. `hastanede` (detailed /
+    # "Detaylı") and `brief` (quick / "Hızlı"). Omitting this field defaults to
+    # both, so existing rows keep working; minting a ticket for a mode outside
+    # this set is refused, fail closed.
+    allowed_modes: ["hastanede", "brief"]
+    theme:
+      display_name: "Vizite Dev Partner"
+      locale: "tr"
+      primary_color: "#0B5FFF"
+      accent_color: "#00303C"
+      logo_asset_id: "embed.dev-partner-alpha.logo"
+      consent_doc_set_id: "embed.dev-partner-alpha"

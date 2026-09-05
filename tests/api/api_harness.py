@@ -215,6 +215,7 @@ def build_harness(
     auth: Any = None,
     dev_otp_peek: bool = False,
     admin: Any = None,
+    embed: Any = None,
     client_addr: tuple[str, int] | None = None,
     # The previsit-output read-back (owner directive). Both default to the
     # SHIPPED fail-closed state: no tokenization key means a patient number
@@ -295,6 +296,9 @@ def build_harness(
             # INT-180: the admin console wiring. None keeps the shipping
             # default in which every /admin route answers 503.
             admin=admin,
+            # INT-320: the partner embed wiring. None keeps the shipping
+            # default in which every /embed route answers 503.
+            embed=embed,
         )
     )
     # INT-180: the console's IP allow-list reads the transport peer, so the

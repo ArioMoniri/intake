@@ -77,6 +77,13 @@ PLATFORM_SCOPE_ROLES = frozenset(
 BENCHMARK_ACTORS = frozenset(
     {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN, AdminRole.SRE_ONCALL}
 )
+#: INT-189 — the Compliance module reads (files/08 §2.1): `compliance_officer`
+#: (consent, DSAR, transfer register), `auditor` (read-only evidence export)
+#: and `platform_owner` (all tenants). No other role reaches them; written out
+#: here as the second opinion against the wiring's `_COMPLIANCE_READERS`.
+COMPLIANCE_READERS = frozenset(
+    {AdminRole.COMPLIANCE_OFFICER, AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
+)
 
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
@@ -87,6 +94,11 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/break-glass"): BREAK_GLASS_OPENERS,
     ("GET", "/admin/break-glass/{action_id}"): frozenset(BREAK_GLASS_BRIEF_READERS),
     ("POST", "/admin/break-glass/{action_id}/approve"): BREAK_GLASS_APPROVERS,
+    ("GET", "/admin/compliance/vendor-register"): COMPLIANCE_READERS,
+    ("GET", "/admin/compliance/consents"): COMPLIANCE_READERS,
+    ("GET", "/admin/compliance/audit-search"): COMPLIANCE_READERS,
+    ("GET", "/admin/compliance/dsar"): COMPLIANCE_READERS,
+    ("GET", "/admin/compliance/evidence-export"): COMPLIANCE_READERS,
 }
 
 

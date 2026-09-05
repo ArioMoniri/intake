@@ -153,20 +153,30 @@ describe("attachHealth — device health summary into the note draft (INT-208)",
 
 // ---- INT-236: Hızlı/Detaylı mode, environment deferral, checkpoint ----------
 
-describe("mode context (02 §2 — Hızlı default, Hastanedeyim sets Detaylı)", () => {
-  it("a fresh note starts in Hızlı with the environment unchecked and nothing deferred", () => {
+describe("mode context (02 §2 — Hızlı default; INT-321 asks the mode up front)", () => {
+  it("a fresh note starts in Hızlı, mode UNCHOSEN, environment unchecked, nothing deferred", () => {
     const s = emptyNoteState();
     expect(s.mode).toBe("hizli");
+    // INT-321: the mode is asked once, up front, before the questions. Until
+    // the patient picks, `modeChosen` is false and the chooser is shown; the
+    // default `mode` value is not a silent choice.
+    expect(s.modeChosen).toBe(false);
     expect(s.privacy).toBe("unchecked");
     expect(s.deferred).toEqual([]);
     expect(s.checkpointed).toBe(false);
   });
 
-  it("the Hastanedeyim switch sets Detaylı and is reversible", () => {
+  it("choosing a mode records the choice (modeChosen) and is reversible", () => {
     const on = noteReducer(emptyNoteState(), { type: "mode", mode: "detayli" });
     expect(on.mode).toBe("detayli");
+    // INT-321: picking a mode is what dismisses the up-front chooser, so the
+    // mode action records that a choice was made — for either value.
+    expect(on.modeChosen).toBe(true);
     const off = noteReducer(on, { type: "mode", mode: "hizli" });
     expect(off.mode).toBe("hizli");
+    expect(off.modeChosen).toBe(true);
+    const brief = noteReducer(emptyNoteState(), { type: "mode", mode: "hizli" });
+    expect(brief.modeChosen).toBe(true);
   });
 
   it("a sent note is frozen — mode, privacy and checkpoint are no-ops after send", () => {
@@ -175,6 +185,7 @@ describe("mode context (02 §2 — Hızlı default, Hastanedeyim sets Detaylı)"
     s = noteReducer(s, { type: "privacy", alone: false });
     s = noteReducer(s, { type: "checkpoint" });
     expect(s.mode).toBe("hizli");
+    expect(s.modeChosen).toBe(false);
     expect(s.privacy).toBe("unchecked");
     expect(s.deferred).toEqual([]);
     expect(s.checkpointed).toBe(false);

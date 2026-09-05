@@ -1,0 +1,105 @@
+# USVS mapping tables — INT-162 (legal source USVS; SBYS-6).
+#
+# Two halves, one mechanism (see intake_connectors.usvs):
+#
+#   usvs_code_bindings  — map an inbound observation's code to a USVS data-
+#                         dictionary element and our own coding system. Every
+#                         row is draft_needs_source: no committed USVS dictionary
+#                         vouches for a code or an element, so none is asserted.
+#                         The loader excludes these from the served map, and an
+#                         inbound lab therefore resolves to an item with NO code
+#                         rather than a guessed one. The source_code values are
+#                         the LOINC codes a standards-conformant ORU would carry
+#                         for the analytes we intend to map; a hospital's own
+#                         local codes are HB-A5's to supply (which interfaces a
+#                         given hospital exposes is still UNVERIFIED).
+#
+#   hbys_field_bindings — map an intake note concept to the field id a Turkish
+#                         HBYS writes to. Every row is sourced and cites
+#                         docs/sources/hbys_intake_schema.md, an owner-supplied
+#                         file committed verbatim; verify_against_source checks
+#                         the field id is one that file defines. This is the half
+#                         that proves the serve path works.
+#
+# The USVS element bindings are awaiting a named human — see docs/backlog/
+# blockers.md (INT-162) and files/HUMAN_BLOCKERS.md.
+version: 1
+
+usvs_code_bindings:
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "14749-6"   # glucose
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "3094-0"    # urea nitrogen
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "2160-0"    # creatinine
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "2951-2"    # sodium
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "2823-3"    # potassium
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "718-7"     # haemoglobin
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "1988-5"    # C-reactive protein
+    status: draft_needs_source
+  - table: usvs_code
+    intake_kind: lab
+    source_system: LN
+    source_code: "3016-3"    # thyrotropin (TSH)
+    status: draft_needs_source
+
+hbys_field_bindings:
+  - table: hbys_field
+    intake_kind: allergy
+    source_system: intake-field
+    source_code: allergy.present
+    target_code: "346_LS"
+    status: sourced
+    source_doc: docs/sources/hbys_intake_schema.md
+  - table: hbys_field
+    intake_kind: medication
+    source_system: intake-field
+    source_code: medication.chronic
+    target_code: "1355_TC"
+    status: sourced
+    source_doc: docs/sources/hbys_intake_schema.md
+  - table: hbys_field
+    intake_kind: diagnosis
+    source_system: intake-field
+    source_code: diagnosis.hypertension
+    target_code: "442Kronik"
+    status: sourced
+    source_doc: docs/sources/hbys_intake_schema.md
+  - table: hbys_field
+    intake_kind: diagnosis
+    source_system: intake-field
+    source_code: diagnosis.diabetes
+    target_code: "445Kronik"
+    status: sourced
+    source_doc: docs/sources/hbys_intake_schema.md
+  - table: hbys_field
+    intake_kind: diagnosis
+    source_system: intake-field
+    source_code: diagnosis.cancer
+    target_code: "444Kronik"
+    status: sourced
+    source_doc: docs/sources/hbys_intake_schema.md

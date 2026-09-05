@@ -30,6 +30,11 @@ __all__ = [
     "doctor_link_view_limit",
     "note_not_shared",
     "dpop_invalid",
+    "embed_consent_unavailable",
+    "embed_mode_not_allowed",
+    "embed_signing_key_unavailable",
+    "embed_ticket_refused",
+    "embed_unconfigured",
     "forbidden",
     "invalid_window",
     "not_found",
@@ -43,6 +48,7 @@ __all__ = [
     "refresh_reused",
     "taxonomy_unconfigured",
     "unauthorized",
+    "unknown_embed_tenant",
     "visit_invalid",
 ]
 
@@ -232,6 +238,49 @@ def note_not_shared() -> HTTPException:
     return HTTPException(status_code=409, detail={"error": "note_not_shared"})
 
 
+def embed_unconfigured() -> HTTPException:
+    """INT-320. The partner embed surface has no wired registry or signing-key
+    provider (no OpenBao, or the shipped registry ships dev-only), so the whole
+    surface answers 503 rather than minting a ticket nobody could verify."""
+    return HTTPException(status_code=503, detail={"error": "embed_unconfigured"})
+
+
+def unknown_embed_tenant() -> HTTPException:
+    """INT-320. No registered embed tenant matches the request. The id is not
+    echoed — a caller learns only that its tenant is not registered here."""
+    return HTTPException(status_code=404, detail={"error": "unknown_embed_tenant"})
+
+
+def embed_signing_key_unavailable() -> HTTPException:
+    """INT-320. The tenant is registered but its signing key is not available
+    from OpenBao (dev server not seeded, or the ref is empty). Fail closed."""
+    return HTTPException(status_code=503, detail={"error": "embed_signing_key_unavailable"})
+
+
+def embed_mode_not_allowed() -> HTTPException:
+    """INT-322. The partner asked to mint a ticket for an intake mode the tenant
+    is not allowed to offer (its ``allowed_modes``). Fail closed with an
+    id-shaped code — the requested mode is not echoed (invariant 6)."""
+    return HTTPException(status_code=400, detail={"error": "embed_mode_not_allowed"})
+
+
+def embed_ticket_refused(code: str) -> HTTPException:
+    """INT-320. A launch ticket did not verify. ``code`` is an id-shaped
+    classification (expired, replayed, signature, tenant, malformed, purpose,
+    ttl) derived from the refusal TYPE — never the token, a key or any decoded
+    content (invariant 6)."""
+    return HTTPException(status_code=400, detail={"error": "embed_ticket_refused", "reason": code})
+
+
+def embed_consent_unavailable() -> HTTPException:
+    """INT-320 (follow-up). The launch resolved a consent document set but its
+    documents are not authored (the tenant's disclosure, or the global consent
+    tree), so the branded intake's consent step fails closed rather than showing
+    the patient an empty consent (invariant 18). The counsel-vetted texts remain
+    a human blocker (HB-L27)."""
+    return HTTPException(status_code=503, detail={"error": "embed_consent_unavailable"})
+
+
 def doctor_link_expired() -> HTTPException:
     """Past ``visit_datetime + 72 h`` (files/02 §2b).
 
@@ -285,6 +334,14 @@ def four_eyes_refused(code: str) -> HTTPException:
     """A ceremony refusal (files/08 §8.2). 409: the request was understood
     and the ceremony's state or distinctness rule forbids it."""
     return HTTPException(status_code=409, detail={"error": code})
+
+
+def compliance_query_refused(code: str) -> HTTPException:
+    """A compliance-search query the module will not run (INT-189). 422: the
+    query is understood and refused — a free-text filter or one aimed at
+    patient content that the audit search must not answer (HB-L6, invariant
+    6). ``code`` is machine-shaped and echoes no filter value."""
+    return HTTPException(status_code=422, detail={"error": code})
 
 
 def benchmark_refused(code: str, reason: str) -> HTTPException:

@@ -57,6 +57,15 @@ _BRIEF_READERS = (
     BREAK_GLASS_OPEN.actor_roles | BREAK_GLASS_OPEN.approver_roles | {AdminRole.AUDITOR}
 )
 
+#: The Compliance module (INT-189, files/08 §4). files/08 §2.1 gives
+#: `compliance_officer` "consent, DSAR, transfer register" and `auditor`
+#: "read-only evidence export"; `platform_owner` sees all tenants. No other
+#: role reaches these reads — an `sre_oncall` or `tenant_admin` asking for the
+#: DSAR queue is refused, and the refusal is audited like any other action.
+_COMPLIANCE_READERS = frozenset(
+    {AdminRole.COMPLIANCE_OFFICER, AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
+)
+
 
 @dataclass(frozen=True)
 class AdminRoute:
@@ -107,6 +116,41 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         "admin.break_glass.approve",
         BREAK_GLASS_OPEN.approver_roles,
         BREAK_GLASS_OPEN.id,
+    ),
+    # INT-189 — the Compliance module (files/08 §4). All reads: the register is
+    # a projection of the egress feed, the searches and queues are ids/counts
+    # only (invariant 6), and the evidence export is text-typed (invariant 47).
+    # No mutation, so no `DangerousAction` — the module records notifications
+    # and runs DSAR export/delete through the tier-2 surfaces those already own.
+    AdminRoute(
+        "GET",
+        "/admin/compliance/vendor-register",
+        "admin.compliance.vendor_register.read",
+        _COMPLIANCE_READERS,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/compliance/consents",
+        "admin.compliance.consents.read",
+        _COMPLIANCE_READERS,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/compliance/audit-search",
+        "admin.compliance.audit_search.read",
+        _COMPLIANCE_READERS,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/compliance/dsar",
+        "admin.compliance.dsar.read",
+        _COMPLIANCE_READERS,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/compliance/evidence-export",
+        "admin.compliance.evidence.export",
+        _COMPLIANCE_READERS,
     ),
 )
 

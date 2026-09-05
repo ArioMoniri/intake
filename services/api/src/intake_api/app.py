@@ -44,6 +44,7 @@ from intake_api import (
     doctor_link,
     documents,
     dsar,
+    embed,
     experience,
     learned,
     notes,
@@ -67,6 +68,7 @@ from intake_api.doctor_link.service import (
     FailClosedDoctorLinkDelivery,
 )
 from intake_api.documents import DocumentsConfig, DocumentsGateway
+from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ApiSettings
 from intake_api.state import ApiState
@@ -114,6 +116,9 @@ class ApiWiring:
     # INT-318: the Acibadem appointments read client (demo tier). None =
     # unconfigured, so /v1/visits/sync answers "unavailable" (fail closed).
     acibadem: AcibademAppointmentsClient | None = None
+    # INT-320: the partner white-label embed handshake (ADR-028). None =
+    # unconfigured, so every /embed route answers 503 (fail closed).
+    embed: EmbedWiring | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -257,6 +262,44 @@ def _admin_from_env() -> AdminWiring | None:
     )
 
 
+def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
+    """INT-320 (ADR-028). The embed handshake needs a registry, a launch base
+    URL and an OpenBao-backed signing-key resolver. Any of the three absent —
+    no launch URL, an unloadable registry, or secrets not configured — leaves
+    the surface unconfigured: every /embed route answers 503 rather than
+    minting a ticket nobody could verify. The signing key is read from OpenBao
+    only (invariant 14); it is never defaulted or read from the environment.
+    """
+    if not settings.embed_launch_base_url:
+        return None
+    from intake_platform.consent.texts import ConsentTextCatalog
+    from intake_platform.embed import InMemoryNonceStore, TenantEmbedRegistry
+
+    from intake_api.embed import OpenBaoSigningKeys
+
+    try:
+        registry = TenantEmbedRegistry.from_yaml(settings.embed_registry_path)
+        secrets = SecretsProvider.from_env()
+    except Exception:  # noqa: BLE001 — ids-only log; fail closed on any config gap
+        logger.warning("embed unconfigured: registry absent/invalid or secrets not configured")
+        return None
+    return EmbedWiring(
+        registry=registry,
+        signing_keys=OpenBaoSigningKeys(secrets),
+        launch_base_url=settings.embed_launch_base_url,
+        # dev/single-replica store; a shared store (Redis) is required for
+        # multi-replica single-use and is awaiting-human, not stubbed here
+        nonce_store=InMemoryNonceStore(),
+        # INT-320 (follow-up): the consent render reads ``core`` from the SAME
+        # global tree the grant binds against (settings.legal_root), and each
+        # tenant's partner-processor disclosure from its own ``legal_root``
+        # under the legal base (the parent of the global consents dir — in dev
+        # the ~/.config/intake/dev-legal tree, in prod docs/legal).
+        consent_catalog=ConsentTextCatalog(settings.legal_root),
+        legal_base=settings.legal_root.parent,
+    )
+
+
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
     return ApiWiring(
@@ -270,6 +313,7 @@ def wiring_from_env() -> ApiWiring:
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
         acibadem=visits_acibadem.acibadem_client_from_env(),
+        embed=_embed_from_settings(settings),
     )
 
 
@@ -286,6 +330,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
         doctor_link=_doctor_link_service(w.auth),
         acibadem=w.acibadem,
+        embed=EmbedService(w.embed, audit) if w.embed is not None else None,
     )
 
     @asynccontextmanager
@@ -393,4 +438,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(experience.router)
     app.include_router(learned.router)
     app.include_router(admin.router)
+    app.include_router(embed.router)
     return app

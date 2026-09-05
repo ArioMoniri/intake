@@ -1,0 +1,31 @@
+# INT-162 — the per-tenant inbound-source registry (files/10 §9 `connectors`
+# row; CLAUDE.md invariants 4, 14 and 17).
+#
+# This file is DATA, not code, and it is the ONLY way an inbound hospital feed
+# comes into existence — the mirror of infra/connectors/destinations.yaml for
+# the direction an HBYS/SBYS feeds a result BACK to us over HL7v2 or a file
+# drop. `intake_connectors.inbound` loads and validates it; there is no
+# free-text way to name a feed.
+#
+# What a row costs, and why none exists yet. Each row asserts:
+#
+#   dpa_ref               an executed data-processing agreement with the
+#                         sending hospital, naming this interface
+#   approval_ref          the recorded tier-3 approval that registered the feed
+#   consent_scope         the scope every ingest from this source must clear
+#   transport             mtls | sftp | lan_plaintext
+#   plaintext_approval_ref  REQUIRED only when transport is lan_plaintext, and
+#                         forbidden otherwise. Accepting special-category data
+#                         in the clear on a shared hospital LAN is its own
+#                         recorded decision (invariant 14), separate from the
+#                         general approval and with no default — an undeclared
+#                         plaintext feed does not load.
+#
+# None exists today. HB-A5 records that our pilot partner's own interfaces are
+# UNVERIFIED and that the connector must not be sized before that conversation;
+# no DPA has been executed and no feed has been approved. So the list is empty,
+# the kit refuses every message, and that is the fail-closed state rather than
+# a gap (invariant 17: build the mechanism, wire the gate, make it fail closed,
+# leave the content empty).
+version: 1
+sources: []

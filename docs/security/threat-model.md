@@ -767,6 +767,49 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (the dev proxy topology, and an eleven-host table decided through both enforcement points
   so they cannot drift).
 
+## `cloud-clipgen` — offline cloud pre-synthesis of the fixed clip set
+
+- **Assets:** the offline clip cache (non-patient, verbatim scripted audio — the fixed set of
+  protocol questions, red-flag scripts and instruments); the vendor TTS API key; the scripted
+  `text_tr` handed to the vendor at BUILD time. INT-319 / ADR-028 reintroduces a cloud vendor
+  for exactly this one offline job.
+- **Trust boundaries:** build host ↔ cloud TTS vendor (a new external destination reached only
+  at clip-generation time, never at runtime); runtime ↔ clip cache (playback only — the
+  session never reaches the vendor, and the self-hosted speech seam
+  `intake_voice_runtime.adapters.speech.refuse_external_host` refuses every public host, so it
+  structurally cannot).
+- **Threats (STRIDE/LINDDUN):** [I] the API key leaking into a source file, a log, a trace or
+  an exception; [Nc] a cross-border transfer of scripted text with no recorded basis — the
+  text is non-PHI protocol content, but it still leaves the country; [S/Td] the vendor's own
+  text normaliser reintroducing a numeral and speaking a wrong dose (invariant 22); [T] a
+  paraphrased or edited clip breaking the verbatim rule (invariant 10); [D] the vendor being
+  unavailable — not a runtime failure, because the fixed set is cached and playback needs no
+  vendor.
+- **Controls (files/10):** ADR-028; OFFLINE ONLY — the vendor is on no runtime or PHI path and
+  the runtime cannot reach it, so this does not weaken invariant 19; the key is read from the
+  environment only (`TTS_ELEVENLABS_API_KEY`, never a source file or a log, files/10 §2) and is
+  never placed in an exception message; the live paid call is spend-gated on `EVAL_BUDGET_USD`
+  so a test and CI never take it (recorded fixtures there); the vendor normaliser is disabled
+  (`apply_text_normalization: "off"`) and `assert_speakable_tr` refuses any numeral before the
+  wire (invariant 22); the text is sent verbatim and a recorded clip that carries other text is
+  refused (invariant 10); no vendor hostname is a literal anywhere in the tree
+  (`scripts/ci/assert_no_vendor_calls.sh`); NO runtime egress-allow-list row is added, because
+  the runtime never calls the vendor. Licence/terms and the KVKK Art. 9 transfer question are
+  human blockers (docs/backlog/blockers.md).
+- **Signals:** build-time tool, so its runtime evidence is a NEGATIVE — the per-session egress
+  socket count for TTS stays zero (shared with `cloud-boundary`/`observer-lanes`) and the clip
+  cache serves the fixed set (`voice.clip_cache_hit_ratio` high, no runtime synth for scripted
+  lines). Generation cost/characters are recorded per run in docs/evidence/, never emitted as a
+  series.
+- **Tests:** tests/voice/test_elevenlabs_clipgen.py (the adapter: numeral refused, key never
+  echoed on any failure, normaliser off, the key+budget selection gate); tests/voice/
+  test_tts_latency.py (the harness: numeral-free corpus, the A/B reported blocked without the
+  key); scripts/ci/assert_no_vendor_calls.sh (no vendor FQDN in the build); tests/voice/
+  test_audio_retention_guard.py (no audio content-type strings leak into the package). The live
+  small-run validation (7 Turkish questions, 229 characters) is recorded in
+  docs/evidence/INT-319.md with its date and named corpus, described as a measurement (invariant
+  20).
+
 ## `records` — patient document upload and ingestion
 
 - **Assets:** uploaded documents, extracted structured data, pgvector record index.
@@ -973,7 +1016,7 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** views per user and anomaly review (§9) land with INT-152 and INT-192.
 - **Tests:** RBAC matrix tests land with INT-152 and INT-180.
 
-## `connectors` — pushing to hospital systems
+## `connectors` — pushing to and ingesting from hospital systems
 
 - **Assets:** connector credentials, endpoint registry, push payloads (full clinical notes),
   receipts.
@@ -1029,6 +1072,82 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   clamped by the share consent's expiry, one token per push with no cache, an unsupported
   key refused before anything leaves, and the framework headers an adapter cannot
   overwrite.
+
+### INT-162 — the inbound direction (HBYS/SBYS → us): HL7v2 ORU, file drop, USVS mapping
+
+- **Assets:** the inbound-source registry, inbound messages (HL7v2 ORU / dropped files
+  carrying lab results — PHI), the USVS mapping tables, the KTS application pack.
+- **Trust boundaries:** hospital LAN ↔ our PHI network (a feed is untrusted input on the
+  PHI path); the sending HBYS ↔ our record store.
+- **Threats (STRIDE/LINDDUN):** [E] a crafted HL7 segment used as a command or injection
+  surface — the central inbound risk (invariant 14: a segment can never issue a command);
+  [S] a spoofed or plaintext-LAN feed of special-category data; [T] an inbound message
+  claiming a RED/YELLOW triage level (invariant 1: an inbound message may carry
+  `candidate_flags` only, at most `YELLOW_REVIEW`, and only the rules engine yields
+  RED/YELLOW); [I] a guessed or mis-bound USVS code silently entering a record; [Dd] a value
+  from a malformed message reaching a log.
+- **Controls (files/10):** parsing is a table lookup on the segment name — `OBX` is read and
+  every other segment is inert text, so no name dispatches code; the delimiters are read from
+  MSH-2 (the message's own declaration) and an escape *inside* a value is decoded to a
+  literal character, never re-interpreted as structure; the byte cap is checked before the
+  body is split; the parsed `InboundObservation` has no field a triage level could occupy;
+  the USVS code bindings are `draft_needs_source` and the loader refuses to serve them, so an
+  inbound lab resolves to an item with **no code** rather than a guessed one
+  (`ExtractedRecordItem` already forbids a guessed code); a source is registered, bound to a
+  DPA and an approval, and — for `lan_plaintext` — a **separate** recorded approval
+  (invariant 14); ingest clears a consent scope and is audited as ids only (invariants 4, 6).
+  `infra/connectors/inbound_sources.yaml` ships with zero rows, so every message refuses.
+- **Signals:** `connector_inbound_messages_total{source,outcome}` — the inbound mirror of
+  `connector_push_total`, by `ingested` / `refused`, both labels closed sets bounded by the
+  registry and the module (catalogued in `observability/metrics_catalog.yaml`).
+- **Tests:** `tests/connectors/test_inbound_channels.py` — the ORU parse, MSH-2-driven
+  delimiters, an unknown segment proven inert, an escaped delimiter decoded as a character, a
+  non-ORU message refused, the oversized-message refusal, the no-value-in-errors sweep, and
+  the source registry (zero rows, cross-tenant refusal, the plaintext-approval requirement
+  both ways). `tests/connectors/test_usvs_mapping.py` — a draft binding never becomes a code,
+  the served map excludes drafts, the HBYS field bindings checked against their committed
+  source with a near-miss negative, and the no-triage-field / `Decimal`-not-float guarantees.
+  `tests/connectors/test_inbound_ingest.py` — consent cleared and audited (ids only) before a
+  message is mapped, and refused otherwise. `tests/connectors/test_kts_and_dpa.py` — the KTS
+  pack fails closed while the SBSGM list is uncommitted, and the processor-role DPA clause set
+  anchors to real repo documents.
+
+## `embed` — the partner white-label launch handshake
+
+- **Assets:** the tenant embed registry (branding + recorded human facts), per-tenant
+  ticket signing keys (OpenBao), launch tickets in flight, the single-use nonce store.
+- **Trust boundaries:** partner backend ↔ our mint endpoint; partner app/patient device ↔
+  our launch endpoint; tenant ↔ tenant (a ticket must never cross); partner page ↔ the
+  branded intake (must not be an injection surface).
+- **Threats (STRIDE/LINDDUN):** [S] a forged or replayed launch ticket; [E] a ticket minted
+  for tenant A launching tenant B (inv. 37: the tenant is data bound in the signature, never
+  a request parameter); [T] tampered branding turning the embed into an XSS/injection surface;
+  [I/Dd] a partner-supplied patient identifier becoming a cross-tenant PHI path or an
+  unlawful new recipient; [Nc] a live partner served without a DPA, brand permission or
+  authored consent texts; a device function reaching a tenant with no CE certificate.
+- **Controls (files/10):** signed HS256 ticket over the `room_tokens` primitive with a
+  **closed** claim set `{tenant_id, nonce, iat, exp≤120s, purpose}` and no clinical or
+  personal value; tenant bound inside the signature and verified against the tenant whose
+  OpenBao key verified it (ADR-029); single-use nonce consumed only after every other check
+  (a tampered replay never burns a genuine nonce); branding is constrained data validated at
+  load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
+  refused — so there is no injection surface; `device_functions` may not be enabled for an
+  embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
+  through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
+  refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out
+  of scope** — linking it is a new personal-data category and recipient awaiting human
+  sign-off (docs/backlog/blockers.md INT-320), built as nothing rather than invented.
+- **Signals:** `embed_launch_ticket_total{tenant,outcome}` and `embed_launch_total{tenant,outcome}`
+  (planned — catalogued in `observability/metrics_catalog.yaml`, emitted when the embed
+  console lands); the hash-chained audit carries `embed.ticket_minted` and `embed.launched`
+  entries (ids only, `basis:embed-handshake`).
+- **Tests:** `tests/embed/` — the ticket round-trip, the cross-tenant refusal, tamper/expiry/
+  replay/purpose/ttl fail-closed paths, the constrained-branding and zero-prod-rows registry
+  rules, the fail-closed 503s (no signing key, unconfigured surface), the admin-only mint,
+  and the audit entries; the consent route-scan (`tests/legal/test_consent_guard.py`) proving
+  both routes carry the `partner_embed` marker and nothing is left undeclared.
 
 ## `kiosk` — shared devices in clinics
 

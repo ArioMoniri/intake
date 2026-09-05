@@ -48,7 +48,6 @@ import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
 import { InstrumentStep } from "@/components/InstrumentStep";
-import { ModeBar } from "@/components/ModeBar";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { joinParts } from "@/lib/a11y/labels";
@@ -124,6 +123,14 @@ export default function TypedIntake() {
   // banner it feeds renders only under __DEV__ (lib/dev/voiceDiagnostic).
   const [voiceProbe, setVoiceProbe] = useState<ReachabilityReport | null>(null);
 
+  // INT-321: the mode is asked ONCE, up front — before either lane — so a
+  // patient meets one calm choice instead of a switch riding on top of every
+  // question. It shows only on a fresh run (not an edit, nothing answered) and
+  // only until a choice is recorded (`modeChosen`). Voice-vs-typed is decided
+  // after, by voiceEligible above, exactly as before.
+  const showModeChoice =
+    !editing && (note?.answers.length ?? 0) === 0 && !(note?.modeChosen ?? false);
+
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
       {/* Design pass 6: every Oura full-screen flow carries a top-left way
@@ -151,7 +158,9 @@ export default function TypedIntake() {
       ) : null}
       <DevVoiceBanner report={voiceProbe} />
       <View style={styles.body}>
-        {voiceState.phase === "steps" ? (
+        {showModeChoice ? (
+          <ModeChoice visitId={visitId} />
+        ) : voiceState.phase === "steps" ? (
           <StepFlow
             visitId={visitId}
             requestedQ={q}
@@ -183,6 +192,57 @@ export default function TypedIntake() {
         )}
       </View>
     </Screen>
+  );
+}
+
+/**
+ * The up-front mode choice (INT-321): one calm screen, two doors, shown once
+ * before the questions. "Hastanedeyim" opens the ayrıntılı flow (02 §2) — the
+ * environment self-check and the "Bitirdim" checkpoint come with it; "Kısa
+ * tutalım" runs the short set. Recording the choice (`modeChosen`) is what
+ * dismisses this screen, so a default value is never a silent decision.
+ */
+function ModeChoice({ visitId }: { visitId: string | undefined }) {
+  const { updateNote } = useSession();
+  const choose = (mode: "hizli" | "detayli") => {
+    if (visitId) {
+      updateNote(visitId, { type: "mode", mode });
+    }
+  };
+  return (
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <AppText role="hero" heading>
+        {t("intake.mode.q")}
+      </AppText>
+      <View style={styles.optionColumn}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("intake.mode.hospital")}
+          style={styles.cardTarget}
+          onPress={() => choose("detayli")}
+        >
+          <Card>
+            <AppText role="body">{t("intake.mode.hospital")}</AppText>
+            <AppText role="caption" color="inkSoft">
+              {t("intake.mode.hospitalSub")}
+            </AppText>
+          </Card>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("intake.mode.brief")}
+          style={styles.cardTarget}
+          onPress={() => choose("hizli")}
+        >
+          <Card>
+            <AppText role="body">{t("intake.mode.brief")}</AppText>
+            <AppText role="caption" color="inkSoft">
+              {t("intake.mode.briefSub")}
+            </AppText>
+          </Card>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -335,26 +395,34 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  // "Sıranız geldi" (02 §34): checkpoint INSTANTLY — no dialog, no
-  // confirmation — and land on the partial-note review. Committed answers
-  // are untouched by the reducer (test-pinned: zero lost turns).
-  const queueCalled = () => {
+  // "Bitirdim" (02 §34): the clinic-interruptible checkpoint — instant, no
+  // dialog, no confirmation — and land on the partial-note review. Committed
+  // answers are untouched by the reducer (test-pinned: zero lost turns).
+  // INT-321 relabelled it from "Sıranız geldi" to the plain first-person and
+  // moved it off the per-question row: it belongs to the ayrıntılı flow, where
+  // a patient standing in a corridor may be called in, and appears only once
+  // something has been answered (there is nothing to keep before that).
+  const finishNow = () => {
     if (visitId) {
       updateNote(visitId, { type: "checkpoint" });
       router.replace(`/(tabs)/visits/${visitId}/review`);
     }
   };
-
-  const modeBar = (
-    <ModeBar
-      detayli={detayli}
-      deferredNotice={detayli && privacy === "not_private"}
-      onToggleMode={() =>
-        visitId && updateNote(visitId, { type: "mode", mode: detayli ? "hizli" : "detayli" })
-      }
-      onQueueCalled={queueCalled}
-    />
-  );
+  const finishNowBar =
+    detayli && answeredCount > 0 ? (
+      <View style={styles.finishRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("intake.finishNow")}
+          onPress={finishNow}
+          style={[styles.finishChip, { backgroundColor: theme.surfaceRaised }]}
+        >
+          <AppText role="caption" color="primary">
+            {t("intake.finishNow")}
+          </AppText>
+        </Pressable>
+      </View>
+    ) : null;
 
   // Environment self-check (02 §33): one calm question before Detaylı
   // continues. If privacy is not established, sensitive sections are
@@ -368,7 +436,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        {modeBar}
         <AppText role="hero" heading>
           {t("intake.privacy.q")}
         </AppText>
@@ -434,7 +501,15 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        {modeBar}
+        {finishNowBar}
+        {/* The deferral notice (02 §33) lived on the old mode row; it stays,
+            as the calm one-liner that private questions are held for later,
+            shown when a third party is present in the ayrıntılı flow. */}
+        {detayli && privacy === "not_private" ? (
+          <AppText role="caption" color="inkFaint">
+            {t("intake.privacy.deferredInfo")}
+          </AppText>
+        ) : null}
         <View style={styles.progressRow}>
           {/* SC 1.4.1: per-question progress exists here ONLY as a hue, and
               a hue is not a fact. The dots are hidden as the decoration
@@ -853,6 +928,18 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   optionColumn: { gap: spacing.sm },
+  // The "Bitirdim" checkpoint (INT-321): a quiet chip aligned to the top-right
+  // of the flow — a control the patient reaches for rarely, never the loudest
+  // thing on the screen, and a real touch target by box (not slop).
+  finishRow: { flexDirection: "row", justifyContent: "flex-end" },
+  finishChip: {
+    borderRadius: radius.chip,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    minHeight: MIN_TAP,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   measureBlock: { gap: spacing.xs },
   measureRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   measureValue: { flex: 1, alignItems: "center" },

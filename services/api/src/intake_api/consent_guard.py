@@ -65,6 +65,7 @@ __all__ = [
     "REFERENCE_DATA_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
+    "EMBED_PREFIX",
     "administrative_action",
     "administrative_action_routes",
     "consent_management",
@@ -77,6 +78,8 @@ __all__ = [
     "ensure_consent",
     "notification_preference",
     "notification_preference_routes",
+    "partner_embed",
+    "partner_embed_routes",
     "pre_auth",
     "pre_auth_routes",
     "reference_data",
@@ -300,6 +303,31 @@ class DoctorLinkRedemptionDeclaration:
         return
 
 
+class PartnerEmbedDeclaration:
+    """Explicit declaration that a route IS the partner white-label embed
+    handshake (INT-320; ADR-028): the caller is a partner backend minting a
+    launch ticket, or the patient's device presenting one to start the branded
+    intake — in neither case is there a Vizite data subject at the door whose
+    consent ledger a scope could be checked against.
+
+    Consent does NOT disappear with the scope, it moves to where the subject
+    exists: the launch resolves a tenant's theme and the id of the consent
+    document set the patient must be shown, and the patient then grants consent
+    through Vizite's own consent flow (``ensure_consent`` against docs/legal,
+    hash-bound) BEFORE any clinical turn — the handshake reads and writes no
+    clinical data at all. A launch ticket is single-use, short-lived and its
+    tenant is bound inside the signature, and every mint and launch is audited.
+
+    Same class as pre_auth and the other markers: the route cannot enforce a
+    scope at the door, but it may not stay silent either — the scan accepts this
+    marker ONLY under EMBED_PREFIX (as a path segment, not a substring), so a
+    /v1 data route cannot borrow it to dodge a scope.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 class ReferenceDataDeclaration:
     """Explicit declaration that a route serves REFERENCE DATA only
     (INT-134): a versioned projection of a committed artefact — the branch
@@ -387,6 +415,9 @@ DOCTOR_LINK_PREFIX = "/v1/doctor-link"
 #: The only prefix where an administrative-action declaration is accepted.
 ADMIN_PREFIX = "/admin"
 
+#: The only prefix where a partner-embed declaration is accepted (INT-320).
+EMBED_PREFIX = "/embed"
+
 
 def data_subject_right() -> params.Depends:
     """Declare a route as a statutory data-subject right (see
@@ -419,6 +450,13 @@ def administrative_action() -> params.Depends:
     """Declare a route as an administrative action (see
     AdministrativeActionDeclaration)."""
     dependency: params.Depends = Depends(AdministrativeActionDeclaration())
+    return dependency
+
+
+def partner_embed() -> params.Depends:
+    """Declare a route as the partner embed handshake (see
+    PartnerEmbedDeclaration)."""
+    dependency: params.Depends = Depends(PartnerEmbedDeclaration())
     return dependency
 
 
@@ -505,6 +543,13 @@ def _is_notification_preference(route: APIRoute) -> bool:
 def _is_administrative_action(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, AdministrativeActionDeclaration)
+        for dependency in route.dependencies
+    )
+
+
+def _is_partner_embed(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, PartnerEmbedDeclaration)
         for dependency in route.dependencies
     )
 
@@ -617,10 +662,22 @@ def administrative_action_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def partner_embed_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the partner-embed declaration, for the pin test
+    (INT-320) — reported wherever it appears; whether the scan ACCEPTS it is
+    unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_partner_embed(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
-    land undeclared (silence always fails). Six markers exist, each caged to
+    land undeclared (silence always fails). Seven markers exist, each caged to
     its prefix: pre_auth under PRE_AUTH_PREFIX (INT-131 bootstrap, no
     principal yet), consent_management under CONSENT_MANAGEMENT_PREFIX
     (INT-232, the routes ABOUT consent), reference_data under
@@ -633,9 +690,11 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     holding a token and no account, whose consent check runs record-level
     inside the endpoint) and administrative_action under ADMIN_PREFIX
     (INT-180, a staff action on the control plane with no data subject at the
-    door, discharged under the audit obligation and audited unconditionally).
-    Any marker outside its prefix does NOT count as a declaration (the route
-    is reported here instead)."""
+    door, discharged under the audit obligation and audited unconditionally)
+    and partner_embed under EMBED_PREFIX (INT-320, the white-label handshake
+    that mints and launches a signed ticket before any Vizite subject exists
+    and reads no clinical data). Any marker outside its prefix does NOT count
+    as a declaration (the route is reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -653,6 +712,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_doctor_link_redemption(route) and _under_prefix(path, DOCTOR_LINK_PREFIX):
             continue
         if _is_administrative_action(route) and _under_prefix(path, ADMIN_PREFIX):
+            continue
+        if _is_partner_embed(route) and _under_prefix(path, EMBED_PREFIX):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):
