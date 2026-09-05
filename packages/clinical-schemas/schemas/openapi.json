@@ -782,14 +782,21 @@
       "JsonScalar": {
         "anyOf": [
           {
+            "not": {
+              "pattern": "^~"
+            },
+            "type": "string"
+          },
+          {
+            "pattern": "^~~",
+            "type": "string"
+          },
+          {
+            "pattern": "^~d",
             "type": "string"
           },
           {
             "type": "integer"
-          },
-          {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "type": "string"
           },
           {
             "type": "number"
@@ -800,22 +807,107 @@
           {
             "type": "null"
           }
-        ]
+        ],
+        "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
       },
       "JsonValue": {
         "anyOf": [
           {
-            "$ref": "#/components/schemas/JsonScalar"
+            "anyOf": [
+              {
+                "not": {
+                  "pattern": "^~"
+                },
+                "type": "string"
+              },
+              {
+                "pattern": "^~~",
+                "type": "string"
+              },
+              {
+                "pattern": "^~d",
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
           },
           {
             "items": {
-              "$ref": "#/components/schemas/JsonScalar"
+              "anyOf": [
+                {
+                  "not": {
+                    "pattern": "^~"
+                  },
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~~",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~d",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
             },
             "type": "array"
           },
           {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonScalar"
+              "anyOf": [
+                {
+                  "not": {
+                    "pattern": "^~"
+                  },
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~~",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~d",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
             },
             "type": "object"
           }

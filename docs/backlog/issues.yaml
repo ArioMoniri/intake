@@ -4312,7 +4312,7 @@
   - INT-303
   labels:
   - area:data
-  status: todo
+  status: done
   acceptance:
   - 'to_r4._scalar_answer gains a Decimal branch: today it has bool/int/float/str
     and falls through to raise "a None answer inside a list is malformed", which
@@ -4331,6 +4331,10 @@
     declared scale), and an integer large enough to lose precision as a float'
   tests:
   - tests/schemas/test_roundtrip.py
+  - tests/schemas/test_fhir_mappers.py
+  - tests/learning/test_overlay_provenance.py
+  - tests/safety/test_numeric_carrier.py
+  evidence: docs/evidence/INT-309.md
   sec_row: "records"
 - id: INT-310
   epic: E13-infra
