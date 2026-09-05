@@ -1116,7 +1116,7 @@
   # planned. The per-session limits are missing for the same reason - files/10 Sec 5
   # names the control and states no number. Both asks are in docs/backlog/blockers.md;
   # the HUMAN_BLOCKERS.md id is for the coordinator to allocate.
-  status: todo
+  status: awaiting-human
   evidence: docs/evidence/INT-101.md
   acceptance:
     - "token/char/audio-second budgets enforced; cost.per_session emitted; exhaustion degrades gracefully"
