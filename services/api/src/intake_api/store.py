@@ -396,12 +396,25 @@ async def _revoke_links_of_share(
 
 
 async def create_share(
-    session: AsyncSession, *, tenant_id: uuid.UUID, note_id: uuid.UUID, section_ids: list[str]
+    session: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    note_id: uuid.UUID,
+    section_ids: list[str],
+    withheld_section_ids: list[str],
 ) -> Share:
+    # ``section_ids`` is the grant the read path and Doctor Link redemption read;
+    # ``withheld_section_ids`` records the patient's scope-off choices as an
+    # affirmative fact rather than an absence (INT-304, invariant 4). Readers
+    # still consult ``section_ids`` only, so a section is served only when it is
+    # explicitly in the grant (fail-closed).
     share = Share(
         tenant_id=tenant_id,
         note_id=note_id,
-        scope_sections={"section_ids": section_ids},
+        scope_sections={
+            "section_ids": section_ids,
+            "withheld_section_ids": withheld_section_ids,
+        },
         expires_at=datetime.now(UTC) + SHARE_TTL,
     )
     session.add(share)

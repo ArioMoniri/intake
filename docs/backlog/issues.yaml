@@ -4082,7 +4082,8 @@
   - area:mobile
   - area:api
   - risk:legal
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-304.md
   acceptance:
   - '`SectionId` in services/api (`schemas.py`) is widened from the three names
     it carries today - chief_complaint, hpi, medications - to the full set the

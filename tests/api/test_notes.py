@@ -123,7 +123,12 @@ def test_sending_creates_a_share_scoped_to_on_sections(harness: ApiHarness) -> N
             return (await session.scalars(select(Share))).one()
 
     share = run(_share())
-    assert share.scope_sections == {"section_ids": ["chief_complaint", "hpi"]}
+    # INT-304: the scope records both halves — the grant the clinic side reads,
+    # and the patient's scope-off choice as an affirmative fact (invariant 4).
+    assert share.scope_sections == {
+        "section_ids": ["chief_complaint", "hpi"],
+        "withheld_section_ids": ["medications"],
+    }
     assert share.revoked_at is None
 
     actions = [e.action for e in harness.audit_store.entries()]
