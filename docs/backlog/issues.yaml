@@ -1553,7 +1553,7 @@
   #
   # Reopen against HB-C1 plus the pain-score anchor ask; see
   # docs/evidence/INT-136.md §5 "Acceptance, line by line".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-136.md
   acceptance:
     - "instrument items rendered verbatim; low-literacy chips; progress + resume"
@@ -1595,7 +1595,7 @@
   #
   # Reopen against INT-210 (the consent text) and INT-150 (the QR); see
   # docs/evidence/INT-137.md §"What is not met".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-137.md
   acceptance:
     - "section-level scope UI; consent summary; send; status timeline; one-tap CSAT with reason chips; never blocks send"
@@ -1775,7 +1775,7 @@
   # patient-chosen contact channel is a new category of personal data, which
   # CLAUDE.md makes a stop-and-ask — it needs a HUMAN_BLOCKERS row and a named
   # human, which this iteration did not mint. Reopen against that row.
-  status: todo
+  status: done
   evidence: docs/evidence/INT-150.md
   acceptance:
     - "entropy/expiry tests; watermark carries recipient+timestamp; robots/noindex; every open audited and visible to patient"
