@@ -4545,7 +4545,8 @@
   labels:
   - area:infra
   - area:security
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-315.md
   acceptance:
   - 'the workspace side is resolved too: a directory that git can see inside the
     repository must be refused as a restore target even when it is reached

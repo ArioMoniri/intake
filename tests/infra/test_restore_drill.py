@@ -40,6 +40,7 @@ from typing import Any
 import pytest
 import yaml
 from intake_platform.backup import (
+    RESTORE_TARGET,
     BackupConfigError,
     DrillBlocked,
     DrillStep,
@@ -212,6 +213,18 @@ class TestReplicationPlan:
 # --- the drill: PHI safety and the plan ------------------------------------------------
 
 
+def _symlinked_cache_worktree(tmp_path: Path) -> tuple[Path, Path]:
+    """A checkout whose `.cache` is a symlink out of it, and the store it
+    points at. INT-315's fixture is the real fresh-worktree deid-model
+    workflow rather than an invented one."""
+    workspace = tmp_path / "worktree"
+    workspace.mkdir()
+    model_store = tmp_path / "intake-model-cache"
+    model_store.mkdir()
+    (workspace / ".cache").symlink_to(model_store, target_is_directory=True)
+    return workspace, model_store
+
+
 class TestDrillPhiSafety:
     def test_a_restore_target_inside_the_workspace_is_refused(self, tmp_path: Path) -> None:
         """Invariant 3 + 6: a restored cluster is PHI on disk. It never lands
@@ -226,6 +239,122 @@ class TestDrillPhiSafety:
         inside = REPO / "infra" / ".." / ".cache" / "restore"
         with pytest.raises(RestoreTargetInsideWorkspaceError):
             assert_restore_target_outside_workspace(inside, REPO)
+
+    # --- INT-315: a symlinked directory inside the checkout reads as outside ---
+
+    def test_a_symlinked_cache_inside_the_worktree_is_still_inside(self, tmp_path: Path) -> None:
+        """The case that produced INT-315, and the shape this repository's own
+        fresh-worktree workflow creates.
+
+        A fresh worktree fails `test_deid_ner` until the de-identification
+        model cache exists, so the cache is linked in from outside the
+        checkout. When the link is `.cache` itself — which is what an
+        interruption-recovery save committed during INT-180 —
+        `(workspace / ".cache" / "restore").resolve()` lands in the model
+        store and the guard answered "outside". `git status` answers "inside":
+        the path is under the worktree root, so a restored cluster there is
+        one `git add -A` from being committed. Git's answer is the one
+        invariant 3 is about."""
+        workspace, model_store = _symlinked_cache_worktree(tmp_path)
+        target = workspace / ".cache" / "restore"
+        # the reading that used to decide it, kept here so the test says what
+        # it defends against rather than only that it passes
+        assert target.resolve() == model_store / "restore"
+        with pytest.raises(RestoreTargetInsideWorkspaceError):
+            assert_restore_target_outside_workspace(target, workspace)
+
+    def test_any_symlinked_directory_inside_the_workspace_is_refused(self, tmp_path: Path) -> None:
+        """Not a rule about the name `.cache`. Any symlinked child is a
+        directory the workspace can reach, whatever it is called and however
+        deep it sits."""
+        workspace = tmp_path / "worktree"
+        (workspace / "infra").mkdir(parents=True)
+        elsewhere = tmp_path / "scratch"
+        elsewhere.mkdir()
+        (workspace / "infra" / "volumes").symlink_to(elsewhere, target_is_directory=True)
+        with pytest.raises(RestoreTargetInsideWorkspaceError):
+            assert_restore_target_outside_workspace(
+                workspace / "infra" / "volumes" / "restore", workspace
+            )
+
+    def test_the_workspace_side_is_resolved_too(self, tmp_path: Path) -> None:
+        """A checkout reached through a link — `/tmp` → `/private/tmp` on macOS
+        is the everyday case — must judge its own children the same in either
+        spelling, including the child that is itself a link out."""
+        workspace, _ = _symlinked_cache_worktree(tmp_path)
+        linked_workspace = tmp_path / "worktree-link"
+        linked_workspace.symlink_to(workspace, target_is_directory=True)
+        # root symbolic, target real, and the target's own parent a link out:
+        # neither side alone answers this one
+        with pytest.raises(RestoreTargetInsideWorkspaceError):
+            assert_restore_target_outside_workspace(
+                workspace / ".cache" / "restore", linked_workspace
+            )
+        # and the plain spellings in both directions stay refused
+        with pytest.raises(RestoreTargetInsideWorkspaceError):
+            assert_restore_target_outside_workspace(workspace / "restore", linked_workspace)
+        with pytest.raises(RestoreTargetInsideWorkspaceError):
+            assert_restore_target_outside_workspace(linked_workspace / "restore", workspace)
+
+    # --- the near-miss controls: a guard that refuses everything is not a fix ---
+
+    def test_near_miss_a_genuinely_external_target_is_still_accepted(self, tmp_path: Path) -> None:
+        """The control that catches an over-broad fix. Refusing everything
+        would satisfy every clause above and destroy the drill, which has to
+        restore somewhere."""
+        workspace, model_store = _symlinked_cache_worktree(tmp_path)
+        sibling = tmp_path / "restore"
+        sibling.mkdir()
+        assert assert_restore_target_outside_workspace(sibling, workspace) is None
+        # the model store itself is outside the workspace; only paths *spelled*
+        # through the link are inside it, which is what git can see
+        assert assert_restore_target_outside_workspace(model_store / "restore", workspace) is None
+        # a sibling whose name merely starts with the workspace's own name — a
+        # string-prefix test would refuse it, and it is genuinely outside
+        prefix_sibling = tmp_path / "worktree-restores"
+        prefix_sibling.mkdir()
+        assert assert_restore_target_outside_workspace(prefix_sibling, workspace) is None
+        # and the volume the drill actually restores into
+        assert assert_restore_target_outside_workspace(Path(RESTORE_TARGET), workspace) is None
+
+    def test_near_miss_an_upward_escape_that_genuinely_leaves_is_accepted(
+        self, tmp_path: Path
+    ) -> None:
+        """The other half of the control. `..` is refused when it comes back
+        inside (the test above) and accepted when it does not, so the guard is
+        reading the path and not the punctuation."""
+        workspace = tmp_path / "worktree"
+        (workspace / "infra").mkdir(parents=True)
+        escapes = workspace / "infra" / ".." / ".." / "restore"
+        assert assert_restore_target_outside_workspace(escapes, workspace) is None
+
+    def test_no_restore_writes_patient_data_inside_the_repository(self, tmp_path: Path) -> None:
+        """The property the guard exists for, stated once over the shape this
+        repository actually produces: under a `.cache` symlinked to the model
+        store, every location git can see inside the checkout is refused, and
+        no drill step names a path inside any checkout."""
+        workspace, _ = _symlinked_cache_worktree(tmp_path)
+        (workspace / "infra").mkdir()
+        reachable = (
+            workspace,
+            workspace / "restore",
+            workspace / ".cache" / "restore",
+            workspace / "infra" / ".." / ".cache" / "restore",
+            # ambiguous: `git status` reads this as `workspace/restore` and the
+            # kernel walks it out through the link. Fail closed on the reading
+            # that keeps PHI off the workspace floor; an operator who meant the
+            # other one can spell it without the link.
+            workspace / ".cache" / ".." / "restore",
+        )
+        for candidate in reachable:
+            with pytest.raises(RestoreTargetInsideWorkspaceError):
+                assert_restore_target_outside_workspace(candidate, workspace)
+        for step in plan_restore_drill(_config(), _plan(), retention_full=7):
+            for word in step.argv:
+                assert str(workspace) not in word
+                assert str(REPO) not in word
+        assert assert_restore_target_outside_workspace(Path(RESTORE_TARGET), workspace) is None
+        assert assert_restore_target_outside_workspace(Path(RESTORE_TARGET), REPO) is None
 
     def test_no_step_selects_record_content(self) -> None:
         """The verification queries count rows. They never project a column,
