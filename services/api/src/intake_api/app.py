@@ -179,6 +179,7 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
         DevStructuralAttestationVerifier,
         FailClosedAttestationVerifier,
     )
+    from intake_api.carrier_geo import carrier_geo_from_path
     from intake_api.otp import DevLogDeliveryAdapter
 
     return AuthWiring(
@@ -194,6 +195,10 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
             else FailClosedAttestationVerifier()
         ),
         dev_otp_peek=settings.dev_otp_peek,
+        # INT-308: files/10 §2's carrier/geo check. The committed table
+        # declares no prefixes, so this admits every request and says so in
+        # one log line at wiring time.
+        carrier_geo=carrier_geo_from_path(settings.msisdn_allocation_path),
     )
 
 

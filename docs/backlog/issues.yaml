@@ -4305,7 +4305,8 @@
   labels:
   - area:security
   - area:platform
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-308.md
   acceptance:
   - 'the control exists or the sentence stops claiming it: either a carrier/geo
     check runs on the OTP request path, or files/10 §2 is rewritten to say the
@@ -4324,7 +4325,7 @@
     a metric label or an error report - the budgets already key on a Tokenizer
     pseudonym and this must not regress that'
   tests:
-  - tests/api/test_otp_abuse.py
+  - tests/security/test_otp_abuse.py
   sec_row: "onboarding"
 - id: INT-309
   epic: E02-data

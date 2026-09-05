@@ -29,7 +29,7 @@ import secrets
 import time
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 import redis
@@ -49,6 +49,7 @@ from intake_api.auth_store import (
     AuthStore,
     code_digest,
 )
+from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DevAccount
 from intake_api.dpop import DpopError, verify_dpop_proof
@@ -144,6 +145,10 @@ class AuthWiring:
     attestation: AttestationVerifier
     dev_otp_peek: bool = False
     now_fn: Callable[[], float] | None = None
+    # INT-308: files/10 §2's carrier/geo sanity check. The default has no
+    # authority and therefore admits everything, which is the correct state for
+    # a wiring nobody gave one to; the env path builds the file-backed one.
+    carrier_geo: CarrierGeoCheck = field(default_factory=CarrierGeoCheck)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -250,6 +255,17 @@ class OtpAuthService:
         )
         if retry_after is not None:
             raise otp_limited(retry_after)
+        # INT-308 — files/10 §2's carrier/geo sanity check, and it sits HERE for
+        # two reasons. AFTER the gate, so a refusal costs the caller its budget
+        # and probing which prefixes refuse is not free; and BEFORE the code is
+        # minted, because the whole point is that no SMS is sent to a number no
+        # operator has allocated. The refusal reuses ``phone_invalid`` rather
+        # than a code of its own: 422 is what it is, and a distinct code would
+        # be an oracle telling a caller which of its numbers exist (files/10 §9
+        # row 1, generic errors). It fails OPEN — see carrier_geo — so today,
+        # with an empty authority, this branch is unreachable in production.
+        if self._wiring.carrier_geo.evaluate(phone).refuses:
+            raise phone_invalid()
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
         await asyncio.to_thread(
             self._store.store_code,

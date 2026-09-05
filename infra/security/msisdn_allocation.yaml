@@ -1,0 +1,74 @@
+# INT-308 — the carrier half of files/10 §2's "carrier/geo sanity checks
+# against SMS pumping". This file is the ONLY thing that can make that check
+# refuse anything.
+#
+# THE LIST IS EMPTY AND THAT IS THE CURRENT STATE, not an omission.
+#
+# What the check does with an empty list, stated so nobody has to read the code
+# to find out: nothing. `intake_api.carrier_geo` derives the operator prefix of
+# an already-normalised +90 mobile in memory, asks this table whether that
+# prefix is allocated, gets "I cannot answer" back, and ADMITS. That direction
+# is not an accident and it is not a weakness to be fixed later — the issue's
+# own acceptance requires the check to fail OPEN on a lookup it cannot make,
+# because a lookup that cannot be made must never lock a patient out of their
+# own intake. It refuses only on a POSITIVE signal, and this file is where a
+# positive signal comes from.
+#
+# WHY NO ROW EXISTS. Which 5XX prefixes the BTK has allocated to a Turkish
+# mobile operator is a published fact that nobody in this repository has read
+# from the publication. Writing the prefixes from memory would be the invented
+# value HUMAN_BLOCKERS rule 1 forbids, and it would fail in the expensive
+# direction: a prefix wrongly recorded as unallocated refuses every real
+# subscriber behind it, silently, with a 422 that reads like a typo. So the
+# list stays empty and the check stays inert until a human supplies it against
+# a source that can be re-read.
+#
+# The ask is recorded in docs/backlog/blockers.md ("INT-308 — the carrier/geo
+# authority has no source"); its HUMAN_BLOCKERS row id is allocated by the
+# coordinator, not here (ids move under concurrent branches).
+#
+# WHAT A ROW COSTS, field by field, and why each is refused rather than
+# defaulted:
+#
+#   country_code          the E.164 country code this table answers for. One
+#                         table answers for one numbering plan; a second
+#                         country arrives with its own plan, not with a wider
+#                         regex.
+#   exhaustive            whether `allocated_prefixes` is the COMPLETE set of
+#                         allocated prefixes for that plan. This one boolean is
+#                         the entire difference between "absent from a complete
+#                         list, therefore positively unallocated, therefore
+#                         refuse" and "absent from a partial list, therefore
+#                         unknown, therefore admit". There is no default: a
+#                         partial list silently marked exhaustive locks out
+#                         every subscriber it forgot.
+#   source                {authority, document, published_on, url,
+#                         retrieved_on} against the publication the prefixes
+#                         were read from — the same shape a red-flag rule's
+#                         `source` block carries, for the same reason. The
+#                         loader REFUSES a non-empty prefix list with no
+#                         source, so a list cannot be typed in from memory
+#                         without the refusal being visible in the diff.
+#   allocated_prefixes    the national-number prefixes, as written in the
+#                         source. For the +90 mobile plan these are the three
+#                         digits `5XX`.
+#
+# WHAT THIS FILE IS NOT. It is not a carrier lookup. It answers "has this
+# prefix been allocated to a mobile operator", which needs no network call, no
+# vendor and no transfer of the subscriber's number to a third party. A live
+# per-number lookup (HLR / number portability) answers a different and stronger
+# question, needs a contracted vendor, and sends a patient's phone number
+# outside the system — which is a lawful-basis decision and a licence question
+# (CLAUDE.md invariant 19), not a configuration change. That is part of the
+# same ask and it is deliberately not built here.
+#
+# NOTHING IS STORED BY THE CHECK. The prefix is derived from the number in
+# memory for the length of one request and discarded. No carrier, no country
+# and no prefix reaches Redis, a log line, a metric label or an audit row
+# (CLAUDE.md invariant 6), so no new personal-data inventory annotation is
+# owed — and `tests/security/test_otp_abuse.py` asserts that rather than
+# stating it.
+
+country_code: "90"
+exhaustive: false
+allocated_prefixes: []

@@ -413,3 +413,47 @@ on GPU access (server unreachable this build, `gpu`); a production `make clips V
 end-to-end waits on served packs (HB-C1); and **CosyVoice2** stays a blocked benchmark candidate
 (files/00_STATE.md line 99 rules it out for Turkish, LICENSE blob unread). The delivered harness,
 adapter and offline clip-gen mechanism are green and do not wait on any of these.
+## INT-308 — the carrier/geo authority has no source, and a vendor lookup has no contract
+
+**Raised:** 4 Sep 2026 · **Named human:** owner (the list), owner + counsel (the vendor half)
+· **HUMAN_BLOCKERS id:** to be allocated by the coordinator — this session may not mint one
+
+files/10 §2 has always named *"carrier/geo sanity checks against SMS pumping"*. INT-263 found
+that no code honoured it. INT-308 built the control and it runs on the OTP request path, in
+two halves that are in very different states:
+
+- **Geo is enforced and always was.** `normalise_tr_phone` admits a Turkish mobile and nothing
+  else, so the international premium ranges pumping actually profits from never reach a
+  delivery adapter. INT-308's contribution to that half is a test that pins it.
+- **Carrier is wired and inert.** `intake_api.carrier_geo` derives the operator prefix of an
+  already-normalised `+90` number in memory and asks `infra/security/msisdn_allocation.yaml`
+  whether it is allocated. That file declares **zero prefixes**, so the authority answers "I
+  cannot say" and every request is admitted.
+
+**One sentence closes the first half:** which `5XX` prefixes has the BTK allocated to a Turkish
+mobile operator, and against which published document — authority, title, publication date, URL
+and retrieval date — was that list read?
+
+It is not a lookup an agent may do from memory, and the failure direction is the expensive one:
+a prefix wrongly recorded as unallocated refuses every real subscriber behind it, silently, with
+a 422 that reads to the patient like a typo in their own number. The loader therefore **refuses
+a non-empty prefix list that carries no `source` block**, so the list cannot be typed in without
+the refusal being visible in the diff, and `exhaustive` has no default — a partial list marked
+complete is the same failure with a wider blast radius.
+
+**The second half is a separate decision and costs more.** A live per-number lookup (HLR, number
+portability) answers a stronger question than prefix allocation, needs a contracted vendor, and
+sends the patient's own phone number to a third party. That is a decision to disclose a new
+category of personal data and a licence question under CLAUDE.md invariant 19 — not a
+configuration change — so the `MsisdnAuthority` seam is deliberately narrower than any such
+vendor: it is handed a country code and an operator prefix and never the subscriber number, and
+a vendor that needs the whole MSISDN cannot be dropped in behind it without that conversation.
+**One sentence closes it:** is a per-number carrier lookup wanted at all, and if so under which
+contracted provider, which licence, and which lawful basis for sending a patient's number to it?
+
+**Nothing is built around either.** The check fails **open** on every lookup it cannot make, which
+is the acceptance's own requirement rather than a workaround; the empty table is the shipping
+state and `test_the_shipped_allocation_table_declares_no_prefixes_and_cannot_refuse` pins it, so
+supplying the list is a visible change and not a silent one. What stands against SMS pumping
+today is what files/10 §2 now says stands against it: the rolling request budgets and the
+Turkish-mobile-only normalisation.
