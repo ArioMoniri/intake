@@ -3989,7 +3989,8 @@
   labels:
   - area:voice
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-300.md
   acceptance:
   - 'the voice profile is per locale and inherits invariant 19 unchanged: ASR
     and TTS for a locale are open-weights, commercially usable and verified from
