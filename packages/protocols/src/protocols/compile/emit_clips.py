@@ -38,8 +38,9 @@ from clinical_schemas.common import FrozenModel, Ref
 from pydantic import Field
 
 from protocols.compile.errors import Refusal, RefusalCode
+from protocols.compile.number_expansion import expand_for_locale
 from protocols.compile.resolve import ResolvedProtocol
-from protocols.compile.tr_orthography import TrExpansionError, assert_round_trip, expand_tr
+from protocols.compile.tr_orthography import TrExpansionError
 from protocols.dsl import ClipManifestEntry, clip_text_hash
 from protocols.locale_text import DEFAULT_LOCALE, entry_for, safe_code
 from protocols.types import Delivery
@@ -200,8 +201,11 @@ def rows_from(
     prompts: dict[str, str] = {}
     for source in sources:
         try:
-            expansion = expand_tr(source.text)
-            assert_round_trip(expansion)
+            # INT-300: expansion is per locale. ``tr`` runs the Turkish expander
+            # and its round-trip gate exactly as before; a locale with no
+            # expander refuses a numeral (``NumeralWithoutExpander``, a
+            # ``TrExpansionError``) rather than passing it to a TTS model.
+            expansion = expand_for_locale(source.text, locale)
         except TrExpansionError as exc:
             refusals.append(
                 Refusal(
@@ -215,10 +219,11 @@ def rows_from(
                 )
             )
             continue
-        # expand_tr's contract is total: it either produces digit-free Turkish
-        # or raises, so there is no post-check here to go stale. The property
-        # is asserted from the outside in
-        # tests/protocols/test_compiler_emitters.py.
+        # expand_for_locale's contract is total: for a locale with an expander it
+        # either produces digit-free text or raises, and for one without it
+        # either passes numeral-free text through or raises, so there is no
+        # post-check here to go stale. The property is asserted from the outside
+        # in tests/protocols/test_compiler_emitters.py.
         expanded = expansion.text
         if source.is_prompt:
             prompts.setdefault(source.subject, expanded)

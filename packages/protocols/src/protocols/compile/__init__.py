@@ -46,6 +46,12 @@ from protocols.compile.life_threat import (
     LifeThreatSetError,
     load_life_threat_set,
 )
+from protocols.compile.number_expansion import (
+    LOCALE_EXPANDERS,
+    NumeralWithoutExpander,
+    expand_for_locale,
+    has_expander,
+)
 from protocols.compile.overlay import (
     MONOTONICITY_FINDINGS,
     OverlayComposition,
@@ -76,6 +82,7 @@ __all__ = [
     "DIST_ROOT",
     "DOSE_FORM_CHIPS",
     "DRUG_ORTHOGRAPHY",
+    "LOCALE_EXPANDERS",
     "MONOTONICITY_FINDINGS",
     "PENDING_WORK_KEY",
     "SIGNOFF_FIELDS",
@@ -93,6 +100,7 @@ __all__ = [
     "LifeThreatRule",
     "LifeThreatSet",
     "LifeThreatSetError",
+    "NumeralWithoutExpander",
     "OverlayComposition",
     "OverlaySelection",
     "Refusal",
@@ -107,7 +115,9 @@ __all__ = [
     "clip_manifest",
     "compile_bundle",
     "compose_overlay_rules",
+    "expand_for_locale",
     "expand_tr",
+    "has_expander",
     "load_life_threat_set",
     "model_name",
     "parse_turkish_cardinal",
