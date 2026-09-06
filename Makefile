@@ -100,6 +100,10 @@ nightly-red-team:
 # a recording of the registry, never a second copy of it (invariant 13).
 admin-fixtures:
 	uv run python scripts/dev/record_models_fixture.py
+	uv run python scripts/dev/record_protocols_fixture.py
+	uv run python scripts/dev/record_safety_fixture.py
+	uv run python scripts/dev/record_experience_fixture.py
+	uv run python scripts/dev/record_security_fixture.py
 
 check-ts:
 	pnpm -r lint
@@ -456,3 +460,44 @@ audit-verify:
 
 test-sim:
 	uv run pytest tests/sim -q -o addopts=""
+
+# INT-203: the edge — Traefik ingress + Coraza (OWASP CRS) + CrowdSec, and the
+# certificate automation for both deployment shapes. files/10 §4 `Edge:`.
+#
+# `edge-conf` re-renders every deployed file from
+# infra/security/edge/edge-policy.yaml — the policy is the only file anyone
+# edits, and tests/infra/test_waf_rules.py fails when a render is stale or a
+# scenario file the policy no longer declares is still on disk.
+#
+# `edge-plugin` fetches the Coraza middleware named in the policy and verifies
+# its sha256 BEFORE unpacking. The OWASP CRS ships inside that artefact, so
+# this is also how the ruleset is pinned; `make deid-model` is the same shape
+# for the same reason.
+#
+# `edge-check` is the one that answers the acceptance. Unlike the SIEM and
+# backup tiers this one FITS on this host — Traefik and CrowdSec are ~200 MB
+# between them, well inside HB-I1/HB-I2 — so "WAF blocks OWASP CRS suite" is a
+# measurement against the real engine rather than a claim about a config file.
+.PHONY: edge edge-down edge-conf edge-conf-check edge-plugin edge-check
+
+edge-conf:
+	uv run python scripts/security/render_edge_conf.py
+
+edge-conf-check:
+	uv run python scripts/security/render_edge_conf.py --check
+
+edge-plugin:
+	scripts/security/fetch_edge_plugin.sh
+
+edge: edge-plugin
+	docker compose -f infra/docker-compose.edge.yml --profile edge up -d --wait
+
+edge-down:
+	docker compose -f infra/docker-compose.edge.yml --profile edge down
+
+# The suite boots and tears down its own tier, so this target is just the
+# marker selection; it does NOT skip when the artefact is missing, it fails and
+# names `make edge-plugin` (a WAF suite that silently does not run is worse
+# than no suite).
+edge-check: edge-plugin
+	uv run pytest tests/infra/test_edge_stack_integration.py -m integration -q -o addopts=""

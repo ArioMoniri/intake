@@ -1,0 +1,15 @@
+# INT-203 — what happens when a scenario overflows.
+#
+# One profile, one remediation, and no notification plugin: an alert leaves
+# this tier only through the SIEM feed (INT-205), which scrubs. A CrowdSec
+# notification would be a second, unscrubbed path to a chat channel carrying
+# a client address and a scenario name.
+name: intake_default_ip_remediation
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip"
+decisions:
+  - type: ban
+    # The duration is the scenario's blackhole ceiling, not a policy of its
+    # own: a ban longer than the bucket that raised it outlives the evidence.
+    duration: 15m
+on_success: break

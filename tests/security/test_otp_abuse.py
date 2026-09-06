@@ -77,11 +77,25 @@ from intake_api.auth_store import (  # noqa: E402
     RESEND_COOLDOWN_S,
     AuthStore,
 )
+from intake_api.carrier_geo import (  # noqa: E402
+    MSISDN_ALLOCATION_PATH,
+    AllocationSource,
+    AllocationTable,
+    AllocationTableAuthority,
+    CarrierGeoCheck,
+    CarrierGeoConfigError,
+    CarrierGeoOutcome,
+    carrier_geo_from_path,
+    load_allocation_table,
+    split_e164,
+)
 from intake_api.dev_fixture import ensure_dev_fixture  # noqa: E402
 from intake_api.otp import (  # noqa: E402
     CONSUMER_TENANT_ID,
     AuthWiring,
+    DeliveryReceipt,
     DevLogDeliveryAdapter,
+    OtpDeliveryAdapter,
     ensure_consumer_tenant,
 )
 from intake_api.settings import ApiSettings  # noqa: E402
@@ -210,6 +224,7 @@ class OtpHarness:
     engine: Any
     audit_store: Any
     redis_client: Any
+    delivery: Any = None
     base: str = "http://testserver"
 
     def challenge(self) -> str:
@@ -302,6 +317,8 @@ def _build(
     token_patient: str | None = "unit-patient-token",  # noqa: S107 — unit fixture
     token_admin: str | None = "unit-admin-token",  # noqa: S107 — unit fixture
     clock_offset_s: float = WINDOW_START_OFFSET_S,
+    carrier_geo: CarrierGeoCheck | None = None,
+    delivery: OtpDeliveryAdapter | None = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -317,6 +334,9 @@ def _build(
     engine = create_async_engine(f"sqlite+aiosqlite:///{app_db}", poolclass=NullPool)
     clock = Clock(clock_offset_s)
     fake_redis = fakeredis.FakeStrictRedis()
+    delivery_adapter: OtpDeliveryAdapter = (
+        delivery if delivery is not None else DevLogDeliveryAdapter()
+    )
     wiring = ApiWiring(
         settings=ApiSettings(
             token_patient=token_patient,
@@ -334,7 +354,7 @@ def _build(
         auth=AuthWiring(
             redis_client=fake_redis,
             tokenizer=Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1"),
-            delivery=DevLogDeliveryAdapter(),
+            delivery=delivery_adapter,
             attestation=(
                 DevStructuralAttestationVerifier()
                 if attested_dev
@@ -342,6 +362,7 @@ def _build(
             ),
             dev_otp_peek=peek,
             now_fn=clock,
+            carrier_geo=carrier_geo if carrier_geo is not None else CarrierGeoCheck(),
         ),
     )
     run(ensure_consumer_tenant(engine))
@@ -355,6 +376,7 @@ def _build(
             engine=engine,
             audit_store=audit_store,
             redis_client=fake_redis,
+            delivery=delivery_adapter,
         )
     run(engine.dispose())
     audit_engine.dispose()
@@ -924,3 +946,395 @@ def test_auth_endpoints_are_tagged_otp_tier(otp: OtpHarness) -> None:
     response = otp.request_otp()
     assert response.status_code == 202
     assert response.headers["x-intake-auth-tier"] == "otp"
+
+
+# --- INT-308: the carrier/geo sanity check (files/10 §2) -----------------------------
+#
+# files/10 §2 named "carrier/geo sanity checks against SMS pumping" in the same
+# sentence as the budgets above, and no code honoured it; INT-263 marked it
+# named-but-unbuilt rather than let the sentence read as coverage. What lands
+# here is the control and, more importantly, its ASYMMETRY: a lookup that cannot
+# be made ADMITS, and only a positive signal REFUSES. A carrier check that
+# failed closed would lock a patient out of their own intake the first time a
+# lookup timed out, which is a worse failure than the cost it was meant to save.
+#
+# The carrier half ships INERT: infra/security/msisdn_allocation.yaml declares
+# no prefixes, because which 5XX prefixes the BTK has allocated is a published
+# fact nobody here has read from the publication (docs/backlog/blockers.md). So
+# the tests below drive the mechanism from injected fixture tables, and one test
+# pins the shipped file's emptiness so that supplying it is a visible change.
+
+#: A number in the fixture table's allocated prefix (505) — a real subscriber.
+PHONE_ALLOCATED = "+905051114455"
+#: PHONE's own prefix, 532, is deliberately ABSENT from the fixture table.
+UNALLOCATED_PHONES = ("+905321114455", "+905322224455", "+905323334455")
+
+_FIXTURE_SOURCE = AllocationSource(
+    authority="fixture",
+    document="unit-fixture allocation table",
+    published_on="2026-01-01",
+    url="https://example.invalid/fixture",
+    retrieved_on="2026-01-01",
+)
+
+
+def _exhaustive_table(*prefixes: str) -> AllocationTable:
+    """A table that declares itself COMPLETE, so an absent prefix is a positive
+    'not allocated' — the only shape that can refuse anything."""
+    return AllocationTable(
+        country_code="90",
+        exhaustive=True,
+        allocated_prefixes=prefixes,
+        source=_FIXTURE_SOURCE,
+    )
+
+
+class RecordingDelivery:
+    """Counts SMS sends without recording anything about them (invariant 6).
+    The count is the assertion that matters: an SMS not sent is the entire
+    point of an anti-pumping control."""
+
+    def __init__(self) -> None:
+        self.sends = 0
+
+    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+        del phone_e164, code
+        self.sends += 1
+        return DeliveryReceipt(delivery_id=uuid.uuid4().hex)
+
+
+class RaisingAuthority:
+    """An authority whose lookup fails — a timeout, a dead resolver, a bug."""
+
+    def __init__(self, error: BaseException) -> None:
+        self.error = error
+        self.calls = 0
+
+    def allocated(self, *, country_code: str, operator_prefix: str) -> bool | None:
+        del country_code, operator_prefix
+        self.calls += 1
+        raise self.error
+
+
+@contextlib.contextmanager
+def _carrier_harness(
+    home: Path,
+    *,
+    check: CarrierGeoCheck,
+    delivery: RecordingDelivery,
+) -> Iterator[OtpHarness]:
+    home.mkdir(parents=True, exist_ok=True)
+    built = _build(home, carrier_geo=check, delivery=delivery)
+    try:
+        yield next(built)
+    finally:
+        next(built, None)
+
+
+# --- the shipped authority, and what a row costs -------------------------------------
+
+
+def test_the_shipped_allocation_table_declares_no_prefixes_and_cannot_refuse() -> None:
+    """The committed file is EMPTY and that is the current state, not an
+    omission — so this test is expected to change when a human supplies the
+    BTK list, and the change is the point (docs/backlog/blockers.md).
+
+    Pinned rather than assumed: an empty table that quietly declared itself
+    exhaustive would refuse every Turkish mobile in existence."""
+    table = load_allocation_table(MSISDN_ALLOCATION_PATH)
+    assert table.country_code == "90"
+    assert table.allocated_prefixes == ()
+    assert table.exhaustive is False
+    assert table.can_refuse is False
+    assert AllocationTableAuthority(table).can_refuse is False
+
+
+def test_a_prefix_list_without_a_source_is_refused() -> None:
+    """Which prefixes an authority allocated is a published fact. A list with
+    nothing to re-read it against is the invented value rule 1 forbids, so the
+    model refuses it rather than trusting whoever typed it."""
+    with pytest.raises(ValueError, match="without a source"):
+        AllocationTable(country_code="90", exhaustive=True, allocated_prefixes=("505",))
+
+
+def test_a_table_with_a_source_but_no_prefixes_is_fine() -> None:
+    """The near-miss of the rule above: the constraint is one-directional. A
+    source with an empty list is a human saying 'I read it and recorded
+    nothing yet', which must stay expressible."""
+    table = AllocationTable(country_code="90", exhaustive=False, source=_FIXTURE_SOURCE)
+    assert table.can_refuse is False
+
+
+def test_split_e164_reads_the_operator_prefix_and_nothing_else() -> None:
+    assert split_e164("+905321114455") == ("90", "532")
+    assert split_e164("+905051114455") == ("90", "505")
+    # anything that is not the one plan this check understands says nothing,
+    # because refusing on a parse this module got wrong is the wrong direction
+    assert split_e164("+15551114455") is None
+    assert split_e164("+9053211144") is None
+    assert split_e164("+90532111445x") is None
+
+
+# --- the asymmetry: two tests, one per direction (acceptance clause 2) ---------------
+
+
+@pytest.mark.parametrize(
+    "error",
+    [TimeoutError("carrier lookup timed out"), ConnectionError("no route"), RuntimeError("bug")],
+    ids=["timeout", "connection", "bug"],
+)
+def test_a_carrier_lookup_that_fails_still_lets_the_patient_in(
+    tmp_path: Path, error: BaseException, caplog: pytest.LogCaptureFixture
+) -> None:
+    """FAIL OPEN. A carrier lookup that times out must not lock a legitimate
+    patient out of their own intake — the cost of a missed pumping attempt is
+    money; the cost of a locked-out patient is an intake that does not happen."""
+    authority = RaisingAuthority(error)
+    delivery = RecordingDelivery()
+    with caplog.at_level(logging.DEBUG):
+        with _carrier_harness(
+            tmp_path / "open", check=CarrierGeoCheck(authority=authority), delivery=delivery
+        ) as harness:
+            response = harness.request_otp(PHONE_ALLOCATED)
+            assert response.status_code == 202, response.text
+            assert harness.peek(PHONE_ALLOCATED).isdigit()
+    assert authority.calls == 1, "the lookup was actually attempted"
+    assert delivery.sends == 1, "the SMS went out despite the failed lookup"
+    # Invariant 6, scoped to what this test can actually speak for: the records
+    # THIS SYSTEM emits. A whole-capture grep at DEBUG also catches httpx
+    # logging the harness's own dev-peek URL, which carries the phone as a query
+    # parameter — a real property of that dev-only route (recorded in
+    # docs/evidence/INT-308.md) and not something the carrier check can fix, so
+    # asserting over it here would make this test fail for another route's
+    # reason.
+    ours = [r for r in caplog.records if r.name.startswith("intake_api")]
+    assert any("fail open" in r.getMessage() for r in ours), (
+        "a lookup that did not happen must be visible"
+    )
+    for record in ours:
+        assert "5051114455" not in record.getMessage(), record.getMessage()
+    # The check's own line is a fixed string with no arguments, so nothing from
+    # the number — the operator prefix included — can reach it. Asserted as "no
+    # digit at all" rather than "not 505": a three-digit needle matches by
+    # accident against byte counts and uuid hex, which would make the assertion
+    # pass or fail for reasons unrelated to it.
+    mine = [r.getMessage() for r in ours if r.name == "intake_api.carrier_geo"]
+    assert mine, "the fail-open path must say so"
+    for message in mine:
+        assert not any(char.isdigit() for char in message), message
+
+
+def test_a_positively_unallocated_prefix_refuses_before_any_sms(tmp_path: Path) -> None:
+    """FAIL CLOSED on a positive signal. The prefix is absent from a table that
+    declares itself complete, so no operator has it, so no subscriber is behind
+    it and the SMS is pure cost. It is refused BEFORE the code is minted."""
+    delivery = RecordingDelivery()
+    check = CarrierGeoCheck(authority=AllocationTableAuthority(_exhaustive_table("505")))
+    with _carrier_harness(tmp_path / "closed", check=check, delivery=delivery) as harness:
+        response = harness.request_otp(PHONE)
+        assert response.status_code == 422, response.text
+        # the same generic code a malformed number gets: a distinct code would
+        # tell a caller which of its numbers exist (files/10 §9 row 1)
+        assert response.json() == {"error": "phone_invalid"}
+        assert delivery.sends == 0, "an SMS was sent to a number no operator allocated"
+        # no code was minted either, so there is nothing to verify against
+        peek = harness.client.get("/v1/auth/dev/otp-peek", params={"phone": PHONE})
+        assert peek.status_code == 404
+
+
+# --- near-miss negative controls -----------------------------------------------------
+
+
+def test_an_allocated_prefix_still_gets_its_sms_under_the_same_table(tmp_path: Path) -> None:
+    """The near miss of the refusal above: same table, same request, a prefix
+    that IS allocated. A check that refused everything would pass the test
+    above and fail here, which is the only reason that test means anything."""
+    delivery = RecordingDelivery()
+    check = CarrierGeoCheck(authority=AllocationTableAuthority(_exhaustive_table("505")))
+    with _carrier_harness(tmp_path / "near", check=check, delivery=delivery) as harness:
+        assert harness.request_otp(PHONE_ALLOCATED).status_code == 202
+        assert delivery.sends == 1
+
+
+def test_a_partial_list_has_no_opinion_and_admits_the_same_number(tmp_path: Path) -> None:
+    """The near miss that costs the most if it is inverted. The ONLY difference
+    from the refusal test is `exhaustive`: absent from a COMPLETE list is a
+    positive 'not allocated'; absent from a PARTIAL list is silence. Getting
+    this one boolean backwards refuses every subscriber the list forgot."""
+    partial = AllocationTable(
+        country_code="90",
+        exhaustive=False,
+        allocated_prefixes=("505",),
+        source=_FIXTURE_SOURCE,
+    )
+    assert partial.can_refuse is False
+    delivery = RecordingDelivery()
+    with _carrier_harness(
+        tmp_path / "partial",
+        check=CarrierGeoCheck(authority=AllocationTableAuthority(partial)),
+        delivery=delivery,
+    ) as harness:
+        assert harness.request_otp(PHONE).status_code == 202
+        assert delivery.sends == 1
+
+
+def test_a_table_for_another_country_has_no_opinion(tmp_path: Path) -> None:
+    """One table answers for one numbering plan. A +90 number checked against a
+    +44 table is unknown, not unallocated."""
+    other = AllocationTable(
+        country_code="44", exhaustive=True, allocated_prefixes=("770",), source=_FIXTURE_SOURCE
+    )
+    check = CarrierGeoCheck(authority=AllocationTableAuthority(other))
+    assert check.evaluate(PHONE).outcome is CarrierGeoOutcome.UNCHECKED
+
+
+def test_a_non_turkish_number_never_reaches_the_delivery_adapter(tmp_path: Path) -> None:
+    """The GEO half, which held before INT-308 and must still hold: the
+    international premium ranges SMS pumping actually profits from are refused
+    by normalise_tr_phone long before any carrier question is asked. This is
+    the single most load-bearing anti-pumping property the system has and it is
+    a consequence of being a Turkish-only product, so it is pinned rather than
+    claimed."""
+    delivery = RecordingDelivery()
+    with _carrier_harness(tmp_path / "geo", check=CarrierGeoCheck(), delivery=delivery) as harness:
+        for foreign in ("+15551114455", "+447700900123", "+992001114455"):
+            assert harness.request_otp(foreign).status_code == 422
+        assert delivery.sends == 0
+
+
+def test_an_unreadable_authority_admits_rather_than_locking_everyone_out(tmp_path: Path) -> None:
+    """A config error is a lookup that cannot be made, and those admit. The
+    warning is the visible surface: a broken table must not be silent."""
+    broken = tmp_path / "broken.yaml"
+    broken.write_text("allocated_prefixes: [\n", encoding="utf-8")
+    with pytest.raises(CarrierGeoConfigError):
+        load_allocation_table(broken)
+    check = carrier_geo_from_path(broken)
+    assert check.authority is None
+    assert check.evaluate(PHONE).outcome is CarrierGeoOutcome.UNCHECKED
+    assert carrier_geo_from_path(tmp_path / "absent.yaml").evaluate(PHONE).refuses is False
+
+
+def test_a_carrier_refusal_costs_the_caller_its_budget(tmp_path: Path) -> None:
+    """The check sits AFTER the abuse gate, not before it. If it ran first, a
+    refused caller would pay nothing and could probe which prefixes refuse for
+    free on an unauthenticated endpoint; and the budgets, which are what
+    actually stands against pumping today, would stop counting the traffic."""
+    delivery = RecordingDelivery()
+    check = CarrierGeoCheck(authority=AllocationTableAuthority(_exhaustive_table("505")))
+    with _carrier_harness(tmp_path / "budget", check=check, delivery=delivery) as harness:
+        for phone in UNALLOCATED_PHONES[:DEVICE_LIMIT_PER_HOUR]:
+            assert harness.request_otp(phone).status_code == 422
+        # the device budget is spent, so even the allocated number is refused
+        spent = harness.request_otp(PHONE_ALLOCATED)
+        assert spent.status_code == 429
+        assert spent.json()["error"] == "otp_limited"
+        assert delivery.sends == 0
+
+
+# --- invariant 6: the derivation is not stored anywhere ------------------------------
+
+
+def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -> None:
+    """No new personal data is persisted to achieve the control, so no new
+    inventory annotation is owed — asserted rather than stated. The Redis key
+    namespaces stay the closed set the OTP tier already had, and no key or
+    value anywhere carries the operator prefix."""
+    delivery = RecordingDelivery()
+    check = CarrierGeoCheck(authority=AllocationTableAuthority(_exhaustive_table("505")))
+    with _carrier_harness(tmp_path / "store", check=check, delivery=delivery) as harness:
+        assert harness.request_otp(PHONE).status_code == 422
+        harness.clock.advance(RESEND_COOLDOWN_S + 1)
+        assert harness.request_otp(PHONE_ALLOCATED).status_code == 202
+        keys = [key.decode() for key in harness.redis_client.keys("*")]
+        namespaces = {":".join(key.split(":")[:2]) for key in keys}
+        assert namespaces <= {
+            "auth:otp",
+            "auth:chal",
+            "auth:acc",
+            "auth:ref",
+            "auth:fam",
+            "auth:jti",
+        }, f"the carrier check opened a new keyspace: {namespaces}"
+        # Structural, not a substring hunt: a three-digit prefix matches inside a
+        # sha256 hex digest by accident nearly every run, so the assertion is
+        # over the SHAPE of what is stored. A stored carrier or country would
+        # need either a key outside this grammar or a field outside the code
+        # record's closed set, and both are checked.
+        for key in keys:
+            parts = key.split(":")
+            if parts[:3] == ["auth", "otp", "w"]:
+                assert parts[3] in {"ip", "device", "phone"}, key
+            elif parts[:2] == ["auth", "otp"]:
+                assert parts[2] in {"cool", "code", "peek"}, key
+            if parts[:3] == ["auth", "otp", "code"]:
+                record = json.loads(harness.redis_client.get(key))
+                assert set(record) == {"digest", "attempts", "expires"}, record
+        # and the numbers themselves, which ARE specific enough to grep for
+        for key in keys:
+            blob = key + " " + str(harness.redis_client.dump(key))
+            assert "5321114455" not in blob
+            assert "5051114455" not in blob
+
+
+def test_a_carrier_refusal_writes_no_audit_row(tmp_path: Path) -> None:
+    """A refused request is a number nobody owns. Writing an audit row keyed on
+    its pseudonym would be storing a derivation about a person who does not
+    exist, and the budget refusal beside it audits nothing either."""
+    delivery = RecordingDelivery()
+    check = CarrierGeoCheck(authority=AllocationTableAuthority(_exhaustive_table("505")))
+    with _carrier_harness(tmp_path / "audit", check=check, delivery=delivery) as harness:
+        assert harness.request_otp(PHONE).status_code == 422
+        assert harness.audit_store.entries() == ()
+
+
+def test_a_malformed_prefix_list_is_refused() -> None:
+    """Two shapes that would silently weaken the table: a duplicate (which
+    makes 'exhaustive' ambiguous about what was read) and a non-digit prefix
+    (which can never match a derivation and so is a row that does nothing)."""
+    with pytest.raises(ValueError, match="duplicate"):
+        AllocationTable(
+            country_code="90",
+            exhaustive=True,
+            allocated_prefixes=("505", "505"),
+            source=_FIXTURE_SOURCE,
+        )
+    with pytest.raises(ValueError, match="not a run of digits"):
+        AllocationTable(
+            country_code="90",
+            exhaustive=True,
+            allocated_prefixes=("5O5",),
+            source=_FIXTURE_SOURCE,
+        )
+
+
+def test_a_supplied_exhaustive_table_wires_a_check_that_can_refuse(tmp_path: Path) -> None:
+    """What lands the day a human answers the blocker: the same loader, the
+    same wiring, and a check that now has an opinion. Written now so that
+    supplying the list is a data change and not a code change."""
+    supplied = tmp_path / "supplied.yaml"
+    supplied.write_text(
+        "country_code: '90'\n"
+        "exhaustive: true\n"
+        "allocated_prefixes: ['505']\n"
+        "source:\n"
+        "  authority: fixture\n"
+        "  document: unit-fixture allocation table\n"
+        "  published_on: '2026-01-01'\n"
+        "  url: https://example.invalid/fixture\n"
+        "  retrieved_on: '2026-01-01'\n",
+        encoding="utf-8",
+    )
+    check = carrier_geo_from_path(supplied)
+    assert check.evaluate(PHONE_ALLOCATED).outcome is CarrierGeoOutcome.ADMIT
+    assert check.evaluate(PHONE).refuses is True
+
+
+def test_an_empty_allocation_file_is_an_empty_table_not_a_crash(tmp_path: Path) -> None:
+    empty = tmp_path / "empty.yaml"
+    empty.write_text("", encoding="utf-8")
+    with pytest.raises(CarrierGeoConfigError):
+        # country_code and exhaustive have no defaults: a table that does not
+        # say which plan it answers for, or whether its list is complete, is
+        # not a table this check will act on
+        load_allocation_table(empty)

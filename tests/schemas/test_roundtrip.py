@@ -71,6 +71,7 @@ from clinical_schemas import (
     TriageResult,
 )
 from clinical_schemas.codegen import PACKAGE_ROOT, generate_artifacts
+from protocols.triage import canonical_scalar
 
 NOW = datetime(2026, 8, 28, 10, 0, 0, tzinfo=UTC)
 TENANT = uuid.UUID("00000000-0000-4000-8000-000000000001")
@@ -744,3 +745,213 @@ def test_generated_ts_is_types_only() -> None:
     assert "export interface" in ts or "export type" in ts
     for runtime_marker in ("class ", "function ", "const ", "require(", "import "):
         assert runtime_marker not in ts, f"generated TS carries runtime code: {runtime_marker}"
+
+
+# ----------------------------------------- INT-309: the Decimal on the wire
+
+
+class TestDecimalCrossesTheWireAsItself:
+    """INT-309 boundary 3 — the JSON round trip silently restrung a Decimal.
+
+    ``Decimal("38.50")`` dumped to the JSON string ``"38.50"`` and validated
+    back as a ``str``, because ``JsonScalar`` carries both ``str`` and
+    ``Decimal`` and the two had the same wire form. ``canonical_scalar``
+    then read the restored value as a string, so a numeric threshold over it
+    read Unknown and a red-flag rule silently never fired — the INT-303
+    defect, relocated to the wire, and a regression against the float the
+    carrier held before INT-303.
+
+    ADR-028 records the encoding this pins: a clinical quantity crosses
+    INTAKE's own wire as a *tagged* JSON string, because a JSON number
+    cannot carry the declared scale through the parser and a bare JSON
+    string cannot be told apart from a string answer.
+    """
+
+    def test_a_decimal_slot_comes_back_a_decimal(self) -> None:
+        state = _session_state().model_copy(update={"slots": {"ates": Decimal("38.5")}})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert isinstance(restored.slots["ates"], Decimal)
+        assert restored.slots["ates"] == Decimal("38.5")
+
+    def test_the_declared_scale_survives_the_wire(self) -> None:
+        # Near-miss control: 38.50 and 38.5 are one float and two clinical
+        # quantities. Any fix that goes through a float passes the test
+        # above and fails this one.
+        state = _session_state().model_copy(update={"slots": {"ates": Decimal("38.50")}})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        carried = restored.slots["ates"]
+        assert isinstance(carried, Decimal)
+        assert carried.as_tuple() == Decimal("38.50").as_tuple()
+        assert carried.as_tuple() != Decimal("38.5").as_tuple()
+
+    def test_an_integer_too_large_for_a_float_survives_the_wire(self) -> None:
+        # Near-miss control: the first integer a float cannot represent.
+        big = Decimal(2**53 + 1)
+        state = _session_state().model_copy(update={"slots": {"sayim": big}})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert restored.slots["sayim"] == big
+        assert restored.slots["sayim"] != Decimal(2**53)
+
+    def test_a_string_answer_that_looks_numeric_is_still_a_string(self) -> None:
+        # Negative control, and the reason the encoding has to be tagged
+        # rather than merely parsed: "38.6" is a real string answer — the
+        # INT-031 SessionState fixture above carries exactly that — and
+        # tests/safety/test_numeric_carrier.py pins canonical_scalar("38.5")
+        # as a str. A fix that promotes numeric-looking strings to Decimal
+        # passes every test above and breaks both of those.
+        state = _session_state().model_copy(update={"slots": {"ates": "38.50"}})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert restored.slots["ates"] == "38.50"
+        assert not isinstance(restored.slots["ates"], Decimal)
+
+    def test_a_string_that_starts_with_the_tag_survives_unchanged(self) -> None:
+        # The encoding is total, not merely lucky: a patient answer that
+        # happens to begin with the reserved prefix is escaped on the way
+        # out and unescaped on the way back, so no free text is refused and
+        # none is silently reinterpreted as a number.
+        planted = {"a": "~d38.50", "b": "~~x", "c": "~"}
+        state = _session_state().model_copy(update={"slots": planted})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert restored.slots == planted
+        assert all(isinstance(v, str) for v in restored.slots.values())
+
+    def test_a_decimal_nested_in_a_list_or_a_map_comes_back_a_decimal(self) -> None:
+        nested = {"olcumler": [Decimal("1.10"), "1.10"], "son": {"deger": Decimal("0.50")}}
+        state = _session_state().model_copy(update={"slots": nested})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert restored.slots["olcumler"] == [Decimal("1.10"), "1.10"]
+        assert isinstance(restored.slots["olcumler"][0], Decimal)  # type: ignore[index]
+        assert not isinstance(restored.slots["olcumler"][1], Decimal)  # type: ignore[index]
+        assert restored.slots["son"] == {"deger": Decimal("0.50")}
+
+    def test_a_learned_fact_value_crosses_the_wire_as_a_decimal(self) -> None:
+        fact = _overlay().facts[0].model_copy(update={"value": Decimal("38.50")})
+        restored = LearnedFact.model_validate_json(fact.model_dump_json())
+        assert isinstance(restored.value, Decimal)
+        assert restored.value.as_tuple() == Decimal("38.50").as_tuple()
+
+    def test_a_restored_decimal_is_a_number_to_the_triage_grammar(self) -> None:
+        # The whole point: the restored value has to be the thing a red-flag
+        # threshold can compare, not a string canonical_scalar reads Unknown.
+        state = _session_state().model_copy(update={"slots": {"ates": Decimal("38.50")}})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert canonical_scalar(restored.slots["ates"]) == Decimal("38.50")
+        assert canonical_scalar(restored.slots["ates"]) > Decimal("38.0")
+
+
+# ------------------------------------------------- INT-309 · the wire (ADR-030)
+
+
+def _state_with(**slots: Any) -> SessionState:
+    """A SessionState whose only interesting part is one slot value."""
+    return SessionState(
+        session_id="sess_0001",
+        protocol_id="cluster.gi",
+        protocol_version="1.2.0",
+        protocol_hash="c" * 64,
+        mode="fast",
+        status="active",
+        reference_time=NOW,
+        step_states={"cc.open": AnswerState.ASKED_PRESENT},
+        slots=slots,
+        budget=SessionBudget(turns_used=4, turns_remaining=14),
+        triage=None,
+    )
+
+
+class TestADecimalCrossesTheWireAsItself:
+    """INT-309 boundary 3 — the JSON round trip used to restring a Decimal.
+
+    ``Decimal("38.50")`` dumped to the JSON string ``"38.50"`` and validated
+    back as a ``str``, which ``canonical_scalar`` reads as Unknown: the
+    defect INT-303 fixed, relocated to the wire, and a regression against the
+    pre-INT-303 ``float``. ADR-030 records why the fix is a tagged string and
+    not a JSON number.
+    """
+
+    def test_a_decimal_slot_validates_back_as_a_decimal(self) -> None:
+        state = _state_with(ates=Decimal("38.50"))
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert isinstance(restored.slots["ates"], Decimal)
+        assert restored.slots["ates"] == Decimal("38.50")
+        assert restored == state
+
+    def test_the_declared_scale_survives_the_round_trip(self) -> None:
+        """Near-miss control: 38.50 and 38.5 are the same float and two
+        different declared scales (files/13 §9.5). A fix that routes the
+        value through ``float`` passes on 38.5 and fails here."""
+        restored = SessionState.model_validate_json(
+            _state_with(ates=Decimal("38.50")).model_dump_json()
+        )
+        value = restored.slots["ates"]
+        assert isinstance(value, Decimal)
+        assert value.as_tuple() == Decimal("38.50").as_tuple()
+        assert value.as_tuple() != Decimal("38.5").as_tuple()
+
+    def test_an_integer_too_large_for_a_float_survives_exactly(self) -> None:
+        """Near-miss control: 2**53 + 1 is the smallest integer a float
+        cannot represent, so a float-shaped fix loses the last digit."""
+        big = Decimal("9007199254740993")
+        assert Decimal(float(big)) != big  # the control's premise
+        restored = SessionState.model_validate_json(_state_with(n=big).model_dump_json())
+        assert restored.slots["n"] == big
+
+    def test_a_numeric_looking_string_answer_is_still_a_string(self) -> None:
+        """Negative control, and the reason a bare string cannot be the
+        encoding: ``tests/safety/test_numeric_carrier.py`` pins
+        ``canonical_scalar("38.5")`` as a ``str``, and the INT-031 fixture
+        carries ``slots={"ates": "38.6"}``. A fix that reads numeric-looking
+        strings back as Decimals breaks both."""
+        restored = SessionState.model_validate_json(
+            _state_with(ates="38.50", note="38.6").model_dump_json()
+        )
+        assert restored.slots["ates"] == "38.50"
+        assert not isinstance(restored.slots["ates"], Decimal)
+        assert not isinstance(restored.slots["note"], Decimal)
+
+    def test_a_string_that_looks_like_the_tag_round_trips_as_that_string(self) -> None:
+        """The reserved prefix is escaped, never refused: a patient answer is
+        never rejected for the shape of its first character, and never
+        silently becomes a number once it is on the wire.
+
+        The inputs are spelled in wire form (``~~`` for a literal ``~``)
+        because ``JsonValue`` decodes in both validation modes — it has to,
+        since FastAPI validates a parsed request body in *python* mode, so a
+        json-only decoder would leave every inbound API quantity a string.
+        ADR-030 records that consequence."""
+        state = _state_with(a="~~d38.50", b="~~", c="~~~x")
+        assert state.slots["a"] == "~d38.50"  # decoded once, on the way in
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert restored.slots["a"] == "~d38.50"
+        assert not isinstance(restored.slots["a"], Decimal)
+        assert restored.slots["b"] == "~"
+        assert restored.slots["c"] == "~~x"
+        assert restored == state
+
+    def test_a_decimal_nested_in_a_list_or_a_map_survives(self) -> None:
+        state = _state_with(xs=[Decimal("1.10")], m={"k": Decimal("0.10")})
+        restored = SessionState.model_validate_json(state.model_dump_json())
+        assert restored.slots["xs"] == [Decimal("1.10")]
+        assert restored.slots["m"] == {"k": Decimal("0.10")}
+        assert restored == state
+
+    def test_a_float_lane_value_still_crosses_as_a_json_number(self) -> None:
+        """Negative control for the other half of the carrier: an observer
+        lane legitimately carries a float (CLAUDE.md invariant 11) and must
+        not be promoted to a Decimal by the codec."""
+        restored = SessionState.model_validate_json(_state_with(f=0.1).model_dump_json())
+        assert isinstance(restored.slots["f"], float)
+        assert restored.slots["f"] == 0.1
+
+    def test_a_learned_fact_value_crosses_the_wire_as_a_decimal(self) -> None:
+        fact = LearnedFact(
+            key="baseline.ates",
+            value=Decimal("38.50"),
+            source=LearnedFactSource.CLINICIAN_ACCEPTED_NOTE,
+            source_ref="note_0001",
+            confidence=0.9,
+            confirmed_at=NOW,
+        )
+        restored = LearnedFact.model_validate_json(fact.model_dump_json())
+        assert isinstance(restored.value, Decimal)
+        assert restored.value.as_tuple() == Decimal("38.50").as_tuple()

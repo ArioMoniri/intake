@@ -15,6 +15,7 @@ never exchangeable clinical assertions.
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 
 from clinical_schemas.common import JsonScalar, JsonValue
 from clinical_schemas.mappers import codes
@@ -402,11 +403,24 @@ def _scalar_answer(value: JsonScalar, slot: str) -> QrAnswer:
                 "represented losslessly"
             )
         return QrAnswer(value_integer=value)
-    if isinstance(value, float):
+    if isinstance(value, (Decimal, float)):
+        # One branch for both, because ``QrAnswer.value_decimal`` carries
+        # both and keeps them apart (INT-309). Before that a Decimal — the
+        # type files/13 §9.5 names for a clinical quantity, and the type
+        # extraction produces — fell past every branch to the raise below.
         return QrAnswer(value_decimal=value)
     if isinstance(value, str):
         return QrAnswer(value_string=value)
-    raise MappingError(f"slot {slot!r}: a None answer inside a list is malformed")
+    if value is None:
+        # True here and only here: _slot_item drops a top-level None and a
+        # None dict entry, so the only None that reaches this function is
+        # one inside a list. That is what the message used to say about
+        # every unhandled type, including a Decimal.
+        raise MappingError(f"slot {slot!r}: a None answer inside a list is malformed")
+    raise MappingError(
+        f"slot {slot!r}: an answer of type {type(value).__name__!r} is outside "
+        "clinical_schemas.common.JsonScalar and has no FHIR answer element"
+    )
 
 
 def _slot_item(slot: str, value: JsonValue) -> QrItem | None:

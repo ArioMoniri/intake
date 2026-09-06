@@ -35,6 +35,8 @@ const NAV_MAP = [
   "(tabs)/visits/[visitId]/review.tsx",
   // INT-139 — Paylaşımlarınız: the share centre for this visit's note
   "(tabs)/visits/[visitId]/shares.tsx",
+  // INT-311 — issuing a Doctor Link from the patient's phone (in-app only)
+  "(tabs)/visits/[visitId]/issue-link.tsx",
   "(tabs)/records.tsx",
   "(tabs)/wellbeing.tsx",
   "(tabs)/me/index.tsx",

@@ -76,6 +76,12 @@ class ResearchRefusalReason(enum.StrEnum):
     APPROVAL_LAPSED = "approval_lapsed"
     RECIPIENT_NOT_APPROVED = "recipient_not_approved"
     RETENTION_UNSET = "retention_unset"
+    # INT-262 — the differencing gate. A window overlapping a prior extract of
+    # the same study+spec refuses: UNBUDGETED when the study states no query
+    # budget (fail closed), EXHAUSTED when it states one and this request would
+    # exceed it. Neither carries the window or the cohort size.
+    OVERLAPPING_WINDOW_UNBUDGETED = "overlapping_window_unbudgeted"
+    QUERY_BUDGET_EXHAUSTED = "query_budget_exhausted"
     VALUE_NOT_ID_SHAPED = "value_not_id_shaped"
     VALUE_CARRIES_IDENTIFIER = "value_carries_identifier"
     VALUE_OUTSIDE_VOCABULARY = "value_outside_vocabulary"

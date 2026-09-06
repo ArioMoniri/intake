@@ -1,7 +1,9 @@
 """ORM access over the INT-030 models (INT-197). No new tables: a visit is
-one ``sessions`` row plus three plain ``visit.*`` slots; the note is one
-envelope-bearing ``notes`` row per visit (updated in place — the audit chain,
-not row history, is the record of access); sending is a ``shares`` row
+one ``sessions`` row plus its plain ``visit.*`` slots (hospital and department
+always; date, branch, visit type and — since INT-306 — the appointment hour
+where a producer stated one); the note is one envelope-bearing ``notes`` row
+per visit (updated in place — the audit chain, not row history, is the record
+of access); sending is a ``shares`` row
 carrying only the scoped-on section ids. The INT-133 attribution columns are
 the one column addition, inventoried on the model (invariant 18).
 
@@ -17,6 +19,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
+from clinical_schemas.visit_time import VisitTime, VisitTimeSource, parse_visit_time
 from intake_platform.db.models import (
     DoctorLink,
     Document,
@@ -69,6 +72,13 @@ _SLOT_DATE = "visit.date"
 # pre-INT-134 row simply lacks them and reads back as None.
 _SLOT_BRANCH = "visit.branch"
 _SLOT_VISIT_TYPE = "visit.visit_type"
+# INT-306: the appointment's hour AND which producer stated it, in one slot
+# value so the two cannot be written apart. Absent means the hour was never
+# stated — never a defaulted midnight, which the expiry rule could not tell
+# from a real 00:00 booking (files/02 §2b). Same argument as INT-134: a row in
+# the already-inventoried ``slots`` table, so no new tables and no new columns
+# (invariant 18), and a pre-INT-306 visit simply lacks it and reads back None.
+_SLOT_TIME = "visit.time"
 
 # 06 §3: share tokens expire, 72 h default ceiling.
 SHARE_TTL = timedelta(hours=72)
@@ -85,6 +95,10 @@ class VisitRecord:
     branch_id: str | None
     visit_type: str | None
     date: str | None
+    # INT-306 — the appointment's hour with its provenance, or None where no
+    # producer stated one. Typed rather than three strings, so a reader cannot
+    # get the value without also getting where it came from.
+    time: VisitTime | None
     note_status: NoteStatus | None
     # INT-133 / files/06 §6 — read off the session row, so the flag on a
     # visit, on its note and on anything else derived from that session is
@@ -100,6 +114,27 @@ class VisitRecord:
         third-party fact travels on ``third_party_present`` (files/02 §3).
         """
         return self.attribution is SessionAttribution.PROXY_REPORT
+
+
+def _visit_time(slot: dict[str, object] | None) -> VisitTime | None:
+    """Read the INT-306 time slot back through its own validator.
+
+    Deliberately not a bare ``VisitTime(...)`` construction: a row written by
+    an older build, or edited by hand, goes through exactly the spelling and
+    provenance rules the write path used, so a value that could not be created
+    through the API cannot be read out of the database either. A malformed row
+    raises rather than degrading to "no time recorded" — a silent degrade there
+    would be indistinguishable from an honest unknown and would shorten the
+    link without anything saying so.
+    """
+    if slot is None:
+        return None
+    ref = slot.get("source_ref")
+    return parse_visit_time(
+        str(slot["time"]),
+        source=VisitTimeSource(str(slot["source"])),
+        source_ref=str(ref) if ref is not None else None,
+    )
 
 
 def _aware(value: datetime) -> datetime:
@@ -129,6 +164,7 @@ async def create_visit(
     date: str | None,
     branch_id: str | None = None,
     visit_type: str | None = None,
+    time: VisitTime | None = None,
     attribution: SessionAttribution = SessionAttribution.SELF_REPORT,
     third_party_present: bool = False,
     proxy_ack_at: datetime | None = None,
@@ -158,6 +194,13 @@ async def create_visit(
         values.append((_SLOT_BRANCH, {"text": branch_id}))
     if visit_type is not None:
         values.append((_SLOT_VISIT_TYPE, {"text": visit_type}))
+    if time is not None:
+        # source_ref is written only where the source has one, so an absent key
+        # reads as "the patient typed it" rather than as "we lost the ref"
+        time_value: dict[str, object] = {"time": time.render(), "source": time.source.value}
+        if time.source_ref is not None:
+            time_value["source_ref"] = time.source_ref
+        values.append((_SLOT_TIME, time_value))
     for slot_id, value in values:
         session.add(
             Slot(
@@ -215,6 +258,7 @@ async def _visit_records(
         hospital = str(visit_slots[_SLOT_HOSPITAL]["text"])
         department = str(visit_slots[_SLOT_DEPARTMENT]["text"])
         date_slot = visit_slots.get(_SLOT_DATE)
+        time_slot = visit_slots.get(_SLOT_TIME)
         branch_slot = visit_slots.get(_SLOT_BRANCH)
         type_slot = visit_slots.get(_SLOT_VISIT_TYPE)
         records.append(
@@ -226,6 +270,7 @@ async def _visit_records(
                 branch_id=str(branch_slot["text"]) if branch_slot is not None else None,
                 visit_type=str(type_slot["text"]) if type_slot is not None else None,
                 date=str(date_slot["date"]) if date_slot is not None else None,
+                time=_visit_time(time_slot),
                 note_status=statuses.get(visit.id),
                 attribution=visit.attribution,
                 third_party_present=visit.third_party_present,
@@ -351,12 +396,25 @@ async def _revoke_links_of_share(
 
 
 async def create_share(
-    session: AsyncSession, *, tenant_id: uuid.UUID, note_id: uuid.UUID, section_ids: list[str]
+    session: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    note_id: uuid.UUID,
+    section_ids: list[str],
+    withheld_section_ids: list[str],
 ) -> Share:
+    # ``section_ids`` is the grant the read path and Doctor Link redemption read;
+    # ``withheld_section_ids`` records the patient's scope-off choices as an
+    # affirmative fact rather than an absence (INT-304, invariant 4). Readers
+    # still consult ``section_ids`` only, so a section is served only when it is
+    # explicitly in the grant (fail-closed).
     share = Share(
         tenant_id=tenant_id,
         note_id=note_id,
-        scope_sections={"section_ids": section_ids},
+        scope_sections={
+            "section_ids": section_ids,
+            "withheld_section_ids": withheld_section_ids,
+        },
         expires_at=datetime.now(UTC) + SHARE_TTL,
     )
     session.add(share)

@@ -1,0 +1,22 @@
+# INT-203 — real Coraza log lines, captured from the booted edge tier on
+# 3 Sep 2026, unedited apart from this header.
+#
+# Provenance matters here more than usual, because the point of the fixture is
+# that the leak is REAL. These are the lines Traefik wrote when the corpus case
+# `sqli_in_turkish_utterance_field` was sent through the deployed middleware
+# chain, with one change to the payload: the Turkish clinical sentence was put
+# in front of the injection, which is what a patient's field looks like when an
+# attacker uses the patient's own field. Read the `data` value: CRS's `logdata`
+# quotes the matched ARG back, and on this API that ARG is
+# `ARGS:json.text_tr` — the reason a person is seeing a doctor.
+#
+# tests/infra/test_waf_rules.py asserts that no part of it survives into an
+# EdgeEvent, and — the near-miss control — that the rule id, the CRS family and
+# the block verdict do.
+#
+# The last line is Traefik's own startup output: a line this parser must drop
+# rather than guess at, because an unparsed line shipped verbatim is the leak.
+{"level":"error","entryPointName":"web","routerName":"intake@file","middlewareName":"intake-waf@file","middlewareType":"wasm","time":"2026-09-03T20:36:16Z","message":"[client \"172.22.0.1\"] Coraza: Warning. SQL Injection Attack Detected via libinjection [file \"@owasp_crs/REQUEST-942-APPLICATION-ATTACK-SQLI.conf\"] [line \"5218\"] [id \"942100\"] [rev \"\"] [msg \"SQL Injection Attack Detected via libinjection\"] [data \"Matched Data: sUEv, found within ARGS:json.text_tr: Göğsümde şiddetli ağrı var' UNION SELECT null,version(),null-- ve nefes darlığı\"] [severity \"critical\"] [ver \"OWASP_CRS/4.0.0\"] [maturity \"0\"] [accuracy \"0\"] [tag \"application-multi\"] [tag \"language-multi\"] [tag \"platform-multi\"] [tag \"attack-sqli\"] [tag \"paranoia-level/1\"] [tag \"OWASP_CRS\"] [tag \"capec/1000/152/248/66\"] [tag \"PCI/6.5.2\"] [hostname \"\"] [uri \"/v1/intake/utterance\"] [unique_id \"PBQUwiXcobicrCsgOXl\"][msg_match_1 \"SQL Injection Attack Detected via libinjection\"] [data_match_1 \"Matched Data: sUEv, found within ARGS:json.text_tr: G%u00f6%u011fs%u00fcmde %u015fiddetli a%u011fr%u0131 var' UNION SELECT null,version(),null-- ve nefes darl%u0131%u011f%u0131\"][msg_match_2 \"SQL Injection Attack Detected via libinjection\"] [data_match_2 \"Matched Data: sUEv, found within ARGS:json.text_tr: G\\xf6\\x1fs\\xfcmde _iddetli a\\x1fr1 var' UNION SELECT null,version(),null-- ve nefes darl1\\x1f1\"]"}
+{"level":"error","entryPointName":"web","routerName":"intake@file","middlewareName":"intake-waf@file","middlewareType":"wasm","time":"2026-09-03T20:36:16Z","message":"[client \"172.22.0.1\"] Coraza: Warning. Detects MSSQL code execution and information gathering attempts [file \"@owasp_crs/REQUEST-942-APPLICATION-ATTACK-SQLI.conf\"] [line \"5317\"] [id \"942190\"] [rev \"\"] [msg \"Detects MSSQL code execution and information gathering attempts\"] [data \"Matched Data: ' UNION SELECT n found within ARGS:json.text_tr: Göğsümde şiddetli ağrı var' UNION SELECT null,version(),null ve nefes darlığı\"] [severity \"critical\"] [ver \"OWASP_CRS/4.0.0\"] [maturity \"0\"] [accuracy \"0\"] [tag \"application-multi\"] [tag \"language-multi\"] [tag \"platform-multi\"] [tag \"attack-sqli\"] [tag \"paranoia-level/1\"] [tag \"OWASP_CRS\"] [tag \"capec/1000/152/248/66\"] [tag \"PCI/6.5.2\"] [hostname \"\"] [uri \"/v1/intake/utterance\"] [unique_id \"PBQUwiXcobicrCsgOXl\"]"}
+{"level":"error","entryPointName":"web","routerName":"intake@file","middlewareName":"intake-waf@file","middlewareType":"wasm","time":"2026-09-03T20:36:16Z","message":"[client \"172.22.0.1\"] Coraza: Access denied (phase 2). Inbound Anomaly Score Exceeded (Total Score: 20) [file \"@owasp_crs/REQUEST-949-BLOCKING-EVALUATION.conf\"] [line \"6969\"] [id \"949110\"] [rev \"\"] [msg \"Inbound Anomaly Score Exceeded (Total Score: 20)\"] [data \"\"] [severity \"emergency\"] [ver \"OWASP_CRS/4.0.0\"] [maturity \"0\"] [accuracy \"0\"] [tag \"anomaly-evaluation\"] [hostname \"\"] [uri \"/v1/intake/utterance\"] [unique_id \"PBQUwiXcobicrCsgOXl\"]"}
+{"level":"info","time":"2026-09-03T20:35:41Z","message":"Configuration loaded from file: /etc/traefik/traefik.yml"}

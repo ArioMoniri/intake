@@ -32,6 +32,15 @@ crosses into the confirmed form unchanged. A patient who disagrees with the
 date on the screenshot produces a correction — they type the visit themselves
 — rather than an edited extraction.
 
+**The appointment TIME reaches the visit since INT-306.** It was parsed from
+the first day and then dropped at :meth:`ConfirmedVisitFields.as_visit_fields`,
+because ``POST /v1/visits`` recorded a date and no hour — which left a patient
+unable to check the one field they remember, and left the Doctor Link expiry
+rule (files/02 §2b, ``visit_datetime + 72 h``) approximating a value the
+screenshot had actually stated. It now travels with its provenance
+(:class:`~clinical_schemas.visit_time.VisitTimeSource.DOCUMENT_EXTRACTION` plus
+the candidate's ``document_ref``), derived rather than passed in.
+
 **No message here echoes what a screenshot printed** (invariant 6).
 """
 
@@ -42,6 +51,7 @@ import enum
 from dataclasses import dataclass, field
 
 from clinical_schemas.overlay import Confirmation, LearnedFactSource
+from clinical_schemas.visit_time import VisitTime, VisitTimeSource
 
 __all__ = [
     "CandidateVisitFields",
@@ -101,17 +111,28 @@ class CandidateVisitFields:
 
 @dataclass(frozen=True, slots=True)
 class VisitFields:
-    """The four fields ``POST /v1/visits`` takes, and nothing else.
+    """The fields ``POST /v1/visits`` takes, and nothing else.
 
-    ``date`` is ISO-8601 — plain positional digits, no grouping, one atom
-    (invariant 22) — which is the form the API's own validator accepts, so the
-    representation crossing happens once and here.
+    ``date`` is ISO-8601 and ``time`` is ``HH:MM`` — plain positional digits,
+    no grouping, one atom each (invariant 22) — which is the form the API's own
+    validator accepts, so the representation crossing happens once and here.
+
+    ``time`` arrived with INT-306. Before it the reader parsed an appointment
+    time off the message and this projection dropped it, because the API had no
+    field for it; a patient could not check the one thing they remember. The
+    two provenance fields travel WITH it rather than beside it: an extracted
+    value never reaches a record unattributed, and here that is not a rule to
+    remember, because both are derived from the candidate's own
+    ``document_ref`` in :meth:`ConfirmedVisitFields.as_visit_fields`.
     """
 
     hospital: str
     branch_id: str | None
     visit_type: str | None
     date: str | None
+    time: str | None = None
+    time_source: str | None = None
+    time_source_ref: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,11 +167,33 @@ class ConfirmedVisitFields:
             )
 
     def as_visit_fields(self) -> VisitFields:
+        """Project the confirmed reading onto the API's own field names.
+
+        The time's provenance is DERIVED here — ``document_extraction`` and the
+        candidate's own ``document_ref`` — for the same reason
+        :func:`confirm_visit_candidate` takes no ``by=``: a caller who could
+        pass provenance in could pass a different one. A candidate that read no
+        time carries no provenance either, because there is nothing to attribute
+        (INT-122 already recorded WHY in ``candidate.refusals``, and a refusal
+        is not a time).
+        """
+        time = (
+            VisitTime(
+                at=self.candidate.time,
+                source=VisitTimeSource.DOCUMENT_EXTRACTION,
+                source_ref=self.candidate.document_ref,
+            )
+            if self.candidate.time is not None
+            else None
+        )
         return VisitFields(
             hospital=self.hospital.strip(),
             branch_id=self.candidate.branch_id,
             visit_type=self.visit_type,
             date=self.candidate.date.isoformat() if self.candidate.date is not None else None,
+            time=time.render() if time is not None else None,
+            time_source=time.source.value if time is not None else None,
+            time_source_ref=time.source_ref if time is not None else None,
         )
 
 

@@ -38,6 +38,15 @@
 # means a new row rather than an edited one — the register then ties each
 # extract to the protocol version that was in force when it was taken.
 #
+# INT-262 — the differencing budget. A second extract of the same study+spec
+# over a window that OVERLAPS a prior one can be differenced against it to
+# recover the cells in the difference, at any k. The export gate refuses an
+# overlapping window UNLESS the row states an explicit `query_budget`. That
+# budget has NO default and an absent one FAILS CLOSED: a row that omits
+# `query_budget` refuses every overlapping window. How much overlap and how
+# many requests a study may make is an ethics-committee decision (HB-R1), so no
+# agent may pick the number — it is authored here or the study refuses overlap.
+#
 # Shape of a row, for whoever fills this in:
 #
 #   studies:
@@ -50,5 +59,9 @@
 #       protocol_version: <id-shaped>
 #       recipients: [<id-shaped>, ...]   # at least one; an empty list would
 #                                        # be an open-ended transfer
+#       query_budget:                    # OPTIONAL (INT-262). Omit it and the
+#         max_overlapping_extracts: <N>  # study refuses every overlapping
+#                                        # window. N is an ethics-committee
+#                                        # figure (≥1), never a default.
 
 studies: []

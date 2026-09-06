@@ -166,12 +166,38 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Threats (STRIDE/LINDDUN):** [D] volumetric and bot traffic; [I/Dd] exfiltration to a
   non-allow-listed host; [T] allow-list drift between CI assertion and live configuration
   (inv. 25 runs in CI, "the wrong place to notice that production diverged" — §4).
+  **[I/Dd] added INT-203, found by booting the tier:** the WAF itself is a PHI channel.
+  CRS rules carry `logdata`, so a blocked request's log line quotes the matched argument
+  back — on this API that argument is `ARGS:json.text_tr`, the patient's utterance, and
+  `[uri …]` carries the query string. Shipping the line to the SIEM trades an injection
+  attempt for a disclosure that succeeds, is durable, and looks like a control working.
+  **[D] added INT-203:** the opposite failure is equally invisible from a config file —
+  a WAF that refuses ordinary Turkish clinical prose (`Ali'nin`, `1x1 sabah/akşam`,
+  `<acil>`) takes the product off the air while every dashboard reads "protected".
 - **Controls (files/10):** §4 edge — Traefik/Envoy with Coraza (OWASP CRS), CrowdSec,
   egress proxy with allow-list where every call is logged with vendor, purpose and bytes
   (doubling as KVKK transfer evidence); allow-list as live console configuration.
-- **Signals:** WAF/CrowdSec blocks and egress denials — a hard alert (§7); land with
-  INT-203 and INT-018.
-- **Tests:** egress policy tests land with INT-018; edge stack tests with INT-203/INT-204.
+  **INT-203:** one policy (`infra/security/edge/edge-policy.yaml`) renders Traefik's
+  static and dynamic configuration, the CrowdSec scenarios and acquisition, and the
+  cert-manager manifest, so the four enforcement points cannot drift; the schema refuses
+  `DetectionOnly`, a threshold looser than the CRS default, an exclusion wider than one
+  rule × one route × one parameter, and an exclusion past its expiry. `EdgeEvent` is a
+  closed record with no field a sentence could occupy — the discipline `TransferRecord`
+  already applies to the egress register. Traefik's access log is field-selected `drop`
+  by default and the CrowdSec parser extracts exactly two values, neither a path.
+  CrowdSec's central API is off: sending client addresses to a third-party reputation
+  service is a §1 transfer nobody consented to.
+- **Signals:** WAF/CrowdSec blocks and egress denials — a hard alert (§7);
+  `sec.cert_expiry_days` for the renewal countdown. `sec.egress_denied_total` is live
+  (INT-018); the WAF and certificate series are served by Traefik's own `/metrics` on a
+  non-internet entry point and stay `planned` in the catalogue until a deployment scrapes
+  them.
+- **Tests:** `tests/infra/test_waf_rules.py` (the policy, the renders, the log boundary,
+  the CrowdSec and certificate clauses); `tests/infra/test_edge_stack_integration.py` —
+  the corpus in `tests/fixtures/waf/corpus.yaml` decided against the **booted** engine in
+  both directions, seven CRS families refused and five ordinary Turkish clinical turns
+  served; `tests/infra/test_edge_egress.py` (the prod proxy: denied ranges, rebinding,
+  redirects, the denial metric). Mesh mTLS lands with INT-204.
 
 ## `monitoring-contract` — health, metrics, SLOs
 
@@ -274,14 +300,22 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   PHI path ↔ any vendor adapter.
 - **Threats (STRIDE/LINDDUN):** [T] weight substitution where a revision is not pinned;
   [Nc] a non-commercial or unverified licence on the PHI path; [I/Dd] a dev-only cloud
-  adapter reachable from production.
+  adapter reachable from production; [Nr] (INT-221) a `tr-residency` tenant's vendor-free
+  posture asserted without proof, or a fabricated Genelge 2019/12 attestation authored by a
+  process rather than counsel.
 - **Controls (files/10):** §5 LLM03 — weights pinned by `model_id@revision + sha256`,
   mirrored internally, prompts versioned and signed; CLAUDE.md invariant 19 — licences
   verified from the raw LICENSE blob with `licence_verified_at`; the `anthropic|openai|google`
-  adapters are mock/dev only and blocked on the PHI path by the egress allow-list.
-- **Signals:** per-model probe status (§6) lands with INT-022 and INT-183.
+  adapters are mock/dev only and blocked on the PHI path by the egress allow-list. **(INT-221)**
+  a residency attestation that cross-checks the two committed sources — every `phi_path` row
+  `self_hostable: true` (registry) and `assert_dev_only_vendors` (egress) — and fails closed;
+  the Genelge 2019/12 attestation ships with its legal statement empty and refusing to render
+  until counsel signs (`awaiting-human` HB-L11), never authored by a process.
+- **Signals:** per-model probe status (§6) lands with INT-022 and INT-183; egress denials and
+  allow-list changes (INT-018/INT-192).
 - **Tests:** registry and provenance checks land with INT-022/INT-183; egress blocking with
-  INT-018.
+  INT-018; residency attestation + USVS conformance with INT-221
+  (`tests/legal/test_residency_attestation.py`, `tests/legal/test_usvs_conformance.py`).
 
 ## `tenants` — tenant isolation and provisioning
 
@@ -312,9 +346,25 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
   caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
-  generic error messages (§9 row 1). ⚠ `carrier/geo sanity` is named in §2 and no code
-  implements it; the request budgets below are the whole of what enforces §2's SMS-pumping
-  control today.
+  generic error messages (§9 row 1). §2's `carrier/geo sanity` check runs on the request
+  path as of INT-308, in two halves: **geo** is enforced by Turkish-mobile-only
+  normalisation, so an international premium range never reaches a delivery adapter;
+  **carrier** is `intake_api.carrier_geo` over `infra/security/msisdn_allocation.yaml`,
+  which declares **zero allocated prefixes** and therefore admits every request. ⚠ Until
+  a human supplies that list (docs/backlog/blockers.md — which 5XX prefixes the BTK has
+  allocated, against a source that can be re-read), the request budgets below and the
+  Turkish-only normalisation remain the whole of what enforces §2's SMS-pumping control.
+- **The carrier/geo asymmetry, stated (INT-308):** a lookup that cannot be made **admits**
+  — no authority, an unreadable table, an authority that raises or times out, a prefix the
+  authority has no opinion about — and only a **positive** signal refuses: a prefix absent
+  from a list that declares itself `exhaustive`. A carrier check that failed closed would
+  lock a patient out of their own intake the first time a lookup timed out, which is a
+  worse failure than the cost it prevents. The refusal reuses the generic `phone_invalid`
+  code, so it is not an oracle for which numbers exist, and it sits **after** the abuse
+  gate so a refused caller still spends its budget. The seam is handed a country code and
+  an operator prefix, never the subscriber number: a vendor lookup that needs the whole
+  MSISDN is a different control with its own lawful-basis and licence question, and is
+  deliberately not built. Nothing is persisted, so no new inventory annotation is owed.
 - **The request-budget bound, stated (INT-263):** the per-phone, per-IP and per-device
   budgets are counted in a **rolling** `OTP_WINDOW_S` window, not per fixed hour. No more
   than 3 requests per phone, 10 per IP and 3 per device are admitted in **any** 3600-second
@@ -332,7 +382,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263
-  (`tests/security/test_otp_abuse.py`); schemathesis with INT-019.
+  (`tests/security/test_otp_abuse.py`); the carrier/geo asymmetry (a failing lookup admits,
+  a positive signal refuses before any SMS), its near-miss controls (an allocated prefix
+  under the same table still gets its SMS; a partial list has no opinion) and the
+  no-new-storage assertion with INT-308 (same file); schemathesis with INT-019.
 
 ## `consent` — layered consent and scope enforcement
 
@@ -539,6 +592,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   rendered by the client from its own tr/en catalogue. The invariant is held by the type
   rather than by review, and `BackendAgent.activity` derives the in-flight labels from Work
   types rather than from handlers.
+- **Per-locale voice, fail-closed to typed (INT-300):** the voice profile is per locale, and
+  a locale without both its ASR and TTS pinned resolves to `typed` — never to the Turkish
+  voice. `intake_voice_runtime.locale_profile.profile_for_locale` returns `residency_tr` only
+  when both §4.9.1 rows resolve in the self-hosting registry (the STRICTER PHI-serving gate is
+  still `adapters.pins.require_phi_path_pin`, HB-I10/HB-I11), and `typed` for every other
+  locale; the registry (`LOCALE_VOICE_MODELS`) holds exactly `tr`, adds no model, and returning
+  before any profile is read is what makes "never a Turkish voice for a non-Turkish locale"
+  structural. **[T] a Turkish voice speaking at a patient who chose another language** is
+  refused by construction (invariant 19). And invariant 22 becomes per locale: the compiler's
+  numeral→orthography expansion is Turkish (`protocols.compile.number_expansion`,
+  `LOCALE_EXPANDERS` holding exactly `tr`), so a locale with no expander makes a numeral
+  **unspeakable** — `emit_clips` refuses it (`NumeralWithoutExpander`) rather than handing a
+  digit to a TTS model whose normaliser would read it wrongly. Tests:
+  `tests/voice/test_locale_profile.py`, `tests/protocols/test_number_expansion_locale.py`.
 
 ## `triage` — deterministic RED/YELLOW only
 
@@ -1158,10 +1225,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   residue; [S] a forged check-in.
 - **Controls (files/10):** §4 kiosk mode — guided access, MDM enrolment, PIN per clinic,
   60 s idle auto-wipe, no local persistence, tamper alert on backgrounding, large-type
-  privacy layout; signed QR check-in payloads (backlog INT-163).
-- **Signals:** kiosk heartbeat and session wipe count (§9) land with INT-143;
-  `checkin_to_seen` with INT-163.
-- **Tests:** kiosk-mode behaviour tests land with INT-143.
+  privacy layout; signed, short-lived QR check-in payloads (INT-163,
+  `intake_connectors.checkin`) verified fail-closed at the desk — [S] a forged check-in is
+  refused by an HMAC that carries no PHI (invariant 6, 14).
+- **Signals:** kiosk heartbeat and session wipe count (§9) are console (server-side)
+  signals and do NOT land with INT-143 — an ephemeral, no-persistence kiosk makes no
+  server round-trip to carry them, the same reason the offline-drafts row has "no server
+  signal"; they land with the console/metrics work. `checkin_to_seen` landed with INT-163:
+  the desk verification records a `wait.v1` observation (duration + tenant only), rolled up
+  under the k >= 10 floor before it reaches a console.
+- **Tests:** kiosk-mode behaviour landed with INT-143 —
+  `apps/mobile/e2e/kiosk.spec.ts` and `apps/mobile/src/lib/kiosk/kioskState.test.ts`.
+  The MDM lockdown detection and the clinic-PIN provisioning read are the dev-build
+  native layer (HB-A3; files/10 §4.7), so both fail closed in the managed runtime: no
+  provisioning ⇒ a normal phone, no confirmed lockdown ⇒ a tamper.
 
 ## `notifications` — reminders without PHI
 
@@ -1229,10 +1306,12 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   is `live` because both of its instants exist in this repo, its only label is the closed ingest
   content-type enumeration, and it is published from a rollup rather than observed raw — a
   histogram scraped after one observation would expose that patient's exact wait through `_sum`
-  over `_count`. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`,
-  `wait.doctor_link_first_open_h` and `wait.checkin_to_seen_min` stay `planned`: each is missing
-  one of its two instants, and `intake_platform.wait_times.WAIT_SOURCES` records which, so the
-  catalogue status and the writer cannot drift from the truth (invariant 13).
+  over `_count`. `wait.checkin_to_seen_min` is also `live` since INT-163: the connector signs the
+  check-in instant into a short-lived payload and records the wait at desk verification, so both
+  its instants exist in the repo. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`
+  and `wait.doctor_link_first_open_h` stay `planned`: each is missing one of its two instants, and
+  `intake_platform.wait_times.WAIT_SOURCES` records which, so the catalogue status and the writer
+  cannot drift from the truth (invariant 13).
 - **Controls added by INT-241:** the aggregate excludes patients who refused
   `learning:service_improvement` (files/06 §2 — the de-identified-aggregate purpose), decided by
   the same platform evaluator the route guard uses; a per-`document_type` breakdown is suppressed
@@ -1292,6 +1371,16 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
   k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
+  - **Controls added by INT-186 (Experience & Satisfaction module):** the console
+    projection refuses a satisfaction figure shown for a cohort below the k ≥ 10 floor
+    (`SuppressedCohortLeaked`), a distribution key that is not id-shaped (`SatisfactionFigureLeaked`,
+    inv 6), a target rendered beside a measurement (`SatisfactionTargetRendered`, inv 20), a
+    branch/profile/clinic filter asserted available (`ExperienceFilterEnabled` — the F9
+    re-identification slice the aggregates cannot support; adding the dimension is an inv-18
+    stop-and-ask), tenant scope taken from a query parameter (`TenantFromQuery`, the F9 IDOR),
+    and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
+    a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
+    committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1334,7 +1423,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary;
   **[Nc/L] an export taken under a care consent rather than the `research` one, or under an
   approval that has lapsed; [I] a direct identifier riding out inside an id-shaped field;
-  [Dd] linkage of two studies' extracts by an investigator holding both**; **[T/Nr] an
+  [Dd] linkage of two studies' extracts by an investigator holding both; [Dd] a second
+  extract of the same study+spec over an OVERLAPPING window differenced against the first to
+  recover the cells in the difference, at any k (INT-262)**; **[T/Nr] an
   unconfirmed model output entering a patient's overlay and, from there, a session or a
   rule; [I] a fact value leaking through the store, a log or a metric label; [Nc] an erasure
   that sweeps the notes and leaves the learning object standing (INT-170)**.
@@ -1346,7 +1437,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `approval_valid_until` (invariant 35); a closed per-dimension vocabulary with the INT-015
   pattern tier adding refusals on top; a study-scoped keyed pseudonym so two extracts do not
   join; the `research_extracts` retention row gating creation; and an append-only register
-  carrying the ethics id and the content hash and no patient reference.** **INT-170 adds:
+  carrying the ethics id and the content hash and no patient reference.** **INT-262 adds the
+  differencing gate: before an extract is emitted, the gate reads the register for prior
+  extracts of the same study+spec and refuses a window that OVERLAPS one — half-open
+  `[start, end)`, so an adjacent window does not — UNLESS the study's registry row states an
+  explicit `query_budget`. That budget has NO default and an absent one FAILS CLOSED (a study
+  stating none refuses every overlapping window); how much overlap and how many requests a
+  study may make is an ethics-committee decision (HB-R1), never one an agent picks. The check
+  runs on the window alone, before any patient row is read.** **INT-170 adds:
   the confirmation as a type rather than a check — `FactCandidate` has no `source` and no
   `confirmed_at` field, `confirm()` is the only producer of a `LearnedFact`, and
   `OverlayStore` has no write path that accepts one; no table for unconfirmed candidates at
@@ -1364,10 +1462,17 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `learning_proposals_refused_total{signal,reason}` and
   `learning_evidence_bundles_total{view,status}`, labelled the same way and for the same
   reason: `target` is one of ten class names and `reason` is a refusal class, never a pack,
-  a clinic or a cohort. Rollbacks land with INT-173. **INT-170 adds
+  a clinic or a cohort. **Rollbacks landed with INT-173 —
+  `learning_rollbacks_total{guardrail,stage}`, whose labels carry the closed
+  `intake_learning.canary.Guardrail` set (acceptance, safety_blocks, completion, csat,
+  missing_input) and one of 5/25/100, never a pack, a clinic or a cohort.** **INT-170 adds
   `overlay_facts_confirmed_total{source}` and `overlay_facts_withdrawn_total{action}` on the
   same terms: `source` is one of three closed provenance classes and `action` one of two
-  verbs, never a fact key, a patient or a tenant.**
+  verbs, never a fact key, a patient or a tenant.** **INT-262 surfaces the differencing
+  refusals as two new reason classes on INT-230's existing
+  `research_extract_refused_total{spec,reason}` — `overlapping_window_unbudgeted` and
+  `query_budget_exhausted` — with the audit action `research.extract.refused.<reason>` and no
+  window, cohort size or count in either.**
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);
@@ -1376,7 +1481,24 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `tests/learning/test_evidence_bundle.py`); `learned_fact_provenance` landed with INT-170
   (`tests/learning/test_overlay_provenance.py`, plus `tests/api/test_learned.py` for the
   consent gate, the audit entries, the erasure path and the PHI sweep); overlay
-  monotonicity property test with INT-056.
+  monotonicity property test with INT-056. **The differencing gate lands with INT-262
+  (`tests/research/test_differencing_gate.py`): a golden that serves one extract then
+  differences a second over an overlapping window and proves it refused, plus the budgeted
+  path, the spec- and study-scoping, the half-open adjacency boundary, and the audit/no-echo
+  checks.** **`canary_rollback` landed with INT-173
+  (`tests/learning/test_canary_rollback.py`): the simulated dip drives each of the four
+  guardrails past its files/09 §4 threshold and asserts a rollback within one evaluation
+  window; the healthy stream promotes through every canary stage to completion; a near-miss
+  just under a threshold promotes; and a missing or non-finite KPI fails closed rather than
+  promoting (invariant 17). The thresholds themselves live in files/09 §4 and
+  `intake_learning.canary`, not restated here.**
+- **Rollback is a decision, not an application (INT-173):** `intake_learning.canary` is pure
+  rule — guardrail snapshots in, a promote/complete/rollback decision out — like
+  `intake_learning.publisher` and `intake_platform.admin.flag_governance`. It reverts a
+  rollout's exposure but touches no red-flag level, instrument, consent text, Talker tool,
+  PolicyGuard or profile routing; `proposal_scope`'s import-closure, no-writer and no-SQL
+  gates cover the new module with the rest of the package, so the canary controller cannot
+  reach a clinical value any more than the Architect can (invariant 12).
 - **Over-reach is unreachable, not rejected (INT-172):** `proposal_scope` walks the
   *transitive* first-party import closure of `services/learning` with `ast` and asserts it
   reaches none of `packages/protocols`, `services/voice-runtime`, `intake_platform.legal`,
@@ -1406,7 +1528,8 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   the branch or the week it withheld would publish that cell to Prometheus. **INT-230 adds
   `research_extract_refused_total{spec,reason}` and `research_extract_served_total{spec}` on
   the same rule — a spec name and a reason class, never a study id, a recipient, a window or
-  a subject count.** Proposals, rejections and rollbacks land with INT-172/INT-173.
+  a subject count.** Proposals and rejections landed with INT-172; rollbacks with INT-173
+  (`learning_rollbacks_total{guardrail,stage}`).
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);

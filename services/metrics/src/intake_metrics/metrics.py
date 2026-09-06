@@ -21,6 +21,14 @@ one patient's exact wait through ``_sum`` over ``_count``, so a raw
 way into these families is through a rollup that has already cleared the
 floor.
 
+**The writer is generic; the family is not (INT-307).** :func:`observe_wait`
+handles any group G id — labelled or not, seconds or hours — so a series is
+never unwritable for want of a code path. Which families exist is a separate
+and stricter question, answered by the registry below: a family registered
+here is served on ``/metrics``, and a series that answers a scrape while
+nothing feeds it is a ``planned`` catalogue row telling a console it measured
+zero.
+
 **Only measurable kinds have a family (INT-241; invariant 13).** Four of the
 five group G ids have an instant this repo does not record, so nothing
 constructs their family and their catalogue rows stay ``planned``. The
@@ -34,7 +42,12 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from clinical_schemas.events import WaitKind
-from intake_platform.wait_times import WaitSourceUnavailableError, wait_source
+from intake_platform.wait_times import (
+    WaitSource,
+    WaitSourceUnavailableError,
+    ms_to_unit,
+    wait_source,
+)
 from prometheus_client import Counter, Gauge, Histogram
 
 from intake_metrics.rollups import Cohort, CsatRollup, NpsRollup, PulseRollup
@@ -51,10 +64,12 @@ __all__ = [
     "CSAT_SCORE",
     "NPS_MONTHLY",
     "WAIT_BUCKETS",
+    "WAIT_CHECKIN_TO_SEEN_MIN",
     "WAIT_FAMILIES",
     "WAIT_RECORDS_PROCESSING_S",
     "publish_csat",
     "publish_nps",
+    "observe_wait",
     "publish_pulse",
     "publish_wait",
 ]
@@ -133,33 +148,109 @@ WAIT_RECORDS_PROCESSING_S = Histogram(
     buckets=WAIT_BUCKETS,
 )
 
+#: files/08 §4 group G: wait.checkin_to_seen_min, "connector tenants" (INT-163).
+#: The second group G id whose two instants both exist: the signed check-in
+#: payload's iat and desk verification (intake_connectors.checkin). Unlabelled
+#: — the observation carries a duration and the tenant only (invariant 6) — so
+#: it has no cell to leak through and refuses a labelled observation outright.
+WAIT_CHECKIN_TO_SEEN_MIN = Histogram(
+    "wait_checkin_to_seen_min",
+    "Check-in to being seen in minutes, for connector tenants. Published only "
+    "for cohorts at or above the k >= 10 floor; never observed raw.",
+    buckets=WAIT_BUCKETS,
+)
+
 WAIT_FAMILIES: Mapping[WaitKind, Histogram] = {
     WaitKind.RECORDS_PROCESSING: WAIT_RECORDS_PROCESSING_S,
+    WaitKind.CHECKIN_TO_SEEN: WAIT_CHECKIN_TO_SEEN_MIN,
 }
 
 
-def publish_wait(
-    observations: Sequence[WaitObservation], *, cohort: Cohort, kind: WaitKind
+def observe_wait(
+    family: Histogram,
+    *,
+    source: WaitSource,
+    observations: Sequence[WaitObservation],
+    cohort: Cohort,
 ) -> WaitRollup:
-    """Roll the cohort up and publish it — in that order, and only if it clears.
+    """Roll the cohort up and write it into ``family`` — in that order, and
+    only if it clears the floor.
 
     One function rather than a roll-up-then-publish pair, because the pair can
     be called with a rollup and a different set of observations, and the whole
     control is that the numbers reaching Prometheus are the ones the floor was
     applied to.
 
-    A labelled family needs a label value for every observation, so the
-    breakdown suppression (any cell below the floor suppresses the whole
-    breakdown) is what gates publication here: no breakdown, no publish.
+    Generic over the two things that vary between group G ids (INT-307):
+
+    - **the label set**, which the registry declares. A labelled family needs
+      a label value for every observation, so the breakdown suppression (any
+      cell below the floor suppresses the whole breakdown) gates publication:
+      no breakdown, no publish. An unlabelled family has no such cell to leak
+      through, and refuses a labelled observation outright rather than
+      flattening it into the total, because a breakdown that disappears
+      silently is worse than one that was never asked for.
+    - **the unit**, which the catalogue states. Observations are milliseconds
+      and ``wait.doctor_link_first_open_h`` is hours; the conversion is
+      ``intake_platform.wait_times.ms_to_unit``, the one table (invariant 22).
+
+    ``family`` is passed rather than looked up so that the writer can be
+    proven against a family the default registry does not carry — a series
+    whose instants have not landed must not answer a scrape (invariant 13).
+
+    The two well-formedness checks run **before** the rollup, so a mis-paired
+    call is reported whatever the cohort size: a suppressed cohort is a fact
+    about the data, and handing the writer the wrong family or a label it
+    cannot carry is a defect, which a quiet return would hide until the week
+    the cohort happened to clear.
+    """
+    declared = next(iter(family.describe())).name
+    if declared != source.metric_name:
+        raise ValueError(
+            f"{source.kind.value}: expected the family {source.metric_name!r}, "
+            f"got {declared!r} — a wait figure written into the wrong series is "
+            "indistinguishable from a measurement"
+        )
+    mislabelled = (
+        0
+        if source.labels
+        else sum(1 for observation in observations if observation.document_type is not None)
+    )
+    if mislabelled:
+        raise ValueError(
+            f"{source.kind.value}: {mislabelled} observation(s) carry a document_type "
+            f"but {source.metric_name} carries no label — the breakdown would vanish "
+            "into the total without anyone being told"
+        )
+    rollup = roll_up_wait(observations, cohort=cohort, kind=source.kind)
+    if rollup.suppressed:
+        return rollup
+    if not source.labels:
+        for observation in observations:
+            family.observe(ms_to_unit(observation.duration_ms, source.unit))
+        return rollup
+    pairs = labelled_durations(observations)
+    if rollup.by_document_type is None or pairs is None:
+        return rollup
+    for document_type, duration_ms in pairs:
+        family.labels(document_type=document_type.value).observe(
+            ms_to_unit(duration_ms, source.unit)
+        )
+    return rollup
+
+
+def publish_wait(
+    observations: Sequence[WaitObservation], *, cohort: Cohort, kind: WaitKind
+) -> WaitRollup:
+    """:func:`observe_wait` against the family the registry routes ``kind`` to.
+
+    The observability gate lives here rather than in the writer: a writer for
+    every series is not permission to write one, and a kind whose instants
+    this repo does not record still fails closed.
     """
     source = wait_source(kind)
     if not source.observable:
         raise WaitSourceUnavailableError(f"{kind.value}: {source.missing_instant}")
-    rollup = roll_up_wait(observations, cohort=cohort, kind=kind)
-    pairs = labelled_durations(observations)
-    if rollup.suppressed or rollup.by_document_type is None or pairs is None:
-        return rollup
-    family = WAIT_FAMILIES[kind]
-    for document_type, duration_ms in pairs:
-        family.labels(document_type=document_type.value).observe(duration_ms / 1000)
-    return rollup
+    return observe_wait(
+        WAIT_FAMILIES[kind], source=source, observations=observations, cohort=cohort
+    )

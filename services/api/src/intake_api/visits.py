@@ -49,6 +49,11 @@ def _to_out(record: store.VisitRecord) -> VisitOut:
         branch_id=record.branch_id,
         visit_type=record.visit_type,
         date=record.date,
+        # INT-306 — projected on every read, and None means "no producer stated
+        # an hour" rather than "midnight" (files/02 §2b)
+        time=record.time.render() if record.time is not None else None,
+        time_source=record.time.source.value if record.time is not None else None,
+        time_source_ref=record.time.source_ref if record.time is not None else None,
         note_status=record.note_status,
         # INT-133 / files/06 §6: on EVERY record read, not only the ones a
         # companion created — the projection is one place, so no read path
@@ -127,6 +132,7 @@ async def create_visit(payload: VisitCreate, principal: Principal, state: State)
             hospital=visit.hospital,
             department=visit.department,
             date=visit.date,
+            time=visit.time,
             branch_id=visit.branch_id,
             visit_type=visit.visit_type,
             attribution=SessionAttribution(attribution.attribution.value),
@@ -153,6 +159,9 @@ async def create_visit(payload: VisitCreate, principal: Principal, state: State)
         branch_id=visit.branch_id,
         visit_type=visit.visit_type,
         date=visit.date,
+        time=visit.time.render() if visit.time is not None else None,
+        time_source=visit.time.source.value if visit.time is not None else None,
+        time_source_ref=visit.time.source_ref if visit.time is not None else None,
         note_status=None,
         proxy_reported=attribution.proxy_reported,
         third_party_present=attribution.third_party_present,

@@ -68,7 +68,7 @@ export interface CsatV1 {
   "tenant_id": string;
   "session_id": string;
   "score": number;
-  "reason": CsatReason;
+  "reason"?: CsatReason | null;
   "text"?: string | null;
 }
 
@@ -135,7 +135,7 @@ export interface InteractionState {
 
 export type JsonScalar = string | number | boolean | null;
 
-export type JsonValue = JsonScalar | JsonScalar[] | Record<string, JsonScalar>;
+export type JsonValue = string | number | boolean | null | (string | number | boolean | null)[] | Record<string, string | number | boolean | null>;
 
 export interface KonusmaOzellikleri {
   "speech_rate_syll_s": number;

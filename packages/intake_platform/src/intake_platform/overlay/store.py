@@ -50,6 +50,7 @@ import json
 import uuid
 from datetime import UTC, datetime
 
+from clinical_schemas.common import encode_json_value
 from clinical_schemas.overlay import (
     Confirmation,
     FactCandidate,
@@ -240,8 +241,22 @@ class OverlayStore:
     # --- internals ----------------------------------------------------------
 
     def _encrypt(self, tenant_id: uuid.UUID, fact: LearnedFact) -> dict[str, object]:
+        """The envelope plaintext.
+
+        ``encode_json_value`` is the carrier's own JSON form
+        (``clinical_schemas.common``), not a ``default=`` hook invented
+        here. Before INT-309 this was a bare ``json.dumps``, so a fact whose
+        value is a ``Decimal`` — a blood pressure, a temperature, a dose —
+        could not be stored at all: ``TypeError: Object of type Decimal is
+        not JSON serializable``, raised after the fact had been minted. The
+        two obvious repairs are both worse than the crash, because they
+        succeed: ``default=str`` reads back a string the comparison grammar
+        cannot use, and ``default=float`` reads back a different number.
+        Sharing the codec is what makes the read side free — the
+        ``LearnedFact`` validator decodes on the way in.
+        """
         plaintext = json.dumps(
-            {"value": fact.value, "confidence": fact.confidence},
+            {"value": encode_json_value(fact.value), "confidence": fact.confidence},
             ensure_ascii=False,
             sort_keys=True,
         ).encode("utf-8")
@@ -252,6 +267,10 @@ class OverlayStore:
             str(tenant_id), encrypted_field_from_json(dict(row.payload))
         )
         body = json.loads(plaintext.decode("utf-8"))
+        # No decode step here on purpose: ``LearnedFact.value`` is a
+        # ``JsonValue``, whose validator is the inverse of the encoder used
+        # on the way in (INT-309). A second, local decode would be a second
+        # definition of the wire form, and the two would drift.
         return LearnedFact(
             key=row.fact_key,
             value=body["value"],

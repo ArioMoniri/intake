@@ -117,6 +117,48 @@ def test_csat_records_a_csat_v1_event_carrying_score_and_reason_only(
     assert "text" not in row.payload
 
 
+def test_one_tap_csat_forms_a_complete_event_with_no_reason(harness: ApiHarness) -> None:
+    """INT-305: files/02 §5.4 calls the prompt one-tap, so a single score tap
+    must form a valid csat.v1. The reason is absent — never defaulted, never
+    inferred from the score, never filled from a chip the patient only hovered
+    (a fabricated reason would be the patient's words put in their mouth and be
+    indistinguishable from a real one in the rollup)."""
+    session_id = _granted_session(harness)
+
+    response = harness.client.post(
+        CSAT_PATH.format(session_id=session_id),
+        json={"score": 5},
+        headers=harness.patient(),
+    )
+
+    assert response.status_code == 201, response.text
+    (row,) = _events(harness, "csat.v1")
+    assert row.payload["score"] == 5
+    assert row.payload["schema_id"] == "intake.clinical.csat.v1"
+    # absent, not defaulted: the field is present and explicitly empty
+    assert row.payload["reason"] is None
+    # and still no free text on the operational row
+    assert "text" not in row.payload
+
+
+def test_a_one_tap_score_is_either_a_complete_event_or_not_recorded(harness: ApiHarness) -> None:
+    """INT-305: there is no third state where the device holds an answer the
+    patient believes was sent. A one-tap POST either records a full csat.v1 or
+    the row is simply not there — the same all-or-nothing the reason path has."""
+    session_id = _granted_session(harness)
+
+    ok = harness.client.post(
+        CSAT_PATH.format(session_id=session_id),
+        json={"score": 3},
+        headers=harness.patient(),
+    )
+    assert ok.status_code == 201, ok.text
+    assert ok.json() == {"session_id": session_id, "recorded": True}
+    assert len(_events(harness, "csat.v1")) == 1
+    # the one-tap path never opens an encrypted comment row it has no text for
+    assert _texts(harness) == []
+
+
 def test_nps_records_an_nps_v1_event(harness: ApiHarness) -> None:
     grant_bound(harness, SATISFACTION_SCOPE)
 

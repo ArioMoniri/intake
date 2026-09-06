@@ -1,0 +1,87 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+entryPoints:
+  web:
+    address: ":80"
+    # No `domains` in the policy means no certificate, so :80 is not
+    # redirected to an entry point that cannot complete a handshake.
+    # The redirect renders the day a domain does.
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: intake-acme
+  # Metrics and the liveness ping, on their own port so neither is reachable
+  # from the internet entry points (files/10 §6; CLAUDE.md invariant 13).
+  metrics:
+    address: ":8082"
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# The Coraza middleware, loaded from disk. `localPlugins` takes the module from
+# /plugins-local rather than from Traefik's plugin catalogue, so the edge boots
+# with no network call and the artefact it executes is the one `make
+# edge-plugin` verified against sha256 b59fd2266c03699d… .
+experimental:
+  localPlugins:
+    coraza:
+      moduleName: github.com/corazawaf/coraza-http-wasm
+
+certificatesResolvers:
+  intake-acme:
+    acme:
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      storage: /data/acme/acme.json
+      keyType: EC256
+      # The account email comes from the environment, sourced from OpenBao at
+      # deploy time; it has no default, so a tier started without it fails to
+      # order loudly instead of serving something untrusted quietly
+      # (env TRAEFIK_CERTIFICATESRESOLVERS_INTAKE-ACME_ACME_EMAIL).
+      tlsChallenge: {}
+
+# ── The access log is a PHI surface (CLAUDE.md invariant 6) ──────────────────
+# This is the file CrowdSec reads and the SIEM ships. Traefik's default writes
+# the full request line, which on this API carries patient identifiers in the
+# path and whatever a query string held. Field selection is `drop` by default
+# and each kept field is an id, an enumeration or a number — the same closed
+# shape the egress transfer register uses.
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  fields:
+    defaultMode: drop
+    names:
+      StartUTC: keep
+      ClientHost: keep
+      RequestMethod: keep
+      RequestProtocol: keep
+      DownstreamStatus: keep
+      Duration: keep
+      RouterName: keep
+      ServiceName: keep
+    headers:
+      defaultMode: drop
+
+log:
+  level: INFO
+  format: json
+
+# `/metrics` for the WAF and CrowdSec block counters files/10 §7 names, on its
+# own entry point so the series are never reachable from the internet.
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+ping:
+  entryPoint: metrics

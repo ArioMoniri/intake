@@ -1,0 +1,20 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+# Signal: WAF/CrowdSec blocks (files/10 §7)
+type: leaky
+name: intake/waf-block-burst
+description: "One address collecting WAF refusals faster than a person can"
+filter: "evt.Meta.log_type == 'http_access-log' && evt.Meta.http_status == '403'"
+groupby: "evt.Meta.source_ip"
+capacity: 6
+leakspeed: 60s
+blackhole: 5m
+labels:
+  service: http
+  remediation: true

@@ -1,0 +1,12 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+filenames:
+  - /var/log/traefik/access.log
+labels:
+  type: traefik

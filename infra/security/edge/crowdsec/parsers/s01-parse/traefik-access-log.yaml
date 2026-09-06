@@ -1,0 +1,30 @@
+# INT-203 — Traefik's JSON access log -> a CrowdSec event.
+#
+# NOT generated: a parser is code, and this one is four statics. It is here
+# rather than pulled from the CrowdSec hub for two reasons — the hub needs a
+# network call at boot to a host that is not on the egress allow-list, and the
+# hub's own traefik parser extracts the request path.
+#
+# ── The three fields, and the ones deliberately absent ───────────────────────
+# `source_ip` and `http_status` are what every scenario in
+# infra/security/edge/edge-policy.yaml groups and filters on. There is no
+# `http_path`, no `target_uri` and no header extraction, because a bucket key
+# becomes part of every alert the bucket raises and an alert is shipped to the
+# SIEM — `/v1/visits/<visit_id>` in an alert is PHI in a security log
+# (CLAUDE.md invariant 6). The upstream half of the same rule is Traefik's own
+# field selection: the log this reads does not contain a path to extract.
+onsuccess: next_stage
+name: intake/traefik-access-log
+description: "Traefik JSON access log -> http_access-log event (ids and status only)"
+filter: "evt.Line.Labels.type == 'traefik'"
+nodes:
+  - filter: "evt.Line.Labels.type == 'traefik'"
+    statics:
+      - meta: log_type
+        value: http_access-log
+      - meta: service
+        value: http
+      - meta: source_ip
+        expression: "JsonExtract(evt.Line.Raw, 'ClientHost')"
+      - meta: http_status
+        expression: "JsonExtract(evt.Line.Raw, 'DownstreamStatus')"

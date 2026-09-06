@@ -1,0 +1,139 @@
+# INT-203 — the edge tier: Traefik ingress + Coraza (OWASP CRS) + CrowdSec.
+#
+#   make edge          # the tier
+#   make edge-check    # the tier plus the booted WAF suite
+#
+# ── Its own file, on purpose ────────────────────────────────────────────────
+# infra/docker-compose.dev.yml is the hottest shared file in the repo; INT-018,
+# INT-175, INT-202 and INT-205 each took their own file and left the dev tier
+# untouched. Every service here is profile-gated, so composing this file in
+# changes nothing about `make dev`.
+#
+# ── The configuration is GENERATED ──────────────────────────────────────────
+# traefik/traefik.yml, traefik/dynamic.yml, crowdsec/acquis.yaml and
+# crowdsec/scenarios/intake.yaml are rendered from
+# infra/security/edge/edge-policy.yaml by scripts/security/render_edge_conf.py
+# (`make edge-conf`). tests/infra/test_waf_rules.py fails when a render is
+# stale, which is also what fails when somebody edits a generated file instead
+# of the policy.
+#
+# ── The WAF artefact is fetched and hashed, never bundled ───────────────────
+# The Coraza middleware is a wasm module carrying the OWASP CRS inside it.
+# `make edge-plugin` downloads the release named in the policy, verifies its
+# sha256 before unpacking, and leaves it under .cache/edge — the same shape
+# `make deid-model` uses for the NER artefact, and for the same reason: a
+# 3 MB binary in git is a dependency nobody re-reads. Traefik loads it with
+# `experimental.localPlugins`, so the edge boots with no network call to a
+# plugin catalogue.
+#
+# ── Licences (invariant 19; raw LICENSE blobs read 3 Sep 2026) ──────────────
+#   traefik 3.3.7            MIT
+#   coraza-http-wasm v0.3.0  Apache-2.0 — the LICENSE blob inside the release
+#                            zip, sha256 c71d239df91726fc519c6eb72d318ec658
+#                            20627232b2f796219e87dcf35d0ab4. The embedded CRS
+#                            is Apache-2.0 (@owasp_crs/rules/LICENSE).
+#   crowdsec 1.6.8           MIT
+# Recorded in observability/registry.yaml.
+name: intake-edge
+
+services:
+  traefik:
+    # Tag-pinned: this container terminates TLS and is the only thing between
+    # the internet and the API, so `latest` is not a version.
+    image: traefik:v3.3.7
+    profiles: ["edge", "edge-test"]
+    command: ["--configFile=/etc/traefik/traefik.yml"]
+    volumes:
+      - ./security/edge/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./security/edge/traefik/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
+      - ../.cache/edge/plugins-local:/plugins-local:ro
+      - traefik-acme:/data/acme
+      - edge-logs:/var/log/traefik
+    environment:
+      # The ACME account email. No default: a tier started without it fails to
+      # order a certificate loudly rather than serving something untrusted
+      # quietly. Sourced from OpenBao at deploy (invariant 14).
+      TRAEFIK_CERTIFICATESRESOLVERS_INTAKE-ACME_ACME_EMAIL: ${INTAKE_ACME_EMAIL:-}
+    ports:
+      # Loopback only, like every other published port in this repo. 18080 is
+      # the local tier's HTTP entry point; :443 is not published locally
+      # because no certificate is ordered until the policy names a domain.
+      - "127.0.0.1:18080:80"
+    networks:
+      - edge
+      - app
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.6.8
+    profiles: ["edge", "edge-test"]
+    environment:
+      # The central API is off in the config file and again here, because the
+      # entrypoint would otherwise enrol the machine before the config is read.
+      DISABLE_ONLINE_API: "true"
+      # No hub collections: every parser and scenario this tier runs is in
+      # this repository, reviewed, and needs no network call to a host that is
+      # not on the egress allow-list.
+      COLLECTIONS: ""
+    volumes:
+      # The official entrypoint rsyncs /staging/etc/crowdsec into place, so a
+      # read-only mount at the destination would make it fail; staging is the
+      # supported way to ship configuration into this image.
+      - ./security/edge/crowdsec/config.yaml:/staging/etc/crowdsec/config.yaml:ro
+      - ./security/edge/crowdsec/acquis.yaml:/staging/etc/crowdsec/acquis.yaml:ro
+      - ./security/edge/crowdsec/profiles.yaml:/staging/etc/crowdsec/profiles.yaml:ro
+      - ./security/edge/crowdsec/simulation.yaml:/staging/etc/crowdsec/simulation.yaml:ro
+      - ./security/edge/crowdsec/scenarios:/staging/etc/crowdsec/scenarios:ro
+      - ./security/edge/crowdsec/parsers/s01-parse/traefik-access-log.yaml:/staging/etc/crowdsec/parsers/s01-parse/traefik-access-log.yaml:ro
+      # Read-only: CrowdSec observes the access log and never writes to it.
+      - edge-logs:/var/log/traefik:ro
+      - crowdsec-data:/var/lib/crowdsec/data
+    networks:
+      - edge
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "cscli", "lapi", "status"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 40s
+
+  # ── Test scaffolding, and labelled as such ────────────────────────────────
+  # tests/infra/test_edge_stack_integration.py needs something behind the WAF
+  # to be protected. It answers on the `api` network alias so the generated
+  # router configuration is the real one rather than a test variant — the
+  # thing under test is the middleware chain, and a chain tested against a
+  # different router is not the chain that ships. Profile `edge-test` only:
+  # `make edge` never starts it.
+  edge-upstream:
+    image: traefik/whoami:v1.10
+    profiles: ["edge-test"]
+    command: ["--port", "8000"]
+    networks:
+      app:
+        aliases: [api]
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  # The one network with a route off the host; Traefik is the only thing on it.
+  edge: {}
+  # Where the API answers. `internal: true`: the application tier reaches the
+  # outside world only through the egress proxy (INT-018), never through the
+  # ingress it sits behind.
+  app:
+    internal: true
+
+volumes:
+  traefik-acme: {}
+  crowdsec-data: {}
+  # Shared, one writer: Traefik writes the access log and CrowdSec reads it.
+  edge-logs: {}

@@ -355,8 +355,16 @@
         "description": "Session satisfaction (INT-240 acceptance: \"csat.v1 (1-5 + reason enum\n+ optional text)\"; emitted via POST /sessions/{id}/csat, files/03 §6).",
         "properties": {
           "reason": {
-            "$ref": "#/components/schemas/CsatReason",
-            "description": "Reason category (INT-240 reason enum; files/08 §4 group F csat.reason distribution)."
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CsatReason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Reason category (INT-240 reason enum; files/08 §4 group F csat.reason distribution). Optional since INT-305: files/02 §5.4's one-tap prompt forms a complete rating from the score alone, so a score with no reason is a whole event — and a reason is never defaulted or inferred from the score (invariant 6)."
           },
           "schema_id": {
             "const": "intake.clinical.csat.v1",
@@ -402,8 +410,7 @@
         "required": [
           "tenant_id",
           "session_id",
-          "score",
-          "reason"
+          "score"
         ],
         "title": "CsatV1",
         "type": "object"
@@ -782,14 +789,21 @@
       "JsonScalar": {
         "anyOf": [
           {
+            "not": {
+              "pattern": "^~"
+            },
+            "type": "string"
+          },
+          {
+            "pattern": "^~~",
+            "type": "string"
+          },
+          {
+            "pattern": "^~d",
             "type": "string"
           },
           {
             "type": "integer"
-          },
-          {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "type": "string"
           },
           {
             "type": "number"
@@ -800,22 +814,107 @@
           {
             "type": "null"
           }
-        ]
+        ],
+        "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
       },
       "JsonValue": {
         "anyOf": [
           {
-            "$ref": "#/components/schemas/JsonScalar"
+            "anyOf": [
+              {
+                "not": {
+                  "pattern": "^~"
+                },
+                "type": "string"
+              },
+              {
+                "pattern": "^~~",
+                "type": "string"
+              },
+              {
+                "pattern": "^~d",
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
           },
           {
             "items": {
-              "$ref": "#/components/schemas/JsonScalar"
+              "anyOf": [
+                {
+                  "not": {
+                    "pattern": "^~"
+                  },
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~~",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~d",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
             },
             "type": "array"
           },
           {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonScalar"
+              "anyOf": [
+                {
+                  "not": {
+                    "pattern": "^~"
+                  },
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~~",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^~d",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One JSON-shaped value. A string beginning with '~' is tagged: '~d' introduces the exact digits of a decimal quantity, and a doubled '~~' is a literal string whose first character is '~'."
             },
             "type": "object"
           }

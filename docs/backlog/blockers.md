@@ -9,12 +9,16 @@
 | INT-001 | awaiting-human (container evidence) | owner | Free 80–100 GB of disk and raise Docker RAM so `make dev` + the obs/security tiers can run — 18 GiB free and 14.1 GB Docker RAM today. | HB-I1, HB-I2 |
 | INT-038 | awaiting-human (consent texts; mechanism shipped, fails closed) | owner + counsel (via INT-210) | Author the eleven Turkish açık rıza texts (core, voice, wellbeing, lane:affect, lane:linguistic, documents, learning:personal, learning:service_improvement, satisfaction, share, research) into `docs/legal/consents/` in the loader contract (`---` / `consent_text_version: <v>` / `---` / copy; filename = purpose with `:`→`.` + `.tr.md`) — until then every NEW grant refuses fail-closed (ConsentTextMissingError) and the dev tier runs on unbound seed grants only. | HB-L27 |
 | INT-210 | awaiting-human (the whole legal document set; mechanism shipped, every gate closed) | Turkish counsel (KVKK / health-law), instructed by the owner | Author the twenty-one Turkish documents of `docs/legal/` — the five per-channel aydınlatma metinleri (app, kiosk, clinician, admin, web), the eleven açık rıza texts, the gizlilik politikası, the kullanım koşulları, the KVKK başvuru formu, the çerez politikası and the files/06 §7 fixed strings — each with its plain-language summary, and record your sign-off (name, date, `docs/evidence/INT-210.md#counsel-sign-off`) into `docs/legal/documents.yaml`, because until a row is signed every document in the set is unservable, no new consent can be granted and no acceptance can be recorded. | HB-L27 |
+| INT-221 | awaiting-human (Genelge 2019/12 attestation; mechanism shipped, legal content empty, fails closed) | Turkish counsel (KVKK / health-law), instructed by the owner | Is the in-country, vendor-free posture legally *attestable* under KVKK Art. 9 (physical vs legal residency; control-plane siting), and — once you rule it is — author and sign the Turkish attestation statement for Genelge 2019/12? Until then `GenelgeResidencyAttestation` carries the machine-checkable vendor-free conformance but its legal statement and signatory are empty and `render()` refuses (`AttestationUnsigned`). The registry assertion, the DDO Rehber control mapping doc and the USVS conformance suite all ship and pass; only the legal attestation is blocked. | HB-L11 (signature regime: HB-L27) |
 | INT-016 | awaiting-human (anchor destination; verifier shipped, fails closed) | owner | Which organisation's object store, or which named Turkish TSP, receives the hourly audit-chain head — and who signs that arrangement? Until one is named the verifier has nothing independent to check against, so it sets `sec_audit_chain_ok` 0 and exits 3 rather than reporting a chain that merely agrees with itself. | HB-I12 |
 | INT-016 | awaiting-human (production WORM target) | owner | Accept MinIO with a documented CVE-watch and a paid-support escape hatch, or move audit WORM to a purpose-built target — Garage implements no S3 Object Lock and would void the 10-year guarantee silently? Dev/CI WORM is proven server-side; production has no configured target. | HB-I9 |
 | INT-260 | awaiting-human (persistence basis; mechanism shipped, device-local, no egress) | DPO / counsel owner via HUMAN_BLOCKERS | May text scale, theme, on-screen motion and visit start-mode persist device-locally under {category: device preference, purpose: accessibility, basis: contract, retention: until uninstall or reset, recipients: none}? — the record lives in this device's keychain slot with WHEN_UNLOCKED_THIS_DEVICE_ONLY, so it is excluded from backups and never syncs; returning every control to its default deletes it. | — (no HB row exists for device-local preference persistence; raise one if the answer is anything other than yes) |
 | INT-230 | awaiting-human (no study exists; pipeline shipped, fails closed) | owner + counsel, after HB-L1 | Record the KAEK decision for our study into `packages/intake_platform/src/intake_platform/research/study_registry.yaml` — `ethics_approval_id` (the decision id for OUR study, not the committee's own `2025-KAEK-51`), `approval_date`, `approval_valid_until` (enforced with no grace day), `protocol_version` and the closed `recipients` list — because until one row exists every research export refuses `UnknownStudyError`. | HB-R1 (site: HB-L1) |
 | INT-230 | awaiting-human (retention; the second, independent refusal) | owner + counsel (via INT-212) | State the retention period for `research_extracts` from the ethics protocol, because files/06 §3 says only "per ethics protocol" and the export gate refuses to create data whose destruction date nobody can state. | HB-I8 |
 | INT-230 | awaiting-human (legal basis of the export itself) | Turkish counsel | Confirm whether a consented, pseudonymised research export is lawful under KSVY m.16 — and under which limb — given that m.16(1) requires anonymisation and this pipeline produces a keyed pseudonym, so nothing may be described as anonymised until you answer. | HB-L26 |
+| INT-231 | awaiting-human (blinded exports; mechanism shipped, fails closed) | owner + counsel, after HB-L1 | Register the study whose extract the blinded-export tooling would blind — `BlindedExportGate` wraps INT-230's export gate, so with the empty study registry there is nothing to be blinded from and it refuses `UnknownStudyError`, exactly as HB-R1 records for INT-231. | HB-R1 (site: HB-L1) |
+| INT-231 | awaiting-human (validation corpus; notebook harness shipped, refuses without it) | owner + clinician | Supply the held-out Turkish clinical corpus the validation notebooks (triage validation, note quality, psychiatric-signal validation) score against — until then `NotebookRunner.run` refuses each with `ResourceUnavailableError` naming the corpus, and no corpus or accuracy figure is invented. | HB-C10 (with HB-R1) |
+| INT-231 | awaiting-human (BLOCKED instruments for the psychiatric-signal track) | owner + counsel | C-SSRS and WHO-5 are licence-BLOCKED, so the psychiatric-signal notebook names them as unavailable resources and the runner refuses to run it; it carries no instrument content and compiles against none. Resolve the licences or drop the instruments. | HB-L2, HB-L3 |
 | INT-113, INT-114 | awaiting-human (no lawful basis; the lane framework refuses them fail-closed) | counsel + owner | Which consent purpose do the `asr_quality` and `engagement` observer lanes run under — `core`, `voice`, or a new purpose added to files/06 §2 with its own Turkish text — given that files/03 §4.7 says every lane is its own purpose while files/06 §2's closed list names only `lane:affect` and `lane:linguistic`? Until you answer, `LaneRuntime.admit` raises `LaneConsentUndeclared` for both lanes rather than attaching them to a basis nobody chose. | HB-L22 |
 | INT-112 | awaiting-human (lexicon content; the mechanism ships and fails closed) | physician of record (Dr Efe Onganer) + a Turkish-speaking clinical psychologist | Which Turkish surface forms belong in each of the four marker lexicons — `negative_affect`, `hopelessness`, `anhedonia`, `somatic_worry` — and against which committed Turkish source? Until you answer, all four are `draft_needs_source` with no terms, `compile_lexicon` refuses them, and the lane emits timing statistics and no lexicon key at all. | HB-C16 |
 | INT-112, INT-116 | awaiting-human (crisis content AND its destination) | physician of record + counsel | Which Turkish phrases must trigger a consent-independent crisis response, and is that response deterministic **signposting** (`04 §4.2` defect 3: "not a screener, not a score") or an instrument cascade (the INT-112 backlog line's "C-SSRS path", which is licence-BLOCKED and which `03 §4.7.1` puts under `device_functions`)? Until you answer, `CrisisBypass` refuses to build at all rather than never firing silently. | HB-C17 (with HB-C8, HB-L2) |
@@ -32,6 +36,7 @@
 | INT-320 | awaiting-human (COUNSEL-VETTED embed consent texts; LOCAL dev flow now works on dev placeholders) | Turkish counsel (KVKK / health-law), via INT-210 | Author the embed tenant's counsel-vetted consent document set under its committed `legal_root` (docs/legal/embed/&lt;tenant&gt;/), hash-bound like the rest of docs/legal — the branded intake's consent step now renders end-to-end in LOCAL dev only, from clearly-marked dev placeholders in the dev-legal tree (INT-320 follow-up: the `core` service consent from the global dev consents dir + a per-tenant `partner_processor` disclosure), while this committed tree stays empty and the consent step fails closed (503 `embed_consent_unavailable`) for any tree without your signed texts. Dev placeholders are NOT counsel-vetted and never ship. | HB-L27 |
 | INT-320 | awaiting-human (real partner onboarding; registry ships dev-only, prod rows refuse) | owner + counsel (the DPA), `platform_owner` (the OpenBao signing key) | For a real partner embed tenant: the executed data-processing agreement (`dpa_ref`) with the controller/processor determination, the recorded brand-use permission (`brand_permission_ref`), the per-tenant signing key with its production custody/rotation (the DEV key is now seedable locally with `scripts/dev/seed_embed_dev_key.py`, but that path is dev-tier only and refuses a prod tenant), and a shared (Redis) nonce store for multi-replica single-use — none of which an engineer may supply, so `infra/tenants/embed_registry.yaml` ships dev-only and a `prod` row is refused without those facts. | — (no HB row; coordinator to allocate, alongside HB-A15 for the connector-side DPA) |
 | INT-320 | awaiting-human (new personal-data category + recipient; out of scope, built as nothing) | owner + DPO / Turkish counsel | Is a partner-supplied patient identifier linked to a Vizite patient — the correlation that lets the clinician note flow back to a specific partner record — a new category of personal data and a new recipient, and under which {category, purpose, basis, retention, recipients} may it be processed? Until answered it stays OUT of the handshake: the ticket carries no patient identifier and nothing is linked or disclosed (invariant 18; a plausible basis is not invented). | — (no HB row; coordinator to allocate) |
+| INT-186 | awaiting-human (branch/profile/clinic filter; module shipped, filter fails closed) | owner + compliance_officer | May the experience aggregates — the CSAT/NPS/clinician-pulse rollups and the SDS-01 export — carry the visit's branch / clinic (and a voice profile) so the console can filter by branch/profile/clinic, given that branch × narrow window × small clinic is files/08 §0c F9's re-identification case and adding the dimension is a data-inventory decision under invariant 18? Until you answer, the three filter dimensions ship `unavailable` and the module fails closed; the SDS-01 export and the rollup projection are fully delivered. | — (no HB row; the same ask as docs/evidence/INT-241.md "Values refused" #3, extended to the satisfaction rollups and to `profile` — do not mint a new id) |
 | licensing | note (non-blocking) | owner | Confirm the split "Apache-2.0 for packages/protocols, proprietary for everything else" (07 §4) — bootstrapped that way pending your word. | — |
 
 ## INT-254 — no CODEOWNERS file, so the protocols review requirement has no mechanism
@@ -53,6 +58,7 @@ This is not INT-254's content to fix and it does not block the work, which is co
 
 Neither blocks this issue: the mechanism ships, the enum is closed, and both choices are recorded in `docs/evidence/INT-084.md`.
 | INT-208 | deferred (merge ordering, not a blocker) | coordinator | `int-200-health-connectors` carries device-local Apple Health / Health Connect and is nine source conflicts behind main, including `apps/mobile/src/lib/intake/note.ts` and its tests — which INT-084's note composer is rewriting right now. Resolving those conflicts against a file being rewritten would produce a merge nobody can review. Package it AFTER INT-084 lands, then re-resolve from the new note shape. Branch is intact at `13feef7`; nothing is lost. |
+| INT-203 | awaiting-human (no container runtime; the tier is built, rendered from one policy, licence-verified and was MEASURED against the real engine on 3 Sep 2026 before the constraint) | owner | Where may the edge tier run — a cluster, a container runtime on a machine we are allowed to install one on, or is the acceptance descoped — given that "WAF blocks OWASP CRS suite; CrowdSec scenarios on; certs automated" is a property of a RUNNING Traefik + Coraza + CrowdSec + cert-manager, the laptop may run no Docker at all and the GPU server is itself a pod with no runtime nested inside it? Until you answer, the corpus in `tests/fixtures/waf/corpus.yaml` has nowhere to be decided, and no clause is claimed from a config file. | HB-I13, HB-I14 |
 
 ## INT-085 — one patient-facing decision the summary refused to take
 
@@ -313,6 +319,51 @@ still refuses, and the SMART path fails closed at each of its own gates: an unre
 token host is refused by the egress guard, an unloadable key never reaches the wire, and a
 grant narrower than the row declares stops the push before a byte of the bundle leaves.
 
+---
+
+## INT-203 — the edge has nowhere to run
+
+**What is blocked is a *place*, not a build.** The tier exists, renders from one policy, is
+licence-verified against raw LICENSE blobs, and on **3 Sep 2026** it was booted and
+**measured**: twelve corpus cases decided by a real Traefik 3.3.7 + Coraza + OWASP CRS
+4.0.0, seven CRS families refused and five ordinary Turkish clinical turns served, from a
+cold `docker compose up` to green in 28 seconds. `docs/evidence/INT-203.md` §3–§5 records
+that run with its date, in the repository's usual form: a measurement of one stack on one
+day, never a property of the product.
+
+Then the owner removed the only machine it could run on — no Docker on the laptop at all —
+and the GPU server turned out to have no container runtime either, being itself a pod.
+Installing one on a box several other people share, to make one issue pass, is not a
+decision an agent takes.
+
+**The consequence, stated plainly.** "WAF blocks OWASP CRS suite; CrowdSec scenarios on;
+certs automated" is a property of a **running** tier. Nothing in a YAML file can stand in
+for it: a middleware that returns 403 to everything satisfies a config-file assertion and
+takes the product off the air, and that is precisely the failure the corpus's five Turkish
+negative controls exist to catch. So no clause is claimed from configuration, and the issue
+stays open at `awaiting-human` with `blocked:runtime`.
+
+**Nothing is built around it.** The suite that decides the corpus is committed and
+unmarked-as-skipped — `tests/infra/test_edge_stack_integration.py` boots its own tier and
+**fails**, naming `make edge-plugin`, when the artefact is absent. It does not skip, because
+a WAF suite that silently does not run is worse than no suite. It will go green the moment
+there is somewhere to run it.
+
+**What does NOT need a runtime is merged and green** and is most of the value of the issue:
+the policy schema that refuses `DetectionOnly`, a loosened threshold and a wide or expired
+exclusion; the renderer that keeps five enforcement points from drifting; the edge log
+boundary (`EdgeEvent`), which came out of a real captured line in which Coraza quoted a
+patient's Turkish utterance back into the log; and the whole prod-egress-proxy half —
+registered destinations, denied ranges, resolve-once-and-pin with re-validation on connect,
+redirects disabled, and the denial metric — decided with a local resolver stub and recorded
+fixtures, with no container anywhere.
+
+**The id is the coordinator's to allocate.** It is emphatically *not* HB-I1/HB-I2: those are
+disk and RAM on a machine that may now run nothing at all regardless of how much of either
+it has.
+
+---
+
 ## INT-019 — two CI gates are wired to a workflow file this session may not edit
 
 **Raised:** 3 Sep 2026 · **Named human:** owner · **HUMAN_BLOCKERS id:** HB-O6
@@ -367,3 +418,47 @@ on GPU access (server unreachable this build, `gpu`); a production `make clips V
 end-to-end waits on served packs (HB-C1); and **CosyVoice2** stays a blocked benchmark candidate
 (files/00_STATE.md line 99 rules it out for Turkish, LICENSE blob unread). The delivered harness,
 adapter and offline clip-gen mechanism are green and do not wait on any of these.
+## INT-308 — the carrier/geo authority has no source, and a vendor lookup has no contract
+
+**Raised:** 4 Sep 2026 · **Named human:** owner (the list), owner + counsel (the vendor half)
+· **HUMAN_BLOCKERS id:** to be allocated by the coordinator — this session may not mint one
+
+files/10 §2 has always named *"carrier/geo sanity checks against SMS pumping"*. INT-263 found
+that no code honoured it. INT-308 built the control and it runs on the OTP request path, in
+two halves that are in very different states:
+
+- **Geo is enforced and always was.** `normalise_tr_phone` admits a Turkish mobile and nothing
+  else, so the international premium ranges pumping actually profits from never reach a
+  delivery adapter. INT-308's contribution to that half is a test that pins it.
+- **Carrier is wired and inert.** `intake_api.carrier_geo` derives the operator prefix of an
+  already-normalised `+90` number in memory and asks `infra/security/msisdn_allocation.yaml`
+  whether it is allocated. That file declares **zero prefixes**, so the authority answers "I
+  cannot say" and every request is admitted.
+
+**One sentence closes the first half:** which `5XX` prefixes has the BTK allocated to a Turkish
+mobile operator, and against which published document — authority, title, publication date, URL
+and retrieval date — was that list read?
+
+It is not a lookup an agent may do from memory, and the failure direction is the expensive one:
+a prefix wrongly recorded as unallocated refuses every real subscriber behind it, silently, with
+a 422 that reads to the patient like a typo in their own number. The loader therefore **refuses
+a non-empty prefix list that carries no `source` block**, so the list cannot be typed in without
+the refusal being visible in the diff, and `exhaustive` has no default — a partial list marked
+complete is the same failure with a wider blast radius.
+
+**The second half is a separate decision and costs more.** A live per-number lookup (HLR, number
+portability) answers a stronger question than prefix allocation, needs a contracted vendor, and
+sends the patient's own phone number to a third party. That is a decision to disclose a new
+category of personal data and a licence question under CLAUDE.md invariant 19 — not a
+configuration change — so the `MsisdnAuthority` seam is deliberately narrower than any such
+vendor: it is handed a country code and an operator prefix and never the subscriber number, and
+a vendor that needs the whole MSISDN cannot be dropped in behind it without that conversation.
+**One sentence closes it:** is a per-number carrier lookup wanted at all, and if so under which
+contracted provider, which licence, and which lawful basis for sending a patient's number to it?
+
+**Nothing is built around either.** The check fails **open** on every lookup it cannot make, which
+is the acceptance's own requirement rather than a workaround; the empty table is the shipping
+state and `test_the_shipped_allocation_table_declares_no_prefixes_and_cannot_refuse` pins it, so
+supplying the list is a visible change and not a silent one. What stands against SMS pumping
+today is what files/10 §2 now says stands against it: the rolling request budgets and the
+Turkish-mobile-only normalisation.

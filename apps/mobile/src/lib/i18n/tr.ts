@@ -674,8 +674,7 @@ export const tr = {
   // "Sıranız geldi" chip) is gone; the checkpoint survives as "Bitirdim".
   "intake.mode.q": "Nasıl ilerleyelim?",
   "intake.mode.hospital": "Hastanedeyim",
-  "intake.mode.hospitalSub":
-    "Ayrıntılı soralım. Sıra size gelirse dilediğinizde bitirebilirsiniz.",
+  "intake.mode.hospitalSub": "Ayrıntılı soralım. Sıra size gelirse dilediğinizde bitirebilirsiniz.",
   "intake.mode.brief": "Kısa tutalım",
   "intake.mode.briefSub": "Yalnızca en gerekli birkaç soru.",
   // The clinic-interruptible checkpoint (02 §34): first-person, plain.
@@ -1292,8 +1291,56 @@ export const tr = {
   "shares.log.category.systemIntegrity": "Sistem kaydı",
   "shares.log.category.other": "Diğer işlem",
   "shares.held": "Bu liste sunucudaki kayıttan gelir; telefonunuzda saklanmaz.",
+  // INT-311 — issuing a Doctor Link from the patient's phone. In-app only:
+  // the link and the code are shown on this screen and go nowhere (HB-O7).
+  "shares.issue.entry": "Yeni bağlantı",
+  "shares.issue.sub": "Hekiminize gösterin",
+  "shares.issue.title": "Paylaşım bağlantısı",
+  "shares.issue.guide.kicker": "Paylaşım",
+  "shares.issue.guide.title": "Yalnızca bu ekranda",
+  "shares.issue.guide.body":
+    "Bu bağlantı yalnızca bu ekranda görünür ve hiçbir yere gönderilmez. Ekranı hekiminize gösterin.",
+  "shares.issue.recipient.label": "Kimin için?",
+  "shares.issue.recipient.hint": "Hekiminizin adını yazın.",
+  "shares.issue.create": "Bağlantı oluşturun",
+  "shares.issue.created.title": "Bağlantı hazır",
+  "shares.issue.code.label": "Açma kodu",
+  "shares.issue.key.label": "Bağlantı anahtarı",
+  "shares.issue.show":
+    "Bu kodu ve anahtarı muayenede hekiminize gösterin. Hekiminiz notunuzu bunlarla açar.",
+  "shares.issue.oneScreen": "Bu bilgiler yalnızca burada görünür; bu telefonda saklanmaz.",
+  "shares.issue.back": "Paylaşımlara dönün",
+  "shares.issue.error.notShared": "Bu not henüz paylaşılmadı. Önce notu gönderin.",
+  "shares.issue.error.dateUnknown": "Bu vizitin tarihi yok. Vizit tarihini ekleyin.",
+  "shares.issue.error.recipient": "Bu adı kontrol edin.",
+  "shares.issue.error.limited": "Çok fazla deneme oldu. Biraz sonra tekrar deneyin.",
+  "shares.issue.error.unavailable": "Paylaşım şu anda açık değil. Sonra tekrar deneyin.",
+  "shares.issue.error.unreachable": "Bağlantı kurulamadı. Sonra tekrar deneyin.",
   "a11y.shares.revokeHint": "İki kez dokunmak bu paylaşımı durdurur.",
   "a11y.shares.confirmHint": "İki kez dokunmak durdurma isteğini gönderir.",
+  "a11y.shares.issueHint": "Hekiminize gösterebileceğiniz bir bağlantı oluşturur.",
+
+  // INT-143 — kiosk mode. Mostly staff-facing (clinic PIN entry), which may be
+  // plainer; the one patient-facing line is the privacy note, in siz, ≤ B1.
+  "kiosk.lock.title": "Kiosk modu",
+  "kiosk.lock.body": "Personel için: Başlatmak için klinik PIN'ini girin.",
+  "kiosk.pin.label": "Klinik PIN'i",
+  "kiosk.pin.hint": "Klinik personelinin bildiği PIN'i girin.",
+  "kiosk.pin.arm": "Kiosk modunu başlatın",
+  "kiosk.pin.disarm": "Kiosk modundan çıkın",
+  "kiosk.pin.recover": "Kilidi yeniden kurun",
+  "kiosk.pin.submitHint": "Girilen PIN'i doğrular.",
+  "kiosk.pin.wrong": "PIN doğru değil. Yeniden deneyin.",
+  "kiosk.pin.lockedOut": "Çok fazla deneme oldu. Biraz sonra tekrar deneyin.",
+  "kiosk.exit": "Kiosk modundan çıkın",
+  "kiosk.exitHint": "Klinik PIN'i ile bu cihazı normal moda döndürür.",
+  "kiosk.exit.title": "Kiosk modundan çıkış",
+  "kiosk.exit.body": "Personel için: Çıkmak için klinik PIN'ini girin.",
+  "kiosk.tamper.title": "Güvenlik uyarısı",
+  "kiosk.tamper.banner": "Cihaz kilidi kalktı",
+  "kiosk.tamper.body":
+    "Bu cihazın kiosk kilidi artık etkin değil. Devam etmeden önce personel cihazı yeniden kilitlemeli, sonra klinik PIN'ini girmeli.",
+  "kiosk.privacy.note": "Bu paylaşılan bir cihazdır. Bilgileriniz burada saklanmaz.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

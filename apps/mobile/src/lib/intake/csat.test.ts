@@ -32,17 +32,28 @@ describe("the chips are 02 §5.4's, and nothing is preselected", () => {
     expect(emptyCsat()).toEqual({ score: null, reason: null });
   });
 
-  it("records one tap as one tap — a score never fabricates a reason", () => {
+  it("forms a one-tap csat.v1 body from the score alone — reason absent, never fabricated", () => {
     const tapped = csatReducer(emptyCsat(), { type: "score", score: 4 });
     expect(tapped.score).toBe(4);
     expect(tapped.reason).toBeNull();
-    expect(csatResponse(tapped)).toBeNull();
+    // INT-305: one tap is a complete event. The score is the whole answer and
+    // the reason is simply absent — not defaulted, not inferred from the score,
+    // and not even a key on the body a rollup could later mistake for a real one.
+    const body = csatResponse(tapped);
+    expect(body).toEqual({ score: 4 });
+    expect(body !== null && "reason" in body).toBe(false);
   });
 
-  it("forms a csat.v1 body only once both halves are the patient's own answer", () => {
+  it("carries the reason only when the patient tapped one — both halves, verbatim", () => {
     let state = csatReducer(emptyCsat(), { type: "score", score: 2 });
     state = csatReducer(state, { type: "reason", reason: "felt_rushed" });
     expect(csatResponse(state)).toEqual({ score: 2, reason: "felt_rushed" });
+  });
+
+  it("still forms nothing before the score — a reason alone is not a rating", () => {
+    const reasonOnly = csatReducer(emptyCsat(), { type: "reason", reason: "helpful" });
+    expect(reasonOnly.score).toBeNull();
+    expect(csatResponse(reasonOnly)).toBeNull();
   });
 });
 

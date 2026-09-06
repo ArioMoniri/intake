@@ -171,6 +171,7 @@ async def write_note(
                 tenant_id=patient.tenant_id,
                 note_id=note.id,
                 section_ids=payload.shared_section_ids(),
+                withheld_section_ids=payload.withheld_section_ids(),
             )
             await state.audit.record(
                 actor=patient.account_id,

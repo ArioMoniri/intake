@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 11 · doing 5 · done 128 · todo 102 · withdrawn 1.
+**248 issues.** By phase: P0 139 · P1 64 · P2 40 · P3 5. By status: awaiting-human 17 · doing 5 · done 150 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -72,7 +72,7 @@
 | INT-093 | RED preemption path: stop <=150ms, e2e <=300ms (fake clocks) | E05-voice | INT-091, INT-092, INT-080 | area:voice, risk:clinical | done |
 | INT-094 | Runtime invariants 1-11 + RT-01..08 + latency harness | E05-voice | INT-093, INT-110 | area:voice | done |
 | INT-096 | Profile typed (full parity fallback) | E05-voice | INT-081 | area:voice | done |
-| INT-101 | Session budgets + cost metering per component/profile | E05-voice | INT-092 | area:voice | todo |
+| INT-101 | Session budgets + cost metering per component/profile | E05-voice | INT-092 | area:voice | awaiting-human |
 | INT-110 | Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only | E06-lanes | INT-092, INT-038 | area:lanes, risk:clinical | done |
 | INT-112 | linguistic lane: TR lexicons + prosody stats + crisis bypass to triage | E06-lanes | INT-110, INT-080 | area:lanes, risk:clinical, approval:human-clinical | awaiting-human |
 | INT-116 | Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs | E06-lanes | INT-081, INT-112 | area:clinical, risk:clinical, approval:human-clinical | todo |
@@ -84,12 +84,12 @@
 | INT-132 | Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what | E08-mobile | INT-038, INT-130 | area:mobile, risk:legal, approval:human-legal | done |
 | INT-133 | Profiles, companions, guardian flows (minors), proxy acknowledgement | E08-mobile | INT-131, INT-223 | area:mobile, risk:legal | done |
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
-| INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | todo |
-| INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | todo |
+| INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | done |
+| INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | done |
 | INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | done |
-| INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | todo |
-| INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | todo |
+| INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | done |
+| INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | done |
 | INT-151 | Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback | E09-clinician | INT-150, INT-117 | area:clinician | todo |
 | INT-170 | PatientOverlay: store, confirmation rules, /me/learned API, engine integration | E11-learning | INT-031, INT-081 | area:learning | done |
 | INT-176 | Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure) | E01-platform | INT-017 | area:security, risk:security | done |
@@ -146,7 +146,7 @@
 | INT-298 | PolicyGuard refuses a locale it has no signed lexicon for, at the type level | E04-engines | INT-296 | area:engine, area:safety, area:i18n | done |
 | INT-299 | A translated answer is not the patient's words: the note gains a `translated` attribution class and keeps the original verbatim | E04-engines | INT-296, INT-084 | area:engine, area:clinical, area:i18n | done |
 | INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
-| INT-304 | The share scope can express three sections and the note has eight, so a withheld section is not recorded anywhere | E08-mobile | INT-137 | area:mobile, area:api, risk:legal | todo |
+| INT-304 | The share scope can express three sections and the note has eight, so a withheld section is not recorded anywhere | E08-mobile | INT-137 | area:mobile, area:api, risk:legal | done |
 | INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
 | INT-313 | Nothing carries an extraction to the phone: the confirm-card transport is owned by no issue | E07-records | INT-121, INT-138 | area:records, area:api | todo |
 | INT-312 | A TCKN said aloud is not masked: the redactors match a contiguous eleven-digit run and speech arrives as groups or as words | E01-platform | INT-102 | area:security, area:platform, area:voice | done |
@@ -167,8 +167,8 @@
 | INT-123 | pgvector record index (RLS, per-patient namespace) + retrieval Work | E07-records | INT-030, INT-121 | area:records | todo |
 | INT-135 | Voice intake UI (Hizli): states, recording indicator, inline cards, barge-in, RED UI, typed fallback | E08-mobile | INT-103, INT-096, INT-117 | area:mobile, risk:clinical | todo |
 | INT-141 | Notifications: content-free reminders, quiet hours, opt-out; transactional-only | E08-mobile | INT-130 | area:mobile, risk:legal | done |
-| INT-142 | Offline drafts + sync + resilience | E08-mobile | INT-136 | area:mobile | todo |
-| INT-143 | Kiosk mode: MDM lockdown, clinic PIN, 60s auto-wipe, privacy layout | E08-mobile | INT-136 | area:mobile, risk:security | todo |
+| INT-142 | Offline drafts + sync + resilience | E08-mobile | INT-136 | area:mobile | done |
+| INT-143 | Kiosk mode: MDM lockdown, clinic PIN, 60s auto-wipe, privacy layout | E08-mobile | INT-136 | area:mobile, risk:security | done |
 | INT-144 | Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report | E08-mobile | INT-130 | area:mobile, risk:legal | awaiting-human |
 | INT-145 | Client telemetry: GlitchTip crash (PHI-scrubbed), perf, RUM web | E08-mobile | INT-023, INT-130 | area:mobile | done |
 | INT-146 | EAS builds + OTA code signing + MobSF gate + store listings/privacy labels | E08-mobile | INT-131, INT-224 | area:mobile, risk:legal, approval:human-legal | todo |
@@ -179,15 +179,15 @@
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | done |
 | INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |
 | INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | todo |
-| INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | todo |
-| INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin | todo |
+| INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | done |
+| INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin, approval:human-legal | awaiting-human |
 | INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
 | INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | todo |
-| INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | todo |
+| INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | done |
 | INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
-| INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security | todo |
+| INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security, blocked:runtime | awaiting-human |
 | INT-205 | Wazuh + Falco deployment + rules + console feed | E13-infra | INT-023 | area:infra, risk:security | done |
 | INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra, approval:human-infra, blocked:contract | awaiting-human |
 | INT-213 | DPIA v1 + vendor transfer register + SCC set + Board notification workflow (5 business days) + hospital DPA template | E14-legal | INT-018, INT-210 | area:legal, risk:legal, approval:human-legal | todo |
@@ -205,19 +205,20 @@
 | INT-282 | Base-layer questions from the HBYS schema, and department branching on the answers | E04-engines | INT-256 | area:engine, risk:clinical | done |
 | INT-295 | The Detayli mode bar puts 'Siraniz geldi' off the screen, and nothing scrolls sideways to bring it back | E08-mobile | INT-284 | area:mobile, area:a11y | done |
 | INT-297 | The DSL's `*_tr` fields become per-locale maps, mechanically and with `tr` still required | E03-protocols | INT-296 | area:protocols, area:i18n | done |
-| INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | todo |
-| INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | todo |
-| INT-305 | One-tap CSAT cannot form a csat.v1 event, because the schema requires a reason the first tap has not given | E16-experience | INT-240, INT-137 | area:experience, area:mobile | todo |
-| INT-306 | The schema records a visit DATE and the expiry rule needs a visit DATETIME | E02-data | — | area:data | todo |
-| INT-308 | carrier/geo sanity checks against SMS pumping are named in the security spec and implemented nowhere | E01-platform | INT-263 | area:security, area:platform | todo |
-| INT-309 | A Decimal still loses its type at three boundaries: the FHIR scalar mapper, the overlay store, and a JSON round trip | E02-data | INT-303 | area:data | todo |
+| INT-300 | A locale without pinned, licence-verified speech models is text-only, and a locale without a number expander cannot speak a numeral at all | E05-voice | INT-296, INT-297 | area:voice, area:i18n | done |
+| INT-301 | Language choice at first run and inside a visit, the switch that does not lose the session, and right-to-left | E08-mobile | INT-296 | area:mobile, area:a11y, area:i18n | done |
+| INT-305 | One-tap CSAT cannot form a csat.v1 event, because the schema requires a reason the first tap has not given | E16-experience | INT-240, INT-137 | area:experience, area:mobile | done |
+| INT-306 | The schema records a visit DATE and the expiry rule needs a visit DATETIME | E02-data | — | area:data | done |
+| INT-308 | carrier/geo sanity checks against SMS pumping are named in the security spec and implemented nowhere | E01-platform | INT-263 | area:security, area:platform | awaiting-human |
+| INT-309 | A Decimal still loses its type at three boundaries: the FHIR scalar mapper, the overlay store, and a JSON round trip | E02-data | INT-303 | area:data | done |
 | INT-310 | Eight npm advisories block make security, including vitest at CVSS 9.8 | E13-infra | INT-019 | area:security, area:ci | done |
-| INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | todo |
+| INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | done |
 | INT-314 | Four spoken fields are still Turkish-only, so a red-flag action script cannot yet be per-locale | E03-protocols | INT-297 | area:protocols, area:i18n, area:safety | done |
-| INT-315 | assert_restore_target_outside_workspace resolves the target and not the workspace, so a symlinked directory INSIDE the repo reads as outside | E13-infra | — | area:infra, area:security | todo |
+| INT-315 | assert_restore_target_outside_workspace resolves the target and not the workspace, so a symlinked directory INSIDE the repo reads as outside | E13-infra | — | area:infra, area:security | done |
 | INT-317 | previsit output store + hospital read-back: one frozen versioned document per completed previsit, fetched by patient number under a consent scope and an audit entry | E10-connectors | — | area:connectors, area:api, area:data, area:security | todo |
 | INT-319 | Dev on-prem expressive-TTS lane for scripted questions + latency assessment harness | E05-voice | — | area:voice, area:lanes, gpu, approval:human-vendor | awaiting-human |
 | INT-321 | Intake asks its mode up front; 'Sıranız geldi' becomes 'Bitirdim' and the per-question mode row is retired | E08-mobile | INT-295, INT-286 | area:mobile, area:a11y | done |
+| INT-323 | Department-dynamic previsit routing: inbound department → branch → served pack | E03-protocols | INT-042, INT-134 | area:protocols, area:connectors | done |
 
 ## P2
 
@@ -240,12 +241,12 @@
 | INT-115 | acoustic lane (M3, investigational device module): our own ordinal head, in-memory window, zeroing, study assertion | E06-lanes | INT-110, INT-117 | area:lanes, risk:clinical, approval:human-clinical, blocked:study-site | todo |
 | INT-124 | Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval | E07-records | INT-121 | area:records, gpu | todo |
 | INT-162 | HBYS/SBYS adapter kit (HL7v2 ORU / file drop / FHIR) + USVS mapping + KTS registration pack | E10-connectors | INT-160 | area:connectors, risk:legal, approval:human-legal | done |
-| INT-163 | Check-in: signed QR payload + desk verification + checkin_to_seen metric | E10-connectors | INT-160, INT-143 | area:connectors | todo |
+| INT-163 | Check-in: signed QR payload + desk verification + checkin_to_seen metric | E10-connectors | INT-160, INT-143 | area:connectors | done |
 | INT-171 | De-identified analytics views + k-anonymity helper + rollups | E11-learning | INT-015, INT-030 | area:learning, risk:legal | done |
 | INT-172 | services/learning Inspector->Architect + proposal schema + evidence bundles + PR bot (open-not-merge) | E11-learning | INT-171, INT-004 | area:learning, risk:clinical | done |
-| INT-173 | Canary/rollback controller on guardrail KPIs (5/25/100) | E11-learning | INT-172, INT-025 | area:learning | todo |
+| INT-173 | Canary/rollback controller on guardrail KPIs (5/25/100) | E11-learning | INT-172, INT-025 | area:learning | done |
 | INT-174 | DSPy+GEPA offline optimisation (extraction, note modules only) with clinician-edit metric + held-out | E11-learning | INT-153, INT-172 | area:learning | todo |
-| INT-184 | Protocols module: coverage, review queue, proposals, canary, clips | E12-admin | INT-042, INT-172, INT-180 | area:admin | todo |
+| INT-184 | Protocols module: coverage, review queue, proposals, canary, clips | E12-admin | INT-042, INT-172, INT-180 | area:admin | done |
 | INT-191 | Tenants module + onboarding flow | E12-admin | INT-180, INT-250 | area:admin | todo |
 | INT-200 | Residency compose profile (GPU) + runbooks | E13-infra | INT-097 | area:infra, gpu | todo |
 | INT-201 | k8s: k3s + Argo CD + Kyverno/Sigstore admission + PSS restricted + default-deny + Harbor | E13-infra | INT-019 | area:infra, risk:security, approval:human-infra | todo |
@@ -253,14 +254,14 @@
 | INT-207 | Chaos suite (monthly) + load to pilot x3 + autoscaling rules | E13-infra | INT-024, INT-201 | area:infra | todo |
 | INT-219 | Technical documentation (Annex II/III) + clinical evaluation (MDCG 2020-1) + PMCF + notified-body selection | E14-legal | INT-217 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-220 | Registrations: UTS (TCKKD-KLVZ-03) + UDI; KTS (SBYS) pack; BTK yer saglayici; traffic-log retention 5651 | E14-legal | INT-219, INT-162 | area:legal, risk:legal, approval:human-legal | todo |
-| INT-221 | Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance | E14-legal | INT-183, INT-162 | area:legal, risk:legal | todo |
+| INT-221 | Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance | E14-legal | INT-183, INT-162 | area:legal, risk:legal | awaiting-human |
 | INT-222 | Consumer/commercial: mesafeli sozlesme pre-info + withdrawal (if paid tier), IYS integration for marketing, Turkish-language compliance | E14-legal | INT-210 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-227 | AI governance file: model cards, TR bias/fairness eval (dialect, gender, age), transparency labels, EU AI Act readiness note | E14-legal | INT-095, INT-116 | area:legal, risk:legal | todo |
 | INT-230 | Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies | E15-research | INT-015, INT-038 | area:research, risk:legal, approval:human-legal | done |
-| INT-231 | Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation) | E15-research | INT-230 | area:research | todo |
-| INT-262 | Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies) | E15-research | INT-230 | area:research, risk:legal, approval:human-legal | todo |
+| INT-231 | Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation) | E15-research | INT-230 | area:research, approval:human-legal | awaiting-human |
+| INT-262 | Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies) | E15-research | INT-230 | area:research, risk:legal, approval:human-legal | done |
 | INT-250 | Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook | E17-release | INT-189, INT-213 | area:release, risk:legal | todo |
-| INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | todo |
+| INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | done |
 | INT-320 | Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold) | E10-connectors | INT-250 | area:release, risk:security, risk:legal, approval:human-legal | doing |
 | INT-322 | Embed handshake: intake mode (hastanede/brief) bound inside the signed launch ticket | E10-connectors | INT-320 | area:release, risk:security, risk:legal | done |
 

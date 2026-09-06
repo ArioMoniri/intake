@@ -6,15 +6,22 @@ the patient's own note, all authenticated, all consent-gated at the door.
 The one rule that lives here and nowhere else: **the expiry is computed on
 the server**. files/02 §2b pins Doctor Link expiry to ``visit_datetime + 72 h``
 and says in terms that ``issue_time + 72 h`` is the wrong clock. The client
-holds a visit date; the server holds the rule; a visit with no recorded date
-is refused rather than given an invented clock (``visit_date_unknown``).
+holds a visit schedule; the server holds the rule; a visit with no recorded
+date is refused rather than given an invented clock (``visit_date_unknown``).
+
+Since INT-306 the schedule may also carry the appointment's hour, and the
+expiry then uses it. A visit that records no hour keeps INT-150's start-of-day
+anchor — the documented fallback, never later than the appointment — which is
+why an unknown time is NOT a refusal the way an unknown date is: a date is the
+whole anchor, an hour only sharpens it.
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date
 
+from clinical_schemas.visit_time import VisitSchedule
 from fastapi import APIRouter, Depends, Request
 from intake_platform.access_log import build_access_log
 from intake_platform.db.models import DoctorLink, Note
@@ -131,7 +138,13 @@ async def issue_link(
             actor=patient.account_id,
         )
         token = new_token()
-        expires_at = link_expires_at(datetime.fromisoformat(visit.date).date())
+        # INT-306: files/02 §2b's own rule where the visit records an hour,
+        # INT-150's start-of-day anchor as the documented fallback where it
+        # does not. The schedule type is what makes that choice explicit here
+        # rather than hidden inside a defaulted midnight.
+        expires_at = link_expires_at(
+            VisitSchedule(date=date.fromisoformat(visit.date), time=visit.time)
+        )
         link = await links.create_doctor_link(
             session,
             tenant_id=patient.tenant_id,

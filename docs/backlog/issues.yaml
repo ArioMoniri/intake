@@ -1116,7 +1116,7 @@
   # planned. The per-session limits are missing for the same reason - files/10 Sec 5
   # names the control and states no number. Both asks are in docs/backlog/blockers.md;
   # the HUMAN_BLOCKERS.md id is for the coordinator to allocate.
-  status: todo
+  status: awaiting-human
   evidence: docs/evidence/INT-101.md
   acceptance:
     - "token/char/audio-second budgets enforced; cost.per_session emitted; exhaustion degrades gracefully"
@@ -1553,7 +1553,7 @@
   #
   # Reopen against HB-C1 plus the pain-score anchor ask; see
   # docs/evidence/INT-136.md §5 "Acceptance, line by line".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-136.md
   acceptance:
     - "instrument items rendered verbatim; low-literacy chips; progress + resume"
@@ -1595,7 +1595,7 @@
   #
   # Reopen against INT-210 (the consent text) and INT-150 (the QR); see
   # docs/evidence/INT-137.md §"What is not met".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-137.md
   acceptance:
     - "section-level scope UI; consent summary; send; status timeline; one-tap CSAT with reason chips; never blocks send"
@@ -1678,7 +1678,7 @@
   # strings in docs/legal/ exist (INT-210). The client deliberately never
   # calls GET /v1/me/dsar/export/{id} and a test asserts the absence.
   # Reopen against INT-210; see docs/evidence/INT-140.md §"What is not met".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-140.md
   acceptance:
     - "export/delete flows wired to DSAR; learned facts editable/deletable with provenance"
@@ -1703,10 +1703,35 @@
   title: "Offline drafts + sync + resilience"
   depends_on: [INT-136]
   labels: [area:mobile]
-  status: todo
+  # All three acceptance clauses are delivered with tests in the same branch.
+  # (a) DRAFTS ENCRYPTED AT REST: the per-visit note is mirrored to
+  #     src/lib/intake/offline on every change, sealed with AES-256-GCM over a
+  #     device DEK held in the Keychain/Keystore (auth/tokens.ts precedent);
+  #     only ciphertext reaches disk, never audio (invariant 3), and sign-out
+  #     crypto-shreds the blobs and the key. Proved by draftStore.test.ts +
+  #     envelope.test.ts.
+  # (b) SYNC CONFLICT RULES: reconcile.ts is a deterministic last-writer-wins
+  #     rule (updatedAt, origin tiebreak) whose defining property is NO SILENT
+  #     DATA LOSS — a real divergence keeps BOTH copies (the loser preserved as
+  #     a conflict copy). Proved over every branch in reconcile.test.ts.
+  # (c) AIRPLANE-MODE E2E: offline.spec.ts drives create-offline -> persist
+  #     encrypted -> reconnect -> sync, over an injected transport, and asserts
+  #     the draft survives, stays ciphertext, and the rule resolves.
+  #
+  # The offline-tolerant pass (sync.ts) is transport-injected; a live server
+  # client is intentionally NOT wired, because no note-sync route accepts the
+  # raw answer-draft today (INT-197's note row stores the built note and has no
+  # version; the raw draft has no server home per INT-137 evidence). That is the
+  # honest fail-closed state and is not part of this acceptance line.
+  status: done
+  evidence: docs/evidence/INT-142.md
   acceptance:
     - "drafts encrypted at rest; sync conflict rules; airplane-mode e2e"
-  tests: [apps/mobile/e2e/offline.spec.ts]
+  tests:
+    - apps/mobile/e2e/offline.spec.ts
+    - apps/mobile/src/lib/intake/offline/envelope.test.ts
+    - apps/mobile/src/lib/intake/offline/reconcile.test.ts
+    - apps/mobile/src/lib/intake/offline/draftStore.test.ts
   sec_row: "mobile"
 - id: INT-143
   epic: E08-mobile
@@ -1714,7 +1739,30 @@
   title: "Kiosk mode: MDM lockdown, clinic PIN, 60s auto-wipe, privacy layout"
   depends_on: [INT-136]
   labels: [area:mobile, risk:security]
-  status: todo
+  # All four acceptance clauses are delivered as pure, node-tested mechanism and
+  # wired into the app (src/lib/kiosk + components/KioskGate + session.tsx +
+  # _layout.tsx):
+  #   - no persistence: kioskSuppressesPersistence gates the INT-142 offline
+  #     mirror; entering kiosk crypto-shreds anything already at rest;
+  #   - wipe on idle/background: 60 s idle timer + AppState listener in the .ts
+  #     adapter call session.wipeSession() (clears notes/visits + shreds drafts);
+  #   - tamper alert: tamperDetected fails closed (anything but a confirmed
+  #     lockdown -> alert), no silent degrade, recovery needs PIN + lockdown;
+  #   - large-type layout: kioskFontScale floors the surface at LARGE_TEXT_SCALE,
+  #     screen capture blocked, no prior-patient data shown;
+  #   - clinic PIN: verified against the MDM-provisioned salted hash, never
+  #     stored, fails closed with nothing provisioned; both edges are staff-only.
+  #
+  # Two device capabilities it consumes are the dev-build native layer and fail
+  # closed in the managed runtime (HUMAN_BLOCKERS.md Rule 2, no HB id minted):
+  # the MDM managed-config PIN read (=> not a kiosk) and the guided-access /
+  # lock-task lockdown probe (=> tamper). Both are gated on HB-A3 (real builds)
+  # and files/10 §4.7 (the attestation/pinning module, filed there as its own
+  # issue). See docs/evidence/INT-143.md "What is delivered, and what fails
+  # closed". The §9 kiosk console signals (heartbeat, wipe count) need a server
+  # round-trip an ephemeral kiosk does not make and land with the console work.
+  status: done
+  evidence: docs/evidence/INT-143.md
   acceptance:
     - "no persistence; wipe on idle/background; tamper alert; large-type layout"
   tests: [apps/mobile/e2e/kiosk.spec.ts]
@@ -1775,7 +1823,7 @@
   # patient-chosen contact channel is a new category of personal data, which
   # CLAUDE.md makes a stop-and-ask — it needs a HUMAN_BLOCKERS row and a named
   # human, which this iteration did not mint. Reopen against that row.
-  status: todo
+  status: done
   evidence: docs/evidence/INT-150.md
   acceptance:
     - "entropy/expiry tests; watermark carries recipient+timestamp; robots/noindex; every open audited and visible to patient"
@@ -1867,7 +1915,21 @@
   title: "Check-in: signed QR payload + desk verification + checkin_to_seen metric"
   depends_on: [INT-160, INT-143]
   labels: [area:connectors]
-  status: todo
+  # Delivered as pure, tested connector logic (intake_connectors.checkin):
+  #   - mint_checkin signs a short-lived payload (HS256 over stdlib hmac, the
+  #     same scheme as the embed launch ticket; key from OpenBao via the
+  #     framework's CredentialResolver) carrying {tid, cid, nonce, iat, exp,
+  #     purpose} and NEVER PHI (cid refused unless id-shaped);
+  #   - verify_checkin validates signature AND expiry AND tenant AND purpose,
+  #     consumes a single-use nonce last, and fails closed on every branch;
+  #   - record_desk_checkin appends one hash-chained audit entry (inv. 4) and
+  #     emits checkin_to_seen (seen - iat) as a wait.v1 event via record_wait.
+  # The INT-241 seam is filled: wait.checkin_to_seen_min moves planned -> live,
+  # its WaitSource is now observable, and WAIT_CHECKIN_TO_SEEN_MIN is served.
+  # QR rendering is out of scope (payload is machine-read text; no native
+  # QR dep, per the issue framing and prior QR controls).
+  status: done
+  evidence: docs/evidence/INT-163.md
   acceptance:
     - "QR payload signed+short-lived; desk verification flow; wait metric emitted"
   tests: [tests/connectors/test_checkin.py]
@@ -1914,7 +1976,7 @@
   title: "Canary/rollback controller on guardrail KPIs (5/25/100)"
   depends_on: [INT-172, INT-025]
   labels: [area:learning]
-  status: todo
+  status: done
   acceptance:
     - "auto-rollback on acceptance -5, safety blocks +50 percent, completion -5, CSAT -0.3; simulated dip test"
   tests: [tests/learning/test_canary_rollback.py]
@@ -2411,7 +2473,27 @@
   title: "Protocols module: coverage, review queue, proposals, canary, clips"
   depends_on: [INT-042, INT-172, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-184.md
+  # NOTE 6 Sep 2026: all three acceptance clauses delivered in the admin-web
+  # (TS) lane. The module is a pure projection of real sources, recorded into
+  # one composite fixture by scripts/dev/record_protocols_fixture.py: the
+  # branch x maturity matrix is protocols.taxonomy.coverage over the real
+  # taxonomy + pack tree (today 91 MISSING + Acil Tıp EXCLUDED, because the
+  # whole tree is L0 — invariant 13's matrix surfacing exactly that); the
+  # review queue's vocabulary is intake_learning PROPOSAL_TARGETS and its
+  # unmet checks are REQUIRED_CHECKS; clip coverage is keyed by VoiceProfile.
+  # approve/reject are four-eyes controls (author != approver) with the
+  # mutation + audit + four-eyes ceremony reused from the INT-180 shell, not
+  # re-implemented (invariant 4, 12); L0-as-coverage, self-approval,
+  # incomplete-evidence-approvable, forbidden-target and typed-profile-clip
+  # are all refused. Genuine current empty states: the review queue has no
+  # persisted store (PR-bot opens PRs, CODEOWNER approves) and every evidence
+  # bundle is incomplete (its producers are later issues), so nothing is
+  # approvable yet; clip coverage is 0/0 because no pack is servable (all L0).
+  # Sequenced follow-up (documented in evidence): the GET /admin/protocols
+  # ADMIN_ROUTES descriptor + view + tests/admin parity test, so the fixture
+  # becomes recorded-from-the-API (same sequencing INT-183 used).
   acceptance:
     - "branch x maturity matrix; approve/reject with 4-eyes; clip coverage per voice"
   tests: [apps/admin-web/e2e/protocols.spec.ts]
@@ -2422,7 +2504,28 @@
   title: "Clinical quality & safety module + annotation-queue links"
   depends_on: [INT-175, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-185.md
+  # NOTE 6 Sep 2026: all four acceptance clauses delivered in the admin-web (TS)
+  # lane as a pure projection of real sources, recorded into one composite
+  # fixture by scripts/dev/record_safety_fixture.py (added to `make
+  # admin-fixtures`): triage events keyed by clinical_schemas TriageLevel and
+  # metric triage.events_total (planned → 0), each level attributed to the rules
+  # engine with the LLM candidate ceiling shown as YELLOW_REVIEW (inv 1); the
+  # false-RED queue projected from the INT-175 false_red_review annotation queue
+  # — a review surface that records annotations and NEVER downgrades a
+  # rules-engine RED (inv 1), pointers ids-only (inv 6), content-read refused
+  # while HB-L6 is open; PolicyGuard classes = ViolationClass (inv 2); acceptance
+  # by specialty rolled over the real intake branches as counts, a rate only via
+  # the INT-183 measurement discipline (corpus+date, inv 20). Refusals:
+  # TriageNotFromRulesEngine, TriageDowngradeInFalseRedQueue, ClinicalContentLeaked,
+  # ContentReadNotRefused, ForbiddenReviewVerdict, UnknownPolicyClass,
+  # AcceptanceCountsInconsistent, UnlabelledMeasurement. Genuine current empty
+  # states throughout (no emitting session, no persisted item store, no note
+  # delivered). Sequenced follow-up (documented in evidence): the
+  # GET /admin/quality-safety ADMIN_ROUTES descriptor + view + tests/admin parity
+  # test, so the fixture becomes recorded-from-the-API (same sequencing INT-183/184
+  # used). No new numbered artefact minted.
   acceptance:
     - "triage events, false-RED queue, PolicyGuard classes, acceptance by specialty"
   tests: [apps/admin-web/e2e/safety.spec.ts]
@@ -2432,8 +2535,40 @@
   phase: P1
   title: "Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export)"
   depends_on: [INT-240, INT-180]
-  labels: [area:admin]
-  status: todo
+  labels: [area:admin, approval:human-legal]
+  status: awaiting-human
+  evidence: docs/evidence/INT-186.md
+  # MECHANISM SHIPPED, ONE CLAUSE AWAITING A HUMAN (6 Sep 2026). Delivered in the
+  # admin-web (TS) lane as a pure projection of real sources, recorded into one
+  # composite fixture by scripts/dev/record_experience_fixture.py (added to
+  # `make admin-fixtures`) in the exact INT-184/185 discipline. CSAT (score dist
+  # + sealed CsatReason counts), NPS (promoter/passive/detractor split) and
+  # clinician pulse are the INT-240 rollups (intake_metrics.rollups), each
+  # produced by the REAL rollup over an empty response set so the empty state is
+  # the platform's; metric ids resolved in metrics_catalog.yaml (inv 15); the k=10
+  # floor is intake_metrics.rollups.MIN_COHORT; below it only the count survives
+  # (files/06 §8, files/08 §0c F9). "SDS-01-style export" is FULLY delivered: the
+  # committed intake_metrics.sds01.SDS01_COLUMNS projected verbatim, tenant-scoped
+  # from the token, aggregate only, no clinic/branch/clinician/patient column
+  # (F9), rows from the real INT-241 serialiser. Refusals: SuppressedCohortLeaked,
+  # SatisfactionFigureLeaked, UnknownCsatReason, SatisfactionTargetRendered (inv
+  # 20), ExperienceFilterEnabled, TenantFromQuery (F9 IDOR), SdsColumnForbidden,
+  # SdsRowArityMismatch, UnsafeExportCell (inv 47).
+  #
+  # "filters by branch/profile/clinic" is delivered as a MECHANISM that fails
+  # closed: the three dimensions are offered and every one is marked unavailable.
+  # The experience aggregates carry no such dimension (csat.v1/nps.v1/
+  # clinician_pulse.v1 hold only a tenant id and a score), the visit's branch
+  # lives in an encrypted slot, and slicing an operational aggregate by branch ×
+  # narrow window × small clinic is files/08 §0c F9's re-identification case;
+  # adding a dimension is a data-inventory decision under invariant 18 and a
+  # stop-and-ask (Owner + compliance_officer). That exact ask is already open as
+  # the third refused value in docs/evidence/INT-241.md and is recorded in
+  # docs/backlog/blockers.md under INT-186 - NO new HUMAN_BLOCKERS.md or ADR id
+  # was minted. Reopen to `done` when that decision lands (branch dimension
+  # granted, or the clause descoped to tenant+window filtering). Sequenced
+  # follow-up (evidence): the GET /admin/experience composite descriptor + view +
+  # tests/admin parity test (the wait-time half already exists via INT-241).
   acceptance:
     - "filters by branch/profile/clinic; SDS-01-style export for hospital tenants"
   tests: [apps/admin-web/e2e/experience.spec.ts]
@@ -2500,7 +2635,22 @@
   title: "Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity"
   depends_on: [INT-205, INT-180]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-192.md
+  # NOTE 6 Sep 2026: all four verbatim acceptance clauses delivered as a pure
+  # projection (apps/admin-web/src/security/module.ts), fixture recorded from
+  # the real sources by scripts/dev/record_security_fixture.py (added to
+  # admin-fixtures). Every surface is in its honest empty / fail-closed state,
+  # which is the delivered state, not a gap (cf. INT-180/185): SIEM =
+  # load_console_feed None (stream not mounted, not-configured != nothing
+  # detected); egress = sec.egress_denied_total source-unavailable (no scrape
+  # recorded here); audit-chain = run_daily_verification -> anchor_missing,
+  # fail-closed because HB-I8 is open (no anchor publisher) — NO new HB minted;
+  # pen-test tracker genuinely empty (files/10 §7: first external pen-test is
+  # before P2). Title also says "rotations, drills" — those are NOT in the
+  # verbatim acceptance and their metrics are catalogued `planned` for a later
+  # Ops/Overview surface (inv 17: deliver exactly the acceptance). 25 vitest
+  # tests (positive + near-miss). No migration, no new metric/service/route.
   acceptance:
     - "Wazuh/Falco/CrowdSec summaries; egress denials; audit-chain status; pen-test findings tracker"
   tests: [apps/admin-web/e2e/security.spec.ts]
@@ -2545,11 +2695,36 @@
   phase: P1
   title: "Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy"
   depends_on: [INT-018]
-  labels: [area:infra, risk:security]
-  status: todo
+  labels: [area:infra, risk:security, blocked:runtime]
+  # The edge is built, rendered from one policy, licence-verified and — on
+  # 3 Sep 2026, before the constraint below — MEASURED against the real engine:
+  # twelve corpus cases decided by a booted Traefik + Coraza + OWASP CRS 4.0.0,
+  # seven CRS families refused and five ordinary Turkish clinical turns served.
+  # That run is recorded in docs/evidence/INT-203.md §3-§5 with its date.
+  #
+  # The issue stays open because the acceptance is a property of a RUNNING
+  # tier and there is now nowhere sanctioned to run one: no container runtime
+  # on the laptop (owner constraint, 3 Sep 2026) and none on the GPU server,
+  # which is itself a pod. A WAF asserted from a config file is the fake
+  # invariant 17 forbids, so no clause is claimed on that basis. What DOES
+  # stand without any runtime is merged and green: the policy schema, the
+  # renders, the edge log boundary, and the whole prod-egress-proxy half
+  # (registered destinations, denied ranges, resolve-once-and-pin with
+  # re-validation on connect, redirects, the denial metric).
+  # docs/evidence/INT-203.md §9 is the clause-by-clause account. The two asks
+  # are registered as HB-I13 (where the tier may run — permission and siting,
+  # explicitly NOT the HB-I1/HB-I2 capacity questions: it is ~200 MB and boots
+  # in 28 s) and HB-I14 (the FQDNs it serves and the mailbox owning the ACME
+  # account). The boundary decision is ADR-032: two enforcement points rendered
+  # from one generator, the proxy's six-hour rebinding window closed where it
+  # exists, and a personal-data transport pointed at the forward proxy refused
+  # at construction — the fourth shape of the ADR-025 bypass, a configuration
+  # rather than a call site.
+  status: awaiting-human
   acceptance:
     - "WAF blocks OWASP CRS suite; CrowdSec scenarios on; certs automated"
   tests: [tests/infra/test_waf_rules.py]
+  evidence: docs/evidence/INT-203.md
   legal: "KVKK-12"
   sec_row: "edge"
 - id: INT-204
@@ -2759,10 +2934,22 @@
   title: "Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance"
   depends_on: [INT-183, INT-162]
   labels: [area:legal, risk:legal]
-  status: todo
+  status: awaiting-human
+  # NOTE 6 Sep 2026: delivered=PARTIAL. All three acceptance clauses ship as
+  # mechanism: (1) the registry assertion proves tr-residency tenants
+  # vendor-free on the PHI path (intake_probes.residency.attest_residency over
+  # observability/registry.yaml + infra/security/egress-allowlist.yaml, both
+  # fail-closed); (2) the DDO Rehber (Bilgi ve İletişim Güvenliği Rehberi)
+  # control mapping doc; (3) the USVS conformance suite. The Genelge 2019/12
+  # residency ATTESTATION is a legal statement to the Ministry no agent may
+  # author (CLAUDE.md stop-and-ask): the mechanism/gate is built with the legal
+  # content EMPTY and refusing to render (AttestationUnsigned) until counsel
+  # answers whether the posture is legally attestable under KVKK Art. 9. Hence
+  # awaiting-human. No new HB/ADR minted — HB-L11 referenced (blockers.md).
   acceptance:
     - "tr-residency tenants provably vendor-free on PHI path (registry assertion); Rehber control mapping doc; USVS conformance tests"
   tests: [tests/legal/test_residency_attestation.py]
+  evidence: docs/evidence/INT-221.md
   legal: "G2019-12,DDO,USVS"
   sec_row: "self-hosting"
 - id: INT-222
@@ -2869,19 +3056,41 @@
   phase: P2
   title: "Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation)"
   depends_on: [INT-230]
-  labels: [area:research]
-  status: todo
+  labels: [area:research, approval:human-legal]
+  status: awaiting-human
+  evidence: docs/evidence/INT-231.md
+  # NOTE 6 Sep 2026 — all three acceptance MECHANISMS ship and fail closed;
+  # delivered=partial and the issue is awaiting-human because their real CONTENT
+  # needs artefacts no human has supplied (HUMAN_BLOCKERS.md rule 2):
+  #   - pre-registered analysis scripts: DONE as mechanism. analysis_registry.yaml
+  #     hash-pins each track notebook; an unregistered id or a drifted byte is
+  #     refused (fail closed). This clause is fully delivered.
+  #   - blinded exports: mechanism DONE (BlindedExportGate + blind_extract hide
+  #     the arm label; re-identification without the sealed codebook is refused),
+  #     but it wraps INT-230's export gate and the shipped study registry is EMPTY
+  #     (HB-R1, site HB-L1) — so there is nothing to be blinded from until a study
+  #     is registered, exactly as HB-R1 records for INT-231.
+  #   - reproducible notebooks: harness DONE (deterministic double-run, frozen
+  #     clock, network blocked; track1 runs on a blinded extract). The VALIDATION
+  #     tracks (triage/note-quality/psychiatric-signal) each declare the held-out
+  #     clinical corpus (HB-C10, HB-R1) or GO instrument they need and the runner
+  #     refuses until it is supplied; C-SSRS/WHO-5 are BLOCKED (HB-L2, HB-L3) and
+  #     are named as unavailable resources, never included.
+  # No corpus, instrument or accuracy figure is invented (invariants 17, 20). No
+  # new HB/ADR id minted; the blockers referenced are pre-existing.
   acceptance:
     - "pre-registered analysis scripts; blinded exports; reproducible notebooks under tests"
   tests: [tests/research/test_notebooks_run.py]
   legal: "ETİK"
+  sec_row: "learning-loops"
 - id: INT-262
   epic: E15-research
   phase: P2
   title: "Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies)"
   depends_on: [INT-230]
   labels: [area:research, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-262.md
   # Raised by INT-230, which states the gap in its own evidence rather than
   # leaving it unrecorded. INT-230's k gate holds for ONE extract: every
   # quasi-identifier combination carries at least k subjects. It does not
@@ -3964,7 +4173,8 @@
   labels:
   - area:voice
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-300.md
   acceptance:
   - 'the voice profile is per locale and inherits invariant 19 unchanged: ASR
     and TTS for a locale are open-weights, commercially usable and verified from
@@ -3994,7 +4204,8 @@
   - area:mobile
   - area:a11y
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-301.md
   acceptance:
   - 'the chooser lists only locales the registry reports complete AND signed for
     the pack in play, shows each language in its own name and script, and is
@@ -4057,7 +4268,8 @@
   - area:mobile
   - area:api
   - risk:legal
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-304.md
   acceptance:
   - '`SectionId` in services/api (`schemas.py`) is widened from the three names
     it carries today - chief_complaint, hpi, medications - to the full set the
@@ -4089,7 +4301,7 @@
   labels:
   - area:experience
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'the contradiction is RESOLVED in one direction and recorded, not papered
     over: either files/02 §5.4 stops calling the prompt one-tap, or `reason`
@@ -4217,7 +4429,8 @@
   depends_on: []
   labels:
   - area:data
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-306.md
   acceptance:
   - 'the slot carries a time of day where one is known, and states that it is
     unknown where it is not - an absent time must stay absent rather than
@@ -4247,7 +4460,8 @@
   labels:
   - area:platform
   - area:observability
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-307.md
   acceptance:
   - 'the publisher accepts an unlabelled wait family, so a series such as
     wait.doctor_link_first_open_h has a writer rather than a catalogue row with
@@ -4278,7 +4492,8 @@
   labels:
   - area:security
   - area:platform
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-308.md
   acceptance:
   - 'the control exists or the sentence stops claiming it: either a carrier/geo
     check runs on the OTP request path, or files/10 §2 is rewritten to say the
@@ -4297,7 +4512,7 @@
     a metric label or an error report - the budgets already key on a Tokenizer
     pseudonym and this must not regress that'
   tests:
-  - tests/api/test_otp_abuse.py
+  - tests/security/test_otp_abuse.py
   sec_row: "onboarding"
 - id: INT-309
   epic: E02-data
@@ -4312,7 +4527,7 @@
   - INT-303
   labels:
   - area:data
-  status: todo
+  status: done
   acceptance:
   - 'to_r4._scalar_answer gains a Decimal branch: today it has bool/int/float/str
     and falls through to raise "a None answer inside a list is malformed", which
@@ -4331,6 +4546,10 @@
     declared scale), and an integer large enough to lose precision as a float'
   tests:
   - tests/schemas/test_roundtrip.py
+  - tests/schemas/test_fhir_mappers.py
+  - tests/learning/test_overlay_provenance.py
+  - tests/safety/test_numeric_carrier.py
+  evidence: docs/evidence/INT-309.md
   sec_row: "records"
 - id: INT-310
   epic: E13-infra
@@ -4379,7 +4598,7 @@
   labels:
   - area:mobile
   - area:security
-  status: todo
+  status: done
   acceptance:
   - 'the act of issuing has one owner and one surface: today INT-137 refuses the
     QR, INT-150 refuses the delivery channel and INT-139 refuses the issuing
@@ -4540,7 +4759,8 @@
   labels:
   - area:infra
   - area:security
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-315.md
   acceptance:
   - 'the workspace side is resolved too: a directory that git can see inside the
     repository must be refused as a restore target even when it is reached
@@ -4731,3 +4951,18 @@
   tests: [tests/embed/test_mode.py]
   legal: "KVKK-8,DPA"
   sec_row: "embed"
+- id: INT-323
+  epic: E03-protocols
+  phase: P1
+  title: "Department-dynamic previsit routing: inbound department → branch → served pack"
+  depends_on: [INT-042, INT-134]
+  labels: [area:protocols, area:connectors]
+  status: done
+  evidence: docs/evidence/INT-323.md
+  acceptance:
+    - "packages/protocols department_routing maps a normalised inbound department (fold_department mirrors the mobile foldDepartment: Turkish-aware lowercase + diacritic strip + ı→i) onto a branches.yaml branch_id by exact name_tr plus the aliases DERIVED from the committed mobile PACKS regexes; no branch id is invented and department_index fails closed (TaxonomyError) on an ambiguous folded name or a stale/colliding alias"
+    - "fail closed: an unmapped department is an explicit UNMAPPED state (DepartmentRouting/DepartmentMatch) and resolve_department raises DepartmentNotRoutableError with NO pack — never a silent specialty; a test proves an unknown department gets no specialty pack even when specialty packs are present, and a near-miss does not fuzzy-match"
+    - "branch→served pack reuses resolve_branch (invariant 13): specialty.<id> at L1+ else the cluster pack; an L0 pack resolved for a live session raises L0PackServedError; Acil Tıp raises ExcludedBranchError; nothing servable raises NoServablePackError rather than bare base.intake"
+    - "wired to the inbound visit-create path (services/api) as an opt-in (resolve_department) that maps a free-text department onto the branch and threads it onto the visit; the default INT-197 mirror path is unchanged; a department mapping to Acil Tıp is refused (excluded_branch); the served pack CONTENT past L0 stays gated on HB-C1"
+  tests: [tests/protocols/test_department_routing.py, tests/api/test_visit_department_routing.py]
+  sec_row: "protocol-registry"

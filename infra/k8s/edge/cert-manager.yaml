@@ -1,0 +1,29 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: intake-acme
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # The account key cert-manager creates and keeps; the account email is
+    # supplied at apply time from OpenBao, never committed (invariant 14).
+    privateKeySecretRef:
+      name: intake-acme-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
+
+# No Certificate is rendered: infra/security/edge/edge-policy.yaml names no
+# domain, because no production hostname for this system exists yet. An empty
+# `dnsNames` is refused by cert-manager at apply time, in a cluster, later —
+# so the object is absent rather than present and broken. The ask is in
+# docs/evidence/INT-203.md §8.

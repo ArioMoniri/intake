@@ -1,0 +1,58 @@
+# INT-203 — CrowdSec, local-only (files/10 §4 edge, §7 CrowdSec blocks).
+#
+# NOT generated: this is runtime topology rather than detection policy. What is
+# generated from infra/security/edge/edge-policy.yaml is the part a reviewer
+# argues about — the scenarios and the acquisition — and
+# tests/infra/test_waf_rules.py holds this file to the one property that is a
+# policy decision: `online_client` is empty.
+#
+# ── Why the central API is off ───────────────────────────────────────────────
+# CrowdSec's community blocklist is its headline feature and it works by
+# sending the addresses that triggered your scenarios to CrowdSec SAS. files/10
+# §1 counts a third-party reputation service receiving our client addresses as
+# a transfer nobody consented to, and a patient's mobile IP is personal data
+# under KVKK. The behavioural scenarios — which is what this tier is for — run
+# entirely locally and need none of it. `online_client` being empty is what
+# makes that a fact rather than an intention; `DISABLE_ONLINE_API=true` in the
+# compose file says the same thing to the entrypoint.
+common:
+  daemonize: false
+  log_media: stdout
+  log_level: info
+
+config_paths:
+  config_dir: /etc/crowdsec/
+  data_dir: /var/lib/crowdsec/data/
+  simulation_path: /etc/crowdsec/simulation.yaml
+  hub_dir: /etc/crowdsec/hub/
+  index_path: /etc/crowdsec/hub/.index.json
+  notification_dir: /etc/crowdsec/notifications/
+  plugin_dir: /usr/local/lib/crowdsec/plugins/
+
+crowdsec_service:
+  acquisition_path: /etc/crowdsec/acquis.yaml
+
+db_config:
+  type: sqlite
+  db_path: /var/lib/crowdsec/data/crowdsec.db
+  flush:
+    max_items: 5000
+    max_age: 7d
+
+api:
+  client:
+    insecure_skip_verify: false
+    credentials_path: /etc/crowdsec/local_api_credentials.yaml
+  server:
+    # Loopback inside the container. The bouncer runs beside it; nothing
+    # reaches the LAPI from outside the tier.
+    listen_uri: 127.0.0.1:8080
+    profiles_path: /etc/crowdsec/profiles.yaml
+    # Empty, deliberately, and asserted by test.
+    online_client: {}
+
+prometheus:
+  enabled: true
+  level: aggregated
+  listen_addr: 0.0.0.0
+  listen_port: 6060

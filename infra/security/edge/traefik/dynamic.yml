@@ -1,0 +1,61 @@
+# GENERATED — do not edit by hand.
+#
+# Source:     infra/security/edge/edge-policy.yaml
+# Generator:  scripts/security/render_edge_conf.py (`make edge-conf`)
+# INT-203 / files/10 §4. Editing this file instead of the policy makes the
+# deployed edge disagree with what review approved, and
+# tests/infra/test_waf_rules.py fails.
+
+http:
+  routers:
+    # The one router. Host-based, on the local test name — the production
+    # names live in the policy's `domains` and are empty until somebody
+    # answers the ask in docs/evidence/INT-203.md §8.
+    intake:
+      rule: "Host(`intake.test`)"
+      entryPoints: [websecure, web]
+      service: intake-api
+      middlewares: [intake-waf, intake-headers]
+
+  services:
+    intake-api:
+      loadBalancer:
+        servers:
+          - url: "http://api:8000"
+        # A backend that is failing is not a backend to send clinical traffic
+        # to; Traefik takes it out of rotation on the service's own probe
+        # (CLAUDE.md invariant 13).
+        healthCheck:
+          path: /healthz
+          interval: "10s"
+          timeout: "3s"
+
+  middlewares:
+    intake-waf:
+      plugin:
+        coraza:
+          directives:
+            - "Include @coraza.conf-recommended"
+            - "SecRequestBodyLimit 131072"
+            - "SecRequestBodyNoFilesLimit 131072"
+            - "Include @crs-setup.conf.example"
+            - "SecAction \"id:900000,phase:1,pass,nolog,setvar:tx.blocking_paranoia_level=1,setvar:tx.detection_paranoia_level=1,setvar:tx.inbound_anomaly_score_threshold=5,setvar:tx.outbound_anomaly_score_threshold=4\""
+            - "Include @owasp_crs/*.conf"
+            - "SecRuleEngine On"
+
+    intake-headers:
+      headers:
+        # The edge asserts the transport guarantees; the application asserts
+        # its own CSP, which is nonce-based and cannot be written here
+        # (files/08 §8).
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "no-referrer"
+        # Traefik advertises itself in `Server:` by default; the version of the
+        # edge is not something a scanner needs from us.
+        customResponseHeaders:
+          Server: ""
+          X-Powered-By: ""
