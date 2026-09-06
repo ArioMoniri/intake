@@ -182,6 +182,11 @@ class ResearchExportGate:
             )
 
         await self._check_retention(spec, study_id, requested_by)
+        # INT-262 — read the register for prior extracts of the same study+spec
+        # and refuse an overlapping window. Runs on the window alone, before any
+        # patient row is read: a request that was always going to refuse never
+        # reaches the consent filter or the cross-tab.
+        await self._check_differencing(spec, study, requested_by, cohort)
         await self._check_rows(spec, study_id, requested_by, candidates)
 
         consented = await self._consented(session, tenant_id=tenant_id, candidates=candidates)
@@ -267,6 +272,71 @@ class ResearchExportGate:
             "says 'per ethics protocol' and no ethics protocol exists (HB-I8). Data whose "
             "destruction date nobody can state may not be created (KVKK m.7, DEST-2017)",
         )
+
+    async def _check_differencing(
+        self,
+        spec: ResearchExtractSpec,
+        study: StudyRecord,
+        requested_by: str,
+        cohort: Cohort,
+    ) -> None:
+        """Refuse a window that overlaps a prior extract of the same study+spec.
+
+        INT-230's k gate holds for one extract; two extracts over overlapping
+        windows can be *differenced* to recover the cells in the difference, at
+        any k. This gate counts the extracts already served for this study and
+        spec whose window intersects the requested one — the register holds
+        exactly those (study, spec, window) facts, and only for extracts that
+        were actually served, so a prior *refusal* never counts against a study.
+
+        Windows are half-open ``[start, end)``: two intersect iff each starts
+        before the other ends, so an adjacent window (one starting where the
+        other ends) does not overlap. If nothing overlaps, the request is not a
+        differencing request and passes.
+
+        The budget is the study's, and it has no default. A study that states
+        none refuses every overlapping window (``UNBUDGETED``, fail closed); a
+        study that states :class:`~intake_platform.research.studies.QueryBudget`
+        permits overlap up to its explicit count and refuses beyond it
+        (``EXHAUSTED``). Neither refusal echoes the window or the cohort size.
+        """
+        window_start = cohort.window_start
+        window_end = cohort.window_end
+        prior_overlapping = 0
+        for record in self._register.for_study(study.study_id):
+            if record.spec_name != spec.name:
+                continue
+            prior_start = datetime.fromisoformat(record.window_start)
+            prior_end = datetime.fromisoformat(record.window_end)
+            if window_start < prior_end and prior_start < window_end:
+                prior_overlapping += 1
+
+        if prior_overlapping == 0:
+            return
+
+        budget = study.query_budget
+        if budget is None:
+            raise await self._refuse(
+                spec,
+                study.study_id,
+                requested_by,
+                ResearchRefusalReason.OVERLAPPING_WINDOW_UNBUDGETED,
+                "this window overlaps a prior extract of the same study and spec, and the "
+                "study states no query budget. A second overlapping extract can be "
+                "differenced against the first to recover the cells in the difference "
+                "(INT-262). The budget has no default: absent means refuse (HB-R1, "
+                "invariant 17). The window is not echoed",
+            )
+        if prior_overlapping >= budget.max_overlapping_extracts:
+            raise await self._refuse(
+                spec,
+                study.study_id,
+                requested_by,
+                ResearchRefusalReason.QUERY_BUDGET_EXHAUSTED,
+                "this window overlaps more prior extracts of the same study and spec than "
+                "the study's query budget permits (INT-262). The window and the count are "
+                "not echoed",
+            )
 
     async def _check_rows(
         self,

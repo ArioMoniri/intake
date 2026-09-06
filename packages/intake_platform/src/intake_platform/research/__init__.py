@@ -58,6 +58,7 @@ from intake_platform.research.register import (
 )
 from intake_platform.research.studies import (
     STUDY_FIELD_SHAPE,
+    QueryBudget,
     StudyApprovalLapsedError,
     StudyApprovalNotYetInForceError,
     StudyRecord,
@@ -91,6 +92,7 @@ __all__ = [
     "InMemoryExtractRegisterStore",
     "PseudonymisedExtract",
     "PseudonymisedRow",
+    "QueryBudget",
     "ResearchExportGate",
     "ResearchExportRefused",
     "ResearchExtractSpec",

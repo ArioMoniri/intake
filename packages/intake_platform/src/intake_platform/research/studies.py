@@ -40,6 +40,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 __all__ = [
     "STUDY_FIELD_SHAPE",
+    "QueryBudget",
     "StudyApprovalLapsedError",
     "StudyApprovalNotYetInForceError",
     "StudyRecord",
@@ -87,6 +88,33 @@ def _id_shaped(value: str, *, field: str) -> str:
     return value
 
 
+class QueryBudget(BaseModel):
+    """How many extracts, for one spec, a study may take over overlapping
+    windows (INT-262).
+
+    INT-230's k gate holds for a single extract; it does not compare a new
+    request against the extracts already served, so an investigator who takes
+    the same spec over a wide window and then a narrower one *differences* the
+    two and recovers the excluded cells — at any k. The differencing gate
+    (:meth:`ResearchExportGate._check_differencing`) refuses an overlapping
+    window unless the study states a budget here.
+
+    **The count has no default (invariant 17).** How much overlap and how many
+    requests a study may make is an ethics-committee decision (HB-R1), not one
+    an agent may pick, so :attr:`max_overlapping_extracts` is required with no
+    default and must be at least 1. A study that states no ``query_budget`` at
+    all — the field is ``None`` on :class:`StudyRecord` — refuses **every**
+    overlapping window: absent means fail closed, never "allow".
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
+
+    #: The maximum number of extracts of one spec whose windows may overlap.
+    #: A budget of 1 permits exactly one extract per overlapping window group
+    #: (the second overlapping request refuses); a budget of N permits N.
+    max_overlapping_extracts: int = Field(ge=1)
+
+
 class StudyRecord(BaseModel):
     """One registered study. Every field is required and none has a default:
     a study missing its ethics decision id is not a study with a blank field,
@@ -110,6 +138,11 @@ class StudyRecord(BaseModel):
     #: The closed list of parties an extract under this study may go to. An
     #: empty list would be an open-ended transfer, so the minimum is one.
     recipients: tuple[str, ...] = Field(min_length=1)
+    #: The study's differencing budget (INT-262), or ``None`` for a study that
+    #: has stated none. ``None`` is not a permissive default: it refuses every
+    #: overlapping window (fail closed), because how much overlap a study may
+    #: make is an ethics-committee decision (HB-R1) no agent may pick.
+    query_budget: QueryBudget | None = None
 
     @field_validator(
         "study_id",
