@@ -6,9 +6,11 @@
  * registry module (files/08 §148), the measurement discipline every figure on
  * the console must pass through (CLAUDE.md invariant 20), the Compliance
  * module (files/08 §4 — vendor-transfer register, consent coverage, audit
- * search, DSAR queue and evidence export), and the Protocols module (files/09
+ * search, DSAR queue and evidence export), the Protocols module (files/09
  * §1-4 — branch × maturity matrix, the four-eyes review queue for learning
- * proposals, and clip coverage per voice).
+ * proposals, and clip coverage per voice), and the Clinical Quality & Safety
+ * module (files/08 §4 D/E — triage events, the false-RED annotation queue,
+ * PolicyGuard classes, and acceptance by specialty).
  */
 export {
   InconsistentReleaseState,
@@ -80,3 +82,38 @@ export {
   type ReviewRow,
   type ReviewRowPresentation,
 } from "./protocols/module";
+export {
+  AcceptanceCountsInconsistent,
+  ClinicalContentLeaked,
+  ContentReadNotRefused,
+  ForbiddenReviewVerdict,
+  renderAcceptanceBySpecialty,
+  renderFalseRedQueue,
+  renderPolicyGuardClasses,
+  renderQualitySafetyModule,
+  renderTriageEvents,
+  TriageDowngradeInFalseRedQueue,
+  TriageNotFromRulesEngine,
+  UnknownPolicyClass,
+  type AcceptanceBySpecialtyPayload,
+  type AcceptanceBySpecialtyPresentation,
+  type AcceptanceRow,
+  type AcceptanceRowPresentation,
+  type Cell as SafetyCell,
+  type FalseRedItem,
+  type FalseRedItemPresentation,
+  type FalseRedQueuePayload,
+  type FalseRedQueuePresentation,
+  type FalseRedReview,
+  type FalseRedReviewPresentation,
+  type PolicyGuardClassPresentation,
+  type PolicyGuardClassRow,
+  type PolicyGuardPayload,
+  type PolicyGuardPresentation,
+  type QualitySafetyPayload,
+  type QualitySafetyPresentation,
+  type TriageEventsPayload,
+  type TriageEventsPresentation,
+  type TriageLevelPresentation,
+  type TriageLevelRow,
+} from "./safety/module";

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 14 · doing 5 · done 146 · todo 81 · withdrawn 1.
+**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 14 · doing 5 · done 147 · todo 80 · withdrawn 1.
 
 ## P0
 
@@ -179,7 +179,7 @@
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | done |
 | INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |
 | INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | todo |
-| INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | todo |
+| INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | done |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin | todo |
 | INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
