@@ -15,19 +15,22 @@ do not exist. Three artefacts, one fact: the registry, the catalogue status
 and the writer cannot drift apart, and the day an instant lands,
 `tests/experience/test_wait_metrics.py` fails until all three move together.
 
-One of the four gaps has an owning issue (INT-163 for connector check-in).
-Three do not: no issue in the backlog claims the intake lifecycle instants —
-`sessions.started_at`, the first question reaching the patient,
-`sessions.completed_at` — and INT-150 delivered the Doctor Link redemption
-route without the interval, for the reason its `missing_instant` states. So
-`blocked_by` is honestly `None` on all three and the ask is recorded in
-docs/evidence/INT-241.md and docs/evidence/INT-150.md rather than attributed
-to an issue that never promised it.
+One of the four original gaps had an owning issue — INT-163 for connector
+check-in — and it is now landed: `packages/connectors` mints a signed check-in
+payload (its `iat` is the check-in instant) and records the wait at desk
+verification, so both instants live in the repo. Three gaps remain: no issue in
+the backlog claims the intake lifecycle instants — `sessions.started_at`, the
+first question reaching the patient, `sessions.completed_at` — and INT-150
+delivered the Doctor Link redemption route without the interval, for the reason
+its `missing_instant` states. So `blocked_by` is honestly `None` on all three
+and the ask is recorded in docs/evidence/INT-241.md and docs/evidence/INT-150.md
+rather than attributed to an issue that never promised it.
 
-Today exactly one interval has both instants: document processing begins and
-ends inside a single request handler (`intake_api.documents.ingest_content`).
-The other four are named, gated and empty — build the mechanism, wire the
-gate, make it fail closed, leave the content empty (CLAUDE.md).
+Today two intervals have both instants: document processing begins and ends
+inside a single request handler (`intake_api.documents.ingest_content`), and
+connector check-in runs from the payload's signed `iat` to desk verification
+(INT-163). The other three are named, gated and empty — build the mechanism,
+wire the gate, make it fail closed, leave the content empty (CLAUDE.md).
 
 **A missing instant and a missing writer are different sentences (INT-307).**
 Until INT-307 the only publisher was bound to the one labelled family, so a
@@ -273,14 +276,9 @@ WAIT_SOURCES: tuple[WaitSource, ...] = (
         metric_id="wait.checkin_to_seen_min",
         metric_name="wait_checkin_to_seen_min",
         unit="min",
-        start_moment="desk check-in recorded by the hospital connector",
-        end_moment="the encounter starting, as the connector reports it",
-        observable=False,
-        missing_instant=(
-            "both: files/08 §4 G scopes this to connector tenants and "
-            "packages/connectors does not exist"
-        ),
-        blocked_by="INT-163",
+        start_moment="the patient's check-in, signed into the payload's iat by the connector",
+        end_moment="desk verification of that payload, when the connector admits the patient",
+        observable=True,
         publisher=WAIT_PUBLISHER,
     ),
     WaitSource(

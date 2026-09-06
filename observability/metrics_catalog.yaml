@@ -903,8 +903,14 @@ metrics:
     labels: []
     owner: experience
     unit: "min"
-    status: planned
-    description: Check-in to being seen (connector tenants).
+    status: live
+    description: >-
+      Check-in to being seen, in minutes, for connector tenants (INT-163). The
+      interval runs from the signed check-in payload's iat to desk verification
+      (intake_connectors.checkin), recorded via record_wait as a wait.v1 event
+      and emitted by intake_metrics.metrics.publish_wait from a rollup that has
+      cleared the k >= 10 floor — never observed raw. Unlabelled: the
+      observation carries a duration and the tenant only (invariant 6).
   - name: wait_records_processing_s
     id: wait.records_processing_s
     type: histogram

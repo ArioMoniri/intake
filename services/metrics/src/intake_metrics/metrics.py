@@ -64,6 +64,7 @@ __all__ = [
     "CSAT_SCORE",
     "NPS_MONTHLY",
     "WAIT_BUCKETS",
+    "WAIT_CHECKIN_TO_SEEN_MIN",
     "WAIT_FAMILIES",
     "WAIT_RECORDS_PROCESSING_S",
     "publish_csat",
@@ -147,8 +148,21 @@ WAIT_RECORDS_PROCESSING_S = Histogram(
     buckets=WAIT_BUCKETS,
 )
 
+#: files/08 §4 group G: wait.checkin_to_seen_min, "connector tenants" (INT-163).
+#: The second group G id whose two instants both exist: the signed check-in
+#: payload's iat and desk verification (intake_connectors.checkin). Unlabelled
+#: — the observation carries a duration and the tenant only (invariant 6) — so
+#: it has no cell to leak through and refuses a labelled observation outright.
+WAIT_CHECKIN_TO_SEEN_MIN = Histogram(
+    "wait_checkin_to_seen_min",
+    "Check-in to being seen in minutes, for connector tenants. Published only "
+    "for cohorts at or above the k >= 10 floor; never observed raw.",
+    buckets=WAIT_BUCKETS,
+)
+
 WAIT_FAMILIES: Mapping[WaitKind, Histogram] = {
     WaitKind.RECORDS_PROCESSING: WAIT_RECORDS_PROCESSING_S,
+    WaitKind.CHECKIN_TO_SEEN: WAIT_CHECKIN_TO_SEEN_MIN,
 }
 
 
@@ -197,8 +211,10 @@ def observe_wait(
             f"got {declared!r} — a wait figure written into the wrong series is "
             "indistinguishable from a measurement"
         )
-    mislabelled = 0 if source.labels else sum(
-        1 for observation in observations if observation.document_type is not None
+    mislabelled = (
+        0
+        if source.labels
+        else sum(1 for observation in observations if observation.document_type is not None)
     )
     if mislabelled:
         raise ValueError(
