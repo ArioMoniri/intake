@@ -937,7 +937,14 @@ RESEARCH_IMPORT_ALLOW_LIST = frozenset(
         "intake_platform.consent.service",
         "intake_platform.deid",
         "intake_platform.research.artefact",
+        # INT-231 study tooling — three new boundary modules. Each is scanned by
+        # the same AST gates as the rest of the package (no narrative name, no
+        # query, allow-listed imports only); notebook.py reaches blinding and
+        # preregistration, which is why they are listed here.
+        "intake_platform.research.blinding",
         "intake_platform.research.extract",
+        "intake_platform.research.notebook",
+        "intake_platform.research.preregistration",
         "intake_platform.research.register",
         "intake_platform.research.studies",
         "intake_platform.research.values",
