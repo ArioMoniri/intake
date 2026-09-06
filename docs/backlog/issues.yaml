@@ -3044,12 +3044,33 @@
   phase: P2
   title: "Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation)"
   depends_on: [INT-230]
-  labels: [area:research]
-  status: todo
+  labels: [area:research, approval:human-legal]
+  status: awaiting-human
+  evidence: docs/evidence/INT-231.md
+  # NOTE 6 Sep 2026 — all three acceptance MECHANISMS ship and fail closed;
+  # delivered=partial and the issue is awaiting-human because their real CONTENT
+  # needs artefacts no human has supplied (HUMAN_BLOCKERS.md rule 2):
+  #   - pre-registered analysis scripts: DONE as mechanism. analysis_registry.yaml
+  #     hash-pins each track notebook; an unregistered id or a drifted byte is
+  #     refused (fail closed). This clause is fully delivered.
+  #   - blinded exports: mechanism DONE (BlindedExportGate + blind_extract hide
+  #     the arm label; re-identification without the sealed codebook is refused),
+  #     but it wraps INT-230's export gate and the shipped study registry is EMPTY
+  #     (HB-R1, site HB-L1) — so there is nothing to be blinded from until a study
+  #     is registered, exactly as HB-R1 records for INT-231.
+  #   - reproducible notebooks: harness DONE (deterministic double-run, frozen
+  #     clock, network blocked; track1 runs on a blinded extract). The VALIDATION
+  #     tracks (triage/note-quality/psychiatric-signal) each declare the held-out
+  #     clinical corpus (HB-C10, HB-R1) or GO instrument they need and the runner
+  #     refuses until it is supplied; C-SSRS/WHO-5 are BLOCKED (HB-L2, HB-L3) and
+  #     are named as unavailable resources, never included.
+  # No corpus, instrument or accuracy figure is invented (invariants 17, 20). No
+  # new HB/ADR id minted; the blockers referenced are pre-existing.
   acceptance:
     - "pre-registered analysis scripts; blinded exports; reproducible notebooks under tests"
   tests: [tests/research/test_notebooks_run.py]
   legal: "ETİK"
+  sec_row: "learning-loops"
 - id: INT-262
   epic: E15-research
   phase: P2

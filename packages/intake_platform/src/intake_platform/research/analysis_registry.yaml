@@ -1,0 +1,54 @@
+# analysis_registry.yaml — the pre-registered study analyses (INT-231).
+#
+# An analysis must be fixed BEFORE the data is seen and must not change after
+# the fact (the garden-of-forking-paths defence). Each row below hash-pins the
+# exact script that runs an analysis: its `sha256` is the SHA-256 of the file
+# named in `script`, resolved under `research/analyses/`. The runner refuses to
+# run an analysis that is not registered here, and the hash gate refuses one
+# whose bytes have drifted from the recorded value — so a pre-registered
+# analysis cannot be silently edited (a test proves each recorded hash equals
+# the shipped file's hash, and CI fails if one drifts).
+#
+# UNLIKE study_registry.yaml, this file ships FILLED: an analysis script is code
+# this repo authors, not an ethics approval a human must grant. What is still
+# gated is what each analysis can VALIDATE — tracks 2-4 declare, in their own
+# source, the held-out corpus (HB-C10, HB-R1) or the GO instrument (C-SSRS/WHO-5
+# are BLOCKED: HB-L2, HB-L3) they need, and the notebook runner refuses to run
+# them until it is supplied. No corpus, instrument or accuracy figure is
+# invented (CLAUDE.md invariants 17, 20).
+#
+# To register a new analysis: add the script under research/analyses/, then add
+# a row here with its id, its track, its path, its sha256 and a one-line
+# description. Re-run `python -c "import hashlib,pathlib; ..."` (or the
+# INT-231 evidence recipe) to compute the hash.
+
+analyses:
+  - analysis_id: track1.voice_vs_typed
+    track: track1
+    script: track1_voice_vs_typed.py
+    sha256: cfe9d8fd0e6df3fb2883f12b35a7405e217bea609c1b44a532280ded8e8d6833
+    description: >-
+      Descriptive comparison of the two delivery conditions over a blinded
+      research extract; counts per blind condition code, no accuracy figure.
+  - analysis_id: track2.triage_validation
+    track: track2
+    script: track2_triage_validation.py
+    sha256: 3bed26ad3365b582dd79e30a0c1cb377cf751d44a6787218b2a48e94ba38fbbb
+    description: >-
+      Triage outcome against a held-out adjudicated corpus (HB-C10, HB-R1);
+      gated closed until the corpus is supplied.
+  - analysis_id: track3.note_quality
+    track: track3
+    script: track3_note_quality.py
+    sha256: 173bdbe069ac43e04986bbdd5477adb2822e51cbcfcb4990c8c1cfc48df0c732
+    description: >-
+      Clinician-ready note quality against a rated corpus (HB-C10, HB-R1);
+      gated closed until the corpus is supplied.
+  - analysis_id: track4.psychiatric_signal
+    track: track4
+    script: track4_psychiatric_signal.py
+    sha256: 3a1de94e5db4370b6a47b7a93593964ecd2817d043e8ccfd8b9d2950ccd724b3
+    description: >-
+      Psychiatric-signal validation against a reference standard; gated closed
+      on the corpus (HB-C10) and the BLOCKED instruments C-SSRS/WHO-5 (HB-L2,
+      HB-L3).
