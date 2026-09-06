@@ -23,7 +23,7 @@
  * share purpose does NOT gate, which is the acceptance's revoke clause
  * checked against the deployed system rather than claimed about the client.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -108,10 +108,11 @@ describe("the share centre is a reachable screen", () => {
  * All three are declared under `core` alone in INT-150's router. The two it
  * omits — `POST …/doctor-links` (issue) and `POST …/{id}/otp` (mint a code)
  * — enforce `share:previsit_note`, and neither is in this issue's acceptance:
- * INT-139 is "active shares, revoke, access log". Building them here would
- * also mean rendering a 128-bit bearer token in a patient app and implying a
- * delivery channel that does not exist (HB-O7). Their absence is what makes
- * §5's claim total rather than merely likely.
+ * INT-139 is "active shares, revoke, access log". Building them in THIS client
+ * would mean rendering a 128-bit bearer token on the listing screen. INT-311
+ * gives them their own owner instead — `src/lib/shares/issue.ts`, feeding the
+ * dedicated issuing surface — so this client stays free of them and §5's claim
+ * about it stays total. The confinement is checked below.
  */
 const CLIENT_ROUTES = [
   { method: "GET", suffix: "/note/doctor-links" },
@@ -130,16 +131,40 @@ describe("the client speaks exactly the INT-150 patient surface", () => {
     expect(CLIENT_ROUTES).toHaveLength(3);
   });
 
-  it("mints no link and mints no code anywhere in the app", () => {
-    // The two share-purpose-gated routes. Their absence is asserted over the
-    // whole tree, not just the client, so a screen cannot reach past it.
+  /**
+   * INT-311 relaxed this, and only this line. Until INT-311 the two
+   * share-purpose-gated routes had no owner anywhere in the app, and asserting
+   * their absence over the WHOLE tree was correct. INT-311 gives them one
+   * owner — `src/lib/shares/issue.ts`, the issuing surface's transport — and
+   * the reason each may now go is one reason, not two: the SERVER redemption
+   * path they feed is real. `doctor_link/redeem.py::open_link` checks the share
+   * consent scope (`ensure_consent(scope=SHARE_SCOPE)`) and writes a
+   * hash-chained audit entry (`api.doctor_link.opened`) before it discloses a
+   * section — the precondition INT-311's acceptance names. So the control is
+   * not dropped, it is NARROWED to one file: issuing and code-minting are
+   * proved absent from every OTHER module (this client, the share-centre
+   * screen, review & send, the note surface), and proved present on the one
+   * that owns them. INT-137's four negative controls on the review surface are
+   * untouched and still stand (`e2e/issueLink.spec.ts` §2, `review_send.spec.ts` §6).
+   */
+  it("mints a link and a code ONLY on the issuing surface INT-311 owns", () => {
     const MINTS_A_CODE = /doctor-links[^"'`]*\/otp/;
     const ISSUES_A_LINK = /method:\s*"POST"[\s\S]{0,200}?\/note\/doctor-links"/;
+    const OWNER = "src/lib/shares/issue.ts";
     for (const entry of TREE) {
+      if (entry.name === OWNER) {
+        continue;
+      }
       const source = code(entry.source);
       expect(source, `${entry.name} mints an opening code`).not.toMatch(MINTS_A_CODE);
       expect(source, `${entry.name} issues a link`).not.toMatch(ISSUES_A_LINK);
     }
+    // The owner is where they live — a positive check so this stays load-bearing
+    // rather than passing because nobody issues at all.
+    const owner = code(file(OWNER));
+    expect(owner).toContain("/note/doctor-links");
+    expect(owner).toContain("/otp");
+    expect(owner).toMatch(/"POST"/);
   });
 
   it("drives every call from the store, never from the screen", () => {
@@ -430,9 +455,7 @@ describe("the client is pinned to the router INT-150 shipped", () => {
    * become unreachable exactly when it is most needed — and this fails.
    */
   it("calls only routes a withdrawal of the share purpose cannot take away", () => {
-    const gated = new Set(
-      routes.filter((r) => r.sharePurpose).map((r) => `${r.method} ${r.path}`),
-    );
+    const gated = new Set(routes.filter((r) => r.sharePurpose).map((r) => `${r.method} ${r.path}`));
     // The two the client deliberately does not call are the gated ones …
     expect(gated).toEqual(new Set(["POST ", "POST /{link_id}/otp"]));
     // … and none of the three it does call is among them.

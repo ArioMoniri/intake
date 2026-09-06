@@ -4412,7 +4412,7 @@
   labels:
   - area:mobile
   - area:security
-  status: todo
+  status: done
   acceptance:
   - 'the act of issuing has one owner and one surface: today INT-137 refuses the
     QR, INT-150 refuses the delivery channel and INT-139 refuses the issuing

@@ -47,7 +47,7 @@
  * keeps its own. Capture is blocked all the same, because a recipient label
  * is the patient's own words about who they are seeing.
  */
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
@@ -75,6 +75,7 @@ const HEADER_EDGES = ["left", "right"] as const;
 export default function ShareCentre() {
   useClinicalScreenPrivacy();
   const headerOptions = useStackHeader();
+  const router = useRouter();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { links, log, loaded, unreachable, unsent } = useShareCentre();
   const tabBarClearance = useTabBarClearance();
@@ -103,6 +104,20 @@ export default function ShareCentre() {
           titleKey="shares.guide.title"
           bodyKey="shares.guide.body"
         />
+        {/* INT-311 — the act of issuing has one owner and one surface, and this
+            is the way in. It is a plain navigation from the hub; the bearer
+            credential it renders never touches this screen (INT-139 §3 still
+            holds), only the screen it opens. */}
+        <ListGroup>
+          <ListRow
+            icon="paperplane"
+            label={t("shares.issue.entry")}
+            sublabel={t("shares.issue.sub")}
+            chevron
+            hint={t("a11y.shares.issueHint")}
+            onPress={() => router.push(`/(tabs)/visits/${visit}/issue-link`)}
+          />
+        </ListGroup>
         <View style={styles.section}>
           <Kicker label={t("shares.active")} />
           <ListGroup footer={emptyFooter(loaded, unreachable, links.length)}>
