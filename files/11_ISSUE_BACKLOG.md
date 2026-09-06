@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 15 · doing 5 · done 150 · todo 76 · withdrawn 1.
+**247 issues.** By phase: P0 139 · P1 63 · P2 40 · P3 5. By status: awaiting-human 16 · doing 5 · done 150 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -253,7 +253,7 @@
 | INT-207 | Chaos suite (monthly) + load to pilot x3 + autoscaling rules | E13-infra | INT-024, INT-201 | area:infra | todo |
 | INT-219 | Technical documentation (Annex II/III) + clinical evaluation (MDCG 2020-1) + PMCF + notified-body selection | E14-legal | INT-217 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-220 | Registrations: UTS (TCKKD-KLVZ-03) + UDI; KTS (SBYS) pack; BTK yer saglayici; traffic-log retention 5651 | E14-legal | INT-219, INT-162 | area:legal, risk:legal, approval:human-legal | todo |
-| INT-221 | Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance | E14-legal | INT-183, INT-162 | area:legal, risk:legal | todo |
+| INT-221 | Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance | E14-legal | INT-183, INT-162 | area:legal, risk:legal | awaiting-human |
 | INT-222 | Consumer/commercial: mesafeli sozlesme pre-info + withdrawal (if paid tier), IYS integration for marketing, Turkish-language compliance | E14-legal | INT-210 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-227 | AI governance file: model cards, TR bias/fairness eval (dialect, gender, age), transparency labels, EU AI Act readiness note | E14-legal | INT-095, INT-116 | area:legal, risk:legal | todo |
 | INT-230 | Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies | E15-research | INT-015, INT-038 | area:research, risk:legal, approval:human-legal | done |
