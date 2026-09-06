@@ -91,6 +91,16 @@ WINDOW = AnalyticsCohort(
     window_end=datetime(2026, 7, 1, tzinfo=UTC),
 )
 
+#: A window disjoint from ``WINDOW`` (INT-262: the differencing gate refuses a
+#: second extract whose window OVERLAPS a prior one under the same study+spec,
+#: so a test that legitimately needs two served extracts uses two windows that
+#: do not intersect). Its own suite is tests/research/test_differencing_gate.py.
+WINDOW_LATER = AnalyticsCohort(
+    description="unit-lane research cohort, later and disjoint",
+    window_start=datetime(2026, 8, 1, tzinfo=UTC),
+    window_end=datetime(2026, 10, 1, tzinfo=UTC),
+)
+
 SPEC = ResearchExtractSpec(
     name="research.voice_vs_typed",
     dimensions={
@@ -199,6 +209,7 @@ def build(
     study_id: str = FIXTURE_STUDY_ID,
     recipient: str = FIXTURE_RECIPIENT,
     k: int = K_ANONYMITY_FLOOR,
+    cohort: AnalyticsCohort = WINDOW,
 ) -> PseudonymisedExtract:
     async def _build() -> PseudonymisedExtract:
         async with AsyncSession(research.engine) as session:
@@ -209,7 +220,7 @@ def build(
                 recipient=recipient,
                 requested_by="unit-lane-analyst",
                 spec=SPEC,
-                cohort=WINDOW,
+                cohort=cohort,
                 k=k,
                 candidates=candidates,
             )
@@ -561,7 +572,10 @@ def test_the_pseudonym_is_study_scoped_and_stable(research: ResearchHarness) -> 
     ids = consented_pack(research, K_ANONYMITY_FLOOR + 2)
     gate_a, _ = build_gate(research)
     first = build(gate_a, research, rows_for(ids))
-    again = build(gate_a, research, rows_for(ids))
+    # A rebuild over a DISJOINT window: INT-262 refuses a second extract whose
+    # window overlaps the first, and the pseudonym is keyed on study+patient,
+    # not the window, so it is stable across windows.
+    again = build(gate_a, research, rows_for(ids), cohort=WINDOW_LATER)
     assert {r.pseudonym for r in first.rows} == {r.pseudonym for r in again.rows}
 
     gate_b, _ = build_gate(research, registry=fixture_registry(study_id="unit.lane.other"))
@@ -821,7 +835,9 @@ def test_the_register_is_append_only(research: ResearchHarness) -> None:
     ids = consented_pack(research, K_ANONYMITY_FLOOR + 2)
     gate, register = build_gate(research)
     build(gate, research, rows_for(ids))
-    build(gate, research, rows_for(ids))
+    # A second, DISJOINT window so both serve — INT-262 refuses an overlapping
+    # one, and the property under test here is the register's, not the gate's.
+    build(gate, research, rows_for(ids), cohort=WINDOW_LATER)
     assert len(register.records()) == 2
     assert not hasattr(register, "delete")
     assert not hasattr(register, "update")

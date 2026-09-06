@@ -2906,7 +2906,8 @@
   title: "Research extracts: differencing gate across the register (a second extract over an overlapping window re-identifies)"
   depends_on: [INT-230]
   labels: [area:research, risk:legal, approval:human-legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-262.md
   # Raised by INT-230, which states the gap in its own evidence rather than
   # leaving it unrecorded. INT-230's k gate holds for ONE extract: every
   # quasi-identifier combination carries at least k subjects. It does not

@@ -1393,7 +1393,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   de-anonymisation of small cohorts; [E] agent over-reach past the proposal boundary;
   **[Nc/L] an export taken under a care consent rather than the `research` one, or under an
   approval that has lapsed; [I] a direct identifier riding out inside an id-shaped field;
-  [Dd] linkage of two studies' extracts by an investigator holding both**; **[T/Nr] an
+  [Dd] linkage of two studies' extracts by an investigator holding both; [Dd] a second
+  extract of the same study+spec over an OVERLAPPING window differenced against the first to
+  recover the cells in the difference, at any k (INT-262)**; **[T/Nr] an
   unconfirmed model output entering a patient's overlay and, from there, a session or a
   rule; [I] a fact value leaking through the store, a log or a metric label; [Nc] an erasure
   that sweeps the notes and leaves the learning object standing (INT-170)**.
@@ -1405,7 +1407,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `approval_valid_until` (invariant 35); a closed per-dimension vocabulary with the INT-015
   pattern tier adding refusals on top; a study-scoped keyed pseudonym so two extracts do not
   join; the `research_extracts` retention row gating creation; and an append-only register
-  carrying the ethics id and the content hash and no patient reference.** **INT-170 adds:
+  carrying the ethics id and the content hash and no patient reference.** **INT-262 adds the
+  differencing gate: before an extract is emitted, the gate reads the register for prior
+  extracts of the same study+spec and refuses a window that OVERLAPS one — half-open
+  `[start, end)`, so an adjacent window does not — UNLESS the study's registry row states an
+  explicit `query_budget`. That budget has NO default and an absent one FAILS CLOSED (a study
+  stating none refuses every overlapping window); how much overlap and how many requests a
+  study may make is an ethics-committee decision (HB-R1), never one an agent picks. The check
+  runs on the window alone, before any patient row is read.** **INT-170 adds:
   the confirmation as a type rather than a check — `FactCandidate` has no `source` and no
   `confirmed_at` field, `confirm()` is the only producer of a `LearnedFact`, and
   `OverlayStore` has no write path that accepts one; no table for unconfirmed candidates at
@@ -1426,7 +1435,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   a clinic or a cohort. Rollbacks land with INT-173. **INT-170 adds
   `overlay_facts_confirmed_total{source}` and `overlay_facts_withdrawn_total{action}` on the
   same terms: `source` is one of three closed provenance classes and `action` one of two
-  verbs, never a fact key, a patient or a tenant.**
+  verbs, never a fact key, a patient or a tenant.** **INT-262 surfaces the differencing
+  refusals as two new reason classes on INT-230's existing
+  `research_extract_refused_total{spec,reason}` — `overlapping_window_unbudgeted` and
+  `query_budget_exhausted` — with the audit action `research.extract.refused.<reason>` and no
+  window, cohort size or count in either.**
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);
@@ -1435,7 +1448,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `tests/learning/test_evidence_bundle.py`); `learned_fact_provenance` landed with INT-170
   (`tests/learning/test_overlay_provenance.py`, plus `tests/api/test_learned.py` for the
   consent gate, the audit entries, the erasure path and the PHI sweep); overlay
-  monotonicity property test with INT-056.
+  monotonicity property test with INT-056. **The differencing gate lands with INT-262
+  (`tests/research/test_differencing_gate.py`): a golden that serves one extract then
+  differences a second over an overlapping window and proves it refused, plus the budgeted
+  path, the spec- and study-scoping, the half-open adjacency boundary, and the audit/no-echo
+  checks.**
 - **Over-reach is unreachable, not rejected (INT-172):** `proposal_scope` walks the
   *transitive* first-party import closure of `services/learning` with `ast` and asserts it
   reaches none of `packages/protocols`, `services/voice-runtime`, `intake_platform.legal`,
