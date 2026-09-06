@@ -584,6 +584,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   rendered by the client from its own tr/en catalogue. The invariant is held by the type
   rather than by review, and `BackendAgent.activity` derives the in-flight labels from Work
   types rather than from handlers.
+- **Per-locale voice, fail-closed to typed (INT-300):** the voice profile is per locale, and
+  a locale without both its ASR and TTS pinned resolves to `typed` — never to the Turkish
+  voice. `intake_voice_runtime.locale_profile.profile_for_locale` returns `residency_tr` only
+  when both §4.9.1 rows resolve in the self-hosting registry (the STRICTER PHI-serving gate is
+  still `adapters.pins.require_phi_path_pin`, HB-I10/HB-I11), and `typed` for every other
+  locale; the registry (`LOCALE_VOICE_MODELS`) holds exactly `tr`, adds no model, and returning
+  before any profile is read is what makes "never a Turkish voice for a non-Turkish locale"
+  structural. **[T] a Turkish voice speaking at a patient who chose another language** is
+  refused by construction (invariant 19). And invariant 22 becomes per locale: the compiler's
+  numeral→orthography expansion is Turkish (`protocols.compile.number_expansion`,
+  `LOCALE_EXPANDERS` holding exactly `tr`), so a locale with no expander makes a numeral
+  **unspeakable** — `emit_clips` refuses it (`NumeralWithoutExpander`) rather than handing a
+  digit to a TTS model whose normaliser would read it wrongly. Tests:
+  `tests/voice/test_locale_profile.py`, `tests/protocols/test_number_expansion_locale.py`.
 
 ## `triage` — deterministic RED/YELLOW only
 
