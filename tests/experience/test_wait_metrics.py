@@ -353,11 +353,13 @@ def test_a_cleared_cohort_is_published_in_seconds() -> None:
 
 
 def test_an_unobservable_kind_cannot_be_published() -> None:
+    # CHECKIN_TO_SEEN became observable with INT-163, so the exemplar is now a
+    # kind whose instants this repo still does not record.
     with pytest.raises(WaitSourceUnavailableError):
         metrics_module.publish_wait(
             _observations(MIN_COHORT),
             cohort=_cohort(),
-            kind=WaitKind.CHECKIN_TO_SEEN,
+            kind=WaitKind.NOTE_READY_AFTER_WRAPUP,
         )
 
 
@@ -367,7 +369,9 @@ def test_an_unobservable_kind_cannot_be_published() -> None:
 def _rollups() -> list[WaitRollup]:
     return [
         roll_up_wait(
-            _observations(MIN_COHORT, document_type=DocumentKind.PDF) if source.observable else [],
+            _observations(MIN_COHORT, document_type=DocumentKind.PDF if source.labels else None)
+            if source.observable
+            else [],
             cohort=_cohort(),
             kind=source.kind,
         )
@@ -410,10 +414,10 @@ def test_the_export_marks_a_suppressed_cohort_rather_than_omitting_it() -> None:
         cohort=_cohort(),
         kind=WaitKind.RECORDS_PROCESSING,
     )
-    empty = roll_up_wait([], cohort=_cohort(), kind=WaitKind.CHECKIN_TO_SEEN)
+    empty = roll_up_wait([], cohort=_cohort(), kind=WaitKind.NOTE_READY_AFTER_WRAPUP)
     statuses = {row[0]: row[7] for row in sds01_table([small, empty])[1:]}
     assert statuses["wait.records_processing_s"] == "suppressed_below_k"
-    assert statuses["wait.checkin_to_seen_min"] == "source_unavailable"
+    assert statuses["wait.note_ready_after_wrapup_s"] == "source_unavailable"
 
 
 def test_the_export_publishes_no_mean_for_a_suppressed_cohort() -> None:
