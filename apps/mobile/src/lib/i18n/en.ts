@@ -1229,4 +1229,25 @@ export const en: Record<MessageKey, string> = {
   "a11y.shares.revokeHint": "Double tapping stops this share.",
   "a11y.shares.confirmHint": "Double tapping sends the request to stop.",
   "a11y.shares.issueHint": "Creates a link you can show your doctor.",
+
+  // INT-143 — kiosk mode.
+  "kiosk.lock.title": "Kiosk mode",
+  "kiosk.lock.body": "For staff: enter the clinic PIN to start.",
+  "kiosk.pin.label": "Clinic PIN",
+  "kiosk.pin.hint": "Enter the PIN your clinic staff hold.",
+  "kiosk.pin.arm": "Start kiosk mode",
+  "kiosk.pin.disarm": "Leave kiosk mode",
+  "kiosk.pin.recover": "Re-establish the lock",
+  "kiosk.pin.submitHint": "Checks the PIN you entered.",
+  "kiosk.pin.wrong": "That PIN is not correct. Please try again.",
+  "kiosk.pin.lockedOut": "Too many attempts. Please try again shortly.",
+  "kiosk.exit": "Leave kiosk mode",
+  "kiosk.exitHint": "Returns this device to normal mode with the clinic PIN.",
+  "kiosk.exit.title": "Leave kiosk mode",
+  "kiosk.exit.body": "For staff: enter the clinic PIN to leave.",
+  "kiosk.tamper.title": "Security alert",
+  "kiosk.tamper.banner": "Device lock removed",
+  "kiosk.tamper.body":
+    "This device's kiosk lock is no longer active. Before continuing, staff must re-lock the device, then enter the clinic PIN.",
+  "kiosk.privacy.note": "This is a shared device. Your information is not stored here.",
 };

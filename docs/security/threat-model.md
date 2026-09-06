@@ -1218,9 +1218,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §4 kiosk mode — guided access, MDM enrolment, PIN per clinic,
   60 s idle auto-wipe, no local persistence, tamper alert on backgrounding, large-type
   privacy layout; signed QR check-in payloads (backlog INT-163).
-- **Signals:** kiosk heartbeat and session wipe count (§9) land with INT-143;
-  `checkin_to_seen` with INT-163.
-- **Tests:** kiosk-mode behaviour tests land with INT-143.
+- **Signals:** kiosk heartbeat and session wipe count (§9) are console (server-side)
+  signals and do NOT land with INT-143 — an ephemeral, no-persistence kiosk makes no
+  server round-trip to carry them, the same reason the offline-drafts row has "no server
+  signal"; they land with the console/metrics work. `checkin_to_seen` with INT-163.
+- **Tests:** kiosk-mode behaviour landed with INT-143 —
+  `apps/mobile/e2e/kiosk.spec.ts` and `apps/mobile/src/lib/kiosk/kioskState.test.ts`.
+  The MDM lockdown detection and the clinic-PIN provisioning read are the dev-build
+  native layer (HB-A3; files/10 §4.7), so both fail closed in the managed runtime: no
+  provisioning ⇒ a normal phone, no confirmed lockdown ⇒ a tamper.
 
 ## `notifications` — reminders without PHI
 

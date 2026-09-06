@@ -27,6 +27,7 @@ import { setLocale, type Locale } from "./i18n";
 import { offerableAppLocales } from "./i18n/locale";
 import type { CarriedFact } from "./intake/carriedFacts";
 import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
+import { kioskSuppressesPersistence } from "./kiosk";
 import { buildLocalVisit, type NewVisitInput } from "./visits";
 
 export type { RecordFixture, TestAccount, VisitFixture } from "./dev/accounts";
@@ -89,6 +90,21 @@ export interface Session {
   /** Per-visit pre-visit note state (in-memory only — INT-179). */
   notes: Record<string, NoteState>;
   updateNote: (visitId: string, action: NoteAction) => void;
+  /**
+   * Kiosk mode (INT-143): a shared clinic device. While active, no draft is
+   * persisted (the offline store is bypassed and its blobs crypto-shredded),
+   * and the session is wiped between patients. Entering and leaving are gated
+   * by the staff-held clinic PIN in KioskGate — never patient-reachable, and
+   * never set here without that check.
+   */
+  kioskActive: boolean;
+  setKioskActive: (on: boolean) => void;
+  /**
+   * Clear every trace of the current patient — the in-memory notes and any
+   * locally created visits — and crypto-shred the offline drafts. This is the
+   * 60 s idle / background wipe (INT-143) so the next patient inherits nothing.
+   */
+  wipeSession: () => void;
   /** Active UI language; tr is the source of truth (invariant 5). */
   locale: Locale;
   switchLocale: (locale: Locale) => void;
@@ -104,6 +120,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("tr");
   const [visitSeq, setVisitSeq] = useState(1);
   const [integrity, setIntegrity] = useState<DeviceIntegrity>("unknown");
+  // INT-143 — kiosk mode. Off by default; KioskGate flips it on only after the
+  // clinic PIN verifies against the MDM-provisioned hash.
+  const [kioskActive, setKioskActiveState] = useState(false);
 
   useEffect(() => {
     // lazy: the probe touches expo-device; loading it only when the
@@ -152,6 +171,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (accountId === null) {
       return;
     }
+    // INT-143 — no persistence in kiosk mode: a shared clinic device never
+    // writes a draft or answer to disk. The offline mirror is bypassed
+    // entirely while the kiosk is active (invariant 3 reinforced for the
+    // typed draft, invariant 6 no ids in logs).
+    if (kioskSuppressesPersistence(kioskActive)) {
+      return;
+    }
     let mounted = true;
     const entries = Object.entries(notes);
     if (entries.length === 0) {
@@ -170,7 +196,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [notes, accountId]);
+  }, [notes, accountId, kioskActive]);
 
   const signIn = useCallback((next: TestAccount) => {
     setAccount({ ...next, kind: "dev" });
@@ -235,6 +261,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // INT-143 — the kiosk wipe: drop every trace of the current patient and
+  // crypto-shred the offline drafts (reusing INT-142's shred). Fire-and-forget
+  // like the offline mirror; nothing here logs an id or a value (invariant 6).
+  const wipeSession = useCallback(() => {
+    setNotes({});
+    setExtraVisits([]);
+    void import("./intake/offline/sessionDrafts")
+      .then((offline) => offline.shredDrafts())
+      .catch(() => {
+        // best-effort hygiene; never surface a native error to the UI
+      });
+  }, []);
+
+  // INT-143 — enter/leave kiosk mode. KioskGate calls this only after the
+  // clinic PIN verifies. Entering shreds anything already at rest so the shared
+  // device starts clean; the no-persistence gate above keeps it that way.
+  const setKioskActive = useCallback((on: boolean) => {
+    setKioskActiveState(on);
+    if (on) {
+      setNotes({});
+      void import("./intake/offline/sessionDrafts")
+        .then((offline) => offline.shredDrafts())
+        .catch(() => {});
+    }
+  }, []);
+
   // INT-296 — the ONE explicit act that changes a session's language, and the
   // only one. It goes through the registry rather than trusting its caller: a
   // locale the chooser should never have rendered must not become the session
@@ -266,6 +318,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       addVisit,
       notes,
       updateNote,
+      kioskActive,
+      setKioskActive,
+      wipeSession,
       locale,
       switchLocale,
     }),
@@ -281,6 +336,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       addVisit,
       notes,
       updateNote,
+      kioskActive,
+      setKioskActive,
+      wipeSession,
       locale,
       switchLocale,
     ],
