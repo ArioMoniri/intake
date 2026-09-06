@@ -16,15 +16,75 @@
  * centring while it fits and hands the patient the rest when it does not.
  */
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { GlassCard } from "@/components/GlassCard";
 import { Kicker } from "@/components/Kicker";
-import { AppText, PrimaryButton, Screen, SecondaryButton } from "@/components/Themed";
+import { AppText, PrimaryButton, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { verticalSlop } from "@/lib/a11y/target";
 import { testAccounts } from "@/lib/dev/accounts";
-import { t } from "@/lib/i18n";
+import { availableLocales, t, type Locale } from "@/lib/i18n";
+import { appLocaleChooser, chooseFromChooser } from "@/lib/i18n/chooser";
 import { useSession } from "@/lib/session";
-import { spacing } from "@/lib/theme";
+import { radius, spacing } from "@/lib/theme";
+
+/** An offered locale this app also carries a UI catalogue for. */
+function isCatalogued(code: string): code is Locale {
+  return (availableLocales as readonly string[]).includes(code);
+}
+
+/**
+ * INT-301 — the language chooser at first run. Same registry, same
+ * absent-when-one rule as the Me screen: with only `tr` registered it renders
+ * nothing (a one-item chooser teaches the patient the feature does not work).
+ * No red-flag script exists before a visit, so the switch's RED guard is
+ * satisfied trivially here.
+ */
+function FirstRunLanguage() {
+  const theme = useTheme();
+  const { locale, switchLocale } = useSession();
+  const choices = appLocaleChooser();
+  if (choices.length === 0) {
+    return null;
+  }
+  const pick = (code: string): void => {
+    try {
+      chooseFromChooser(code, { redScriptInFlight: false });
+    } catch {
+      return;
+    }
+    if (isCatalogued(code)) {
+      switchLocale(code);
+    }
+  };
+  return (
+    <View style={styles.langRow}>
+      {choices.map((choice) => {
+        const active = locale === choice.code;
+        return (
+          <Pressable
+            key={choice.code}
+            accessibilityRole="button"
+            accessibilityLabel={choice.endonym}
+            accessibilityState={{ selected: active }}
+            // ~30 pt visible pill; slop lifts the TARGET to the SC 2.5.8 floor.
+            hitSlop={verticalSlop(30)}
+            onPress={() => pick(choice.code)}
+            style={[
+              styles.langPill,
+              { backgroundColor: active ? theme.primarySoft : theme.surfaceRaised },
+            ]}
+          >
+            {/* Each language in its own name and script (acceptance 1). */}
+            <AppText role="caption" color={active ? "primary" : "inkSoft"}>
+              {choice.endonym}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function Welcome() {
   const router = useRouter();
@@ -40,6 +100,7 @@ export default function Welcome() {
             {t("app.tagline")}
           </AppText>
         </View>
+        <FirstRunLanguage />
         <AppText role="body">{t("welcome.body")}</AppText>
         <PrimaryButton label={t("welcome.phoneCta")} onPress={() => router.push("/(auth)/phone")} />
         {__DEV__ ? (
@@ -74,6 +135,14 @@ const styles = StyleSheet.create({
   // taller, flexGrow stops applying, and the same container scrolls.
   content: { flexGrow: 1, justifyContent: "center", gap: spacing.lg },
   hero: { gap: spacing.sm },
+  // Wraps so the endonym pills reflow at the enlarged text steps and hold
+  // identically once the row flips under a right-to-left locale (INT-301).
+  langRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  langPill: {
+    borderRadius: radius.chip,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs + 2,
+  },
   devCard: { gap: spacing.sm },
   disclaimer: { textAlign: "center" },
 });

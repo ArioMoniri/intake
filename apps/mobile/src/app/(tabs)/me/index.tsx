@@ -22,28 +22,26 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
-import { t, type Locale, type MessageKey } from "@/lib/i18n";
+import { availableLocales, t, type Locale } from "@/lib/i18n";
+import { chooseFromChooser, present, toChoices } from "@/lib/i18n/chooser";
 import { offerableAppLocales } from "@/lib/i18n/locale";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
 /**
- * INT-296 — the chooser renders what the locale registry OFFERS, never a
- * hardcoded pair. `lang.en` stays referenced here on purpose, and the reason
- * is the distinction this issue exists to draw: an English catalogue existing
- * (INT-253's reviewer mirror of the Turkish source of truth) is not the same
- * thing as English being a language a patient may be offered. The registry
- * holds exactly `tr` until HB-O5 names another and HB-C19 signs its clinical
- * text, so this row currently shows one pill — which is the honest state.
+ * INT-296 / INT-301 — the chooser renders what the locale registry OFFERS,
+ * never a hardcoded pair, and each language in its OWN name (its endonym from
+ * the registry) rather than a catalogue label. INT-301 adds the honest state:
+ * a chooser with one option teaches a patient the feature does not work, so
+ * `present()` drops a would-be one-item chooser to nothing and the whole row
+ * is absent. The registry holds exactly `tr` until HB-O5 names another and
+ * HB-C19 signs its clinical text, so today this row does not render at all.
  */
-const LANGUAGE_LABEL = {
-  tr: "lang.tr",
-  en: "lang.en",
-} satisfies Record<Locale, MessageKey>;
 
-/** An offered locale this app also carries a catalogue for. */
+/** An offered locale this app also carries a UI catalogue for — the narrowing
+ * `switchLocale` needs, since its parameter is the catalogue's `Locale`. */
 function isCatalogued(code: string): code is Locale {
-  return code in LANGUAGE_LABEL;
+  return (availableLocales as readonly string[]).includes(code);
 }
 
 /**
@@ -107,6 +105,24 @@ export default function Me() {
   const { account, consents, setConsent, signOut, locale, switchLocale } = useSession();
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
+  // INT-301 — the language chooser, reachable here without ending a visit in
+  // progress. It reads the registry (INT-296) and is ABSENT below two real
+  // choices; with only `tr` registered it renders nothing.
+  const languageChoices = present(toChoices(offerableAppLocales()));
+  const pickLanguage = (code: string): void => {
+    try {
+      // The sanctioned switch: refused while a red-flag script is in flight
+      // (invariant 21), the same refusal barge-in uses. The Me tab hosts no
+      // RED script, so the flag is false here; a RED-hosting surface passes
+      // its live state to the same guard.
+      chooseFromChooser(code, { redScriptInFlight: false });
+    } catch {
+      return;
+    }
+    if (isCatalogued(code)) {
+      switchLocale(code);
+    }
+  };
   if (account === null || consents === null) {
     // The tabs layout has already redirected to welcome by the time this
     // renders without a session; render nothing during that frame.
@@ -180,25 +196,26 @@ export default function Me() {
           {consents.health ? <HealthSection /> : null}
         </View>
         <ListGroup>
-          <ListRow
-            label={t("me.language")}
-            trailing={
-              <View style={styles.langGroup}>
-                {offerableAppLocales()
-                  .filter(isCatalogued)
-                  .map((code) => (
+          {languageChoices.length > 0 ? (
+            <ListRow
+              label={t("me.language")}
+              trailing={
+                <View style={styles.langGroup}>
+                  {languageChoices.map((choice) => (
                     <StatePill
-                      key={code}
-                      label={t(LANGUAGE_LABEL[code])}
+                      key={choice.code}
+                      // Each language in its own name and script (acceptance 1).
+                      label={choice.endonym}
                       context={t("me.language")}
-                      active={locale === code}
+                      active={locale === choice.code}
                       activeColor="primary"
-                      onPress={() => switchLocale(code)}
+                      onPress={() => pickLanguage(choice.code)}
                     />
                   ))}
-              </View>
-            }
-          />
+                </View>
+              }
+            />
+          ) : null}
           {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
               because the quiet-window choices do not fit a settings row —
               and because the honest explanation of what a reminder never
@@ -253,5 +270,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 4,
     paddingVertical: spacing.xs + 2,
   },
-  langGroup: { flexDirection: "row", gap: spacing.xs },
+  // INT-301: wraps so the endonym pills reflow at the enlarged text steps
+  // (INT-295's class of defect) — and, because it wraps rather than pinning an
+  // edge, it holds identically once the row flips under a right-to-left locale.
+  langGroup: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
 });

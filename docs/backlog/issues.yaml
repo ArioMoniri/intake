@@ -4089,7 +4089,8 @@
   - area:mobile
   - area:a11y
   - area:i18n
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-301.md
   acceptance:
   - 'the chooser lists only locales the registry reports complete AND signed for
     the pack in play, shows each language in its own name and script, and is
