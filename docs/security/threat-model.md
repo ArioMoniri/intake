@@ -1357,6 +1357,16 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
   k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
+  - **Controls added by INT-186 (Experience & Satisfaction module):** the console
+    projection refuses a satisfaction figure shown for a cohort below the k ≥ 10 floor
+    (`SuppressedCohortLeaked`), a distribution key that is not id-shaped (`SatisfactionFigureLeaked`,
+    inv 6), a target rendered beside a measurement (`SatisfactionTargetRendered`, inv 20), a
+    branch/profile/clinic filter asserted available (`ExperienceFilterEnabled` — the F9
+    re-identification slice the aggregates cannot support; adding the dimension is an inv-18
+    stop-and-ask), tenant scope taken from a query parameter (`TenantFromQuery`, the F9 IDOR),
+    and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
+    a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
+    committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),

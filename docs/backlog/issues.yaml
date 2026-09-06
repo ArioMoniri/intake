@@ -2521,8 +2521,40 @@
   phase: P1
   title: "Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export)"
   depends_on: [INT-240, INT-180]
-  labels: [area:admin]
-  status: todo
+  labels: [area:admin, approval:human-legal]
+  status: awaiting-human
+  evidence: docs/evidence/INT-186.md
+  # MECHANISM SHIPPED, ONE CLAUSE AWAITING A HUMAN (6 Sep 2026). Delivered in the
+  # admin-web (TS) lane as a pure projection of real sources, recorded into one
+  # composite fixture by scripts/dev/record_experience_fixture.py (added to
+  # `make admin-fixtures`) in the exact INT-184/185 discipline. CSAT (score dist
+  # + sealed CsatReason counts), NPS (promoter/passive/detractor split) and
+  # clinician pulse are the INT-240 rollups (intake_metrics.rollups), each
+  # produced by the REAL rollup over an empty response set so the empty state is
+  # the platform's; metric ids resolved in metrics_catalog.yaml (inv 15); the k=10
+  # floor is intake_metrics.rollups.MIN_COHORT; below it only the count survives
+  # (files/06 §8, files/08 §0c F9). "SDS-01-style export" is FULLY delivered: the
+  # committed intake_metrics.sds01.SDS01_COLUMNS projected verbatim, tenant-scoped
+  # from the token, aggregate only, no clinic/branch/clinician/patient column
+  # (F9), rows from the real INT-241 serialiser. Refusals: SuppressedCohortLeaked,
+  # SatisfactionFigureLeaked, UnknownCsatReason, SatisfactionTargetRendered (inv
+  # 20), ExperienceFilterEnabled, TenantFromQuery (F9 IDOR), SdsColumnForbidden,
+  # SdsRowArityMismatch, UnsafeExportCell (inv 47).
+  #
+  # "filters by branch/profile/clinic" is delivered as a MECHANISM that fails
+  # closed: the three dimensions are offered and every one is marked unavailable.
+  # The experience aggregates carry no such dimension (csat.v1/nps.v1/
+  # clinician_pulse.v1 hold only a tenant id and a score), the visit's branch
+  # lives in an encrypted slot, and slicing an operational aggregate by branch ×
+  # narrow window × small clinic is files/08 §0c F9's re-identification case;
+  # adding a dimension is a data-inventory decision under invariant 18 and a
+  # stop-and-ask (Owner + compliance_officer). That exact ask is already open as
+  # the third refused value in docs/evidence/INT-241.md and is recorded in
+  # docs/backlog/blockers.md under INT-186 - NO new HUMAN_BLOCKERS.md or ADR id
+  # was minted. Reopen to `done` when that decision lands (branch dimension
+  # granted, or the clause descoped to tenant+window filtering). Sequenced
+  # follow-up (evidence): the GET /admin/experience composite descriptor + view +
+  # tests/admin parity test (the wait-time half already exists via INT-241).
   acceptance:
     - "filters by branch/profile/clinic; SDS-01-style export for hospital tenants"
   tests: [apps/admin-web/e2e/experience.spec.ts]

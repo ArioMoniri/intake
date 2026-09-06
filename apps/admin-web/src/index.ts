@@ -8,9 +8,11 @@
  * module (files/08 §4 — vendor-transfer register, consent coverage, audit
  * search, DSAR queue and evidence export), the Protocols module (files/09
  * §1-4 — branch × maturity matrix, the four-eyes review queue for learning
- * proposals, and clip coverage per voice), and the Clinical Quality & Safety
+ * proposals, and clip coverage per voice), the Clinical Quality & Safety
  * module (files/08 §4 D/E — triage events, the false-RED annotation queue,
- * PolicyGuard classes, and acceptance by specialty).
+ * PolicyGuard classes, and acceptance by specialty), and the Experience &
+ * Satisfaction module (files/08 §3, §4 F/G — CSAT/NPS/clinician-pulse rollups,
+ * the branch/profile/clinic filter mechanism, and the SDS-01 style export).
  */
 export {
   InconsistentReleaseState,
@@ -117,3 +119,39 @@ export {
   type TriageLevelPresentation,
   type TriageLevelRow,
 } from "./safety/module";
+export {
+  ExperienceFilterEnabled,
+  renderCsat,
+  renderExperienceModule,
+  renderFilters,
+  renderNps,
+  renderPulse,
+  renderSds01Export,
+  SatisfactionFigureLeaked,
+  SatisfactionTargetRendered,
+  SdsColumnForbidden,
+  SdsRowArityMismatch,
+  SuppressedCohortLeaked,
+  TenantFromQuery,
+  UnknownCsatReason,
+  UnsafeExportCell as ExperienceUnsafeExportCell,
+  type Cell as ExperienceCell,
+  type CohortPresentation,
+  type CsatPresentation,
+  type CsatRollupPayload,
+  type DistributionBar,
+  type ExperiencePayload,
+  type ExperiencePresentation,
+  type FilterDimension,
+  type FilterDimensionPresentation,
+  type FiltersPayload,
+  type FiltersPresentation,
+  type NpsPresentation,
+  type NpsRollupPayload,
+  type PulsePresentation,
+  type PulseRollupPayload,
+  type RollupBase,
+  type RollupCohort,
+  type Sds01ExportPayload,
+  type Sds01ExportPresentation,
+} from "./experience/module";
