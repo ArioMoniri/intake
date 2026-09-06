@@ -121,6 +121,27 @@ def test_csat_rollup_reports_the_score_distribution_and_the_reason_counts() -> N
     assert rollup.mean_score == pytest.approx(4.2)
 
 
+def test_a_one_tap_score_without_a_reason_counts_in_the_mean_but_invents_no_reason() -> None:
+    """INT-305: a one-tap CSAT is a complete score with no reason. Its score
+    joins the distribution and the mean like any other rating, but no reason
+    bucket is invented for it — a ``None`` counted as a reason would be a
+    fabricated category indistinguishable from a real one (invariant 6)."""
+    points = [
+        *_points(8, score=5, reason=CsatReason.FELT_HEARD),
+        CsatPoint(score=4, reason=None),
+        CsatPoint(score=2, reason=None),
+    ]
+
+    rollup = roll_up_csat(points, cohort=_cohort())
+
+    assert rollup.n == 10
+    assert rollup.suppressed is False
+    assert rollup.score_counts == {2: 1, 4: 1, 5: 8}
+    # the two reasonless taps raise the count and move the mean, but add no key
+    assert rollup.reason_counts == {CsatReason.FELT_HEARD: 8}
+    assert rollup.mean_score == pytest.approx(4.6)
+
+
 def test_csat_rollup_below_the_k_anonymity_floor_is_suppressed_entirely() -> None:
     rollup = roll_up_csat(_points(MIN_COHORT - 1), cohort=_cohort())
 

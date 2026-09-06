@@ -95,7 +95,10 @@ class CsatPoint:
     """
 
     score: int
-    reason: CsatReason
+    #: Absent on a one-tap rating (INT-305): the score is the whole answer and
+    #: no reason is defaulted or inferred from it. ``None`` is a real reading —
+    #: "the patient gave none" — never a bucket in the reason distribution.
+    reason: CsatReason | None
 
 
 @dataclass(frozen=True)
@@ -148,7 +151,7 @@ def roll_up_csat(points: Sequence[CsatPoint], *, cohort: Cohort) -> CsatRollup:
         suppressed=False,
         mean_score=sum(scores) / n,
         score_counts=dict(sorted(Counter(scores).items())),
-        reason_counts=dict(Counter(point.reason for point in points)),
+        reason_counts=dict(Counter(p.reason for p in points if p.reason is not None)),
     )
 
 

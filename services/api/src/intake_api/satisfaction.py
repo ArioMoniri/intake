@@ -74,7 +74,10 @@ class CsatIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     score: int = Field(ge=1, le=5)
-    reason: CsatReason
+    # Optional since INT-305: the files/02 §5.4 prompt is one-tap, so a score on
+    # its own is a complete rating. The reason is never defaulted or inferred
+    # from the score — an omitted reason stays absent all the way to the event.
+    reason: CsatReason | None = None
     text: str | None = Field(default=None, max_length=MAX_TEXT_LEN)
 
 

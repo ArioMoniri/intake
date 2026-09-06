@@ -10,8 +10,8 @@
  * patient has granted it against a loaded, hash-bound text, which is what
  * `csatCollectable` asks the INT-132 ledger. No new purpose is invented and no
  * new data field is declared: the shape below is INT-240's landed `csat.v1`
- * (score + reason enum), so the files/06 inventory annotation that covers it
- * is the one that already exists.
+ * (score + optional reason enum, the `reason` made optional by INT-305), so the
+ * files/06 inventory annotation that covers it is the one that already exists.
  *
  * **Which record, and why it is not an İYS one.** Invariant 18 makes reminders
  * transactional-only absent an İYS record, and a satisfaction question is not
@@ -37,8 +37,9 @@
  * The reason ids are `packages/clinical-schemas` `CsatReason` verbatim; the
  * spec's own chip wording (02 §5.4: *çok uzundu · beni anlamadı · acele
  * ettirdi · yardımcı oldu · dinlendiğimi hissettim*) is the catalogue label for
- * each. `reason` is REQUIRED by csat.v1, so a score on its own is a recorded
- * tap and not yet a submittable event — see `csatResponse`.
+ * each. `reason` is OPTIONAL in csat.v1 (INT-305), so a single tap on the scale
+ * is already a submittable event and the chips only enrich it — see
+ * `csatResponse`.
  *
  * Invariant 20: nothing here renders a score back to the patient, and no
  * average, rate or target appears in any string this module names.
@@ -103,23 +104,32 @@ export function csatReducer(state: CsatState, action: CsatAction): CsatState {
   }
 }
 
-/** The csat.v1 body, or null while it is not yet a valid one. */
+/**
+ * The csat.v1 body, or null while it is not yet a valid one. `reason` is
+ * optional (INT-305): a one-tap rating carries the score and no reason key at
+ * all — the field is absent, not null and not defaulted.
+ */
 export interface CsatResponse {
   score: CsatScore;
-  reason: CsatReasonId;
+  reason?: CsatReasonId;
 }
 
 /**
- * `reason` is required by csat.v1, so a score alone does not form an event.
- * The tap is still held (the patient answered), and no reason is guessed from
- * it — a defaulted reason would be an invented data point that nobody could
+ * The score is the whole answer (INT-305 resolves §5.4's one-tap contradiction
+ * in favour of the spec: csat.v1's `reason` is now optional). A tap on the
+ * scale forms a complete body immediately; the reason is added only if the
+ * patient taps a chip too, and is otherwise absent — never guessed from the
+ * score. A defaulted reason would be an invented data point that nobody could
  * later tell apart from a real one, and it would be the patient's words put
- * into their mouth. INT-275 carries the spec's own contradiction here: §5.4
- * calls the prompt one-tap and csat.v1 requires the reason.
+ * into their mouth. A reason with no score is still nothing: a chip is not a
+ * rating.
  */
 export function csatResponse(state: CsatState): CsatResponse | null {
-  return state.score === null || state.reason === null
-    ? null
+  if (state.score === null) {
+    return null;
+  }
+  return state.reason === null
+    ? { score: state.score }
     : { score: state.score, reason: state.reason };
 }
 

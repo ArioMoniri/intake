@@ -68,7 +68,7 @@ export interface CsatV1 {
   "tenant_id": string;
   "session_id": string;
   "score": number;
-  "reason": CsatReason;
+  "reason"?: CsatReason | null;
   "text"?: string | null;
 }
 
