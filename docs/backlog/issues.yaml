@@ -1914,7 +1914,7 @@
   title: "Canary/rollback controller on guardrail KPIs (5/25/100)"
   depends_on: [INT-172, INT-025]
   labels: [area:learning]
-  status: todo
+  status: done
   acceptance:
     - "auto-rollback on acceptance -5, safety blocks +50 percent, completion -5, CSAT -0.3; simulated dip test"
   tests: [tests/learning/test_canary_rollback.py]

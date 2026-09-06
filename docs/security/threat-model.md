@@ -1432,7 +1432,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `learning_proposals_refused_total{signal,reason}` and
   `learning_evidence_bundles_total{view,status}`, labelled the same way and for the same
   reason: `target` is one of ten class names and `reason` is a refusal class, never a pack,
-  a clinic or a cohort. Rollbacks land with INT-173. **INT-170 adds
+  a clinic or a cohort. **Rollbacks landed with INT-173 —
+  `learning_rollbacks_total{guardrail,stage}`, whose labels carry the closed
+  `intake_learning.canary.Guardrail` set (acceptance, safety_blocks, completion, csat,
+  missing_input) and one of 5/25/100, never a pack, a clinic or a cohort.** **INT-170 adds
   `overlay_facts_confirmed_total{source}` and `overlay_facts_withdrawn_total{action}` on the
   same terms: `source` is one of three closed provenance classes and `action` one of two
   verbs, never a fact key, a patient or a tenant.** **INT-262 surfaces the differencing
@@ -1452,7 +1455,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/research/test_differencing_gate.py`): a golden that serves one extract then
   differences a second over an overlapping window and proves it refused, plus the budgeted
   path, the spec- and study-scoping, the half-open adjacency boundary, and the audit/no-echo
-  checks.**
+  checks.** **`canary_rollback` landed with INT-173
+  (`tests/learning/test_canary_rollback.py`): the simulated dip drives each of the four
+  guardrails past its files/09 §4 threshold and asserts a rollback within one evaluation
+  window; the healthy stream promotes through every canary stage to completion; a near-miss
+  just under a threshold promotes; and a missing or non-finite KPI fails closed rather than
+  promoting (invariant 17). The thresholds themselves live in files/09 §4 and
+  `intake_learning.canary`, not restated here.**
+- **Rollback is a decision, not an application (INT-173):** `intake_learning.canary` is pure
+  rule — guardrail snapshots in, a promote/complete/rollback decision out — like
+  `intake_learning.publisher` and `intake_platform.admin.flag_governance`. It reverts a
+  rollout's exposure but touches no red-flag level, instrument, consent text, Talker tool,
+  PolicyGuard or profile routing; `proposal_scope`'s import-closure, no-writer and no-SQL
+  gates cover the new module with the rest of the package, so the canary controller cannot
+  reach a clinical value any more than the Architect can (invariant 12).
 - **Over-reach is unreachable, not rejected (INT-172):** `proposal_scope` walks the
   *transitive* first-party import closure of `services/learning` with `ast` and asserts it
   reaches none of `packages/protocols`, `services/voice-runtime`, `intake_platform.legal`,
@@ -1482,7 +1498,8 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   the branch or the week it withheld would publish that cell to Prometheus. **INT-230 adds
   `research_extract_refused_total{spec,reason}` and `research_extract_served_total{spec}` on
   the same rule — a spec name and a reason class, never a study id, a recipient, a window or
-  a subject count.** Proposals, rejections and rollbacks land with INT-172/INT-173.
+  a subject count.** Proposals and rejections landed with INT-172; rollbacks with INT-173
+  (`learning_rollbacks_total{guardrail,stage}`).
 - **Tests:** `k_anonymity` landed with INT-171 (`tests/learning/test_k_anonymity.py`, plus
   `tests/learning/test_analytics_views.py` and its integration lane, which proves the
   `svc_learning_reader` grant reaches the `analytics` views and no base table);
