@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-09-06",
+  "siem": {
+    "metric_id": "siem_alerts_ingested_total",
+    "refused_metric_id": "siem_alerts_refused_total",
+    "metric_status": "live",
+    "feed_configured": false,
+    "feed_version": null,
+    "total": null,
+    "refused": null,
+    "allowed_signals": [
+      "auth_anomaly",
+      "k8s_audit",
+      "container_runtime",
+      "unclassified"
+    ],
+    "allowed_severities": [
+      "SEV1",
+      "SEV2",
+      "SEV3",
+      "SEV4"
+    ],
+    "allowed_sources": [
+      "wazuh",
+      "falco",
+      "crowdsec"
+    ],
+    "by_signal": {},
+    "by_severity": {},
+    "detectors": [
+      {
+        "detector": "wazuh",
+        "configured": false,
+        "count": null,
+        "reason": "the Wazuh manager's alert stream is not mounted, so load_console_feed returns None (not configured) rather than an empty feed (INT-205)"
+      },
+      {
+        "detector": "falco",
+        "configured": false,
+        "count": null,
+        "reason": "the Wazuh manager's alert stream is not mounted, so load_console_feed returns None (not configured) rather than an empty feed (INT-205)"
+      },
+      {
+        "detector": "crowdsec",
+        "configured": false,
+        "count": null,
+        "reason": "the CrowdSec bouncer's decisions have no console feed loader in this repository; its scenarios are committed under infra/security/edge/crowdsec and enforced at the edge (INT-203)"
+      }
+    ],
+    "note": "Wazuh / Falco / CrowdSec alert summaries from intake_platform.siem.feed.load_console_feed (INT-205), counted by signal and severity. The feed returns not-configured (None) until the alert stream is mounted, so the console shows that state rather than a 0 — 'nothing detected' and 'never wired up' must not look the same (invariant 17). Signals and severities are sealed to the platform's own enums, and every alert carries ids, not narrative (invariant 6)."
+  },
+  "egress_denials": {
+    "metric_id": "sec.egress_denied_total",
+    "metric_status": "live",
+    "source_available": false,
+    "denied_total": null,
+    "target": "0 (any increase pages)",
+    "note": "Denied egress attempts from the PHI path (sec.egress_denied_total, INT-018; invariants 14/19). The allow-list is default-deny and the PHI path reaches no external model or speech vendor at all; the catalogue target is 0 and any increase pages. Read from a metrics scrape at serve time — with no scrape recorded here the tile is source-unavailable, never a bare 0 (invariant 17)."
+  },
+  "audit_chain": {
+    "metric_id": "sec.audit_chain_ok",
+    "metric_status": "live",
+    "allowed_outcomes": [
+      "intact",
+      "chain_broken",
+      "anchor_missing"
+    ],
+    "outcome": "anchor_missing",
+    "ok": false,
+    "entry_count": 0,
+    "first_bad_seq": null,
+    "local_head": "0000000000000000000000000000000000000000000000000000000000000000",
+    "anchor_head": null,
+    "anchor_available": false,
+    "reason": "no externally anchored head was available, so this run verified only that the store agrees with itself — which a truncation and a full re-forge both survive. Reporting intact here would be a pass by omission (files/10 §2, invariant 40).",
+    "verified_at": "2026-09-06",
+    "note": "Daily audit hash-chain verification (sec.audit_chain_ok, INT-016; invariant 4). 1 means verified against the EXTERNALLY ANCHORED head, never merely that the store agrees with itself — a truncation and a full re-forge both survive a self-check (files/10 §2). HB-I8 is open (no anchor publisher exists), so the delivered state is anchor_missing, fail-closed: the mechanism is built and the gate refuses to attest. Read-only on this surface (invariant 4)."
+  },
+  "pentest": {
+    "metric_id": "sec.vulns_open",
+    "age_metric_id": "sec.vuln_age_days",
+    "metric_status": "planned",
+    "assessment_state": "none_recorded",
+    "last_assessment": null,
+    "allowed_severities": [
+      "critical",
+      "high",
+      "medium",
+      "low",
+      "info"
+    ],
+    "allowed_statuses": [
+      "open",
+      "remediating",
+      "resolved",
+      "accepted_risk",
+      "false_positive"
+    ],
+    "sla_days_by_severity": {
+      "critical": 3,
+      "high": 7,
+      "medium": 30
+    },
+    "findings": [],
+    "note": "Pen-test findings tracked to closure against the vulnerability SLA (files/10 §7, §9; sec.vulns_open / sec.vuln_age_days). The first external pen-test is before the P2 pilot, so no assessment is recorded and the list is genuinely empty (invariant 17); the SLA (critical 72 h / high 7 d / medium 30 d) is the clock a future finding is judged against. Findings carry ids and status, never a finding's prose (invariant 6)."
+  }
+}

@@ -2621,7 +2621,22 @@
   title: "Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity"
   depends_on: [INT-205, INT-180]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-192.md
+  # NOTE 6 Sep 2026: all four verbatim acceptance clauses delivered as a pure
+  # projection (apps/admin-web/src/security/module.ts), fixture recorded from
+  # the real sources by scripts/dev/record_security_fixture.py (added to
+  # admin-fixtures). Every surface is in its honest empty / fail-closed state,
+  # which is the delivered state, not a gap (cf. INT-180/185): SIEM =
+  # load_console_feed None (stream not mounted, not-configured != nothing
+  # detected); egress = sec.egress_denied_total source-unavailable (no scrape
+  # recorded here); audit-chain = run_daily_verification -> anchor_missing,
+  # fail-closed because HB-I8 is open (no anchor publisher) — NO new HB minted;
+  # pen-test tracker genuinely empty (files/10 §7: first external pen-test is
+  # before P2). Title also says "rotations, drills" — those are NOT in the
+  # verbatim acceptance and their metrics are catalogued `planned` for a later
+  # Ops/Overview surface (inv 17: deliver exactly the acceptance). 25 vitest
+  # tests (positive + near-miss). No migration, no new metric/service/route.
   acceptance:
     - "Wazuh/Falco/CrowdSec summaries; egress denials; audit-chain status; pen-test findings tracker"
   tests: [apps/admin-web/e2e/security.spec.ts]
