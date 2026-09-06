@@ -1,0 +1,832 @@
+{
+  "generated_at": "2026-09-06",
+  "triage_events": {
+    "metric_id": "triage.events_total",
+    "metric_status": "planned",
+    "candidate_flag_cap": "YELLOW_REVIEW",
+    "levels": [
+      {
+        "level": "GREEN",
+        "count": 0,
+        "produced_by": "rules_engine"
+      },
+      {
+        "level": "YELLOW",
+        "count": 0,
+        "produced_by": "rules_engine"
+      },
+      {
+        "level": "RED",
+        "count": 0,
+        "produced_by": "rules_engine"
+      }
+    ],
+    "note": "RED/YELLOW/GREEN are produced only by packages/protocols/triage (invariant 1); an LLM may append candidate_flags capped at YELLOW_REVIEW (files/03 §4.6). triage.events_total is planned — no emitting session has landed, so every count is 0, not demo volume (invariant 17)."
+  },
+  "false_red_queue": {
+    "queue_id": "false_red_review",
+    "enqueue_scope": "learning:service_improvement",
+    "reviewer_roles": [
+      "clinical_lead"
+    ],
+    "labels": [
+      "accept",
+      "edit",
+      "reject"
+    ],
+    "section_reasons": [
+      "chief_complaint",
+      "history",
+      "medications",
+      "allergies",
+      "red_flags",
+      "instruments",
+      "summary",
+      "structure"
+    ],
+    "content_scope": null,
+    "content_blocker": "HB-L6",
+    "content_read_state": "refused",
+    "note": "The false-RED queue records a clinician's annotation of a RED that fired; it never downgrades it — a rules-engine RED is inviolable (invariant 1). Items are pointers (ids only, no PHI — invariant 6); reviews are closed-enum verdicts. Staff reads of the patient content behind an item are refused while HB-L6 is open (files/08 §2.6). No persisted item store exists yet, so the queue is empty.",
+    "items": []
+  },
+  "policyguard_classes": {
+    "metric_id": "policyguard.blocks_total",
+    "metric_status": "live",
+    "allowed_classes": [
+      "diagnosis",
+      "treatment",
+      "prognosis",
+      "multi_question",
+      "too_long",
+      "register",
+      "jargon"
+    ],
+    "classes": [
+      {
+        "class": "diagnosis",
+        "count": 0
+      },
+      {
+        "class": "treatment",
+        "count": 0
+      },
+      {
+        "class": "prognosis",
+        "count": 0
+      },
+      {
+        "class": "multi_question",
+        "count": 0
+      },
+      {
+        "class": "too_long",
+        "count": 0
+      },
+      {
+        "class": "register",
+        "count": 0
+      },
+      {
+        "class": "jargon",
+        "count": 0
+      }
+    ],
+    "note": "PolicyGuard blocks patient-facing text by violation class (invariant 2: no diagnosis/treatment/prognosis, one question per turn, B1 Turkish, siz register). policyguard.blocks_total is live, but the console reads a scrape at serve time; this fixture records the class skeleton at 0 so the spec runs without a Prometheus."
+  },
+  "acceptance_by_specialty": {
+    "metric_id": "note.acceptance_rate",
+    "metric_status": "planned",
+    "rows": [
+      {
+        "branch_id": "ic_hastaliklari",
+        "name_tr": "İç Hastalıkları",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "endokrinoloji_ve_metabolizma",
+        "name_tr": "Endokrinoloji ve Metabolizma",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "gastroenteroloji",
+        "name_tr": "Gastroenteroloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "nefroloji",
+        "name_tr": "Nefroloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "romatoloji",
+        "name_tr": "Romatoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "hematoloji",
+        "name_tr": "Hematoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "tibbi_onkoloji",
+        "name_tr": "Tıbbi Onkoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "geriatri",
+        "name_tr": "Geriatri",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "immunoloji_ve_alerji",
+        "name_tr": "İmmünoloji ve Alerji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "gogus_hastaliklari",
+        "name_tr": "Göğüs Hastalıkları",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "kardiyoloji",
+        "name_tr": "Kardiyoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "noroloji",
+        "name_tr": "Nöroloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "enfeksiyon_hastaliklari",
+        "name_tr": "Enfeksiyon Hastalıkları",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "deri_ve_zuhrevi_hastaliklari",
+        "name_tr": "Deri ve Zührevi Hastalıkları",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "fiziksel_tip_ve_rehabilitasyon",
+        "name_tr": "Fiziksel Tıp ve Rehabilitasyon",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "aile_hekimligi",
+        "name_tr": "Aile Hekimliği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "tibbi_genetik",
+        "name_tr": "Tıbbi Genetik",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "nukleer_tip",
+        "name_tr": "Nükleer Tıp",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "radyasyon_onkolojisi",
+        "name_tr": "Radyasyon Onkolojisi",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "algoloji",
+        "name_tr": "Algoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "klinik_norofizyoloji",
+        "name_tr": "Klinik Nörofizyoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "spor_hekimligi",
+        "name_tr": "Spor Hekimliği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "sualti_ve_hiperbarik_tip",
+        "name_tr": "Sualtı ve Hiperbarik Tıp",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "hava_ve_uzay_hekimligi",
+        "name_tr": "Hava ve Uzay Hekimliği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "tibbi_ekoloji_ve_hidroklimatoloji",
+        "name_tr": "Tıbbi Ekoloji ve Hidroklimatoloji",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "is_ve_meslek_hastaliklari",
+        "name_tr": "İş ve Meslek Hastalıkları",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "halk_sagligi",
+        "name_tr": "Halk Sağlığı",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "getat",
+        "name_tr": "GETAT",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "diyabet_poliklinigi",
+        "name_tr": "Diyabet polikliniği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "obezite_poliklinigi",
+        "name_tr": "Obezite polikliniği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "sigara_birakma_poliklinigi",
+        "name_tr": "Sigara Bırakma polikliniği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "uyku_poliklinigi",
+        "name_tr": "Uyku polikliniği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "yasli_sagligi_poliklinigi",
+        "name_tr": "Yaşlı Sağlığı polikliniği",
+        "cluster": "medical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "genel_cerrahi",
+        "name_tr": "Genel Cerrahi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "gastroenteroloji_cerrahisi",
+        "name_tr": "Gastroenteroloji Cerrahisi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cerrahi_onkoloji",
+        "name_tr": "Cerrahi Onkoloji",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "beyin_ve_sinir_cerrahisi",
+        "name_tr": "Beyin ve Sinir Cerrahisi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "kalp_ve_damar_cerrahisi",
+        "name_tr": "Kalp ve Damar Cerrahisi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "gogus_cerrahisi",
+        "name_tr": "Göğüs Cerrahisi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "ortopedi_ve_travmatoloji",
+        "name_tr": "Ortopedi ve Travmatoloji",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "el_cerrahisi",
+        "name_tr": "El Cerrahisi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "uroloji",
+        "name_tr": "Üroloji",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "plastik_rekonstruktif_ve_estetik_cerrahi",
+        "name_tr": "Plastik, Rekonstrüktif ve Estetik Cerrahi",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "anesteziyoloji",
+        "name_tr": "Anesteziyoloji",
+        "cluster": "surgical",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "goz_hastaliklari",
+        "name_tr": "Göz Hastalıkları",
+        "cluster": "sensory",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "kulak_burun_bogaz_hastaliklari",
+        "name_tr": "Kulak Burun Boğaz Hastalıkları",
+        "cluster": "sensory",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "odyoloji",
+        "name_tr": "Odyoloji",
+        "cluster": "sensory",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "kadin_hastaliklari_ve_dogum",
+        "name_tr": "Kadın Hastalıkları ve Doğum",
+        "cluster": "womens_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "perinatoloji",
+        "name_tr": "Perinatoloji",
+        "cluster": "womens_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "jinekolojik_onkoloji",
+        "name_tr": "Jinekolojik Onkoloji",
+        "cluster": "womens_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "ureme_endokrinolojisi_ve_infertilite",
+        "name_tr": "Üreme Endokrinolojisi ve İnfertilite",
+        "cluster": "womens_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "gebe_poliklinigi",
+        "name_tr": "Gebe polikliniği",
+        "cluster": "womens_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_sagligi_ve_hastaliklari",
+        "name_tr": "Çocuk Sağlığı ve Hastalıkları",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_kardiyolojisi",
+        "name_tr": "Çocuk Kardiyolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_norolojisi",
+        "name_tr": "Çocuk Nörolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_endokrinolojisi",
+        "name_tr": "Çocuk Endokrinolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_gastroenterolojisi",
+        "name_tr": "Çocuk Gastroenterolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_hematolojisi_ve_onkolojisi",
+        "name_tr": "Çocuk Hematolojisi ve Onkolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_enfeksiyon_hastaliklari",
+        "name_tr": "Çocuk Enfeksiyon Hastalıkları",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_immunolojisi_ve_alerjisi",
+        "name_tr": "Çocuk İmmünolojisi ve Alerjisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_nefrolojisi",
+        "name_tr": "Çocuk Nefrolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_romatolojisi",
+        "name_tr": "Çocuk Romatolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_gogus_hastaliklari",
+        "name_tr": "Çocuk Göğüs Hastalıkları",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_metabolizma_hastaliklari",
+        "name_tr": "Çocuk Metabolizma Hastalıkları",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_genetik_hastaliklari",
+        "name_tr": "Çocuk Genetik Hastalıkları",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "neonatoloji",
+        "name_tr": "Neonatoloji",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "gelisimsel_pediatri",
+        "name_tr": "Gelişimsel Pediatri",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "sosyal_pediatri",
+        "name_tr": "Sosyal Pediatri",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_cerrahisi",
+        "name_tr": "Çocuk Cerrahisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_urolojisi",
+        "name_tr": "Çocuk Ürolojisi",
+        "cluster": "child_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "ruh_sagligi_ve_hastaliklari",
+        "name_tr": "Ruh Sağlığı ve Hastalıkları",
+        "cluster": "mental_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cocuk_ve_ergen_ruh_sagligi",
+        "name_tr": "Çocuk ve Ergen Ruh Sağlığı",
+        "cluster": "mental_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "amatem",
+        "name_tr": "AMATEM",
+        "cluster": "mental_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "cematem",
+        "name_tr": "ÇEMATEM",
+        "cluster": "mental_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "klinik_psikoloji_poliklinigi",
+        "name_tr": "Klinik Psikoloji polikliniği",
+        "cluster": "mental_health",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "agiz_dis_ve_cene_cerrahisi",
+        "name_tr": "Ağız, Diş ve Çene Cerrahisi",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "dis_hekimligi",
+        "name_tr": "Diş Hekimliği",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "ortodonti",
+        "name_tr": "Ortodonti",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "periodontoloji",
+        "name_tr": "Periodontoloji",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "endodonti",
+        "name_tr": "Endodonti",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "pedodonti",
+        "name_tr": "Pedodonti",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "protetik",
+        "name_tr": "Protetik",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "restoratif",
+        "name_tr": "Restoratif",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "agiz_dis_cene_radyolojisi",
+        "name_tr": "Ağız-Diş-Çene Radyolojisi",
+        "cluster": "dental",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "saglik_kurulu",
+        "name_tr": "Sağlık Kurulu",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "beslenme_ve_diyet",
+        "name_tr": "Beslenme ve Diyet",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "fizyoterapi",
+        "name_tr": "Fizyoterapi",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "hemsirelik_egitim_poliklinikleri",
+        "name_tr": "Hemşirelik/eğitim poliklinikleri",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "asi",
+        "name_tr": "Aşı",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "evde_saglik",
+        "name_tr": "Evde Sağlık",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      },
+      {
+        "branch_id": "adli_tip",
+        "name_tr": "Adli Tıp",
+        "cluster": "allied_and_reports",
+        "delivered": 0,
+        "accepted": 0,
+        "measurement": null
+      }
+    ],
+    "note": "Note acceptance is a count of accepted-plus-edited notes over notes delivered, rolled up by specialty — a measurement, never an accuracy or sensitivity claim (invariant 20). note.acceptance_rate is planned and no note has been delivered, so every branch is an empty state (invariant 17)."
+  }
+}

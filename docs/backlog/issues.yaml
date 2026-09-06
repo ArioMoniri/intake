@@ -2467,7 +2467,28 @@
   title: "Clinical quality & safety module + annotation-queue links"
   depends_on: [INT-175, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-185.md
+  # NOTE 6 Sep 2026: all four acceptance clauses delivered in the admin-web (TS)
+  # lane as a pure projection of real sources, recorded into one composite
+  # fixture by scripts/dev/record_safety_fixture.py (added to `make
+  # admin-fixtures`): triage events keyed by clinical_schemas TriageLevel and
+  # metric triage.events_total (planned → 0), each level attributed to the rules
+  # engine with the LLM candidate ceiling shown as YELLOW_REVIEW (inv 1); the
+  # false-RED queue projected from the INT-175 false_red_review annotation queue
+  # — a review surface that records annotations and NEVER downgrades a
+  # rules-engine RED (inv 1), pointers ids-only (inv 6), content-read refused
+  # while HB-L6 is open; PolicyGuard classes = ViolationClass (inv 2); acceptance
+  # by specialty rolled over the real intake branches as counts, a rate only via
+  # the INT-183 measurement discipline (corpus+date, inv 20). Refusals:
+  # TriageNotFromRulesEngine, TriageDowngradeInFalseRedQueue, ClinicalContentLeaked,
+  # ContentReadNotRefused, ForbiddenReviewVerdict, UnknownPolicyClass,
+  # AcceptanceCountsInconsistent, UnlabelledMeasurement. Genuine current empty
+  # states throughout (no emitting session, no persisted item store, no note
+  # delivered). Sequenced follow-up (documented in evidence): the
+  # GET /admin/quality-safety ADMIN_ROUTES descriptor + view + tests/admin parity
+  # test, so the fixture becomes recorded-from-the-API (same sequencing INT-183/184
+  # used). No new numbered artefact minted.
   acceptance:
     - "triage events, false-RED queue, PolicyGuard classes, acceptance by specialty"
   tests: [apps/admin-web/e2e/safety.spec.ts]
