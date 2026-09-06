@@ -2436,7 +2436,27 @@
   title: "Protocols module: coverage, review queue, proposals, canary, clips"
   depends_on: [INT-042, INT-172, INT-180]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-184.md
+  # NOTE 6 Sep 2026: all three acceptance clauses delivered in the admin-web
+  # (TS) lane. The module is a pure projection of real sources, recorded into
+  # one composite fixture by scripts/dev/record_protocols_fixture.py: the
+  # branch x maturity matrix is protocols.taxonomy.coverage over the real
+  # taxonomy + pack tree (today 91 MISSING + Acil Tıp EXCLUDED, because the
+  # whole tree is L0 — invariant 13's matrix surfacing exactly that); the
+  # review queue's vocabulary is intake_learning PROPOSAL_TARGETS and its
+  # unmet checks are REQUIRED_CHECKS; clip coverage is keyed by VoiceProfile.
+  # approve/reject are four-eyes controls (author != approver) with the
+  # mutation + audit + four-eyes ceremony reused from the INT-180 shell, not
+  # re-implemented (invariant 4, 12); L0-as-coverage, self-approval,
+  # incomplete-evidence-approvable, forbidden-target and typed-profile-clip
+  # are all refused. Genuine current empty states: the review queue has no
+  # persisted store (PR-bot opens PRs, CODEOWNER approves) and every evidence
+  # bundle is incomplete (its producers are later issues), so nothing is
+  # approvable yet; clip coverage is 0/0 because no pack is servable (all L0).
+  # Sequenced follow-up (documented in evidence): the GET /admin/protocols
+  # ADMIN_ROUTES descriptor + view + tests/admin parity test, so the fixture
+  # becomes recorded-from-the-API (same sequencing INT-183 used).
   acceptance:
     - "branch x maturity matrix; approve/reject with 4-eyes; clip coverage per voice"
   tests: [apps/admin-web/e2e/protocols.spec.ts]
