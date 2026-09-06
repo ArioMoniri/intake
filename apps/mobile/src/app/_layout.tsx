@@ -24,6 +24,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { KioskGate } from "@/components/KioskGate";
 import { screenAnimation } from "@/lib/a11y/motion";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
@@ -77,7 +78,12 @@ export default function RootLayout() {
     <AppearanceProvider>
       <SessionProvider>
         <StatusBar style="auto" />
-        <LocalizedStack />
+        {/* INT-143 — on a clinic-provisioned kiosk this gates entry/exit on
+            the clinic PIN, wipes between patients and blocks on tamper; on a
+            normal phone it is a pass-through. */}
+        <KioskGate>
+          <LocalizedStack />
+        </KioskGate>
       </SessionProvider>
     </AppearanceProvider>
   );

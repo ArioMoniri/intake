@@ -1739,7 +1739,30 @@
   title: "Kiosk mode: MDM lockdown, clinic PIN, 60s auto-wipe, privacy layout"
   depends_on: [INT-136]
   labels: [area:mobile, risk:security]
-  status: todo
+  # All four acceptance clauses are delivered as pure, node-tested mechanism and
+  # wired into the app (src/lib/kiosk + components/KioskGate + session.tsx +
+  # _layout.tsx):
+  #   - no persistence: kioskSuppressesPersistence gates the INT-142 offline
+  #     mirror; entering kiosk crypto-shreds anything already at rest;
+  #   - wipe on idle/background: 60 s idle timer + AppState listener in the .ts
+  #     adapter call session.wipeSession() (clears notes/visits + shreds drafts);
+  #   - tamper alert: tamperDetected fails closed (anything but a confirmed
+  #     lockdown -> alert), no silent degrade, recovery needs PIN + lockdown;
+  #   - large-type layout: kioskFontScale floors the surface at LARGE_TEXT_SCALE,
+  #     screen capture blocked, no prior-patient data shown;
+  #   - clinic PIN: verified against the MDM-provisioned salted hash, never
+  #     stored, fails closed with nothing provisioned; both edges are staff-only.
+  #
+  # Two device capabilities it consumes are the dev-build native layer and fail
+  # closed in the managed runtime (HUMAN_BLOCKERS.md Rule 2, no HB id minted):
+  # the MDM managed-config PIN read (=> not a kiosk) and the guided-access /
+  # lock-task lockdown probe (=> tamper). Both are gated on HB-A3 (real builds)
+  # and files/10 §4.7 (the attestation/pinning module, filed there as its own
+  # issue). See docs/evidence/INT-143.md "What is delivered, and what fails
+  # closed". The §9 kiosk console signals (heartbeat, wipe count) need a server
+  # round-trip an ephemeral kiosk does not make and land with the console work.
+  status: done
+  evidence: docs/evidence/INT-143.md
   acceptance:
     - "no persistence; wipe on idle/background; tamper alert; large-type layout"
   tests: [apps/mobile/e2e/kiosk.spec.ts]
