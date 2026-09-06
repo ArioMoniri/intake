@@ -1,9 +1,15 @@
 /**
  * Session state for the shell (INT-130/179/193): the signed-in account, the
  * per-visit note state, locally added visits and the active locale.
- * In-memory only — persistence and real auth are INT-131; nothing here may
- * write to disk (patient state on device is a privacy decision that arrives
- * with the consent ledger, not the UI shell).
+ *
+ * INT-142 adds offline draft resilience: the per-visit note is the working
+ * copy, and every change is mirrored to the ENCRYPTED-at-rest draft store
+ * (src/lib/intake/offline) so a draft survives an app restart with no network.
+ * The native at-rest calls (keychain key custody + encrypted filesystem blobs)
+ * live only in that module and are reached through a lazy `import()`, so this
+ * provider stays node-importable and holds no plaintext draft itself. A draft
+ * is typed/structured text only — raw audio never touches this path
+ * (invariant 3) — and sign-out crypto-shreds every draft and its key.
  */
 import {
   createContext,
@@ -114,6 +120,58 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // INT-142 — restore this account's encrypted drafts after an app restart.
+  // In-memory edits win over the disk copy, so a live session is never clobbered
+  // by a stale hydrate. Scoped to the account: another patient's drafts (should
+  // any survive an un-signed-out restart) are filtered out, not surfaced.
+  const accountId = account?.id ?? null;
+  useEffect(() => {
+    if (accountId === null) {
+      return;
+    }
+    let mounted = true;
+    void import("./intake/offline/sessionDrafts")
+      .then((offline) => offline.hydrateAccountDrafts(accountId))
+      .then((restored) => {
+        if (mounted && Object.keys(restored).length > 0) {
+          setNotes((prev) => ({ ...restored, ...prev }));
+        }
+      })
+      .catch(() => {
+        // no drafts, or the store is unavailable: the session simply starts empty
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [accountId]);
+
+  // INT-142 — mirror every note change to the encrypted-at-rest draft store.
+  // Fire-and-forget: a failed write leaves the working copy untouched, and
+  // nothing here logs an id or a value (invariant 6).
+  useEffect(() => {
+    if (accountId === null) {
+      return;
+    }
+    let mounted = true;
+    const entries = Object.entries(notes);
+    if (entries.length === 0) {
+      return;
+    }
+    void import("./intake/offline/sessionDrafts")
+      .then((offline) => {
+        if (!mounted) {
+          return;
+        }
+        for (const [visitId, note] of entries) {
+          void offline.persistNoteDraft(accountId, visitId, note).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [notes, accountId]);
+
   const signIn = useCallback((next: TestAccount) => {
     setAccount({ ...next, kind: "dev" });
     setConsents({ ...next.consents });
@@ -147,6 +205,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setConsents(null);
     setExtraVisits([]);
     setNotes({});
+    // INT-142: sign-out crypto-shreds every persisted draft and the DEK, so
+    // nothing readable survives the session. Lazy so node import stays clean.
+    void import("./intake/offline/sessionDrafts")
+      .then((offline) => offline.shredDrafts())
+      .catch(() => {
+        // best-effort hygiene; never surface a native error to the UI
+      });
   }, []);
 
   const setConsent = useCallback((key: keyof ConsentState, on: boolean) => {

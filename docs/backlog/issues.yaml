@@ -1703,10 +1703,35 @@
   title: "Offline drafts + sync + resilience"
   depends_on: [INT-136]
   labels: [area:mobile]
-  status: todo
+  # All three acceptance clauses are delivered with tests in the same branch.
+  # (a) DRAFTS ENCRYPTED AT REST: the per-visit note is mirrored to
+  #     src/lib/intake/offline on every change, sealed with AES-256-GCM over a
+  #     device DEK held in the Keychain/Keystore (auth/tokens.ts precedent);
+  #     only ciphertext reaches disk, never audio (invariant 3), and sign-out
+  #     crypto-shreds the blobs and the key. Proved by draftStore.test.ts +
+  #     envelope.test.ts.
+  # (b) SYNC CONFLICT RULES: reconcile.ts is a deterministic last-writer-wins
+  #     rule (updatedAt, origin tiebreak) whose defining property is NO SILENT
+  #     DATA LOSS — a real divergence keeps BOTH copies (the loser preserved as
+  #     a conflict copy). Proved over every branch in reconcile.test.ts.
+  # (c) AIRPLANE-MODE E2E: offline.spec.ts drives create-offline -> persist
+  #     encrypted -> reconnect -> sync, over an injected transport, and asserts
+  #     the draft survives, stays ciphertext, and the rule resolves.
+  #
+  # The offline-tolerant pass (sync.ts) is transport-injected; a live server
+  # client is intentionally NOT wired, because no note-sync route accepts the
+  # raw answer-draft today (INT-197's note row stores the built note and has no
+  # version; the raw draft has no server home per INT-137 evidence). That is the
+  # honest fail-closed state and is not part of this acceptance line.
+  status: done
+  evidence: docs/evidence/INT-142.md
   acceptance:
     - "drafts encrypted at rest; sync conflict rules; airplane-mode e2e"
-  tests: [apps/mobile/e2e/offline.spec.ts]
+  tests:
+    - apps/mobile/e2e/offline.spec.ts
+    - apps/mobile/src/lib/intake/offline/envelope.test.ts
+    - apps/mobile/src/lib/intake/offline/reconcile.test.ts
+    - apps/mobile/src/lib/intake/offline/draftStore.test.ts
   sec_row: "mobile"
 - id: INT-143
   epic: E08-mobile
