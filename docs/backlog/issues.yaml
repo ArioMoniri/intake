@@ -4115,7 +4115,7 @@
   labels:
   - area:experience
   - area:mobile
-  status: todo
+  status: done
   acceptance:
   - 'the contradiction is RESOLVED in one direction and recorded, not papered
     over: either files/02 §5.4 stops calling the prompt one-tap, or `reason`

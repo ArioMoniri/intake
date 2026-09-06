@@ -52,9 +52,13 @@ class CsatV1(FrozenModel):
     score: int = Field(
         ge=1, le=5, description="CSAT 1-5 (files/08 §4 group F: csat.score, target >= 4.3)."
     )
-    reason: CsatReason = Field(
+    reason: CsatReason | None = Field(
+        default=None,
         description="Reason category (INT-240 reason enum; files/08 §4 group F "
-        "csat.reason distribution)."
+        "csat.reason distribution). Optional since INT-305: files/02 §5.4's "
+        "one-tap prompt forms a complete rating from the score alone, so a "
+        "score with no reason is a whole event — and a reason is never "
+        "defaulted or inferred from the score (invariant 6).",
     )
     text: str | None = Field(
         default=None,
