@@ -1,0 +1,161 @@
+{
+  "generated_at": "2026-09-06",
+  "csat": {
+    "metric_id": "csat.score",
+    "reason_metric_id": "csat.reason",
+    "metric_status": "live",
+    "cohort": {
+      "window_start": "2026-08-01T00:00:00+00:00",
+      "window_end": "2026-09-01T00:00:00+00:00",
+      "measured_at": "2026-09-06T08:48:48.902198+00:00"
+    },
+    "n": 0,
+    "k_floor": 10,
+    "suppressed": true,
+    "allowed_reasons": [
+      "too_long",
+      "didnt_understand_me",
+      "felt_rushed",
+      "helpful",
+      "felt_heard"
+    ],
+    "mean_score": null,
+    "score_counts": {},
+    "reason_counts": {},
+    "note": "CSAT is a 1-5 score distribution plus the sealed reason enum (too long / didn't understand me / felt rushed / helpful / felt heard). Every figure names its cohort and window and no target is rendered beside it (invariant 20): csat.score's catalogue target (>= 4.3) is metadata, not a verdict on a reading. csat.score/csat.reason are live, but the console reads a scrape at serve time; with no response recorded the cohort is below the k >= 10 floor, so only the count survives (invariant 17; files/06 §8)."
+  },
+  "nps": {
+    "metric_id": "nps.monthly",
+    "metric_status": "live",
+    "cohort": {
+      "window_start": "2026-08-01T00:00:00+00:00",
+      "window_end": "2026-09-01T00:00:00+00:00",
+      "measured_at": "2026-09-06T08:48:48.902222+00:00"
+    },
+    "n": 0,
+    "k_floor": 10,
+    "suppressed": true,
+    "promoters": null,
+    "passives": null,
+    "detractors": null,
+    "nps": null,
+    "note": "NPS on the standard 0-10 scale, the promoter/passive/detractor split that produced it shown as counts. Below the k >= 10 floor nothing but the count survives (files/08 §0c F9); no response has been recorded, so the cohort is empty (invariant 17)."
+  },
+  "pulse": {
+    "metric_id": "clinician.pulse",
+    "metric_status": "live",
+    "cohort": {
+      "window_start": "2026-08-01T00:00:00+00:00",
+      "window_end": "2026-09-01T00:00:00+00:00",
+      "measured_at": "2026-09-06T08:48:48.902233+00:00"
+    },
+    "n": 0,
+    "k_floor": 10,
+    "suppressed": true,
+    "mean_score": null,
+    "score_counts": {},
+    "note": "Quarterly clinician pulse, 1-5. Clinicians appear as counts only — a clinician_ref never reaches an aggregate (invariant 6). Below the k >= 10 floor only the count survives; no response has been recorded (invariant 17)."
+  },
+  "filters": {
+    "tenant_scope": "token_claim",
+    "window_required": true,
+    "k_floor": 10,
+    "dimensions": [
+      {
+        "id": "branch",
+        "label_tr": "Branş",
+        "label_en": "Branch",
+        "available": false,
+        "reason": "the experience aggregates carry no branch dimension; slicing an operational aggregate by branch × narrow window × small clinic is files/08 §0c F9's re-identification case, and adding one is a data-inventory decision under invariant 18 (stop-and-ask: Owner + compliance_officer; open in docs/evidence/INT-241.md, no HUMAN_BLOCKERS.md row minted)"
+      },
+      {
+        "id": "profile",
+        "label_tr": "Profil",
+        "label_en": "Profile",
+        "available": false,
+        "reason": "csat.v1 / nps.v1 / clinician_pulse.v1 carry no voice-profile field; adding one is a data-inventory decision under invariant 18"
+      },
+      {
+        "id": "clinic",
+        "label_tr": "Klinik",
+        "label_en": "Clinic",
+        "available": false,
+        "reason": "the experience aggregates carry no clinic dimension; slicing an operational aggregate by branch × narrow window × small clinic is files/08 §0c F9's re-identification case, and adding one is a data-inventory decision under invariant 18 (stop-and-ask: Owner + compliance_officer; open in docs/evidence/INT-241.md, no HUMAN_BLOCKERS.md row minted)"
+      }
+    ],
+    "note": "The acceptance asks to filter by branch / profile / clinic. The mechanism ships and fails closed: the underlying events carry none of these dimensions today, tenant scope is a token claim rather than a query parameter (files/08 §8 rule (a), the F9 IDOR), and the window is required with no default (invariant 20)."
+  },
+  "sds01_export": {
+    "columns": [
+      "metric_id",
+      "unit",
+      "window_start",
+      "window_end",
+      "measured_at",
+      "n",
+      "mean",
+      "status",
+      "note"
+    ],
+    "aggregate_only": true,
+    "tenant_scope": "token_claim",
+    "rows": [
+      [
+        "wait.time_to_first_question_s",
+        "s",
+        "2026-08-01T00:00:00+00:00",
+        "2026-09-01T00:00:00+00:00",
+        "2026-09-06T08:48:48.902253+00:00",
+        "0",
+        "",
+        "source_unavailable",
+        "both: the Talker holds the turn in memory and writes no lifecycle row, and sessions.started_at has no writer outside the test harness"
+      ],
+      [
+        "wait.note_ready_after_wrapup_s",
+        "s",
+        "2026-08-01T00:00:00+00:00",
+        "2026-09-01T00:00:00+00:00",
+        "2026-09-06T08:48:48.902258+00:00",
+        "0",
+        "",
+        "source_unavailable",
+        "the start: notes.created_at exists, but nothing transitions a session to COMPLETED, so sessions.completed_at is never written"
+      ],
+      [
+        "wait.doctor_link_first_open_h",
+        "h",
+        "2026-08-01T00:00:00+00:00",
+        "2026-09-01T00:00:00+00:00",
+        "2026-09-06T08:48:48.902262+00:00",
+        "0",
+        "",
+        "source_unavailable",
+        "the end: INT-150 landed the redemption route, and every open is written to the hash-chained audit log — which is EVIDENCE, not an analytics source, and is never mined for aggregates. No share-access row and no first_opened_at column exist. INT-307 built the unlabelled path this series needed, so the writer is no longer what is missing: landing a first-open instant on the share is, and no issue claims it"
+      ],
+      [
+        "wait.checkin_to_seen_min",
+        "min",
+        "2026-08-01T00:00:00+00:00",
+        "2026-09-01T00:00:00+00:00",
+        "2026-09-06T08:48:48.902265+00:00",
+        "0",
+        "",
+        "source_unavailable",
+        "both: files/08 §4 G scopes this to connector tenants and packages/connectors does not exist (blocked by INT-163)"
+      ],
+      [
+        "wait.records_processing_s",
+        "s",
+        "2026-08-01T00:00:00+00:00",
+        "2026-09-01T00:00:00+00:00",
+        "2026-09-06T08:48:48.902268+00:00",
+        "0",
+        "",
+        "no_observations",
+        "no observation fell in this window"
+      ]
+    ],
+    "note": "The SDS-01 style aggregate export for a hospital tenant (files/01 §4; files/08 §3). Tenant-scoped from the token, aggregate only: no clinic, branch, clinician or patient column (files/08 §0c F9; INT-241 §4). Rows are produced by intake_metrics.sds01.sds01_table over the real wait sources for the recorded window — records_processing reads no_observations (observable, empty) and the other four source_unavailable (an instant this repo does not yet record), so nothing is fabricated (invariant 17). Every cell is neutralised against spreadsheet-formula injection (invariant 47)."
+  }
+}
