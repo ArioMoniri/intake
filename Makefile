@@ -103,6 +103,7 @@ admin-fixtures:
 	uv run python scripts/dev/record_protocols_fixture.py
 	uv run python scripts/dev/record_safety_fixture.py
 	uv run python scripts/dev/record_experience_fixture.py
+	uv run python scripts/dev/record_security_fixture.py
 
 check-ts:
 	pnpm -r lint

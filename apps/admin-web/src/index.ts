@@ -12,7 +12,10 @@
  * module (files/08 §4 D/E — triage events, the false-RED annotation queue,
  * PolicyGuard classes, and acceptance by specialty), and the Experience &
  * Satisfaction module (files/08 §3, §4 F/G — CSAT/NPS/clinician-pulse rollups,
- * the branch/profile/clinic filter mechanism, and the SDS-01 style export).
+ * the branch/profile/clinic filter mechanism, and the SDS-01 style export),
+ * and the Security module (files/08 §3, §7; files/10 §7, §9 — Wazuh/Falco/
+ * CrowdSec summaries, egress denials, audit-chain status, and the pen-test
+ * findings tracker).
  */
 export {
   InconsistentReleaseState,
@@ -155,3 +158,38 @@ export {
   type Sds01ExportPayload,
   type Sds01ExportPresentation,
 } from "./experience/module";
+export {
+  AuditChainAttestedWithoutAnchor,
+  AuditHeadMalformed,
+  EgressCountWithoutScrape,
+  FindingsWithoutAssessment,
+  renderAuditChainStatus,
+  renderEgressDenials,
+  renderPentestTracker,
+  renderSecurityModule,
+  renderSiemSummaries,
+  SecurityContentLeaked,
+  SiemSummaryWithoutFeed,
+  UnknownAuditOutcome,
+  UnknownDetectorSource,
+  UnknownFindingSeverity,
+  UnknownFindingStatus,
+  UnknownSecuritySignal,
+  UnknownSeverity,
+  type AuditChainPayload,
+  type AuditChainPresentation,
+  type DetectorPresentation,
+  type DetectorSummary,
+  type DistributionBar as SecurityDistributionBar,
+  type EgressDenialsPayload,
+  type EgressDenialsPresentation,
+  type PentestFinding,
+  type PentestFindingPresentation,
+  type PentestPayload,
+  type PentestPresentation,
+  type SecurityPayload,
+  type SecurityPresentation,
+  type SiemPayload,
+  type SiemPresentation,
+  type SlaRow,
+} from "./security/module";
