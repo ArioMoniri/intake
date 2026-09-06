@@ -1915,7 +1915,21 @@
   title: "Check-in: signed QR payload + desk verification + checkin_to_seen metric"
   depends_on: [INT-160, INT-143]
   labels: [area:connectors]
-  status: todo
+  # Delivered as pure, tested connector logic (intake_connectors.checkin):
+  #   - mint_checkin signs a short-lived payload (HS256 over stdlib hmac, the
+  #     same scheme as the embed launch ticket; key from OpenBao via the
+  #     framework's CredentialResolver) carrying {tid, cid, nonce, iat, exp,
+  #     purpose} and NEVER PHI (cid refused unless id-shaped);
+  #   - verify_checkin validates signature AND expiry AND tenant AND purpose,
+  #     consumes a single-use nonce last, and fails closed on every branch;
+  #   - record_desk_checkin appends one hash-chained audit entry (inv. 4) and
+  #     emits checkin_to_seen (seen - iat) as a wait.v1 event via record_wait.
+  # The INT-241 seam is filled: wait.checkin_to_seen_min moves planned -> live,
+  # its WaitSource is now observable, and WAIT_CHECKIN_TO_SEEN_MIN is served.
+  # QR rendering is out of scope (payload is machine-read text; no native
+  # QR dep, per the issue framing and prior QR controls).
+  status: done
+  evidence: docs/evidence/INT-163.md
   acceptance:
     - "QR payload signed+short-lived; desk verification flow; wait metric emitted"
   tests: [tests/connectors/test_checkin.py]

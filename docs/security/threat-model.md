@@ -1217,11 +1217,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   residue; [S] a forged check-in.
 - **Controls (files/10):** §4 kiosk mode — guided access, MDM enrolment, PIN per clinic,
   60 s idle auto-wipe, no local persistence, tamper alert on backgrounding, large-type
-  privacy layout; signed QR check-in payloads (backlog INT-163).
+  privacy layout; signed, short-lived QR check-in payloads (INT-163,
+  `intake_connectors.checkin`) verified fail-closed at the desk — [S] a forged check-in is
+  refused by an HMAC that carries no PHI (invariant 6, 14).
 - **Signals:** kiosk heartbeat and session wipe count (§9) are console (server-side)
   signals and do NOT land with INT-143 — an ephemeral, no-persistence kiosk makes no
   server round-trip to carry them, the same reason the offline-drafts row has "no server
-  signal"; they land with the console/metrics work. `checkin_to_seen` with INT-163.
+  signal"; they land with the console/metrics work. `checkin_to_seen` landed with INT-163:
+  the desk verification records a `wait.v1` observation (duration + tenant only), rolled up
+  under the k >= 10 floor before it reaches a console.
 - **Tests:** kiosk-mode behaviour landed with INT-143 —
   `apps/mobile/e2e/kiosk.spec.ts` and `apps/mobile/src/lib/kiosk/kioskState.test.ts`.
   The MDM lockdown detection and the clinic-PIN provisioning read are the dev-build
@@ -1294,10 +1298,12 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   is `live` because both of its instants exist in this repo, its only label is the closed ingest
   content-type enumeration, and it is published from a rollup rather than observed raw — a
   histogram scraped after one observation would expose that patient's exact wait through `_sum`
-  over `_count`. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`,
-  `wait.doctor_link_first_open_h` and `wait.checkin_to_seen_min` stay `planned`: each is missing
-  one of its two instants, and `intake_platform.wait_times.WAIT_SOURCES` records which, so the
-  catalogue status and the writer cannot drift from the truth (invariant 13).
+  over `_count`. `wait.checkin_to_seen_min` is also `live` since INT-163: the connector signs the
+  check-in instant into a short-lived payload and records the wait at desk verification, so both
+  its instants exist in the repo. `wait.time_to_first_question_s`, `wait.note_ready_after_wrapup_s`
+  and `wait.doctor_link_first_open_h` stay `planned`: each is missing one of its two instants, and
+  `intake_platform.wait_times.WAIT_SOURCES` records which, so the catalogue status and the writer
+  cannot drift from the truth (invariant 13).
 - **Controls added by INT-241:** the aggregate excludes patients who refused
   `learning:service_improvement` (files/06 §2 — the de-identified-aggregate purpose), decided by
   the same platform evaluator the route guard uses; a per-`document_type` breakdown is suppressed
