@@ -106,6 +106,35 @@ export const DEFERRABLE_SECTIONS: readonly DeferralId[] = [
   FAMILY_HISTORY_DEFERRAL,
 ];
 
+/**
+ * Every section id `buildNote` can emit, in note order (INT-304). This is the
+ * ONE declaration of the share-scope vocabulary: each id is a unit the patient
+ * toggles on the review screen (`note.scopes[section.id]`), the consent summary
+ * reads (via `sentSections`), and the server's `SectionId` must mirror exactly
+ * — because two lists drifting (three names server-side against the note's nine)
+ * is how a withheld section could be recorded nowhere and leak. `buildNote` is
+ * held equal to this list, and the server's `SECTION_IDS` is held equal to it,
+ * by `apps/mobile/e2e/review_send.spec.ts`.
+ *
+ * Nine, not the "eight" the issue prose says: the acceptance's own enumeration
+ * names nine (the three carried today plus allergies, pmh, family_social,
+ * measurements, device_health and the deferral marker), and covering only eight
+ * would leave one buildNote section unrepresentable — the very leak this closes.
+ */
+export const NOTE_SECTION_IDS = [
+  "chief_complaint",
+  "hpi",
+  "pmh",
+  "medications",
+  "allergies",
+  "family_social",
+  "measurements",
+  "device_health",
+  "deferred",
+] as const;
+
+export type NoteSectionEmittedId = (typeof NOTE_SECTION_IDS)[number];
+
 export interface NoteSection {
   id: string;
   titleKey: MessageKey;

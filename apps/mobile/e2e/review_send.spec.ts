@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 
 import { en } from "../src/lib/i18n/en";
 import { tr, type MessageKey } from "../src/lib/i18n/tr";
+import { NOTE_SECTION_IDS } from "../src/lib/intake/note";
 
 const MOBILE = join(__dirname, "..");
 const SRC = join(MOBILE, "src");
@@ -291,5 +292,51 @@ describe("no answer, score or section reaches a log", () => {
     for (const name of [REVIEW, CSAT_PROMPT, CSAT_LIB, SHARE_LIB]) {
       expect(code(name), name).not.toMatch(/console\.(log|info|warn|error|debug)/);
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* 9. INT-304 — one section vocabulary, note builder ↔ server scope     */
+/* ------------------------------------------------------------------ */
+
+/** The server's `SectionId` literal, parsed from the FastAPI schema source. */
+function serverSectionIds(): string[] {
+  const schemaPath = join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "services",
+    "api",
+    "src",
+    "intake_api",
+    "schemas.py",
+  );
+  const src = readFileSync(schemaPath, "utf8");
+  const block = src.match(/SectionId = Literal\[([\s\S]*?)\]/);
+  expect(block, "SectionId Literal not found in services/api schemas.py").not.toBeNull();
+  return [...block![1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+}
+
+describe("the share scope covers every section the note emits", () => {
+  it("declares the full set as one vocabulary with no drift or duplication", () => {
+    expect(NOTE_SECTION_IDS.length).toBe(9);
+    expect(new Set(NOTE_SECTION_IDS).size).toBe(NOTE_SECTION_IDS.length);
+  });
+
+  it("keeps NOTE_SECTION_IDS equal to the ids buildNote actually emits", () => {
+    // Every `id: "..."` in note.ts is a section buildNote pushes; the declared
+    // vocabulary must be exactly that set, or the summary and scope UI would key
+    // on a section the note never produces (or miss one it does).
+    const emitted = new Set(
+      [...file("src/lib/intake/note.ts").matchAll(/\bid:\s*"([a-z_]+)"/g)].map((m) => m[1]),
+    );
+    expect(emitted).toEqual(new Set(NOTE_SECTION_IDS));
+  });
+
+  it("mirrors the server-side SectionId exactly, in note order (02 §5.4)", () => {
+    // The consent summary a patient reads before Gönder is the set the server
+    // scope check enforces afterwards — so the two lists must be identical.
+    expect(serverSectionIds()).toEqual([...NOTE_SECTION_IDS]);
   });
 });

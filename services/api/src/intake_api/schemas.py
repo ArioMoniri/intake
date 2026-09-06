@@ -1,9 +1,16 @@
 """Request/response bodies (INT-197/134), pydantic v2, validated at the boundary.
 
-The note shape mirrors the app's ``buildNote`` exactly: the closed section
-set {chief_complaint, hpi, medications} with per-section share scopes
-(scope-off excludes a section from what is SENT, never from what the patient
-sees — 02 §5.1). Visit creation mirrors ``validateNewVisit`` and its reason
+The note shape mirrors the app's ``buildNote`` exactly: the closed section set
+``SECTION_IDS`` — the nine ids ``buildNote`` emits — with per-section share
+scopes (scope-off excludes a section from what is SENT, never from what the
+patient sees — 02 §5.1). Until INT-304 this named only three of them
+(chief_complaint, hpi, medications), so a patient who scoped ``allergies`` off
+had no field to record that choice in and the withheld section could leak once
+the pipeline was wired; ``SectionId`` now spans every section the note emits
+and ``SECTION_IDS`` derives from that ONE declaration rather than restating it
+(apps/mobile note.ts ``NOTE_SECTION_IDS`` is the same set, held in parity by
+``apps/mobile/e2e/review_send.spec.ts``). Visit creation mirrors
+``validateNewVisit`` and its reason
 codes; the calendar check here is stricter on purpose (the server is the
 boundary of record). Since INT-134 a visit is created against the branch
 TAXONOMY (files/09 §1): ``branch_id`` + ``visit_type`` with the department
@@ -24,7 +31,7 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from clinical_schemas.visit_time import (
     ATTRIBUTED_SOURCES,
@@ -59,6 +66,7 @@ __all__ = [
     "NotePut",
     "NoteSection",
     "ProfileOut",
+    "SECTION_IDS",
     "SectionId",
     "VisitCreate",
     "VisitOut",
@@ -66,7 +74,25 @@ __all__ = [
     "validated_new_visit",
 ]
 
-SectionId = Literal["chief_complaint", "hpi", "medications"]
+# The full section vocabulary the app's ``buildNote`` emits, in note order
+# (INT-304). ONE declaration: ``SECTION_IDS`` derives from this ``Literal`` via
+# ``get_args`` so the runtime tuple can never drift from the type, and the app's
+# ``NOTE_SECTION_IDS`` is held equal to it by review_send.spec.ts. Every id here
+# is a share-scope unit the patient can toggle off; nothing the note can produce
+# is unrepresentable, so no scoped-off section can leak for want of a field.
+SectionId = Literal[
+    "chief_complaint",
+    "hpi",
+    "pmh",
+    "medications",
+    "allergies",
+    "family_social",
+    "measurements",
+    "device_health",
+    "deferred",
+]
+
+SECTION_IDS: tuple[SectionId, ...] = get_args(SectionId)
 
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
@@ -88,7 +114,7 @@ class NoteBody(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    sections: list[NoteSection] = Field(min_length=1, max_length=3)
+    sections: list[NoteSection] = Field(min_length=1, max_length=len(SECTION_IDS))
     scopes: dict[SectionId, bool] = Field(default_factory=dict)
 
     @field_validator("sections")
@@ -101,6 +127,14 @@ class NoteBody(BaseModel):
 
     def shared_section_ids(self) -> list[str]:
         return [s.id for s in self.sections if self.scopes.get(s.id, True)]
+
+    def withheld_section_ids(self) -> list[str]:
+        """The sections the patient scoped OFF — recorded affirmatively so the
+        withholding is a fact in the share consent scope, not merely an absence
+        (INT-304, invariant 4). ``shared`` and ``withheld`` partition the note's
+        sections, so a section is served only when it is explicitly in the
+        grant (fail-closed)."""
+        return [s.id for s in self.sections if not self.scopes.get(s.id, True)]
 
 
 class NotePut(NoteBody):
