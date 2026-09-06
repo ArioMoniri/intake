@@ -300,14 +300,22 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   PHI path ↔ any vendor adapter.
 - **Threats (STRIDE/LINDDUN):** [T] weight substitution where a revision is not pinned;
   [Nc] a non-commercial or unverified licence on the PHI path; [I/Dd] a dev-only cloud
-  adapter reachable from production.
+  adapter reachable from production; [Nr] (INT-221) a `tr-residency` tenant's vendor-free
+  posture asserted without proof, or a fabricated Genelge 2019/12 attestation authored by a
+  process rather than counsel.
 - **Controls (files/10):** §5 LLM03 — weights pinned by `model_id@revision + sha256`,
   mirrored internally, prompts versioned and signed; CLAUDE.md invariant 19 — licences
   verified from the raw LICENSE blob with `licence_verified_at`; the `anthropic|openai|google`
-  adapters are mock/dev only and blocked on the PHI path by the egress allow-list.
-- **Signals:** per-model probe status (§6) lands with INT-022 and INT-183.
+  adapters are mock/dev only and blocked on the PHI path by the egress allow-list. **(INT-221)**
+  a residency attestation that cross-checks the two committed sources — every `phi_path` row
+  `self_hostable: true` (registry) and `assert_dev_only_vendors` (egress) — and fails closed;
+  the Genelge 2019/12 attestation ships with its legal statement empty and refusing to render
+  until counsel signs (`awaiting-human` HB-L11), never authored by a process.
+- **Signals:** per-model probe status (§6) lands with INT-022 and INT-183; egress denials and
+  allow-list changes (INT-018/INT-192).
 - **Tests:** registry and provenance checks land with INT-022/INT-183; egress blocking with
-  INT-018.
+  INT-018; residency attestation + USVS conformance with INT-221
+  (`tests/legal/test_residency_attestation.py`, `tests/legal/test_usvs_conformance.py`).
 
 ## `tenants` — tenant isolation and provisioning
 

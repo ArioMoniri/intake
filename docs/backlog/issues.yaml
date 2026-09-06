@@ -2920,10 +2920,22 @@
   title: "Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance"
   depends_on: [INT-183, INT-162]
   labels: [area:legal, risk:legal]
-  status: todo
+  status: awaiting-human
+  # NOTE 6 Sep 2026: delivered=PARTIAL. All three acceptance clauses ship as
+  # mechanism: (1) the registry assertion proves tr-residency tenants
+  # vendor-free on the PHI path (intake_probes.residency.attest_residency over
+  # observability/registry.yaml + infra/security/egress-allowlist.yaml, both
+  # fail-closed); (2) the DDO Rehber (Bilgi ve İletişim Güvenliği Rehberi)
+  # control mapping doc; (3) the USVS conformance suite. The Genelge 2019/12
+  # residency ATTESTATION is a legal statement to the Ministry no agent may
+  # author (CLAUDE.md stop-and-ask): the mechanism/gate is built with the legal
+  # content EMPTY and refusing to render (AttestationUnsigned) until counsel
+  # answers whether the posture is legally attestable under KVKK Art. 9. Hence
+  # awaiting-human. No new HB/ADR minted — HB-L11 referenced (blockers.md).
   acceptance:
     - "tr-residency tenants provably vendor-free on PHI path (registry assertion); Rehber control mapping doc; USVS conformance tests"
   tests: [tests/legal/test_residency_attestation.py]
+  evidence: docs/evidence/INT-221.md
   legal: "G2019-12,DDO,USVS"
   sec_row: "self-hosting"
 - id: INT-222
