@@ -1648,8 +1648,9 @@ metrics:
   # --- INT-172: the Inspector -> Architect pipeline itself. files/10 §9's
   # learning row names "proposals, rejections, k-anonymity refusals,
   # rollbacks" as the console signals; the first two are here, the third is
-  # analytics_view_refused_total above, and rollbacks arrive with INT-173's
-  # canary controller. Label sets stay minimal for INT-171's reason: a
+  # analytics_view_refused_total above, and the fourth is
+  # learning_rollbacks_total below (INT-173's canary controller). Label sets
+  # stay minimal for INT-171's reason: a
   # proposal labelled with the pack or the clinic it concerns would publish
   # that cohort to Prometheus, which retains it (inv. 6). `target` is a class
   # name from intake_learning.proposals.PROPOSAL_TARGETS — a closed set of
@@ -1694,6 +1695,26 @@ metrics:
       evidence-bundle completeness; this is it. A bundle is incomplete while
       any artefact in intake_learning.evidence.REQUIRED_CHECKS is unavailable,
       and an incomplete bundle cannot open a pull request.
+  # --- INT-173: the canary/rollback controller. files/10 §9's learning row
+  # names "rollbacks" as a console signal and files/09 §4 sets the guardrails a
+  # staged rollout reverts on (acceptance -5 pts, safety blocks +50 %,
+  # completion -5 pts, CSAT -0.3). The controller (intake_learning.canary) is
+  # pure rule and applies nothing; this counter is the only trace it leaves.
+  # Labels stay minimal for INT-171's reason: `guardrail` is the closed
+  # intake_learning.canary.Guardrail set and `stage` is one of 5/25/100 — never
+  # a pack, a clinic or a cohort (inv. 6).
+  - name: learning_rollbacks_total
+    type: counter
+    labels: [guardrail, stage]
+    owner: learning
+    unit: "count"
+    description: >-
+      Canary rollouts the INT-173 controller reverted, by the guardrail that
+      moved (acceptance, safety_blocks, completion, csat, or missing_input when
+      a KPI could not be read and the rollout failed closed) and the canary
+      stage it moved at (5, 25, 100). files/10 §9's learning-row "rollbacks"
+      signal; read against learning_proposals_total it is how often an approved
+      proposal did not survive its own canary.
   # --- INT-170: Loop 1, the per-patient learning store. files/08 §4 names no
   # id for it (group L is prose), so the names are ours — the INT-171/INT-172
   # precedent. Label sets are minimal for the reason those two record: a label
