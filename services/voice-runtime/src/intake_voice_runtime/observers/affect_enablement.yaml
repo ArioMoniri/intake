@@ -1,0 +1,37 @@
+# affect_enablement.yaml — the Turkish clinical evaluations that would let the
+# `affect` lane (INT-111; files/03 §4.7.5, §4.9.1 row 14) be enabled by default.
+#
+# THIS FILE IS EMPTY ON PURPOSE, AND IT MUST STAY EMPTY UNTIL A HUMAN FILLS IT.
+#
+# The lane is DISABLED BY DEFAULT and FAILS CLOSED. `admit_affect` refuses every
+# model whose weights have no evaluation recorded here, and the lane cannot be
+# built without an admission — so with zero rows there is no affect lane at all.
+#
+# What is blocking, and who unblocks it:
+#
+#   HB-C11  A held-out, labelled Turkish clinical affect corpus does not exist.
+#           Row 14's model is licence-clean (`ASLP-lab/Emotion2Vec-S`,
+#           Apache-2.0, or an ordinal head on WavLM-large / XLS-R-300m), but
+#           NO open SER model has a published Turkish evaluation (files/00 §5
+#           Q5), and cross-lingual SER transfer is not a property we may assume.
+#           The acceptance is explicit: the eval set is a REQUIRED deliverable,
+#           checked in before the lane is enabled by default. Authoring and
+#           labelling the corpus, then signing off the evaluation, is a
+#           clinical decision (label `approval:human-clinical`) no agent may
+#           make (CLAUDE.md "never invent a value"; HUMAN_BLOCKERS.md rule 1).
+#
+# NO ACCURACY FIGURE LIVES HERE (invariant 20). A row records only which model
+# was evaluated, the named corpus, the date, and the evidence reference of the
+# clinician sign-off. The measurement itself lives in docs/evidence/ with a date
+# and a named corpus, described as a measurement — never as a property here.
+#
+# Shape of a row, for whoever fills this in:
+#
+#   evaluations:
+#     - model_ref: <model_id@revision>   # the exact weights that were evaluated
+#       corpus: <id-shaped>              # the named held-out Turkish corpus
+#       evaluated_on: YYYY-MM-DD
+#       sign_off: <evidence ref>         # e.g. docs/evidence/INT-111.md#sign-off
+#                                        # the clinician sign-off; never a number
+
+evaluations: []
