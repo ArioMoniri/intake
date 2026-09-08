@@ -1835,6 +1835,17 @@ metrics:
       a receiver can choose. The precise code still lands in the receipt's
       outcome_code, which nothing indexes. A failed exchange never produces an
       unresolved receipt, because no clinical byte was ever in flight.
+  - name: connector_inbound_messages_total
+    type: counter
+    labels: [source, outcome]
+    owner: platform
+    unit: "count"
+    description: >-
+      Inbound hospital-feed messages ingested for a registered source (INT-162),
+      by settled outcome. Emitted by intake_connectors.metrics; the series only
+      moves once a feed is contracted, exactly as the push series does. Both
+      labels are closed sets — a registry source id and OUR outcome code — so
+      nothing a sender or a patient supplies can widen the cardinality (invariant 6).
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
