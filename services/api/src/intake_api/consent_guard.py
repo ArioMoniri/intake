@@ -65,6 +65,7 @@ __all__ = [
     "REFERENCE_DATA_PREFIX",
     "ConsentGuard",
     "ConsentPolicy",
+    "DEV_VOICE_PREFIX",
     "EMBED_PREFIX",
     "administrative_action",
     "administrative_action_routes",
@@ -72,6 +73,8 @@ __all__ = [
     "consent_management_routes",
     "data_subject_right",
     "data_subject_right_routes",
+    "dev_voice_scripted",
+    "dev_voice_scripted_routes",
     "doctor_link_redemption",
     "doctor_link_redemption_routes",
     "ensure_age_actor",
@@ -328,6 +331,32 @@ class PartnerEmbedDeclaration:
         return
 
 
+class DevVoiceScriptedDeclaration:
+    """Explicit declaration that a route is the DEV-lane on-demand synthesis of
+    a SCRIPTED question clip in George's voice (ADR-028 on-demand variant,
+    ``intake_api.dev_voice``): the body is verbatim scripted ``text_tr`` from a
+    compiled pack (invariant 10), never a patient answer and never patient
+    audio, and the route reads and writes no clinical data at all.
+
+    Why it cannot carry a consent scope. Same shape as ``partner_embed`` and the
+    other markers: the caller is the patient's own device asking for the agent's
+    scripted speech, and there is no Vizite data subject whose consent ledger a
+    scope could be checked against — files/06 §2's purposes are about a subject's
+    clinical data, and no clinical datum is read or written here. The
+    scripted-only guarantee is upheld where it can be — the client sends only a
+    nominal ``ScriptedTr`` composed from an ``IntakeQuestion`` — and this route
+    additionally refuses any numeral before the vendor (invariant 22).
+
+    Why it may not stay silent. The scan accepts this marker ONLY under
+    DEV_VOICE_PREFIX (as a path segment, not a substring), so a ``/v1`` data
+    route cannot borrow it to dodge a scope. The route is dev-gated and fails
+    closed (503) when the dev flag or vendor key is absent.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 class ReferenceDataDeclaration:
     """Explicit declaration that a route serves REFERENCE DATA only
     (INT-134): a versioned projection of a committed artefact — the branch
@@ -418,6 +447,10 @@ ADMIN_PREFIX = "/admin"
 #: The only prefix where a partner-embed declaration is accepted (INT-320).
 EMBED_PREFIX = "/embed"
 
+#: The only prefix where a dev-voice scripted declaration is accepted (ADR-028
+#: on-demand variant). Dev lane only; the route is absent from every /v1 surface.
+DEV_VOICE_PREFIX = "/dev/voice"
+
 
 def data_subject_right() -> params.Depends:
     """Declare a route as a statutory data-subject right (see
@@ -457,6 +490,13 @@ def partner_embed() -> params.Depends:
     """Declare a route as the partner embed handshake (see
     PartnerEmbedDeclaration)."""
     dependency: params.Depends = Depends(PartnerEmbedDeclaration())
+    return dependency
+
+
+def dev_voice_scripted() -> params.Depends:
+    """Declare a route as the dev-lane scripted-clip synthesis (see
+    DevVoiceScriptedDeclaration)."""
+    dependency: params.Depends = Depends(DevVoiceScriptedDeclaration())
     return dependency
 
 
@@ -550,6 +590,13 @@ def _is_administrative_action(route: APIRoute) -> bool:
 def _is_partner_embed(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, PartnerEmbedDeclaration)
+        for dependency in route.dependencies
+    )
+
+
+def _is_dev_voice_scripted(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, DevVoiceScriptedDeclaration)
         for dependency in route.dependencies
     )
 
@@ -674,6 +721,18 @@ def partner_embed_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def dev_voice_scripted_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the dev-voice scripted declaration, for the pin test
+    (ADR-028 on-demand) — reported wherever it appears; whether the scan ACCEPTS
+    it is unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_dev_voice_scripted(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def unguarded_data_routes(app: FastAPI) -> list[str]:
     """Every data route that declares neither consent scopes nor a valid
     marker — the scan test asserts this list is empty, so a new route cannot
@@ -693,8 +752,11 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     door, discharged under the audit obligation and audited unconditionally)
     and partner_embed under EMBED_PREFIX (INT-320, the white-label handshake
     that mints and launches a signed ticket before any Vizite subject exists
-    and reads no clinical data). Any marker outside its prefix does NOT count
-    as a declaration (the route is reported here instead)."""
+    and reads no clinical data) and dev_voice_scripted under DEV_VOICE_PREFIX
+    (ADR-028 on-demand variant, the dev-lane synthesis of a verbatim scripted
+    question clip that reads no clinical data and never touches patient audio).
+    Any marker outside its prefix does NOT count as a declaration (the route is
+    reported here instead)."""
     missing: list[str] = []
     for path, route in _iter_api_routes(list(app.routes)):
         if path in META_ROUTES:
@@ -714,6 +776,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_administrative_action(route) and _under_prefix(path, ADMIN_PREFIX):
             continue
         if _is_partner_embed(route) and _under_prefix(path, EMBED_PREFIX):
+            continue
+        if _is_dev_voice_scripted(route) and _under_prefix(path, DEV_VOICE_PREFIX):
             continue
         if _policy_of(route) is None:
             for method in sorted(route.methods or ()):

@@ -1193,7 +1193,22 @@
   title: "affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set"
   depends_on: [INT-110]
   labels: [area:lanes, approval:human-clinical]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-111.md
+  # MECHANISM SHIPPED, CONTENT AWAITING A HUMAN (delivered: partial, 8 Sep 2026).
+  # The lane mechanism is built, tested and fails closed (tests/lanes/
+  # test_affect_contract.py, 27 tests): the SER port (SERModel — no network at
+  # type level, no implementation bundled), the closed AffectInference (exactly
+  # pace/break_offer/confirm_by_card + confidence — no field for modality/repeat/
+  # third_party, a label, a score or an accent), reduce_interaction (three M1
+  # fields, or none below the 0.6 gate), the per-section aggregate, and the
+  # enablement gate (admit_affect over affect_enablement.yaml, which ships EMPTY).
+  # Disabled by default: no AffectLane can be built until a checked-in Turkish
+  # evaluation vouches for a model's weights. Two things are gated, both HB-C11:
+  # the SER model (row 14's weights are licence-clean but NO open SER model has a
+  # published Turkish evaluation — files/00 §5 Q5) and the held-out Turkish
+  # clinical eval corpus (label approval:human-clinical). No SER model, corpus or
+  # affect-accuracy figure is invented (invariants 17, 20). See blockers.md.
   # CORRECTED 27 Aug 2026, not deleted. The old acceptance named an Inworld vendor adapter for the
   # cascade profile. D2 already ruled that the open SER path runs in ALL profiles, and 00 §0b removes
   # the vendor socket entirely - so there is one implementation, in-process on the agent worker,

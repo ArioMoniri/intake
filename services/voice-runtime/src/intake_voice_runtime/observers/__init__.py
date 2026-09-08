@@ -27,6 +27,25 @@ filled with something that would have to be unpicked.
 
 from __future__ import annotations
 
+from intake_voice_runtime.observers.affect import (
+    AFFECT_CONFIDENCE_GATE,
+    AffectAdmission,
+    AffectEnablementError,
+    AffectEnablementRegistry,
+    AffectEnablementRegistryError,
+    AffectEvaluation,
+    AffectEvalUnavailableError,
+    AffectInference,
+    AffectLane,
+    AffectModelMismatchError,
+    SERModel,
+    admit_affect,
+    build_affect_lane,
+    default_affect_enablement_path,
+    load_affect_enablement,
+    load_default_affect_enablement,
+    reduce_interaction,
+)
 from intake_voice_runtime.observers.consent import (
     LANE_CONSENT_SCOPE,
     LaneConsentUndeclared,
@@ -80,6 +99,7 @@ from intake_voice_runtime.observers.transcript import (
 )
 
 __all__ = [
+    "AFFECT_CONFIDENCE_GATE",
     "INTENDED_PURPOSE",
     "LANE_CONSENT_SCOPE",
     "LANE_SPECS",
@@ -87,6 +107,15 @@ __all__ = [
     "CRISIS_FAMILY",
     "AcousticAdmission",
     "AcousticAssertion",
+    "AffectAdmission",
+    "AffectEnablementError",
+    "AffectEnablementRegistry",
+    "AffectEnablementRegistryError",
+    "AffectEvalUnavailableError",
+    "AffectEvaluation",
+    "AffectInference",
+    "AffectLane",
+    "AffectModelMismatchError",
     "ApprovalDateMismatchError",
     "CrisisBypass",
     "CrisisLexicon",
@@ -110,6 +139,7 @@ __all__ = [
     "ProsodyAggregate",
     "ProsodyStatistics",
     "ProtocolAmendedError",
+    "SERModel",
     "SealedDestinationRefused",
     "SealedResearchStore",
     "SectionId",
@@ -118,8 +148,14 @@ __all__ = [
     "TranscriptSegment",
     "Word",
     "admit_acoustic",
+    "admit_affect",
+    "build_affect_lane",
     "consented_lanes",
     "decode_segment",
+    "default_affect_enablement_path",
     "encode_segment",
+    "load_affect_enablement",
+    "load_default_affect_enablement",
+    "reduce_interaction",
     "turkish_syllables",
 ]
