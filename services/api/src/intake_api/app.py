@@ -40,6 +40,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from intake_api import (
     admin,
     consents,
+    dev_voice,
     doctor_link,
     documents,
     dsar,
@@ -58,6 +59,7 @@ from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
+from intake_api.dev_voice import GeorgeWiring, george_wiring_from_env
 from intake_api.doctor_link.common import NOINDEX
 from intake_api.doctor_link.service import (
     DoctorLinkService,
@@ -110,6 +112,10 @@ class ApiWiring:
     # INT-320: the partner white-label embed handshake (ADR-028). None =
     # unconfigured, so every /embed route answers 503 (fail closed).
     embed: EmbedWiring | None = None
+    # ADR-028 (on-demand variant): the DEV George clip route. None =
+    # unconfigured (no dev flag / no key), so /dev/voice/george-clip answers
+    # 503 and the mobile falls back to the self-hosted TTS (fail closed).
+    george: GeorgeWiring | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -309,6 +315,7 @@ def wiring_from_env() -> ApiWiring:
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
+        george=george_wiring_from_env(),
     )
 
 
@@ -347,6 +354,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.state.api = state
     app.state.settings = w.settings
     app.state.admin = w.admin
+    # ADR-028 (on-demand): dev George clip route reads this; None = fail closed.
+    app.state.george = w.george
 
     app.add_middleware(SecurityHeadersMiddleware)
     mount_http_metrics(app, "api")
@@ -431,4 +440,5 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(learned.router)
     app.include_router(admin.router)
     app.include_router(embed.router)
+    app.include_router(dev_voice.router)
     return app

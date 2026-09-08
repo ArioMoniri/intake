@@ -10,6 +10,10 @@ dependencies = [
     "intake-platform",
     "intake-probes",
     "intake-protocols",
+    # ADR-028 (on-demand variant): the dev George clip route reuses the
+    # ElevenLabs clip-gen adapter + numeral guard rather than duplicating a
+    # security-sensitive vendor adapter (services/api/.../dev_voice.py).
+    "intake-voice-clips",
     "psycopg[binary]>=3.2",
     "pydantic>=2.8",
     "sqlalchemy[asyncio]>=2.0.36",
@@ -28,6 +32,7 @@ intake-platform = { workspace = true }
 # it matters (invariant 13).
 intake-probes = { workspace = true }
 intake-protocols = { workspace = true }
+intake-voice-clips = { workspace = true }
 
 [tool.intake]
 health = "intake_api.app:create_app"
