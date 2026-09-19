@@ -460,6 +460,22 @@ metrics:
     target: ">= 0.6 in fast mode"
     status: planned
     description: Scripted-clip cache hit ratio.
+  - name: dev_george_clip_requests_total
+    type: counter
+    labels: [result]
+    owner: voice-runtime
+    unit: "count"
+    status: planned
+    description: >-
+      On-demand ElevenLabs (George) scripted-question clip-cache requests on the
+      DEV lane, by result (result=hit|miss). ADR-028 / services/api dev_voice:
+      a `hit` serves a sha256(text_tr)-addressed cached clip and dials no vendor;
+      a `miss` synthesises once and caches it, so `miss` is the synth count and
+      the vendor-cost proxy, and hit/(hit+miss) is the cache hit ratio. Dev lane
+      only — invariant 19 keeps ElevenLabs off the PHI path — hence never a
+      per-turn tenant/profile/branch series; `result` is a closed {hit,miss}
+      label. Planned: the route reports the result today via the X-George-Cache
+      response header and constructs no Prometheus family yet.
   - name: voice_backchannel_count
     id: voice.backchannel_count
     type: counter

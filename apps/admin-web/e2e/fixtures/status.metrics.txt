@@ -1,0 +1,26 @@
+# HELP http_requests_total HTTP requests handled, by service, method, route template and status code.
+# TYPE http_requests_total counter
+http_requests_total{service="api",method="GET",route="/healthz",status="200"} 1240
+http_requests_total{service="api",method="GET",route="/readyz",status="200"} 1180
+http_requests_total{service="api",method="GET",route="/version",status="200"} 88
+http_requests_total{service="api",method="POST",route="/visits/{visit_id}/utterance",status="200"} 342
+http_requests_total{service="api",method="POST",route="/visits/{visit_id}/utterance",status="500"} 3
+# HELP http_request_duration_seconds HTTP request duration in seconds, by service, method and route template.
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{service="api",method="GET",route="/healthz",le="0.005"} 1200
+http_request_duration_seconds_bucket{service="api",method="GET",route="/healthz",le="0.5"} 1239
+http_request_duration_seconds_bucket{service="api",method="GET",route="/healthz",le="+Inf"} 1240
+http_request_duration_seconds_count{service="api",method="GET",route="/healthz"} 1240
+http_request_duration_seconds_sum{service="api",method="GET",route="/healthz"} 3.1
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 1.8874368e+08
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.758226400e+09
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 42.0
+# HELP python_info Python platform information.
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="12",patchlevel="6",version="3.12.6"} 1.0

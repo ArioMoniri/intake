@@ -48,7 +48,7 @@ OPT_PATH: Final = Path("packages/protocols/openehr/previsit_intake.v1.opt")
 """The committed template (files/12 §1 directory layout), repo-root relative."""
 
 OPT_TEMPLATE_ID: Final = "previsit_intake.v1"
-OPT_SHA256: Final = "c72247abe50eb675629af368653ee1f174ef4d0efeb0df8726ceba6b8b33dcfa"
+OPT_SHA256: Final = "8194139f2dfd2a7cc8899fea0265231c23b2bc083b006e116b3eaa3262e1fb87"
 """sha256 of :data:`OPT_PATH`. Bumping this is the review surface for a
 re-authored template (files/12 §8.1)."""
 

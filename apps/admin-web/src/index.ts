@@ -15,7 +15,9 @@
  * the branch/profile/clinic filter mechanism, and the SDS-01 style export),
  * and the Security module (files/08 §3, §7; files/10 §7, §9 — Wazuh/Falco/
  * CrowdSec summaries, egress denials, audit-chain status, and the pen-test
- * findings tracker).
+ * findings tracker), and the live service-status read path (INT-181 seed —
+ * the `/metrics` scrape projected into a per-service status + gauge surface,
+ * the first module that reads live telemetry rather than a recorded composite).
  */
 export {
   InconsistentReleaseState,
@@ -193,3 +195,15 @@ export {
   type SiemPresentation,
   type SlaRow,
 } from "./security/module";
+export {
+  fetchServiceStatus,
+  ForbiddenMetricLabel,
+  PhiLabelPresent,
+  PHI_RISK_LABEL_NAMES,
+  renderServiceStatus,
+  type FetchLike,
+  type Gauge,
+  type ServiceRow,
+  type StatusPresentation,
+} from "./status/module";
+export { parsePrometheusText, type Sample } from "./status/prometheus";
