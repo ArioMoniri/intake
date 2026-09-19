@@ -133,6 +133,61 @@ class DevLogDeliveryAdapter:
         return receipt
 
 
+class OtpDeliveryError(Exception):
+    """The SMS vendor was unreachable or refused — the OTP tier fails closed
+    (never claims a code was delivered). Carries no code, phone or vendor body."""
+
+
+class TwilioDeliveryAdapter:
+    """INT-131 vendor SMS seam over Twilio's Messages API. Sends the code to the
+    patient's phone and records the vendor delivery id ONLY (invariant 6 — never
+    the code, the phone, or the message body). The number reaches the SMS
+    processor by function; that recipient must carry its KVKK data-inventory
+    annotation and a signed DPA (invariant 18 — legal review, not code)."""
+
+    def __init__(
+        self, *, account_sid: str, auth_token: str, sender: str, timeout_s: float = 8.0
+    ) -> None:
+        self._url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        self._auth = (account_sid, auth_token)
+        self._sender = sender
+        self._timeout = timeout_s
+
+    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+        import httpx
+
+        body = f"Önvizit doğrulama kodunuz: {code}. Bu kodu kimseyle paylaşmayın."
+        try:
+            resp = httpx.post(
+                self._url,
+                auth=self._auth,
+                data={"To": phone_e164, "From": self._sender, "Body": body},
+                timeout=self._timeout,
+            )
+        except httpx.HTTPError as err:
+            raise OtpDeliveryError("sms vendor unreachable") from err
+        if resp.status_code >= 300:
+            # the vendor's error body may echo the phone — never log it
+            raise OtpDeliveryError(f"sms vendor rejected (status {resp.status_code})")
+        sid = str(resp.json().get("sid") or "")
+        logger.info("otp delivery event recorded (twilio) delivery_id=%s", sid or "unknown")
+        return DeliveryReceipt(delivery_id=sid or uuid.uuid4().hex)
+
+
+def twilio_delivery_from_env() -> TwilioDeliveryAdapter | None:
+    """The Twilio SMS adapter, or None (→ dev event-logger) when unconfigured.
+    ``TWILIO_FROM`` is a Twilio phone number in E.164 or a Messaging Service SID.
+    Keys are read from the environment only, never logged (files/10 §2)."""
+    import os
+
+    sid = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
+    token = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
+    sender = os.environ.get("TWILIO_FROM", "").strip()
+    if not (sid and token and sender):
+        return None
+    return TwilioDeliveryAdapter(account_sid=sid, auth_token=token, sender=sender)
+
+
 @dataclass
 class AuthWiring:
     """Everything the OTP tier needs, injectable for tests; the env path is

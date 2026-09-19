@@ -186,7 +186,7 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
         FailClosedAttestationVerifier,
     )
     from intake_api.carrier_geo import carrier_geo_from_path
-    from intake_api.otp import DevLogDeliveryAdapter
+    from intake_api.otp import DevLogDeliveryAdapter, twilio_delivery_from_env
 
     return AuthWiring(
         redis_client=Redis.from_url(settings.redis_url),
@@ -194,7 +194,7 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
             keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
             active_key_id=settings.tokenization_key_id,
         ),
-        delivery=DevLogDeliveryAdapter(),
+        delivery=twilio_delivery_from_env() or DevLogDeliveryAdapter(),
         attestation=(
             DevStructuralAttestationVerifier()
             if settings.dev_allow_unattested
