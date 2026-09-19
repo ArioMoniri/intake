@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Vizite",
+    "name": "Önvizit",
     "slug": "intake-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -13,7 +13,16 @@
     },
     "ios": {
       "icon": "./assets/expo.icon",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ariomoniri.intakemobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Önvizit, şikâyetlerinizi sesli olarak paylaşabilmeniz için mikrofonu yalnızca siz konuşurken kullanır.",
+        "NSHealthShareUsageDescription": "Önvizit, hekiminize ileteceğiniz ön görüşme notuna eklemek üzere sağlık verilerinizi (örneğin adım, kalp hızı, uyku) yalnızca sizin onayınızla okur.",
+        "NSHealthUpdateUsageDescription": "Önvizit sağlık verilerinizi yalnızca sizin açık onayınızla ve isteğiniz üzerine günceller.",
+        "NSCameraUsageDescription": "Önvizit, belge ya da rapor fotoğrafı eklemek isterseniz kamerayı yalnızca sizin isteğinizle kullanır.",
+        "NSLocalNetworkUsageDescription": "Önvizit, ses hizmetlerine bağlanmak için yerel ağınızı kullanabilir."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +40,9 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -79,13 +90,36 @@
       "reactCompiler": true
     },
     "extra": {
-      "asrHosts": ["127.0.0.1", "172.20.10.3"],
+      "asrHosts": [
+        "127.0.0.1",
+        "172.20.10.3",
+        "127.0.0.1",
+        "172.20.10.3"
+      ],
       "ttsLanes": [
-        { "id": "voxcpm2", "port": 8805 },
-        { "id": "freya", "port": 8803 }
+        {
+          "id": "voxcpm2",
+          "port": 8805
+        },
+        {
+          "id": "freya",
+          "port": 8803
+        },
+        {
+          "id": "voxcpm2",
+          "port": 8805
+        },
+        {
+          "id": "freya",
+          "port": 8803
+        }
       ],
       "certificatePins": [],
-      "glitchtipDsn": ""
+      "glitchtipDsn": "",
+      "router": {},
+      "eas": {
+        "projectId": "307d4cf2-c447-4855-8110-da59fb5ed170"
+      }
     }
   }
 }
