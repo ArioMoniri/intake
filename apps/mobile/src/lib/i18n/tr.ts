@@ -9,10 +9,10 @@
  * sign-off (invariant 18); here they gate the dev shell.
  */
 export const tr = {
-  "app.name": "Vizite",
+  "app.name": "Önvizit",
   "app.tagline": "Muayeneden önce, anlattıklarınız hekiminize ulaşsın.",
   // [REVIEW] fixed non-diagnosis line, 06 §7 family
-  "app.disclaimer": "Vizite tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
+  "app.disclaimer": "Önvizit tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
 
   "tabs.today": "Bugün",
   "tabs.visits": "Vizitlerim",
@@ -21,7 +21,7 @@ export const tr = {
   "tabs.me": "Profilim",
 
   "welcome.body":
-    "Vizite, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
+    "Önvizit, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
   "welcome.devSignIn": "Deneme hesabıyla girin",
   "welcome.devNote":
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
@@ -108,19 +108,6 @@ export const tr = {
   "visits.type.teleconsult": "Uzaktan görüşme",
   "visits.detail.noteStatus": "Not durumu",
   "visits.detail.notStarted": "Görüşme henüz başlamadı.",
-
-  // Takvim (calendar) görünümü + Geçmiş (past) listesi (02 §4). Ay/gün adları
-  // Intl'den gelir (components/VisitCard.tsx ile aynı kaynak); burada yalnızca
-  // ekranın kendi metinleri var.
-  "visits.view.label": "Görünüm",
-  "visits.view.list": "Liste",
-  "visits.view.calendar": "Takvim",
-  "visits.pastEmpty": "Geçmiş vizitiniz yok.",
-  "visits.calendar.prevMonth": "Önceki ay",
-  "visits.calendar.nextMonth": "Sonraki ay",
-  "visits.calendar.hasVisits": "vizitiniz var",
-  "visits.calendar.noVisitsOnDay": "Bu gün için vizitiniz yok.",
-  "visits.calendar.monthEmpty": "Bu ayda vizitiniz yok.",
 
   "records.title": "Kayıtlarım",
   "records.synthetic": "Örnek veri — sentetik",
@@ -223,11 +210,11 @@ export const tr = {
   "lang.tr": "Türkçe",
   "lang.en": "English",
   "me.learned": "Hakkımda öğrendikleri",
-  "me.learnedEmpty": "Vizite sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
+  "me.learnedEmpty": "Önvizit sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
   "learned.guide.kicker": "Şeffaflık",
   "learned.guide.title": "Hiçbir şey sessizce öğrenilmez",
   "learned.guide.body":
-    "Vizite sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
+    "Önvizit sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
   // INT-140 — her bilginin nereden geldiği, nerede tutulduğu, kimin gördüğü
   // ve nasıl silineceği. Yeniden onay ziyaret hazırlığında sorulur.
   "learned.shareLabel": "Hekimle paylaşılsın",
@@ -293,7 +280,7 @@ export const tr = {
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
-  "intake.q.complaint": "Bugün sizi buraya getiren şeyi kendi sözlerinizle anlatır mısınız?",
+  "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
   "intake.q.complaint.hint": "Birden fazla seçebilirsiniz.",
   "intake.opt.pain": "Ağrı",
   "intake.opt.fever": "Ateş",
@@ -326,16 +313,16 @@ export const tr = {
   "intake.opt.nausea": "Bulantı",
   "intake.opt.palpitations": "Çarpıntı",
   "intake.opt.none": "Yok",
-  "intake.q.onset": "Şikâyetiniz nasıl başladı?",
+  "intake.q.onset": "Nasıl başladı?",
   "intake.hpi.onset": "Başlangıç",
   "intake.opt.sudden": "Aniden başladı",
   "intake.opt.gradual": "Yavaş yavaş gelişti",
-  "intake.q.severity": "Şikâyetinizin şiddetini nasıl tarif edersiniz?",
+  "intake.q.severity": "Şiddetini nasıl tarif edersiniz?",
   "intake.hpi.severity": "Şiddet",
   "intake.opt.mild": "Hafif",
   "intake.opt.moderate": "Orta",
   "intake.opt.severe": "Şiddetli",
-  "intake.q.side": "Şikâyetiniz hangi tarafta?",
+  "intake.q.side": "Hangi tarafta?",
   "intake.hpi.side": "Taraf",
   "intake.opt.right": "Sağ",
   "intake.opt.left": "Sol",
@@ -490,7 +477,7 @@ export const tr = {
   "intake.opt.vomiting": "Kusma",
   "intake.opt.heartburn": "Göğse doğru yanma ya da ekşime",
   "intake.opt.appetiteLoss": "İştahta azalma",
-  "intake.q.extra": "Eklemek istediğiniz başka bir şey var mı?",
+  "intake.q.extra": "Eklemek istediğiniz bir şey var mı?",
   "intake.q.extra.hint": "İsterseniz boş bırakabilirsiniz.",
   // INT-239 — answer-gated follow-ups. Each asks for a further detail of
   // something the patient already named; none names a condition, a treatment
@@ -584,7 +571,7 @@ export const tr = {
   // The flow length follows the answers, so the progress row counts what is
   // answered and says plainly that more questions may follow (INT-239).
   "intake.progress.answered": "soru yanıtlandı",
-  "intake.progress.grows": "Anlattıklarınıza göre birkaç soru daha sorabiliriz.",
+  "intake.progress.grows": "Yanıtlarınıza göre birkaç soru daha gelebilir.",
   "voice.speakToAdd": "Konuşarak ekleyin",
   "voice.listening": "Dinliyor… durdurmak için dokunun",
   "voice.processing": "Yazıya dökülüyor…",
@@ -631,7 +618,7 @@ export const tr = {
   "dialogue.kicker": "Karşılıklı konuşma",
   "dialogue.entryTitle": "Sizinle konuşarak ilerleyelim",
   "dialogue.entryBody":
-    "Ben Vizite; muayeneden önce sizi kısaca dinlemek istiyorum. Acele yok — dilediğiniz gibi, kendi sözlerinizle anlatabilirsiniz. İstediğiniz an yazarak da devam edebilirsiniz.",
+    "Soruları sesli soracağız, siz de konuşarak yanıtlayın. İstediğiniz an yazarak da devam edebilirsiniz.",
   "dialogue.preparing": "Soru hazırlanıyor…",
   "dialogue.speakingHint": "Araya girmek için dokunun",
   "dialogue.listeningHint": "Bitirince dokunun",
@@ -733,7 +720,7 @@ export const tr = {
   // (invariant 18) ve hiçbir zaman bu kataloğa yazılmaz.
   "consent.entry.sub": "Hangi izni ne için verdiğinizi görün ve yönetin.",
   "consent.firstRun.body":
-    "Vizite'de her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
+    "Önvizit'te her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
   "consent.firstRun.continue": "Devam edin",
   "consent.group.core": "Hizmet",
   "consent.group.voice": "Sesli görüşme",
@@ -768,7 +755,7 @@ export const tr = {
     "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
   "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
   "consent.basis.service":
-    "Bu, hizmetin kendisidir; ayrı bir düğmesi yoktur. Vizite'yi kullanmayı bırakırsanız sona erer.",
+    "Bu, hizmetin kendisidir; ayrı bir düğmesi yoktur. Önvizit'i kullanmayı bırakırsanız sona erer.",
   "consent.basis.explicit":
     "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
   "consent.basis.learningPersonal":
@@ -789,8 +776,6 @@ export const tr = {
   "consent.detail.withdraw": "İzni geri çekin",
   "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
   "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
-  "consent.inline.details": "Ayrıntılı görünüm",
-  "consent.sweep.start": "Kalan izinleri tek tek gözden geçirin",
   "consent.queue.note":
     "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
 
@@ -831,16 +816,12 @@ export const tr = {
   "a11y.backHint": "Önceki ekrana dönmek için iki kez dokunun.",
   "a11y.closeHint": "Kapatmak için iki kez dokunun.",
   "a11y.selectHint": "Seçmek için iki kez dokunun.",
-  "a11y.visits.dayHint": "O günün vizitlerini görmek için iki kez dokunun.",
   "a11y.confirmHint": "Onaylamak için iki kez dokunun.",
   "a11y.shareHint": "Bu bölümün paylaşımını açıp kapatmak için iki kez dokunun.",
   "a11y.typedHint": "Konuşmak yerine yazarak devam etmek için iki kez dokunun.",
   "a11y.otp.digit": "Doğrulama kodu hanesi",
-  "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açıp kapatmak için iki kez dokunun.",
+  "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açmak için iki kez dokunun.",
   "a11y.consent.switchHint": "Bu izni açıp kapatmak için iki kez dokunun.",
-  "a11y.consent.grantHint": "Yukarıdaki izin metnini onaylar.",
-  "a11y.consent.sweepHint": "Kapalı izinleri sırayla açar; her birinin metnini önce gösterir.",
-  "a11y.consent.detailsHint": "İznin tüm metnini ayrı bir ekranda açar.",
   // INT-140 — ipuçları eylemin SONUCUNU söyler (iOS HIG): ekran okuyucu
   // kullanan hasta, dokunmadan önce ne olacağını bilir.
   "a11y.data.exportHint": "İki kez dokunmak kopya isteğinizi gönderir.",
@@ -865,7 +846,6 @@ export const tr = {
   "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
   "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
   "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
-  "a11y.dialogue.finishHint": "Görüşmeyi bitirip özeti görmek için iki kez dokunun.",
   // ── INT-141 · Bildirimler ────────────────────────────────────────────
   // The patient's own opt-out and quiet window. Two rules the copy has to
   // carry honestly: a bildirim never says anything about health (the bodies
@@ -1205,7 +1185,7 @@ export const tr = {
   // speaks the scripted question verbatim and adds this; the typed screen
   // puts the same invitation over the answer field and keeps the options
   // under it as the fallback.
-  "dialogue.openInvite": "Acele etmeden, kendi sözlerinizle anlatabilirsiniz.",
+  "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 
