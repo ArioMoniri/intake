@@ -1,0 +1,139 @@
+"""The server-side doors of the dev George clip route (INT-326, audit F05).
+
+``intake_api.dev_voice`` reaches a paid US vendor with the ElevenLabs key. Before
+INT-326 its only guards were a client-side "scripted text only" brand and a
+dev opt-in phrase, so on any public host it was an open, unauthenticated
+synthesis proxy for arbitrary text — cost abuse, and possibly PHI crossing to
+the vendor against invariant 19. This module holds what the route now checks
+itself, so none of it depends on a well-behaved client:
+
+- **The catalogue.** ``text_tr`` is admitted only when ``clip_text_hash(text_tr)``
+  is a row of a compiled clip manifest — the ``clips.<locale>.<voice>.json``
+  that ``make protocols-compile`` writes and ``make clips`` builds from
+  (ADR-028, INT-060). Those rows are the committed, verbatim, numeral-expanded
+  scripts (invariants 10 and 22); a patient answer can never hash to one, so
+  "patient words never reach the vendor" is a server fact, not a client promise.
+  Every manifest is read through ``voice_clips.load_clip_manifest``, so a pack
+  edited after compile (a row whose text no longer hashes to its key) refuses
+  the whole catalogue rather than widening it.
+- **The budget.** A per-principal token bucket on the INT-012 Redis limiter
+  (``intake_platform.security.rate_limit``), shared by every replica.
+- **Production.** ``INTAKE_ENV`` read the way the platform reads it
+  (``intake_platform.secrets`` / ``documents`` / ``room_tokens``): default
+  ``dev``, case-folded, any ``prod*`` value is production. In production the
+  route is not mounted and no wiring is built, whatever the dev flags say.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Final
+
+from intake_platform.security.rate_limit import TokenBucketLimiter
+from protocols.dsl import clip_text_hash
+from protocols.locale_text import DEFAULT_LOCALE
+from redis import Redis
+from voice_clips.cache import clip_manifest_filename, load_clip_manifest
+from voice_clips.cli import DEFAULT_DIST_ROOT
+from voice_clips.errors import ClipCacheError
+
+__all__ = [
+    "ENV_GEORGE_CLIP_DIST",
+    "ENV_INTAKE_ENV",
+    "GEORGE_BUDGET_CAPACITY",
+    "GEORGE_BUDGET_KEY_PREFIX",
+    "GEORGE_BUDGET_REFILL_PER_S",
+    "ScriptedCatalogue",
+    "george_budget",
+    "george_clip_dist_root",
+    "intake_env_is_prod",
+    "load_scripted_catalogue",
+    "scripted_catalogue_from_env",
+]
+
+logger = logging.getLogger("intake_api")
+
+ENV_INTAKE_ENV: Final = "INTAKE_ENV"
+
+#: Where the compiled clip manifests are read from; defaults to where
+#: ``protocols compile`` writes and ``intake-clips`` reads.
+ENV_GEORGE_CLIP_DIST: Final = "INTAKE_DEV_GEORGE_CLIP_DIST"
+
+#: Per-principal budget: a burst of 30 (one intake's worth of prefetched
+#: questions) refilling at one request every two seconds — far above a patient
+#: answering questions, far below a synthesis loop. Every request that passes
+#: authentication costs a token, refused ones included, so hammering the door
+#: with off-catalogue text is not free (the INT-131 OTP precedent).
+GEORGE_BUDGET_CAPACITY: Final = 30
+GEORGE_BUDGET_REFILL_PER_S: Final = 0.5
+GEORGE_BUDGET_KEY_PREFIX: Final = "rl:george"
+
+_MANIFEST_SUFFIX: Final = ".json"
+
+
+def intake_env_is_prod() -> bool:
+    """True for any ``prod*`` ``INTAKE_ENV`` (``prod``, ``production``, any case)."""
+    return os.environ.get(ENV_INTAKE_ENV, "dev").lower().startswith("prod")
+
+
+@dataclass(frozen=True)
+class ScriptedCatalogue:
+    """The ``clip_text_hash`` of every compiled clip-manifest row."""
+
+    text_hashes: frozenset[str]
+
+    def admits(self, text_tr: str) -> bool:
+        return clip_text_hash(text_tr) in self.text_hashes
+
+
+def george_clip_dist_root() -> Path:
+    return Path(os.environ.get(ENV_GEORGE_CLIP_DIST) or DEFAULT_DIST_ROOT)
+
+
+def load_scripted_catalogue(dist_root: Path, *, locale: str = DEFAULT_LOCALE) -> ScriptedCatalogue:
+    """Every row of every compiled ``clips.<locale>.<voice>.json`` under ``dist_root``.
+
+    The text hash is voice-independent (``clip_text_hash`` keys the text alone),
+    so every voice's manifest contributes the same scripts. Raises the
+    ``voice_clips`` manifest errors (schema, voice/locale mismatch, tamper)
+    unchanged: a catalogue that cannot be read whole is not read at all.
+    """
+    prefix = clip_manifest_filename("", locale).removesuffix(_MANIFEST_SUFFIX)
+    hashes: set[str] = set()
+    for path in sorted(dist_root.glob(f"*/{clip_manifest_filename('*', locale)}")):
+        voice = path.name.removeprefix(prefix).removesuffix(_MANIFEST_SUFFIX)
+        manifest = load_clip_manifest(
+            dist_root, pack_id=path.parent.name, voice=voice, locale=locale
+        )
+        hashes.update(row.text_hash for row in manifest.entries)
+    return ScriptedCatalogue(text_hashes=frozenset(hashes))
+
+
+def scripted_catalogue_from_env() -> ScriptedCatalogue | None:
+    """The catalogue under :func:`george_clip_dist_root`, or ``None`` when it
+    is unreadable, tampered or empty — nothing the route could safely admit.
+    Ids-only logs (invariant 6): no path contents, no text."""
+    try:
+        catalogue = load_scripted_catalogue(george_clip_dist_root())
+    except (ClipCacheError, OSError):
+        logger.warning("george lane unconfigured: compiled clip catalogue unreadable or tampered")
+        return None
+    if not catalogue.text_hashes:
+        logger.warning("george lane unconfigured: no compiled clip manifest to admit text from")
+        return None
+    return catalogue
+
+
+def george_budget(redis_url: str) -> TokenBucketLimiter:
+    """The production-shaped budget: Redis server time, shared by replicas.
+    Building it opens no connection; an unreachable store surfaces per request
+    and the route fails closed."""
+    return TokenBucketLimiter(
+        redis_client=Redis.from_url(redis_url),
+        capacity=GEORGE_BUDGET_CAPACITY,
+        refill_per_s=GEORGE_BUDGET_REFILL_PER_S,
+        key_prefix=GEORGE_BUDGET_KEY_PREFIX,
+    )

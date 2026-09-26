@@ -18,7 +18,8 @@
  */
 import * as FileSystem from "expo-file-system/legacy";
 
-import { configuredServiceCandidates, configuredTtsLaneCandidates } from "../dev/expoHosts";
+import { buildApiBase } from "../auth/expoApiBase";
+import { configuredTtsLaneCandidates } from "../dev/expoHosts";
 import {
   fetchGeorgeClip,
   georgePreferringSynth,
@@ -28,30 +29,11 @@ import {
 import { createClipStore, synthesizeClipWith, type ClipFs, type ClipStore } from "./tts";
 import { createTtsLaneSelector, synthesizeWithFallback, type TtsLaneSelector } from "./ttsLane";
 
-/** The dev API host the George clip route lives on (services/api, port 8000);
- * the same host the auth/records clients probe. */
-const API_PORT = 8000;
-
-async function probeHealthz(base: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1500);
-  try {
-    const res = await fetch(`${base}/healthz`, { signal: controller.signal });
-    return res.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function firstReachableApiBase(): Promise<string | null> {
-  for (const base of configuredServiceCandidates(API_PORT)) {
-    if (await probeHealthz(base)) {
-      return base;
-    }
-  }
-  return null;
+/** The dev API host the George clip route lives on: the same resolver, and so
+ * the same LAN walk, as the auth/records clients (INT-328). Null when no dev
+ * host answers. */
+function firstReachableApiBase(): Promise<string | null> {
+  return buildApiBase().catch(() => null);
 }
 
 /**

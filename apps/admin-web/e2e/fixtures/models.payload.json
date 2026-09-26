@@ -109,14 +109,14 @@
       "component": "minio",
       "self_hostable": true,
       "self_hosted_now": true,
-      "host": "dev compose 127.0.0.1:9000 — minio/minio:RELEASE.2024-01-16T16-07-38Z",
+      "host": "dev compose 127.0.0.1:9000 — pgsty/minio RELEASE.2026-08-04T00-00-00Z (digest-pinned, see `image`)",
       "license": "AGPL-3.0-only",
       "probe": "minio_ready",
       "budget_ms": 1000,
       "fallback": "component:backups",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-09-26",
       "severity": "blocking",
       "findings": [
         {

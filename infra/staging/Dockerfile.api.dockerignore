@@ -1,0 +1,27 @@
+*
+# Deny by default, then re-include only what the API image needs. This covers
+# the uv workspace (every member's pyproject is needed to honour uv.lock), the
+# migrations, and the repo-relative data files the API reads at runtime.
+!pyproject.toml
+!uv.lock
+!alembic.ini
+!migrations/
+!packages/
+!services/
+!observability/
+!infra/
+!docs/legal/
+# Never sent, wherever they sit. The host's root-only env file lives outside
+# the tree (/etc/intake-staging), and these rules catch a stray copy anyway.
+**/.env
+**/.env.*
+**/.git
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.cache
+**/dist
+packages/embed-sdk
