@@ -9,6 +9,7 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TextInput } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import {
   AppText,
   Card,
@@ -22,8 +23,6 @@ import { AuthApiError, requestOtp } from "@/lib/auth/api";
 import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { setPendingPhone } from "@/lib/auth/flow";
 import { normaliseTrPhone } from "@/lib/auth/phone";
-import { labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { t, type MessageKey } from "@/lib/i18n";
 import { radius, scaledSize, spacing } from "@/lib/theme";
@@ -56,10 +55,6 @@ export default function PhoneEntry() {
   const [raw, setRaw] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<MessageKey | null>(null);
-  // `live="assertive"` below is Android-only (RN declares
-  // accessibilityLiveRegion @platform android, and iOS has no alert trait
-  // that substitutes). This is the half that reaches VoiceOver.
-  useLiveAnnouncement(problem === null ? null : labelled(t("a11y.error"), t(problem)));
 
   const submit = async () => {
     const phone = normaliseTrPhone(raw);
@@ -129,12 +124,10 @@ export default function PhoneEntry() {
         </Card>
         {problem !== null ? (
           // SC 3.3.1. The VISIBLE copy is unchanged — the word "Hata" is
-          // added only to what is spoken (see useLiveAnnouncement above),
+          // added only to what is spoken, on both platforms (INT-362),
           // because a screen reader meets the line with no colour and no
           // position to tell it apart from the field's own hint.
-          <AppText role="body" color="amber" live="assertive">
-            {t(problem)}
-          </AppText>
+          <AnnouncedText tone="error" role="body" color="amber" message={t(problem)} />
         ) : null}
         <PrimaryButton label={t("auth.phone.cta")} onPress={() => void submit()} disabled={busy} />
       </ScrollView>

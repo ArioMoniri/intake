@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import {
   AppText,
   PrimaryButton,
@@ -276,9 +277,13 @@ function KioskPinScreen({
     <Screen>
       <ScrollView contentContainerStyle={styles.body}>
         {tamper ? (
-          <AppText role="title" color="amber" heading live="assertive">
-            {t("kiosk.tamper.banner")}
-          </AppText>
+          <AnnouncedText
+            tone="error"
+            role="title"
+            color="amber"
+            heading
+            message={t("kiosk.tamper.banner")}
+          />
         ) : null}
         <AppText role="hero" heading>
           {t(titleKey)}
@@ -311,13 +316,14 @@ function KioskPinScreen({
           ]}
         />
         {lockedOut ? (
-          <AppText role="body" color="amber" live="assertive">
-            {t("kiosk.pin.lockedOut")}
-          </AppText>
+          <AnnouncedText
+            tone="error"
+            role="body"
+            color="amber"
+            message={t("kiosk.pin.lockedOut")}
+          />
         ) : pinFailures > 0 || malformed ? (
-          <AppText role="body" color="amber" live="assertive">
-            {t("kiosk.pin.wrong")}
-          </AppText>
+          <AnnouncedText tone="error" role="body" color="amber" message={t("kiosk.pin.wrong")} />
         ) : null}
         <PrimaryButton
           label={t(submitKey)}
