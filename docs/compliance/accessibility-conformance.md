@@ -1,5 +1,21 @@
 # Accessibility conformance report — Vizite mobile (`apps/mobile`)
 
+> **Status of record moved (INT-226, 26 September 2026).** The status of each
+> criterion now lives in the generated report
+> `docs/compliance/accessibility-conformance-report.md`, rendered from
+> `docs/compliance/accessibility-conformance.yaml`. That report cites a test or
+> a dated manual check for every row, and a CI test keeps it consistent with the
+> suites it cites and with the palette. This file remains the INT-144
+> narrative, and the report cites its sections (§4 RED path, §5 contrast, §6
+> structural findings). **Where the two differ, the generated report governs.**
+> Re-assessment found five statements here that no longer hold: 1.3.4 (the app
+> config, `app.json`, locks portrait); BK13's "exactly one timer in the whole
+> app" (true of screens and components only); BK26's autofill mitigation (six
+> one-character boxes cannot take a whole code; see SC 3.3.8); 2.4.5's route
+> through Kayıtlarım (it does not navigate to a visit); and BK28, where two
+> later error surfaces are silent under VoiceOver. §3 also omitted SC 3.3.8 and
+> SC 4.1.3.
+
 | | |
 |---|---|
 | Subject | `apps/mobile` (Expo / React Native), commit on branch `int-144-accessibility` |

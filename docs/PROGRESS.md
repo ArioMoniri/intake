@@ -1,5 +1,36 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
+- Goal: acceptance verbatim (GitHub #538):
+  - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*
+  - *"no navigation waits on an animation; the review screen renders every section in one commit with no stagger"*
+- Plan (MOTION-10; motion-verification.md §4, and C14–C16):
+  - Pure `lib/motion/transients.ts`: `typedFallback` and `typedStep`. Each is enter-only (`enterFor` from `fade.ts`), `exitMs` is the literal 0, and a step plan is keyed by its question.
+  - `lib/motion/native/reanimated.ts`: `enteringFor(spec)` returns a `FadeIn` built from the spec, or nothing. It has no exit builder.
+  - `intake.tsx`:
+    - the lane switch sits under `LayoutAnimationConfig skipEntering`, so only a lane that replaces another fades in;
+    - `StepFlow` sits in an entering `Animated.View`;
+    - the question's body is one keyed, entering `Animated.View` under its own `skipEntering`;
+    - the progress row and the CTA stay outside the body.
+  - Completion and review needed no product change, only guards.
+- Tests added: `apps/mobile/src/lib/motion/transients.test.ts`, with the 5 MOTION-10 DoD titles verbatim:
+  - the plans at every app × OS reduce-motion setting (6);
+  - a per-millisecond frame model over every consecutive pair in the Detaylı pack;
+  - an app-wide ban on exit animations;
+  - an app-wide detector for navigation behind an animation callback, frame, timer, transition event or awaited wait (11 samples caught, 3 accepted);
+  - the review's one index-free section map, and no delay, timer, deferred render, partial slice or virtualised list in the screen or the 7 components it draws.
+  - RED 1: module missing. RED 2: the two wiring tests failed and three passed. The three are the budget test, which needs only the pure module, and two regression guards over a tree that already complied.
+  - Mutations M1–M8 were each killed, restored with `cp` and checked with `cmp`.
+- Result: `make check-ts` green (mobile 105 files / 2017 tests, 5 new; the other packages unchanged) and `make check-i18n` green (30 passed). Prettier is clean. A Metro iOS dev export succeeds. `no_placeholders` is OK after staging. `tests/backlog`, `tests/smoke/test_make_check.py` and the threat-model test pass. `make check` was not run whole (check-integration is CI-only), and neither were `make safety` or `make security`: no protocol, Python or security surface changed.
+- Invariants touched and still passing:
+  - **17**: no new token; the adapter lands with its consumer.
+  - **8**: +5 tests, and the INT-335 hygiene gates are unchanged and green.
+  - **22**: progress numerals swap instantly.
+  - **2 / 10**: no copy changed; the instrument item is still verbatim.
+- Decisions / ADRs / `00_STATE.md` rows: none. MOTION-10 depends on MOTION-1 and MOTION-6 only, so nothing here waits on ADR-033 (PR #571, Proposed).
+- Blocked on: nothing. Device timing is not recorded (the owner's reference devices are unnamed, INT-330). The evidence file lists what to watch on a device: blur under the 120 ms fallback fade, and the keyboard between two free-text steps.
+- Next: PR `INT-339: Motion — typed lane, fallback and completion` (Closes #538, Sec-Row intake-typed), left unmerged for review.
+
 ### 2026-09-26T21:58:00Z · INT-362 · review (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #588):
   - *"every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"*
@@ -123,6 +154,49 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. No device run is recorded; the only felt change is PulseDot's curve (core ease-in-out → breath token), and the owner's reference devices are still unnamed.
 - Next: PR review. MOTION-7 (presence orb) can now land on these gates.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-26T19:00:00Z · INT-351 · done (PR open, not merged)
+- Goal: a RENDERED admin-web ops page (audit F26 — admin-web was headless view-models + fixture specs) with tiles for API health, model hosts/GPU, model usage, the scripted-clip cache, check-in→seen wait, CSAT/NPS and CI/CD, each backed by a real source and failing closed to "unknown"; admin OIDC role required, nobody admitted without configuration (HB-A16); no PHI on any tile.
+- Plan: minimal Next.js App Router shell in `apps/admin-web` (`/ops` server component + `proxy.ts` nonce CSP + `/healthz`) that forwards the caller's bearer to a new audited `GET /admin/ops` (`ADMIN_ROUTES`, platform-scope roles) and then reads the API's `/healthz`/`/readyz`/`/version`. The composite (`intake_api.admin.ops_console`) reads the registry (INT-183 loader) and Prometheus through a fixed catalogued query table (`ops_prom.py`). GPU and CI facts come from a new ops collector in `services/probes` (nvidia-smi beside the host; GitHub Actions with a read-only token from OpenBao through the egress guard); the ADR-028 clip build counts hits/misses/syntheses and per-pack manifest coverage (`voice_clips.metrics`) into a textfile the collector re-exports. Eleven families catalogued. The GitHub issue (#557, filed in parallel) asks for the clip *manifest* and one fail-closed test per tile — both added as a second red→green increment.
+- Tests (RED first): `tests/observability/test_ops_collector.py`, `tests/admin/test_ops_console.py`, `tests/voice/test_clip_cache_metrics.py`, the RBAC matrix/audit drive rows, and `apps/admin-web/e2e/ops.spec.ts` (loader + rendered tree over recorded responses from `scripts/dev/record_ops_fixture.py`). RED = py collection rc=2 (three ModuleNotFoundError), rbac/audit 6 failed, vitest rc=1 (Cannot find module '../src/ops/csp'). Second increment RED = voice 3 failed, collector+composite 4 failed, vitest 3 failed. GREEN = targeted py 203 passed; tests/admin+observability 596; tests/voice 888 at 99.68 % voice-clips coverage; admin-web 154 passed (ops 37); whole-tree pytest green (see evidence).
+- Result: ruff/format/mypy --strict clean; `pnpm -r lint/typecheck/test` green; `next build` clean and the page driven end to end locally (all eight tiles ok; refusal without a bearer; CSP emitted; no horizontal scroll at 375 px); no_placeholders (staged), vendor-calls, phi-scan, claims-scan, gitleaks --staged, licence gate, osv-scanner all OK. New npm deps next 16.3.6 / react 19.2.3 (MIT, blobs read); `sharp` excluded via `pnpm.ignoredOptionalDependencies` (its libvips is LGPL-3.0 and fails the licence gate).
+- Invariants touched and still passing: 6, 13, 14, 15, 17, 20, 22 (details in docs/evidence/INT-351.md).
+- Decisions / ADRs / 00_STATE rows: no ADR (implements files/08 §0b F1 / §7 as written). The CI read reuses the `api.github.com` row's `issue_tracking` purpose; EC2 vCPU quota is not collected (needs a new egress row — owner call). No HB id minted; HB-A16 referenced.
+- Blocked on: nothing for the acceptance. Owner config for live use: `INTAKE_ADMIN_API_BASE` + an OIDC ingress; `INTAKE_ADMIN_OIDC_*` and `INTAKE_ADMIN_IP_ALLOWLIST` (HB-A16 — must include the admin-web host); `INTAKE_OPS_PROMETHEUS_URL`; collector `INTAKE_OPS_GPU_HOST_ID`, `INTAKE_OPS_GITHUB_REPO` + `INTAKE_OPS_GITHUB_TOKEN_PATH`, `INTAKE_OPS_CLIP_METRICS_TEXTFILE`.
+- Next: coordinator reviews/merges the PR (Sec-Row `admin-console`). Main filed the INT-351 row (todo, #557) while this branch was open; the merge keeps main's row and count (280) and flips the row to done with this evidence.
+- LOOP_STATUS: DONE
+
+### 2026-09-26T21:45:00Z · INT-226 · awaiting-human (delivered=partial: report yes, publication no)
+- Goal: acceptance verbatim — *"report generated from a11y CI results; statement published in-app and web"*.
+- Plan:
+  - The source of record is `docs/compliance/accessibility-conformance.yaml`: all 55 WCAG 2.2 A and AA criteria (with BK1–BK31 on the Level A rows), 27 EN 301 549 V3.2.1 clauses beyond 11.1–11.4, 25 dated manual checks, 8 device-audit items and the contrast pairs.
+  - `scripts/compliance/render_a11y_report.py` renders it to `docs/compliance/accessibility-conformance-report.md`. It resolves every citation against the vitest source CI runs, computes contrast from `theme.ts`, and derives EN 11.1–11.4.
+  - The statement source gets factual status only. The INT-144 report gets a banner saying the status of record has moved.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_a11y_report.py` (26), including negatives for a renamed citation, a Supports row with no evidence, a citation to a non-suite file, an undated manual check, a device-decided row set to Supports, and a fixed palette.
+  - RED 1: collection error, because the renderer was missing (rc=2). RED 2: 2 failed, 23 passed (report unrendered; statement unaware).
+  - GREEN: 26/26. The wider suites (legal, backlog, ci, docs, smoke) pass 557/557. Mobile vitest passes 2003/2003, and all 80 cited tests passed in a JSON run.
+  - Mutations, each restored from a backup: skipping a cited test turns the gate red; the recommended `border` fix forces 1.4.11 to be re-assessed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Targeted lanes only (listed in docs/evidence/INT-226.md). ruff, format and bandit are clean. `no_placeholders` and `claims_scan` exit 0 after staging.
+  - `make check` end to end, `make safety` and `make security` were not run and are not claimed. This change adds no service, endpoint, dependency, metric, model or PHI path.
+- Invariants touched and still passing: **20** (tested results with date and method, no blanket-conformance phrasing, test-enforced), **18** (no legal text authored, no loader points at the statement), **17**, **8**.
+- Decisions / ADRs / `00_STATE.md` rows: none. Posture choices are stated per row, not taken as decisions:
+  - Not Evaluated is used at A/AA, where a VPAT would reserve it for AAA;
+  - 1.4.12 is N/A, because the criterion is scoped to markup;
+  - 2.4.5 and 2.4.1 are N/A under WCAG2ICT.
+- Findings (reported, not fixed; they are mobile changes for their own issues):
+  - SC 1.3.4: `app.json` locks portrait.
+  - SC 3.3.8: the six one-character OTP boxes cannot take a pasted or autofilled code.
+  - SC 3.3.1 / 4.1.3: `issue-link.tsx`, `ConfirmCard.tsx` and `RecordReading.tsx` are Android-only announcements, missed because the BK28 test's list is hand-maintained.
+  - SC 2.2.1: the BK13 test scans `.tsx` only, and kiosk's 60 s wipe sits in `lib/`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: run DA-01 to DA-08 (report §5) on a release build (HB-L9).
+  - Owner: name the feedback channel.
+  - Counsel: the enforcement route and the Turkish statement text (HB-L9), signed under HB-L27.
+  - Two rows added to blockers.md. No HB id minted.
+- Next: PR review. The OTP single-field fix and the announcement-list fix are the obvious follow-ups for the mobile lane.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)
 - Goal: acceptance verbatim — *"every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default · disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"*.
@@ -1943,4 +2017,34 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. A bare gate name resolves across the whole resolved chain, with no own-section precedence, so a duplicated key is an authoring error rather than a scoping rule. All 183 gates on the review branch (`origin/merge-305`, 100 packs) resolve uniquely under it.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The GitHub API was unreachable from this host, so the issue and PR are still to be opened, and INT-355 still needs its `docs/backlog/issues.yaml` row (`sec_row: triage`) for `sec_row_linkage`.
 - Next: open the issue and PR once the GitHub API is reachable.
+- LOOP_STATUS: CONTINUE
+### 2026-09-26T20:30:00Z · INT-100 · done (PR open, not merged)
+- Goal: acceptance verbatim — *"breaker per vendor; failover order from probes registry; chaos kill proves <=2s"*.
+- Plan: new `intake_voice_runtime.resilience` package with three modules.
+  - `breaker.py`: one closed/open/half-open breaker per vendor component on an injected clock, shared across sessions through `BreakerBoard`. Defaults are sourced from files/03 §4.5b: 30 s anti-flap and T3's "two consecutive".
+  - `order.py`: the order is the `observability/registry.yaml` `fallback` chain. On the PHI path a non-self-hostable lane is refused (`CloudFailoverRefused`), never skipped (invariant 19).
+  - `failover.py`: `FailoverSynthesizer`, a `SpeechSynthesizer`, tries the lanes under one 2 000 ms budget. Each attempt gets its share as the wire timeout, and the lane choice is sticky per session (§4.9.4 row 11).
+  - `TalkerSession._emit` turns `SpeechLanesExhausted` into `fall_back_to_typed(SPEECH_LANES_EXHAUSTED)` and re-renders the same verbatim text on the screen in the same turn.
+  - Three catalogued live families: `vendor_breaker_state`, `vendor_breaker_transitions_total` and `vendor_failovers_total`.
+- Tests added (with the near-miss negative for any safety rule): `tests/chaos/test_vendor_failover.py` (11) and `tests/voice/test_vendor_resilience.py` (54).
+  - The chaos file drives a real Talker turn over the real `HttpSpeechSynthesizer` behind `httpx.MockTransport`, with the order read from the real registry. The primary dies in flight → next lane at 720 ms. A hung primary → next lane at 1 520 ms. Both lanes killed → screen at 0 ms. Both lanes hung → screen at 2 000 ms. Every turn runs with the Backend stalled 0, 10 or 10 000 s, and the latencies are identical (invariant 9).
+  - Five near-miss mutations were each caught (M1–M5 in the evidence file) and restored from backups: no budget split, no cloud refusal, no typed catch, not sticky, breaker late by one.
+  - RED: collection errors (module absent), plus the parity reason-set test failing on the new member. GREEN: 65 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Main check-py pytest lane: 6844 passed, 95.76 % (≥ 85).
+  - Voice-runtime: 98.56 % (≥ 90); the resilience modules are at 100 %.
+  - `make safety`: exit 0.
+  - `ruff`, `ruff format` and `mypy --strict` (428 files) are clean, and `no_placeholders` is OK after staging.
+  - `make security` and `check-integration` were not run locally (CI-only). `check-ts` was not run because no TypeScript changed.
+- Invariants touched and still passing:
+  - **9**: six tools unchanged; the Talker never awaits the Backend, proved under chaos.
+  - **10**: the fallback renders `text_tr` verbatim.
+  - **13**: every emitted family is catalogued.
+  - **19**: `residency_tr` never fails over to a cloud lane; this is asserted on the order object and at lane binding.
+  - **22**: a numeral is refused before any lane or breaker is touched.
+  - **6**: labels and exception text carry ids and outcomes, never text.
+  - **8**: floors hold.
+- Decisions / ADRs / `00_STATE.md` rows: none new. `LaneSwitchReason` gains `speech_lanes_exhausted`, the fourth route into typed, which files/03 §4.9.4 rows 7 and 11 name. Scope is the speech *egress* lanes (TTS rows 11 → 12). The ASR row 1 → 2 fallback lives in the media plane, where row 1 has no registry row (HB-I11), and the component-keyed breaker and order bind to it unchanged.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. GitHub issue #83 had been closed by INT-083's PR #392 (an issue-number collision). It was reopened so this PR closes it.
+- Next: PR review.
 - LOOP_STATUS: CONTINUE
