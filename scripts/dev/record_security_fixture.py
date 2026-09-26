@@ -166,8 +166,8 @@ def _siem_section(catalog: dict[str, dict[str, Any]]) -> dict[str, Any]:
                     "count": None,
                     "reason": (
                         "the CrowdSec bouncer's decisions have no console feed loader in this "
-                        "repository; its scenarios are committed under infra/security/edge/crowdsec "
-                        "and enforced at the edge (INT-203)"
+                        "repository; its scenarios are committed under "
+                        "infra/security/edge/crowdsec and enforced at the edge (INT-203)"
                     ),
                 }
             )

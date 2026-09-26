@@ -6,12 +6,16 @@
  * the UI maps kinds to tr copy) — no server narrative is ever rendered.
  * Tokens go through tokens.ts (SecureStore); nothing here logs a phone, a
  * code or a token.
+ *
+ * INT-328: the base comes from the one resolver (apiBase.ts via
+ * expoApiBase.ts). A release build uses only its configured https base and
+ * throws `ApiBaseUnconfigured` (kind `unconfigured`) without one; a dev build
+ * walks the LAN exactly as before.
  */
-import { configuredServiceCandidates } from "@/lib/dev/expoHosts";
-import type { VisitFixture } from "@/lib/dev/accounts";
-
 import { buildAttestation } from "./attestation";
 import { dpopProof } from "./dpop";
+import { AuthApiError } from "./errors";
+import { buildApiBase } from "./expoApiBase";
 import {
   clearSession,
   getAccessToken,
@@ -21,48 +25,21 @@ import {
   setAccessToken,
 } from "./tokens";
 
-const API_PORT = 8000;
-
-export type AuthErrorKind =
-  "limited" | "phone" | "code" | "attestation" | "network" | "session" | "generic";
-
-export class AuthApiError extends Error {
-  readonly kind: AuthErrorKind;
-  readonly retryAfterS: number | null;
-
-  constructor(kind: AuthErrorKind, retryAfterS: number | null = null) {
-    super(kind); // the kind IS the message — codes, never narrative
-    this.kind = kind;
-    this.retryAfterS = retryAfterS;
-  }
-}
+export { ApiBaseUnconfigured } from "./apiBase";
+export { AuthApiError, type AuthErrorKind } from "./errors";
 
 let cachedBase: string | null = null;
-
-async function probeHealthz(base: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1500);
-  try {
-    const response = await fetch(`${base}/healthz`, { signal: controller.signal });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export async function apiBase(): Promise<string> {
   if (cachedBase !== null) {
     return cachedBase;
   }
-  for (const base of configuredServiceCandidates(API_PORT)) {
-    if (await probeHealthz(base)) {
-      cachedBase = base;
-      return base;
-    }
+  const base = await buildApiBase();
+  if (base === null) {
+    throw new AuthApiError("network"); // dev: no LAN host answered
   }
-  throw new AuthApiError("network");
+  cachedBase = base;
+  return base;
 }
 
 interface ErrorBody {
@@ -254,16 +231,33 @@ export async function devPeekOtp(phoneE164: string): Promise<string | null> {
 }
 
 /**
+ * One visit as the hospital feed returns it, already in the shell's visit
+ * shape (structurally a `VisitFixture`). Declared here rather than imported
+ * from lib/dev, so the auth client's source names no dev module (INT-328):
+ * the feed carries no taxonomy branch, visit type or note state, so those are
+ * null by type.
+ */
+export interface SyncedVisit {
+  id: string;
+  hospital: string;
+  department: string;
+  branchId: null;
+  visitType: null;
+  date: string | null;
+  noteStatus: null;
+}
+
+/**
  * INT-318: pull the signed-in patient's upcoming visits from the hospital feed
  * after OTP verification. The phone is sent once, over the DPoP-bound session,
  * and the server refuses it unless it tokenizes to this same caller — so it is
  * never a way to read another patient's visits. Maps the API rows to the
- * shell's own VisitFixture shape. A failure returns [] rather than throwing:
- * a patient with no matched appointment still gets a working home screen.
+ * shell's visit shape. A failure returns [] rather than throwing: a patient
+ * with no matched appointment still gets a working home screen.
  */
 export async function syncVisits(
   phoneE164: string,
-): Promise<{ patientName: string | null; visits: VisitFixture[] }> {
+): Promise<{ patientName: string | null; visits: SyncedVisit[] }> {
   try {
     const response = await authedFetch("/v1/visits/sync", {
       method: "POST",
@@ -287,14 +281,14 @@ export async function syncVisits(
     return {
       patientName: data.patient_name ?? null,
       visits: data.visits.map((v) => ({
-      id: v.id,
-      hospital: v.hospital,
-      department: v.time ? `${v.department} · ${v.time}` : v.department,
-      branchId: null,
-      visitType: null,
-      date: v.date,
-      noteStatus: null,
-    })),
+        id: v.id,
+        hospital: v.hospital,
+        department: v.time ? `${v.department} · ${v.time}` : v.department,
+        branchId: null,
+        visitType: null,
+        date: v.date,
+        noteStatus: null,
+      })),
     };
   } catch {
     return { patientName: null, visits: [] };

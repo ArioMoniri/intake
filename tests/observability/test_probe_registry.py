@@ -138,6 +138,9 @@ def test_shipped_registry_has_exactly_the_acceptance_schema() -> None:
         "licence_blob_url",
         "licence_blob_sha256",
         "licence_note",
+        # INT-347: the digest-pinned container image, kept out of `host`
+        # because the console serves `host` (tests/infra/test_object_store_image.py)
+        "image",
     }
     for row in raw["components"]:
         keys = set(row)

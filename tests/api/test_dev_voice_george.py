@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from george_harness import budget, catalogue_of, router_client
 from intake_api.dev_voice import (
     ENV_DEV_GEORGE,
     GEORGE_CLIP_PATH,
@@ -21,8 +21,8 @@ from intake_api.dev_voice import (
     GeorgeClipCache,
     GeorgeWiring,
     george_wiring_from_env,
-    router,
 )
+from protocols.dsl import clip_text_hash
 from voice_clips.audio import SynthesisedSpeech
 from voice_clips.gateway import (
     ENV_ELEVENLABS_BASE,
@@ -54,15 +54,24 @@ class BoomGateway:
         raise TtsUnavailableError(f"unreachable; {_SECRET} is never echoed")
 
 
+#: The scripted texts this suite speaks, standing in for compiled catalogue rows
+#: (INT-326: the route admits only a compiled clip-manifest text; the catalogue
+#: itself is proven against the real compiler in test_dev_voice_hardening.py).
+_SCRIPTED = ("Sizi dinliyorum.", "Şikayetiniz nedir?", "Merhaba.")
+
+
 def _client(wiring: GeorgeWiring | None) -> TestClient:
-    app = FastAPI()
-    app.state.george = wiring
-    app.include_router(router)
-    return TestClient(app, raise_server_exceptions=False)
+    # INT-326: the route needs a patient principal; the door itself is proven
+    # in test_dev_voice_hardening.py, so this suite resolves one directly
+    return router_client(wiring)
 
 
 def _wiring(gateway: object, cache_dir: Path) -> GeorgeWiring:
-    return GeorgeWiring(cache=GeorgeClipCache(gateway=gateway, cache_dir=cache_dir))  # type: ignore[arg-type]
+    return GeorgeWiring(
+        cache=GeorgeClipCache(gateway=gateway, cache_dir=cache_dir),  # type: ignore[arg-type]
+        catalogue=catalogue_of(*_SCRIPTED),
+        budget=budget(),
+    )
 
 
 # (a) cache miss → generator called once → clip cached + played -----------------
@@ -73,14 +82,18 @@ def test_cache_miss_calls_gateway_once_and_returns_playable_wav(tmp_path: Path) 
     client = _client(_wiring(gateway, tmp_path))
     res = client.post(GEORGE_CLIP_PATH, json={"text_tr": "Sizi dinliyorum."})
     assert res.status_code == 200
-    assert res.headers["content-type"] == "audio/wav"
+    # The api names no audio content type (invariant 3's audio-retention guard);
+    # the client reads the bytes opaquely and plays them by file URI. Still a real
+    # WAV — the RIFF/WAVE magic bytes prove the framing survived the move to
+    # voice_clips.audio.wav_bytes.
+    assert res.headers["content-type"] == "application/octet-stream"
     assert res.headers["x-george-cache"] == "miss"
     assert res.content[:4] == b"RIFF" and res.content[8:12] == b"WAVE"
     assert gateway.calls == 1
     # George's voice id, not a client-chosen one
     assert gateway.seen[0][1] == GEORGE_VOICE_ID
-    # addressed on disk by sha256(text_tr)
-    assert list(tmp_path.glob("*.wav"))
+    # addressed on disk by sha256(text_tr), with no audio-typed file extension
+    assert [p.name for p in tmp_path.iterdir()] == [clip_text_hash("Sizi dinliyorum.")]
 
 
 # (b) cache hit → generator NOT called ------------------------------------------
@@ -142,4 +155,4 @@ def test_numeral_bearing_text_is_refused_before_the_vendor(tmp_path: Path) -> No
     assert res.status_code == 422
     assert res.json()["error"] == "not_speakable"
     assert gateway.calls == 0
-    assert not list(tmp_path.glob("*.wav"))
+    assert not list(tmp_path.iterdir())

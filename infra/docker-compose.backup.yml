@@ -95,8 +95,9 @@ services:
   minio-dr:
     # The second location, stood up locally so the replication configuration
     # is exercisable. The real site is not named anywhere in files/ — see
-    # infra/backup/minio-replication.yaml and HB-I5.
-    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    # infra/backup/minio-replication.yaml and HB-I5. Same digest-pinned image
+    # as the dev tier (registry row `minio`, INT-347).
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
     profiles: ["backup"]
     command: server /data --console-address ":9011"
     environment:
@@ -119,8 +120,10 @@ services:
     # The object-store toolbox. One-shot: the replication commands are
     # rendered from infra/backup/minio-replication.yaml by
     # intake_platform.backup.replication_commands and piped in, so the plan
-    # has exactly one source of truth.
-    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    # has exactly one source of truth. The server image ships the client
+    # (/usr/bin/mc), so the toolbox runs the same pinned bytes: one digest,
+    # one licence record (INT-347).
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
     profiles: ["backup"]
     restart: "no"
     entrypoint: ["/bin/sh"]
