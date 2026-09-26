@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**282 issues.** By phase: P0 156 · P1 72 · P2 47 · P3 7. By status: awaiting-human 22 · doing 15 · done 150 · todo 94 · withdrawn 1.
+**282 issues.** By phase: P0 156 · P1 72 · P2 47 · P3 7. By status: awaiting-human 23 · doing 15 · done 150 · todo 93 · withdrawn 1.
 
 ## P0
 
@@ -201,7 +201,7 @@
 | INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
-| INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | todo |
+| INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | awaiting-human |
 | INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | done |
 | INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
 | INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security, blocked:runtime | awaiting-human |

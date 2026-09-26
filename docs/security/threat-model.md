@@ -1403,6 +1403,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
   k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
+  - **Controls added by INT-190 (Cost module):** money has one source, the owner-filled
+    `infra/costs/unit-prices.yaml`, and the schema refuses any price or budget limit without a
+    `source` and an `as_of` date, so an invented rate cannot land without a visible diff (HB-O8).
+    Every quantity is a catalogued series bound at load time (inv 13), read through a fixed
+    PromQL table no request field reaches; a response carrying any label the query did not
+    group by, a profile outside the closed pair or a non-quantity is refused as a source error
+    (inv 6, 19). Per-session cost is a mean over `voice_sessions_metered_total`, so no session
+    identifier exists on the surface. The console projection refuses a figure without a
+    configured price or observed usage (`CostFigureWithoutPrice`, `CostFigureWithoutUsage` — the
+    invented zero), a partial total (`PartialTotalRendered`), a budget declared kept on a lower
+    bound (`UnsoundBudgetVerdict`), an unsourced value (`UnsourcedPrice`), a non-id identifier
+    (`CostContentLeaked`) and a foreign currency. Budget alerts are generated rules
+    (`infra/observability/cost-rules.yaml`, drift-gated); an unset budget fires
+    `CostBudgetNotConfigured` rather than staying silent, and an overrun threshold is a sound
+    lower bound (`or vector(0)` per term) with `CostBudgetIncomplete` naming what it cannot see.
   - **Controls added by INT-186 (Experience & Satisfaction module):** the console
     projection refuses a satisfaction figure shown for a cohort below the k ≥ 10 floor
     (`SuppressedCohortLeaked`), a distribution key that is not id-shaped (`SatisfactionFigureLeaked`,
