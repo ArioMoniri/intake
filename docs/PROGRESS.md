@@ -1,5 +1,20 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)
+- Goal: acceptance verbatim — *"every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default · disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"*.
+- Plan: add `motion.press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 }` to `theme.ts` (the §2.2 table minus `retentionOffset`) and point all 10 literal sites on `main` (6 files) at it. This normalises the composer's disabled send from 0.4 to 0.5. No `pressRetentionOffset` is set. `VisitCalendar` (whose 0.6 is the other normalisation) is not on `main`: it lives on the unmerged `int-visits-calendar`/`int-demo*` branches, and the guard forces its sites onto the tokens when it lands.
+- Tests added (with the near-miss negative for any safety rule):
+  - New `e2e/motion.spec.ts` with the two MOTION-12 guards: the literal ban plus token reads in every `({ pressed })` callback, and no retention offset. Each detector is first run on offending samples and a clean one. The helper header is byte-identical to INT-331's (PR #570), so the second merge resolves by appending one block.
+  - `theme.test.ts`: "the disabled opacity stays distinguishable from the pressed opacity".
+  - Near-miss: a `ListRow` 0.6 and a `Segmented` local-name bypass each fail the guard. Both mutations were restored from backups.
+  - RED: 2 failed | 15 passed (10 literal sites listed; `motion.press` undefined). GREEN: 17/17 targeted; whole mobile suite 101 files / 1966 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck` and mobile `expo lint` are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **17** (only the three tokens with a consumer land), **8** (tests only added).
+- Decisions / ADRs / `00_STATE.md` rows: none. The change implements the spec's settled MOTION-12. The one remaining non-state opacity, the static `Themed` hairline at 0.9, is on the guard's shrink-only `STATIC_OPACITY` list.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner must capture before/after screenshots of the composer send button, disabled 0.4 → 0.5, on a release build. The VisitCalendar pair belongs to the PR that lands the calendar. This is a device step, and the evidence file marks it pending. No HB id is minted.
+- Next: PR review.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-26T17:00:00Z · INT-331 · delivered
 - Goal: acceptance verbatim — *"one OS read and one listener serve every consumer; an unknown answer or a rejected read means reduced; a failed re-read keeps the last known answer · a live change reaches every consumer and Reanimated through ReducedMotionConfig driven by the app policy; nothing imports useReducedMotion from react-native-reanimated and no ReduceMotion.System appears · the appearance suite stays green unchanged"*.
 - Plan:
