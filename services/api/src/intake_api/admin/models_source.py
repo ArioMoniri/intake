@@ -45,6 +45,7 @@ __all__ = [
     "PROBE_CLIENTS_ENV",
     "PROBE_RESULTS_ENV",
     "load_models_module",
+    "load_probe_results",
     "resolve_benchmark",
     "run_benchmark",
 ]
@@ -72,6 +73,11 @@ def _results() -> Mapping[str, ProbeResultRecord]:
 
 def _registry() -> Registry:
     return load_registry(registry_path_from_env())
+
+
+def load_probe_results() -> Mapping[str, ProbeResultRecord]:
+    """The last sweep the runner wrote, or an empty sweep (INT-351 reads it too)."""
+    return _results()
 
 
 def load_models_module() -> ModelsModule:

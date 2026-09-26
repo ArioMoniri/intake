@@ -1,0 +1,440 @@
+{
+  "schema": "intake.admin.ops.v1",
+  "generated_at": "2026-09-26T16:00:00Z",
+  "sources": {
+    "prometheus": "ok",
+    "registry": "ok"
+  },
+  "tiles": {
+    "models": {
+      "state": "ok",
+      "reason": null,
+      "release_blocked": true,
+      "rows": [
+        {
+          "component": "postgres",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "postgres_select1",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "redis",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": false,
+          "probe": "redis_ping",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "minio",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "minio_ready",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "hapi",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "ehrbase",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention"
+        },
+        {
+          "component": "openbao",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "openbao_seal_status",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "api",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "probes",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": false,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "ok"
+        },
+        {
+          "component": "metrics",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": false,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "ok"
+        },
+        {
+          "component": "learning",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": false,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "ok"
+        },
+        {
+          "component": "voice-runtime",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "livekit_room_join",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "edge-tls",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "cert_expiry_days",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "backups",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "backup_freshness",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "ci-runners",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": false,
+          "probe": "runner_heartbeat",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "ok"
+        },
+        {
+          "component": "langfuse",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": false,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "ok"
+        },
+        {
+          "component": "langfuse-clickhouse",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": false,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "ok"
+        },
+        {
+          "component": "qwen3.5-9b",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "whisper-tr-medical",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "freya-tts",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "blocking"
+        },
+        {
+          "component": "voxcpm2-tts",
+          "pin": "openbmb/VoxCPM2@32279effe8c19989596f05d353d1447f51d9e915",
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "blocking"
+        },
+        {
+          "component": "deid-tr-ner-v1",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": true,
+          "probe": "backup_freshness",
+          "probe_status": "no_result",
+          "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "wazuh-manager",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention"
+        },
+        {
+          "component": "wazuh-indexer",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention"
+        },
+        {
+          "component": "falco",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention"
+        },
+        {
+          "component": "egress-proxy",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention"
+        },
+        {
+          "component": "edge-ingress",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-09-03",
+          "severity": "attention"
+        },
+        {
+          "component": "edge-crowdsec",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-09-03",
+          "severity": "attention"
+        }
+      ]
+    },
+    "gpu": {
+      "state": "ok",
+      "reason": null,
+      "hosts": [
+        {
+          "host_id": "gpu-a",
+          "up": true,
+          "gpus": [
+            {
+              "gpu_index": "0",
+              "utilization_ratio": 0.37,
+              "memory_used_bytes": 53687091200,
+              "memory_total_bytes": 150754820096
+            }
+          ]
+        }
+      ]
+    },
+    "model_usage": {
+      "state": "ok",
+      "reason": null,
+      "window": "24h",
+      "lanes": [
+        {
+          "kind": "work",
+          "lane": "extract_slots",
+          "requests": 412,
+          "p95_ms": 2310.5,
+          "failures": 3
+        },
+        {
+          "kind": "work",
+          "lane": "parse_document",
+          "requests": 17,
+          "p95_ms": null,
+          "failures": 0
+        },
+        {
+          "kind": "work",
+          "lane": "plan_follow_ups",
+          "requests": 398,
+          "p95_ms": 1840.0,
+          "failures": 0
+        },
+        {
+          "kind": "tts",
+          "lane": "freya-tts",
+          "requests": 1207,
+          "p95_ms": null,
+          "failures": null
+        },
+        {
+          "kind": "adapter",
+          "lane": "asr",
+          "requests": null,
+          "p95_ms": null,
+          "failures": 2
+        }
+      ]
+    },
+    "clip_cache": {
+      "state": "ok",
+      "reason": null,
+      "window": "last_build",
+      "hit": 41,
+      "miss": 3,
+      "syntheses": [
+        {
+          "gateway": "elevenlabs",
+          "outcome": "ok",
+          "count": 3
+        }
+      ],
+      "manifests": [
+        {
+          "pack": "base.intake",
+          "locale": "tr",
+          "voice": "george",
+          "rows": 44,
+          "present": 41
+        }
+      ]
+    },
+    "wait_time": {
+      "state": "ok",
+      "reason": null,
+      "metric_id": "wait.checkin_to_seen_min",
+      "window": "30d",
+      "k_floor": 10,
+      "n": 14,
+      "suppressed": false,
+      "mean_min": 21.5
+    },
+    "satisfaction": {
+      "state": "ok",
+      "reason": null,
+      "csat_metric_id": "csat.score",
+      "nps_metric_id": "nps.monthly",
+      "window": "30d",
+      "k_floor": 10,
+      "csat_n": 40,
+      "csat_suppressed": false,
+      "csat_mean": 4.4,
+      "nps": 46.67
+    },
+    "cicd": {
+      "state": "ok",
+      "reason": null,
+      "branch": "main",
+      "workflows": [
+        {
+          "workflow": "ci",
+          "status": "completed",
+          "conclusion": "failure",
+          "head_sha": "6dd1f2a43ac9eca765beaa42e28ec1855c2d046d",
+          "updated_at": "2026-09-26T15:06:45Z"
+        },
+        {
+          "workflow": "security",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "6dd1f2a43ac9eca765beaa42e28ec1855c2d046d",
+          "updated_at": "2026-09-26T14:54:05Z"
+        }
+      ]
+    }
+  }
+}

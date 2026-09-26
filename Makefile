@@ -99,11 +99,13 @@ nightly-red-team:
 # when the committed file and the served payload disagree — so the fixture is
 # a recording of the registry, never a second copy of it (invariant 13).
 admin-fixtures:
+	uv run python scripts/dev/record_cost_fixture.py
 	uv run python scripts/dev/record_models_fixture.py
 	uv run python scripts/dev/record_protocols_fixture.py
 	uv run python scripts/dev/record_safety_fixture.py
 	uv run python scripts/dev/record_experience_fixture.py
 	uv run python scripts/dev/record_security_fixture.py
+	uv run python scripts/dev/record_ops_fixture.py
 
 check-ts:
 	pnpm -r lint

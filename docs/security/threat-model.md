@@ -294,7 +294,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §5 LLM10 budgets and circuit breakers; §6 capacity — autoscaling
   on queue depth, monthly chaos experiments; typed fallback within 2 s (backlog INT-100).
 - **Signals:** budget exhaustion and vendor errors (§9 voice row) land with INT-024/INT-100.
+  **(INT-100)** `vendor_breaker_state` (one-hot per component), `vendor_breaker_transitions_total`
+  and `vendor_failovers_total` (`to_component="typed"` when no speech lane is left), all
+  catalogued live.
 - **Tests:** chaos harness and fallback timing land with INT-024, INT-100, INT-207.
+  **(INT-100)** `tests/chaos/test_vendor_failover.py` kills the primary TTS lane mid-turn (dead,
+  dying in flight, hung) under a real Talker turn and proves the next lane or the screen within
+  2 s of virtual time, with the Backend stalled underneath (invariant 9); the order is read from
+  `observability/registry.yaml` and a cloud fallback on the PHI path is refused (invariant 19).
+  Unit coverage in `tests/voice/test_vendor_resilience.py`.
 
 ## `self-hosting` — model supply chain and residency
 
@@ -1433,6 +1441,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
   k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
+  - **Controls added by INT-190 (Cost module):** money has one source, the owner-filled
+    `infra/costs/unit-prices.yaml`, and the schema refuses any price or budget limit without a
+    `source` and an `as_of` date, so an invented rate cannot land without a visible diff (HB-O8).
+    Every quantity is a catalogued series bound at load time (inv 13), read through a fixed
+    PromQL table no request field reaches; a response carrying any label the query did not
+    group by, a profile outside the closed pair or a non-quantity is refused as a source error
+    (inv 6, 19). Per-session cost is a mean over `voice_sessions_metered_total`, so no session
+    identifier exists on the surface. The console projection refuses a figure without a
+    configured price or observed usage (`CostFigureWithoutPrice`, `CostFigureWithoutUsage` — the
+    invented zero), a partial total (`PartialTotalRendered`), a budget declared kept on a lower
+    bound (`UnsoundBudgetVerdict`), an unsourced value (`UnsourcedPrice`), a non-id identifier
+    (`CostContentLeaked`) and a foreign currency. Budget alerts are generated rules
+    (`infra/observability/cost-rules.yaml`, drift-gated); an unset budget fires
+    `CostBudgetNotConfigured` rather than staying silent, and an overrun threshold is a sound
+    lower bound (`or vector(0)` per term) with `CostBudgetIncomplete` naming what it cannot see.
   - **Controls added by INT-186 (Experience & Satisfaction module):** the console
     projection refuses a satisfaction figure shown for a cohort below the k ≥ 10 floor
     (`SuppressedCohortLeaked`), a distribution key that is not id-shaped (`SatisfactionFigureLeaked`,
@@ -1443,6 +1466,26 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
     a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
     committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
+  - **Controls added by INT-351 (the rendered ops console, audit F26):** `apps/admin-web`
+    gains the Next.js App Router shell and its first page, `/ops`, server-rendered only. The
+    page forwards the caller's bearer to `GET /admin/ops` and renders nothing else until that
+    INT-180 gate answers 200 — no bearer means no call at all, and a refused caller does not
+    reach the API's health endpoints either — so the OIDC verifier, the HB-A16 allow-list (empty
+    admits nobody), the platform-scope role set and the audit wrapper are the one admission
+    control, not a second verifier that could disagree with it. `/admin/ops` runs only the API's
+    own fixed PromQL table (every series catalogued, test-held) plus the registry projection; no
+    request field reaches a query (F1). A tile whose label set differs from its query's, or
+    whose label value is not id-shaped, turns unknown instead of painting it (inv 6); unknown
+    tiles carry no figure and the console refuses one that does (inv 17); CSAT and wait means
+    are withheld below k = 10; no target is rendered (inv 20). GPU and CI facts come from an ops
+    collector in `services/probes` that runs server-side — `nvidia-smi` beside the host, a
+    read-only GitHub token read from OpenBao at collection time through the egress guard
+    (`issue_tracking` purpose on the existing `api.github.com` row) — and exports only ids
+    (actor and commit message are dropped). CSP: per-request nonce, `strict-dynamic`, no
+    `unsafe-*` outside `next dev`, `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
+    `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
+    admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
+    admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
