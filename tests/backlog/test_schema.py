@@ -49,9 +49,10 @@ def test_ids_unique_and_well_formed() -> None:
     # mobile API base, Twilio, George client, attestation, staging artefact) +
     # INT-330..342 (motion system MOTION-1..13 from
     # docs/design/motion/motion-verification.md) + INT-346 (CI restoration
-    # after the billing outage) + INT-347 (withdrawn MinIO image).
+    # after the billing outage) + INT-347 (withdrawn MinIO image)
+    # + INT-348 (Play Integrity + device login smoke, split from INT-344).
     # Grow this count only with a stated reason.
-    assert len(ids) == 271
+    assert len(ids) == 272
     import re
 
     for i in ids:

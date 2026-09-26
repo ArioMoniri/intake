@@ -5175,15 +5175,14 @@
 - id: INT-344
   epic: E08-mobile
   phase: P0
-  title: "Real device attestation: App Attest and Play Integrity on OTP and session, verified server-side"
+  title: "App Attest: server verification and iOS client for OTP and session"
   depends_on: [INT-325]
   labels: [area:mobile, area:api, risk:security]
   status: todo
   acceptance:
-    - "iOS release builds attest with App Attest and Android with Play Integrity; the client never sends a dev-unattested mode outside __DEV__"
-    - "the server verifier validates attestation and assertion objects against recorded Apple and Google fixtures (certificate chain, app id, counter, nonce binding) and refuses everything else; FailClosedAttestationVerifier stays the default when keys are absent"
-    - "a TestFlight device smoke test completes OTP login against the staging API with real attestation; INTAKE_DEV_ALLOW_UNATTESTED is never set on a public host"
-    - "the production keys and team identifiers come from HB-A3; until then the path fails closed"
+    - "iOS release builds attest with App Attest via a lazily imported Expo module and never send a dev-unattested mode outside __DEV__"
+    - "the server verifier validates attestation and assertion objects against the pinned Apple App Attestation root (certificate chain, rpId hash of team and bundle id, nonce binding, counter, aaguid by environment, keyId) and refuses everything else; FailClosedAttestationVerifier stays the default when configuration is absent"
+    - "team and bundle identifiers come from configuration, never code; the Android path stays fail-closed with a typed reason until INT-348"
   tests: [tests/api/test_attestation_verifier.py, apps/mobile/src/lib/auth/attestation.test.ts]
   legal: "KVKK-12"
   sec_row: "onboarding"
@@ -5226,3 +5225,17 @@
     - "check-integration pulls only that pinned image and passes; docker-compose, infra/staging and the object-store adapter tests agree on it"
   tests: [tests/infra/test_staging_compose.py]
   sec_row: "data-at-rest"
+- id: INT-348
+  epic: E08-mobile
+  phase: P0
+  title: "Play Integrity verification and a real-device OTP login smoke on TestFlight and Play"
+  depends_on: [INT-344]
+  labels: [area:mobile, area:api, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "Android release builds obtain a Play Integrity token bound to the server challenge and the server verifies it through Google's decode API with a service account from the secrets path (invariant 14); FailClosed until configured"
+    - "a TestFlight build and a Play internal-track build each complete OTP login against the staging API with real attestation; INTAKE_DEV_ALLOW_UNATTESTED is never set on a public host"
+    - "Google Play organisation account, Cloud project and service account come from HB-A3"
+  tests: [tests/api/test_play_integrity_verifier.py]
+  legal: "KVKK-12"
+  sec_row: "onboarding"

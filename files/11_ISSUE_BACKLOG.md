@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**271 issues.** By phase: P0 147 · P1 70 · P2 47 · P3 7. By status: awaiting-human 19 · doing 11 · done 150 · todo 90 · withdrawn 1.
+**272 issues.** By phase: P0 148 · P1 70 · P2 47 · P3 7. By status: awaiting-human 20 · doing 11 · done 150 · todo 90 · withdrawn 1.
 
 ## P0
 
@@ -154,10 +154,11 @@
 | INT-325 | Production refuses dev bypass flags, file-dev KEK and in-code default credentials | E01-platform | — | area:api, risk:security | doing |
 | INT-326 | George clip route: authenticated, catalogue-only, rate-limited, absent in production | E05-voice | INT-324, INT-325 | area:voice, area:api, risk:security, risk:legal | doing |
 | INT-328 | Release builds use a configured https API base and never probe the LAN | E08-mobile | — | area:mobile, risk:security | doing |
-| INT-344 | Real device attestation: App Attest and Play Integrity on OTP and session, verified server-side | E08-mobile | INT-325 | area:mobile, area:api, risk:security | todo |
+| INT-344 | App Attest: server verification and iOS client for OTP and session | E08-mobile | INT-325 | area:mobile, area:api, risk:security | todo |
 | INT-345 | Staging backend artefact: API + Postgres + Redis + OpenBao + TLS proxy on the AWS host, synthetic patients only | E13-infra | INT-325 | area:infra, risk:security, risk:legal | todo |
 | INT-346 | Restore main CI to green after the billing outage | E13-infra | — | area:ci | doing |
 | INT-347 | Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store | E13-infra | INT-346 | area:infra, risk:security | awaiting-human |
+| INT-348 | Play Integrity verification and a real-device OTP login smoke on TestFlight and Play | E08-mobile | INT-344 | area:mobile, area:api, risk:security | awaiting-human |
 
 ## P1
 
