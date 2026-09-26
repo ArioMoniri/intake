@@ -21,6 +21,7 @@ import {
   useTheme,
 } from "@/components/Themed";
 import { AuthApiError, devPeekOtp, requestOtp, verifyOtp } from "@/lib/auth/api";
+import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
 import { OTP_LENGTH, isCompleteOtp, maskPhone } from "@/lib/auth/phone";
 import { labelled } from "@/lib/a11y/labels";
@@ -39,7 +40,7 @@ function errorKey(error: unknown): MessageKey {
       case "code":
         return "auth.error.code";
       case "attestation":
-        return "auth.error.attestation";
+        return attestationMessageKey(error.attestation);
       case "network":
         return "auth.error.network";
       default:
