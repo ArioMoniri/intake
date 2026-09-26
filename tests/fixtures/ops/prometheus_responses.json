@@ -1,0 +1,420 @@
+{
+  "_comment": "INT-351 — Prometheus HTTP API instant-query responses (GET /api/v1/query), one per OPS_QUERIES id, in the documented {status, data: {resultType: vector, result: [{metric, value: [ts, string]}]}} shape. CONSTRUCTED for tests only: no Prometheus runs on the unit lane (container runtimes are CI-only). Values are illustrative operator figures, not measurements of the product (invariant 20), and no label carries patient data (invariant 6).",
+  "gpu_host_up": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "host_id": "gpu-a"
+          },
+          "value": [
+            1790438400.0,
+            "1"
+          ]
+        }
+      ]
+    }
+  },
+  "gpu_utilization": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "host_id": "gpu-a",
+            "gpu_index": "0"
+          },
+          "value": [
+            1790438400.0,
+            "0.37"
+          ]
+        }
+      ]
+    }
+  },
+  "gpu_memory_used": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "host_id": "gpu-a",
+            "gpu_index": "0"
+          },
+          "value": [
+            1790438400.0,
+            "53687091200"
+          ]
+        }
+      ]
+    }
+  },
+  "gpu_memory_total": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "host_id": "gpu-a",
+            "gpu_index": "0"
+          },
+          "value": [
+            1790438400.0,
+            "150754820096"
+          ]
+        }
+      ]
+    }
+  },
+  "work_requests": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "type": "extract_slots"
+          },
+          "value": [
+            1790438400.0,
+            "412"
+          ]
+        },
+        {
+          "metric": {
+            "type": "plan_follow_ups"
+          },
+          "value": [
+            1790438400.0,
+            "398"
+          ]
+        },
+        {
+          "metric": {
+            "type": "parse_document"
+          },
+          "value": [
+            1790438400.0,
+            "17"
+          ]
+        }
+      ]
+    }
+  },
+  "work_p95": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "type": "extract_slots"
+          },
+          "value": [
+            1790438400.0,
+            "2310.5"
+          ]
+        },
+        {
+          "metric": {
+            "type": "plan_follow_ups"
+          },
+          "value": [
+            1790438400.0,
+            "1840"
+          ]
+        },
+        {
+          "metric": {
+            "type": "parse_document"
+          },
+          "value": [
+            1790438400.0,
+            "NaN"
+          ]
+        }
+      ]
+    }
+  },
+  "work_failures": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "type": "extract_slots"
+          },
+          "value": [
+            1790438400.0,
+            "3"
+          ]
+        },
+        {
+          "metric": {
+            "type": "plan_follow_ups"
+          },
+          "value": [
+            1790438400.0,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "type": "parse_document"
+          },
+          "value": [
+            1790438400.0,
+            "0"
+          ]
+        }
+      ]
+    }
+  },
+  "tts_requests": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "vendor": "freya-tts"
+          },
+          "value": [
+            1790438400.0,
+            "1207"
+          ]
+        }
+      ]
+    }
+  },
+  "adapter_failures": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "adapter": "asr"
+          },
+          "value": [
+            1790438400.0,
+            "2"
+          ]
+        }
+      ]
+    }
+  },
+  "clip_lookups": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "outcome": "hit"
+          },
+          "value": [
+            1790438400.0,
+            "41"
+          ]
+        },
+        {
+          "metric": {
+            "outcome": "miss"
+          },
+          "value": [
+            1790438400.0,
+            "3"
+          ]
+        }
+      ]
+    }
+  },
+  "clip_syntheses": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "gateway": "elevenlabs",
+            "outcome": "ok"
+          },
+          "value": [
+            1790438400.0,
+            "3"
+          ]
+        }
+      ]
+    }
+  },
+  "wait_count": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "14"
+          ]
+        }
+      ]
+    }
+  },
+  "wait_sum": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "301"
+          ]
+        }
+      ]
+    }
+  },
+  "csat_count": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "40"
+          ]
+        }
+      ]
+    }
+  },
+  "csat_sum": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "176"
+          ]
+        }
+      ]
+    }
+  },
+  "nps": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "46.67"
+          ]
+        }
+      ]
+    }
+  },
+  "ci_runs": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "workflow": "ci",
+            "branch": "main",
+            "status": "completed",
+            "conclusion": "failure",
+            "head_sha": "6dd1f2a43ac9eca765beaa42e28ec1855c2d046d"
+          },
+          "value": [
+            1790438400.0,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "workflow": "security",
+            "branch": "main",
+            "status": "completed",
+            "conclusion": "success",
+            "head_sha": "6dd1f2a43ac9eca765beaa42e28ec1855c2d046d"
+          },
+          "value": [
+            1790438400.0,
+            "1"
+          ]
+        }
+      ]
+    }
+  },
+  "ci_updated": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "workflow": "ci",
+            "branch": "main"
+          },
+          "value": [
+            1790438400.0,
+            "1790435205"
+          ]
+        },
+        {
+          "metric": {
+            "workflow": "security",
+            "branch": "main"
+          },
+          "value": [
+            1790438400.0,
+            "1790434445"
+          ]
+        }
+      ]
+    }
+  },
+  "collector_up": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "source": "gpu_host"
+          },
+          "value": [
+            1790438400.0,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "source": "ci"
+          },
+          "value": [
+            1790438400.0,
+            "1"
+          ]
+        }
+      ]
+    }
+  }
+}

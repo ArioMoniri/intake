@@ -5239,3 +5239,26 @@
   tests: [tests/api/test_play_integrity_verifier.py]
   legal: "KVKK-12"
   sec_row: "onboarding"
+- id: INT-351
+  epic: E12-admin
+  phase: P1
+  title: "Admin ops console: rendered tiles for API health, model hosts/GPU, model usage, clip cache, wait time, CSAT and CI/CD"
+  depends_on: [INT-180, INT-183, INT-163, INT-186]
+  labels: [area:admin, area:observability]
+  status: done
+  evidence: docs/evidence/INT-351.md
+  # Audit F26: apps/admin-web was headless view-models + fixture specs only.
+  # This issue adds the minimal Next.js App Router shell files/08 §7 calls for
+  # and the first rendered page (/ops). The page forwards the caller's bearer
+  # to GET /admin/ops, so admission is the INT-180 gate (OIDC, IP allow-list
+  # HB-A16, platform-scope roles, audit) — without configuration nobody is
+  # admitted. Tiles read the registry and Prometheus only (files/08 §0b F1);
+  # GPU and CI facts arrive through an ops collector in services/probes that
+  # runs server-side with its own access (nvidia-smi beside the host; a
+  # read-only GitHub token from OpenBao through the egress guard).
+  acceptance:
+    - "apps/admin-web renders /ops (Next.js App Router, nonce CSP with no unsafe-* in production) from GET /admin/ops plus the API's /healthz, /readyz and /version; a missing bearer, a refused token or role, an empty IP allow-list (HB-A16) or an unconfigured OIDC verifier renders a refusal and no tile"
+    - "tiles for API health, model registry (self_hostable, probe status, licence_verified_at), GPU hosts, model usage per lane, scripted-clip cache hits/misses/syntheses, checkin_to_seen wait, CSAT/NPS and the latest CI run per workflow on main; every source that is unconfigured, failing or silent renders unknown with a reason, never a zero or a fixture (invariant 17)"
+    - "the GPU, CI and clip-build series are catalogued (invariant 13) and emitted by a server-side ops collector; no tile carries PHI (non-id labels refused, invariant 6), the k >= 10 floor holds for CSAT and wait, and no target is rendered beside a figure (invariant 20)"
+  tests: [apps/admin-web/e2e/ops.spec.ts, tests/admin/test_ops_console.py, tests/observability/test_ops_collector.py, tests/voice/test_clip_cache_metrics.py]
+  sec_row: "admin-console"

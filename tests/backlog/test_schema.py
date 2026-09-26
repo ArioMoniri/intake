@@ -50,9 +50,10 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-330..342 (motion system MOTION-1..13 from
     # docs/design/motion/motion-verification.md) + INT-346 (CI restoration
     # after the billing outage) + INT-347 (withdrawn MinIO image)
-    # + INT-348 (Play Integrity + device login smoke, split from INT-344).
+    # + INT-348 (Play Integrity + device login smoke, split from INT-344)
+    # + INT-351 (the rendered admin ops console, audit F26).
     # Grow this count only with a stated reason.
-    assert len(ids) == 272
+    assert len(ids) == 273
     import re
 
     for i in ids:

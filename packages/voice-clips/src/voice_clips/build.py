@@ -20,6 +20,11 @@ stable voice id, which is an operator decision rather than an inference.
 **Coverage is reported per pack, and a hole fails the build.** files/03 §4.9.4:
 "on failure at compile time the build fails, which is the correct place for a
 TTS failure to happen."
+
+**Every lookup and every synthesis is counted** (INT-351): a stored clip is a
+cache hit, a synthesis is a miss that paid a gateway — the two
+:mod:`voice_clips.metrics` families the admin console's clip-cache tile reads.
+``force`` asks the cache nothing, so it counts no lookup.
 """
 
 from __future__ import annotations
@@ -40,6 +45,12 @@ from voice_clips.cache import (
 )
 from voice_clips.errors import ClipCacheError
 from voice_clips.gateway import TtsGateway, assert_speakable_tr
+from voice_clips.metrics import (
+    gateway_kind,
+    record_lookup,
+    record_synthesis,
+    write_clip_metrics_from_env,
+)
 
 __all__ = [
     "ClipBuildResult",
@@ -98,10 +109,14 @@ def build_clip_cache(
     for row in manifest.entries:
         assert_speakable_tr(row.text_tr)
     cache.ensure_bucket()
+    kind = gateway_kind(gateway)
     results: list[ClipBuildResult] = []
     for row in manifest.entries:
         key = clip_object_key(row.entry)
-        if not force and cache.has(key):
+        hit = False if force else cache.has(key)
+        if not force:
+            record_lookup(hit=hit)
+        if hit:
             results.append(
                 ClipBuildResult(
                     clip_id=row.entry.clip_id,
@@ -113,7 +128,12 @@ def build_clip_cache(
                 )
             )
             continue
-        speech = gateway.synthesise(text_tr=row.text_tr, voice_id=manifest.voice)
+        try:
+            speech = gateway.synthesise(text_tr=row.text_tr, voice_id=manifest.voice)
+        except Exception:
+            record_synthesis(gateway=kind, ok=False)
+            raise
+        record_synthesis(gateway=kind, ok=True)
         clip = encode_clip(speech)
         cache.put(key, clip.data)
         results.append(
@@ -208,4 +228,7 @@ def run_clip_build(
             continue
         print(render_coverage(coverage))
         failed = failed or not coverage.complete
+    written = write_clip_metrics_from_env()
+    if written is not None:
+        print(f"clips: lookup and synthesis counts written to {written}")
     return 1 if failed else 0

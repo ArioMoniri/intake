@@ -1073,6 +1073,7 @@ dependencies = [
     { name = "intake-protocols" },
     { name = "minio" },
     { name = "numpy" },
+    { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "soundfile" },
 ]
@@ -1084,6 +1085,7 @@ requires-dist = [
     { name = "intake-protocols", editable = "packages/protocols" },
     { name = "minio", specifier = ">=7.2.9" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "prometheus-client", specifier = ">=0.20" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "soundfile", specifier = ">=0.13" },
 ]
