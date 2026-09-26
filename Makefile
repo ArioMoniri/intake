@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -221,6 +221,12 @@ deid-model:
 # Dry mode only — live attainment arrives with the observability deploy (INT-023).
 slo-report:
 	uv run python scripts/observability/slo_report.py
+
+# INT-215: the KVKK 2018/10 adequate-measures auditor packet (JSON on stdout),
+# built from docs/legal/special-category-measures.yaml. Exits 2 and lists every
+# problem when the mapping has drifted from the snapshot, tests or signals it cites.
+evidence-2018-10:
+	uv run python -m intake_platform.compliance.adequate_measures
 
 backlog-status:
 	uv run python scripts/backlog/backlog_status.py

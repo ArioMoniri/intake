@@ -49,6 +49,76 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. MOTION-10 depends on MOTION-1 and MOTION-6 only, so nothing here waits on ADR-033 (PR #571, Proposed).
 - Blocked on: nothing. Device timing is not recorded (the owner's reference devices are unnamed, INT-330). The evidence file lists what to watch on a device: blur under the 120 ms fallback fade, and the keyboard between two free-text steps.
 - Next: PR `INT-339: Motion — typed lane, fallback and completion` (Closes #538, Sec-Row intake-typed), left unmerged for review.
+
+### 2026-09-27T00:20:00Z · INT-361 · in-review
+- Goal: acceptance verbatim (GitHub #587):
+  - *"pasting a six-digit code into any OTP box fills all six boxes, and the platform one-time-code autofill (iOS oneTimeCode, Android sms-otp) fills them"*
+  - *"the code never reaches a log line, analytics event or error report (invariant 6)"*
+  - Found by the INT-226 conformance report (PR #583), row SC 3.3.8 "Does Not Support".
+- Plan:
+  - Add a pure `enterOtp(digits, index, text)` in `lib/auth/phone.ts`:
+    - only digits count;
+    - a whole code fills all six boxes from the first, and anything past six is dropped;
+    - a short run fills forward;
+    - typing one digit is unchanged.
+  - `(auth)/otp.tsx`:
+    - drop `maxLength={1}`, which cut every paste and autofill to its first digit;
+    - route `onChangeText` through `enterOtp`;
+    - add `autoComplete` (`sms-otp` on Android, `one-time-code` on web) next to the existing `textContentType="oneTimeCode"`.
+- Tests added:
+  - `phone.test.ts`, 18 tests:
+    - distribution cases (box 0/1/3/5, spaces and dashes, more than six digits, letters, a short run, a digit already in the box, clearing a box);
+    - a console-spy test for invariant 6.
+  - `a11y.spec.ts`, 12 tests:
+    - SC 3.3.8 source facts on the single mapped `TextInput`;
+    - invariant 6: no console, no telemetry/metrics/analytics import on the entry path, and a crash event planted with the code emits none of it.
+    - Near-miss control: the legitimate error code, screen id and exception type do survive.
+  - The `auth.spec.ts` pin on `maxLength={1}` is inverted; the test name is unchanged because INT-226 cites it.
+  - RED: 22 failed, 98 passed. GREEN: 120 passed. Mutation check: 2/2 killed.
+- Result:
+  - mobile vitest: 2033 passed (103 files).
+  - `pnpm -r typecheck` and `expo lint` clean.
+  - `pytest tests/release tests/mobile`: 95 passed.
+  - `no_placeholders` is OK after staging.
+  - Full `make check` not run: check-integration is CI-only.
+- Invariants touched and still passing:
+  - **2 and 5**: no new copy and no catalog change.
+  - **6**: the code reaches no console, sink or crash report.
+- Decisions / ADRs / `00_STATE.md` rows: none. No HB, ADR or alembic id minted.
+- Blocked on: nothing. Device confirmation is DA-07 / MC-16 of the INT-226 audit.
+- Next:
+  - PR (Sec-Row `onboarding`, Closes #587).
+  - After PR #590 lands, flip the backlog row to done.
+  - After PR #583 lands, the SC 3.3.8 row can cite the new tests.
+
+### 2026-09-26T21:58:00Z · INT-362 · review (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #588):
+  - *"every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"*
+  - *"the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"*
+- Plan:
+  - One announcer, `src/components/Announced.tsx`. `AnnouncedText` and `AnnouncedRegion` set the Android live region and post the iOS announcement from a single `tone`.
+  - The rules are pure and node-tested in `lib/a11y/announce.ts`: error is assertive and spoken "Hata: …", status is polite, iOS posts and Android does not, and a line is announced once per change.
+  - Every error and status line is routed through the announcer.
+  - The BK28 test finds the lines by walking `src`.
+- Tests added:
+  - `announce.test.ts`: 15 tests.
+  - `a11y.spec.ts` BK28 rewrite: discovery over the tree, the per-file each over 15 discovered files, the near-miss control, a shrink-only exception list, no hand-made live region, tone literals, both halves in the announcer, only the announcer calls the iOS hook, and invariant 6.
+  - `kiosk.spec.ts` now expects the announcer.
+  - RED: 36 failed / 73 passed. GREEN: 110 / 110. Whole mobile suite: 2048 passed (main: 2012). Mutation checks: 4 of 4 killed.
+- Result:
+  - `make check-ts` green; `make check-i18n` 30 passed; `pnpm -r typecheck` green; expo lint clean; prettier clean; `no_placeholders`, `phi_scan` and `claims_scan` OK.
+  - `check-py` was not run, because no Python changed. `make safety` and `make security` were not run, because the change touches no protocol, triage or security surface.
+- Invariants touched and still passing:
+  - **2:** only on-screen words are announced.
+  - **5:** no new copy.
+  - **6:** announcements reach no log, and a test pins it.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Findings not fixed here:
+  - `notifications.pending` doubles as the in-flight state, so it cannot be announced as an error without a store change.
+  - `review.sentInfo` and `consent.queue.note` show persisted state on every arrival.
+  - A repeated identical error is announced once (the INT-144 rule, on both platforms).
+- Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
+- Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
@@ -2038,3 +2108,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. GitHub issue #83 had been closed by INT-083's PR #392 (an issue-number collision). It was reopened so this PR closes it.
 - Next: PR review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-26T20:50:00Z · INT-215 · awaiting-human (delivered=partial)
+- Goal: KVKK Board decision 2018/10 (special-category adequate measures) mapped to controls and evidence. Acceptance verbatim: *"each 2018/10 measure mapped to a control and a live signal; export produces the auditor packet"*. The mapping and the export ship; every measure is mapped to controls with their signals or to gaps with named owners, and no measure is reported implemented, so the issue stays open.
+- Plan: fetch and snapshot the decision (Resmî Gazete 07.03.2018 sayı 30353 PDF, image-only; the Kurum's text of the same decision), bind both by sha256; `docs/legal/special-category-measures.yaml` quotes each measure verbatim and names controls (paths, pytest ids, catalogued metric or registered probe) or gaps (kind, owner, one question, HB row or issue); `intake_platform.compliance.{measures_model,measures_loader,adequate_measures}` parse the measure ids out of the snapshot, refuse any drift, derive status, and export the auditor packet through the invariant-47 guard (`make evidence-2018-10`); `seal_bundle` extracted from INT-189's evidence module so both exports share one digest rule.
+- Tests added (with near-miss negatives): `tests/legal/test_2018_10_mapping.py` (41) and `tests/compliance/test_measures_loader.py` (26) — paraphrased quote, dropped or invented measure, drifted digests, unresolvable or wrong-class test id, path escaping the repo, planned metric declared live, uncatalogued metric, unregistered probe, ownerless or undeclared-owner gap, invented HB id, declared status, removed signal gap, formula payload in an ask, nineteen malformed shapes. RED 20:23 UTC: ModuleNotFoundError at collection, rc=2. GREEN 20:43 UTC: 67 passed, rc=0.
+- Result (`make check` / `make safety` / `make security` summary): `make check` not run in full from a clean clone and not claimed; targeted lanes: ruff + format clean repo-wide, mypy --strict packages/intake_platform/src clean, legal/compliance/admin/ci/backlog/metrics-catalog suites 830 passed; `make safety`/`make security` not run (no container runtime; no protocol, service, dependency or egress change).
+- Invariants touched and still passing: 4, 6, 14, 17 (no id minted; every human value is an owned gap), 18 (legal text under docs/legal with hash binding), 20 (mapping in the claims-scanned tree, scanned by a test), 47.
+- Decisions / ADRs / `00_STATE.md` rows: none. files/06 §1 row KVKK-12 + 2018-10 corrected (it named "test-data masking", absent from the decision, and omitted items 4, 5 and 6). docs/security/threat-model.md `compliance-evidence` row updated. files/11 regenerated (INT-215 todo → awaiting-human).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — the seventeen organisational gaps (policy, training, undertakings, grant register and reviews, offboarding, unseal-key custody, premises, transfer rules, pen test), of which three are HB-I12, HB-I9, HB-I8; counsel — mTLS vs "VPN or sFTP" (5c), plaintext LAN feeds (5c), whether patient OTP + device-bound key is two-factor (3e), the undertaking text (2b). No HB row minted; blockers.md carries both asks.
+- Next: the coordinator allocates issues for the ten `security_owner` gaps (staff second factor, session lifetime, access-review generator, offboarding, key-rotation schedule, encryption and auth signals, dependency updates, API fuzzing, the Kurum's security guide).
+- LOOP_STATUS: WAITING_HUMAN
