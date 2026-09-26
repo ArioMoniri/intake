@@ -5470,3 +5470,20 @@
   tests: [apps/mobile/src/lib/kiosk/kioskState.test.ts, apps/mobile/e2e/a11y.spec.ts]
   legal: "5378,EN301549"
   sec_row: "mobile"
+- id: INT-377
+  epic: E12-admin
+  phase: P1
+  title: "/admin/models and /admin/ops fail closed on a malformed probe-results file"
+  depends_on: [INT-183, INT-351]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-377.md
+  # Found by INT-181 (PR #612): models_source read INTAKE_PROBE_RESULTS_PATH
+  # unguarded, so a present file that is not a sweep raised JSONDecodeError
+  # through both routes. The loader now refuses it to probe_results_unreadable
+  # (INT-181's own vocabulary) and logs the reason and exception class only.
+  acceptance:
+    - "a malformed, truncated, empty or wrongly shaped probe-results file makes every tile that reads it show `unknown`, with no 500; the refusal is logged without the file's content"
+    - "one test per malformation, plus a near-miss control with a valid file"
+  tests: [tests/admin/test_probe_results_fail_closed.py, apps/admin-web/e2e/models.spec.ts, apps/admin-web/e2e/ops.spec.ts]
+  sec_row: "admin-console"

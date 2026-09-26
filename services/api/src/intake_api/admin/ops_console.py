@@ -44,7 +44,11 @@ from intake_platform.analytics import K_ANONYMITY_FLOOR
 from intake_probes.console import ModelsModule
 from intake_probes.gate import ProbeResultRecord
 
-from intake_api.admin.models_source import load_models_module, load_probe_results
+from intake_api.admin.models_source import (
+    PROBE_RESULTS_UNREADABLE,
+    load_models_module,
+    load_probe_sweep,
+)
 from intake_api.admin.ops_prom import PromClient, PromUnavailable, Sample, prom_client_from_env
 
 __all__ = ["K_FLOOR", "OPS_QUERIES", "OPS_SCHEMA", "build_ops_console", "load_ops_console"]
@@ -377,12 +381,14 @@ _BUILDERS: Final[Mapping[str, Callable[[_Session], dict[str, Any]]]] = {
 
 
 def _models_tile(
-    models: ModelsModule | None, results: Mapping[str, ProbeResultRecord]
+    models: ModelsModule | None, results: Mapping[str, ProbeResultRecord] | None
 ) -> dict[str, Any]:
-    if models is None:
+    if models is None or results is None:
+        # a tile built from two sources is unknown when either is unreadable:
+        # a refused sweep painted as "no_result" would claim a sweep ran
         return {
             "state": "unknown",
-            "reason": "registry_unreadable",
+            "reason": "registry_unreadable" if models is None else PROBE_RESULTS_UNREADABLE,
             "release_blocked": None,
             "rows": [],
         }
@@ -411,11 +417,15 @@ def build_ops_console(
     *,
     prom: PromClient | None,
     models: ModelsModule | None,
-    results: Mapping[str, ProbeResultRecord],
+    results: Mapping[str, ProbeResultRecord] | None,
     now: datetime,
     prom_misconfigured: bool = False,
 ) -> dict[str, Any]:
-    """The whole ``intake.admin.ops.v1`` document."""
+    """The whole ``intake.admin.ops.v1`` document.
+
+    ``results`` is ``None`` when the probe runner's file was present and
+    refused (INT-377); an unset or absent file is an empty mapping.
+    """
     tiles: dict[str, Any] = {"models": _models_tile(models, results)}
     session = _Session(prom) if prom is not None else None
     for tile_id, builder in _BUILDERS.items():
@@ -448,21 +458,23 @@ def load_ops_console(now: datetime, env: Mapping[str, str] | None = None) -> dic
 
     A malformed ``INTAKE_OPS_PROMETHEUS_URL`` is not a crash and not a guess:
     the Prometheus tiles read ``prometheus_misconfigured``. An unreadable
-    registry turns the models tile unknown rather than taking the page down.
+    registry turns the models tile unknown rather than taking the page down,
+    and so does a probe-results file that is present and not a sweep (INT-377).
     """
     env = os.environ if env is None else env
     try:
         prom, misconfigured = prom_client_from_env(env), False
     except ValueError:
         prom, misconfigured = None, True
+    sweep = load_probe_sweep()
     try:
-        models: ModelsModule | None = load_models_module()
+        models: ModelsModule | None = load_models_module(sweep)
     except (OSError, ValueError):
         models = None
     return build_ops_console(
         prom=prom,
         models=models,
-        results=load_probe_results(),
+        results=None if sweep.refused else sweep.records,
         now=now,
         prom_misconfigured=misconfigured,
     )

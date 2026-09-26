@@ -70,8 +70,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-360..363 (the four WCAG defects the INT-226 report found:
     # orientation lock, OTP paste/autofill, iOS error/status announcements,
     # kiosk idle warning).
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
     # Grow this count only with a stated reason.
-    assert len(ids) == 287
+    assert len(ids) == 288
     import re
 
     for i in ids:
