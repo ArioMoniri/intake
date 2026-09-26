@@ -3,7 +3,7 @@
  * clinical interrogation, and it does so WITHOUT crossing PolicyGuard.
  *
  * The owner's ask was a softer, more natural register across the previsit:
- * a helper-tool opener ("Ben Vizite… sizi kısaca dinlemek istiyorum"), an
+ * a helper-tool opener ("Ben Önvizit… sizi kısaca dinlemek istiyorum"), an
  * invitation to speak freely, and the clipped HPI questions given their
  * subject back so none lands as a bare command. Turkish is the source of
  * truth (invariant 5); English mirrors it, and the mirror is warmed too.
@@ -81,9 +81,11 @@ const PROGNOSIS = /(?:geçer|iyileşirsiniz|düzelir|merak\s+etmeyin|endişelen)
 const DIAGNOSIS_FRAME = /bu\s+bir\s+\p{L}/iu;
 
 describe("the previsit opens like a helper, not an interrogation", () => {
-  it("the opener introduces Vizite and offers to listen, with no rush", () => {
+  it("the opener introduces the app by name and offers to listen, with no rush", () => {
     const body = tr["dialogue.entryBody"];
-    expect(body).toContain("Vizite");
+    // Bound to `app.name`, not a literal, so the Önvizit rebrand (and any
+    // later one) cannot leave the opener introducing a retired name.
+    expect(body).toContain(tr["app.name"]);
     expect(body.toLocaleLowerCase("tr-TR")).toContain("dinle");
     expect(body.toLocaleLowerCase("tr-TR")).toContain("acele");
     // INT-239's second-door promise survives the rewrite (speech.test.ts
@@ -92,8 +94,8 @@ describe("the previsit opens like a helper, not an interrogation", () => {
   });
 
   it("the en opener mirrors the same welcome", () => {
+    expect(en["dialogue.entryBody"]).toContain(en["app.name"]);
     const body = en["dialogue.entryBody"].toLocaleLowerCase("en-US");
-    expect(body).toContain("vizite");
     expect(body).toContain("listen");
     expect(body).toContain("no rush");
     expect(body).toContain("typing");

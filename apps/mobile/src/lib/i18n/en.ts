@@ -110,6 +110,19 @@ export const en: Record<MessageKey, string> = {
   "visits.detail.noteStatus": "Note status",
   "visits.detail.notStarted": "The conversation has not started yet.",
 
+  // Calendar view + past list on Vizitlerim (02 §4). Month/day names come
+  // from Intl (same source as components/VisitCard.tsx); only the screen's
+  // own chrome lives here.
+  "visits.view.label": "View",
+  "visits.view.list": "List",
+  "visits.view.calendar": "Calendar",
+  "visits.pastEmpty": "You have no past visits.",
+  "visits.calendar.prevMonth": "Previous month",
+  "visits.calendar.nextMonth": "Next month",
+  "visits.calendar.hasVisits": "has a visit",
+  "visits.calendar.noVisitsOnDay": "You have no visits on this day.",
+  "visits.calendar.monthEmpty": "You have no visits this month.",
+
   "records.title": "My records",
   "records.synthetic": "Sample data — synthetic",
   "records.guide.kicker": "Your documents",
@@ -280,7 +293,7 @@ export const en: Record<MessageKey, string> = {
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
-  "intake.q.complaint": "What brings you to the doctor today?",
+  "intake.q.complaint": "Could you tell me in your own words what brings you here today?",
   "intake.q.complaint.hint": "You can pick more than one.",
   "intake.opt.pain": "Pain",
   "intake.opt.fever": "Fever",
@@ -313,16 +326,16 @@ export const en: Record<MessageKey, string> = {
   "intake.opt.nausea": "Nausea",
   "intake.opt.palpitations": "Palpitations",
   "intake.opt.none": "None",
-  "intake.q.onset": "How did it start?",
+  "intake.q.onset": "How did your complaint start?",
   "intake.hpi.onset": "Onset",
   "intake.opt.sudden": "It started suddenly",
   "intake.opt.gradual": "It developed gradually",
-  "intake.q.severity": "How would you describe the severity?",
+  "intake.q.severity": "How would you describe how strong it is?",
   "intake.hpi.severity": "Severity",
   "intake.opt.mild": "Mild",
   "intake.opt.moderate": "Moderate",
   "intake.opt.severe": "Severe",
-  "intake.q.side": "Which side?",
+  "intake.q.side": "Which side is it on?",
   "intake.hpi.side": "Side",
   "intake.opt.right": "Right",
   "intake.opt.left": "Left",
@@ -477,7 +490,7 @@ export const en: Record<MessageKey, string> = {
   "intake.opt.vomiting": "Vomiting",
   "intake.opt.heartburn": "Burning rising toward the chest or a sour taste",
   "intake.opt.appetiteLoss": "Reduced appetite",
-  "intake.q.extra": "Anything you would like to add?",
+  "intake.q.extra": "Is there anything else you would like to add?",
   "intake.q.extra.hint": "You can leave this empty.",
   // INT-239 — answer-gated follow-ups (mirror of the tr source of truth).
   "intake.q.radiationSide": "Which side does it spread to?",
@@ -567,7 +580,7 @@ export const en: Record<MessageKey, string> = {
   "intake.opt.itEases": "It eases",
   "intake.opt.itIncreases": "It increases",
   "intake.progress.answered": "questions answered",
-  "intake.progress.grows": "A few more questions may follow, depending on your answers.",
+  "intake.progress.grows": "Depending on what you tell me, a few more questions may follow.",
   "voice.speakToAdd": "Add by speaking",
   "voice.listening": "Listening… tap to stop",
   "voice.processing": "Transcribing…",
@@ -606,7 +619,7 @@ export const en: Record<MessageKey, string> = {
   "dialogue.kicker": "Spoken conversation",
   "dialogue.entryTitle": "Let us go through this by talking",
   "dialogue.entryBody":
-    "We will ask the questions aloud and you can answer by speaking. You can switch to typing at any moment.",
+    "I'm Önvizit, and before your visit I'd like to listen to you for a moment. There's no rush — you can tell me in your own words, or switch to typing whenever you like.",
   "dialogue.preparing": "Preparing the question…",
   "dialogue.speakingHint": "Tap to interrupt",
   "dialogue.listeningHint": "Tap when you are done",
@@ -756,6 +769,8 @@ export const en: Record<MessageKey, string> = {
   "consent.detail.withdrawNote": "Withdrawal takes effect immediately.",
   "consent.detail.needsVoice":
     "This option can only be switched on while the voice session permission is on.",
+  "consent.inline.details": "Detailed view",
+  "consent.sweep.start": "Review the remaining permissions one by one",
   "consent.queue.note":
     "Your changes were applied on this device; they will reach the server once a connection is available.",
 
@@ -791,12 +806,16 @@ export const en: Record<MessageKey, string> = {
   "a11y.backHint": "Double tap to go back.",
   "a11y.closeHint": "Double tap to close.",
   "a11y.selectHint": "Double tap to select.",
+  "a11y.visits.dayHint": "Double tap to see this day's visits.",
   "a11y.confirmHint": "Double tap to confirm.",
   "a11y.shareHint": "Double tap to share or stop sharing this section.",
   "a11y.typedHint": "Double tap to continue by typing instead of speaking.",
   "a11y.otp.digit": "Verification code digit",
-  "a11y.consent.rowHint": "Double tap to open the consent text and details.",
+  "a11y.consent.rowHint": "Double tap to open or close the consent text and details.",
   "a11y.consent.switchHint": "Double tap to turn this consent on or off.",
+  "a11y.consent.grantHint": "Approves the consent text shown above.",
+  "a11y.consent.sweepHint": "Opens the off permissions in turn, showing each text first.",
+  "a11y.consent.detailsHint": "Opens the full text of this permission on a separate screen.",
   // INT-140 — hints state the RESULT of the action (iOS HIG): a screen-reader
   // user knows what will happen before they act.
   "a11y.data.exportHint": "Double tapping sends your copy request.",
@@ -818,6 +837,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.dialogue.composerHint": "You can type here instead of speaking.",
   "a11y.dialogue.sectionsHint": "Double tap to see the sections going into your note.",
   "a11y.dialogue.exitHint": "Double tap to leave the conversation and continue by typing.",
+  "a11y.dialogue.finishHint": "Double tap to finish and see the summary.",
   // ── INT-141 · Notifications ──────────────────────────────────────────────
   // Mirror of the tr block; tr is the source of truth (invariant 5).
   "me.notifications": "Notifications",
@@ -1133,7 +1153,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.measure.increaseMore": "Increase by more",
   "intake.measure.untouched": "It is recorded once you adjust the value.",
   // --- INT-286 · open-ended asking ------------------------------------------
-  "dialogue.openInvite": "You can tell me in your own words.",
+  "dialogue.openInvite": "You can take your time and tell me in your own words.",
   "intake.open.hint": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
 
