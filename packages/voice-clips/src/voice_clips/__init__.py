@@ -44,6 +44,7 @@ from voice_clips.audio import (
     encode_clip,
     silence_edges_ms,
     trim_silence,
+    wav_bytes,
     wav_to_speech,
 )
 from voice_clips.build import (
@@ -163,5 +164,6 @@ __all__ = [
     "silence_edges_ms",
     "trim_silence",
     "tts_gateway_from_env",
+    "wav_bytes",
     "wav_to_speech",
 ]
