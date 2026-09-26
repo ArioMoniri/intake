@@ -6,11 +6,13 @@
  * talks to the production-strict API (INT-328's configured base), so each
  * demo surface is either compiled out behind `__DEV__` or never called:
  *
- *  - `/v1/visits/sync` (INT-318) is the Acıbadem appointments read, a
- *    demo-tier route (audit F06: its connector refs are hardcoded dev
- *    values, and main does not serve it). The OTP screen used to call it
- *    unconditionally after sign-in, sending the verified phone to a route
- *    the production API does not have. It now runs only in a dev build.
+ *  - `/v1/visits/sync` (INT-318) is the Acıbadem appointments read. On
+ *    int-demo it built its connector row from hardcoded dev refs (audit
+ *    F06); on main it reads the row from infra/connectors/sources.yaml,
+ *    which ships empty, so it answers "unavailable" until a human registers
+ *    one. The OTP screen used to call it unconditionally after sign-in,
+ *    sending the verified phone for an answer that cannot yet be anything
+ *    else. It now runs only in a dev build.
  *  - the synthetic test accounts and the OTP peek stay behind `__DEV__`
  *    (controls: already true, pinned here so a merge cannot undo them).
  *

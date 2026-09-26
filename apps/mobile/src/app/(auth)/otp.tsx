@@ -114,9 +114,10 @@ export default function OtpEntry() {
       signInOtp(patientId, maskPhone(phone));
       // INT-318: pull the patient's upcoming visits from the hospital feed now,
       // while the verified phone is in hand. Best-effort — a failure leaves a
-      // working home screen, never blocks sign-in. Dev builds only: the route
-      // is the demo-tier Acıbadem read (audit F06), which the production API
-      // a release build talks to does not serve (INT-354).
+      // working home screen, never blocks sign-in. Dev builds only: until a
+      // hospital row is registered in infra/connectors/sources.yaml (HB-A15,
+      // HB-A5, HB-L27) the route can only answer "unavailable", so a release
+      // build would send the phone for nothing (audit F06, INT-354).
       if (__DEV__) {
         void syncVisits(phone)
           .then((result) => {
