@@ -395,6 +395,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   no decoder can exist until the Play Console organisation account does (HB-A3). The
   stored record is a public key, a counter and an environment — the same class of datum as
   the DPoP thumbprint — kept 30 days rolling.
+- **The SMS delivery bound, stated (INT-329):** outside dev the OTP tier is wired only when
+  the egress policy admits `EgressPurpose.SMS_OTP_DELIVERY` to `api.twilio.com` **and** OpenBao
+  holds `secret/api/twilio` (`account_sid`, `auth_token`, `from`). The `TWILIO_*` environment
+  variables are never read. Anything missing leaves every `/v1/auth` route at 503, and the dev
+  event logger is never the fallback (INT-325). The send is async, over the INT-018 guard's
+  async twin, which runs the same admission step and pins and records exactly as the sync one
+  does. The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that
+  carries a recorded approval. **No such row ships.** Personal data to a processor abroad is
+  the owner's DPA and cross-border decision (docs/evidence/INT-329.md), so today the tier
+  stays at 503 outside dev, and the guard would refuse the call before a byte left anyway. A
+  failed delivery is one generic `503 otp_delivery_unavailable`, never a claimed "sent". The
+  log line carries the vendor message id, the HTTP status, a closed-vocabulary reason and
+  Twilio's numeric error code, never the phone, the code, the token or a vendor body (its
+  errors echo the number). No retry: a retried SMS would put a second code in flight.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
@@ -408,7 +422,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   published example verifying against the pinned root, the pin itself, the replayed and
   misbound challenge end to end, and the Play Integrity verdict policy
   (`tests/api/test_attestation_verifier.py`, `tests/api/test_attestation_otp_flow.py`,
-  `apps/mobile/src/lib/auth/attestation.test.ts`).
+  `apps/mobile/src/lib/auth/attestation.test.ts`). SMS delivery with INT-329: each vendor
+  outcome mapped to one typed reason over MockTransport; no phone, code or token in any log
+  record, error chain or transfer record; the event loop keeps running during a send; the
+  wiring matrix for `prod` and `staging`; the route's generic 503
+  (`tests/api/test_otp_twilio.py`, `tests/api/test_otp_twilio_wiring.py`). The async guard
+  matches the sync one on a parity table (`tests/security/test_egress_async.py`), and the
+  shipped allow-list refuses the SMS purpose on every tier
+  (`tests/security/test_egress_allowlist.py`).
 
 ## `consent` — layered consent and scope enforcement
 
