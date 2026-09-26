@@ -5322,3 +5322,16 @@
     - "an EAS build from main installs on a device and shows Önvizit"
   tests: [apps/mobile/e2e/intakeMode.spec.ts]
   sec_row: "mobile"
+- id: INT-355
+  epic: E04-engines
+  phase: P0
+  title: "Gated questions never asked: resolve bare ask_if slot names across the pack chain"
+  depends_on: []
+  labels: [area:engine, risk:clinical]
+  status: doing
+  acceptance:
+    - "a bare ask_if/skip_if slot name resolves to the unique slot of that name across the resolved pack chain (base + cluster + specialty) and section-qualified names keep working"
+    - "a bare name held by two sections is refused at compile (GATE_REF_AMBIGUOUS) and a name nothing holds is refused (GATE_REF_UNKNOWN)"
+    - "base.intake's lmp_date and proxy_reported gates open as specified and a specialty boolean gate opens on true and stays closed on false or unanswered, tested through a real IntakeEngine"
+  tests: [tests/protocols/test_gate_refs.py, tests/engine/test_bare_gates.py]
+  sec_row: "triage"
