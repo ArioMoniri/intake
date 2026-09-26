@@ -166,59 +166,76 @@ free numeric text entry** on the clinical critical path.
 > snapshot and all three RED axes (route × register × location, invariant 21), none of which are
 > supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). The former Q2 (who answers / situation narrative) is removed: base
+`identity_check` / `subject_role` already cover it. Renumbering, old → new: Q1 unchanged · Q2 removed ·
+Q3 → Q2 · Q4 → Q3 · Q5 → Q4 · Q6 → Q5 · Q7 → Q6 · Q8 → Q7 (fall) + Q8 (circumstances, if Q7 yes) ·
+Q9–Q12 unchanged. Self/proxy variants keyed on base `subject_role` are still open (reviewer finding,
+LOW; no replacement text supplied).
+
 **Q1 — Reason for visit** · self/proxy · archetype: `EVALUATION.reason_for_encounter.v1` · source: n/a (general intake)
-> "Bugünkü evde sağlık görüşmesinde en çok hangi konuda desteğe ihtiyacınız var? Kısaca anlatabilir misiniz?"
+> "Bugünkü evde sağlık görüşmesinde en çok hangi konuda desteğe ihtiyacınız var?"
 CANDIDATE — clinician to approve wording. Proxy variant: "…hastanızın en çok hangi konuda desteğe ihtiyacı var?"
 
-**Q2 — Situation narrative / who answers** · self/proxy · archetype: `OBSERVATION.story.v1` · source: n/a (general intake)
-> "Bu görüşmeyi hastanın kendisi mi yoksa bir yakını mı yanıtlıyor? Durumu kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Recent worsening of general condition** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q2 — Recent worsening of general condition** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H1 (Madde 12(2) / 21(7) — acil → 112)
 > "Son günlerde hastanın genel durumunda kötüleşme oldu mu? Örneğin aşırı uykuya eğilim ya da uyandırmakta zorlanma."
+gen: slot=genel_durum_kotulesmesi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: a newly-arising emergency is out of
 home-health scope by law (H1) and belongs to `base.life_threat` + the 112 route (inv 7); no level
 asserted here.
 
-**Q4 — New / worsening breathlessness** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q3 — New / worsening breathlessness** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: acute deterioration → `base.life_threat` (inv 7); H1 (112 route)
 > "Hastada yeni başlayan ya da giderek artan bir nefes darlığı fark ettiniz mi?"
+gen: slot=nefes_darligi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: acute breathlessness is acute
 deterioration — handled by `base.life_threat` + 112 (H1), not by this pack; captured for the note
 only.
 
-**Q5 — Skin colour change over pressure areas** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q4 — Skin colour change over pressure areas** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H2 ("colour changes or discoloration")
-> "Hastanın uzun süre yattığı ya da oturduğu bölgelerdeki ciltte renk değişikliği ya da kızarıklık fark ettiniz mi?"
+> "Hastanın uzun süre üzerinde yattığı ya da oturduğu yerlerde ciltte renk değişikliği var mı?"
+gen: slot=basi_bolgesi_renk_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: feeds H2 pressure-area review; no
 standalone level.
 
-**Q6 — Broken skin / open sore over bony areas** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q5 — Broken skin / open sore over bony areas** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H2 ("skin integrity in areas of pressure")
-> "Topuk, kalça ya da kuyruk sokumu gibi kemikli bölgelerde açık yara ya da cilt bütünlüğünde bozulma var mı?"
+> "Hastanın topuk, kalça ya da kuyruk sokumu gibi yerlerinde açık yara var mı?"
+gen: slot=basi_yarasi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** for an established pressure injury, pending clinician + rules engine.
 
-**Q7 — Pain / discomfort over pressure areas** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q6 — Pain / discomfort over pressure areas** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H2 ("take into account any pain or discomfort reported by the patient")
 > "Hasta, uzun süre baskı altında kalan bölgelerde ağrı ya da rahatsızlık ifade ediyor mu?"
+gen: slot=basi_bolgesi_agrisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Fall in the past year** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q7 — Fall in the past year** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H3 (rec 1.1.1.1 — "fallen in the past year")
-> "Hasta son bir yıl içinde düştü mü? Düştüyse ne sıklıkta ve hangi durumlarda olduğunu anlatabilir misiniz?"
+> "Hasta son bir yıl içinde hiç düştü mü?"
+gen: slot=son_yil_dusme; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: recurrent falls feed H3's multifactorial
 assessment (rec 1.1.2.1); no standalone level asserted here.
+
+**Q8 — Fall circumstances (if Q7 yes)** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: H3 (rec 1.1.1.1 — "fallen in the past year")
+> "Bu düşmelerin hangi durumlarda olduğunu anlatır mısınız?"
+gen: slot=dusme_durumlari; type=string; ask_if=son_yil_dusme == true
+CANDIDATE — clinician to approve wording. Narrative answer, so the slot stays a string.
 
 **Q9 — Balance / gait / walking difficulty** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H3 (rec 1.1.1.2 — "balance and gait deficits")
 > "Hastanın dengesinde ya da yürümesinde zorluk fark ettiniz mi?"
+gen: slot=denge_yurume_guclugu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q10 — Existing wound / burn being cared for** · self/proxy · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: H1 (home-health wound-care scope)
-> "Evde takip edilen bir yara ya da yanık bakımınız var mı?"
+> "Hastanın evde bakımı yapılan bir yarası ya da yanığı var mı?"
+gen: slot=evde_yara_bakimi; type=boolean
 CANDIDATE — clinician to approve wording. Note: wound-care as a home-health service is named in the
 MoH regulation scope (H1); the specific clinical wound-assessment criteria are **NO SOURCE FOUND**
 (§4).
@@ -230,6 +247,7 @@ CANDIDATE — clinician to approve wording.
 **Q12 — Known diagnoses / chronic conditions** · self/proxy · archetype: `EVALUATION.problem_diagnosis.v1` ·
 source: n/a (history)
 > "Hastanın daha önce tanı aldığı süregelen (kronik) hastalıkları var mı?"
+gen: slot=kronik_hastalik; type=boolean
 CANDIDATE — clinician to approve wording.
 
 *(12 candidate questions.)*

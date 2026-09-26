@@ -23,7 +23,7 @@ value.
   alarms named in the task — **new focal deficit, thunderclap headache, cauda equina** — are
   branch-independent **life-threats** owned by the sibling set `base.life_threat`, which nothing may
   extend or relax. Cauda equina is explicitly one of "the six rules that motivated this pack existing at
-  all" (base.life_threat TODO §04 §8). This proposal therefore **does NOT author any RED rule, does NOT
+  all" (base.life_threat pending note, §04 §8). This proposal therefore **does NOT author any RED rule, does NOT
   assign RED, and does NOT add anything to `base.life_threat`.** It proposes **intake questions and
   slots** that (a) feed those existing/planned life-threat gates as inputs, and (b) support
   non-emergency urgent-referral candidate flags. The overlap is catalogued in §2.
@@ -129,7 +129,7 @@ value.
 ## 2. Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
 
 `files/protocols/base.life_threat.yaml` is a branch-independent sibling set, `served: false`,
-`maturity: L0`, sign-off block empty (HB-C1). Its own TODO already names these alarms as missing
+`maturity: L0`, sign-off block empty (HB-C1). Its own pending note already names these alarms as missing
 universal rules. They are **base.life_threat territory, not neurosurgery-overlay territory** — this
 proposal must not, and does not, add or extend them:
 
@@ -169,11 +169,18 @@ set, so **no "no archetype fits — export blocked" row is needed.**
 
 ---
 
-## 4. Candidate B1 Turkish pre-visit questions (12)
+## 4. Candidate B1 Turkish pre-visit questions (15)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2); empathetic; no
 diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to approve wording".** No
 numerals appear in patient copy (invariant 22).
+
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §D: every item is now one
+question. The reviewer supplied no replacement text for §D, so the split wording below reuses each
+original item's own words. Q2 keeps only the onset-speed half; "when" is asked by the generator's fixed
+`sikayet_suresi` slot. Renumbering, old → new — §6 and §7 still use the old numbers: Q1–Q5 unchanged ·
+Q6 → Q6 (progressive headache) + Q7 (nausea/vomiting) · Q7 → Q8 · Q8 → Q9 · Q9 → Q10 (radiating back
+pain) + Q11 (both-leg weakness) · Q10 → Q12 · Q11 → Q13 (diagnosis) + Q14 (surgery) · Q12 → Q15.
 
 > Triage note for the feeding items: the "candidate level" quotes the source's urgency wording and is
 > *pending clinician confirmation*; every emergency-grade item explicitly defers the acute decision to
@@ -185,12 +192,14 @@ CANDIDATE — clinician to approve wording. Candidate level: none (orientation q
 
 **Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: S6 ("(O)nset sudden/abrupt"), S3
 (SAH "rate of onset")
-> "Sizi en çok rahatsız eden durum ne zaman ve nasıl başladı — aniden mi yoksa zamanla yavaş yavaş mı?"
+> "Şikâyetiniz aniden mi başladı?"
+gen: slot=ani_baslangic; type=boolean
 CANDIDATE — clinician to approve wording. Feeds sudden-onset gates; candidate flag only.
 
 **Q3 — New one-sided weakness / numbness (FEEDS focal-deficit gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S5 ("tek tarafında … kuvvet kaybı"), S4 (FAST)
 > "Yüzünüzün, kolunuzun ya da bacağınızın tek tarafında yeni başlayan güçsüzlük veya uyuşma fark ettiniz mi?"
+gen: slot=tek_tarafli_guc_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: base.life_threat `rf.stroke_fast` /
 `rf.new_neuro_deficit_subacute` (§2).** Candidate flag → max `YELLOW_REVIEW`; acute RED is
 base.life_threat's, not this pack's.
@@ -198,62 +207,92 @@ base.life_threat's, not this pack's.
 **Q4 — Speech / understanding difficulty (FEEDS focal-deficit gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S5 ("konuşma ve/veya anlamada güçlük"), S4 (FAST)
 > "Son zamanlarda konuşurken ya da söylenenleri anlarken zorlandığınız oldu mu?"
+gen: slot=konusma_anlama_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `rf.stroke_fast`.** Candidate flag only.
 
 **Q5 — Sudden very severe (thunderclap) headache (FEEDS SAH gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (NG228 Rec 1.1.1, "peaking in intensity within 1 to 5 minutes … red-flag")
 > "Saniyeler ya da birkaç dakika içinde en şiddetli hâline ulaşan, ani ve çok şiddetli bir baş ağrınız oldu mu?"
+gen: slot=ani_cok_siddetli_bas_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `rf.thunderclap_headache` / `rf.sah_ottawa`.**
 Candidate flag only; acute decision deferred to base.life_threat.
 
-**Q6 — Progressive headache with nausea/vomiting** · archetype: `OBSERVATION.symptom_sign.v1` · source:
-S6 ("Progressive headache and atypical presentations"; "Neurologic deficit"), S2 (NG232 "severe or
-increasing headache, or persistent vomiting")
-> "Baş ağrınız günden güne giderek artıyor mu ya da yanında bulantı veya kusma oluyor mu?"
+**Q6 — Progressive headache** · archetype: `OBSERVATION.symptom_sign.v1` · source: S6 ("Progressive
+headache and atypical presentations"), S2 (NG232 "severe or increasing headache")
+> "Baş ağrınız günden güne giderek artıyor mu?"
+gen: slot=giderek_artan_bas_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate flag only (raised-ICP pattern is not a single named
 base rule; clinician decides placement, §2).
 
-**Q7 — New bladder/bowel control change (FEEDS cauda equina gate)** · archetype:
+**Q7 — Nausea / vomiting with the headache** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+(NG232 "persistent vomiting")
+> "Baş ağrınızla birlikte bulantı ya da kusma oluyor mu?"
+gen: slot=bas_agrisi_ile_bulanti_kusma; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q6 (one question per turn). Candidate flag only;
+clinician decides placement, §2.
+
+**Q8 — New bladder/bowel control change (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S1 (NICE CKS: "Difficulty initiating micturition or impaired
 sensation of urinary flow"; "Loss of sensation of rectal fullness")
 > "Son zamanlarda idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?"
+gen: slot=idrar_diski_kontrol_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina (base.life_threat territory, §2).**
 Candidate flag only; **NO RED assigned** (task constraint).
 
-**Q8 — Saddle (perineal) numbness (FEEDS cauda equina gate)** · archetype:
+**Q9 — Saddle (perineal) numbness (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S1 (NICE CKS: "Perianal, perineal or genital sensory loss
 (saddle anaesthesia or paraesthesia)")
 > "Oturduğunuz bölgede, bacaklarınızın arasında ya da kalça çevrenizde uyuşma veya his kaybı fark ettiniz mi?"
+gen: slot=makat_uyusmasi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina.** Candidate flag only; **NO RED
 assigned.** ("Saddle/eyer" jargon avoided; described plainly for ≤ B1.)
 
-**Q9 — Back pain radiating to the legs / both-leg weakness (FEEDS cauda equina gate)** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S1 (NICE CKS: "Severe or progressive bilateral neurological
-deficit of the legs … major motor weakness")
-> "Belinizden bacağınıza yayılan bir ağrınız var mı ya da her iki bacağınızda birden güçsüzlük hissediyor musunuz?"
-CANDIDATE — clinician to approve wording. **Overlap: cauda equina bilateral leg deficit.** Candidate
-flag only; clinician may split into two turns to keep strictly one concern.
+**Q10 — Back pain radiating to the leg** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 topic
+(NICE CKS *Sciatica (lumbar radiculopathy)*); S1's quoted red-flag list has no line for radiating pain
+on its own
+> "Belinizden bacağınıza yayılan bir ağrınız var mı?"
+gen: slot=bacaga_yayilan_bel_agrisi; type=boolean
+CANDIDATE — clinician to approve wording. Split from the former Q9 (one question per turn); symptom
+capture only, no candidate flag.
 
-**Q10 — Recent head injury (FEEDS head-injury gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q11 — Both-leg weakness (FEEDS cauda equina gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 (NICE CKS: "Severe or progressive bilateral neurological deficit of the legs … major motor
+weakness")
+> "Her iki bacağınızda birden güçsüzlük hissediyor musunuz?"
+gen: slot=iki_bacakta_guc_kaybi; type=boolean
+CANDIDATE — clinician to approve wording. **Overlap: cauda equina bilateral leg deficit.** Candidate
+flag only; **NO RED assigned.**
+
+**Q12 — Recent head injury (FEEDS head-injury gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S2 (NG232)
 > "Son zamanlarda başınıza ciddi bir darbe aldınız mı?"
+gen: slot=yakin_bas_darbesi; type=boolean
 CANDIDATE — clinician to approve wording. Clinician follow-up (NG232 warning symptoms: bayılma, giderek
 artan baş ağrısı, tekrarlayan kusma) kept as sub-turns to preserve one concern per turn. Supports the
 `anticoagulant_use` slot that head-injury/bleeding gates require.
 
-**Q11 — Known neurosurgical diagnosis / prior surgery** · archetype:
-`EVALUATION.problem_diagnosis.v1` · source: general intake (S6 "Neoplasm in history" gives relevance)
-> "Daha önce beyniniz ya da omurganızla ilgili bir tanı aldınız mı veya bir ameliyat geçirdiniz mi?"
+**Q13 — Known neurosurgical diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+general intake (S6 "Neoplasm in history" gives relevance)
+> "Daha önce beyniniz ya da omurganızla ilgili bir tanı aldınız mı?"
+gen: slot=beyin_omurga_tanisi; type=boolean
 CANDIDATE — clinician to approve wording. Clinician may add an imaging follow-up (MR/tomografi) as a
 sub-turn. Candidate level: none (history question).
 
-**Q12 — Current medications (incl. blood thinners)** · archetype: `ACTION.medication.v1` · source:
+**Q14 — Prior brain or spine surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+general intake
+> "Daha önce beyninizden ya da omurganızdan ameliyat oldunuz mu?"
+gen: slot=beyin_omurga_ameliyati; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q13 (one question per turn). Candidate level: none
+(history question).
+
+**Q15 — Current medications (incl. blood thinners)** · archetype: `ACTION.medication.v1` · source:
 general intake (base slot `anticoagulant_use`, base.life_threat `base_intake_additions`)
 > "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording. Clinician follow-up: "kan sulandırıcı bir ilaç kullanıyor
 musunuz?" — supports the `anticoagulant_use` slot that head-injury/bleeding gates require.
 
-*(12 candidate questions.)*
+*(15 candidate questions.)*
 
 ---
 

@@ -162,71 +162,91 @@ triage, never to an intake question.
 > `base.life_threat` with all three RED axes (route × register × location, invariant 21), none of
 > which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new: Q1–Q8 unchanged · Q9 → Q9 (steroid use) + Q10 (unwell
+now, if Q9 yes) · Q10 → Q11 · Q11 → Q12 · Q12 → Q13.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
+> "Şikâyetiniz başladığından bu yana nasıl değişti?"
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Unexplained weight change** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Kilo
 kaybı" hipertiroidi / "kilo alma" hipotiroidi)
 > "Beslenmenizde belirgin bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz ya da kilo
 > aldınız mı?"
+gen: slot=aciklanamayan_kilo_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**, per S1.
 
 **Q4 — Heat / cold intolerance** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Sıcak
 intoleransı" / "kolay üşüme")
 > "Son zamanlarda sıcağa ya da soğuğa karşı alışılmadık şekilde duyarlı hâle geldiniz mi?"
+gen: slot=sicak_soguk_duyarliligi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1.
 
 **Q5 — Palpitations** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Kalp hızında artış
 (Taşikardi)")
 > "Kalbinizin hızlı ya da düzensiz çarptığını fark ettiniz mi?"
+gen: slot=carpinti; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1.
 
 **Q6 — Tremor / nervousness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("İnce tremor …
 Sinirlilik, emosyonel labilite")
 > "Ellerinizde ince bir titreme ya da alışılmadık bir gerginlik, huzursuzluk hissediyor musunuz?"
+gen: slot=titreme_huzursuzluk; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1.
 
 **Q7 — Fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (hipotiroidi "yorgunluk";
 hipertiroidi "Güçsüzlük, halsizlik")
-> "Son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi hissediyorsunuz?"
+> "Son zamanlarda kendinizi alışılmadık şekilde yorgun ya da halsiz hissediyor musunuz?"
+gen: slot=yorgunluk; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q8 — Neck swelling / compression** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("nodülün
 hızlı büyümesi ve disfaji, disfoni, dispne, ses kısıklığı … bası bulguları")
 > "Boynunuzda bir şişlik ya da yutkunurken zorlanma, ses kısıklığı fark ettiniz mi?"
+gen: slot=boyun_sisligi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1
 (rapidly enlarging neck mass with compressive symptoms).
 
-**Q9 — Known adrenal insufficiency / steroid + now unwell** · archetype:
-`EVALUATION.problem_diagnosis.v1` · source: S2 (adrenal crisis warning)
-> "Böbrek üstü bezi yetmezliği tanınız ya da düzenli kullandığınız bir kortizon (hidrokortizon)
-> tedaviniz var mı; varsa şu anda kusuyor ya da belirgin şekilde halsiz misiniz?"
+**Q9 — Known adrenal insufficiency / regular steroid** · archetype: `EVALUATION.problem_diagnosis.v1` ·
+source: S2 (adrenal crisis warning)
+> "Böbrek üstü bezi yetmezliği ya da başka bir nedenle düzenli kortizon ilacı kullanıyor musunuz?"
+gen: slot=duzenli_kortizon; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q10 — Now unwell (if Q9 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (adrenal
+crisis warning)
+> "Şu anda kusmanız ya da belirgin bir halsizliğiniz var mı?"
+gen: slot=kusma_belirgin_halsizlik; type=boolean; ask_if=duzenli_kortizon == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S2
 vomiting/inability to take steroid can precipitate **adrenal crisis — the emergency is owned by
 `base.life_threat`** (invariant 7), not by this intake.
 
-**Q10 — Hypoglycaemia warning symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3
+**Q11 — Hypoglycaemia warning symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3
 (adrenerjik: "Titreme … Soğuk terleme … Çarpıntı"; nöroglikopenik: "Konfüzyon")
-> "Açlık hâlinde ya da öğün atladığınızda titreme, soğuk terleme, çarpıntı ya da zihinsel bulanıklık
-> yaşıyor musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S3;
-**ağır (ciddi) hipoglisemi is a life-threat owned by `base.life_threat`** (invariant 7).
+> "Aç kaldığınızda titreme, soğuk terleme, çarpıntı ya da kafa karışıklığı oluyor mu?"
+gen: slot=aclikta_seker_dusmesi_belirtileri; type=boolean
+CANDIDATE — clinician to approve wording. Clinician decision pending: whether the fasting framing
+("aç kaldığınızda") stays — the reviewer left it to the clinician. Candidate_flag: **YELLOW_REVIEW
+(candidate, …)**, per S3; **ağır (ciddi) hipoglisemi is a life-threat owned by `base.life_threat`**
+(invariant 7).
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
+**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
 > "Şu anda düzenli kullandığınız ilaçlar (örneğin tiroid ilacı, kortizon ya da insülin) var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
+**Q13 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
 > "Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?"
+gen: slot=ilac_alerjisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions; 6 red-flag-derived — Q3, Q4, Q5, Q6, Q8, Q9, Q10 feed thyroid/adrenal/
+*(13 candidate questions; 8 red-flag-derived — Q3, Q4, Q5, Q6, Q8, Q9, Q10, Q11 feed thyroid/adrenal/
 hypoglycaemia gates — plus general intake.)*
 
 ---

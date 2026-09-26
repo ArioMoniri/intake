@@ -23,7 +23,7 @@ value.
 - **Invariant 7 + base.life_threat — the defining constraint of this branch.** The acute alarm named in
   the task — **acute compartment syndrome** (and the related **acute limb ischaemia** it feeds) — is a
   branch-independent **life-threat** owned by the sibling set `base.life_threat`, which nothing may
-  extend or relax. `base.life_threat`'s own TODO names **"limb ischaemia"** among "the six rules that
+  extend or relax. `base.life_threat`'s own pending note names **"limb ischaemia"** among "the six rules that
   motivated this pack existing at all" (04 §8); acute compartment syndrome of the forearm/hand is an
   acute-limb-threat presentation that path owns. This proposal therefore **does NOT author any RED rule,
   does NOT assign RED, and does NOT add anything to `base.life_threat`.** It proposes **intake questions
@@ -138,7 +138,7 @@ value.
 
 `files/protocols/base.life_threat.yaml` is a branch-independent sibling set, `served: false`,
 `maturity: L0`, sign-off block empty (HB-C1). It carries a hard deny-prefix (`/life_threat`) that makes
-it unreachable from any overlay op — that is what makes composition monotone. Its own TODO already names
+it unreachable from any overlay op — that is what makes composition monotone. Its own pending note already names
 the relevant alarm as a missing universal rule. It is **base.life_threat territory, not hand-surgery
 overlay territory** — this proposal must not, and does not, add or extend it:
 
@@ -195,12 +195,22 @@ Notes:
 
 ---
 
-## 4. Candidate B1 Turkish pre-visit questions (12)
+## 4. Candidate B1 Turkish pre-visit questions (16)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2: one question per turn);
 empathetic; no diagnosis/treatment/prognosis language (PolicyGuard). **All marked "CANDIDATE — clinician
 to approve wording".** No numerals appear in patient copy (invariant 22); the compiler must expand any
 spelled numeral before TTS.
+
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §D: every item is now one
+question with sentences of at most fifteen words. The reviewer supplied no replacement text for §D, so
+the split wording reuses each original item's own words. Q2 keeps only the "how" half; "when" is asked
+by the generator's fixed `sikayet_suresi` slot. The former Q11's immune-system clause is left to the
+base `immunosuppression` slot (HB-C6), as the reviewer ruled for enfeksiyon_hastaliklari. Renumbering,
+old → new — §2, §6 and §7 still use the old numbers: Q1–Q4 unchanged · Q5 → Q5 (pain on straightening)
++ Q6 (finger held bent) · Q6 → Q7 (fever) + Q8 (feeling ill) · Q7 → Q9 (pain out of proportion) + Q10
+(worse on moving fingers) · Q8 → Q11 · Q9 → Q12 · Q10 → Q13 · Q11 → Q14 (diabetes) + Q15 (prior hand
+surgery) · Q12 → Q16.
 
 > Triage note for every alarm-derived item: the level is a **`candidate_flag` (max `YELLOW_REVIEW`),
 > pending clinician + rules-engine confirmation — NOT authoritative**. The authoritative RED/YELLOW must
@@ -212,8 +222,9 @@ spelled numeral before TTS.
 > "Bugün el cerrahisi bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording. Candidate level: none (orientation question).
 
-**Q2 — Onset / story** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Elinizdeki ya da bileğinizdeki şikâyet ne zaman ve nasıl başladı — bir yaralanmayla mı, yoksa kendiliğinden mi?"
+**Q2 — Onset after an injury** · archetype: `OBSERVATION.story.v1` · source: general intake
+> "Elinizdeki ya da bileğinizdeki şikâyet bir yaralanmadan sonra mı başladı?"
+gen: slot=yaralanma_sonrasi_basladi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Complaint location** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
@@ -224,66 +235,100 @@ CANDIDATE — clinician to approve wording.
 source: S1 (ASSH "skin redness, warmth, and pain"; "swollen, red, and tender over the palm side"), S4
 ("Kızarıklık ve şişlik", "Isı artışı")
 > "Elinizde ya da parmağınızda kızarıklık, şişlik veya sıcaklık artışı fark ettiniz mi?"
+gen: slot=kizariklik_sislik_sicaklik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)** per S1 infection wording ("prompt treatment is
 important").
 
-**Q5 — Finger held bent / pain on straightening (flexor tenosynovitis)** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S2 (Kanavel: "The affected digit is held in a flexed position";
-"Pain with any attempt at passive digital extension")
-> "Parmağınızı düzeltmeye çalıştığınızda belirgin bir ağrınız oluyor mu ya da parmağınız kendiliğinden bükülü mü duruyor?"
+**Q5 — Pain on straightening the finger (flexor tenosynovitis)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S2 (Kanavel: "Pain with any attempt at passive digital
+extension")
+> "Parmağınızı düzeltmeye çalıştığınızda belirgin bir ağrınız oluyor mu?"
+gen: slot=duzeltince_parmak_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)**; S2 names PFT "an emergency that requires timely
 diagnosis and prompt treatment", so the authoritative acuity stays with the clinician + rules engine.
 
-**Q6 — Fever / feeling unwell with the hand problem** · archetype: `OBSERVATION.symptom_sign.v1` · source:
-S1 ("may have a fever, chills, or feel sick"), S4 ("Ateş ve genel halsizlik")
-> "El şikâyetinizle birlikte ateşiniz çıktı mı ya da kendinizi genel olarak hasta hissettiniz mi?"
+**Q6 — Finger held bent (flexor tenosynovitis)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+S2 (Kanavel: "The affected digit is held in a flexed position")
+> "Parmağınız kendiliğinden bükülü mü duruyor?"
+gen: slot=bukulu_duran_parmak; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q5 (one question per turn); same candidate_flag
+note as Q5.
+
+**Q7 — Fever with the hand problem** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("may have
+a fever, chills, or feel sick"), S4 ("Ateş ve genel halsizlik")
+> "El şikâyetinizle birlikte ateşiniz çıktı mı?"
+gen: slot=el_sikayeti_ile_ates; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: contributes context to an infection pattern
 (S1/S4); level set by the rules engine.
 
-**Q7 — Severe pain out of proportion / pain on moving fingers (FEEDS compartment gate)** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S3 (BOAST "pain out of proportion to the associated injury and
-pain on passive movement of the muscles of the involved compartments")
-> "Elinizdeki ya da ön kolunuzdaki ağrı, beklediğinizden çok daha şiddetli mi ve parmaklarınızı hareket ettirdiğinizde belirgin şekilde artıyor mu?"
+**Q8 — Feeling unwell with the hand problem** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+("may have a fever, chills, or feel sick"), S4 ("Ateş ve genel halsizlik")
+> "El şikâyetinizle birlikte kendinizi genel olarak hasta hissettiniz mi?"
+gen: slot=genel_hastalik_hissi; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q7 (one question per turn); contributes context to
+an infection pattern (S1/S4).
+
+**Q9 — Severe pain out of proportion (FEEDS compartment gate)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S3 (BOAST "pain out of proportion to the associated injury")
+> "Elinizdeki ya da ön kolunuzdaki ağrı, beklediğinizden çok daha şiddetli mi?"
+gen: slot=orantisiz_agri; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: base.life_threat `limb ischaemia` / acute compartment
 syndrome (§2).** Candidate_flag → max `YELLOW_REVIEW`; the acute RED determination is base.life_threat's,
-not this pack's. **NO RED assigned** (task constraint). Clinician may split "very severe pain" and "worse
-on moving fingers" into two turns to keep strictly one concern.
+not this pack's. **NO RED assigned** (task constraint).
 
-**Q8 — New numbness / colour change / coldness of hand or fingers (FEEDS limb-ischaemia gate)** ·
+**Q10 — Pain worse on moving the fingers (FEEDS compartment gate)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S3 (BOAST "pain on passive movement of the muscles of the
+involved compartments")
+> "Parmaklarınızı hareket ettirdiğinizde elinizdeki ağrı belirgin şekilde artıyor mu?"
+gen: slot=parmak_hareketiyle_artan_agri; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q9 (one question per turn). **Overlap:
+base.life_threat `limb ischaemia` / acute compartment syndrome (§2).** **NO RED assigned.**
+
+**Q11 — New numbness / colour change / coldness of hand or fingers (FEEDS limb-ischaemia gate)** ·
 archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (BOAST "sensory deficits or paresthesias"; ASSH
 Handthology "pallor … mottled appearance")
-> "Elinizde veya parmaklarınızda yeni başlayan uyuşma, renk değişikliği (solukluk ya da morarma) veya soğukluk fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. **Overlap: base.life_threat `limb ischaemia`.** Candidate_flag
-only; **NO RED assigned.**
+> "Elinizde ya da parmaklarınızda yeni uyuşma, solukluk, morarma veya soğukluk var mı?"
+gen: slot=uyusma_renk_degisimi_soguk; type=boolean
+CANDIDATE — clinician to approve wording. Shortened to fifteen words or fewer (§D). **Overlap:
+base.life_threat `limb ischaemia`.** Candidate_flag only; **NO RED assigned.**
 
-**Q9 — Loss of movement / function** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("loss of
+**Q12 — Loss of movement / function** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("loss of
 motion"), S2 ("permanent functional impairment")
 > "Elinizi ya da parmaklarınızı her zamanki gibi hareket ettirmekte veya günlük işlerinizi yapmakta zorlanıyor musunuz?"
+gen: slot=hareket_islev_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none by itself; contributes to the
 infection/compartment picture.
 
-**Q10 — Injury event (cut / bite / puncture)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+**Q13 — Injury event (cut / bite / puncture)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (hand infections follow wounds/bites; "The infection can spread rapidly")
 > "Son zamanlarda elinize bir kesik, ısırık ya da delici bir yaralanma oldu mu?"
+gen: slot=kesik_isirik_delici_yaralanma; type=boolean
 CANDIDATE — clinician to approve wording. Clinician follow-up (hayvan/insan ısırığı, çürük/pas, yüksek
 basınçlı sıvı) kept as sub-turns to preserve one concern per turn.
 
-**Q11 — Known diagnoses (diabetes / immunosuppression / prior hand surgery)** · archetype:
-`EVALUATION.problem_diagnosis.v1` · source: S2 (Kanavel signs "less evident in patients with compromised
-immune systems, diabetes mellitus")
-> "Şeker hastalığı, bağışıklık sisteminizi etkileyen bir durum ya da daha önce elinizle ilgili geçirdiğiniz bir ameliyat gibi bildiğiniz bir sağlık durumunuz var mı?"
-CANDIDATE — clinician to approve wording. Candidate level: none (history question); documented as a
-context that can mask infection signs (S2).
+**Q14 — Known diabetes** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2 (Kanavel signs
+"less evident in patients with compromised immune systems, diabetes mellitus")
+> "Size daha önce şeker hastalığı (diyabet) tanısı konuldu mu?"
+gen: slot=diyabet_tanisi; type=boolean
+CANDIDATE — clinician to approve wording (reuses the reviewer's diyabet_poliklinigi wording). Candidate
+level: none (history question); documented as a context that can mask infection signs (S2).
+Immunosuppression is asked by the base `immunosuppression` slot (HB-C6), not here.
 
-**Q12 — Current medications (incl. blood thinners)** · archetype: `ACTION.medication.v1` · source: general
+**Q15 — Prior hand surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake
+> "Daha önce elinizden ameliyat oldunuz mu?"
+gen: slot=onceki_el_ameliyati; type=boolean
+CANDIDATE — clinician to approve wording. Candidate level: none (history question).
+
+**Q16 — Current medications (incl. blood thinners)** · archetype: `ACTION.medication.v1` · source: general
 intake (base slot `anticoagulant_use`, base.life_threat `base_intake_additions`)
 > "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording. Clinician follow-up: "kan sulandırıcı bir ilaç kullanıyor
 musunuz?" — supports the `anticoagulant_use` slot that bleeding/injury gates reference.
 
-*(12 candidate questions.)*
+*(16 candidate questions.)*
 
 ---
 

@@ -184,8 +184,15 @@ leaf paths here.
 Register: formal **`siz`** throughout; **one concern per question** (invariant 2: one question per
 turn); empathetic; **no diagnosis/treatment/prognosis** language (PolicyGuard-clean — questions describe
 *symptoms*, never name a disease). Numerals are **spelled out** (invariant 22: the compiler must expand
-every digit before TTS; these drafts avoid digits — e.g. "yarım dakika", "üç gün"). **All marked
-"CANDIDATE — clinician to approve wording".**
+every digit before TTS; these drafts avoid digits and carry no time threshold — the unsourced
+"yarım dakika" example was dropped on review). **All marked "CANDIDATE — clinician to approve
+wording".**
+
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1, Q2
+unchanged · Q3 → Q3 (thermal pain) + Q4 (lingering, if Q3 yes) · Q4 → Q5 · Q5 → Q6 · Q6 → Q7 (gum
+swelling) + Q8 (discharge) · Q7 → Q9 (swelling) + Q10 (fever, if Q9 yes) · Q8 → Q11 · Q9 → Q12 ·
+Q10 → Q13 · Q11 → Q14 (medications) + Q15 (antibiotic) · Q12 → Q16.
 
 > Triage note for every red-flag-derived item: any level is a **`candidate_flag` (max `YELLOW_REVIEW`),
 > pending clinician + rules-engine confirmation — NOT authoritative**. Authoritative RED/YELLOW must come
@@ -193,82 +200,111 @@ every digit before TTS; these drafts avoid digits — e.g. "yarım dakika", "ü�
 > (route × register × location, invariant 21), none of which are supplied here.
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Complaint narrative (story)** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyetiniz ne zaman ve nasıl başladı, o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?"
+> "Bu şikâyetiniz başladığından bu yana nasıl değişti?"
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Thermal sensitivity + lingering pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+**Q3 — Thermal sensitivity** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
+symptomatic irreversible pulpitis: "lingering thermal pain")
+> "Sıcak ya da soğuk bir şey yiyip içtiğinizde dişiniz ağrıyor mu?"
+gen: slot=sicak_soguk_agri; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q4 — Lingering thermal pain (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (AAE — symptomatic irreversible pulpitis: "lingering thermal pain")
-> "Sıcak ya da soğuk bir şey aldığınızda dişinizde ağrı oluyor mu; oluyorsa bu ağrı, sıcak ya da soğuk
-> geçtikten sonra bir süre (örneğin yarım dakika ya da daha uzun) devam ediyor mu?"
-CANDIDATE — clinician to approve wording.
+> "Bu ağrı, yiyecek ya da içecek ağzınızdan gittikten sonra da sürüyor mu?"
+gen: slot=agri_sonra_suruyor; type=boolean; ask_if=sicak_soguk_agri == true
+CANDIDATE — clinician to approve wording. No duration threshold is asked: AAE says only "lingering".
 
-**Q4 — Spontaneous / night pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
+**Q5 — Spontaneous pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
 "spontaneous pain")
-> "Dişinizde, hiçbir şey yapmadığınız hâlde kendiliğinden başlayan ya da geceleri sizi rahatsız eden bir
-> ağrı oluyor mu?"
+> "Dişiniz hiçbir neden yokken kendiliğinden ağrıyor mu?"
+gen: slot=kendiliginden_agri; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q5 — Pain on biting / pressure** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
+**Q6 — Pain on biting / pressure** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
 symptomatic apical periodontitis: "a painful response to biting and/or percussion or palpation")
 > "Bu dişinizle ısırdığınızda, çiğnediğinizde ya da üzerine bastırdığınızda ağrı hissediyor musunuz?"
+gen: slot=isirinca_agri; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q6 — Gum swelling / pus / discharge ("gum boil")** · archetype: `OBSERVATION.symptom_sign.v1` · source:
-S1 (AAE — acute apical abscess: "pus formation, and swelling of associated tissues"; chronic apical
-abscess: "discharge of pus through an associated sinus tract")
-> "Dişinizin yanındaki diş etinde şişlik, sivilce benzeri bir kabarcık ya da ağzınıza gelen kötü tatlı
-> bir akıntı fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. Candidate_flag: none by itself; feeds Q7/Q8 if accompanied by
-fever or breathing/swallowing difficulty.
+**Q7 — Gum swelling / "gum boil"** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
+acute apical abscess: "pus formation, and swelling of associated tissues")
+> "Dişinizin yanındaki diş etinde şişlik ya da sivilce gibi bir kabarcık var mı?"
+gen: slot=dis_eti_sisligi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: none by itself; feeds Q9–Q11 if accompanied
+by fever or breathing/swallowing difficulty.
 
-**Q7 — Facial/jaw swelling with fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (ESE —
-"Acute apical abscess with systemic involvement … elevated body temperature >38°C") + S5 (AAE — "fever,
-malaise")
-> "Yüzünüzde ya da çenenizde şişlik var mı; varsa buna ateş de eşlik ediyor mu?"
+**Q8 — Discharge / bad taste** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE — chronic
+apical abscess: "discharge of pus through an associated sinus tract")
+> "Ağzınıza kötü tadı olan bir akıntı geldiğini fark ettiniz mi?"
+gen: slot=kotu_tatli_akinti; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: none by itself.
+
+**Q9 — Facial/jaw swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (ESE — "Acute
+apical abscess with systemic involvement …") + S5 (AAE — "fever, malaise")
+> "Yüzünüzde ya da çenenizde şişlik var mı?"
+gen: slot=yuz_cene_sisligi; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q10 — Fever with the swelling (if Q9 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+(ESE — "Acute apical abscess with systemic involvement … elevated body temperature >38°C") + S5 (AAE —
+"fever, malaise")
+> "Bu şişlikle birlikte ateşiniz de var mı?"
+gen: slot=sislik_ile_ates; type=boolean; ask_if=yuz_cene_sisligi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** if swelling with fever, per S2/S5 (systemic involvement). Level/axes NOT supplied (§4).
 
-**Q8 — Difficulty breathing/swallowing + mouth-floor/neck swelling (AIRWAY — Ludwig's)** · archetype:
+**Q11 — Difficulty breathing or swallowing (AIRWAY — Ludwig's)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (RCEM — "actual or impending airway compromise … Stridor,
 Difficulty in breathing, Dysphagia") + S4 (A.D.A.M. — "Breathing difficulty is an emergency situation. Go
 to the emergency room…")
-> "Ağız tabanınızda ya da boynunuzda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **candidate acute-airway concern, pending
+> "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?"
+gen: slot=nefes_yutkunma_guclugu; type=boolean
+CANDIDATE — clinician to approve wording. No longer narrowed to floor-of-mouth/neck swelling: RCEM
+lists any of breathing difficulty or dysphagia. Candidate_flag: **candidate acute-airway concern, pending
 clinician + rules-engine confirmation — NOT authoritative**. **This is the airway/spreading-infection
 screen; its RED belongs to `base.life_threat` (invariant 7) — NOT a specialty red-flag.** RED script,
 register and the REMOTE/ON_SITE/UNKNOWN location scripts (invariant 21) are **not** supplied here; the
 Türkiye `112` affordance is unsourced (§4).
 
-**Q9 — Limited mouth opening / trismus** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (ESE —
+**Q12 — Limited mouth opening / trismus** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (ESE —
 "trismus") + S3 (RCEM)
-> "Ağzınızı açmakta son zamanlarda zorlanıyor musunuz ya da eskisi kadar açamıyor musunuz?"
+> "Son zamanlarda ağzınızı açmakta zorlanıyor musunuz?"
+gen: slot=agiz_acma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative**; source S2/S3.
 
-**Q10 — Prior root canal / known dental diagnosis on this tooth** · archetype:
+**Q13 — Prior root canal / known dental diagnosis on this tooth** · archetype:
 `EVALUATION.problem_diagnosis.v1` · source: S1 (AAE — "Previously treated" category) + general history
 > "Bu dişinize daha önce kanal tedavisi ya da başka bir diş tedavisi yapıldı mı?"
+gen: slot=onceki_dis_tedavisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications (incl. antibiotic already started)** · archetype: `ACTION.medication.v1` ·
-source: general intake (S2 context — antibiotics)
-> "Şu anda düzenli kullandığınız ilaçlar var mı; bu dişiniz için son günlerde başlanan bir antibiyotik
-> kullanıyor musunuz?"
+**Q14 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake
+> "Şu anda düzenli kullandığınız ilaçlar var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording. Medication history only; no instruction to start/stop any
 medication is given here (that is a clinician decision).
 
-**Q12 — Drug / local-anaesthetic / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
+**Q15 — Antibiotic already started for this tooth** · archetype: `ACTION.medication.v1` · source:
+general intake (S2 context — antibiotics)
+> "Bu diş için son günlerde antibiyotik kullanmaya başladınız mı?"
+gen: slot=yeni_antibiyotik; type=boolean
+CANDIDATE — clinician to approve wording. Medication history only; no instruction to start/stop any
+medication is given here (that is a clinician decision).
+
+**Q16 — Drug / local-anaesthetic / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
 source: general intake
-> "Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı
-> alerjiniz var mı?"
+> "Herhangi bir ilaca, diş uyuşturma iğnesine ya da lateks eldivene alerjiniz var mı?"
+gen: slot=ilac_alerjisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions: Q3–Q9 source-derived symptom/red-flag context; Q1–Q2/Q10–Q12 general intake /
-history. Q7 fever-with-swelling and Q9 trismus cite ESE (S2); Q8 airway cites RCEM (S3) + A.D.A.M. (S4)
-and routes to `base.life_threat`; Q3–Q6 cite AAE terminology (S1).)*
+*(16 candidate questions: Q3–Q12 source-derived symptom/red-flag context; Q1–Q2/Q13–Q16 general intake /
+history. Q10 fever-with-swelling and Q12 trismus cite ESE (S2); Q11 airway cites RCEM (S3) + A.D.A.M.
+(S4) and routes to `base.life_threat`; Q3–Q8 cite AAE terminology (S1).)*
 
 ---
 

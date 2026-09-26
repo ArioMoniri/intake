@@ -243,17 +243,21 @@ CANDIDATE — clinician to approve wording. Candidate level: none (orientation q
 **Q2 — Injury mechanism** · archetype: `OBSERVATION.story.v1` · source: S6 (NG59 1.1.1, "trauma" as a
 specific cause to exclude); general intake
 > "Şikâyetiniz bir düşme, çarpma ya da kaza sonrasında mı başladı?"
-CANDIDATE — clinician to approve wording. Candidate level: none by itself; gates Q3–Q6.
+gen: slot=travma_sonrasi_basladi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate level: none by itself; gates Q3–Q6, which are
+asked only when Q2 is yes (verification report §B, 2026-09-26).
 
 **Q3 — Visible deformity (suspected fracture)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4
 (MEB, "Şekil bozukluğu")
 > "Yaralanan bölgede gözle görülür bir şekil bozukluğu fark ettiniz mi?"
+gen: slot=gorunur_sekil_bozuklugu; type=boolean; ask_if=travma_sonrasi_basladi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)**; S4's own action line is "Tıbbi yardım istenir (112)".
 
 **Q4 — Loss of movement / weight-bearing (suspected fracture)** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S4 (MEB, "Hareket kaybı"); S5 (NG38 1.2.1/1.2.2 — Ottawa rules context)
 > "Yaralanan bölgeyi hareket ettirmekte ya da üzerine basmakta zorlanıyor musunuz?"
+gen: slot=hareket_basma_guclugu; type=boolean; ask_if=travma_sonrasi_basladi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)**. The Ottawa weight-bearing criterion itself is NOT sourced
 here (§4 gap 3).
@@ -261,12 +265,14 @@ here (§4 gap 3).
 **Q5 — Swelling / bruising after injury** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (MEB,
 "Ödem ve kanama nedeniyle morarma")
 > "Yaralanan bölgede şişlik ya da morarma oldu mu?"
+gen: slot=sislik_morarma; type=boolean; ask_if=travma_sonrasi_basladi == true
 CANDIDATE — clinician to approve wording. Candidate level: none by itself; contributes to the fracture
 picture with Q3/Q4.
 
 **Q6 — Pain out of proportion (FEEDS compartment / limb-ischaemia gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (BOAST, "pain out of proportion to the associated injury")
 > "Kolunuzdaki ya da bacağınızdaki ağrı, yaralanmaya göre beklediğinizden çok daha şiddetli mi?"
+gen: slot=orantisiz_agri; type=boolean; ask_if=travma_sonrasi_basladi == true
 CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` limb ischaemia / acute compartment
 syndrome.** Feeding input only; candidate_flag max `YELLOW_REVIEW`; **NO RED assigned.** BOAST's second sign
 ("pain on passive movement") is examiner-elicited and deliberately not turned into a patient question.
@@ -274,6 +280,7 @@ syndrome.** Feeding input only; candidate_flag max `YELLOW_REVIEW`; **NO RED ass
 **Q7 — New numbness / pallor / coldness (FEEDS limb-ischaemia gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S4 (MEB, "nabız alınamaması, solukluk, soğukluk"); S3 (BOAST)
 > "Kolunuzda, bacağınızda ya da parmaklarınızda yeni uyuşma, solukluk veya soğukluk var mı?"
+gen: slot=uyusma_solukluk_soguk; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` limb ischaemia.** Feeding input
 only; **NO RED assigned.** Clinician may split numbness from colour/temperature to keep strictly one sign
 per turn.
@@ -281,6 +288,7 @@ per turn.
 **Q8 — Acute hot swollen joint** · archetype: `OBSERVATION.symptom_sign.v1` · source: S7 (BSR scope,
 "acute onset, severe joint pain, swelling, redness"); S8 (TOTBİD, "Eklemde şişlik, kızarıklık, ısı artışı")
 > "Eklemlerinizden birinde aniden başlayan şişlik, kızarıklık ve sıcaklık oldu mu?"
+gen: slot=sicak_sis_eklem; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)**; S8 calls septic arthritis "acil girişim gerektiren" — the
 authoritative acuity stays with the clinician + rules engine.
@@ -288,6 +296,7 @@ authoritative acuity stays with the clinician + rules engine.
 **Q9 — Fever / malaise with the joint problem** · archetype: `OBSERVATION.symptom_sign.v1` · source: S7
 ("systemic symptoms such as fever and malaise"); S8 ("ateş yükselmesi, halsizlik")
 > "Eklem şikâyetinizle birlikte ateş ya da belirgin halsizlik oldu mu?"
+gen: slot=eklem_ile_ates_halsizlik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: contributes to the Q8 pattern; level set by the
 rules engine. Base `rf_fever_high_persistent` is not duplicated — this asks fever *in the joint context*.
 
@@ -295,6 +304,7 @@ rules engine. Base `rf_fever_high_persistent` is not duplicated — this asks fe
 S1 (GIRFT, "altered perianal, perineal or genital sensation"); S2 (MACP TR, "Makat bölgenizde veya kaba
 etinizde uyuşma")
 > "İç uyluklarınızda, genital bölgenizde ya da makat çevrenizde yeni uyuşma var mı?"
+gen: slot=yeni_makat_uyusmasi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` cauda equina.** Feeding input only;
 **NO RED assigned.**
 
@@ -302,6 +312,7 @@ CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` cauda 
 `OBSERVATION.symptom_sign.v1` · source: S1 (GIRFT, "difficulty initiating micturition or impaired sensation
 of urinary flow"); S2 (MACP TR, "İdrar yapmaya çalıştığınızda artan zorluk")
 > "Bel ya da bacak ağrınız başladıktan sonra idrar yapmakta yeni bir zorluk var mı?"
+gen: slot=yeni_idrar_zorlugu; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` cauda equina.** Feeding input only;
 **NO RED assigned.** S1/S2 also list leakage, loss of urinary sensation, bowel and sexual-function change;
 each would be its own turn — clinician to decide which are asked (one concern per turn).
@@ -309,6 +320,7 @@ each would be its own turn — clinician to decide which are asked (one concern 
 **Q12 — Leg pain spreading to both legs (CES warning sign)** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S1 (GIRFT, "unilateral radicular leg pain that has progressed to bilateral leg pain")
 > "Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?"
+gen: slot=iki_bacaga_yayilan_agri; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` cauda equina** (S1 names this a
 *warning* symptom, urgent rather than emergency referral when no CES symptom is present). Feeding input only;
 **NO RED assigned.** Bilateral leg *weakness* (S1) is already covered by base `rf_new_neuro_deficit_subacute`.

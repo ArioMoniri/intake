@@ -139,33 +139,43 @@ the clinical critical path.
 > snapshot and all three RED axes (route × register × location, invariant 21), none of which are
 > supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new: Q1–Q7 unchanged · Q8 → Q8 (bladder) + Q9 (saddle
+numbness) · Q9 → Q10 · Q10 → Q11 · Q11 → Q12 (diagnosis) + Q13 (surgery) · Q12 → Q14. Q5 and Q7 are
+held (S2 unverified verbatim). Q8/Q9 are re-cited to the GIRFT CES pathway (March 2026) as
+`ortopedi_ve_travmatoloji.md` S1 cites it, which supersedes §4 gap 1 for these two items.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: n/a (general intake)
-> "Bugünkü görüşmede sizi fizik tedaviye getiren en önemli şikâyetiniz nedir? Kısaca anlatabilir misiniz?"
+> "Sizi bugün fizik tedaviye getiren en önemli şikâyetiniz nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Complaint site / onset narrative** · archetype: `OBSERVATION.story.v1` · source: n/a (general intake)
-> "Ağrınız ya da rahatsızlığınız vücudunuzun en çok hangi bölgesinde ve ne zaman başladı?"
-CANDIDATE — clinician to approve wording.
+**Q2 — Complaint site** · archetype: `OBSERVATION.story.v1` · source: n/a (general intake)
+> "Ağrınızı ya da rahatsızlığınızı en çok vücudunuzun hangi bölgesinde hissediyorsunuz?"
+CANDIDATE — clinician to approve wording. Onset is asked by the fixed `sikayet_suresi` slot.
 
 **Q3 — Pain with movement / function** · archetype: `OBSERVATION.symptom_sign.v1` · source: n/a (general intake)
 > "Bu ağrı günlük hareketlerinizi (yürümek, oturmak, eğilmek gibi) etkiliyor mu?"
+gen: slot=gunluk_hareket_etkileniyor; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q4 — New or changed symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (rec 1.1.1: "new or changed symptoms")
-> "Şikâyetiniz son zamanlarda değişti mi ya da daha önce olmayan yeni belirtiler eklendi mi?"
+> "Son zamanlarda şikâyetinizde bir değişiklik ya da yeni bir belirti oldu mu?"
+gen: slot=yeni_ya_da_degisen_belirti; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: feeds a clinician review of "alternative
 diagnoses" per S1; no standalone level.
 
-**Q5 — Night / unremitting spinal pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
-(SEARCH SUMMARY — "nocturnal spinal pain preventing sleep", "severe unremitting")
-> "Sırt ya da bel ağrınız geceleri sizi uykudan uyandırıyor mu veya dinlenince hiç geçmiyor mu?"
+**Q5 — Night spinal pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+(SEARCH SUMMARY — "nocturnal spinal pain preventing sleep")
+> "Sırt ya da bel ağrınız sizi geceleri uykudan uyandırıyor mu?"
+gen: slot=gece_uyandiran_agri; type=boolean; hold=S2 NG234 is unverified verbatim - held until the NG234 verbatim is snapshotted
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** — but S2 is UNVERIFIED VERBATIM (§4);
 until re-captured from primary NICE text this stays `draft_needs_source`.
 
 **Q6 — Recent trauma / injury** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("trauma")
 > "Bu ağrı bir düşme, çarpma ya da kaza sonrasında mı başladı?"
+gen: slot=travma_sonrasi_basladi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: feeds S1 serious-pathology review; no
 standalone level here.
 
@@ -173,40 +183,58 @@ standalone level here.
 S2 (SEARCH SUMMARY — neurological symptoms)
 > "Son zamanlarda bacaklarınızda ya da kollarınızda yeni bir güçsüzlük veya yürümekte zorlanma fark
 > ettiniz mi?"
+gen: slot=yeni_guc_kaybi; type=boolean; hold=S2 NG234 is unverified verbatim - held until the NG234 verbatim is snapshotted
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; S2 UNVERIFIED VERBATIM (§4).
 
-**Q8 — Bladder / bowel change or saddle numbness** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: **cauda equina — NO VERBATIM SOURCE RETRIEVED (§4)**; emergency handling → `base.life_threat`
-(inv 7)
-> "İdrarınızı yapmakta yeni bir zorluk, tutamama ya da makat–kalça bölgesinde uyuşma yaşadınız mı?"
+**Q8 — New bladder difficulty or incontinence** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+GIRFT National Suspected Cauda Equina Syndrome Pathway, March 2026 (as cited in
+`ortopedi_ve_travmatoloji.md` S1: "difficulty initiating micturition or impaired sensation of urinary
+flow which may lead to incontinence"); emergency handling → `base.life_threat` (inv 7)
+> "Son günlerde idrar yapmakta yeni bir zorluk ya da idrar kaçırma oldu mu?"
+gen: slot=yeni_idrar_zorlugu; type=boolean
 CANDIDATE — clinician to approve wording. **Layperson-answerable and clinically critical**, so the
 question is drafted; but the authoritative red-flag wording and level for cauda equina must come
-from a committed source + `base.life_threat` + the rules engine, NOT from this proposal. Its source
-is currently **NO SOURCE FOUND (verbatim)** — clinician must supply (candidate: NICE CKS "Sciatica
-(lumbar radiculopathy)", which returned HTTP 403 to automated fetch).
+from a committed source + `base.life_threat` + the rules engine, NOT from this proposal. NG59 is not
+cited here: it excludes cauda equina.
 
-**Q9 — Fever with back pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("infection")
+**Q9 — New saddle numbness** · archetype: `OBSERVATION.symptom_sign.v1` · source: GIRFT National
+Suspected Cauda Equina Syndrome Pathway, March 2026 (as cited in `ortopedi_ve_travmatoloji.md` S1:
+"altered perianal, perineal or genital sensation"); emergency handling → `base.life_threat` (inv 7)
+> "Bacaklarınızın arasında ya da makat çevresinde yeni bir uyuşma fark ettiniz mi?"
+gen: slot=yeni_makat_uyusmasi; type=boolean
+CANDIDATE — clinician to approve wording. Same ownership note as Q8: the cauda equina emergency
+belongs to `base.life_threat` + the rules engine.
+
+**Q10 — Fever with back pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("infection")
 > "Sırt ya da bel ağrınızla birlikte ateşiniz de oluyor mu?"
+gen: slot=bel_agrisi_ile_ates; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: feeds S1 "infection" review; the specific
 fever + back-pain red-flag threshold is **NO SOURCE FOUND** (§4).
 
-**Q10 — Unexplained weight loss / feeling unwell** · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q11 — Unexplained weight loss / feeling unwell** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S1 ("cancer")
 > "Sebebini bilmediğiniz kilo kaybı ya da kendinizi genel olarak halsiz hissetme durumunuz var mı?"
+gen: slot=aciklanamayan_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: feeds S1 "cancer" review; the specific
 weight-loss threshold is **NO SOURCE FOUND** (§4).
 
-**Q11 — Known MSK diagnoses / prior surgery** · archetype: `EVALUATION.problem_diagnosis.v1` ·
-source: n/a (history)
-> "Daha önce kas–iskelet sisteminizle ilgili bir tanı aldınız mı ya da ameliyat oldunuz mu?"
+**Q12 — Known MSK diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: n/a (history)
+> "Daha önce kas, kemik ya da eklemlerinizle ilgili bir tanı aldınız mı?"
+gen: slot=kas_iskelet_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: n/a (history)
+**Q13 — Prior MSK surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source: n/a (history)
+> "Daha önce kas, kemik ya da eklemlerinizden ameliyat oldunuz mu?"
+gen: slot=kas_iskelet_ameliyati; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q14 — Current medications** · archetype: `ACTION.medication.v1` · source: n/a (history)
 > "Şu anda düzenli olarak kullandığınız ilaçlar var mı? Örneğin kan sulandırıcı ya da kortizon içeren ilaçlar."
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions.)*
+*(14 candidate questions; Q5 and Q7 held.)*
 
 ---
 

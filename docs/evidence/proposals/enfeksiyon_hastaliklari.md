@@ -44,7 +44,10 @@
 ## 1. Sources found (real, retrieved) with verbatim quotes
 
 ### S1 — NICE sepsis guideline *Suspected sepsis: recognition, diagnosis and early management* (International; primary)
-- **guideline_id (proposed):** `NICE-NG51-SEPSIS` (see version note)
+- **guideline_id (proposed):** `NICE-NG253-SEPSIS` — re-cited 2026-09-26 per
+  docs/evidence/verification/specialty-wave4-5.md: NG51 is retired and NG253 is its successor for
+  people aged 16 or over. The verbatim quotes below were read from the NG51 mirror; they must be
+  re-quoted from the NG253 primary text before sign-off (§5, G2).
 - **Publishing body:** National Institute for Health and Care Excellence (NICE), UK
 - **Version / date:** the NCBI Bookshelf mirror read identifies itself as **"NICE Guideline, No. 51 …
   London: NICE; 2024 Mar 19."** **Version caveat:** an independent web search reports that NG51 has
@@ -187,55 +190,94 @@ path (yes/no + optional narrative).
 > clinician + rules-engine confirmation — NOT authoritative**. Items marked **→ base.life_threat** are
 > life-threatening families that already live in `base.intake` (inv. 7) and are **not** leveled here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). The former Q2 (complaint duration) is removed: the generator's fixed
+`sikayet_suresi` slot already asks it. Renumbering, old → new — the §2 table and §5 still use the old
+numbers: Q1 unchanged · Q2 removed · Q3 → Q2 (fever) + Q3 (fever duration, if Q2 yes) · Q4 → Q4 ·
+Q5 → Q5 · Q6 → Q6 (headache) + Q7 (neck stiffness) · Q7 → Q8 · Q8 → Q9 (diarrhoea) + Q10 (blood in
+stool) · Q9 → Q11 · Q10 → Q12 (travel) + Q13 (contact) · Q11 → Q14 · Q12 → Q15 (medications) + Q16
+(recent antibiotics).
+
 **Q1 — Başvuru nedeni** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?"
 > _CANDIDATE — clinician to approve._
 
-**Q2 — Şikâyet süresi** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?"
-> _CANDIDATE — clinician to approve. (No free numeric entry on the critical path — narrative only; inv. 22.)_
-
-**Q3 — Ateş ve süresi** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Ateş >39 °C"); S1/S2 (fever within the sepsis / meningitis red-flag combinations)
-> "Ateşiniz oldu mu? Olduysa kaç gündür sürdüğünü ve çok yüksek hissedip hissetmediğinizi söyleyebilir misiniz?"
+**Q2 — Ateş** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Ateş >39 °C"); S1/S2 (fever within the sepsis / meningitis red-flag combinations)
+> "Son günlerde ateşiniz oldu mu?"
 > _CANDIDATE — clinician to approve. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)** for high or persistent fever, per S3. A high/persistent-fever emergency also lives in `base.life_threat` (`rf.fever_high_persistent`, inv. 7); the numeric temperature threshold is a clinician-set cut-off, surfaced qualitatively — the patient is not asked for a number._
+gen: slot=ates_var_mi; type=boolean
+
+**Q3 — Ateş süresi (Q2 evet ise)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Ateş >39 °C"); S1/S2
+> "Ateşiniz ne zamandır sürüyor?"
+> _CANDIDATE — clinician to approve. Captured as a duration slot, not a free number (inv. 22)._
+gen: slot=ates_suresi; type=duration; ask_if=ates_var_mi == true
 
 **Q4 — Şiddetli halsizlik / titreme** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE sepsis clinical-concern picture) · **→ base.life_threat (inv. 7); not leveled here**
 > "Ateşle birlikte titreme, üşüme ya da kendinizi çok kötü, güçten düşmüş hissetme oldu mu?"
 > _CANDIDATE — clinician to approve. Sepsis-like family (`rf.sepsis_like`) lives in base.intake; this question only surfaces the sign._
+gen: slot=titreme_kotu_hissetme; type=boolean
 
 **Q5 — Yeni ortaya çıkan bilinç bulanıklığı / aşırı uyku** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE NG240 rec 1.1.4 "altered level of consciousness or cognition (including confusion or delirium)"); S3 (HSGM "Zihinsel durumda değişiklik") · **→ base.life_threat (inv. 7); not leveled here**
-> "Son zamanlarda kendinizde ya da yakınlarınızın fark ettiği bir bilinç bulanıklığı, aşırı uyku hali veya kafa karışıklığı oldu mu?"
+> "Son günlerde sizde kafa karışıklığı ya da aşırı uyku hâli oldu mu?"
 > _CANDIDATE — clinician to approve. Surfaces the sign only; owned by base sepsis-like / meningitis emergency families._
+gen: slot=kafa_karisikligi; type=boolean
 
-**Q6 — Şiddetli baş ağrısı ile ense sertliği** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE NG240 rec 1.1.4 "fever, headache, neck stiffness …") · **→ base.life_threat (inv. 7); not leveled here**
-> "Şiddetli baş ağrınızla birlikte boynunuzu öne eğmekte zorlanma ya da ense sertliği fark ettiniz mi?"
-> _CANDIDATE — clinician to approve. NG240 groups these into a red-flag combination; the disease name is not in patient copy (PolicyGuard). Clinician may split headache and neck stiffness into two turns._
+**Q6 — Şiddetli baş ağrısı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE NG240 rec 1.1.4 "fever, headache, neck stiffness …") · **→ base.life_threat (inv. 7); not leveled here**
+> "Son günlerde şiddetli bir baş ağrınız oldu mu?"
+> _CANDIDATE — clinician to approve. NG240 groups headache and neck stiffness into a red-flag combination; the disease name is not in patient copy (PolicyGuard)._
+gen: slot=siddetli_bas_agrisi; type=boolean
 
-**Q7 — Solmayan döküntü** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE NG240 rec 1.1.9 "non-blanching petechial or purpuric rash"); S1 (NICE sepsis rec 1.11.6 "non-blanching petechial or purpuric rash") · **→ base.life_threat (inv. 7); not leveled here**
-> "Cildinizde, üzerine bardakla ya da parmakla bastırdığınızda solmayan (kaybolmayan) kırmızı veya mor döküntü fark ettiniz mi?"
+**Q7 — Ense sertliği** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE NG240 rec 1.1.4 "fever, headache, neck stiffness …") · **→ base.life_threat (inv. 7); not leveled here**
+> "Boynunuzu öne eğmekte zorlandığınız ya da ense sertliği hissettiğiniz oldu mu?"
+> _CANDIDATE — clinician to approve. Split from the former headache item (one question per turn)._
+gen: slot=ense_sertligi; type=boolean
+
+**Q8 — Solmayan döküntü** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE NG240 rec 1.1.9 "non-blanching petechial or purpuric rash"); S1 (NICE sepsis rec 1.11.6 "non-blanching petechial or purpuric rash") · **→ base.life_threat (inv. 7); not leveled here**
+> "Cildinizde, üzerine bastırınca solmayan kırmızı ya da mor bir döküntü fark ettiniz mi?"
 > _CANDIDATE — clinician to approve. Describes the sign only; owned by base sepsis-like family. NG240 rec 1.1.10 verbatim warns a rash may be absent, so a "no" here does not clear the emergency — a clinician matter, not an intake level._
+gen: slot=solmayan_dokuntu; type=boolean
 
-**Q8 — İshal ve dışkıda kan** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Dışkıda gözle görülür kan", "Sık (>8) ve önemli miktarda dışkılama")
-> "İshaliniz var mı? Varsa dışkınızda gözle görülür kan fark ettiniz mi?"
+**Q9 — İshal** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Sık (>8) ve önemli miktarda dışkılama")
+> "Şu anda ishaliniz var mı?"
+> _CANDIDATE — clinician to approve._
+gen: slot=ishal; type=boolean
+
+**Q10 — Dışkıda kan** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Dışkıda gözle görülür kan")
+> "Dışkınızda gözle görülür kan fark ettiniz mi?"
 > _CANDIDATE — clinician to approve. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)** for visible blood in stool, per S3. Heavy/active bleeding is owned by `base.life_threat` (`rf.severe_bleeding`, inv. 7) and is not leveled here._
+gen: slot=diskida_kan; type=boolean
 
-**Q9 — Sürekli kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Sürekli kusma")
+**Q11 — Sürekli kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Sürekli kusma")
 > "Geçmeyen ya da sık sık tekrarlayan kusmanız oluyor mu?"
 > _CANDIDATE — clinician to approve._
+gen: slot=surekli_kusma; type=boolean
 
-**Q10 — Yakın zamanda seyahat / temas** · archetype: `OBSERVATION.story.v1` (weak; export target unresolved — gap G4) · source: general intake (infectious-disease relevance; no red-flag threshold)
-> "Son zamanlarda yurt dışına ya da başka bir şehre seyahat ettiniz mi, veya benzer şikâyeti olan biriyle yakın temasınız oldu mu?"
-> _CANDIDATE — clinician to approve. Archetype binding unresolved — do not export until G4 is closed. Clinician may split travel and contact into two turns._
+**Q12 — Yakın zamanda seyahat** · archetype: `OBSERVATION.story.v1` (weak; export target unresolved — gap G4) · source: general intake (infectious-disease relevance; no red-flag threshold)
+> "Son zamanlarda yurt dışına ya da başka bir şehre seyahat ettiniz mi?"
+> _CANDIDATE — clinician to approve. Archetype binding unresolved — do not export until G4 is closed._
+gen: slot=yakin_seyahat; type=boolean
 
-**Q11 — Bağışıklık durumu / bilinen süregen hastalık** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S1 (NICE sepsis — immunosuppression raises risk); S3 (HSGM "Kronik tıbbi durum veya eşzamanlı hastalık öyküsü")
-> "Bağışıklık sisteminizi etkileyen bir durumunuz ya da daha önce konulmuş süregen bir hastalık tanınız var mı?"
-> _CANDIDATE — clinician to approve. `base.intake` already reserves an `immunosuppression` slot (HB-C6); the specialty layer must not duplicate it._
+**Q13 — Benzer şikâyeti olan biriyle temas** · archetype: `OBSERVATION.story.v1` (weak; export target unresolved — gap G4) · source: general intake (infectious-disease relevance; no red-flag threshold)
+> "Benzer şikâyeti olan biriyle yakın zamanda temasınız oldu mu?"
+> _CANDIDATE — clinician to approve. Archetype binding unresolved — do not export until G4 is closed._
+gen: slot=benzer_sikayetli_temas; type=boolean
 
-**Q12 — Kullanılan ilaçlar / son bir ayda antibiyotik** · archetype: `ACTION.medication.v1` · source: S3 (HSGM "Son bir ay içinde antibiyotik kullanım öyküsü olan ishalli hastalarda C. difficile toksini araştırılır")
-> "Şu anda düzenli kullandığınız ilaçlar var mı? Son bir ay içinde antibiyotik kullandınız mı?"
-> _CANDIDATE — clinician to approve. Clinician may split "düzenli ilaç" and "son ay antibiyotik" into two turns._
+**Q14 — Bilinen süregen hastalık** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (HSGM "Kronik tıbbi durum veya eşzamanlı hastalık öyküsü")
+> "Size daha önce konulmuş uzun süreli bir hastalık tanısı var mı?"
+> _CANDIDATE — clinician to approve. Immunosuppression is left to the `base.intake` `immunosuppression` slot (HB-C6); the specialty layer does not duplicate it._
+gen: slot=suregen_hastalik; type=boolean
 
-*(12 candidate questions, Q1–Q12. All tagged CANDIDATE; none served.)*
+**Q15 — Kullanılan ilaçlar** · archetype: `ACTION.medication.v1` · source: general intake
+> "Şu anda düzenli kullandığınız ilaçlar var mı?"
+> _CANDIDATE — clinician to approve._
+gen: slot=duzenli_ilac; type=boolean
+
+**Q16 — Son bir ayda antibiyotik** · archetype: `ACTION.medication.v1` · source: S3 (HSGM "Son bir ay içinde antibiyotik kullanım öyküsü olan ishalli hastalarda C. difficile toksini araştırılır")
+> "Son bir ay içinde antibiyotik kullandınız mı?"
+> _CANDIDATE — clinician to approve._
+gen: slot=son_ay_antibiyotik; type=boolean
+
+*(16 candidate questions, Q1–Q16. All tagged CANDIDATE; none served.)*
 
 ---
 

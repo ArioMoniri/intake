@@ -165,6 +165,12 @@ emergency number or action script is spoken here — RED action scripts belong t
 > pre-eclampsia and sepsis stay in `base.life_threat` (invariant 7) with all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). Q2 is now a date slot and Q3 a boolean pregnancy slot; every "Hamileyseniz,"
+item is asked only when Q3 is yes. Renumbering, old → new — §4 still uses the old numbers: Q1–Q3
+unchanged · Q4 → Q4 (bleeding outside periods) + Q5 (bleeding in this pregnancy, if Q3 yes) · Q5 →
+Q6 · Q6 → Q7 · Q7 → Q8 · Q8 → Q9 · Q9 → Q10 · Q10 → Q11 · Q11 → Q12 · Q12 → Q13.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?"
 CANDIDATE — clinician to approve wording.
@@ -172,69 +178,87 @@ CANDIDATE — clinician to approve wording.
 **Q2 — Last menstrual period** · archetype: `OBSERVATION.story.v1` · source: S1 p. 9 ("Son adet
 tarihinin ilk günü (SAT)")
 > "Son adetinizin ilk günü hangi tarihteydi?"
+gen: slot=son_adet_tarihi; type=date
 CANDIDATE — clinician to approve wording. Answer must be captured with a date picker, not free
-numeric text (invariant 22). Maps to the `lmp_date` slot that `base.life_threat` lists under
+numeric text (invariant 22). Binds to the `lmp_date` slot that `base.life_threat` lists under
 `base_intake_additions` (§4 gap 1).
 
 **Q3 — Possibility of pregnancy** · archetype: `OBSERVATION.story.v1` · source: S3 Rec 1.4.5 ("they
 may be pregnant, and think about offering a pregnancy test")
 > "Şu anda hamile olma ihtimaliniz var mı?"
-CANDIDATE — clinician to approve wording. Maps to `base.life_threat`'s `pregnancy_status` slot
-(listed under `base_intake_additions`) — feeds `base.life_threat`; no level assigned here.
+gen: slot=gebelik_durumu; type=boolean
+CANDIDATE — clinician to approve wording. Binds to `base.life_threat`'s `pregnancy_status` slot
+(listed under `base_intake_additions`) — feeds `base.life_threat`; no level assigned here. Gates
+every "Hamileyseniz," item below.
 
-**Q4 — Unexpected vaginal bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 16
-("Vajinal kanama"); S3 Rec 1.4.3 ("vaginal bleeding with or without clots")
-> "Adet döneminiz dışında ya da hamileyken vajinal kanamanız oldu mu?"
+**Q4 — Vaginal bleeding outside periods** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+p. 16 ("Vajinal kanama"); S3 Rec 1.4.3 ("vaginal bleeding with or without clots")
+> "Adet döneminiz dışında vajinal kanamanız oldu mu?"
+gen: slot=adet_disi_kanama; type=boolean
+CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** — no level assigned here.
+
+**Q5 — Vaginal bleeding in this pregnancy (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 p. 16 ("Vajinal kanama"); S3 Rec 1.4.3 ("vaginal bleeding with or without clots")
+> "Hamileyseniz, bu hamilelikte hiç vajinal kanamanız oldu mu?"
+gen: slot=gebelikte_kanama; type=boolean; ask_if=gebelik_durumu == true
 CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** (pregnancy bleeding stays
 there, invariant 7) — no level assigned here.
 
-**Q5 — Post-menopausal bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S5 Rec 1.5.12
+**Q6 — Post-menopausal bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S5 Rec 1.5.12
 ("unexplained post-menopausal bleeding")
 > "Adetleriniz tamamen kesildiyse, sonrasında hiç vajinal kanamanız oldu mu?"
+gen: slot=menopoz_sonrasi_kanama; type=boolean
 CANDIDATE — clinician to approve wording. S5's age criterion is a clinician gate, not asked here.
 
-**Q6 — Lower abdominal / pelvic pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 16
+**Q7 — Lower abdominal / pelvic pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 16
 ("Karın ağrısı"); S3 Rec 1.4.3 ("abdominal or pelvic pain")
 > "Karnınızın alt kısmında ya da kasıklarınızda ağrınız var mı?"
+gen: slot=alt_karin_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** (`rf.ectopic_possible`,
 pregnancy + severe pain) — no level assigned here.
 
-**Q7 — Severe headache in pregnancy** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 16
-("Şiddetli Başağrısı"); S2 Rec 1.1.1 ("severe headache")
+**Q8 — Severe headache in pregnancy (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 p. 16 ("Şiddetli Başağrısı"); S2 Rec 1.1.1 ("severe headache")
 > "Hamileyseniz, son günlerde şiddetli bir baş ağrınız oldu mu?"
+gen: slot=gebelikte_siddetli_bas_agrisi; type=boolean; ask_if=gebelik_durumu == true
 CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** (pre-eclampsia pattern
 stays there, invariant 7) — no level assigned here.
 
-**Q8 — Visual disturbance in pregnancy** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-p. 16 ("Görmede bulanıklık"); S2 Rec 1.1.1 ("problems with vision, such as blurring or flashing
-before the eyes")
+**Q9 — Visual disturbance in pregnancy (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 p. 16 ("Görmede bulanıklık"); S2 Rec 1.1.1 ("problems with vision, such as blurring or
+flashing before the eyes")
 > "Hamileyseniz, görmenizde bulanıklık ya da gözünüzün önünde ışık çakması oldu mu?"
+gen: slot=gebelikte_gorme_bozuklugu; type=boolean; ask_if=gebelik_durumu == true
 CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** (pre-eclampsia) — no level
 assigned here.
 
-**Q9 — Reduced fetal movements** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 16
-("Bebek hareketlerinde azalma"); S4 Rec 1.2.34 ("reduced fetal movements")
+**Q10 — Reduced fetal movements (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+S1 p. 16 ("Bebek hareketlerinde azalma"); S4 Rec 1.2.34 ("reduced fetal movements")
 > "Hamileyseniz, bebeğinizin hareketlerinde azalma fark ettiniz mi?"
+gen: slot=bebek_hareketlerinde_azalma; type=boolean; ask_if=gebelik_durumu == true
 CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** (listed in its absent
 `pregnancy_rules`) — no level assigned here. Gestational gating is the clinician's (S4 wording).
 
-**Q10 — Fluid leakage in pregnancy** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 16
-("Su gelmesi")
+**Q11 — Fluid leakage in pregnancy (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 p. 16 ("Su gelmesi")
 > "Hamileyseniz, iç çamaşırınızı ıslatan su gibi bir akıntı fark ettiniz mi?"
+gen: slot=gebelikte_su_gelmesi; type=boolean; ask_if=gebelik_durumu == true
 CANDIDATE — clinician to approve wording. No international corroborator retrieved (§4 gap 6).
 
-**Q11 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 9 / p. 16 ("yüksek
+**Q12 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 p. 9 / p. 16 ("yüksek
 ateş" / "Ateş")
 > "Son günlerde ateşiniz oldu mu?"
+gen: slot=ates_var_mi; type=boolean
 CANDIDATE — clinician to approve wording. **Feeds `base.life_threat`** (sepsis and post-partum
 fever stay there, invariant 7) — no level assigned here.
 
-**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
+**Q13 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
 > "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions: 10 guideline-sourced — Q2–Q11 — and 2 general intake; 7 feed
-`base.life_threat` — Q3, Q4, Q6, Q7, Q8, Q9, Q11.)*
+*(13 candidate questions: 11 guideline-sourced — Q2–Q12 — and 2 general intake; 8 feed
+`base.life_threat` — Q3, Q4, Q5, Q7, Q8, Q9, Q10, Q12.)*
 
 ---
 

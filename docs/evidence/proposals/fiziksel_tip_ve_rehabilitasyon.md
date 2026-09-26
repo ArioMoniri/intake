@@ -22,7 +22,7 @@ It assigns **no** authoritative RED/YELLOW/GREEN level and pins **no** clinical 
 - **Invariant 7 + base.life_threat — the defining constraint of this branch.** The acute alarm named in
   the task — **cauda equina** (from low-back-pain red flags) — is a branch-independent **life-threat**
   owned by the sibling set `base.life_threat`, which nothing may extend or relax. Cauda equina is
-  explicitly one of "the six rules that motivated this pack existing at all" (base.life_threat TODO,
+  explicitly one of "the six rules that motivated this pack existing at all" (base.life_threat pending note,
   04 §8). This proposal therefore **does NOT author any RED rule, does NOT assign RED, and does NOT add
   anything to `base.life_threat`.** It proposes **intake questions and slots** that (a) feed those
   existing/planned life-threat gates as inputs (cauda equina), and (b) support non-emergency
@@ -129,7 +129,7 @@ It assigns **no** authoritative RED/YELLOW/GREEN level and pins **no** clinical 
 
 `files/protocols/base.life_threat.yaml` is a branch-independent sibling set, `served: false`,
 `maturity: L0`, sign-off block empty (HB-C1). It carries a hard deny-prefix (`/life_threat`) that makes it
-unreachable from any overlay op — that is what makes composition monotone. Its own TODO already names the
+unreachable from any overlay op — that is what makes composition monotone. Its own pending note already names the
 relevant alarm as a missing universal rule. Cauda equina is **base.life_threat territory, not PMR overlay
 territory** — this proposal must not, and does not, add or extend it:
 
@@ -185,12 +185,20 @@ Notes:
 
 ---
 
-## 4. Candidate B1 Turkish pre-visit questions (12)
+## 4. Candidate B1 Turkish pre-visit questions (16)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2: one question per turn);
 empathetic; no diagnosis/treatment/prognosis language (PolicyGuard). **All marked "CANDIDATE — clinician
 to approve wording".** No numerals appear in patient copy (invariant 22); the compiler must expand any
 spelled numeral before TTS.
+
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §D: every item is now one
+question. The reviewer supplied no replacement text for §D, so the split wording reuses each original
+item's own words. Q2 keeps only the "how" half; "when" is asked by the generator's fixed
+`sikayet_suresi` slot. Renumbering, old → new — §1, §2, §5, §6 and §7 still use the old numbers: Q1–Q4
+unchanged · Q5 → Q5 (pain at night or rest) + Q6 (sleep disturbed) · Q6 → Q7 (fever) + Q8 (weight
+loss) + Q9 (feeling unwell) · Q7 → Q10 · Q8 → Q11 · Q9 → Q12 · Q10 → Q13 · Q11 → Q14 (prior
+diagnosis) + Q15 (prior treatment) · Q12 → Q16.
 
 > Triage note for every alarm-derived item: the level is a **`candidate_flag` (max `YELLOW_REVIEW`),
 > pending clinician + rules-engine confirmation — NOT authoritative**. The authoritative RED/YELLOW must
@@ -203,7 +211,7 @@ spelled numeral before TTS.
 CANDIDATE — clinician to approve wording. Candidate level: none (orientation question).
 
 **Q2 — Onset / story** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Şikâyetiniz ne zaman ve nasıl başladı? Kendi sözlerinizle anlatabilir misiniz?"
+> "Şikâyetinizin nasıl başladığını kendi sözlerinizle anlatır mısınız?"
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Complaint location** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
@@ -216,60 +224,95 @@ CANDIDATE — clinician to approve wording.
 CANDIDATE — clinician to approve wording. Note: a validated Turkish function/disability instrument (e.g.
 an ODI/HAQ-type measure) is a clinician/instrument decision and is **not** set here.
 
-**Q5 — Night / rest pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("istirahatte ağrı …
-neoplastik ve enfeksiyöz patolojilerin"), S4 ("Gece ağrısı")
-> "Ağrınız geceleri ya da dinlenirken de sürüyor mu, uykunuzu bölüyor mu?"
+**Q5 — Pain at night or at rest** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("istirahatte
+ağrı … neoplastik ve enfeksiyöz patolojilerin"), S4 ("Gece ağrısı")
+> "Ağrınız geceleri ya da dinlenirken de sürüyor mu?"
+gen: slot=gece_istirahat_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: none by itself; contributes context to a
 clinician-set malignancy/infection pattern per S1/S4.
 
-**Q6 — Fever / weight loss / feeling unwell** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-("ateş, iştahsızlık, kilo kaybı gibi konstitüsyonel belirtilerin varlığı akla enfeksiyonları …"), S4
-("Açıklanamayan kilo kaybı")
-> "Son zamanlarda ateşiniz oldu mu, istemediğiniz halde kilo kaybettiniz mi ya da kendinizi genel olarak halsiz hissettiniz mi?"
+**Q6 — Pain that disturbs sleep** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 ("Gece
+ağrısı")
+> "Ağrınız uykunuzu bölüyor mu?"
+gen: slot=uykuyu_bolen_agri; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q5 (one question per turn); same context note as
+Q5.
+
+**Q7 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("ateş, iştahsızlık, kilo kaybı
+gibi konstitüsyonel belirtilerin varlığı akla enfeksiyonları …")
+> "Son zamanlarda ateşiniz oldu mu?"
+gen: slot=ates_var_mi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)** per S1 constitutional-symptom / malignancy-infection
-wording. (Clinician may split ateş / kilo kaybı / halsizlik into sub-turns to keep strictly one concern.)
+wording.
 
-**Q7 — Cancer history** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S1 (neoplastik), S4
+**Q8 — Unintended weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("… kilo kaybı
+gibi konstitüsyonel belirtilerin …"), S4 ("Açıklanamayan kilo kaybı")
+> "Son zamanlarda istemediğiniz halde kilo kaybettiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean
+CANDIDATE — clinician to approve wording. Split from the former Q6 (one question per turn); same
+candidate_flag note as Q7.
+
+**Q9 — Feeling generally unwell** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+(constitutional symptoms)
+> "Son zamanlarda kendinizi genel olarak halsiz hissettiniz mi?"
+gen: slot=genel_halsizlik; type=boolean
+CANDIDATE — clinician to approve wording. Split from the former Q6 (one question per turn); same
+candidate_flag note as Q7.
+
+**Q10 — Cancer history** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S1 (neoplastik), S4
 ("Kanser öyküsü")
 > "Daha önce kanser ya da başka önemli bir hastalık tanısı aldınız mı?"
+gen: slot=kanser_ya_da_onemli_hastalik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none (history question); prior-cancer history
 is a documented red-flag context (S1/S4), level owned by the rules engine.
 
-**Q8 — Bladder/bowel control change (FEEDS cauda equina gate)** · archetype:
+**Q11 — Bladder/bowel control change (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CKS "Difficulty initiating micturition or impaired
 sensation of urinary flow"; "Loss of sensation of rectal fullness"), S4 ("İdrar yapmakta zorluk")
 > "Son günlerde idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?"
+gen: slot=idrar_diski_kontrol_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina (base.life_threat territory, §2).**
 Candidate_flag → max `YELLOW_REVIEW`; this maps to a known neurological emergency, so the authoritative
 level and RED action script must be set by the rules engine / base.life_threat. **NO RED assigned** (task
 constraint).
 
-**Q9 — Saddle (perineal) numbness (FEEDS cauda equina gate)** · archetype:
+**Q12 — Saddle (perineal) numbness (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CKS "Perianal, perineal or genital sensory loss (saddle
 anaesthesia or paraesthesia)"), S4 ("Eyer şeklinde anestezi")
 > "Oturduğunuz bölgede, bacaklarınızın arasında ya da kalça çevrenizde uyuşma veya his kaybı fark ettiniz mi?"
+gen: slot=makat_uyusmasi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina.** Candidate_flag only; **NO RED
 assigned.** ("Saddle/eyer" jargon avoided; described plainly for ≤ B1.)
 
-**Q10 — Progressive / both-leg weakness (FEEDS cauda equina gate)** · archetype:
+**Q13 — Progressive / both-leg weakness (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CKS "Severe or progressive bilateral neurological deficit
 of the legs … major motor weakness"), S1 ("ilerleyici … nörolojik kayıp")
 > "Bacaklarınızda giderek artan bir güçsüzlük ya da her iki bacağınızda birden uyuşma hissediyor musunuz?"
+gen: slot=bacaklarda_ilerleyen_guc_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina bilateral leg deficit.** Candidate_flag
 only; **NO RED assigned.**
 
-**Q11 — Known diagnoses / prior treatment** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+**Q14 — Prior diagnosis for this complaint** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake
-> "Şu anki şikâyetinizle ilgili daha önce bir tanı aldınız mı ya da fizik tedavi, enjeksiyon veya ameliyat gibi bir tedavi gördünüz mü?"
+> "Şu anki şikâyetinizle ilgili daha önce bir tanı aldınız mı?"
+gen: slot=onceki_tani; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none (history question).
 
-**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake
+**Q15 — Prior treatment for this complaint** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+general intake
+> "Bu şikâyet için daha önce fizik tedavi, enjeksiyon veya ameliyat gibi bir tedavi gördünüz mü?"
+gen: slot=onceki_tedavi; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q14 (one question per turn). Candidate level: none
+(history question).
+
+**Q16 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake
 > "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording. Clinician may add a corticosteroid / immunosuppressant follow-up
 as a sub-turn (relevant to the infection red-flag context in S1).
 
-*(12 candidate questions.)*
+*(16 candidate questions.)*
 
 ---
 

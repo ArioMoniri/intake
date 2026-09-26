@@ -148,8 +148,9 @@ drafts below already spell such values out.
 > supplied here.
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: n/a (intake)
-> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?"
-CANDIDATE — clinician to approve wording.
+> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?"
+CANDIDATE — clinician to approve wording. Revised 2026-09-26 per
+docs/evidence/verification/specialty-wave4-5.md §C (one question per turn).
 
 **Q2 — Chest pain presence** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 > "Son zamanlarda göğsünüzde ağrı, baskı ya da sıkışma hissi oldu mu?"
@@ -157,9 +158,11 @@ CANDIDATE — clinician to approve wording. Candidate_flag: none by itself; feed
 
 **Q3 — Chest pain duration / recurrence** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (">15 min and/or recurrent within 1 h")
-> "Göğüs ağrınız olduğunda genellikle ne kadar sürüyor? (birkaç dakika mı, yoksa on beş dakikadan
-> uzun mu?)"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
+> "Göğüs ağrınız olduğunda genellikle ne kadar sürüyor?"
+gen: slot=gogus_agrisi_suresi; type=duration; follow_up=Yaklaşık kaç dakika sürdüğünü söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. Revised 2026-09-26 per
+docs/evidence/verification/specialty-wave4-5.md §C: the either/or prompt is dropped because it left a
+gap and primed the unsigned cut-off; the follow-up is the reviewer's text. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** if "on beş dakikadan uzun" and/or
 recurrent within one hour, per S1 verbatim.
 

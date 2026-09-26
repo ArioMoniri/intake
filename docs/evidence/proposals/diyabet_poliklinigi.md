@@ -150,69 +150,98 @@ triage, never to an intake question.
 > authoritative RED for DKA / severe hypoglycaemia comes from `base.life_threat` with all three RED
 > axes (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new: Q1–Q7 unchanged · Q9 → Q8 · new Q9 (reviewer's optional
+extra item) · Q10 → Q10 (diagnosis) + Q11 (duration, if Q10 yes) · Q8 → Q12 (moved after the diagnosis
+item and gated on it) · Q11 → Q13 · Q12 → Q14.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
+> "Şikâyetiniz başladığından bu yana nasıl değişti?"
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Polyuria / nocturia** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Poliüri …
 Noktüri")
 > "Son zamanlarda her zamankinden daha sık idrara çıkıyor ya da gece idrara kalkıyor musunuz?"
+gen: slot=sik_idrara_cikma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** when combined with Q4/Q5, per S1.
 
 **Q4 — Polydipsia / dry mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Polidipsi …
 Ağız kuruluğu")
 > "Alışılmadık şekilde çok su içiyor ya da ağzınızda kuruluk hissediyor musunuz?"
+gen: slot=cok_su_icme; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1.
 
 **Q5 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 ("Açıklanamayan ağırlık kaybı")
 > "Beslenmenizde bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz mi?"
+gen: slot=aciklanamayan_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1.
 
 **Q6 — Fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Halsizlik, çabuk yorulma")
-> "Son zamanlarda alışılmadık şekilde halsiz ya da çabuk yoruluyor musunuz?"
+> "Son zamanlarda kendinizi alışılmadık şekilde halsiz ya da yorgun hissediyor musunuz?"
+gen: slot=halsizlik; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q7 — Blurred vision** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Bulanık görme")
 > "Gözlerinizde son zamanlarda bulanık görme fark ettiniz mi?"
+gen: slot=bulanik_gorme; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Hypoglycaemia warning symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
-(adrenerjik: "Titreme … Soğuk terleme … Çarpıntı … Acıkma")
-> "Kan şekeriniz düştüğünde titreme, soğuk terleme, çarpıntı ya da ani açlık gibi belirtiler yaşıyor
-> musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S2;
-**ağır (ciddi) hipoglisemi is a life-threat owned by `base.life_threat` (invariant 7)** — the intake
-surfaces early symptoms only, never an emergency script.
-
-**Q9 — DKA warning cluster** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Hiperglisemi
+**Q8 — DKA warning cluster** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Hiperglisemi
 semptomlarına bulantı, kusma, karın ağrısı ve ateş eşlik ettiğinde …") + S3 (NHS DKA symptoms)
-> "Bu belirtilere bulantı, kusma, karın ağrısı ya da derin ve hızlı nefes alma eşlik ediyor mu?"
+> "Çok susama ya da sık idrara çıkmayla birlikte bulantı, kusma veya karın ağrısı oluyor mu?"
+gen: slot=hiperglisemi_bulanti_kusma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S1/S3
 this cluster warns of progression toward **DKA — the emergency is owned by `base.life_threat`**
 (invariant 7), not by this intake.
 
+**Q9 — Deep, fast breathing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NHS DKA
+symptoms: "breathing more deeply than usual")
+> "Son günlerde her zamankinden derin ve hızlı nefes aldığınızı fark ettiniz mi?"
+gen: slot=derin_hizli_nefes; type=boolean
+CANDIDATE — clinician to approve wording. Reviewer's optional extra item, split out of the former DKA
+cluster question. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; the DKA emergency is owned by
+`base.life_threat` (invariant 7).
+
 **Q10 — Known diabetes diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general
 intake (history)
-> "Daha önce şeker hastalığı (diyabet) tanısı aldınız mı? Aldıysanız ne zamandır takip ediliyorsunuz?"
+> "Size daha önce şeker hastalığı (diyabet) tanısı konuldu mu?"
+gen: slot=diyabet_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current diabetes medications** · archetype: `ACTION.medication.v1` · source: general intake
+**Q11 — Diabetes follow-up duration (if Q10 yes)** · archetype: `EVALUATION.problem_diagnosis.v1` ·
+source: general intake (history)
+> "Şeker hastalığı nedeniyle ne zamandır takip ediliyorsunuz?"
+gen: slot=diyabet_takip_suresi; type=duration; ask_if=diyabet_tanisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q12 — Hypoglycaemia warning symptoms (if Q10 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S2 (adrenerjik: "Titreme … Soğuk terleme … Çarpıntı … Acıkma")
+> "Kan şekeriniz düştüğünde titreme, soğuk terleme, çarpıntı ya da ani açlık gibi belirtiler yaşıyor
+> musunuz?"
+gen: slot=hipoglisemi_belirtileri; type=boolean; ask_if=diyabet_tanisi == true
+CANDIDATE — clinician to approve wording. Assumes known diabetes, so it is asked after Q10 and only
+when Q10 is yes. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S2; **ağır (ciddi) hipoglisemi
+is a life-threat owned by `base.life_threat` (invariant 7)** — the intake surfaces early symptoms only,
+never an emergency script.
+
+**Q13 — Current diabetes medications** · archetype: `ACTION.medication.v1` · source: general intake
 (history)
-> "Şu anda şekeriniz için düzenli kullandığınız ilaçlar (örneğin insülin ya da ağızdan alınan
-> haplar) var mı?"
+> "Şeker hastalığı için düzenli kullandığınız bir ilaç ya da insülin var mı?"
+gen: slot=diyabet_ilaci; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
+**Q14 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
 > "Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?"
+gen: slot=ilac_alerjisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions; 5 red-flag-derived — Q3, Q4, Q5, Q8, Q9 — plus general intake.)*
+*(14 candidate questions; 6 red-flag-derived — Q3, Q4, Q5, Q8, Q9, Q12 — plus general intake.)*
 
 ---
 

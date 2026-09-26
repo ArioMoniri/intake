@@ -180,55 +180,88 @@ path (yes/no + optional narrative).
 > clinician + rules-engine confirmation — NOT authoritative**. Items marked **→ base.life_threat** are
 > life-threatening presentations owned by `base.intake` (inv. 7) and are **not** leveled here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave4-5.md §B (reviewer's replacement
+texts used verbatim). The former Q2 (complaint duration) is removed: the generator's fixed
+`sikayet_suresi` slot already asks it. Renumbering, old → new — the §2 table, §4 and §5 still use the
+old numbers: Q1 unchanged · Q2 removed · Q3 → Q2 (pain) + Q3 (tenderness, if Q2 yes), both held ·
+Q4–Q9 unchanged · Q10 → Q10 (no gas/stool, held) + Q11 (persistent vomiting) · Q11 → Q12 (diagnosis)
++ Q13 (surgery) · Q12 → Q14 (medications) + Q15 (painkiller / blood thinner). Q5 is re-cited to S2.
+
 **Q1 — Başvuru nedeni** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?"
 > _CANDIDATE — clinician to approve._
 
-**Q2 — Şikâyet süresi** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?"
-> _CANDIDATE — clinician to approve. (No free numeric entry on the critical path — narrative only; inv. 22.)_
-
-**Q3 — Şiddetli / geçmeyen karın ağrısı** · archetype: `OBSERVATION.symptom_sign.v1` · source: **NO SOURCE FOUND** (no graded Turkish/NICE/IDSA/WHO acute-abdomen red-flag threshold retrieved — §5 G1/G4) · **→ base.life_threat (inv. 7); not leveled here**
-> "Karnınızda şiddetli ya da geçmeyen bir ağrı var mı? Varsa dokunmakla arttığını fark ediyor musunuz?"
+**Q2 — Şiddetli / geçmeyen karın ağrısı** · archetype: `OBSERVATION.symptom_sign.v1` · source: **NO SOURCE FOUND** (no graded Turkish/NICE/IDSA/WHO acute-abdomen red-flag threshold retrieved — §5 G1/G4) · **→ base.life_threat (inv. 7); not leveled here**
+> "Karnınızda şiddetli ya da geçmeyen bir ağrı var mı?"
 > _CANDIDATE — clinician to approve. Acute abdomen / peritonitis is a life-threatening presentation; the base universal set does not yet contain an acute-abdomen family (HB-C2). This question only surfaces the sign — no level, no threshold invented._
+gen: slot=siddetli_karin_agrisi; type=boolean; hold=NO SOURCE FOUND for the acute-abdomen item (section 5 G1/G4)
+
+**Q3 — Dokununca artan karın ağrısı (Q2 evet ise)** · archetype: `OBSERVATION.symptom_sign.v1` · source: **NO SOURCE FOUND** (§5 G1/G4) · **→ base.life_threat (inv. 7); not leveled here**
+> "Karnınıza dokunulunca ağrınız artıyor mu?"
+> _CANDIDATE — clinician to approve. Split from the former pain item (one question per turn)._
+gen: slot=dokununca_artan_agri; type=boolean; ask_if=siddetli_karin_agrisi == true; hold=NO SOURCE FOUND for the acute-abdomen item (section 5 G1/G4)
 
 **Q4 — Kan kusma / siyah katran gibi dışkı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 rec 1.2.8 "haematemesis"); S3 (NICE CG141 "haematemesis and/or melaena") · **→ base.life_threat (inv. 7); not leveled here**
 > "Hiç kan kustuğunuz ya da dışkınızın siyah, katran gibi olduğunu fark ettiğiniz oldu mu?"
 > _CANDIDATE — clinician to approve. NICE NG12 wording for haematemesis is verbatim "non-urgent, direct access … endoscopy" (S1) — but acute/active bleeding is a `base.life_threat` emergency (`rf.severe_bleeding`), not levelled here. S3 verbatim is LOW-confidence (retrieval caveat, §5 G2)._
+gen: slot=kan_kusma_siyah_diski; type=boolean
 
-**Q5 — Dışkıda kırmızı kan** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 rec 1.3.1 colorectal — "change in bowel habit", rectal bleeding pathway)
+**Q5 — Dışkıda kırmızı kan** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (HSGM Tablo 5 "Dışkıda gözle görülür kan") — re-cited from S1 per review
 > "Dışkınızda ya da tuvalet kâğıdında kırmızı renkte kan gördünüz mü?"
 > _CANDIDATE — clinician to approve._
+gen: slot=diskida_kirmizi_kan; type=boolean
 
 **Q6 — Yutma güçlüğü (disfaji)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 rec 1.2.1 / 1.2.7 "dysphagia")
 > "Yiyecekleri veya sıvıları yutarken takılma ya da güçlük yaşıyor musunuz?"
 > _CANDIDATE — clinician to approve. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)** — NICE lists dysphagia under "suspected cancer pathway referral" wording (verbatim S1)._
+gen: slot=yutma_guclugu; type=boolean
 
 **Q7 — İstemsiz kilo kaybı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 rec 1.2.1 / 1.2.5 "weight loss")
 > "Son zamanlarda, özellikle çabalamadığınız hâlde kilo verdiğinizi fark ettiniz mi?"
 > _CANDIDATE — clinician to approve. Qualitative only; any amount/threshold is for the clinician (inv. 22). Also owned as a base family (`rf.weight_loss_unintentional`)._
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 
 **Q8 — Sarılık** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 rec 1.2.4 "jaundice")
 > "Cildinizde ya da gözlerinizin akında sararma fark ettiniz mi?"
 > _CANDIDATE — clinician to approve. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)** — NICE routes jaundice to a suspected-cancer pathway (verbatim S1); the age cut-off is the clinician's (G3)._
+gen: slot=sarilik; type=boolean
 
 **Q9 — Bağırsak alışkanlığı değişikliği** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 rec 1.3.1 "change in bowel habit")
 > "Son zamanlarda tuvalete çıkma düzeninizde (örneğin ishal ya da kabızlık yönünde) bir değişiklik oldu mu?"
 > _CANDIDATE — clinician to approve._
+gen: slot=bagirsak_aliskanligi_degisimi; type=boolean
 
-**Q10 — İnatçı kusma ile gaz ve dışkı çıkışının durması** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (HSGM "Sürekli kusma") for the vomiting; **NO SOURCE FOUND** for a bowel-obstruction referral threshold (§5 G4) · **→ base.life_threat (inv. 7); not leveled here**
-> "Geçmeyen kusmayla birlikte gaz ve dışkı çıkışınızın durduğunu ya da karnınızda şişkinlik olduğunu fark ettiniz mi?"
-> _CANDIDATE — clinician to approve. Bowel obstruction is a surgical emergency; the base universal set has no obstruction family yet (HB-C2). Vomiting is HSGM-sourced (S2); the "no gas/stool + distension" picture has no retrieved guideline threshold. Clinician may split vomiting and obstruction into two turns._
+**Q10 — Gaz ve dışkı çıkışının durması** · archetype: `OBSERVATION.symptom_sign.v1` · source: **NO SOURCE FOUND** for a bowel-obstruction referral threshold (§5 G4) · **→ base.life_threat (inv. 7); not leveled here**
+> "Son günlerde gaz ya da dışkı çıkaramadığınız oldu mu?"
+> _CANDIDATE — clinician to approve. Bowel obstruction is a surgical emergency; the base universal set has no obstruction family yet (HB-C2). The "no gas/stool" picture has no retrieved guideline threshold._
+gen: slot=gaz_diski_cikaramama; type=boolean; hold=NO SOURCE FOUND for the bowel-obstruction item (section 5 G4)
 
-**Q11 — Bilinen sindirim tanısı / geçirilmiş karın ameliyatı** · archetype: `EVALUATION.problem_diagnosis.v1` (prior surgery: weak — export blocked, gap G5) · source: general intake (prior surgery = adhesion / obstruction risk)
-> "Daha önce mideniz, bağırsağınız veya karaciğerinizle ilgili bir tanı aldınız mı ya da karın bölgenizden ameliyat oldunuz mu?"
-> _CANDIDATE — clinician to approve. Prior-surgery half has no archetype root (gap G5); clinician may split diagnosis and prior surgery into two turns._
+**Q11 — Geçmeyen kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (HSGM "Sürekli kusma")
+> "Geçmeyen kusmanız var mı?"
+> _CANDIDATE — clinician to approve. Split from the former vomiting-with-obstruction item (one question per turn)._
+gen: slot=gecmeyen_kusma; type=boolean
 
-**Q12 — Kullanılan ilaçlar (ağrı kesici / kan sulandırıcı)** · archetype: `ACTION.medication.v1` · source: general intake (NSAID / anticoagulant relevance to GI bleeding; NICE NG12 context)
-> "Şu anda düzenli kullandığınız ilaçlar var mı? Özellikle ağrı kesici (romatizma ilacı) veya kan sulandırıcı kullanıyor musunuz?"
-> _CANDIDATE — clinician to approve. Clinician may split NSAID vs anticoagulant into two turns._
+**Q12 — Bilinen sindirim tanısı** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake
+> "Daha önce mide, bağırsak ya da karaciğerinizle ilgili bir tanı aldınız mı?"
+> _CANDIDATE — clinician to approve._
+gen: slot=sindirim_tanisi; type=boolean
 
-*(12 candidate questions, Q1–Q12. All tagged CANDIDATE; none served.)*
+**Q13 — Geçirilmiş karın ameliyatı** · archetype: `EVALUATION.problem_diagnosis.v1` (prior surgery: weak — export blocked, gap G5) · source: general intake (prior surgery = adhesion / obstruction risk)
+> "Daha önce karnınızdan ameliyat oldunuz mu?"
+> _CANDIDATE — clinician to approve. Prior surgery has no archetype root (gap G5)._
+gen: slot=karin_ameliyati; type=boolean
+
+**Q14 — Kullanılan ilaçlar** · archetype: `ACTION.medication.v1` · source: general intake
+> "Şu anda düzenli kullandığınız ilaçlar var mı?"
+> _CANDIDATE — clinician to approve._
+gen: slot=duzenli_ilac; type=boolean
+
+**Q15 — Ağrı kesici / kan sulandırıcı** · archetype: `ACTION.medication.v1` · source: general intake (NSAID / anticoagulant relevance to GI bleeding; NICE NG12 context)
+> "Ağrı kesici ya da kan sulandırıcı bir ilaç kullanıyor musunuz?"
+> _CANDIDATE — clinician to approve._
+gen: slot=agri_kesici_kan_sulandirici; type=boolean
+
+*(15 candidate questions, Q1–Q15; Q2, Q3 and Q10 held. All tagged CANDIDATE; none served.)*
 
 ---
 

@@ -215,6 +215,7 @@ CANDIDATE — clinician to approve wording. Candidate level: none (orientation q
 **Q2 — Visible haematuria** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.6.4/1.6.6,
 "unexplained visible haematuria"); S4 ("İdrardan kan gelmesi"); S6 ("Kanlı idrar (pembe renkte görünür)")
 > "İdrarınızda gözle görülen kan ya da pembe-kırmızı bir renk fark ettiniz mi?"
+gen: slot=idrarda_gorunur_kan; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)** per S1's suspected-cancer referral wording. S1's age
 qualifier is NOT encoded here (§4 gap 5).
@@ -222,18 +223,21 @@ qualifier is NOT encoded here (§4 gap 5).
 **Q3 — Haematuria persisting after infection treatment** · archetype: `OBSERVATION.story.v1` · source: S1
 (NG12, "visible haematuria that persists or recurs after successful treatment of urinary tract infection")
 > "İdrar yolu enfeksiyonu tedavisinden sonra idrarınızda kan yeniden görüldü mü?"
-CANDIDATE — clinician to approve wording. Asked only when Q2 is answered yes (branching is the clinician's /
-compiler's call). Candidate_flag: contributes to the Q2 pattern; level set by the rules engine.
+gen: slot=tedavi_sonrasi_idrarda_kan; type=boolean; ask_if=idrarda_gorunur_kan == true
+CANDIDATE — clinician to approve wording. Asked only when Q2 is answered yes (verification report §B,
+2026-09-26). Candidate_flag: contributes to the Q2 pattern; level set by the rules engine.
 
 **Q4 — Burning or pain on passing urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 ("İşeme
 esnasında ağrı"); S6 ("Ağrılı idrar yapma"); S1 (NG12 1.6.4, "dysuria")
 > "İdrar yaparken yanma ya da ağrı hissediyor musunuz?"
+gen: slot=idrarda_yanma_agri; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none by itself; context for Q2/Q3 (S1 separates
 haematuria *with* and *without* urinary tract infection).
 
 **Q5 — Inability to pass urine (retention)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (CG97
 1.1.14 "retention"; 1.7.1 "Immediately catheterise men with acute retention"); S1 (NG12 1.6.2, "retention")
 > "İdrarınızı yapmak istediğiniz hâlde hiç yapamadığınız bir durum oldu mu?"
+gen: slot=idrar_yapamama; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)**; S2's own wording is "Immediately". **Cross-branch note:**
 new retention with back/leg pain is also a cauda equina input (`base.life_threat`; see the
@@ -242,11 +246,13 @@ ortopedi_ve_travmatoloji proposal, Q11) — **NO RED assigned here.**
 **Q6 — Weak or interrupted stream** · archetype: `OBSERVATION.symptom_sign.v1` · source: S5 (TÜD, "Zayıf
 akımlı idrar yapma", "Kesik kesik idrar yapma"); S1 (NG12 1.6.2, "hesitancy")
 > "İdrar akışınızın zayıfladığını ya da kesik kesik geldiğini fark ettiniz mi?"
+gen: slot=zayif_kesik_idrar_akimi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none (symptom capture).
 
 **Q7 — Night-time urination** · archetype: `OBSERVATION.symptom_sign.v1` · source: S5 (TÜD, "Gece idrar
 yapmak için uyanma ihtiyacı"); S1 (NG12 1.6.2, "nocturia")
 > "Gece idrar yapmak için uykunuzdan uyanmanız gerekiyor mu?"
+gen: slot=gece_idrara_kalkma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none. A count of night-time voids is
 deliberately **not** asked as free numeric entry (invariant 22); if wanted, the clinician adds fixed
 spoken-word options.
@@ -254,31 +260,37 @@ spoken-word options.
 **Q8 — Urgency** · archetype: `OBSERVATION.symptom_sign.v1` · source: S5 (TÜD, "Ani idrar yapma ihtiyacı ve
 bu ihtiyacın ertelenememesi"); S1 (NG12 1.6.2, "urgency")
 > "Aniden gelen ve bekletemediğiniz bir idrar yapma isteği oluyor mu?"
+gen: slot=ani_idrar_sikisma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none. Incontinence ("İstemsiz idrar kaçırma", S5)
 would be its own turn if the clinician wants it.
 
 **Q9 — Sudden severe testicular pain (FEEDS torsion gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S3 (EAU 2026, "The sudden onset of severe pain … is typical for torsion of the testis")
 > "Testislerinizde aniden başlayan şiddetli bir ağrı oldu mu?"
+gen: slot=ani_siddetli_testis_agrisi; type=boolean
 CANDIDATE — clinician to approve wording (the lay synonym "yumurtalık", used on TÜD's public pages, may be
 preferred). **Overlap: `base.life_threat` testicular torsion.** Feeding input only; candidate_flag max
 `YELLOW_REVIEW`; **NO RED assigned.** Sex-gated (see §0).
 
 **Q10 — Nausea or vomiting with that pain (FEEDS torsion gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S3 (EAU 2026, "a vagal reaction (e.g. nausea, vomiting)")
-> "Bu ağrıyla birlikte bulantı ya da kusma oldu mu?"
-CANDIDATE — clinician to approve wording. Asked only after Q9 = yes. **Overlap: `base.life_threat`
+> "Testis ağrınızla birlikte bulantı ya da kusma oldu mu?"
+gen: slot=testis_agrisi_ile_bulanti_kusma; type=boolean; ask_if=ani_siddetli_testis_agrisi == true
+CANDIDATE — clinician to approve wording (reviewer's replacement text, 2026-09-26: names the pain so the
+item stands alone). Asked only after Q9 = yes. **Overlap: `base.life_threat`
 testicular torsion.** Feeding input only; **NO RED assigned.**
 
 **Q11 — Sharp flank pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S6 (TÜD, "bel ve böğür …
 bölgenizde hissedilen keskin bir ağrıdır")
 > "Belinizin yan tarafında, kaburgalarınızın altında keskin bir ağrı oldu mu?"
+gen: slot=keskin_boger_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)** per S6's "acil bir durumdur" wording.
 
 **Q12 — Fever with the urinary complaint** · archetype: `OBSERVATION.symptom_sign.v1` · source: S6 (TÜD,
 "Yüksek ateşiniz de varsa, acilen tıbbi bir yardım arayışına girmelisiniz.")
 > "İdrar şikâyetlerinizle birlikte ateşiniz oldu mu?"
+gen: slot=idrar_sikayeti_ile_ates; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)**, strongest in combination with Q11. Base
 `rf_fever_high_persistent` is not duplicated — this asks fever *in the urinary context*. No temperature
