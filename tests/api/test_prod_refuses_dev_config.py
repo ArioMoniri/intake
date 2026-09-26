@@ -28,13 +28,19 @@ boot, unchanged.
 
 from __future__ import annotations
 
+import dataclasses
 import os
+from collections.abc import Sequence
 
 import intake_api.settings as api_settings
 import pytest
-from intake_api.app import _auth_from_settings, create_app
+from api_harness import ApiHarness
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from intake_api.app import ApiWiring, _auth_from_settings, create_app
 from intake_api.otp import AuthWiring, DevLogDeliveryAdapter
 from intake_api.settings import ApiSettings
+from intake_platform.audit import AuditEntry, AuditStore
 
 DEV_FLAG_PREFIX = "INTAKE_DEV_"
 
@@ -237,3 +243,67 @@ def test_dev_tier_still_boots_with_every_dev_flag_and_no_credentials(
     # the compose dev roles, exactly as before INT-325
     assert settings.app_db_url.startswith("postgresql+psycopg://app_rw:")
     assert settings.audit_db_url.startswith("postgresql+psycopg://svc_audit_writer:")
+
+
+# --- readiness: prod does not wait on the dev bearers it refuses -----------------------
+
+
+class _BrokenAuditStore:
+    """An audit backend that is gone: readiness must report it in prod too."""
+
+    def append(self, entry: AuditEntry) -> None:
+        raise ConnectionError("audit backend unavailable")
+
+    def last(self) -> AuditEntry | None:
+        raise ConnectionError("audit backend unavailable")
+
+    def entries(self) -> Sequence[AuditEntry]:
+        raise ConnectionError("audit backend unavailable")
+
+
+def _app_without_dev_bearers(
+    harness: ApiHarness, *, production: bool, audit_store: AuditStore | None = None
+) -> FastAPI:
+    """The harness's healthy sqlite db and audit store, with neither dev
+    bearer set: exactly what a prod boot looks like once INT-325 refuses them."""
+    settings = dataclasses.replace(
+        harness.settings, production=production, token_patient=None, token_admin=None
+    )
+    return create_app(
+        ApiWiring(
+            settings=settings,
+            engine=harness.engine,
+            audit_store=audit_store if audit_store is not None else harness.audit_store,
+            cipher=harness.cipher,
+            bootstrap=False,
+        )
+    )
+
+
+def test_prod_is_ready_with_every_real_dependency_healthy(harness: ApiHarness) -> None:
+    """Prod refuses INTAKE_DEV_TOKEN_* at boot, so a readiness check that
+    requires them would hold every prod API not-ready forever."""
+    app = _app_without_dev_bearers(harness, production=True)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        ready = client.get("/readyz")
+    assert ready.status_code == 200, ready.text
+    assert ready.json()["checks"] == {"db": "ok", "audit_store": "ok"}
+
+
+def test_prod_readiness_still_fails_on_a_real_dependency(harness: ApiHarness) -> None:
+    """Near-miss control: dropping the dev-bearer check must not make prod
+    readiness vacuous. A dead audit store still holds it not-ready."""
+    app = _app_without_dev_bearers(harness, production=True, audit_store=_BrokenAuditStore())
+    with TestClient(app, raise_server_exceptions=False) as client:
+        ready = client.get("/readyz")
+    assert ready.status_code == 503
+    assert ready.json()["checks"]["audit_store"] == "error"
+
+
+def test_dev_readiness_still_requires_the_dev_bearers(harness: ApiHarness) -> None:
+    """Dev is unchanged (INT-197): without both bearers the dev tier is not ready."""
+    app = _app_without_dev_bearers(harness, production=False)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        ready = client.get("/readyz")
+    assert ready.status_code == 503
+    assert ready.json()["checks"] == {"db": "ok", "audit_store": "ok", "dev_auth": "error"}

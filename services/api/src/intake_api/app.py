@@ -425,14 +425,16 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     async def _dev_auth_ready() -> bool:
         return w.settings.dev_auth_configured
 
-    mount_health(
-        app,
-        readiness=[
-            ReadinessCheck("db", _db_ready),
-            ReadinessCheck("audit_store", state.audit.healthy),
-            ReadinessCheck("dev_auth", _dev_auth_ready),
-        ],
-    )
+    readiness = [
+        ReadinessCheck("db", _db_ready),
+        ReadinessCheck("audit_store", state.audit.healthy),
+    ]
+    if not w.settings.production:
+        # INT-197 dev tier: not ready until both dev bearers are set. Prod
+        # refuses those bearers at boot (INT-325), so in prod this check would
+        # hold the API not-ready forever; it is mounted in dev only.
+        readiness.append(ReadinessCheck("dev_auth", _dev_auth_ready))
+    mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
     app.include_router(notes.router)
