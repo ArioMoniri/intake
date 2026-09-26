@@ -28,7 +28,7 @@ import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import type { SectionPanelModel, SectionRow } from "@/lib/dialogue/sectionPanel";
 import { t } from "@/lib/i18n";
 import { optionLabelKey } from "@/lib/intake/questions";
-import { radius, spacing } from "@/lib/theme";
+import { motion, radius, spacing } from "@/lib/theme";
 
 /** Option ids → catalog labels; free text and meds lines pass through. */
 function valueText(row: SectionRow): string {
@@ -62,7 +62,7 @@ export function SectionStrip({ filled, total, onPress }: SectionStripProps) {
       // the SC 2.5.8 floor without pushing the composer off the screen.
       hitSlop={verticalSlop(36)}
       onPress={onPress}
-      style={({ pressed }) => [styles.strip, { opacity: pressed ? 0.7 : 1 }]}
+      style={({ pressed }) => [styles.strip, { opacity: pressed ? motion.press.rowOpacity : 1 }]}
     >
       <View style={[styles.stripDot, { backgroundColor: theme.primary }]} />
       <AppText role="caption" color="inkSoft" style={styles.stripLabel}>
@@ -150,7 +150,7 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
         accessibilityLabel={withContext(t("dialogue.confirm"), labelled(t(row.labelKey), values))}
         accessibilityHint={t("a11y.confirmHint")}
         onPress={() => onConfirm(row.questionId)}
-        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
+        style={({ pressed }) => [styles.row, { opacity: pressed ? motion.press.rowOpacity : 1 }]}
       >
         {body}
       </Pressable>

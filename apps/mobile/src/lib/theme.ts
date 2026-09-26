@@ -118,7 +118,17 @@ const easing = {
 
 const loop = { pulsePeriodMs: 1400 } as const;
 
-export const motion = { fadeMs: duration.fade, duration, easing, loop } as const;
+/**
+ * Press feedback (INT-341, MOTION-12): an instant opacity step, never an
+ * animation. `opacity` for buttons, pills and segments; `rowOpacity` for
+ * list rows, switch rows and dialogue bubbles; `disabledOpacity` for a
+ * control that cannot be pressed, and it stays below both pressed values so
+ * a press never reads as the control switching off. The press-retention
+ * area is left at the platform default (S-9): no Pressable sets its own.
+ */
+const press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 } as const;
+
+export const motion = { fadeMs: duration.fade, duration, easing, loop, press } as const;
 
 /**
  * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app

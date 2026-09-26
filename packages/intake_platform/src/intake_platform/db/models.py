@@ -480,8 +480,9 @@ class Slot(Base):
         nullable=False,
         info=inv(
             CAT_OPERATIONAL,
-            "decides the value representation: plain JSON or an EncryptedField "
-            "envelope for sensitive slot classes",
+            "decides the value representation from the slot's protocol data "
+            "category: plain JSON for general_health, an EncryptedField envelope "
+            "for every other category (INT-349)",
             BASIS_CONTRACT,
             RET_RECORD,
             REC_INTERNAL,
@@ -492,8 +493,10 @@ class Slot(Base):
         nullable=False,
         info=inv(
             CAT_HEALTH,
-            "the slot value; sensitive classes carry EncryptedField JSON "
-            "(envelope_json), never plaintext",
+            "the slot value; every data category but general_health carries "
+            "EncryptedField JSON (envelope_json), never plaintext, and is further "
+            "governed by its row in docs/legal/data-categories.yaml, whose basis, "
+            "retention and recipients counsel supplies (INT-349)",
             BASIS_HEALTH_CONSENT,
             RET_RECORD,
             REC_CLINICIAN,
