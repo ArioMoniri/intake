@@ -7,6 +7,11 @@ of access); sending is a ``shares`` row
 carrying only the scoped-on section ids. The INT-133 attribution columns are
 the one column addition, inventoried on the model (invariant 18).
 
+Protocol answers go through :func:`write_slot_answer` (INT-349): the slot's
+data category decides the representation, so an answer in any category but
+``general_health`` is an EncryptedField envelope bound to its session and slot,
+and never plaintext at rest (invariant 14).
+
 Every query carries an explicit ``tenant_id`` predicate even though the
 postgres tier enforces the same boundary with RLS — the unit lane (SQLite)
 exercises the predicates, the integration lane proves the policies.
@@ -14,12 +19,14 @@ exercises the predicates, the integration lane proves the policies.
 
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from clinical_schemas.visit_time import VisitTime, VisitTimeSource, parse_visit_time
+from intake_platform.db.envelope_json import encrypted_field_from_json, encrypted_field_to_json
 from intake_platform.db.models import (
     DoctorLink,
     Document,
@@ -32,6 +39,8 @@ from intake_platform.db.models import (
     Slot,
     SlotSensitivity,
 )
+from intake_platform.envelope import EnvelopeCipher
+from protocols.types import DataCategory
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
@@ -51,9 +60,12 @@ __all__ = [
     "list_document_rows",
     "list_visits",
     "live_share",
+    "read_slot_answer",
     "revoke_live_shares",
+    "slot_sensitivity",
     "update_document_row",
     "upsert_note",
+    "write_slot_answer",
 ]
 
 # The dev-tier visit container: an honest label for "manually created
@@ -320,6 +332,98 @@ async def get_visit(
         session, tenant_id=tenant_id, patient_id=patient_id, visit_id=visit_id
     )
     return records[0] if records else None
+
+
+# --- protocol slot answers (INT-349) ------------------------------------------------------
+
+
+def slot_sensitivity(category: DataCategory) -> SlotSensitivity:
+    """``general_health`` stays the plain JSON value it always was; every other
+    category is an envelope (owner decision D3: sensitive categories are stored
+    encrypted before any of them is served)."""
+    if category is DataCategory.GENERAL_HEALTH:
+        return SlotSensitivity.PLAIN
+    return SlotSensitivity.SENSITIVE
+
+
+def _slot_aad(session_id: uuid.UUID, slot_id: str) -> bytes:
+    """Binds the ciphertext to its row, so an envelope moved under another
+    session or question fails authentication instead of reading as that
+    question's answer."""
+    return f"slots.value:{session_id}:{slot_id}".encode()
+
+
+async def write_slot_answer(
+    session: AsyncSession,
+    *,
+    cipher: EnvelopeCipher,
+    tenant_id: uuid.UUID,
+    session_id: uuid.UUID,
+    slot_id: str,
+    data_category: DataCategory | str,
+    value: dict[str, object],
+) -> Slot:
+    """Write (or correct) one protocol answer in the representation its data
+    category requires. The category has no default: a caller that does not
+    know it cannot write. An unknown category raises before anything is
+    written."""
+    category = DataCategory(data_category)
+    sensitivity = slot_sensitivity(category)
+    stored: dict[str, object]
+    if sensitivity is SlotSensitivity.PLAIN:
+        stored = dict(value)
+    else:
+        plaintext = json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        field = cipher.encrypt_field(str(tenant_id), plaintext, aad=_slot_aad(session_id, slot_id))
+        stored = dict(encrypted_field_to_json(field))
+    row = await _slot_row(session, tenant_id=tenant_id, session_id=session_id, slot_id=slot_id)
+    if row is None:
+        row = Slot(
+            tenant_id=tenant_id,
+            session_id=session_id,
+            slot_id=slot_id,
+            sensitivity=sensitivity,
+            value=stored,
+        )
+        session.add(row)
+    else:
+        row.sensitivity = sensitivity
+        row.value = stored
+    await session.flush()
+    return row
+
+
+async def read_slot_answer(
+    session: AsyncSession,
+    *,
+    cipher: EnvelopeCipher,
+    tenant_id: uuid.UUID,
+    session_id: uuid.UUID,
+    slot_id: str,
+) -> dict[str, object] | None:
+    """The answer as written, opening the envelope where there is one. A
+    tampered or moved envelope raises ``TamperError``; it never reads as
+    empty."""
+    row = await _slot_row(session, tenant_id=tenant_id, session_id=session_id, slot_id=slot_id)
+    if row is None:
+        return None
+    if row.sensitivity is SlotSensitivity.PLAIN:
+        return dict(row.value)
+    field = encrypted_field_from_json(row.value)
+    plaintext = cipher.decrypt_field(str(tenant_id), field, aad=_slot_aad(session_id, slot_id))
+    loaded: dict[str, object] = json.loads(plaintext.decode("utf-8"))
+    return loaded
+
+
+async def _slot_row(
+    session: AsyncSession, *, tenant_id: uuid.UUID, session_id: uuid.UUID, slot_id: str
+) -> Slot | None:
+    stmt = select(Slot).where(
+        Slot.tenant_id == tenant_id,
+        Slot.session_id == session_id,
+        Slot.slot_id == slot_id,
+    )
+    return (await session.scalars(stmt)).first()
 
 
 # --- notes ------------------------------------------------------------------------------

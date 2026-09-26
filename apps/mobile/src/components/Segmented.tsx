@@ -32,7 +32,7 @@ import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { shouldStack } from "@/lib/prefs/appearance";
-import { radius, spacing } from "@/lib/theme";
+import { motion, radius, spacing } from "@/lib/theme";
 
 export interface SegmentedOption {
   readonly id: string;
@@ -89,7 +89,7 @@ export function Segmented({ label, options, value, onChange, hint }: SegmentedPr
                     ? theme.cta
                     : "transparent",
                 borderColor: stacked && selected ? theme.ink : "transparent",
-                opacity: pressed ? 0.85 : 1,
+                opacity: pressed ? motion.press.opacity : 1,
               },
             ]}
           >
