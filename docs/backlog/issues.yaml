@@ -3021,7 +3021,15 @@
   title: "Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page"
   depends_on: [INT-144]
   labels: [area:legal]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-226.md
+  # NOTE 26 Sep 2026: the report half is delivered: generated from the a11y
+  # suites CI runs, with every row gated by tests/legal/test_a11y_report.py.
+  # The publication half ("statement published in-app and web") stays open,
+  # because the Turkish statement text, the feedback channel and the
+  # enforcement route are owner and counsel work gated on HB-L9, and legal
+  # texts serve only under the HB-L27 signing regime. The device audit
+  # (report §5, DA-01 to DA-08) is the owner's.
   acceptance:
     - "report generated from a11y CI results; statement published in-app and web"
   tests: [tests/legal/test_a11y_report.py]

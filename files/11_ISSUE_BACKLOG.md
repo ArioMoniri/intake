@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**282 issues.** By phase: P0 156 · P1 72 · P2 47 · P3 7. By status: awaiting-human 22 · doing 15 · done 150 · todo 94 · withdrawn 1.
+**282 issues.** By phase: P0 156 · P1 72 · P2 47 · P3 7. By status: awaiting-human 23 · doing 15 · done 150 · todo 93 · withdrawn 1.
 
 ## P0
 
@@ -213,7 +213,7 @@
 | INT-217 | QMS core (ISO 13485): quality manual, design controls, ISO 14971 risk file, IEC 62304 class B plan, IEC 62366-1 usability, IEC 81001-5-1 security lifecycle, PMS plan, PRRC | E14-legal | INT-216 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-218 | Clinical investigation package: protocol + ICF(tr) + KAEK ethics submission + TITCK application + insurance + registration | E14-legal | INT-217 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-224 | Store compliance: Apple health guidelines + Google Play Health policy + Data safety/privacy labels + IARC | E14-legal | — | area:legal, risk:legal, approval:human-legal | done |
-| INT-226 | Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page | E14-legal | INT-144 | area:legal | todo |
+| INT-226 | Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page | E14-legal | INT-144 | area:legal | awaiting-human |
 | INT-241 | Wait-time metrics end-to-end + SDS-01 style exports | E16-experience | INT-240, INT-025 | area:experience | done |
 | INT-242 | NPS scheduling + clinician pulse survey cadence | E16-experience | INT-240 | area:experience | done |
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
