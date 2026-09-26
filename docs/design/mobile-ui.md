@@ -68,6 +68,12 @@ clinical white. Choices (tokens in `apps/mobile/src/lib/theme.ts`):
 animated element at a time, no springs/slides/parallax. Stack and tab
 transitions are set to `animation: "fade"`.
 
+The full motion system (arbiter order, no-motion surfaces, haptics policy,
+RED first paint as a root layer, Android's fixed 150 ms stack fade) is
+[ADR-033](../adr/ADR-033-motion-system-v1.md). It is **proposed and awaiting
+owner ratification** (INT-332): until the owner ratifies it, its five open
+questions stay at their fail-closed defaults.
+
 ## Navigation shell
 
 Expo Router native tabs (SF Symbols / Material drawables), file-system routes

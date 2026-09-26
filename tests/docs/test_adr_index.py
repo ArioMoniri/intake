@@ -4,6 +4,10 @@ Acceptance (verbatim, with the count correction stated in issues.yaml):
   "docs/adr/ has ADR-000 template and 001..023 Accepted, one paragraph each
    (list in 07 §3.12)"
   "files/ contains files 01..11 verbatim; docs/index.md links everything"
+
+INT-332 adds the proposed-ADR pins: an ADR drafted for owner ratification
+stays "Proposed" until the owner ratifies it, and its open questions stay
+awaiting-human with their named owners.
 """
 
 from __future__ import annotations
@@ -26,6 +30,37 @@ CONTENT_ANCHORS = {
     21: ["self-hosted", "LICENSE blob", "4.9.1"],
     22: ["No accuracy claims", "docs/evidence/"],
     23: ["route", "register", "location", "no default"],
+}
+
+
+# ADRs drafted for owner ratification (INT-332 onward). The Status line is
+# pinned to "Proposed" so an unratified decision can never read as settled:
+# the ratifying commit changes this pin, the Status line and the 00_STATE §3
+# row together. Each anchor is a clause the ADR exists to carry.
+PROPOSED_ANCHORS = {
+    33: [
+        "opacity",
+        "120 ms",
+        "150 ms",
+        "platform fact",
+        "snap, never queue",
+        "hold, never rest",
+        "exits are instant",
+        "root layer",
+        "the one permitted co-occurrence",
+        "server-confirmed",
+        "sticky",
+        "fail closed",
+    ],
+}
+
+# The five open questions of INT-332 and who must answer each.
+MOTION_QUESTION_OWNERS = {
+    "Q1": "owner",
+    "Q2": "Dr Efe Onganer",
+    "Q3": "Dr Efe Onganer",
+    "Q4": "Dr Efe Onganer",
+    "Q5": "owner",
 }
 
 
@@ -60,6 +95,34 @@ def test_content_anchors() -> None:
         text = _adr_file(n).read_text(encoding="utf-8")
         for needle in anchors:
             assert needle in text, f"ADR-{n:03d} missing anchor {needle!r}"
+
+
+def test_proposed_adrs_await_ratification() -> None:
+    index = (REPO / "docs" / "index.md").read_text(encoding="utf-8")
+    for n, anchors in PROPOSED_ANCHORS.items():
+        text = _adr_file(n).read_text(encoding="utf-8")
+        assert re.search(r"^Status:\s+Proposed", text, re.M), f"ADR-{n:03d} not Proposed"
+        assert not re.search(r"^Status:\s+Accepted", text, re.M), (
+            f"ADR-{n:03d} reads Accepted before the owner ratified it"
+        )
+        for section in ("## Context", "## Decision", "## Consequences"):
+            assert section in text, f"ADR-{n:03d} missing {section}"
+        for needle in anchors:
+            assert needle in text, f"ADR-{n:03d} missing anchor {needle!r}"
+        assert re.search(rf"\(adr/ADR-{n:03d}-[^)]+\.md\)", index), (
+            f"docs/index.md does not register ADR-{n:03d}"
+        )
+
+
+def test_motion_adr_records_each_open_question_awaiting_its_owner() -> None:
+    text = _adr_file(33).read_text(encoding="utf-8")
+    for qid, owner in MOTION_QUESTION_OWNERS.items():
+        row = re.search(rf"^\|\s*\*\*{qid}\*\*\s*\|.*$", text, re.M)
+        assert row, f"ADR-033 has no table row for {qid}"
+        line = row.group(0)
+        assert owner in line, f"ADR-033 {qid} does not name {owner!r}"
+        assert "awaiting-human" in line, f"ADR-033 {qid} is not awaiting-human"
+        assert "Meanwhile" in line, f"ADR-033 {qid} states no fail-closed default"
 
 
 def test_blueprint_files_present() -> None:
