@@ -1,0 +1,95 @@
+# infra/observability/cost-rules.yaml — budget alerts for the cost module (INT-190).
+#
+# GENERATED-CONSISTENT: this file equals
+# intake_platform.cost.cost_rule_groups(infra/costs/unit-prices.yaml) over
+# observability/metrics_catalog.yaml, and tests/observability/test_cost_rules.py
+# fails on any drift. Do not edit it by hand: set prices and budget limits in
+# infra/costs/unit-prices.yaml and re-emit:
+#   uv run python scripts/observability/cost_rules.py --emit infra/observability/cost-rules.yaml
+#
+# CostBudgetNotConfigured fires for every budget whose limit is still empty
+# (HB-O8); CostBudgetExceeded is a lower bound over the priced, metered
+# components; CostBudgetIncomplete names the components the bound cannot see.
+groups:
+- name: cost-budgets
+  rules:
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: all-vendors-day
+      scope: all_vendors
+      period: day
+    annotations:
+      summary: cost budget all-vendors-day has no limit configured
+      description: all_vendors spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: all-vendors-month
+      scope: all_vendors
+      period: month
+    annotations:
+      summary: cost budget all-vendors-month has no limit configured
+      description: all_vendors spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: self-hosted-day
+      scope: self-hosted
+      period: day
+    annotations:
+      summary: cost budget self-hosted-day has no limit configured
+      description: self-hosted spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: self-hosted-month
+      scope: self-hosted
+      period: month
+    annotations:
+      summary: cost budget self-hosted-month has no limit configured
+      description: self-hosted spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: elevenlabs-day
+      scope: elevenlabs
+      period: day
+    annotations:
+      summary: cost budget elevenlabs-day has no limit configured
+      description: elevenlabs spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: elevenlabs-month
+      scope: elevenlabs
+      period: month
+    annotations:
+      summary: cost budget elevenlabs-month has no limit configured
+      description: elevenlabs spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: aws-day
+      scope: aws
+      period: day
+    annotations:
+      summary: cost budget aws-day has no limit configured
+      description: aws spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: aws-month
+      scope: aws
+      period: month
+    annotations:
+      summary: cost budget aws-month has no limit configured
+      description: aws spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
