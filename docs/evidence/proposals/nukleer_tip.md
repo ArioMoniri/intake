@@ -106,7 +106,7 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q6 | Previous radiotherapy | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; as Q4 |
 | Q7 | Recent surgery or needle biopsy | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; as Q4 |
 | Q8 | Recent fall, blow or fracture | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
-| Q9 | Able to lie flat and still | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
+| Q9 | Difficulty lying flat and still | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q10 | Distress in closed spaces | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q11 | Urinary leakage | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Young children or pregnant person at home | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; social context only |
@@ -145,20 +145,25 @@ approve wording.** No item carries a triage level; items may at most feed a `can
 `basvuru_nedeni` slot. Hours, days and weeks from the guidelines are **not** placed in patient copy;
 "son haftalarda / son aylarda" is used instead and the exact interval is the team's call. Each draft was
 run through the Turkish PolicyGuard `inspect_sentence` arms (INT-248 lexicon) with zero findings.
+Duration: no pack line is set here. The duration ask override is pending clinician wording: no source
+supports a duration question for a scan or therapy visit, so the fixed `sikayet_suresi` ask stays until
+a clinician words one or the generator lets the slot be left out (wave-7 verification §E-2).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün nükleer tıp polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Bugün nükleer tıp polikliniğine gelme nedeniniz nedir?"
+CANDIDATE — clinician to approve wording. Ends in "nedir?" so the neutral reason follow-up is used, not
+one that says "şikâyetiniz".
 
 **Q2 — Known diabetes** · archetype: `EVALUATION.problem_diagnosis.v1` · source: NT-S1 ("komorbiteler (enfeksiyon/enflamasyon, diyabet)")
 > "Size daha önce şeker hastalığı tanısı konuldu mu?"
-gen: slot=seker_hastaligi; type=boolean; follow_up=Kan şekerinizin yüksek olduğu size söylendi mi?
+gen: slot=diyabet_tanisi; type=boolean; follow_up=Kan şekerinizin yüksek olduğu size söylendi mi?
 CANDIDATE — clinician to approve wording. Preparation input; insulin and tablets come from base medications.
 
 **Q3 — Currently breastfeeding** · archetype: `OBSERVATION.story.v1` · source: NT-S1 (Emzirme section), NT-S3 ("Emziren annelere ancak emzirmeyi kestikten sonra")
-> "Şu anda bebeğinizi emziriyor musunuz?"
-gen: slot=emzirme; type=boolean; follow_up=Bebeğinizi anne sütüyle besliyor musunuz?
+> "Şu anda emziriyor musunuz?"
+gen: slot=emzirme; type=boolean; follow_up=Şu anda bir bebeği anne sütüyle besliyor musunuz?; delivery=text_first
 CANDIDATE — clinician to approve wording. Asked of every patient; clinician may add a sex/age gate (§4 gap 5).
+No longer presumes a baby ("bebeğinizi"). Lactation is reproductive history, so `text_first`.
 
 **Q4 — Recent contrast-enhanced scan** · archetype: `OBSERVATION.story.v1` · source: NT-S1 ("iv kontrast ajan kullanıldı ise not edilmeli"), NT-S2 ("kontrast madde … I-131 tutulumunu … engelleyebilirler"), NT-S3
 > "Son haftalarda damardan ilaç verilerek tomografi ya da başka bir film çekildi mi?"
@@ -185,10 +190,11 @@ CANDIDATE — clinician to approve wording.
 gen: slot=yakin_travma; type=boolean; follow_up=Yakın zamanda bir yerinizi incittiniz mi?
 CANDIDATE — clinician to approve wording. Image-reading context only; not an injury triage question.
 
-**Q9 — Able to lie flat and still** · archetype: `OBSERVATION.story.v1` · source: NT-S1 ("sırt üstü yatabiliyor olmalıdır")
-> "Çekim süresince sırtüstü ve hareketsiz yatabilir misiniz?"
-gen: slot=sirtustu_yatabilme; type=boolean; follow_up=Sırtüstü yatınca ağrı ya da nefes darlığı oluyor mu?
-CANDIDATE — clinician to approve wording. Note the polarity: here "evet" means able.
+**Q9 — Difficulty lying flat and still** · archetype: `OBSERVATION.story.v1` · source: NT-S1 ("sırt üstü yatabiliyor olmalıdır")
+> "Bir süre sırtüstü ve hareketsiz yatmak sizin için zor olur mu?"
+gen: slot=hareketsiz_yatma_zorlugu; type=boolean; follow_up=Sırtüstü yatınca ağrı ya da nefes darlığı oluyor mu?
+CANDIDATE — clinician to approve wording. Same text and slot as radyasyon_onkolojisi Q6; the ask and the
+follow-up now share one polarity ("evet" means difficulty).
 
 **Q10 — Distress in closed spaces** · archetype: `OBSERVATION.story.v1` · source: NT-S1 ("olası klostrofobisinin sorgulanması")
 > "Kapalı ya da dar alanlarda bulunmak sizi çok huzursuz eder mi?"
@@ -202,8 +208,10 @@ CANDIDATE — clinician to approve wording. Radiation-safety planning input.
 
 **Q12 — Young children or a pregnant person at home** · archetype: `OBSERVATION.story.v1` · source: NT-S2 ("çocukların ve diğer aile fertlerinin radyasyondan korunması"), NT-S3 ("bebeklere, küçük çocuklara ve hamilelere")
 > "Evinizde küçük çocuk ya da gebe biri yaşıyor mu?"
-gen: slot=evde_cocuk_gebe; type=boolean; follow_up=Evde bakımını üstlendiğiniz bir bebek ya da küçük çocuk var mı?
+gen: slot=evde_cocuk_gebe; type=boolean; follow_up=Evde bakımını üstlendiğiniz bir bebek ya da küçük çocuk var mı?; delivery=text_first
 CANDIDATE — clinician to approve wording. Complements base `living_situation`; captures no identities.
+Household data, including a household member's pregnancy, so `text_first`. invariant 18: owner-approved
+2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 *(12 candidate questions.)*
 

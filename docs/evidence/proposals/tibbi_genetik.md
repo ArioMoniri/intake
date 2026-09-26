@@ -194,9 +194,17 @@ words per sentence; no diagnosis/treatment/prognosis language; no numerals (inva
 family losses. **All CANDIDATE — clinician to approve wording.** No item carries a triage level. Q1
 binds to the pack's `basvuru_nedeni` slot.
 
+Duration: no pack line is set here. The duration ask override is pending clinician wording: a counselling
+visit often has no complaint and no source supports a duration question, so the fixed `sikayet_suresi`
+ask stays until a clinician words one or the generator lets the slot be left out (wave-7 verification
+§E-2).
+
+Relatives' health, consanguinity and partner items (Q5–Q13) are `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün tıbbi genetik polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Bugün sizi tıbbi genetik polikliniğine getiren konu nedir?"
+CANDIDATE — clinician to approve wording. Ends in "nedir?" so the neutral reason follow-up is used, not
+one that says "şikâyetiniz" (wave-7 fix).
 
 **Q2 — Referring department** · archetype: `OBSERVATION.story.v1` · source: general intake (referral context), TG-S4
 > "Sizi genetik polikliniğine hangi bölüm ya da hekim yönlendirdi?"
@@ -215,51 +223,58 @@ CANDIDATE — clinician to approve wording. Reports can be uploaded through the 
 
 **Q5 — Genetic condition in the family** · archetype: **no root — export blocked (INT-041)** · source: TG-S7 ("someone in your family has a health condition that's caused by changes to genes")
 > "Ailenizde genetik ya da aileden geçen bir hastalık tanısı almış biri var mı?"
-gen: slot=ailede_genetik_hastalik; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_genetik_hastalik; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q6 — Name of the condition (if Q5 yes)** · archetype: **no root — export blocked (INT-041)** · source: TG-S7, TG-S6 (pedigree history)
 > "Bu hastalığın adını biliyorsanız söyler misiniz?"
-gen: slot=ailedeki_hastalik_adi; type=string; ask_if=ailede_genetik_hastalik == true; follow_up=Adını bilmiyorsanız nasıl bir sorun olduğunu anlatır mısınız?
+gen: slot=ailedeki_hastalik_adi; type=string; ask_if=ailede_genetik_hastalik == true; follow_up=Adını bilmiyorsanız nasıl bir sorun olduğunu anlatır mısınız?; delivery=text_first
 CANDIDATE — clinician to approve wording. Which relative, and on which side, is taken in the
-clinician's pedigree session.
+clinician's pedigree session. Relatives' health data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q7 — Parental consanguinity (sensitive)** · archetype: **no root — export blocked (INT-041)** · source: TG-S6 ("Explain that we ask everyone these questions"), TG-S2, TG-S3
 > "Bu soruyu her hastamıza soruyoruz. Anne ve babanız arasında akrabalık var mı?"
-gen: slot=anne_baba_akrabaligi; type=boolean
+gen: slot=anne_baba_akrabaligi; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. The lead-in follows TG-S6: the question is routine.
+Consanguinity. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q8 — Couple consanguinity (sensitive)** · archetype: **no root — export blocked (INT-041)** · source: TG-S2 ("akraba evliliği yapacakların, evlenmeden önce … genetik danışma")
 > "Evliyseniz ya da evlenmeyi planlıyorsanız, eşinizle aranızda akrabalık var mı?"
-gen: slot=es_akrabaligi; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=es_akrabaligi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Partner and consanguinity data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
+The item still presumes a spouse; a gate on marital status would itself be a new category, so the
+conditional lead stays and the clinician decides.
 
 **Q9 — Premarital carrier result** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TG-S1 ("Her ikisi de taşıyıcı çıkan çiftler")
 > "Evlilik öncesi yapılan kan taramasında siz ya da eşiniz taşıyıcı çıktınız mı?"
-gen: slot=evlilik_oncesi_tasiyicilik; type=boolean
+gen: slot=evlilik_oncesi_tasiyicilik; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. "Taşıyıcı çıkmak" is the everyday phrase for this screen in Türkiye.
+Partner data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349). "siz ya da eşiniz" leaves unclear whose result
+it is; the clinician clarifies.
 
 **Q10 — Recurrent pregnancy loss (sensitive)** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TG-S8 ("the loss of two or more pregnancies"), TG-S5 ("Tekrarlayan düşükler ve kısırlık")
 > "Siz ya da eşiniz daha önce birden fazla kez gebelik kaybı yaşadınız mı?"
-gen: slot=tekrarlayan_gebelik_kaybi; type=boolean
+gen: slot=tekrarlayan_gebelik_kaybi; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. "Birden fazla" carries the ESHRE definition without a numeral.
 Worded for any sex; current pregnancy stays in base.
+Partner and reproductive-loss data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q11 — Congenital condition or delay in the family** · archetype: **no root — export blocked (INT-041)** · source: TG-S5 ("Daha önceden kromozom hastalıklı çocuk sahibi olmak"), TG-S6 ("family history of developmental delay")
 > "Ailenizde doğuştan bir sağlık sorunu ya da gelişim geriliği olan biri var mı?"
-gen: slot=ailede_dogustan_sorun; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_dogustan_sorun; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q12 — Early-onset cancer in the family** · archetype: **no root — export blocked (INT-041)** · source: TG-S6 ("early age of cancer diagnosis"), TG-S7 ("close relatives have had a particular type of cancer that could be inherited")
 > "Ailenizde genç yaşta kanser tanısı almış biri var mı?"
-gen: slot=ailede_erken_kanser; type=boolean
+gen: slot=ailede_erken_kanser; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. No age threshold in patient copy; the clinician applies
-the criteria when drawing the pedigree.
+the criteria when drawing the pedigree. Relatives' health data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q13 — Sudden unexplained death in the family (sensitive)** · archetype: **no root — export blocked (INT-041)** · source: TG-S6 ("Sudden cardiac death at a young age can be caused by inherited cardiac conditions"), TG-S3 ("erken ölen kardeş hikayesi")
 > "Ailenizde genç yaşta, nedeni açıklanamayan ani bir kayıp yaşandı mı?"
-gen: slot=ailede_ani_aciklanamayan_kayip; type=boolean
+gen: slot=ailede_ani_aciklanamayan_kayip; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. "Kayıp" is used instead of "ölüm" to keep the tone gentle.
+Relatives' health data. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 *(13 candidate questions.)*
 
@@ -282,7 +297,8 @@ CANDIDATE — clinician to approve wording. "Kayıp" is used instead of "ölüm"
    free text (invariant 22). The clinician draws the pedigree.
 7. **Family history of third parties** — Q5–Q13 record health data about relatives who are not the
    data subject. Counsel should confirm the lawful basis and the invariant-18 inventory annotation
-   before these fields are persisted. **Owner + counsel + legal-reviewer.**
+   before these fields are persisted. **Owner + counsel + legal-reviewer.** Decided for generation:
+   invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349). Q5–Q13 are `text_first`.
 8. **Family history archetype** — absent from the OPT; all family items export-blocked (INT-041
    posture) until an INT-032 archetype decision.
 9. **EK-4 acuity** (RG 13/9/2022 sayı 31952) — no snapshot in repo; **no level proposed**. All three
@@ -298,7 +314,8 @@ CANDIDATE — clinician to approve wording. "Kayıp" is used instead of "ölüm"
   wording; sensitive items carry a routine-question lead-in or gentle wording; each marked CANDIDATE.
 - **Inv. 7** — nothing extends `base.life_threat` (§2.2).
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
-- **Inv. 18** — family-history fields about third parties need the inventory annotation (gap 7).
+- **Inv. 18** — family-history fields about third parties need the inventory annotation (gap 7);
+  owner-approved 2026-09-26, VERBİS/data-category register row pending counsel review (INT-349).
 - **Inv. 21** — RED axes intentionally unspecified (gap 9).
 - **Inv. 22** — no numerals in any candidate question; "birden fazla" replaces the ESHRE count.
 - **Clinical content rule** — every red-flag needs a committed verbatim snapshot; until then rules stay

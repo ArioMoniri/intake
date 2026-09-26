@@ -172,9 +172,15 @@ carries a triage level. Duration is captured by the pack's `sikayet_suresi` slot
 threshold appears in patient copy. Q1 binds to the pack's `basvuru_nedeni` slot. No item is taken
 from, or reworded from, GİDR, Denver II, ASQ or M-CHAT.
 
+The pack line below replaces the fixed duration ask, which addressed the parent's own complaint. It is
+addressed to the parent and about the child (wave 7).
+
+pack: duration_ask=Bu durumu ne zamandır fark ediyorsunuz?; duration_follow_up=Ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzla bugün gelişimsel pediatri polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuzu bugün gelişimsel pediatri polikliniğine getiren konu nedir?"
+CANDIDATE — clinician to approve wording. Ends in "nedir?" so the generator uses the neutral reason
+follow-up, not one about the parent's own complaint (wave-7 fix).
 
 **Q2 — Who first noticed** · archetype: `OBSERVATION.story.v1` · source: GP-S1 Y15 ("ailelerin kaygılarını öğrenmenin … önemli olduğunu"), GP-S2 ("share your concerns")
 > "Bu konuyu ilk kez kim fark etti?"
@@ -188,13 +194,15 @@ CANDIDATE — clinician to approve wording. Presence only; urgency is a clinicia
 
 **Q4 — Which skill (if Q3 yes)** · archetype: `OBSERVATION.story.v1` · source: GP-S3 ("any loss of milestones")
 > "Hangi beceride bu değişikliği fark ettiniz?"
-gen: slot=kaybedilen_beceri; type=string; ask_if=beceri_kaybi == true; follow_up=Konuşma, yürüme ya da oyunla ilgili bir beceri olabilir mi?
-CANDIDATE — clinician to approve wording.
+gen: slot=kaybedilen_beceri; type=string; ask_if=beceri_kaybi == true; follow_up=Konuşma, yürüme ya da oyun gibi hangi beceride değişiklik oldu?
+CANDIDATE — clinician to approve wording. The follow-up restates the ask and no longer invites a yes/no
+answer to a string slot (wave-7 fix).
 
 **Q5 — Pregnancy history** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GP-S3 ("mother's health during pregnancy"), GP-S1 Y15 ("perinatal riskler")
 > "Çocuğunuzun doğumundan önce, hamilelik sırasında önemli bir sağlık sorunu yaşandı mı?"
-gen: slot=gebelikte_saglik_sorunu; type=boolean
+gen: slot=gebelikte_saglik_sorunu; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Worded so that it reads correctly whoever the caregiver is.
+Pregnancy history, and the respondent is often the mother, so `text_first`.
 
 **Q6 — Preterm birth** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GP-S1 Y15 (düzeltilmiş yaş), GP-S1 Y8 ("Prematürite"), GP-S2 ("born prematurely")
 > "Çocuğunuz zamanından önce, yani erken doğdu mu?"
@@ -229,14 +237,17 @@ CANDIDATE — clinician to approve wording.
 
 **Q12 — Family history of delayed development** · archetype: **no root — export blocked (INT-041)** · source: GP-S3 ("family history of developmental delay")
 > "Çocuğunuzun ailesinde gelişimi ya da konuşması geç kalan başka biri var mı?"
-gen: slot=ailede_gelisim_gecikmesi; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_gelisim_gecikmesi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health data, so `text_first`. invariant 18:
+owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q13 — Parental consanguinity (sensitive)** · archetype: **no root — export blocked (INT-041)** · source: GP-S3 ("parental consanguinity")
 > "Bu soruyu her aileye soruyoruz. Çocuğunuzun anne ve babası arasında akrabalık var mı?"
-gen: slot=anne_baba_akrabaligi; type=boolean
+gen: slot=anne_baba_akrabaligi; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. The lead-in says the question is routine, so it does not
 read as a judgement. Duplicates `cocuk_genetik_hastaliklari` Q6 if both packs run — dedupe at merge.
+Consanguinity, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register
+row pending counsel review (INT-349).
 
 *(13 candidate questions.)*
 

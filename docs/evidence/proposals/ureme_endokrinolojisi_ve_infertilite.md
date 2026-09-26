@@ -98,7 +98,7 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032), never 
 | Q | Captured item | Archetype ROOT | RM type | Leaf path |
 |---|---|---|---|---|
 | Q1 | Reason for visit | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | EVALUATION | deferred (INT-032) |
-| Q2 | Time trying to conceive (duration) | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q2 | Time trying to conceive (duration; now the pack's `sikayet_suresi` slot via the §3 pack line) | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q3 | Menstrual regularity | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032); no menstrual archetype in the OPT |
 | Q4 | Period pain limiting daily life | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q5 | Deep pain with intercourse | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -138,30 +138,33 @@ sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22);
 words. **All CANDIDATE — clinician to approve wording.** No item carries a triage level. Q1 binds to the
 pack's `basvuru_nedeni` slot. Checked by hand against the Turkish PolicyGuard arms (unsigned — HB-C23).
 
+Duration (was Q2, moved in wave 7 so the pack has one duration ask, not two): the time trying to
+conceive becomes the pack's `sikayet_suresi` slot, which stays `type: duration` (a duration picker, not
+free numeric text, invariant 22). Sources: UI-S1 rec 1.16.5; UI-S2 (definition); UI-S5 PDF p. 13. The
+twelve-month threshold is the clinician's, never spoken. This is reproductive history and should be
+`text_first`, but the duration slot cannot carry `delivery` until the generator gains a duration
+delivery key (wave-7 verification §E-2). Do not promote this pack before then.
+
+pack: duration_ask=Ne zamandır korunmadan gebe kalmayı deniyorsunuz?; duration_follow_up=Ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake; UI-S1 rec 1.16.1
 > "Bugün bu polikliniğe gelirken en çok konuşmak istediğiniz konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Time trying to conceive** · archetype: `OBSERVATION.story.v1` · source: UI-S1 rec 1.16.5; UI-S2 (definition); UI-S5 PDF p. 13
-> "Ne zamandır korunmadan gebe kalmayı deniyorsunuz?"
-gen: slot=gebelik_deneme_suresi; type=duration; follow_up=Ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
-CANDIDATE — clinician to approve wording. Duration picker, not free numeric text (invariant 22). The
-twelve-month threshold is the clinician's, never spoken.
-
 **Q3 — Menstrual regularity** · archetype: `OBSERVATION.story.v1` · source: UI-S1 rec 1.18.6; UI-S2 (ovulatory dysfunction); UI-S4 rec 1.1.1; UI-S5 PDF p. 14 ("Adet düzeni")
 > "Adetleriniz genellikle her ay düzenli olarak geliyor mu?"
-gen: slot=adet_duzenli; type=boolean
+gen: slot=adet_duzenli; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Note the polarity: "evet" is the expected answer.
 
 **Q4 — Period pain limiting daily life** · archetype: `OBSERVATION.symptom_sign.v1` · source: UI-S3 rec 1.3.1 ("affecting daily activities")
 > "Adet dönemlerinizde günlük işlerinizi zorlaştıran ağrılar oluyor mu?"
-gen: slot=agrili_adet; type=boolean
+gen: slot=agrili_adet; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Deep pain with intercourse** · archetype: `OBSERVATION.symptom_sign.v1` · source: UI-S3 rec 1.3.1 ("deep pain during or after sexual intercourse"); UI-S1 rec 1.16.1 (sexual history)
 > "Cinsel ilişki sırasında ya da sonrasında derin bir ağrı hissediyor musunuz?"
-gen: slot=iliski_sirasinda_agri; type=boolean
-CANDIDATE — clinician to approve wording. Sensitive: recommend `delivery: text_first` (§4 gap 5).
+gen: slot=iliski_sirasinda_agri; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Sensitive: `text_first` (§4 gap 5, resolved in wave 7).
 
 **Q6 — Increased unwanted hair growth** · archetype: `OBSERVATION.symptom_sign.v1` · source: UI-S4 recs 1.3.1 and 1.3.3
 > "Yüzünüzde ya da vücudunuzda istenmeyen kıllanmada artış fark ettiniz mi?"
@@ -169,37 +172,46 @@ gen: slot=killanma_artisi; type=boolean
 CANDIDATE — clinician to approve wording. "Kıllanma" is the lay term; no jargon.
 
 **Q7 — Milk from the breast when not pregnant or breastfeeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: UI-S1 rec 1.18.11 ("galactorrhoea")
-> "Hamile olmadığınız ya da emzirmediğiniz halde memenizden süt geliyor mu?"
+> "Emzirmediğiniz ve hamile olmadığınız halde memenizden süt geliyor mu?"
 gen: slot=memeden_sut_gelmesi; type=boolean
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. "ve" (not "ya da") so that a woman who is breastfeeding but
+not pregnant does not answer yes (wave-7 fix).
 
 **Q8 — Any previous pregnancy** · archetype: `OBSERVATION.story.v1` · source: UI-S1 rec 1.16.7; UI-S5 PDF p. 13 (obstetric history)
 > "Daha önce hiç hamile kaldınız mı?"
-gen: slot=onceki_gebelik; type=boolean
+gen: slot=onceki_gebelik; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Gate for Q9.
 
 **Q9 — Miscarriage or ectopic pregnancy** · archetype: `OBSERVATION.story.v1` · source: UI-S1 recs 1.16.7 and 1.18.13; UI-S5 risk form B-3, B-13
 > "Gebeliklerinizden herhangi biri düşük ya da dış gebelikle sonuçlandı mı?"
-gen: slot=dusuk_ya_da_dis_gebelik; type=boolean; ask_if=onceki_gebelik == true
+gen: slot=dusuk_ya_da_dis_gebelik; type=boolean; ask_if=onceki_gebelik == true; delivery=text_first
 CANDIDATE — clinician to approve wording. "Dış gebelik" is the lay Turkish term. No count is asked
 (no numeric entry, invariant 22); the number of losses is for the consultation.
 
 **Q10 — Previous pelvic infection** · archetype: `EVALUATION.problem_diagnosis.v1` · source: UI-S1 rec 1.18.13 ("pelvic inflammatory disease")
 > "Daha önce rahim, tüp ya da yumurtalıklarınızda iltihap geçirdiniz mi?"
-gen: slot=pelvik_iltihap; type=boolean
+gen: slot=pelvik_iltihap; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Previous fertility treatment** · archetype: `OBSERVATION.story.v1` · source: UI-S5 PDF p. 13 ("gördüğü tedaviler (IVF vb.)"); UI-S2
+**Q11a — Previous fertility treatment** · archetype: `OBSERVATION.story.v1` · source: UI-S5 PDF p. 13 ("gördüğü tedaviler (IVF vb.)"); UI-S2
 > "Daha önce gebe kalmak için bir tedavi gördünüz mü?"
-gen: slot=onceki_tedavi; type=boolean; follow_up=Hangi tedavileri gördüğünüzü kısaca anlatır mısınız?
-CANDIDATE — clinician to approve wording.
+gen: slot=onceki_tedavi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Gate for Q11b.
+
+**Q11b — Which treatments** · archetype: `OBSERVATION.story.v1` · source: UI-S5 PDF p. 13 ("gördüğü tedaviler (IVF vb.)"); UI-S2
+> "Hangi tedavileri gördüğünüzü kısaca anlatır mısınız?"
+gen: slot=onceki_tedavi_aciklama; type=string; ask_if=onceki_tedavi == true; delivery=text_first
+CANDIDATE — clinician to approve wording. The narrative has its own string slot (wave-7 split).
 
 **Q12 — Partner semen analysis** · archetype: `OBSERVATION.story.v1` · source: UI-S1 recs 1.16.5 ("both partners") and 1.17.1; UI-S2 (male-factor recommendations)
 > "Eşinize ya da partnerinize daha önce sperm tahlili yapıldı mı?"
-gen: slot=partner_sperm_tahlili; type=boolean
+gen: slot=partner_sperm_tahlili; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Records only whether a test was done, not its result.
+Partner data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register
+row pending counsel review (INT-349).
 
-*(12 candidate questions: 12 source-backed; none is an emergency symptom.)*
+*(12 candidate questions: 12 source-backed; none is an emergency symptom. After wave 7, Q2 is the pack's
+duration line and Q11 is split, so §3 carries twelve Q items.)*
 
 ---
 
@@ -217,10 +229,12 @@ CANDIDATE — clinician to approve wording. Records only whether a test was done
 4. **Partner data (Q12)** — the partner is a second data subject. Per invariant 18 every new data field
    needs the inventory annotation {category, purpose, basis, retention, recipients}, and persisting a
    new category of personal data needs a human decision (CLAUDE.md "When to stop and ask"). **Human
-   (legal/privacy owner) must decide** before Q12 is generated into a pack. Wording for patients without a
-   partner or using donor sperm is also a clinician decision.
-5. **Sensitive-disclosure delivery** — Q5 (and Q9) touch sexual and reproductive loss history; whether
-   they are `text_first` is a **clinician decision**.
+   (legal/privacy owner) must decide** before Q12 is generated into a pack. Decided: invariant 18:
+   owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349). Q12 is
+   generated as `text_first`. Wording for patients without a partner or using donor sperm is still a
+   clinician decision.
+5. **Sensitive-disclosure delivery** — Q5 (and Q9) touch sexual and reproductive loss history. Resolved
+   in wave 7 under files/13 §13: Q3–Q5 and Q8–Q12 are `text_first`; the duration line waits on §E-2.
 6. **Copyright / snapshot licence** — NICE and journal texts are copyrighted; WHO is CC BY-NC-SA. A
    committed verbatim snapshot needs a **legal-review decision** on reproduction rights.
 7. **Omitted to stay at twelve — sourced, clinician may swap in:** acne and scalp hair loss (UI-S4 rec
@@ -239,7 +253,8 @@ CANDIDATE — clinician to approve wording. Records only whether a test was done
   no diagnosis/treatment/prognosis wording; each item marked CANDIDATE.
 - **Inv. 7** — ectopic pregnancy stays in `base.life_threat` (`rf.ectopic_possible`); this pack adds no rule.
 - **Inv. 10** — wording is candidate; verbatim `text_tr` is fixed only at clinician sign-off.
-- **Inv. 18** — Q12 flags a possible new data category (partner) for the inventory annotation (§4 gap 4).
+- **Inv. 18** — Q12 is a new data category (partner): owner-approved 2026-09-26; the inventory
+  annotation / VERBİS register row is pending counsel review (INT-349) (§4 gap 4).
 - **Inv. 21** — RED axes intentionally unspecified.
 - **Inv. 22** — no numerals; trying-time is a duration picker; no count or lab value is requested.
 - **HB-C1** — awaits clinician sign-off; NOT served.

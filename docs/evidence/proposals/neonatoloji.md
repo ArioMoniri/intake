@@ -104,11 +104,11 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032), never 
 | Q4 | Neonatal intensive-care stay | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q5 | Feeding method | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q6 | Feeding less than usual | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q7 | Nappies wet as often as usual | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q7 | Nappies wet less often than usual | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Yellowing of skin or eyes | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Very pale / chalky stool | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q10 | Fever | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q11 | Unusually sleepy / hard to wake | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q11 | Unusually sleepy / hard to rouse | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Laboured breathing / grunting | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
@@ -125,7 +125,7 @@ to feed today.
 | Q10 | Fever in a newborn | HB-C3 "fever under 3 months" | input only |
 | Q6, Q11 | Feeding less; unusually sleepy / hard to wake | HB-C3 "lethargy/poor feeding in an infant" | input only |
 | Q12 | Laboured breathing / grunting | HB-C3 "breathing difficulty" (parent-reportable form) | input only |
-| Q7 | Fewer wet nappies | HB-C3 "dehydration signs" | input only |
+| Q7 | Fewer wet nappies (`islak_bez_azalmasi == true` is the concern) | HB-C3 "dehydration signs" | input only |
 | Q8, Q9 | Jaundice; pale stool | **absent** from HB-C3's list and from `base.life_threat` | input only; §4 gap 2 |
 
 ### 2.3 Red-flag candidates — for physician review — not encoded
@@ -150,7 +150,13 @@ Register: formal **siz**, addressed to the **parent**; the child is always "bebe
 exactly one question mark per turn; at most fifteen words per sentence; no diagnosis/treatment/prognosis
 language; no numerals (invariant 22); written in our own words. **All CANDIDATE — clinician
 (paediatrician) to approve wording.** No item carries a triage level. Q1 binds to `basvuru_nedeni`.
-Checked by hand against the Turkish PolicyGuard arms (unsigned — HB-C23).
+Checked by hand against the Turkish PolicyGuard arms (unsigned — HB-C23). Every symptom slot in this pack
+means *true = concern* (wave-7 fix of Q7).
+
+The pack line below replaces the fixed duration ask, which addressed the parent's own complaint (§4 gap 7).
+It is addressed to the parent and about the baby.
+
+pack: duration_ask=Bu durumu ne zamandır fark ediyorsunuz?; duration_follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake; NE-S5 rec 1.4.1
 > "Bugün bebeğiniz için en çok konuşmak istediğiniz konu nedir?"
@@ -168,10 +174,15 @@ gen: slot=erken_dogum; type=boolean
 CANDIDATE — clinician to approve wording. The number of weeks is not asked (invariant 22); it comes
 from the discharge summary via document ingestion.
 
-**Q4 — Neonatal intensive-care stay** · archetype: `OBSERVATION.story.v1` · source: NE-S3 Tablo 1 ("YYBÜ’de yatan")
+**Q4a — Neonatal intensive-care stay** · archetype: `OBSERVATION.story.v1` · source: NE-S3 Tablo 1 ("YYBÜ’de yatan")
 > "Bebeğiniz doğduktan sonra yenidoğan yoğun bakımında yattı mı?"
-gen: slot=yogun_bakim_yatisi; type=boolean; follow_up=Yoğun bakımda neden yattığını kısaca anlatır mısınız?
-CANDIDATE — clinician to approve wording.
+gen: slot=yogun_bakim_yatisi; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q4b.
+
+**Q4b — Reason for the intensive-care stay** · archetype: `OBSERVATION.story.v1` · source: NE-S3 Tablo 1 ("YYBÜ’de yatan")
+> "Yoğun bakımda neden yattığını kısaca anlatır mısınız?"
+gen: slot=yogun_bakim_nedeni; type=string; ask_if=yogun_bakim_yatisi == true
+CANDIDATE — clinician to approve wording. The narrative has its own string slot (wave-7 split).
 
 **Q5 — Feeding method** · archetype: `OBSERVATION.story.v1` · source: NE-S1 PDF p. 16 (breastfeeding as a risk context); NE-S4 rec 1.2.1; NE-S5 rec 1.5.14
 > "Bebeğinizi şu anda nasıl besliyorsunuz?"
@@ -183,11 +194,11 @@ CANDIDATE — clinician to approve wording. Neutral about feeding choice; no jud
 gen: slot=beslenmede_azalma; type=boolean
 CANDIDATE — clinician to approve wording. **Feeds HB-C3 poor feeding (§2.2).**
 
-**Q7 — Nappies wet as often as usual** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S1 PDF p. 12 ("bez ıslatır"); NE-S5 rec 1.5.14 ("wet and dirty nappies")
-> "Bebeğinizin bezleri her zamanki kadar sık ıslanıyor mu?"
-gen: slot=bez_islanmasi_yeterli; type=boolean
-CANDIDATE — clinician to approve wording. **Inverted polarity:** "hayır" is the concerning answer; any
-rule reading this slot must test `== false`. **Feeds HB-C3 dehydration (§2.2).**
+**Q7 — Nappies wet less often than usual** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S1 PDF p. 12 ("bez ıslatır"); NE-S5 rec 1.5.14 ("wet and dirty nappies")
+> "Bebeğinizin bezi her zamankinden daha seyrek mi ıslanıyor?"
+gen: slot=islak_bez_azalmasi; type=boolean
+CANDIDATE — clinician to approve wording. Polarity is now *true = concern* (wave-7 flip), like every
+other symptom slot here; an HB-C3 rule reading this slot tests `== true`. **Feeds HB-C3 dehydration (§2.2).**
 
 **Q8 — Yellowing of skin or eyes** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S1 PDF p. 13 (whites of the eyes); NE-S4 rec 1.1.1
 > "Bebeğinizin cildinde ya da gözlerinin beyaz kısmında sararma fark ettiniz mi?"
@@ -207,10 +218,11 @@ CANDIDATE — clinician to approve wording. No temperature value is requested (i
 1.4.4 warns fever may be absent in a seriously ill baby, so a "hayır" here is not reassurance.
 **Feeds HB-C3 fever under three months (§2.2).**
 
-**Q11 — Unusually sleepy or hard to wake** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S2 Tablo 1 ("uykuya eğilim"); NE-S3 PDF p. 8 ("uykuya meyil"); NE-S5 rec 1.4.9 ("unresponsive or unrousable")
-> "Bebeğiniz her zamankinden daha uykulu ya da uyandırması zor mu?"
+**Q11 — Unusually sleepy or hard to rouse** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S2 Tablo 1 ("uykuya eğilim"); NE-S3 PDF p. 8 ("uykuya meyil"); NE-S5 rec 1.4.9 ("unresponsive or unrousable")
+> "Bebeğinizde her zamankinden fazla uyku hali ya da uyanmakta zorlanma var mı?"
 gen: slot=asiri_uykululuk; type=boolean
-CANDIDATE — clinician to approve wording. **Feeds HB-C3 lethargy (§2.2).**
+CANDIDATE — clinician to approve wording. One noun-phrase question; "uyandırması zor" was the wrong voice
+(wave-7 fix). **Feeds HB-C3 lethargy (§2.2).**
 
 **Q12 — Laboured breathing or grunting** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S2 Tablo 1 ("inleme"); NE-S5 rec 1.4.9 ("grunting respirations")
 > "Bebeğinizin nefes alırken zorlandığını ya da inlediğini fark ettiniz mi?"
@@ -218,8 +230,8 @@ gen: slot=nefes_zorlanmasi; type=boolean
 CANDIDATE — clinician to approve wording. Parent-reportable form only; no retraction grading
 (04 §8.1 rule 1). **Feeds HB-C3 breathing difficulty (§2.2).**
 
-*(12 candidate questions: 12 source-backed; 6 neutral symptom captures for newborn emergencies —
-Q6, Q7, Q8, Q10, Q11, Q12.)*
+*(12 candidate questions, 13 items after the wave-7 split of Q4: 12 source-backed; 6 neutral symptom
+captures for newborn emergencies — Q6, Q7, Q8, Q10, Q11, Q12.)*
 
 ---
 
@@ -245,7 +257,7 @@ Q6, Q7, Q8, Q10, Q11, Q12.)*
    written permission or a legal-review decision.** **Human must supply.**
 7. **Standard duration slot wording** — the generator adds `sikayet_suresi` ("Bu şikâyetiniz ne zamandır
    var?"), which addresses the parent's own complaint; for a proxy session it should refer to the baby.
-   **Clinician to decide** (generator-level, not this proposal).
+   The §3 pack line now does so (wave 7). **Clinician to confirm.**
 8. **Every triage level and all three RED axes** (invariant 21), and the paediatric age bands —
    deliberately **not** assigned; **paediatrician** (HB-C3) must supply.
 9. **openEHR** — leaf paths deferred (INT-032); no newborn-specific archetype root in the OPT.

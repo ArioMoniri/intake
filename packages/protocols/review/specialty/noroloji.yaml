@@ -45,60 +45,76 @@ sections:
         required: true
         ask_tr:
           tr: Bugün nöroloji bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/noroloji.md"
       baslangic_sekli:
         type: string
         required: false
         ask_tr:
           tr: Sizi en çok rahatsız eden bu durum aniden mi yoksa zamanla yavaş yavaş mı başladı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/noroloji.md"
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/noroloji.md"
   norolojik_belirtiler:
     slots:
       tek_tarafli_gucsuzluk:
         type: boolean
         required: false
         ask_tr:
-          tr: Yüzünüzün, kolunuzun veya bacağınızın tek tarafında güçsüzlük ya da uyuşma fark ettiniz mi?
+          tr: Yüzünüzde, kolunuzda ya da bacağınızda, yalnızca bir tarafta güçsüzlük veya uyuşma oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
       konusma_guclugu:
         type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda konuşurken ya da söylenenleri anlarken zorlandığınız oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
       ani_siddetli_bas_agrisi:
         type: boolean
         required: false
         ask_tr:
-          tr: Saniyeler ya da birkaç dakika içinde en şiddetli hâline ulaşan, ani ve çok şiddetli bir baş ağrınız oldu mu?
+          tr: Bazı baş ağrıları saniyeler ya da birkaç dakika içinde en şiddetli hâline ulaşır. Hiç böyle ani ve çok şiddetli bir baş ağrınız oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
       bas_agrisi_ates:
         type: boolean
         required: false
         ask_tr:
-          tr: Baş ağrınıza ateş de eşlik ediyor mu?
+          tr: Son zamanlarda ateşle birlikte baş ağrınız oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
       nobet_bilinc_kaybi:
         type: boolean
         required: false
         ask_tr:
           tr: Yakın zamanda bilincinizi kaybettiğiniz ya da vücudunuzda istemsiz kasılma-titreme olan bir atak yaşadınız mı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
       ani_gorme_kaybi:
         type: boolean
         required: false
         ask_tr:
           tr: Gözlerinizde ani görme kaybı veya çift görme oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
   ilac_ve_gecmis:
     slots:
-      kullanilan_ilaclar:
-        type: string
-        required: false
-        ask_tr:
-          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı?
       norolojik_tani:
-        type: string
+        type: boolean
         required: false
         ask_tr:
-          tr: Daha önce bir doktor tarafından konmuş nörolojik bir hastalığınız var mı? Örneğin geçirilmiş inme veya sara hastalığı.
+          tr: Daha önce size inme ya da sara gibi bir sinir sistemi hastalığı tanısı konuldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/noroloji.md"
+      norolojik_tani_adi:
+        type: string
+        required: false
+        ask_if: "norolojik_tani == true"
+        ask_tr:
+          tr: Bu hastalığın adını söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/noroloji.md"
 red_flags:
 - id: rf.noroloji_l0_taslak
   label_tr: Nöroloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

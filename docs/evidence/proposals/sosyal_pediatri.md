@@ -186,9 +186,15 @@ question mark per turn; at most fifteen words per sentence; no diagnosis/treatme
 language; no numerals (invariant 22); nothing blames the family. **All CANDIDATE — clinician to
 approve wording.** No item carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot.
 
+The pack line below replaces the fixed duration ask, which addressed the parent's own complaint. It is
+addressed to the parent and about the child (wave 7).
+
+pack: duration_ask=Bu konu ne zamandır devam ediyor?; duration_follow_up=Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzla bugün sosyal pediatri polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuzu bugün sosyal pediatri polikliniğine getiren konu nedir?"
+CANDIDATE — clinician to approve wording. Ends in "nedir?" so the generator uses the neutral reason
+follow-up, not one about the parent's own complaint (wave-7 fix).
 
 **Q2 — Missing vaccination** · archetype: `OBSERVATION.story.v1` (narrative only) · source: SP-S3 ("aşılarını kontrol edin eksik aşılarını tamamlayın"), SP-S1 ("aşı uygulamaları")
 > "Çocuğunuzun aşı takviminde eksik kalan bir aşısı var mı?"
@@ -237,20 +243,22 @@ CANDIDATE — clinician to approve wording. The acronym ÇÖZGER is kept out of 
 
 **Q11 — Basic needs** · archetype: **no root — export blocked (INT-041)** · source: SP-S5 ("ask families about basic needs"; "Screen families universally")
 > "Birçok aile zaman zaman zorlanabiliyor. Çocuğunuzun beslenme, barınma ya da ısınma gibi temel ihtiyaçlarını karşılamakta zorlanıyor musunuz?"
-gen: slot=temel_ihtiyac_zorlugu; type=boolean
+gen: slot=temel_ihtiyac_zorlugu; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. The lead-in normalises the question; it is asked of every
-family (SP-S5 "universally"). Own wording — not the Hunger Vital Sign items. New personal-data
-category for this product: see §4 gap 5 before it is served.
+family (SP-S5 "universally"). Own wording — not the Hunger Vital Sign items. Household data, so
+`text_first` (§4 gap 5). invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q12 — Support already in place (if Q11 yes)** · archetype: **no root — export blocked (INT-041)** · source: SP-S5 (screening context; referral wording not quoted — §4 gap 4)
 > "Bu konuda şu anda bir kurumdan ya da kişiden destek alıyor musunuz?"
-gen: slot=temel_ihtiyac_destegi; type=boolean; ask_if=temel_ihtiyac_zorlugu == true
+gen: slot=temel_ihtiyac_destegi; type=boolean; ask_if=temel_ihtiyac_zorlugu == true; delivery=text_first
 CANDIDATE — clinician to approve wording. The app promises no referral; the clinician decides.
+Household data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q13 — Recent family change** · archetype: **no root — export blocked (INT-041)** · source: SP-S2 Y33 ("yakın zamanda taşınma ya da ev ortamında bir değişiklik")
 > "Son zamanlarda ailenizde taşınma ya da bir yakının kaybı gibi önemli bir değişiklik oldu mu?"
-gen: slot=ailede_onemli_degisiklik; type=boolean
+gen: slot=ailede_onemli_degisiklik; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Not an ACE item; details are for the clinician.
+Household data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 *(13 candidate questions.)*
 
@@ -271,8 +279,10 @@ CANDIDATE — clinician to approve wording. Not an ACE item; details are for the
    referral wording — seen in search results only; **not quoted**. Q12 rests on the practice-tips page.
 5. **New personal-data categories** — Q11–Q13 capture household economic and family-event data about
    the caregiver's household, a category this product may not yet persist. CLAUDE.md requires a human
-   decision (and the invariant-18 inventory annotation) before persisting a new category. **Owner +
-   counsel + legal-reviewer.**
+   decision (and the invariant-18 inventory annotation) before persisting a new category. Decided:
+   invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
+   Q11–Q13 are generated as `text_first`; the inventory annotation stays with **owner + counsel +
+   legal-reviewer**.
 6. **Validated instruments** — Hunger Vital Sign, ACE questionnaires, caregiver-depression scales and
    the GİDR psychosocial section are not reproduced; any use must pass `instrument_licence_gate`.
 7. **Nutrition and feeding, toilet training, accident prevention, adolescent health** — within the

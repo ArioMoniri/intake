@@ -161,14 +161,21 @@ sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22);
 words. **All CANDIDATE — clinician to approve wording.** No item carries a triage level. Q1 binds to the
 pack's `basvuru_nedeni` slot. Checked by hand against the Turkish PolicyGuard arms (unsigned — HB-C23).
 
+The pack line below replaces the fixed duration ask, which says "şikâyet" although a referral visit may
+have no complaint. It asks how long the referral reason has been known and carries no clinical content;
+the clinician confirms it.
+
+pack: duration_ask=Bu durumu ne zamandır biliyorsunuz?; duration_follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+
 **Q1 — Reason for referral** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün sizi bu polikliniğe yönlendiren durum nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Estimated due date** · archetype: `OBSERVATION.story.v1` · source: PR-S1 (current-pregnancy history, "Tahmini doğum tarihi", PDF p. 14)
 > "Size söylenen tahmini doğum tarihiniz nedir?"
-gen: slot=tahmini_dogum_tarihi; type=date; follow_up=Tarihi bilmiyorsanız son ultrason raporunuza bakabilir misiniz?
+gen: slot=tahmini_dogum_tarihi; type=date; follow_up=Ultrason raporunuzdaki tahmini doğum tarihini söyler misiniz?; delivery=text_first
 CANDIDATE — clinician to approve wording. Date picker only (invariant 22); anchors every other answer in time.
+Pregnancy dating is `text_first` (files/13 §13).
 
 **Q3 — Multiple pregnancy** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form C-4; PR-S2 VTE Tablo-1; PR-S4
 > "Bu gebelikte ikiz ya da daha fazla bebek mi bekliyorsunuz?"
@@ -177,13 +184,19 @@ CANDIDATE — clinician to approve wording.
 
 **Q4 — Conception with fertility treatment** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form C-26; PR-S2 VTE Tablo-1 ("yardımcı üreme teknikleri")
 > "Bu gebelik tüp bebek ya da başka bir tedavi yardımıyla mı oldu?"
-gen: slot=tedavi_yardimiyla_gebelik; type=boolean
+gen: slot=tedavi_yardimiyla_gebelik; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. "Tüp bebek" is the lay Turkish term for IVF.
 
-**Q5 — Condition that began before pregnancy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PR-S1 risk form A-1, A-3, A-8; PR-S2 Sunuş; PR-S4
+**Q5a — Condition that began before pregnancy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PR-S1 risk form A-1, A-3, A-8; PR-S2 Sunuş; PR-S4
 > "Hamilelikten önce başlayan şeker, tansiyon ya da kalp gibi bir sorununuz var mı?"
-gen: slot=gebelik_oncesi_saglik_sorunu; type=boolean; follow_up=Bu sorunun adını söyleyebilir misiniz?
-CANDIDATE — clinician to approve wording. Epilepsy and asthma (PR-S2) are left to the follow-up.
+gen: slot=gebelik_oncesi_saglik_sorunu; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q5b.
+
+**Q5b — Name of that condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PR-S1 risk form A-1, A-3, A-8; PR-S2 Sunuş; PR-S4
+> "Bu sorunun adını söyleyebilir misiniz?"
+gen: slot=gebelik_oncesi_saglik_sorunu_adi; type=string; ask_if=gebelik_oncesi_saglik_sorunu == true
+CANDIDATE — clinician to approve wording. Epilepsy and asthma (PR-S2) are captured here; the name has its
+own string slot (wave-7 split).
 
 **Q6 — High blood pressure in this pregnancy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PR-S1 risk form C-16; PR-S5
 > "Bu gebelikte size tansiyonunuzun yüksek olduğu söylendi mi?"
@@ -195,17 +208,32 @@ CANDIDATE — clinician to approve wording. Asks what the patient was told; no r
 gen: slot=gebelikte_yuksek_seker; type=boolean
 CANDIDATE — clinician to approve wording. No value is requested (invariant 22).
 
-**Q8 — Previous preterm birth, pregnancy loss or baby loss** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form B-3, B-6, B-8, B-20; PR-S6 recs 1.2.1–1.2.2; PR-S4
-> "Bu soru zor gelebilir. Önceki gebeliklerinizde erken doğum, düşük ya da bebek kaybı yaşadınız mı?"
-gen: slot=onceki_gebelik_kaybi; type=boolean; follow_up=İsterseniz bunu kısaca anlatır mısınız?
-CANDIDATE — clinician to approve wording. Two sentences, one question; the lead sentence acknowledges
-the subject without alarm. A first-time mother answers no. Recommend `delivery: text_first` (§4 gap 5).
+**Q8a — Any previous pregnancy** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form B-3, B-6, B-8, B-20; PR-S6 recs 1.2.1–1.2.2
+> "Bu gebelikten önce hiç hamile kaldınız mı?"
+gen: slot=onceki_gebelik; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Same text and slot as gebe_poliklinigi Q3. Gate for Q8b.
 
-**Q9 — Ultrasound concern about the baby** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form C-12, C-13, C-29; PR-S4 ("Bebekte gelişme geriliği")
+**Q8b — Previous preterm birth, pregnancy loss or baby loss** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form B-3, B-6, B-8, B-20; PR-S6 recs 1.2.1–1.2.2; PR-S4
+> "Bu soru zor gelebilir. Önceki gebeliklerinizde erken doğum, düşük ya da bebek kaybı yaşadınız mı?"
+gen: slot=onceki_gebelik_kaybi; type=boolean; ask_if=onceki_gebelik == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Two sentences, one question; the lead sentence acknowledges
+the subject without alarm. Asked only after a previous pregnancy (Q8a); `text_first` (§4 gap 5).
+
+**Q8c — What happened, if the patient wishes** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form B-3, B-6, B-8, B-20; PR-S6 recs 1.2.1–1.2.2; PR-S4
+> "İsterseniz bunu kısaca anlatır mısınız?"
+gen: slot=onceki_gebelik_kaybi_aciklama; type=string; ask_if=onceki_gebelik_kaybi == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Optional narrative in its own string slot (wave-7 split).
+
+**Q9a — Ultrasound concern about the baby** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form C-12, C-13, C-29; PR-S4 ("Bebekte gelişme geriliği")
 > "Ultrasonda bebeğinizle ilgili size özel bir durum söylendi mi?"
-gen: slot=ultrason_bulgusu; type=boolean; follow_up=Size söylenenleri kısaca anlatır mısınız?
+gen: slot=ultrason_bulgusu; type=boolean
 CANDIDATE — clinician to approve wording. Reported history only; the scan report itself comes through
-document ingestion.
+document ingestion. Gate for Q9b.
+
+**Q9b — What the patient was told** · archetype: `OBSERVATION.story.v1` · source: PR-S1 risk form C-12, C-13, C-29; PR-S4 ("Bebekte gelişme geriliği")
+> "Size söylenenleri kısaca anlatır mısınız?"
+gen: slot=ultrason_bulgusu_aciklama; type=string; ask_if=ultrason_bulgusu == true
+CANDIDATE — clinician to approve wording. The narrative has its own string slot (wave-7 split).
 
 **Q10 — Frequent pelvic pressure or tightening** · archetype: `OBSERVATION.symptom_sign.v1` · source: PR-S4 ("Kasıklarda sık sık bası hissi"); PR-S6 glossary ("Symptoms of preterm labour")
 > "Kasıklarınızda sık sık gelen bası ya da kasılma hissi oluyor mu?"
@@ -217,13 +245,19 @@ CANDIDATE — clinician to approve wording. Neutral symptom capture; no rule to 
 gen: slot=gorme_bulanikligi; type=boolean
 CANDIDATE — clinician to approve wording. **Feeds HB-C4 pre-eclampsia pattern (§2.2).**
 
-**Q12 — Reduced fetal movements** · archetype: `OBSERVATION.symptom_sign.v1` · source: PR-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); PR-S7 rec 1.2.34
-> "Bebeğinizin hareketlerini hissediyorsanız, son günlerde bu hareketlerde bir azalma oldu mu?"
-gen: slot=bebek_hareketlerinde_azalma; type=boolean
-CANDIDATE — clinician to approve wording. **Feeds HB-C4 (§2.2).** Gestational gate is the clinician's.
+**Q12a — Fetal movements felt yet** · archetype: `OBSERVATION.story.v1` · source: PR-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); PR-S7 rec 1.2.34
+> "Bebeğinizin hareketlerini hissetmeye başladınız mı?"
+gen: slot=bebek_hareketi_hissediliyor; type=boolean
+CANDIDATE — clinician to approve wording. Patient-reported gate for Q12b; it replaces the conditional
+lead, whose "hayır" was ambiguous. The gestational threshold stays with the clinician (§4 gap 6, HB-C4).
 
-*(12 candidate questions: 11 guideline-sourced — Q2–Q12 — and 1 general intake; 3 neutral symptom
-captures — Q10–Q12.)*
+**Q12b — Reduced fetal movements** · archetype: `OBSERVATION.symptom_sign.v1` · source: PR-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); PR-S7 rec 1.2.34
+> "Son günlerde bebeğinizin hareketlerinde azalma oldu mu?"
+gen: slot=bebek_hareketlerinde_azalma; type=boolean; ask_if=bebek_hareketi_hissediliyor == true
+CANDIDATE — clinician to approve wording. **Feeds HB-C4 (§2.2).** Same texts and slots as gebe_poliklinigi Q9a/Q9b.
+
+*(12 candidate questions, 17 items after the wave-7 splits of Q5, Q8, Q9 and Q12: 11 guideline-sourced —
+Q2–Q12 — and 1 general intake; 3 neutral symptom captures — Q10–Q12.)*
 
 ---
 
@@ -242,8 +276,8 @@ captures — Q10–Q12.)*
 4. **Omitted to stay at twelve — sourced, clinician may swap in:** vaginal bleeding and fluid leakage
    (asked in `gebe_poliklinigi.md`); severe headache (PR-S3, PR-S5); pain below the ribs (PR-S5);
    Rh incompatibility (PR-S1 C-3); previous caesarean/uterine surgery (PR-S1 B-1).
-5. **Sensitive-disclosure delivery** — Q8 asks about pregnancy and baby loss. Whether it is
-   `text_first` (as base `pregnancy_status` is) and what a disclosure of distress routes to is a
+5. **Sensitive-disclosure delivery** — Q8 asks about pregnancy and baby loss. Resolved in wave 7: Q8a–Q8c
+   are `text_first` (as base `pregnancy_status` is). What a disclosure of distress routes to stays a
    **clinician decision**; no script is proposed here.
 6. **Gestational thresholds** (PR-S6 week bounds; PR-S7 fetal-movement threshold) — not pinned in
    patient copy. **Clinician must supply** any gating rule.

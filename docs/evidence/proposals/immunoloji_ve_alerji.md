@@ -172,7 +172,7 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q3 | Same-season recurrence | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q4 | Itchy or watery eyes | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q5 | Wheeze | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q6 | Night waking with cough or wheeze | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q6 | Night or early-morning cough or breathlessness | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Worse with allergen or workplace exposure | `openEHR-EHR-EVALUATION.adverse_reaction_risk.v1` | EVALUATION | deferred (INT-032) |
 | Q8 | Hives (urticaria) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Episodes of facial / lip / eyelid swelling | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -239,10 +239,12 @@ CANDIDATE — clinician to approve wording.
 gen: slot=hisilti; type=boolean
 CANDIDATE — clinician to approve wording. Not an ACT/ACQ item; no frequency scale.
 
-**Q6 — Night waking** · archetype: `OBSERVATION.symptom_sign.v1` · source: IA-S2 ("Uykudan uyandıran öksürük ve hışıltı")
-> "Öksürük ya da hışıltı yüzünden geceleri uykudan uyandığınız oluyor mu?"
-gen: slot=gece_uyandiran_oksuruk; type=boolean
-CANDIDATE — clinician to approve wording.
+**Q6 — Night or early-morning symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: IA-S2 ("Uykudan uyandıran öksürük ve hışıltı")
+> "Gece veya sabaha karşı öksürük ya da nefes darlığı yaşıyor musunuz?"
+gen: slot=gece_sabah_solunum_sikayeti; type=boolean
+CANDIDATE — clinician to approve wording. Same text and slot as wave-6 göğüs Q7. The earlier yes/no
+night-waking wording had the shape of a licensed asthma-control item, so it was reworded (wave 7); IA-S2
+still supports the night-time construct.
 
 **Q7 — Triggers, including the workplace** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: IA-S1 (polen, ev tozu akarları, evcil hayvan), IA-S2 ("mesleksel astım")
 > "Şikâyetleriniz ev tozu, polen, evcil hayvan ya da iş yerinizdeki bir maddeyle artıyor mu?"
@@ -261,8 +263,8 @@ CANDIDATE — clinician to approve wording. **Overlap: `rf.anaphylaxis` / airway
 
 **Q10 — Similar swelling in the family (if Q9 yes)** · archetype: **no root — export blocked (INT-041)** · source: IA-S3 ("diğer aile bireylerinde de hastalık bulunabilir")
 > "Ailenizde benzer şişlik atakları yaşayan başka biri var mı?"
-gen: slot=ailede_sislik_ataklari; type=boolean; ask_if=sislik_ataklari == true
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_sislik_ataklari; type=boolean; ask_if=sislik_ataklari == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q11 — Reaction after a food** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: IA-S4 ("besini tükettikten sonraki ilk 1 saat içinde"; "kaşıntı, kurdeşen … şişlikler")
 > "Belirli bir yiyeceği yedikten kısa süre sonra kaşıntı, kurdeşen ya da şişlik oluyor mu?"
@@ -282,8 +284,8 @@ CANDIDATE — clinician to approve wording. The JMF counts are not put into pati
 
 **Q14 — Immunodeficiency in the family (if Q13 yes)** · archetype: **no root — export blocked (INT-041)** · source: IA-S8 ("Ailede primer immün yetmezlik hastalığı öyküsü"), IA-S7 ("A family history of PI")
 > "Ailenizde bağışıklık sistemi yetmezliği tanısı almış biri var mı?"
-gen: slot=ailede_bagisiklik_yetmezligi; type=boolean; ask_if=tekrarlayan_enfeksiyon == true
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_bagisiklik_yetmezligi; type=boolean; ask_if=tekrarlayan_enfeksiyon == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 *(14 candidate questions.)*
 

@@ -184,22 +184,22 @@ CANDIDATE — clinician to approve wording.
 
 **Q2 — Periods have stopped** · archetype: `OBSERVATION.story.v1` · source: JO-S2 ("postmenopozal kanama"), JO-S5 ("Menopoz sonrası kanamalar")
 > "Adet kanamalarınız tamamen kesildi mi?"
-gen: slot=adet_kesildi; type=boolean; follow_up=Menopoza girdiniz mi?
+gen: slot=adet_kesildi; type=boolean; follow_up=Menopoza girdiniz mi?; delivery=text_first
 CANDIDATE — clinician to approve wording. Gates Q3. Base `lmp_date` is not repeated.
 
 **Q3 — Bleeding or spotting after menopause (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S2 ("rahim kanserinin en sık belirtisidir"; "Kanama miktarının azlığı ve çokluğunun bir önemi yoktur."), JO-S5, JO-S6 ("Menopoz sonrası kanama")
 > "Adetleriniz kesildikten sonra hiç lekelenme ya da kanama oldu mu?"
-gen: slot=menopoz_sonrasi_kanama; type=boolean; ask_if=adet_kesildi == true; follow_up=Menopozdan sonra az da olsa kan gördünüz mü?
+gen: slot=menopoz_sonrasi_kanama; type=boolean; ask_if=adet_kesildi == true; follow_up=Menopozdan sonra az da olsa kan gördünüz mü?; delivery=text_first
 CANDIDATE — clinician to approve wording. Presence only; amount is irrelevant per JO-S2.
 
 **Q4 — Bleeding during or after intercourse** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S1 ("ilişki sonrası kanamadır"), JO-S6 ("Cinsel ilişki sırasında veya sonrasında kanama")
-> "Cinsel ilişki sırasında ya da sonrasında kanama olduğu oluyor mu?"
-gen: slot=iliski_sonrasi_kanama; type=boolean; follow_up=İlişkiden sonra lekelenme fark ettiğiniz oldu mu?
+> "Cinsel ilişki sırasında ya da sonrasında kanamanız oluyor mu?"
+gen: slot=iliski_sonrasi_kanama; type=boolean; follow_up=İlişkiden sonra lekelenme fark ettiğiniz oldu mu?; delivery=text_first
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Abnormal discharge** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S1 ("sulu, pembe, soluk ve devamlı"), JO-S6 ("Sulu, pembe veya kötü kokulu vajinal akıntı"), JO-S5
 > "Genital bölgenizden kötü kokulu, sulu ya da kanlı akıntı geliyor mu?"
-gen: slot=anormal_akinti; type=boolean; follow_up=Akıntınızın renginde ya da kokusunda bir değişiklik var mı?
+gen: slot=anormal_akinti; type=boolean; follow_up=Akıntınızın renginde ya da kokusunda bir değişiklik var mı?; delivery=text_first
 CANDIDATE — clinician to approve wording.
 
 **Q6 — Frequent or persistent bloating** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S3 ("Karında şişlik"), JO-S7 ("Şişkinlik"; "genel olarak kalıcıdır"), JO-S8
@@ -224,18 +224,21 @@ CANDIDATE — clinician to approve wording.
 
 **Q10 — Vulval itch, sore or swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S4 ("İnatçı kaşıntı"; "Açık yara"; "Şişlik, siğil benzeri yumru"), JO-S9
 > "Dış genital bölgenizde geçmeyen kaşıntı, yara ya da şişlik var mı?"
-gen: slot=dis_genital_bulgu; type=boolean; follow_up=Dış genital bölgenizde renk değişikliği ya da ele gelen bir yumru var mı?
-CANDIDATE — clinician to approve wording.
+gen: slot=dis_genital_bulgu; type=boolean; follow_up=Genital bölgenin dış kısmında uzun süredir geçmeyen kaşıntı, yara ya da şişlik var mı?; delivery=text_first
+CANDIDATE — clinician to approve wording. The follow-up now restates the ask; the source's colour
+change and lump (JO-S4) left it, and the clinician may add them as their own item.
 
 **Q11 — Previous cervical screening test** · archetype: `OBSERVATION.story.v1` · source: JO-S1 ("En son yapılan biyopsi ya da Pap smear sonucu"), JO-S6 (HPV-DNA screening via KETEM)
 > "Daha önce rahim ağzı tarama testi, yani smear ya da HPV testi yaptırdınız mı?"
-gen: slot=rahim_agzi_tarama; type=boolean; follow_up=Rahim ağzından hücre alınan bir tarama testi yaptırdınız mı?
+gen: slot=rahim_agzi_tarama; type=boolean; follow_up=Rahim ağzından hücre alınan bir tarama testi yaptırdınız mı?; delivery=text_first
 CANDIDATE — clinician to approve wording. The result itself is ingested as a document, not asked.
 
 **Q12 — Family history of breast, ovarian, uterine or bowel cancer** · archetype: `OBSERVATION.story.v1` · source: JO-S2 ("aile sağlık öyküsü"; hereditary list incl. "Kolon kanseri"), JO-S3 ("yumurtalık-meme kanseri"), JO-S10 ("babanızın … akrabaları da önemlidir")
 > "Ailenizde meme, yumurtalık, rahim ya da kalın bağırsak kanseri olan var mı?"
-gen: slot=ailede_jinekolojik_kanser; type=boolean; follow_up=Anne ya da baba tarafınızdan kanser geçiren bir yakınınız var mı?
+gen: slot=ailede_jinekolojik_kanser; type=boolean; follow_up=Anne ya da baba tarafınızdan kanser geçiren bir yakınınız var mı?; delivery=text_first
 CANDIDATE — clinician to approve wording. Which relative and at what age is a clinician follow-up (§4 gap 6).
+Relatives' health data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category
+register row pending counsel review (INT-349).
 
 *(12 candidate questions.)*
 
@@ -259,8 +262,8 @@ CANDIDATE — clinician to approve wording. Which relative and at what age is a 
 6. **Family history detail (Q12)** — relative, cancer type, age at diagnosis and known BRCA/Lynch
    results: not drafted (numbers and free lists). No family-history archetype in the OPT.
 7. **Sourced but not drafted (to stay within twelve):** indigestion and constipation (JO-S3), pain
-   during intercourse (JO-S6), burning on urination (JO-S5), vulval skin colour change (JO-S4 — used
-   only in the Q10 follow-up). Clinician may swap them in.
+   during intercourse (JO-S6), burning on urination (JO-S5), vulval skin colour change and lump (JO-S4 —
+   no longer in the Q10 follow-up after the wave-7 fix). Clinician may swap them in.
 8. **Sex/age gating** — the pack is in the `womens_health` cluster; no additional sex gate is drafted.
 9. **EK-4 acuity** (RG 13/9/2022 sayı 31952) — no snapshot in repo; **no level proposed**. Every
    `candidate_flag` level and all three RED axes (route × register × location, invariant 21) are

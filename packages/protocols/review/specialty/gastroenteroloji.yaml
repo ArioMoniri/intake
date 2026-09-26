@@ -43,11 +43,17 @@ sections:
         required: true
         ask_tr:
           tr: Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün, hafta ya da ay olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün, hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
   sindirim_belirtileri:
     slots:
       disfaji:
@@ -55,53 +61,75 @@ sections:
         required: false
         ask_tr:
           tr: Yiyecekleri veya sıvıları yutarken takılma ya da güçlük yaşıyor musunuz?
-      kilo_kaybi:
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
+      istemsiz_kilo_kaybi:
         type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda, özellikle çabalamadığınız hâlde kilo verdiğinizi fark ettiniz mi?
+          tr: Son aylarda istemeden kilo kaybettiniz mi?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
       hematemez_melena:
         type: boolean
         required: false
         ask_tr:
           tr: Hiç kan kustuğunuz ya da dışkınızın siyah, katran gibi olduğunu fark ettiğiniz oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
       rektal_kanama:
         type: boolean
         required: false
         ask_tr:
           tr: Dışkınızda ya da tuvalet kâğıdında kırmızı renkte kan gördünüz mü?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
       bagirsak_degisiklik:
         type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda tuvalete çıkma düzeninizde (örneğin ishal ya da kabızlık yönünde) bir değişiklik oldu mu?
+          tr: Son zamanlarda dışkılama düzeninizde ishal ya da kabızlık gibi bir değişiklik oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
       sarilik:
         type: boolean
         required: false
         ask_tr:
           tr: Cildinizde ya da gözlerinizin akında sararma fark ettiniz mi?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
       inatci_kusma:
         type: boolean
         required: false
         ask_tr:
           tr: Geçmeyen ya da sık sık tekrarlayan kusmanız oluyor mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
   ilac_ve_gecmis:
     slots:
-      kullanilan_ilaclar:
-        type: string
-        required: false
-        ask_tr:
-          tr: Şu anda düzenli kullandığınız ilaçlar var mı? Özellikle ağrı kesici ya da kan sulandırıcı kullanıyor musunuz?
-      sindirim_tanisi:
-        type: string
-        required: false
-        ask_tr:
-          tr: Daha önce mideniz, bağırsağınız veya karaciğerinizle ilgili size konulmuş bir hastalık tanısı var mı?
-      aile_gis_kanser:
+      duzenli_agri_kesici:
         type: boolean
         required: false
         ask_tr:
-          tr: Ailenizde mide, bağırsak ya da sindirim sistemi kanseri tanısı almış yakınınız var mı?
+          tr: Ağrı kesici ilaçları sık ya da uzun süre kullanıyor musunuz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
+      sindirim_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce karaciğeriniz, bağırsağınız ya da midenizle ilgili size bir hastalık tanısı konuldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
+      sindirim_tanisi_adi:
+        type: string
+        required: false
+        ask_if: "sindirim_tanisi == true"
+        ask_tr:
+          tr: Bu hastalığın adını söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gastroenteroloji.md"
+      # Relatives' health data, so text_first. invariant 18: owner-approved
+      # 2026-09-26; VERBİS/data-category register row pending counsel review
+      # (INT-349). Only the organ order changed, so that no comma follows "mide"
+      # (the PolicyGuard comma-after-"mi…" defect, wave-7 verification §A).
+      aile_gis_kanser:
+        type: boolean
+        required: false
+        delivery: text_first
+        ask_tr:
+          tr: Ailenizde bağırsak, mide ya da sindirim sistemi kanseri tanısı almış yakınınız var mı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 (weak fallback, gap G2) recorded in docs/evidence/proposals/gastroenteroloji.md"
 red_flags:
 - id: rf.gastroenteroloji_l0_taslak
   label_tr: Gastroenteroloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

@@ -178,13 +178,15 @@ CANDIDATE — clinician to approve wording.
 
 **Q3 — Resting in bed or chair most of the day** · archetype: `OBSERVATION.story.v1` · source: TO-S5 (Grade 3 "confined to bed or chair")
 > "Gündüz saatlerinin çoğunda yatakta ya da koltukta dinlenmeniz gerekiyor mu?"
-gen: slot=gunduz_yatakta_dinlenme; type=boolean; follow_up=Gün içinde çoğu zaman uzanarak mı dinleniyorsunuz?
+gen: slot=gunduz_yatakta_dinlenme; type=boolean; follow_up=Gün içinde çoğu zaman uzanıp dinlenmeniz gerekiyor mu?
 CANDIDATE — clinician to approve wording. Patient report only; the ECOG grade is the clinician's.
 
 **Q4 — Independent in self-care** · archetype: `OBSERVATION.story.v1` · source: TO-S5 (Grade 2 "capable of all selfcare"; Grade 3 "limited selfcare")
 > "Yıkanma ve giyinme gibi kişisel bakımınızı kendiniz yapabiliyor musunuz?"
-gen: slot=kisisel_bakim_bagimsiz; type=boolean; follow_up=Yıkanırken ya da giyinirken birinin yardımına ihtiyaç duyuyor musunuz?
+gen: slot=kisisel_bakim_bagimsiz; type=boolean; follow_up=Yıkanma ve giyinmeyi kimseden yardım almadan yapabiliyor musunuz?
 CANDIDATE — clinician to approve wording. Complements base `caregiver_present`; does not repeat it.
+Polarity: "evet" to the ask and to the follow-up both mean independent (wave-7 fix; the earlier
+follow-up inverted it).
 
 **Q5 — Nausea or vomiting** · archetype: `OBSERVATION.symptom_sign.v1` · source: TO-S1 ("Bulantı ve kusmanızın şiddeti ve süresi hakkında her kürde doktorunuza bilgi veriniz.")
 > "Mide bulantısı ya da kusma yaşıyor musunuz?"
@@ -218,14 +220,15 @@ CANDIDATE — clinician to approve wording.
 
 **Q11 — Appetite or taste change** · archetype: `OBSERVATION.symptom_sign.v1` · source: TO-S2 ("iştahsızlık, damak tat alımında değişiklik")
 > "Son zamanlarda iştahınızda ya da yemeklerin tadında bir değişiklik oldu mu?"
-gen: slot=istah_tat_degisiklik; type=boolean; follow_up=Eskisine göre daha az yemek yiyor musunuz?
+gen: slot=istah_tat_degisiklik; type=boolean; follow_up=İştahınız ya da yemeklerin tadı eskisinden farklı mı?
 CANDIDATE — clinician to approve wording. Weight change stays with base (`weight_kg`, weight-loss probe).
 
 **Q12 — Cancer in close relatives** · archetype: `OBSERVATION.story.v1` · source: TO-S4 ("sağlık geçmişini toplamak ve bu bilgileri doktorunuzla paylaşmak"; father's side "da önemlidir")
 > "Ailenizde yakın akrabalarınızdan kanser tanısı alan biri var mı?"
-gen: slot=ailede_kanser_oykusu; type=boolean; follow_up=Anne, baba ya da kardeşlerinizden kanser geçiren oldu mu?
+gen: slot=ailede_kanser_oykusu; type=boolean; follow_up=Anne, baba ya da kardeşlerinizden kanser geçiren oldu mu?; delivery=text_first
 CANDIDATE — clinician to approve wording. History item; which relative and which cancer is a
-clinician follow-up (§4 gap 6).
+clinician follow-up (§4 gap 6). Relatives' health data, so `text_first`. invariant 18: owner-approved
+2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 *(12 candidate questions.)*
 

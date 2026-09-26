@@ -146,35 +146,52 @@ words (no society questionnaire copied). **All CANDIDATE — clinician to approv
 carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot. Wording was checked by hand
 against the Turkish PolicyGuard arms (`guard_lexicons/tr.py`, itself unsigned — HB-C23).
 
+The pack line below replaces the fixed duration ask, which says "şikâyet" although a routine antenatal
+visit has no complaint (§4 gap 7). It is a neutral restatement with no clinical content; the clinician
+confirms it.
+
+pack: duration_ask=Bu konu ne zamandır devam ediyor?; duration_follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugünkü gebelik kontrolünüzde en çok konuşmak istediğiniz konu nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Estimated due date** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 14 ("Tahmini doğum tarihi")
 > "Size söylenen tahmini doğum tarihiniz nedir?"
-gen: slot=tahmini_dogum_tarihi; type=date; follow_up=Tarihi bilmiyorsanız son ultrason raporunuza bakabilir misiniz?
+gen: slot=tahmini_dogum_tarihi; type=date; follow_up=Ultrason raporunuzdaki tahmini doğum tarihini söyler misiniz?; delivery=text_first
 CANDIDATE — clinician to approve wording. Date picker only, never free numeric text (invariant 22).
-Distinct from base `lmp_date`, which is not repeated here.
+Distinct from base `lmp_date`, which is not repeated here. Pregnancy dating is `text_first` (files/13 §13).
 
 **Q3 — Any previous pregnancy** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 13 (obstetric history); GP-S2 rec 1.2.1
 > "Bu gebelikten önce hiç hamile kaldınız mı?"
-gen: slot=onceki_gebelik; type=boolean
-CANDIDATE — clinician to approve wording. Gate for Q4.
+gen: slot=onceki_gebelik; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Gate for Q4a.
 
-**Q4 — Problems in previous pregnancies or births** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 13 (maternal complications); GP-S2 rec 1.2.1
+**Q4a — Problems in previous pregnancies or births** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 13 (maternal complications); GP-S2 rec 1.2.1
 > "Önceki gebeliklerinizde ya da doğumlarınızda bir sorun yaşadınız mı?"
-gen: slot=onceki_gebelik_sorunu; type=boolean; ask_if=onceki_gebelik == true; follow_up=Yaşadığınız sorunu kısaca anlatır mısınız?
-CANDIDATE — clinician to approve wording. Free-text detail is captured by the follow-up only.
+gen: slot=onceki_gebelik_sorunu; type=boolean; ask_if=onceki_gebelik == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Gate for Q4b.
+
+**Q4b — What the previous problem was** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 13 (maternal complications); GP-S2 rec 1.2.1
+> "Yaşadığınız sorunu kısaca anlatır mısınız?"
+gen: slot=onceki_gebelik_sorunu_aciklama; type=string; ask_if=onceki_gebelik_sorunu == true; delivery=text_first
+CANDIDATE — clinician to approve wording. The free-text detail has its own string slot; a boolean slot
+cannot store it (wave-7 split).
 
 **Q5 — Previous caesarean or uterine surgery** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 37 (risk form B-1)
 > "Daha önce sezaryen ya da rahminizden başka bir ameliyat oldunuz mu?"
-gen: slot=rahim_ameliyati; type=boolean
+gen: slot=rahim_ameliyati; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Not gated on Q3: uterine surgery can precede a first pregnancy.
 
-**Q6 — Ongoing chronic condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GP-S1 PDF p. 12 (chronic systemic disease); GP-S2 rec 1.2.1
+**Q6a — Ongoing chronic condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GP-S1 PDF p. 12 (chronic systemic disease); GP-S2 rec 1.2.1
 > "Şeker, tansiyon ya da tiroid gibi süregelen bir sağlık sorununuz var mı?"
-gen: slot=suregelen_saglik_sorunu; type=boolean; follow_up=Bu sağlık sorununun adını söyleyebilir misiniz?
-CANDIDATE — clinician to approve wording. Lay terms chosen on purpose; no jargon.
+gen: slot=suregelen_saglik_sorunu; type=boolean
+CANDIDATE — clinician to approve wording. Lay terms chosen on purpose; no jargon. Gate for Q6b.
+
+**Q6b — Name of the ongoing condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GP-S1 PDF p. 12 (chronic systemic disease); GP-S2 rec 1.2.1
+> "Bu sağlık sorununun adını söyleyebilir misiniz?"
+gen: slot=suregelen_saglik_sorunu_adi; type=string; ask_if=suregelen_saglik_sorunu == true
+CANDIDATE — clinician to approve wording. The name has its own string slot (wave-7 split).
 
 **Q7 — Nausea or vomiting limiting food and fluid** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 14 and p. 21 ("Şiddetli bulantı kusma"); GP-S2 recs 1.4.1–1.4.7
 > "Bulantı ya da kusma yüzünden yemek yemekte ya da su içmekte zorlanıyor musunuz?"
@@ -183,18 +200,24 @@ CANDIDATE — clinician to approve wording. Symptom capture only (§2.2).
 
 **Q8 — Bleeding or spotting in this pregnancy** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Vajinal kanama"); GP-S4
 > "Bu gebelikte vajinal kanamanız ya da lekelenmeniz oldu mu?"
-gen: slot=gebelikte_kanama; type=boolean
+gen: slot=gebelikte_kanama; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. **Feeds HB-C4 / `rf_pregnancy_bleeding_pain` (§2.2)** — no level assigned here.
 
-**Q9 — Reduced fetal movements** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); GP-S2 rec 1.2.34
-> "Bebeğinizin hareketlerini hissediyorsanız, son günlerde bu hareketlerde azalma oldu mu?"
-gen: slot=bebek_hareketlerinde_azalma; type=boolean
-CANDIDATE — clinician to approve wording. The conditional lead lets an early-pregnancy patient answer;
-the gestational gate itself is the clinician's (§4 gap 4). **Feeds HB-C4 (§2.2).**
+**Q9a — Fetal movements felt yet** · archetype: `OBSERVATION.story.v1` · source: GP-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); GP-S2 rec 1.2.34
+> "Bebeğinizin hareketlerini hissetmeye başladınız mı?"
+gen: slot=bebek_hareketi_hissediliyor; type=boolean
+CANDIDATE — clinician to approve wording. Patient-reported gate for Q9b; it replaces the conditional lead,
+whose "hayır" could mean either not yet felt or no reduction. The gestational threshold stays with the
+clinician (§4 gap 4, HB-C4).
+
+**Q9b — Reduced fetal movements** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); GP-S2 rec 1.2.34
+> "Son günlerde bebeğinizin hareketlerinde azalma oldu mu?"
+gen: slot=bebek_hareketlerinde_azalma; type=boolean; ask_if=bebek_hareketi_hissediliyor == true
+CANDIDATE — clinician to approve wording. **Feeds HB-C4 (§2.2).** Same texts and slots as perinatoloji Q12a/Q12b.
 
 **Q10 — Fluid leakage** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Su gelmesi"); GP-S4 ("suların gelmesi")
 > "Bu gebelikte iç çamaşırınızı ıslatan su gibi bir akıntı oldu mu?"
-gen: slot=su_gelmesi; type=boolean
+gen: slot=su_gelmesi; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. No rule exists to feed (§2.2, §4 gap 3).
 
 **Q11 — Severe persistent headache** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Şiddetli Başağrısı"); GP-S3 rec 1.1.1 ("severe headache")
@@ -208,8 +231,8 @@ gen: slot=yuz_el_sisligi; type=boolean
 CANDIDATE — clinician to approve wording. Upper-body focus follows GP-S1 p. 28; ankle swelling late in
 pregnancy is common and deliberately not asked. **Feeds HB-C4 pre-eclampsia pattern (§2.2).**
 
-*(12 candidate questions: 11 guideline-sourced — Q2–Q12 — and 1 general intake; 5 are neutral
-symptom captures for obstetric emergencies — Q8–Q12.)*
+*(12 candidate questions, 15 items after the wave-7 splits of Q4, Q6 and Q9: 11 guideline-sourced —
+Q2–Q12 — and 1 general intake; 5 are neutral symptom captures for obstetric emergencies — Q8–Q12.)*
 
 ---
 
@@ -223,8 +246,8 @@ symptom captures for obstetric emergencies — Q8–Q12.)*
 3. **Membrane rupture and hyperemesis are not in HB-C4's named list** (bleeding/pain, pre-eclampsia,
    reduced fetal movements, post-partum fever/bleeding, ectopic). Q7 and Q10 therefore feed nothing
    even after HB-C4 closes. **Clinician (HB-C4 owner) must decide** whether to add them.
-4. **Gestational gating** (GP-S2 rec 1.2.34 threshold; GP-S1 fetal-movement gate) — Q9 uses a
-   conditional lead instead of a threshold; no week is pinned in patient copy. **Clinician must supply**
+4. **Gestational gating** (GP-S2 rec 1.2.34 threshold; GP-S1 fetal-movement gate) — Q9b is gated on the
+   patient-reported Q9a instead of a threshold; no week is pinned in patient copy. **Clinician must supply**
    the `ask_if` rule if one is wanted (a gestational-age slot would be derived from Q2 or base `lmp_date`).
 5. **Omitted to stay at twelve — sourced, clinician may swap in:** visual disturbance (GP-S1 p. 21
    "Görmede bulanıklık"; GP-S3 rec 1.1.1 — asked in `perinatoloji.md` Q11); breathing difficulty and
@@ -234,7 +257,8 @@ symptom captures for obstetric emergencies — Q8–Q12.)*
    reproduced even in part; NICE texts are © NICE. Committing a full verbatim snapshot (clinical content
    rule) needs a **legal-review decision** on reproduction rights. **Human must supply.**
 7. **Standard duration slot wording** — the generator adds `sikayet_suresi` ("Bu şikâyetiniz ne
-   zamandır var?"); for a routine check with no complaint it may read oddly. **Clinician to decide.**
+   zamandır var?"); for a routine check with no complaint it reads oddly. The §3 pack line replaces it
+   with a neutral restatement (wave-7). **Clinician to confirm.**
 8. **Every triage level and all three RED axes** (invariant 21) — deliberately **not** assigned.
 9. **openEHR** — no pregnancy or procedure archetype root in the OPT; leaf paths deferred (INT-032).
 10. **PolicyGuard lexicon is itself unsigned (HB-C23)** — wording was checked against the current arms,

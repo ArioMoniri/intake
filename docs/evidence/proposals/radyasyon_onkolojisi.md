@@ -195,9 +195,10 @@ gen: slot=onceki_isin_bitis; type=date; ask_if=onceki_isin_tedavisi == true; fol
 CANDIDATE — clinician to approve wording. Date slot; no numeral is spoken back (invariant 22).
 
 **Q5 — Implanted cardiac device** · archetype: `OBSERVATION.story.v1` · source: RT-S8 ("implanted cardiac devices")
-> "Vücudunuzda kalp pili ya da şok cihazı gibi bir cihaz var mı?"
+> "Vücudunuzda kalp pili ya da şok cihazı takılı mı?"
 gen: slot=kalp_cihazi; type=boolean; follow_up=Göğsünüzde deri altına takılmış bir kalp cihazı var mı?
 CANDIDATE — clinician to approve wording. "Şok cihazı" is the lay name for an implanted defibrillator.
+Wave-7 fix: the ask no longer says "gibi bir cihaz", which also took in insulin pumps and other devices.
 
 **Q6 — Difficulty lying flat and still** · archetype: `OBSERVATION.story.v1` · source: RT-S2 ("aynı pozisyonda ve de hareketsiz"), RT-S6 ("stay in the same position"), RT-S7
 > "Bir süre sırtüstü ve hareketsiz yatmak sizin için zor olur mu?"

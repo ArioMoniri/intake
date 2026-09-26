@@ -47,6 +47,7 @@ sections:
           tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
         follow_up_tr:
           tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       sikayet_suresi:
         type: duration
         required: false
@@ -54,6 +55,7 @@ sections:
           tr: Bu şikâyetiniz ne zamandır var?
         follow_up_tr:
           tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/kardiyoloji.md"
   kardiyak_belirtiler:
     slots:
       gogus_agrisi:
@@ -61,6 +63,7 @@ sections:
         required: false
         ask_tr:
           tr: Son zamanlarda göğsünüzde ağrı, baskı ya da sıkışma hissi oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       gogus_agrisi_suresi:
         type: duration
         required: false
@@ -68,32 +71,38 @@ sections:
           tr: Göğüs ağrınız olduğunda genellikle ne kadar sürüyor?
         follow_up_tr:
           tr: Yaklaşık kaç dakika sürdüğünü söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       nefes_darligi:
         type: boolean
         required: false
         ask_tr:
           tr: Son günlerde nefes darlığı yaşadınız mı? Örneğin yürürken ya da dinlenirken.
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       bayginlik:
         type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda bayıldığınız ya da bayılacak gibi olduğunuz oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       efor_bayginlik:
         type: boolean
         required: false
         ask_if: "bayginlik == true"
         ask_tr:
           tr: Bu baygınlık ya da göz kararması hissi, yürürken veya merdiven çıkarken mi oldu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       carpinti:
         type: boolean
         required: false
         ask_tr:
           tr: Kalbinizin hızlı, düzensiz ya da çok güçlü çarptığını fark ettiniz mi?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       bacak_sisligi:
         type: boolean
         required: false
         ask_tr:
           tr: Ayak bileklerinizde ya da bacaklarınızda şişlik fark ettiniz mi?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
   kalp_gecmisi:
     slots:
       kalp_tanilari:
@@ -101,11 +110,13 @@ sections:
         required: false
         ask_tr:
           tr: Daha önce kalbinizle ilgili bir tanı aldınız mı? Örneğin kalp yetmezliği, ritim bozukluğu ya da yüksek tansiyon.
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
       kalp_ilaclari:
         type: string
         required: false
         ask_tr:
           tr: Şu anda kalbiniz ya da tansiyonunuz için düzenli kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
 red_flags:
 - id: rf.kardiyoloji_l0_taslak
   label_tr: Kardiyoloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
