@@ -30,6 +30,8 @@ import { describe, expect, it } from "vitest";
 
 import { MIN_TAP } from "../src/lib/a11y/target";
 import { CTA_MIN_HEIGHT } from "../src/lib/prefs/appearance";
+import { motion } from "../src/lib/theme";
+import { code, literalDurations, loops } from "./motionSource";
 
 const MOBILE = join(__dirname, "..");
 const SRC = join(MOBILE, "src");
@@ -192,6 +194,34 @@ const TSX: { path: string; name: string; source: string }[] = [...walk(APP), ...
 
 const SCREENS = TSX.filter((f) => f.name.startsWith("src/app/"));
 
+/** Every script the app ships, `.ts` included: a loop in src/lib is still a loop. */
+const APP_SCRIPTS: { name: string; source: string }[] = walk(SRC)
+  .filter((p) => /\.tsx?$/.test(p) && !/\.(test|spec)\.tsx?$/.test(p))
+  .map((path) => ({
+    name: relative(MOBILE, path).split(sep).join("/"),
+    source: readFileSync(path, "utf8"),
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+/**
+ * A loop is gated when its file takes the app's reduce-motion answer — the
+ * hook from `@/lib/a11y/prefs`, never Reanimated's, which sees only the OS —
+ * calls it, and feeds it to `loopingDecorationEnabled`, the one rule that
+ * decides whether a decorative loop may run.
+ */
+function gatedOnAppHook(source: string): boolean {
+  const text = code(source);
+  const imported =
+    /import\s*\{[^}]*\buseReducedMotion\b[^}]*\}\s*from\s*["'](?:@\/lib\/a11y\/prefs|(?:\.\.?\/)+(?:[\w-]+\/)*a11y\/prefs)["']/.test(
+      text,
+    );
+  return (
+    imported &&
+    /\buseReducedMotion\s*\(\s*\)/.test(text) &&
+    /\bloopingDecorationEnabled\s*\(/.test(text)
+  );
+}
+
 function where(o: Opening): string {
   return `${o.file}:${o.line} <${o.tag}>`;
 }
@@ -342,14 +372,28 @@ describe("SC 1.4.4 — text scales once, never twice", () => {
 /* ------------------------------------------------------------------ */
 
 describe("BK14 / SC 2.2.2 — motion stops when the OS says to", () => {
-  it("every looping animation is gated on the reduce-motion preference", () => {
-    const loops = TSX.filter((f) => /Animated\.loop/.test(f.source));
-    expect(loops.length).toBeGreaterThan(0);
-    const ungated = loops
-      .filter(
-        (f) => !/loopingDecorationEnabled/.test(f.source) || !/useReducedMotion/.test(f.source),
-      )
-      .map((f) => f.name);
+  // INT-335 (MOTION-6, C-3). The gate used to find loops by `Animated.loop`
+  // alone, in screens and components alone, so a Reanimated `withRepeat` — or
+  // any loop in src/lib — was invisible to it. It now reads every script the
+  // app ships, and "gated" means the app's own hook, imported from the app's
+  // module and called, plus the loop decision that hook feeds.
+  it("every looping animation, core or Reanimated, is gated on the app's reduce-motion hook", () => {
+    // Non-vacuity: the detector sees each loop shape and each missing half.
+    const hook = `import { useReducedMotion } from "@/lib/a11y/prefs";\nconst reduce = useReducedMotion();\nconst on = loopingDecorationEnabled(reduce);`;
+    expect(loops(`${hook}\nAnimated.loop(seq).start();`)).toBe(true);
+    expect(loops(`${hook}\nsv.value = withRepeat(withTiming(1), -1, true);`)).toBe(true);
+    expect(loops(`const s = { animationName: k, animationIterationCount: "infinite" };`)).toBe(
+      true,
+    );
+    expect(loops(`// no withRepeat and no Animated.loop here\nconst x = 1;`)).toBe(false);
+    expect(gatedOnAppHook(hook)).toBe(true);
+    expect(gatedOnAppHook(hook.replace("@/lib/a11y/prefs", "react-native-reanimated"))).toBe(false);
+    expect(gatedOnAppHook(hook.replace("loopingDecorationEnabled(reduce)", "!reduce"))).toBe(false);
+    expect(gatedOnAppHook(hook.replace("useReducedMotion();", "false;"))).toBe(false);
+
+    const looping = APP_SCRIPTS.filter((f) => loops(f.source));
+    expect(looping.length).toBeGreaterThan(0);
+    const ungated = looping.filter((f) => !gatedOnAppHook(f.source)).map((f) => f.name);
     expect(ungated).toEqual([]);
   });
 
@@ -424,6 +468,41 @@ describe("BK14 / SC 2.2.2 — motion stops when the OS says to", () => {
       .filter((f) => !/scrollAnimated\(/.test(f.source))
       .map((f) => f.name);
     expect(unguarded).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* BK15 · SC 2.3.1 Three Flashes or Below Threshold                    */
+/* ------------------------------------------------------------------ */
+
+describe("BK15 / SC 2.3.1 — nothing repeats three times a second or faster", () => {
+  // INT-335 (MOTION-6, C-2). This used to read the `duration:` literals of
+  // DialogueIntake.tsx and demand at least one: removing the pulse would have
+  // failed it, and a 100 ms fade added beside the pulse would have broken its
+  // minimum. The period now lives in one place, `motion.loop`, whose tokens
+  // are FULL periods; the bound is checked there, and every file that loops
+  // must read its period from there and write none of its own.
+  it("every loop period comes from motion.loop, and every half-period exceeds 167 ms", () => {
+    const periods = Object.entries(motion.loop);
+    expect(periods.length).toBeGreaterThan(0);
+    for (const [name, ms] of periods) {
+      // One full cycle is two halves; 3 Hz would need a 167 ms half-cycle.
+      expect(ms / 2, `motion.loop.${name}`).toBeGreaterThan(167);
+    }
+
+    const token = new RegExp(`\\bmotion\\.loop\\.(?:${Object.keys(motion.loop).join("|")})\\b`);
+    // Non-vacuity: a literal period is refused, a token period accepted.
+    const literal = "Animated.loop(Animated.timing(v, { toValue: 0.3, duration: 700 }))";
+    expect(literalDurations(literal)).toEqual(["700"]);
+    const sourced = `Animated.loop(Animated.timing(v, { toValue: 0.3, duration: motion.loop.${periods[0][0]} / 2 }))`;
+    expect(token.test(sourced) && literalDurations(sourced).length === 0).toBe(true);
+
+    const looping = APP_SCRIPTS.filter((f) => loops(f.source));
+    expect(looping.length).toBeGreaterThan(0);
+    const unsourced = looping
+      .filter((f) => !token.test(code(f.source)) || literalDurations(f.source).length > 0)
+      .map((f) => f.name);
+    expect(unsourced).toEqual([]);
   });
 });
 
@@ -800,14 +879,6 @@ describe("criteria the app satisfies by not having the feature", () => {
 
   it("BK23 / SC 2.5.4 — nothing is actuated by moving the device", () => {
     expect(ALL).not.toMatch(/Accelerometer|DeviceMotion|Gyroscope|Magnetometer/);
-  });
-
-  it("BK15 / SC 2.3.1 — the only repeating animation is far below 3 Hz", () => {
-    const dialogue = TSX.find((f) => f.name === "src/components/DialogueIntake.tsx")!;
-    const durations = [...dialogue.source.matchAll(/duration:\s*(\d+)/g)].map((m) => Number(m[1]));
-    expect(durations.length).toBeGreaterThan(0);
-    // One full cycle is two of these; 3 Hz would need a 167 ms half-cycle.
-    expect(Math.min(...durations)).toBeGreaterThan(167);
   });
 
   it("BK13 / SC 2.2.1 — the only timer is the resend cooldown, and it takes nothing away", () => {

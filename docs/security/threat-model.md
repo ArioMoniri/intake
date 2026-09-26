@@ -1460,6 +1460,26 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
     a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
     committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
+  - **Controls added by INT-351 (the rendered ops console, audit F26):** `apps/admin-web`
+    gains the Next.js App Router shell and its first page, `/ops`, server-rendered only. The
+    page forwards the caller's bearer to `GET /admin/ops` and renders nothing else until that
+    INT-180 gate answers 200 — no bearer means no call at all, and a refused caller does not
+    reach the API's health endpoints either — so the OIDC verifier, the HB-A16 allow-list (empty
+    admits nobody), the platform-scope role set and the audit wrapper are the one admission
+    control, not a second verifier that could disagree with it. `/admin/ops` runs only the API's
+    own fixed PromQL table (every series catalogued, test-held) plus the registry projection; no
+    request field reaches a query (F1). A tile whose label set differs from its query's, or
+    whose label value is not id-shaped, turns unknown instead of painting it (inv 6); unknown
+    tiles carry no figure and the console refuses one that does (inv 17); CSAT and wait means
+    are withheld below k = 10; no target is rendered (inv 20). GPU and CI facts come from an ops
+    collector in `services/probes` that runs server-side — `nvidia-smi` beside the host, a
+    read-only GitHub token read from OpenBao at collection time through the egress guard
+    (`issue_tracking` purpose on the existing `api.github.com` row) — and exports only ids
+    (actor and commit message are dropped). CSP: per-request nonce, `strict-dynamic`, no
+    `unsafe-*` outside `next dev`, `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
+    `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
+    admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
+    admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**282 issues.** By phase: P0 156 · P1 72 · P2 47 · P3 7. By status: awaiting-human 23 · doing 15 · done 151 · todo 92 · withdrawn 1.
+**282 issues.** By phase: P0 156 · P1 72 · P2 47 · P3 7. By status: awaiting-human 23 · doing 15 · done 152 · todo 91 · withdrawn 1.
 
 ## P0
 
@@ -242,7 +242,7 @@
 | INT-332 | ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer) | E00-governance | — | area:mobile, approval:owner | todo |
 | INT-333 | Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic | E08-mobile | INT-330, INT-332 | area:mobile, risk:clinical | todo |
 | INT-343 | Mobile George client authenticates and requests only compiled-pack clip text | E08-mobile | INT-326 | area:mobile, area:voice, risk:security | todo |
-| INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-181, INT-186, INT-187 | area:admin | todo |
+| INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-181, INT-186, INT-187 | area:admin | done |
 | INT-353 | Land the specialty review queue, generator and verification trail on main | E03-protocols | INT-327 | area:protocols | todo |
 
 ## P2
