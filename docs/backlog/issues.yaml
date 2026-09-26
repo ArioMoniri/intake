@@ -5469,3 +5469,16 @@
   tests: [apps/mobile/src/lib/kiosk/kioskState.test.ts, apps/mobile/e2e/a11y.spec.ts]
   legal: "5378,EN301549"
   sec_row: "mobile"
+- id: INT-371
+  epic: E08-mobile
+  phase: P1
+  title: "Intake flow — Bitirdim finishes to review, the open hint shows once, typed-to-handoff proven"
+  depends_on: [INT-321, INT-339]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-371.md
+  acceptance:
+    - "Bitirdim ends the dialogue and lands on review; the open-invite hint shows once per session; the typed → handoff path is covered by a test"
+    - "the a11y.dialogue.finishHint register finding is recorded and routed to clinical-reviewer"
+  tests: [apps/mobile/e2e/intakeFinish.spec.ts, apps/mobile/src/lib/intake/openHint.test.ts, apps/mobile/src/lib/intake/typedFlow.test.ts, apps/mobile/src/lib/dialogue/speech.test.ts, tests/release/test_i18n_complete.py]
+  sec_row: "intake-typed"

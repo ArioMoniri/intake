@@ -69,9 +69,12 @@ def test_ids_unique_and_well_formed() -> None:
     # out of INT-226 because they are owner and counsel work)
     # + INT-360..363 (the four WCAG defects the INT-226 report found:
     # orientation lock, OTP paste/autofill, iOS error/status announcements,
-    # kiosk idle warning).
+    # kiosk idle warning)
+    # + INT-371 (slice S4 of INT-354: the int-demo intake-flow fix, Bitirdim
+    # to review and the once-per-session open hint, ported to main as its own
+    # one-issue PR).
     # Grow this count only with a stated reason.
-    assert len(ids) == 287
+    assert len(ids) == 288
     import re
 
     for i in ids:
