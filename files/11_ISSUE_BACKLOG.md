@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**278 issues.** By phase: P0 152 · P1 72 · P2 47 · P3 7. By status: awaiting-human 20 · doing 11 · done 150 · todo 96 · withdrawn 1.
+**279 issues.** By phase: P0 153 · P1 72 · P2 47 · P3 7. By status: awaiting-human 20 · doing 12 · done 150 · todo 96 · withdrawn 1.
 
 ## P0
 
@@ -163,6 +163,7 @@
 | INT-350 | CI part 2: check-integration builds the pinned edge plugin; osv findings fixed | E13-infra | INT-346 | area:ci | todo |
 | INT-352 | Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host) | E13-infra | INT-345, INT-347, INT-325 | area:infra, risk:security, risk:legal | todo |
 | INT-354 | Consolidate int-demo into main; main becomes the TestFlight build source | E17-release | INT-328, INT-344 | area:mobile, area:release | todo |
+| INT-355 | Gated questions never asked: resolve bare ask_if slot names across the pack chain | E04-engines | — | area:engine, risk:clinical | doing |
 
 ## P1
 

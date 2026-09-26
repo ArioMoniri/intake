@@ -53,9 +53,11 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-348 (Play Integrity + device login smoke, split from INT-344)
     # + INT-349..354 (2026-09-26 owner follow-ups: sensitive intake categories,
     # CI part 2, admin ops console, production API host, specialty review
-    # queue landing, int-demo consolidation into main).
+    # queue landing, int-demo consolidation into main)
+    # + INT-355 (bare ask_if/skip_if slot names never resolved across the
+    # pack chain, so gated questions were never asked).
     # Grow this count only with a stated reason.
-    assert len(ids) == 278
+    assert len(ids) == 279
     import re
 
     for i in ids:
