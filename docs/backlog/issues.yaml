@@ -3045,12 +3045,19 @@
 - id: INT-226
   epic: E14-legal
   phase: P1
-  title: "Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page"
+  title: "Accessibility conformance report (WCAG 2.2 AA / EN 301 549) generated from the a11y CI results"
   depends_on: [INT-144]
   labels: [area:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-226.md
+  # RESCOPED 26 Sep 2026: the publication half ("statement published in-app and
+  # web") and the device audit moved to INT-359, because the Turkish statement
+  # text, the feedback channel and the device walkthroughs are owner and counsel
+  # work (HB-L9, signing under HB-L27). The four defects the report found are
+  # INT-360..INT-363.
   acceptance:
-    - "report generated from a11y CI results; statement published in-app and web"
+    - "report generated from a11y CI results: every WCAG 2.2 A/AA criterion and EN 301 549 clause has a status, every Supports row cites a test CI runs or a dated manual check, and a criterion that needs a device walkthrough stays Not Evaluated"
+    - "the statement source restates the report's status and stays marked not for publication until INT-359"
   tests: [tests/legal/test_a11y_report.py]
   legal: "5378,EN301549"
 - id: INT-227
@@ -5142,7 +5149,8 @@
   title: "Motion: typed lane, fallback and completion"
   depends_on: [INT-330, INT-335]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-339.md
   acceptance:
     - "the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"
     - "no navigation waits on an animation; the review screen renders every section in one commit with no stagger"
@@ -5409,3 +5417,68 @@
   tests: [tests/security/test_egress_allowlist.py]
   legal: "KVKK-9,DPA"
   sec_row: "onboarding"
+- id: INT-359
+  epic: E14-legal
+  phase: P1
+  title: "Accessibility device audit (DA-01..DA-08) and the statement published in-app and web"
+  depends_on: [INT-226]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "the owner runs the eight scripted walkthroughs DA-01..DA-08 of the conformance report on a release build and records device, OS, build, date and observation for each; the Not Evaluated rows they decide are updated from those records"
+    - "the owner names the accessibility feedback address and response commitment; counsel supplies the Turkish statement text and the 5378 / Genelge 2025/10 escalation route"
+    - "the statement is served in the app and on the web only once signed under the HB-L27 regime, with its review date"
+  tests: [tests/legal/test_a11y_report.py]
+  legal: "5378,EN301549"
+- id: INT-360
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"
+    - "every screen lays out in landscape at the largest text size with no clipped control and no horizontal scroll of body text"
+  tests: [apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"
+- id: INT-361
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 3.3.8: the OTP field accepts a pasted or autofilled code"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "pasting a six-digit code into any OTP box fills all six boxes, and the platform one-time-code autofill (iOS oneTimeCode, Android sms-otp) fills them"
+    - "the code never reaches a log line, analytics event or error report (invariant 6)"
+  tests: [apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "onboarding"
+- id: INT-362
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"
+    - "the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"
+  tests: [apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"
+- id: INT-363
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"
+    - "the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"
+  tests: [apps/mobile/src/lib/kiosk/kioskState.test.ts, apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"
