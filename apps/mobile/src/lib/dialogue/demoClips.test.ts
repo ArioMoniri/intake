@@ -6,10 +6,11 @@
  * test pins all three.
  *
  * It is also the manifest emitter: run with `WRITE_DEMO_CLIP_MANIFEST=1` it
- * (re)writes `assets/dialogue-clips/manifest.json` for the generator and skips
- * the coverage check (the wavs do not exist yet); run normally it asserts the
- * committed manifest and the bundled wavs match the catalogue, so a changed
- * question string fails here until the clips are regenerated.
+ * (re)writes `assets/dialogue-clips/manifest.json` for the generator, and the
+ * coverage check still runs, reporting the strings whose wavs do not exist yet;
+ * run normally it asserts the committed manifest and the bundled wavs match
+ * the catalogue, so a changed question string fails here until the clips are
+ * regenerated.
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -85,7 +86,10 @@ describe("demo clip manifest (generator input, committed)", () => {
   );
 });
 
-describe.skipIf(writing)("bundled clips cover the catalogue", () => {
+// Never skipped (invariant 17; tests/ci/test_security_gates.py). In a
+// WRITE_DEMO_CLIP_MANIFEST=1 run this fails for any new string, which is the
+// truth at that moment: the manifest is written, the wavs are not yet.
+describe("bundled clips cover the catalogue", () => {
   it("every scripted string has a bundled <hash>.wav (coverage; regenerate if this fails)", () => {
     const present = new Set(readdirSync(clipsDir).filter((f) => f.endsWith(".wav")));
     const missing = demoClipScripts()
