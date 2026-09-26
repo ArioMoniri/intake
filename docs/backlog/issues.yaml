@@ -4911,3 +4911,331 @@
     - "wired to the inbound visit-create path (services/api) as an opt-in (resolve_department) that maps a free-text department onto the branch and threads it onto the visit; the default INT-197 mirror path is unchanged; a department mapping to Acil Tıp is refused (excluded_branch); the served pack CONTENT past L0 stays gated on HB-C1"
   tests: [tests/protocols/test_department_routing.py, tests/api/test_visit_department_routing.py]
   sec_row: "protocol-registry"
+- id: INT-324
+  epic: E05-voice
+  phase: P0
+  title: "Agent WAV framing lives in voice-clips so the invariant-3 audio guard passes on main"
+  depends_on: []
+  labels: [area:voice, risk:security]
+  status: doing
+  acceptance:
+    - "services/api dev_voice carries no audio container literal (no '.wav', no 'audio/wav'); PCM→WAV framing and the audio content-type come from packages/voice-clips (voice_clips.audio.wav_bytes), the only place invariant 3 grants them"
+    - "tests/voice/test_audio_retention_guard.py is green on main and its allow-list assertion is byte-for-byte unchanged (the guard is not weakened to pass)"
+    - "make safety exits 0; red and green runs recorded in docs/evidence/INT-324.md"
+  tests: [tests/voice/test_audio_retention_guard.py, tests/api/test_dev_voice_george.py, tests/voice/test_clip_cache_builder.py]
+  sec_row: "voice-runtime"
+- id: INT-325
+  epic: E01-platform
+  phase: P0
+  title: "Production refuses dev bypass flags, file-dev KEK and in-code default credentials"
+  depends_on: []
+  labels: [area:api, risk:security]
+  status: doing
+  acceptance:
+    - "when INTAKE_ENV starts with prod, ApiSettings.from_env and create_app refuse to boot if any INTAKE_DEV_* flag is set, if INTAKE_API_KEK_MODE is file-dev, or if any database or object-store credential variable is unset or empty; no in-code dev credential is ever used under prod"
+    - "under prod the OTP tier never wires the log-only delivery adapter: with no real SMS adapter configured the tier answers 503 instead of claiming a send"
+    - "prod /readyz reports ready from its real dependencies only and never consults the dev bearer tokens; dev behaviour is unchanged (control tests)"
+    - "one parametrised refusal test per flag, per credential variable and for the KEK mode; red and green runs recorded in docs/evidence/INT-325.md"
+  tests: [tests/api/test_prod_refuses_dev_config.py]
+  sec_row: "secrets"
+- id: INT-326
+  epic: E05-voice
+  phase: P0
+  title: "George clip route: authenticated, catalogue-only, rate-limited, absent in production"
+  depends_on: [INT-324, INT-325]
+  labels: [area:voice, area:api, risk:security, risk:legal]
+  status: doing
+  acceptance:
+    - "POST /dev/voice/george-clip requires an authenticated principal; an unauthenticated call answers 401 and never reaches the vendor"
+    - "text_tr is accepted only when its clip_text_hash is a member of the compiled scripted-clip manifest; any other text answers 422 and the vendor gateway is never called (no free text, no PHI can reach a cloud TTS vendor, invariant 19)"
+    - "a per-principal budget answers 429 when exceeded"
+    - "under INTAKE_ENV=prod the route is not served at all, whatever the flags"
+    - "existing fail-closed behaviour (503 unconfigured, 502 vendor error, numeral refusal) is kept; red and green runs recorded in docs/evidence/INT-326.md"
+  tests: [tests/api/test_dev_voice_george.py]
+  sec_row: "cloud-clipgen"
+- id: INT-327
+  epic: E03-protocols
+  phase: P1
+  title: "Specialty-pack generator assembles the pending-value marker so no_placeholders stays green"
+  depends_on: []
+  labels: [area:protocols]
+  status: doing
+  acceptance:
+    - "scripts/dev/gen_specialty_packs.py never carries the literal token scripts/ci/no_placeholders.sh forbids; it assembles invariant 17's sole-exception marker from parts and emits it only inside a draft_needs_source rule"
+    - "a generator unit test asserts the emitted YAML still carries the sanctioned marker inside a draft_needs_source rule and that no triage level other than the stub's is written"
+    - "bash scripts/ci/no_placeholders.sh exits 0 with the generator tracked"
+  tests: [tests/protocols/test_gen_specialty_packs.py]
+  sec_row: "clinical-content"
+- id: INT-328
+  epic: E08-mobile
+  phase: P0
+  title: "Release builds use a configured https API base and never probe the LAN"
+  depends_on: []
+  labels: [area:mobile, risk:security]
+  status: doing
+  acceptance:
+    - "in a release build (!__DEV__) the API base comes only from build-time config set per EAS profile; it must be https; Metro hostUri, extra.asrHosts and LAN or loopback addresses are never consulted"
+    - "an unset or non-https base fails closed with a typed error the UI renders as a clear Turkish error state (tr source of truth, en mirror, siz register, no numeral); no production hostname is hardcoded (the FQDN is HB-I14)"
+    - "the __DEV__ path is unchanged; lib/dev is unreachable from the production call path"
+    - "the production profile declares no NSLocalNetworkUsageDescription and asrHosts/ttsLanes carry no duplicate entry"
+  tests: [apps/mobile/src/lib/auth/apiBase.test.ts]
+  sec_row: "mobile"
+- id: INT-329
+  epic: E01-platform
+  phase: P1
+  title: "Twilio SMS delivery adapter: tested, async, fail-closed under prod, egress and inventory rows"
+  depends_on: [INT-325]
+  labels: [area:api, risk:security, risk:legal]
+  status: todo
+  acceptance:
+    - "the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"
+    - "delivery uses an async HTTP client so the OTP route never blocks the event loop"
+    - "under prod the adapter is Twilio when configured and nothing otherwise (INT-325); credentials resolve through the secrets path (invariant 14), never an in-code default"
+    - "api.twilio.com is added to infra/security/egress-allowlist.yaml with its EgressPurpose member and rendered proxy config, and the phone-number field carries the data-inventory annotation (invariant 18), only after the owner records the DPA and cross-border decision"
+  tests: [tests/api/test_otp_twilio.py]
+  legal: "KVKK-9,DPA"
+  sec_row: "onboarding"
+- id: INT-330
+  epic: E08-mobile
+  phase: P1
+  title: "Motion: native-stack transition policy — 120 ms on every stack, legal instant, intake gesture-locked"
+  depends_on: []
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "a pure transition policy (route class hierarchy/auth/intake/legal) drives the root, auth and visits stacks and the tabs; no transition literal remains in any TSX"
+    - "iOS stack fades run the fade token (120 ms) and 0 under reduce motion, removing the 500 ms default that could hold a RED behind an in-flight push (docs/design/motion/motion-verification.md S-1)"
+    - "legal screens never animate in either direction at any setting; the intake route cannot be swiped away"
+    - "device measurement of push/pop timing on the owner's two reference devices recorded in the evidence file"
+  tests: [apps/mobile/src/lib/motion/transitions.test.ts, apps/mobile/src/lib/theme.test.ts, apps/mobile/e2e/a11y.spec.ts]
+  sec_row: "mobile"
+- id: INT-331
+  epic: E08-mobile
+  phase: P1
+  title: "Motion: one fail-closed reduce-motion store bridged to Reanimated"
+  depends_on: [INT-330]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "one OS read and one listener serve every consumer; an unknown answer or a rejected read means reduced; a failed re-read keeps the last known answer"
+    - "a live change reaches every consumer and Reanimated through ReducedMotionConfig driven by the app policy; nothing imports useReducedMotion from react-native-reanimated and no ReduceMotion.System appears"
+    - "the appearance suite stays green unchanged"
+  tests: [apps/mobile/src/lib/motion/policyStore.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "mobile"
+- id: INT-332
+  epic: E00-governance
+  phase: P1
+  title: "ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer)"
+  depends_on: []
+  labels: [area:mobile, approval:owner]
+  status: todo
+  acceptance:
+    - "an ADR in docs/adr ratifies the motion system as revised in docs/design/motion/motion-verification.md, with the matching 00_STATE row and a mobile-ui.md §Motion pointer in the same commit"
+    - "the five open questions are recorded awaiting-human with their named owners, each failing closed meanwhile"
+  tests: [tests/docs/test_adr_index.py]
+  sec_row: "mobile"
+- id: INT-333
+  epic: E08-mobile
+  phase: P1
+  title: "Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic"
+  depends_on: [INT-330, INT-332]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"
+    - "ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"
+    - "ON_SITE never mounts a 112 control even transiently (invariant 21); no RED register permits a haptic"
+    - "a guard pins the list of RED surface files and forbids any animation API, haptics, Modal or router call on their first-paint path"
+  tests: [apps/mobile/src/lib/motion/red.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-334
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: arbiter and commit windows (pure)"
+  depends_on: [INT-333]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"
+    - "rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"
+  tests: [apps/mobile/src/lib/motion/arbiter.test.ts]
+  sec_row: "mobile"
+- id: INT-335
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: Reanimated hygiene gates before the first Reanimated consumer"
+  depends_on: [INT-331]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "every loop, core or Reanimated (withRepeat included), is gated on the app's reduce-motion hook and takes its period from motion.loop with every half-period above 167 ms"
+    - "animated styles touch only opacity and transform; no LinearTransition, Layout animation, withSpring or runOnJS in src; Reanimated CSS durations come only from cssFade"
+    - "a planted ungated loop and a planted literal duration each fail the suite (mutation-proven, file backed up with cp, never restored with git checkout)"
+  tests: [apps/mobile/src/lib/motion/fade.test.ts, apps/mobile/e2e/a11y.spec.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "mobile"
+- id: INT-336
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners"
+  depends_on: [INT-332, INT-334, INT-335]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "orb state is event-driven from orbStateFor with no clock; typed lane, RED ALERT/CALM, failed and handoff hide it; RED SILENT maps to idle; only listening is level-reactive"
+    - "the level updates at ≤ 10 Hz with zero React renders per sample; the orb is hidden from accessibility and not pressable; it is opacity-only until the owner answers the scale question"
+    - "release-build device evidence: a JS-thread stall does not stop the orb and DialogueIntake's render count stays flat across a ten-second listen"
+  tests: [apps/mobile/src/lib/motion/orb.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "intake-voice"
+- id: INT-337
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: dialogue transients wired to the arbiter"
+  depends_on: [INT-334, INT-335, INT-336]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "content enters with a 120 ms opacity-only fade at delay 0 and is never deferred; the patient's own typed message renders instantly; no frame shows two questions"
+    - "transcript reveal and work chips are commit-window classes, deferred while listening or composing and flushed at the next window; chip selection and confirm commits add no motion"
+  tests: [apps/mobile/src/lib/motion/transients.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "intake-voice"
+- id: INT-338
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: section sheet — measured fade budget, instant privacy and RED closes"
+  depends_on: [INT-331, INT-334, INT-335]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "the modal fade is measured on both platforms and owned at ≤ 120 ms if the platform exceeds it; privacy and RED closes are 0 ms, verified on device; DEFERRED_CLINICIAN never closes a modal"
+    - "focus returns to the opener; BK18 stays green"
+  tests: [apps/mobile/src/lib/motion/transitions.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "mobile"
+- id: INT-339
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: typed lane, fallback and completion"
+  depends_on: [INT-330, INT-335]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"
+    - "no navigation waits on an animation; the review screen renders every section in one commit with no stagger"
+  tests: [apps/mobile/src/lib/motion/transients.test.ts]
+  sec_row: "intake-typed"
+- id: INT-340
+  epic: E08-mobile
+  phase: P2
+  title: "Haptics: one policy, sticky suppression, server-confirmed success"
+  depends_on: [INT-332, INT-333]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "no haptic while the voice session is active or the microphone is hot (read at fire time), for any RED register, or for the rest of a session in which a SILENT RED or a third party occurred"
+    - "no haptic for consent, errors or intake chips; success fires only on a server-confirmed outcome; HapticCall has no error, warning or heavy member"
+    - "expo-haptics is imported only by the engine adapter via import(); its licence is verified from the raw LICENSE blob; the Android build blocks VIBRATE"
+  tests: [apps/mobile/src/lib/motion/haptics.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "mobile"
+- id: INT-341
+  epic: E08-mobile
+  phase: P3
+  title: "Motion: press-opacity tokens"
+  depends_on: [INT-330]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default"
+    - "disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"
+  tests: [apps/mobile/e2e/motion.spec.ts, apps/mobile/src/lib/theme.test.ts]
+  sec_row: "mobile"
+- id: INT-342
+  epic: E08-mobile
+  phase: P3
+  title: "Motion: content reveal and a static skeleton"
+  depends_on: [INT-331, INT-334, INT-335]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "content already available never animates; a load under the skeleton delay shows no skeleton; the skeleton is static (no shimmer, no loop) and unmounts in the commit that mounts the content"
+    - "reduce motion keeps the delay and drops every fade; busy state is announced with a tr/en label"
+  tests: [apps/mobile/src/lib/motion/reveal.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "mobile"
+- id: INT-343
+  epic: E08-mobile
+  phase: P1
+  title: "Mobile George client authenticates and requests only compiled-pack clip text"
+  depends_on: [INT-326]
+  labels: [area:mobile, area:voice, risk:security]
+  status: todo
+  acceptance:
+    - "the mobile George clip client sends the patient's session credentials and requests only text_tr that comes from the compiled served pack, never text assembled from i18n keys or patient input"
+    - "a 401, 422, 429 or 503 from the route falls back to the self-hosted voice or the prebaked clip without blocking the turn (no regression of the INT-294 deadline)"
+    - "a vitest proves no request body can carry text outside the compiled catalogue"
+  tests: [apps/mobile/src/lib/dialogue/georgeClip.test.ts]
+  sec_row: "cloud-clipgen"
+- id: INT-344
+  epic: E08-mobile
+  phase: P0
+  title: "App Attest: server verification and iOS client for OTP and session"
+  depends_on: [INT-325]
+  labels: [area:mobile, area:api, risk:security]
+  status: todo
+  acceptance:
+    - "iOS release builds attest with App Attest via a lazily imported Expo module and never send a dev-unattested mode outside __DEV__"
+    - "the server verifier validates attestation and assertion objects against the pinned Apple App Attestation root (certificate chain, rpId hash of team and bundle id, nonce binding, counter, aaguid by environment, keyId) and refuses everything else; FailClosedAttestationVerifier stays the default when configuration is absent"
+    - "team and bundle identifiers come from configuration, never code; the Android path stays fail-closed with a typed reason until INT-348"
+  tests: [tests/api/test_attestation_verifier.py, apps/mobile/src/lib/auth/attestation.test.ts]
+  legal: "KVKK-12"
+  sec_row: "onboarding"
+- id: INT-345
+  epic: E13-infra
+  phase: P0
+  title: "Staging backend artefact: API + Postgres + Redis + OpenBao + TLS proxy on the AWS host, synthetic patients only"
+  depends_on: [INT-325]
+  labels: [area:infra, risk:security, risk:legal]
+  status: todo
+  acceptance:
+    - "one reproducible compose artefact under infra/ runs the API, Postgres, Redis, OpenBao (server mode, transit KEK, not dev mode) and a TLS reverse proxy on the AWS host; nothing runs on the developer laptop"
+    - "the API boots under a non-dev environment with no INTAKE_DEV_* flag and no file-dev KEK; a note written before a restart decrypts after it (restart test)"
+    - "/healthz, /readyz, /metrics and /version answer over public HTTPS; /version carries the real git sha and build time, never dev; a synthetic probe is registered"
+    - "the host is us-east-1 and therefore synthetic patients only: no real patient data until an in-country host exists (HB-I5, HB-L11); the staging banner and tenant say so"
+  tests: [tests/infra/test_staging_compose.py]
+  legal: "KVKK-9"
+  sec_row: "platform"
+- id: INT-346
+  epic: E13-infra
+  phase: P0
+  title: "Restore main CI to green after the billing outage"
+  depends_on: []
+  labels: [area:ci]
+  status: doing
+  acceptance:
+    - "the ci and security workflows run green on main HEAD with no test skipped, no gate loosened, no coverage threshold lowered and no allow-list grown except recorded register findings that carry a named reviewer"
+    - "every failure that accrued while Actions billing was down (2026-09-08 → 2026-09-26) is traced to its commit and fixed at the cause, with the log excerpt, cause and red/green recorded in docs/evidence/INT-346.md"
+  tests: [tests/release/test_i18n_complete.py]
+  sec_row: "cicd"
+- id: INT-347
+  epic: E13-infra
+  phase: P0
+  title: "Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store"
+  depends_on: [INT-346]
+  labels: [area:infra, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner records which image replaces minio/minio (maintained fork, source build, or another S3-compatible store) with its licence verified from the raw LICENSE blob (invariant 19) and a sha256 digest pin (invariant 14)"
+    - "check-integration pulls only that pinned image and passes; docker-compose, infra/staging and the object-store adapter tests agree on it"
+  tests: [tests/infra/test_staging_compose.py]
+  sec_row: "data-at-rest"
+- id: INT-348
+  epic: E08-mobile
+  phase: P0
+  title: "Play Integrity verification and a real-device OTP login smoke on TestFlight and Play"
+  depends_on: [INT-344]
+  labels: [area:mobile, area:api, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "Android release builds obtain a Play Integrity token bound to the server challenge and the server verifies it through Google's decode API with a service account from the secrets path (invariant 14); FailClosed until configured"
+    - "a TestFlight build and a Play internal-track build each complete OTP login against the staging API with real attestation; INTAKE_DEV_ALLOW_UNATTESTED is never set on a public host"
+    - "Google Play organisation account, Cloud project and service account come from HB-A3"
+  tests: [tests/api/test_play_integrity_verifier.py]
+  legal: "KVKK-12"
+  sec_row: "onboarding"
