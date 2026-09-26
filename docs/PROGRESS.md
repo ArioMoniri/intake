@@ -28,6 +28,38 @@
 - Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
 - LOOP_STATUS: CONTINUE
 
+### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
+- Goal: acceptance verbatim (GitHub #538):
+  - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*
+  - *"no navigation waits on an animation; the review screen renders every section in one commit with no stagger"*
+- Plan (MOTION-10; motion-verification.md §4, and C14–C16):
+  - Pure `lib/motion/transients.ts`: `typedFallback` and `typedStep`. Each is enter-only (`enterFor` from `fade.ts`), `exitMs` is the literal 0, and a step plan is keyed by its question.
+  - `lib/motion/native/reanimated.ts`: `enteringFor(spec)` returns a `FadeIn` built from the spec, or nothing. It has no exit builder.
+  - `intake.tsx`:
+    - the lane switch sits under `LayoutAnimationConfig skipEntering`, so only a lane that replaces another fades in;
+    - `StepFlow` sits in an entering `Animated.View`;
+    - the question's body is one keyed, entering `Animated.View` under its own `skipEntering`;
+    - the progress row and the CTA stay outside the body.
+  - Completion and review needed no product change, only guards.
+- Tests added: `apps/mobile/src/lib/motion/transients.test.ts`, with the 5 MOTION-10 DoD titles verbatim:
+  - the plans at every app × OS reduce-motion setting (6);
+  - a per-millisecond frame model over every consecutive pair in the Detaylı pack;
+  - an app-wide ban on exit animations;
+  - an app-wide detector for navigation behind an animation callback, frame, timer, transition event or awaited wait (11 samples caught, 3 accepted);
+  - the review's one index-free section map, and no delay, timer, deferred render, partial slice or virtualised list in the screen or the 7 components it draws.
+  - RED 1: module missing. RED 2: the two wiring tests failed and three passed. The three are the budget test, which needs only the pure module, and two regression guards over a tree that already complied.
+  - Mutations M1–M8 were each killed, restored with `cp` and checked with `cmp`.
+- Result: `make check-ts` green (mobile 105 files / 2017 tests, 5 new; the other packages unchanged) and `make check-i18n` green (30 passed). Prettier is clean. A Metro iOS dev export succeeds. `no_placeholders` is OK after staging. `tests/backlog`, `tests/smoke/test_make_check.py` and the threat-model test pass. `make check` was not run whole (check-integration is CI-only), and neither were `make safety` or `make security`: no protocol, Python or security surface changed.
+- Invariants touched and still passing:
+  - **17**: no new token; the adapter lands with its consumer.
+  - **8**: +5 tests, and the INT-335 hygiene gates are unchanged and green.
+  - **22**: progress numerals swap instantly.
+  - **2 / 10**: no copy changed; the instrument item is still verbatim.
+- Decisions / ADRs / `00_STATE.md` rows: none. MOTION-10 depends on MOTION-1 and MOTION-6 only, so nothing here waits on ADR-033 (PR #571, Proposed).
+- Blocked on: nothing. Device timing is not recorded (the owner's reference devices are unnamed, INT-330). The evidence file lists what to watch on a device: blur under the 120 ms fallback fade, and the keyboard between two free-text steps.
+- Next: PR `INT-339: Motion — typed lane, fallback and completion` (Closes #538, Sec-Row intake-typed), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):
   - *"the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"*
