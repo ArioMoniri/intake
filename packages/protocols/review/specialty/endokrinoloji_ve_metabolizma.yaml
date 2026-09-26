@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/endokrinoloji_ve_metabolizma.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/endokrinoloji_ve_metabolizma.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.endokrinoloji_ve_metabolizma
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Endokrinoloji ve Metabolizma ön görüşme protokolü
 extends: cluster.medical
@@ -31,69 +33,93 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?
+          tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
   sorular:
     slots:
       soru_1:
         type: string
         required: false
         ask_tr:
-          tr: Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
-      soru_2:
-        type: string
+          tr: Şikâyetiniz başladığından bu yana nasıl değişti?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      aciklanamayan_kilo_degisimi:
+        type: boolean
         required: false
         ask_tr:
           tr: Beslenmenizde belirgin bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz ya da kilo aldınız mı?
-      soru_3:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      sicak_soguk_duyarliligi:
+        type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda sıcağa ya da soğuğa karşı alışılmadık şekilde duyarlı hâle geldiniz mi?
-      soru_4:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      carpinti:
+        type: boolean
         required: false
         ask_tr:
           tr: Kalbinizin hızlı ya da düzensiz çarptığını fark ettiniz mi?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      titreme_huzursuzluk:
+        type: boolean
         required: false
         ask_tr:
           tr: Ellerinizde ince bir titreme ya da alışılmadık bir gerginlik, huzursuzluk hissediyor musunuz?
-      soru_6:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      yorgunluk:
+        type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi hissediyorsunuz?
-      soru_7:
-        type: string
+          tr: Son zamanlarda kendinizi alışılmadık şekilde yorgun ya da halsiz hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      boyun_sisligi:
+        type: boolean
         required: false
         ask_tr:
           tr: Boynunuzda bir şişlik ya da yutkunurken zorlanma, ses kısıklığı fark ettiniz mi?
-      soru_8:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      duzenli_kortizon:
+        type: boolean
         required: false
         ask_tr:
-          tr: Böbrek üstü bezi yetmezliği tanınız ya da düzenli kullandığınız bir kortizon (hidrokortizon) tedaviniz var mı; varsa şu anda kusuyor ya da belirgin şekilde halsiz misiniz?
-      soru_9:
-        type: string
+          tr: Böbrek üstü bezi yetmezliği ya da başka bir nedenle düzenli kortizon ilacı kullanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      kusma_belirgin_halsizlik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Açlık hâlinde ya da öğün atladığınızda titreme, soğuk terleme, çarpıntı ya da zihinsel bulanıklık yaşıyor musunuz?
-      soru_10:
-        type: string
+          tr: Şu anda kusmanız ya da belirgin bir halsizliğiniz var mı?
+        ask_if: duzenli_kortizon == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      aclikta_seker_dusmesi_belirtileri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Aç kaldığınızda titreme, soğuk terleme, çarpıntı ya da kafa karışıklığı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      duzenli_ilac:
+        type: boolean
         required: false
         ask_tr:
           tr: Şu anda düzenli kullandığınız ilaçlar (örneğin tiroid ilacı, kortizon ya da insülin) var mı?
-      soru_11:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
+      ilac_alerjisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md'
 red_flags:
 - id: rf.endokrinoloji_ve_metabolizma_l0_taslak
   label_tr: Endokrinoloji ve Metabolizma ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

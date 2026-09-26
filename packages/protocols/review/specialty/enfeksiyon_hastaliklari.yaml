@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/enfeksiyon_hastaliklari.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/enfeksiyon_hastaliklari.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.enfeksiyon_hastaliklari
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Enfeksiyon Hastalıkları ön görüşme protokolü
 extends: cluster.medical
@@ -32,68 +34,110 @@ sections:
         required: true
         ask_tr:
           tr: Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      ates_var_mi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?
-      soru_2:
-        type: string
+          tr: Son günlerde ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      ates_suresi:
+        type: duration
         required: false
         ask_tr:
-          tr: Ateşiniz oldu mu? Olduysa kaç gündür sürdüğünü ve çok yüksek hissedip hissetmediğinizi söyleyebilir misiniz?
-      soru_3:
-        type: string
+          tr: Ateşiniz ne zamandır sürüyor?
+        ask_if: ates_var_mi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      titreme_kotu_hissetme:
+        type: boolean
         required: false
         ask_tr:
           tr: Ateşle birlikte titreme, üşüme ya da kendinizi çok kötü, güçten düşmüş hissetme oldu mu?
-      soru_4:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      kafa_karisikligi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda kendinizde ya da yakınlarınızın fark ettiği bir bilinç bulanıklığı, aşırı uyku hali veya kafa karışıklığı oldu mu?
-      soru_5:
-        type: string
+          tr: Son günlerde sizde kafa karışıklığı ya da aşırı uyku hâli oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      siddetli_bas_agrisi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Şiddetli baş ağrınızla birlikte boynunuzu öne eğmekte zorlanma ya da ense sertliği fark ettiniz mi?
-      soru_6:
-        type: string
+          tr: Son günlerde şiddetli bir baş ağrınız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      ense_sertligi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Cildinizde, üzerine bardakla ya da parmakla bastırdığınızda solmayan (kaybolmayan) kırmızı veya mor döküntü fark ettiniz mi?
-      soru_7:
-        type: string
+          tr: Boynunuzu öne eğmekte zorlandığınız ya da ense sertliği hissettiğiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      solmayan_dokuntu:
+        type: boolean
         required: false
         ask_tr:
-          tr: İshaliniz var mı? Varsa dışkınızda gözle görülür kan fark ettiniz mi?
-      soru_8:
-        type: string
+          tr: Cildinizde, üzerine bastırınca solmayan kırmızı ya da mor bir döküntü fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      ishal:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda ishaliniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      diskida_kan:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dışkınızda gözle görülür kan fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      surekli_kusma:
+        type: boolean
         required: false
         ask_tr:
           tr: Geçmeyen ya da sık sık tekrarlayan kusmanız oluyor mu?
-      soru_9:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      yakin_seyahat:
+        type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda yurt dışına ya da başka bir şehre seyahat ettiniz mi, veya benzer şikâyeti olan biriyle yakın temasınız oldu mu?
-      soru_10:
-        type: string
+          tr: Son zamanlarda yurt dışına ya da başka bir şehre seyahat ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      benzer_sikayetli_temas:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bağışıklık sisteminizi etkileyen bir durumunuz ya da daha önce konulmuş süregen bir hastalık tanınız var mı?
-      soru_11:
-        type: string
+          tr: Benzer şikâyeti olan biriyle yakın zamanda temasınız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      suregen_hastalik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Şu anda düzenli kullandığınız ilaçlar var mı? Son bir ay içinde antibiyotik kullandınız mı?
+          tr: Size daha önce konulmuş uzun süreli bir hastalık tanısı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      duzenli_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
+      son_ay_antibiyotik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son bir ay içinde antibiyotik kullandınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
 red_flags:
 - id: rf.enfeksiyon_hastaliklari_l0_taslak
   label_tr: Enfeksiyon Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

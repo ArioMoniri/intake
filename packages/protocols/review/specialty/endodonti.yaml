@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/endodonti.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/endodonti.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.endodonti
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Endodonti ön görüşme protokolü
 extends: cluster.dental
@@ -31,69 +33,112 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?
+          tr: Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/endodonti.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/endodonti.md'
   sorular:
     slots:
       soru_1:
         type: string
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zaman ve nasıl başladı, o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?
-      soru_2:
-        type: string
+          tr: Bu şikâyetiniz başladığından bu yana nasıl değişti?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/endodonti.md'
+      sicak_soguk_agri:
+        type: boolean
         required: false
         ask_tr:
-          tr: Sıcak ya da soğuk bir şey aldığınızda dişinizde ağrı oluyor mu; oluyorsa bu ağrı, sıcak ya da soğuk geçtikten sonra bir süre (örneğin yarım dakika ya da daha uzun) devam ediyor mu?
-      soru_3:
-        type: string
+          tr: Sıcak ya da soğuk bir şey yiyip içtiğinizde dişiniz ağrıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      agri_sonra_suruyor:
+        type: boolean
         required: false
         ask_tr:
-          tr: Dişinizde, hiçbir şey yapmadığınız hâlde kendiliğinden başlayan ya da geceleri sizi rahatsız eden bir ağrı oluyor mu?
-      soru_4:
-        type: string
+          tr: Bu ağrı, yiyecek ya da içecek ağzınızdan gittikten sonra da sürüyor mu?
+        ask_if: sicak_soguk_agri == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      kendiliginden_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişiniz hiçbir neden yokken kendiliğinden ağrıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      isirinca_agri:
+        type: boolean
         required: false
         ask_tr:
           tr: Bu dişinizle ısırdığınızda, çiğnediğinizde ya da üzerine bastırdığınızda ağrı hissediyor musunuz?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      dis_eti_sisligi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Dişinizin yanındaki diş etinde şişlik, sivilce benzeri bir kabarcık ya da ağzınıza gelen kötü tatlı bir akıntı fark ettiniz mi?
-      soru_6:
-        type: string
+          tr: Dişinizin yanındaki diş etinde şişlik ya da sivilce gibi bir kabarcık var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      kotu_tatli_akinti:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yüzünüzde ya da çenenizde şişlik var mı; varsa buna ateş de eşlik ediyor mu?
-      soru_7:
-        type: string
+          tr: Ağzınıza kötü tadı olan bir akıntı geldiğini fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      yuz_cene_sisligi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Ağız tabanınızda ya da boynunuzda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?
-      soru_8:
-        type: string
+          tr: Yüzünüzde ya da çenenizde şişlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      sislik_ile_ates:
+        type: boolean
         required: false
         ask_tr:
-          tr: Ağzınızı açmakta son zamanlarda zorlanıyor musunuz ya da eskisi kadar açamıyor musunuz?
-      soru_9:
-        type: string
+          tr: Bu şişlikle birlikte ateşiniz de var mı?
+        ask_if: yuz_cene_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      nefes_yutkunma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Nefes almakta ya da yutkunmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/endodonti.md'
+      agiz_acma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda ağzınızı açmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
+      onceki_dis_tedavisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Bu dişinize daha önce kanal tedavisi ya da başka bir diş tedavisi yapıldı mı?
-      soru_10:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/endodonti.md'
+      duzenli_ilac:
+        type: boolean
         required: false
         ask_tr:
-          tr: Şu anda düzenli kullandığınız ilaçlar var mı; bu dişiniz için son günlerde başlanan bir antibiyotik kullanıyor musunuz?
-      soru_11:
-        type: string
+          tr: Şu anda düzenli kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/endodonti.md'
+      yeni_antibiyotik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı alerjiniz var mı?
+          tr: Bu diş için son günlerde antibiyotik kullanmaya başladınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/endodonti.md'
+      ilac_alerjisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Herhangi bir ilaca, diş uyuşturma iğnesine ya da lateks eldivene alerjiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/endodonti.md'
 red_flags:
 - id: rf.endodonti_l0_taslak
   label_tr: Endodonti ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

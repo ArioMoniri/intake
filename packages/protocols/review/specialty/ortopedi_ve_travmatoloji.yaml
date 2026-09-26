@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/ortopedi_ve_travmatoloji.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/ortopedi_ve_travmatoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.ortopedi_ve_travmatoloji
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Ortopedi ve Travmatoloji ön görüşme protokolü
 extends: cluster.surgical
@@ -32,68 +34,89 @@ sections:
         required: true
         ask_tr:
           tr: Bugün ortopedi bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      travma_sonrasi_basladi:
+        type: boolean
         required: false
         ask_tr:
           tr: Şikâyetiniz bir düşme, çarpma ya da kaza sonrasında mı başladı?
-      soru_2:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      gorunur_sekil_bozuklugu:
+        type: boolean
         required: false
         ask_tr:
           tr: Yaralanan bölgede gözle görülür bir şekil bozukluğu fark ettiniz mi?
-      soru_3:
-        type: string
+        ask_if: travma_sonrasi_basladi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      hareket_basma_guclugu:
+        type: boolean
         required: false
         ask_tr:
           tr: Yaralanan bölgeyi hareket ettirmekte ya da üzerine basmakta zorlanıyor musunuz?
-      soru_4:
-        type: string
+        ask_if: travma_sonrasi_basladi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      sislik_morarma:
+        type: boolean
         required: false
         ask_tr:
           tr: Yaralanan bölgede şişlik ya da morarma oldu mu?
-      soru_5:
-        type: string
+        ask_if: travma_sonrasi_basladi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      orantisiz_agri:
+        type: boolean
         required: false
         ask_tr:
           tr: Kolunuzdaki ya da bacağınızdaki ağrı, yaralanmaya göre beklediğinizden çok daha şiddetli mi?
-      soru_6:
-        type: string
+        ask_if: travma_sonrasi_basladi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      uyusma_solukluk_soguk:
+        type: boolean
         required: false
         ask_tr:
           tr: Kolunuzda, bacağınızda ya da parmaklarınızda yeni uyuşma, solukluk veya soğukluk var mı?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      sicak_sis_eklem:
+        type: boolean
         required: false
         ask_tr:
           tr: Eklemlerinizden birinde aniden başlayan şişlik, kızarıklık ve sıcaklık oldu mu?
-      soru_8:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      eklem_ile_ates_halsizlik:
+        type: boolean
         required: false
         ask_tr:
           tr: Eklem şikâyetinizle birlikte ateş ya da belirgin halsizlik oldu mu?
-      soru_9:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      yeni_makat_uyusmasi:
+        type: boolean
         required: false
         ask_tr:
           tr: İç uyluklarınızda, genital bölgenizde ya da makat çevrenizde yeni uyuşma var mı?
-      soru_10:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      yeni_idrar_zorlugu:
+        type: boolean
         required: false
         ask_tr:
           tr: Bel ya da bacak ağrınız başladıktan sonra idrar yapmakta yeni bir zorluk var mı?
-      soru_11:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
+      iki_bacaga_yayilan_agri:
+        type: boolean
         required: false
         ask_tr:
           tr: Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortopedi_ve_travmatoloji.md'
 red_flags:
 - id: rf.ortopedi_ve_travmatoloji_l0_taslak
   label_tr: Ortopedi ve Travmatoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

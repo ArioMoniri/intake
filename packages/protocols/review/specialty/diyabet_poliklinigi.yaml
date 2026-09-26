@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/diyabet_poliklinigi.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/diyabet_poliklinigi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.diyabet_poliklinigi
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Diyabet polikliniği ön görüşme protokolü
 extends: cluster.medical
@@ -31,69 +33,100 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?
+          tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
   sorular:
     slots:
       soru_1:
         type: string
         required: false
         ask_tr:
-          tr: Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
-      soru_2:
-        type: string
+          tr: Şikâyetiniz başladığından bu yana nasıl değişti?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      sik_idrara_cikma:
+        type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda her zamankinden daha sık idrara çıkıyor ya da gece idrara kalkıyor musunuz?
-      soru_3:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      cok_su_icme:
+        type: boolean
         required: false
         ask_tr:
           tr: Alışılmadık şekilde çok su içiyor ya da ağzınızda kuruluk hissediyor musunuz?
-      soru_4:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      aciklanamayan_kilo_kaybi:
+        type: boolean
         required: false
         ask_tr:
           tr: Beslenmenizde bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz mi?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      halsizlik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda alışılmadık şekilde halsiz ya da çabuk yoruluyor musunuz?
-      soru_6:
-        type: string
+          tr: Son zamanlarda kendinizi alışılmadık şekilde halsiz ya da yorgun hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      bulanik_gorme:
+        type: boolean
         required: false
         ask_tr:
           tr: Gözlerinizde son zamanlarda bulanık görme fark ettiniz mi?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      hiperglisemi_bulanti_kusma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çok susama ya da sık idrara çıkmayla birlikte bulantı, kusma veya karın ağrısı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      derin_hizli_nefes:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde her zamankinden derin ve hızlı nefes aldığınızı fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      diyabet_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce şeker hastalığı (diyabet) tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      diyabet_takip_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Şeker hastalığı nedeniyle ne zamandır takip ediliyorsunuz?
+        ask_if: diyabet_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      hipoglisemi_belirtileri:
+        type: boolean
         required: false
         ask_tr:
           tr: Kan şekeriniz düştüğünde titreme, soğuk terleme, çarpıntı ya da ani açlık gibi belirtiler yaşıyor musunuz?
-      soru_8:
-        type: string
+        ask_if: diyabet_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      diyabet_ilaci:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bu belirtilere bulantı, kusma, karın ağrısı ya da derin ve hızlı nefes alma eşlik ediyor mu?
-      soru_9:
-        type: string
-        required: false
-        ask_tr:
-          tr: Daha önce şeker hastalığı (diyabet) tanısı aldınız mı? Aldıysanız ne zamandır takip ediliyorsunuz?
-      soru_10:
-        type: string
-        required: false
-        ask_tr:
-          tr: Şu anda şekeriniz için düzenli kullandığınız ilaçlar (örneğin insülin ya da ağızdan alınan haplar) var mı?
-      soru_11:
-        type: string
+          tr: Şeker hastalığı için düzenli kullandığınız bir ilaç ya da insülin var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
+      ilac_alerjisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
 red_flags:
 - id: rf.diyabet_poliklinigi_l0_taslak
   label_tr: Diyabet polikliniği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

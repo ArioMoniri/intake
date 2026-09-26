@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/uroloji.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/uroloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.uroloji
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Üroloji ön görüşme protokolü
 extends: cluster.surgical
@@ -32,68 +34,87 @@ sections:
         required: true
         ask_tr:
           tr: Bugün üroloji bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/uroloji.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/uroloji.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      idrarda_gorunur_kan:
+        type: boolean
         required: false
         ask_tr:
           tr: İdrarınızda gözle görülen kan ya da pembe-kırmızı bir renk fark ettiniz mi?
-      soru_2:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      tedavi_sonrasi_idrarda_kan:
+        type: boolean
         required: false
         ask_tr:
           tr: İdrar yolu enfeksiyonu tedavisinden sonra idrarınızda kan yeniden görüldü mü?
-      soru_3:
-        type: string
+        ask_if: idrarda_gorunur_kan == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/uroloji.md'
+      idrarda_yanma_agri:
+        type: boolean
         required: false
         ask_tr:
           tr: İdrar yaparken yanma ya da ağrı hissediyor musunuz?
-      soru_4:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      idrar_yapamama:
+        type: boolean
         required: false
         ask_tr:
           tr: İdrarınızı yapmak istediğiniz hâlde hiç yapamadığınız bir durum oldu mu?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      zayif_kesik_idrar_akimi:
+        type: boolean
         required: false
         ask_tr:
           tr: İdrar akışınızın zayıfladığını ya da kesik kesik geldiğini fark ettiniz mi?
-      soru_6:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      gece_idrara_kalkma:
+        type: boolean
         required: false
         ask_tr:
           tr: Gece idrar yapmak için uykunuzdan uyanmanız gerekiyor mu?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      ani_idrar_sikisma:
+        type: boolean
         required: false
         ask_tr:
           tr: Aniden gelen ve bekletemediğiniz bir idrar yapma isteği oluyor mu?
-      soru_8:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      ani_siddetli_testis_agrisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Testislerinizde aniden başlayan şiddetli bir ağrı oldu mu?
-      soru_9:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      testis_agrisi_ile_bulanti_kusma:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bu ağrıyla birlikte bulantı ya da kusma oldu mu?
-      soru_10:
-        type: string
+          tr: Testis ağrınızla birlikte bulantı ya da kusma oldu mu?
+        ask_if: ani_siddetli_testis_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      keskin_boger_agrisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Belinizin yan tarafında, kaburgalarınızın altında keskin bir ağrı oldu mu?
-      soru_11:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
+      idrar_sikayeti_ile_ates:
+        type: boolean
         required: false
         ask_tr:
           tr: İdrar şikâyetlerinizle birlikte ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/uroloji.md'
 red_flags:
 - id: rf.uroloji_l0_taslak
   label_tr: Üroloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

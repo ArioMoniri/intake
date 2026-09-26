@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/fizyoterapi.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/fizyoterapi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.fizyoterapi
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Fizyoterapi ön görüşme protokolü
 extends: cluster.allied_and_reports
@@ -31,69 +33,86 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü görüşmede sizi fizik tedaviye getiren en önemli şikâyetiniz nedir? Kısaca anlatabilir misiniz?
+          tr: Sizi bugün fizik tedaviye getiren en önemli şikâyetiniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fizyoterapi.md'
   sorular:
     slots:
       soru_1:
         type: string
         required: false
         ask_tr:
-          tr: Ağrınız ya da rahatsızlığınız vücudunuzun en çok hangi bölgesinde ve ne zaman başladı?
-      soru_2:
-        type: string
+          tr: Ağrınızı ya da rahatsızlığınızı en çok vücudunuzun hangi bölgesinde hissediyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      gunluk_hareket_etkileniyor:
+        type: boolean
         required: false
         ask_tr:
           tr: Bu ağrı günlük hareketlerinizi (yürümek, oturmak, eğilmek gibi) etkiliyor mu?
-      soru_3:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      yeni_ya_da_degisen_belirti:
+        type: boolean
         required: false
         ask_tr:
-          tr: Şikâyetiniz son zamanlarda değişti mi ya da daha önce olmayan yeni belirtiler eklendi mi?
-      soru_4:
-        type: string
-        required: false
-        ask_tr:
-          tr: Sırt ya da bel ağrınız geceleri sizi uykudan uyandırıyor mu veya dinlenince hiç geçmiyor mu?
-      soru_5:
-        type: string
+          tr: Son zamanlarda şikâyetinizde bir değişiklik ya da yeni bir belirti oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      travma_sonrasi_basladi:
+        type: boolean
         required: false
         ask_tr:
           tr: Bu ağrı bir düşme, çarpma ya da kaza sonrasında mı başladı?
-      soru_6:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      yeni_idrar_zorlugu:
+        type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda bacaklarınızda ya da kollarınızda yeni bir güçsüzlük veya yürümekte zorlanma fark ettiniz mi?
-      soru_7:
-        type: string
+          tr: Son günlerde idrar yapmakta yeni bir zorluk ya da idrar kaçırma oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      yeni_makat_uyusmasi:
+        type: boolean
         required: false
         ask_tr:
-          tr: İdrarınızı yapmakta yeni bir zorluk, tutamama ya da makat–kalça bölgesinde uyuşma yaşadınız mı?
-      soru_8:
-        type: string
+          tr: Bacaklarınızın arasında ya da makat çevresinde yeni bir uyuşma fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      bel_agrisi_ile_ates:
+        type: boolean
         required: false
         ask_tr:
           tr: Sırt ya da bel ağrınızla birlikte ateşiniz de oluyor mu?
-      soru_9:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      aciklanamayan_kilo_kaybi:
+        type: boolean
         required: false
         ask_tr:
           tr: Sebebini bilmediğiniz kilo kaybı ya da kendinizi genel olarak halsiz hissetme durumunuz var mı?
-      soru_10:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      kas_iskelet_tanisi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Daha önce kas–iskelet sisteminizle ilgili bir tanı aldınız mı ya da ameliyat oldunuz mu?
-      soru_11:
-        type: string
+          tr: Daha önce kas, kemik ya da eklemlerinizle ilgili bir tanı aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      kas_iskelet_ameliyati:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce kas, kemik ya da eklemlerinizden ameliyat oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
+      duzenli_ilac:
+        type: boolean
         required: false
         ask_tr:
           tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı? Örneğin kan sulandırıcı ya da kortizon içeren ilaçlar.
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/fizyoterapi.md'
 red_flags:
 - id: rf.fizyoterapi_l0_taslak
   label_tr: Fizyoterapi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
