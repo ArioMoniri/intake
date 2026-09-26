@@ -65,6 +65,9 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
   - PDF p. 8 (difficult-airway markers, list item): "OSAS, Horlama öyküsü, Obezite"
   - PDF p. 7 (independent prognostic factors, excerpt): "tanı almış iskemik kalp hastalığı, kalp
     yetmezliği, iskemik beyin hastalığı, böbrek yetersizliği"
+  - PDF p. 9 (lung disease): "KOAH"
+  - PDF p. 11 (list items): "İnsulin gerektiren diyabet" · "İnme veya geçici iskemik atak". Stroke
+    is not asked by any item here unless the clinician adds it.
   - PDF p. 15: "Perioperatif dönemde sık kullanılan bazı analjezikler, NSAİ ve soğuk algınlığı
     ilaçlarının trombosit fonksiyonları üzerine etkileri vardır."
   - PDF p. 18 (allergy history, list item): "Daha önceki anestezi uygulamasındaki alerji öyküsü"
@@ -176,9 +179,12 @@ The committed OPT pins archetype **roots** only, with no at-codes. Leaf paths ar
 | Q10, Q11 bleeding history | `rf.severe_bleeding` covers active bleeding, not history | history only |
 | Q2 onset after injury | none; the compartment and limb-ischaemia patterns are §2.3 candidates | context only |
 
-Q2 uses the same slot id as four sibling proposals (`travma_sonrasi_basladi`), and Q9 the same as
-`aile_hekimligi.md` (`suregelen_hastalik`). A specialty that extends this cluster can drop or bind
-its duplicate.
+Q2 uses the same slot id as two sibling proposals, ortopedi and fizyoterapi
+(`travma_sonrasi_basladi`). el_cerrahisi Q2 asks the same fact as `yaralanma_sonrasi_basladi`; it
+rebinds, or the clinician keeps the hand-specific fact (verification cluster-wave-a §F). Q6 and Q9 use
+anesteziyoloji's ids (`onceki_anestezi_sorunu`, `suregelen_rahatsizlik`), because anesteziyoloji is a
+member of this cluster and asks the same facts. A specialty that extends this cluster can drop or
+bind its duplicate.
 
 ### 2.3 Red-flag candidates: for physician review, not encoded
 
@@ -207,8 +213,10 @@ Family-history items are `text_first`, per owner decision D3
 (`docs/evidence/verification/owner-decisions-2026-09-26.md`).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün hangi sorun için randevu aldığınızı kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?"
+CANDIDATE — clinician to approve wording. kadın hastalıkları Q1's neutral text (verification
+cluster-wave-a §C). The cluster also serves anesteziyoloji preop visits and post-op checks, so the ask
+presumes no problem, and the "nedir?" ending selects the neutral reason follow-up.
 
 **Q2 — Onset after a fall, blow or injury** · archetype: `OBSERVATION.story.v1` · source: general intake (mechanism of onset); NO SOURCE FOUND for a versioned text (§4 gap 3)
 > "Şikâyetiniz bir düşme, darbe ya da yaralanmadan sonra mı başladı?"
@@ -232,9 +240,9 @@ CANDIDATE — clinician to approve wording. Gate for Q6 and Q13.
 
 **Q6 — Own anaesthesia problem** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: SUR-S1 PDF p. 8 ("önceki anestezi tecrübeleri"), PDF p. 18
 > "Önceki ameliyatlarınızda narkozla ilgili bir sorun yaşadınız mı?"
-gen: slot=anestezi_sorunu; type=boolean; ask_if=onceki_ameliyat == true; follow_up=Uyanmakta güçlük, alerji ya da nefes sorunu gibi bir şey oldu mu?
+gen: slot=onceki_anestezi_sorunu; type=boolean; ask_if=onceki_ameliyat == true; follow_up=Uyanmakta güçlük, alerji ya da nefes sorunu gibi bir şey oldu mu?
 CANDIDATE — clinician to approve wording. "narkoz" is the common lay word. The words that read as
-"narcotic" (wave 1–3 finding 13) are avoided.
+"narcotic" (wave 1–3 finding 13) are avoided. Same id as anesteziyoloji Q5, a cluster member.
 
 **Q7 — Family anaesthesia problem** · archetype: `OBSERVATION.story.v1` · source: SUR-S7 (SECONDARY)
 > "Ailenizde narkoz sırasında ciddi bir sorun yaşayan biri oldu mu?"
@@ -247,11 +255,13 @@ Relatives' health history is a D3 category, so `text_first`.
 gen: slot=horlama_nefes_durmasi; type=boolean
 CANDIDATE — clinician to approve wording. Airway planning input only.
 
-**Q9 — Long-term heart, lung, kidney or sugar disease** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SUR-S1 PDF p. 7 (prognostic factors)
-> "Kalp, akciğer, böbrek ya da şeker hastalığı gibi süregen bir hastalığınız var mı?"
-gen: slot=suregelen_hastalik; type=boolean; follow_up=Bu hastalığın adını söyleyebilir misiniz?
+**Q9 — Long-term heart, lung, kidney or sugar disease** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SUR-S1 PDF p. 7 (prognostic factors), p. 9 ("KOAH"), p. 11 ("İnsulin gerektiren diyabet")
+> "Kalp, akciğer, böbrek ya da şeker hastalığı gibi süregelen bir rahatsızlığınız var mı?"
+gen: slot=suregelen_rahatsizlik; type=boolean; follow_up=Doktorunuzun söylediği, uzun süredir devam eden bir sağlık sorununuz var mı?
 CANDIDATE — clinician to approve wording. Surgical packs do not inherit `cluster.medical`, so this
-single comorbidity screen is the surgical cluster's own.
+single comorbidity screen is the surgical cluster's own. "rahatsızlığınız" replaces "hastalığınız
+var", which the PolicyGuard diagnosis arm matches. The follow-up restates the yes/no fact and asks
+for no name. Same id and fact as anesteziyoloji Q3, a cluster member.
 
 **Q10 — Prolonged bleeding after surgery, extraction or injury** · archetype: `OBSERVATION.story.v1` · source: SUR-S2 ("detail of previous surgery and trauma")
 > "Daha önceki bir ameliyat, diş çekimi ya da yaralanmadan sonra kanamanız uzun sürdü mü?"
@@ -266,9 +276,12 @@ CANDIDATE — clinician to approve wording. D3 category, so `text_first`.
 
 **Q12 — Anti-inflammatory painkiller use** · archetype: `ACTION.medication.v1` · source: SUR-S1 PDF p. 15 ("NSAİ … trombosit fonksiyonları üzerine etkileri vardır"); `nefroloji.md` N-S1 (SECONDARY, NSAII advice)
 > "Son günlerde iltihap giderici bir ağrı kesici kullandınız mı?"
-gen: slot=iltihap_giderici_kullanimi; type=boolean; follow_up=İlacın adını kutusundan okuyabilir misiniz?
-CANDIDATE — clinician to approve wording. Aspirin is left to base `anticoagulant_use`, which many
-patients answer for it (§4 gap 5). Stopping intervals are the clinician's instruction, never asked.
+gen: slot=iltihap_giderici_kullanimi; type=boolean; follow_up=İbuprofen, naproksen ya da diklofenak gibi bir ağrı kesici kullandınız mı?
+CANDIDATE — clinician to approve wording. The follow-up is a yes/no with generic examples, so the
+extractor never classifies a brand name. The clinician may choose other generic examples. Brand names
+are not used, and drug names pass the compiler's orthography expansion (invariant 22). Aspirin is left
+to base `anticoagulant_use`, which many patients answer for it (§4 gap 5). Stopping intervals are the
+clinician's instruction, never asked.
 
 **Q13 — This visit is a post-operative check (gate)** · archetype: `OBSERVATION.story.v1` · source: SUR-S4 rec 1.1.3; SUR-S3 PDF p. 34
 > "Bu randevu yakın zamanda olduğunuz bir ameliyatın kontrolü için mi?"
@@ -278,8 +291,9 @@ for a visit-type field the generator cannot read (§4 gap 6). Gate for Q14–Q17
 
 **Q14 — Wound discharge** · archetype: `OBSERVATION.symptom_sign.v1` · source: SUR-S3 PDF p. 34 ("sarımsı akıntı, sıvı veya irin"); SUR-S4 PDF p. 16
 > "Ameliyat yaranızdan akıntı geliyor mu?"
-gen: slot=yara_akintisi; type=boolean; ask_if=ameliyat_sonrasi_kontrol == true; follow_up=Sarımsı, bulanık ya da kötü kokulu bir sıvı geliyor mu?
+gen: slot=yara_akintisi; type=boolean; ask_if=ameliyat_sonrasi_kontrol == true; follow_up=Ameliyat yaranızdan sıvı ya da irin gibi bir şey sızıyor mu?
 CANDIDATE — clinician to approve wording. **Input to the post-op fever and discharge candidate (§2.3).**
+The follow-up uses SUR-S3's own words ("sıvı veya irin"), so clear discharge is not narrowed away.
 
 **Q15 — Redness, warmth or swelling around the wound** · archetype: `OBSERVATION.symptom_sign.v1` · source: SUR-S3 PDF p. 34 ("kızarıklık, ısı artışı veya şişlik"); SUR-S4 PDF p. 16 ("heat, redness, pain and swelling")
 > "Ameliyat yaranızın çevresinde kızarıklık, sıcaklık ya da şişlik var mı?"
@@ -329,8 +343,9 @@ CANDIDATE — clinician to approve wording.
 8. **Sourced but not drafted, to stay within eighteen:** pain or tenderness increasing at the wound
    (SUR-S3 PDF p. 34); daily-function limitation (see `cluster_medical.md` Q18). The clinician may
    swap them in.
-9. **Generator default.** `build_pack` writes `extends: cluster.medical` when the draft carries none.
-   A surgical cluster must extend `base.intake`. **Generator owner must fix** before emitting.
+9. **Generator default.** Resolved (verification cluster-wave-a §E-2). The generator's cluster mode
+   emits `id: cluster.surgical`, `layer: cluster` and `extends: base.intake` under
+   `packages/protocols/review/cluster/`.
 10. **Proxy wording.** No proxy variants keyed on base `subject_role` are drafted (wave 1–3 finding 25).
 11. **Copyright / snapshot licence** for NICE, BSH and TARD texts needs a legal-review decision.
 12. **EK-4 acuity**: no snapshot in the repository. **No level proposed.** All three RED axes

@@ -28,8 +28,9 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
 - **Pregnancy possibility first, without duplication.** Base already asks `pregnancy_status`
   ("Şu anda gebe olma ihtimaliniz var mı?") and `lmp_date`, both `text_first`. This pack does **not**
   re-ask them. Q2 reads `pregnancy_status` through `ask_if`, and every pregnancy item hangs off Q2.
-  Base places `pregnancy_status` in its sixth section, and the DSL has no priority field to move it
-  first. That ordering gap is recorded in base itself and in §4 gap 2. It is not solved here.
+  Under the current engine `pregnancy_status` is a base `must_ask` step, and every cluster item sorts
+  after it, so it is always offered before any item here (verification cluster-wave-a §G). The real
+  failures are two, recorded in §4 gap 2. It is not solved here.
 - **Other base slots not repeated:** the HPI, medications, `anticoagulant_use`, allergies,
   `smoking_status`, `alcohol_use`, `weight_kg` and `immunosuppression`.
 - **Pregnancy-week awareness.** Q3 collects the estimated due date as a date picker. With base
@@ -183,6 +184,8 @@ is the same finding as base (`pregnancy_status` is deferred to INT-032).
 | Q10 | Pregnancy ended recently | `openEHR-EHR-OBSERVATION.story.v1` | deferred (INT-032) |
 | Q11, Q12 | Bleeding increasing; fever after pregnancy ended | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | Q13–Q16 | Heavy periods; unexpected bleeding; lower abdominal pain; changed discharge | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
+| Q14a | Periods stopped for good | `openEHR-EHR-OBSERVATION.story.v1` | deferred (INT-032) |
+| Q14b | Bleeding after the menopause | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | Q17 | Contraception in use | `openEHR-EHR-ACTION.medication.v1` | deferred (INT-032); devices and barrier methods do not fit a medication root (§4 gap 9) |
 | Q18 | Any previous pregnancy | `openEHR-EHR-OBSERVATION.story.v1` | deferred (INT-032) |
 | n/a | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | output only |
@@ -203,10 +206,23 @@ pregnancy rule set does not exist at all (HUMAN_BLOCKERS **HB-C4**). Every item 
 Slot ids reuse the sibling ids wherever the item is the same: `tahmini_dogum_tarihi`,
 `bebek_hareketi_hissediliyor`, `bebek_hareketlerinde_azalma`, `yuz_el_sisligi`, `onceki_gebelik`
 (gebe_poliklinigi, perinatoloji) and `gebelikte_kanama`, `gebelikte_siddetli_bas_agrisi`,
-`gebelikte_gorme_bozuklugu`, `adet_disi_kanama`, `alt_karin_agrisi` (kadin_hastaliklari_ve_dogum).
-A specialty that extends this cluster can drop or bind its duplicate. `kadin_hastaliklari_ve_dogum.md`
-also defines its own `gebelik_durumu` and `son_adet_tarihi`, which duplicate base `pregnancy_status`
-and `lmp_date` (wave 1–3 finding 5).
+`gebelikte_gorme_bozuklugu`, `adet_disi_kanama`, `alt_karin_agrisi` (kadin_hastaliklari_ve_dogum),
+and `anormal_akinti`, `adet_kesildi`, `menopoz_sonrasi_kanama` (jinekolojik_onkoloji). A specialty
+that extends this cluster can drop or bind its duplicate. `kadin_hastaliklari_ve_dogum.md` also
+defines its own `gebelik_durumu` and `son_adet_tarihi`, which duplicate base `pregnancy_status` and
+`lmp_date` (wave 1–3 finding 5).
+
+Collisions owed by member proposals (same fact under another id, so it is asked twice once the branch
+resolves over this cluster; verification cluster-wave-a §F):
+
+- gebe_poliklinigi Q11 `siddetli_bas_agrisi` (identical ask) rebinds to
+  `gebelikte_siddetli_bas_agrisi`;
+- perinatoloji Q11 `gorme_bulanikligi` rebinds to `gebelikte_gorme_bozuklugu`;
+- jinekolojik_onkoloji Q8 `kasik_alt_karin_agrisi` rebinds to `alt_karin_agrisi`.
+
+An override replaces the whole slot, delivery included. gebe_poliklinigi's voice
+`bebek_hareketi_hissediliyor`, `bebek_hareketlerinde_azalma` and `yuz_el_sisligi` therefore undo this
+cluster's `text_first` for those slots (§4 gap 6).
 
 ### 2.3 Red-flag candidates: for physician review, not encoded
 
@@ -237,13 +253,16 @@ neutral restatement, and the clinician confirms it.
 pack: duration_ask=Bu konu ne zamandır devam ediyor?; duration_follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün kadın sağlığıyla ilgili hangi konu için geldiğinizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording. "konu", not "şikâyet", because a pregnancy check has no complaint.
+> "Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?"
+CANDIDATE — clinician to approve wording. "konu", not "şikâyet", because a pregnancy check has no
+complaint. This is kadın hastalıkları Q1's text; the "nedir?" ending selects the neutral reason
+follow-up rather than the complaint one.
 
 **Q2 — Pregnancy confirmed by a test or scan (gate)** · archetype: `OBSERVATION.story.v1` · source: WH-S5 rec 1.4.5; WH-S1 PDF p. 14
-> "Gebeliğiniz bir test ya da ultrasonla doğrulandı mı?"
+> "Bir gebelik testi ya da ultrason gebe olduğunuzu gösterdi mi?"
 gen: slot=gebelik_dogrulandi; type=boolean; ask_if=pregnancy_status != 'hayir'; follow_up=Evde ya da hastanede yapılan gebelik testi pozitif çıktı mı?; delivery=text_first
-CANDIDATE — clinician to approve wording. Reads base `pregnancy_status` and does not re-ask it. It
+CANDIDATE — clinician to approve wording. Neutral: the ask presumes no pregnancy, because the gate
+also opens on "emin değilim". Reads base `pregnancy_status` and does not re-ask it. It
 opens on "evet" and "emin değilim", and the literal `'hayir'` copies base's own `lmp_date` gate
 (§4 gap 4). Gate for Q3–Q9. A "hayır" here still leaves a possible pregnancy on record through base,
 and the ectopic candidate (§2.3) reads base, not this item.
@@ -312,9 +331,24 @@ amount is asked.
 
 **Q14 — Unexpected bleeding outside periods** · archetype: `OBSERVATION.symptom_sign.v1` · source: WH-S9 rec 1.2.1 ("persistent intermenstrual bleeding"); WH-S10 recs 1.5.12, 1.5.14 ("unexplained post-menopausal bleeding"); WH-S5 rec 1.4.3
 > "Âdet dönemleriniz dışında beklenmedik bir kanamanız oldu mu?"
-gen: slot=adet_disi_kanama; type=boolean; follow_up=Âdetleriniz tamamen kesildiyse, sonrasında görülen bir kanama oldu mu?; delivery=text_first
-CANDIDATE — clinician to approve wording. One concern, unexpected bleeding. The follow-up makes sure
-bleeding after menopause is counted. The age split in NG12 stays in the rule.
+gen: slot=adet_disi_kanama; type=boolean; follow_up=Âdet günleriniz dışında az da olsa kanama ya da lekelenme oldu mu?; delivery=text_first
+CANDIDATE — clinician to approve wording. One concern, unexpected bleeding, and the follow-up restates
+it. Post-menopausal bleeding moves to Q14b: a follow-up is heard only after an unclear answer, so it
+cannot carry a second fact. The age split in NG12 stays in the rule.
+
+**Q14a — Periods stopped for good (gate)** · archetype: `OBSERVATION.story.v1` · source: WH-S10 recs 1.5.12, 1.5.14
+> "Menopoza girdiğiniz için âdetleriniz tamamen kesildi mi?"
+gen: slot=adet_kesildi; type=boolean; follow_up=Âdetleriniz yaş nedeniyle ya da bir ameliyattan sonra tamamen durdu mu?; delivery=text_first
+CANDIDATE — clinician to approve wording. jinekolojik_onkoloji's id, so that pack overrides cleanly.
+The ask names the menopause on purpose: "Adet kanamalarınız tamamen kesildi mi?" is answered "evet"
+by a pregnant patient, which would file pregnancy bleeding as post-menopausal bleeding. Gate for Q14b.
+
+**Q14b — Bleeding after the menopause** · archetype: `OBSERVATION.symptom_sign.v1` · source: WH-S10 recs 1.5.12, 1.5.14 ("unexplained post-menopausal bleeding")
+> "Âdetleriniz kesildikten sonra hiç lekelenme ya da kanama oldu mu?"
+gen: slot=menopoz_sonrasi_kanama; type=boolean; ask_if=adet_kesildi == true; follow_up=Menopozdan sonra az da olsa kan gördünüz mü?; delivery=text_first
+CANDIDATE — clinician to approve wording. jinekolojik_onkoloji's id, ask and follow-up, so that pack
+overrides cleanly. kadın hastalıkları Q6 and aile Q8 use the same id. The NG12 age split stays in the
+rule.
 
 **Q15 — Lower abdominal or pelvic pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: WH-S5 rec 1.4.3 ("abdominal or pelvic pain"); WH-S9 rec 1.2.1 ("pelvic pain"); WH-S1 PDF p. 21 ("Karın ağrısı")
 > "Karnınızın alt kısmında ya da kasıklarınızda ağrı var mı?"
@@ -324,8 +358,9 @@ pregnancy-with-pain candidate (§2.3). Base `location_text` and `severity_nrs` d
 
 **Q16 — Discharge that has changed** · archetype: `OBSERVATION.symptom_sign.v1` · source: WH-S3 ("cinsel organda anormal akıntı (kötü kokulu, renkli…"); WH-S2 ("Kötü kokulu akıntı"); WH-S8 rec 1.2.4
 > "Rengi, kokusu ya da miktarı değişen bir vajinal akıntınız var mı?"
-gen: slot=vajinal_akinti; type=boolean; delivery=text_first
-CANDIDATE — clinician to approve wording. Genital symptom (D3), so `text_first`.
+gen: slot=anormal_akinti; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Genital symptom (D3), so `text_first`. Same id and fact as
+jinekolojik_onkoloji Q5, a cluster member.
 
 **Q17 — Contraception in use** · archetype: `ACTION.medication.v1` · source: WH-S11 ("Kontrasepsiyon, reprodüktif yaşam, seksüel anamnez"); WH-S4 printed p. 390; WH-S5 rec 1.4.5
 > "Şu anda bir doğum kontrol yöntemi kullanıyor musunuz?"
@@ -339,8 +374,8 @@ gen: slot=onceki_gebelik; type=boolean; follow_up=Şu anki gebeliğiniz dışın
 CANDIDATE — clinician to approve wording. Obstetric detail (outcomes, complications, caesarean)
 belongs to the specialty packs that extend this cluster (`gebe_poliklinigi.md` Q4a–Q5).
 
-*(18 candidate questions: 17 sourced, 1 general intake. 10 are gated: Q2 on base `pregnancy_status`;
-Q3–Q9 on Q2 or Q5; Q11–Q12 on Q10. 16 are `text_first`, and only Q1 and Q15 are voice.)*
+*(20 candidate questions: 19 sourced, 1 general intake. 11 are gated: Q2 on base `pregnancy_status`;
+Q3–Q9 on Q2 or Q5; Q11–Q12 on Q10; Q14b on Q14a. 18 are `text_first`, and only Q1 and Q15 are voice.)*
 
 ---
 
@@ -349,13 +384,19 @@ Q3–Q9 on Q2 or Q5; Q11–Q12 on Q10. 16 are `text_first`, and only Q1 and Q15 
 1. **TJOD versioned guidance** on gynaecological or antenatal history: **NO SOURCE FOUND: clinician
    must supply** if a TJOD text should outrank the Ministry guides and NICE. The current editions of
    WH-S1 and WH-S2 (both 2018) must be confirmed on the Ministry e-library.
-2. **"Pregnancy possibility FIRST" cannot be guaranteed by a cluster pack.** Base asks
-   `pregnancy_status` in its sixth section. Base's own header records that the DSL has no
-   priority-class field to promote it (files/13 §14 item 13). Until that DSL change lands, Q2–Q9 may
-   run before `pregnancy_status` has an answer, and then their gate stays closed. **DSL owner must
-   decide.** Related: base asks `lmp_date` only when `pregnancy_status != 'hayir'`, but a women's
-   health visit needs the last period for every patient. Widening that gate is a base or override
-   decision, not a duplicate question here.
+2. **"Pregnancy possibility FIRST": what base ordering allows** (verification cluster-wave-a §G).
+   `pregnancy_status` sits in base section 6 and is `must_ask`, so the frontier always offers it
+   before any cluster item, all of which sort as detail. Q2–Q9 therefore never run before it is
+   offered. The real failures are:
+   - (a) the bare `pregnancy_status` gate does not open under the current engine, so Q2–Q9 are not
+     asked until the engine resolves bare gate names (INT-355);
+   - (b) a patient who leaves the `text_first` `pregnancy_status` unanswered reads Unknown, so Q2–Q9
+     stay shut. That fails closed toward *not* asking pregnancy items, and it is the clinician's to
+     accept.
+
+   The ectopic candidate still reads base. Related: base asks `lmp_date` only when
+   `pregnancy_status != 'hayir'`, but a women's health visit needs the last period for every patient.
+   No pack op can widen a base `ask_if`, so that is a **base-owner** edit, not a duplicate question here.
 3. **Gestational and postpartum thresholds.** The week after which fetal-movement and pre-eclampsia
    questions matter (WH-S7 rec 1.2.34; the files/04 §2.1 pre-eclampsia pattern) and the length of the
    postpartum window are **clinical values**. They stay as the invariant-17 pending form in any rule
@@ -377,8 +418,9 @@ Q3–Q9 on Q2 or Q5; Q11–Q12 on Q10. 16 are `text_first`, and only Q1 and Q15 
    should skip them, but the generator can only emit `ask_if`, and a negated gate on an unasked Q2
    would hide them from non-pregnant patients too. The DSL supports `skip_if`. **Generator owner**
    decides whether to add it. The OPT also has no archetype that fits a contraceptive device.
-10. **Generator default.** `build_pack` writes `extends: cluster.medical` when the draft carries none.
-    A women's health cluster must extend `base.intake`. **Generator owner must fix** before emitting.
+10. **Generator default.** Resolved (verification cluster-wave-a §E-2). The generator's cluster mode
+    emits `id: cluster.womens_health`, `layer: cluster` and `extends: base.intake` under
+    `packages/protocols/review/cluster/`.
 11. **Proxy wording.** No proxy variants keyed on base `subject_role` are drafted (wave 1–3 finding 25).
     Adolescent confidentiality for these items needs the legal-reviewer (minors).
 12. **Data categories and storage.** Genital, sexual-health and pregnancy answers are D3-approved for

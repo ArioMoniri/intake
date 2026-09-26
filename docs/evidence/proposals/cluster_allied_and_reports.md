@@ -31,11 +31,13 @@ off*. It assigns **no** RED/YELLOW/GREEN level, route or trigger and pins **no**
 - **Report purpose stays out of the report.** AL-S1 Madde 8(5) bars the purpose from the report unless a
   specific health criterion exists or the Ministry allows it. Q3 (`rapor_amaci`) is a D3-approved category
   (owner decision, 2026-09-26): `delivery: text_first`, note-only, INT-349 register row; no report export
-  may carry it. The legal-reviewer sets the export boundary.
+  may carry it. The legal-reviewer sets the export boundary. D3 names sağlık kurulu. Carrying Q3 to
+  Adli Tıp and the other allied branches is read as within D3, and the owner narrows it if not. The
+  legal-reviewer confirms whether AL-S1 governs forensic reports.
 - **"Minimal HPI" is a structural requirement for the engineer, not a question.** `base.intake` makes its
   OLDCARTS slots `must_ask`, so today every allied visit (a vaccination, a diet session) runs the full
-  symptom history. files/12 ops (`suppress_slot`) or a `visit_type: report` rule could make the base HPI
-  conditional on Q7. Choosing that is a clinician and engineer decision, and nothing here removes a
+  symptom history. A base-level gate (suppress_slot on a must_ask slot is a hard compile error,
+  files/12 §3.2) or a `visit_type: report` rule could make the base HPI conditional on Q7. Choosing that is a clinician and engineer decision, and nothing here removes a
   `must_ask` slot (files/04 §2.3 forbids overlays to remove one).
 - **"No wellbeing screening unless opted in" is a structural requirement too.** The base `screening`
   section (PHQ-2/GAD-2 → PHQ-9/GAD-7) is consent-gated and `text_only`. For this cluster it must stay
@@ -44,12 +46,15 @@ off*. It assigns **no** RED/YELLOW/GREEN level, route or trigger and pins **no**
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules. The
   sources are procedural regulations with no urgency wording, so §2.3 proposes nothing. Any acute symptom
   a person discloses is handled by the base probes and `base.life_threat`, as for any visit.
-- **Engineer notes.** (a) Cluster packs extend `base.intake` and are layer `cluster`; `build_pack` defaults
-  `extends` to `cluster.medical` and hard-codes `layer: specialty`. (b) These `sorular` slots are inherited
+- **Engineer notes.** (a) Cluster packs extend `base.intake` and are layer `cluster`. The generator's
+  cluster mode now emits `id: cluster.allied_and_reports`, `layer: cluster` and `extends: base.intake`
+  under `review/cluster/` (verification cluster-wave-b §E-1). (b) These `sorular` slots are inherited
   by all seven allied specialty packs. Slot ids and texts are reused from saglik_kurulu where the fact is
   the same. (c) Evde Sağlık and child report visits (ÇÖZGER) are often proxy sessions; every item here is
-  self-addressed. A self/proxy variant keyed on base `subject_role` needs an ADR (wave 8 verification
-  §E-4).
+  self-addressed. Evde Sağlık is a live adult-proxy case, not only a child one: its pack speaks to the
+  carer ("Hastanın…"), so a carer answering Q7 and Q10–Q12 would report their own function, which in a
+  report context is false functional data. A self/proxy variant keyed on base `subject_role` needs an
+  ADR (wave 8 verification §E-4).
 - **Not repeated from base:** medicines, allergies, occupation, living situation, caregiver, pregnancy,
   smoking, alcohol. Base `caregiver_present` asks whether someone helps; Q10 asks whether help is
   **needed**, which is the construct AL-S2 uses.
@@ -258,8 +263,8 @@ name (wave 8 verification §A).
    from an answer.
 3. **Child report visits (ÇÖZGER)** — the *Çocuklar İçin Özel Gereksinim Raporu Hakkında Yönetmelik* was
    not retrieved; the child route and guardian address are open (§0 engineer note c; HB-L20).
-4. **Minimal HPI and wellbeing opt-in** — structural requirements in §0; need a clinician and engineer
-   decision (files/12 ops), not a question.
+4. **Minimal HPI and wellbeing opt-in** — structural requirements in §0; need a clinician, base-owner
+   and engineer decision (a base-level gate or a visit-type rule), not a question.
 5. **Report-purpose export boundary** (AL-S1 Madde 8(5)) — legal-reviewer.
 6. **Branch content** (vaccine contraindications, nutrition, home-care wounds and falls, forensic safety)
    — deliberately left to the specialty packs; not a cluster gap.

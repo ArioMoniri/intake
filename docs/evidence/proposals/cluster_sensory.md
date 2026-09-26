@@ -158,7 +158,7 @@ The committed OPT pins archetype **roots** only, with no at-codes. Leaf paths ar
 | Q1 | Reason for visit | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | deferred (INT-032) |
 | Q2–Q7, Q9 | Vision change; sudden; one eye; eye pain; red eye; halos; flashes or floaters | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | Q8 | Contact lens wear | `openEHR-EHR-OBSERVATION.story.v1` | deferred (INT-032); no device archetype in the OPT |
-| Q10–Q12 | Hearing loss; sudden; spinning sensation | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
+| Q10–Q12 | Hearing loss or ear fullness; sudden; spinning sensation | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | Q13, Q14 | Nosebleed; always the same side | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | Q15–Q18 | Dysphagia; pain on swallowing; neck lump; hoarseness | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | n/a | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | output only |
@@ -171,8 +171,9 @@ The committed OPT pins archetype **roots** only, with no at-codes. Leaf paths ar
 | Q12 spinning sensation | `rf.stroke_fast` / `rf.new_neuro_deficit_subacute` (dizziness with neurological signs) | gate input only |
 | Q13 nosebleed | `rf.severe_bleeding` (active heavy bleeding) | history only |
 
-Q15 uses the same slot id as `aile_hekimligi.md` (`yutma_guclugu`). A specialty that extends this
-cluster can drop or bind its duplicate.
+Q15 uses the same slot id as `aile_hekimligi.md` (`yutma_guclugu`). Q11 uses the wave 9 id
+`ani_isitme_azalmasi` (sualtı Q12, odyoloji Q13), which resolves the collision with odyoloji and
+sualtı. A specialty that extends this cluster can drop or bind its duplicate.
 
 ### 2.3 Red-flag candidates: for physician review, not encoded
 
@@ -241,26 +242,32 @@ pain, redness, discharge and light sensitivity.
 
 **Q9 — New flashes or floaters** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S1 ("uçuşan cisimler"; "Olmayan ışık çakmaları görme"); SEN-S4 ("flashes, floaters")
 > "Gözünüzün önünde yeni ışık çakmaları ya da uçuşan noktalar gördünüz mü?"
-gen: slot=isik_cakmasi_ucusan_cisim; type=boolean; follow_up=Gözünüzün önünde sinek, tüy ya da benek gibi şekiller uçuşuyor mu?
-CANDIDATE — clinician to approve wording. The follow-up uses TOD's own lay images in our words.
+gen: slot=isik_cakmasi_ucusan_cisim; type=boolean; follow_up=Gözünüzün önünde ışık çakması ya da sinek gibi uçuşan şekiller oluyor mu?
+CANDIDATE — clinician to approve wording. The follow-up restates both halves of the ask, flashes and
+floaters, with TOD's own lay image in our words.
 
-**Q10 — New hearing loss (gate)** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S6; SEN-S7 ("full or blocked ear", SECONDARY)
-> "İşitmenizde yeni bir azalma fark ettiniz mi?"
-gen: slot=isitme_azalmasi; type=boolean; follow_up=Kulağınızda tıkanıklık ya da dolgunluk hissi oldu mu?
-CANDIDATE — clinician to approve wording. The follow-up catches the "blocked ear" presentation that
-patients may not call hearing loss. Gate for Q11.
+**Q10 — New hearing loss or ear fullness (gate)** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S6 ("kulakta dolgunluk hissi"); SEN-S7 ("full or blocked ear", SECONDARY)
+> "Son zamanlarda işitmenizde azalma ya da kulağınızda tıkanıklık hissi oldu mu?"
+gen: slot=isitme_azalmasi_tikaniklik; type=boolean; follow_up=Eskisinden daha az duyuyor ya da kulağınızda dolgunluk hissediyor musunuz?
+CANDIDATE — clinician to approve wording. The ask carries the "blocked ear" presentation that SEN-S7
+calls primary for sudden hearing loss, as one concern with hearing loss (the pattern of
+`cinlama_isitme_azalmasi`). A follow-up is heard only after an unclear answer, so it could not carry
+that fact. The follow-up restates the ask. Gate for Q11.
 
-**Q11 — The hearing loss started suddenly** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S6 ("aniden ortaya çıkan")
-> "İşitmenizdeki azalma birden mi başladı?"
-gen: slot=ani_isitme_kaybi; type=boolean; ask_if=isitme_azalmasi == true
+**Q11 — The change started suddenly** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S6 ("aniden ortaya çıkan")
+> "İşitmenizdeki bu değişiklik birden mi başladı?"
+gen: slot=ani_isitme_azalmasi; type=boolean; ask_if=isitme_azalmasi_tikaniklik == true
 CANDIDATE — clinician to approve wording. **Input to the sudden hearing loss candidate (§2.3).** The
-onset window is rule text (SEN-S7).
+onset window is rule text (SEN-S7). The id is the one wave 9 standardised (sualtı Q12, odyoloji Q13),
+so odyoloji's ungated re-declaration replaces this gated slot. Here it means sudden onset of reduced
+hearing or ear fullness, the clinical intent SEN-S7 supports; the rule author reads it that way.
 
 **Q12 — Spinning sensation** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S8 (Bárány definition); SEN-S6 ("Baş dönmesi bu belirtilere eşlik edebilir.")
-> "Kendinizin ya da çevrenizin döndüğü hissini yaşadınız mı?"
+> "Son zamanlarda kendinizin ya da çevrenizin döndüğü hissini yaşadınız mı?"
 gen: slot=donme_hissi; type=boolean; follow_up=Hareket etmediğiniz hâlde dönme ya da sallanma hissi oldu mu?
 CANDIDATE — clinician to approve wording. Separates true vertigo from general light-headedness,
-which the source definitions treat differently.
+which the source definitions treat differently. "Son zamanlarda" gives the recency frame every other
+symptom item has, so an episode years ago does not blur its role as a stroke-family input (§2.2).
 
 **Q13 — Recent nosebleed (gate)** · archetype: `OBSERVATION.symptom_sign.v1` · source: SEN-S9
 > "Son zamanlarda burnunuz kanadı mı?"
@@ -310,16 +317,17 @@ CANDIDATE — clinician to approve wording. The persistence threshold stays in t
    tonsillectomy") is drafted, because the physician must define the probe (HB-C1).
 3. **Vertigo definition.** The Bárány definition is quoted through a 2021 review, because the 2009
    consensus paper has no PubMed abstract. The primary paper must be snapshotted.
-4. **Sourced but not drafted, to stay within eighteen:** new tinnitus or ear fullness as a separate
-   item (SEN-S6), ear pain or discharge, double vision, eyelid swelling, and a curtain over part of
+4. **Sourced but not drafted, to stay within eighteen:** new tinnitus as a separate item (SEN-S6;
+   ear fullness is now carried by Q10), ear pain or discharge, double vision, eyelid swelling, and a curtain over part of
    the vision (SEN-S1 "Bir perde arkasından bakıyormuş gibi görme hissi"). The clinician may swap
    them in, and the curtain item is a strong candidate for Q9's partner.
 5. **Pattern logic.** The sudden painless one-eye vision loss candidate needs Q3, Q4 and Q5 read
    together. Whether "painless" is Q5 == false or a dedicated item is a **rule-author decision**.
 6. **Delivery.** All items are `voice`. None collects a D3 category. The clinician may still prefer
    `text_first` for any item.
-7. **Generator default.** `build_pack` writes `extends: cluster.medical` when the draft carries none.
-   A sensory cluster must extend `base.intake`. **Generator owner must fix** before emitting.
+7. **Generator default.** Resolved (verification cluster-wave-a §E-2). The generator's cluster mode
+   emits `id: cluster.sensory`, `layer: cluster` and `extends: base.intake` under
+   `packages/protocols/review/cluster/`.
 8. **Proxy wording.** No proxy variants keyed on base `subject_role` are drafted (wave 1–3 finding 25).
 9. **Copyright / snapshot licence** for NICE, AAO and AAO-HNS texts needs a legal-review decision.
 10. **EK-4 acuity**: no snapshot in the repository. **No level proposed.** All three RED axes

@@ -30,28 +30,38 @@ clinical value.
   **HB-C17**) and to the wellbeing lane. NICE NG222 1.2.8 tells the clinician to ask directly; the app is
   not a substitute for that question and must not appear to be one. Invariant 7: nothing here extends or
   relaxes `base.life_threat`.
-- **"Safety of others" is captured as history only.** Q18 asks about difficulty controlling anger, which
-  MH-S5 and MH-S4 tie to risk of harm to others. It is not a violence-risk screen, no aggressive or
-  homicidal ideation is asked, and `base.life_threat` has no risk-to-others rule (§4 gap 4). The
-  clinician asks the direct risk question.
-- **Psychosis-screen topics are asked as history, not as a screen.** Q16 and Q17 cover the two
+- **"Safety of others" is drafted as history only, and held.** Q18 asks about difficulty controlling
+  anger, which MH-S5 and MH-S4 tie to risk of harm to others. It is not a violence-risk screen, no
+  aggressive or homicidal ideation is asked, and `base.life_threat` has no risk-to-others rule (§4
+  gap 4), so a "yes" has no response path. Q18 is held until the owner and a psychiatrist decide the
+  category, and whether the app should ask about harm to others at all. The clinician asks the direct
+  risk question.
+- **Psychosis-screen topics are drafted as history, not as a screen.** Q16 and Q17 cover the two
   constructs every source names (hallucinatory experiences; suspicions). They are in our own words and
   reproduce no item of a published psychosis screening questionnaire. The construct overlap is recorded
-  in §5: capture, never score, never add up.
-- **Sensitive items are `text_first`** (files/13 §13 and owner decision D3, 2026-09-26): non-alcohol
-  substance use (Q15, approved category), hallucinatory experiences (Q16), suspicions (Q17) and anger
-  control (Q18). Q16–Q18 are **not** a D3-approved category. They need a sensitive-data register row
-  (INT-349) and the owner's decision before promotion (§4 gap 7).
+  in §5: capture, never score, never add up. Q17 is held: a "yes" cannot separate a persecutory belief
+  from a real threat, so it would elicit a safeguarding disclosure (files/13 §13).
+- **Sensitive items.** Q15 (D3) and Q16 (ordinary special-category health data, verifier's reading)
+  are `text_first` and gated to self-report. Q17 is held for the safeguarding boundary and Q18 for the
+  category. Both await the owner. The self-report gate `subject_role == 'kendim'` reuses the literal of
+  base `proxy_reported`, so a relative answering in a proxy session is never asked about their own
+  substance use or experiences. It fails closed until the self/proxy ADR (wave 8 §E-4), and the owner
+  may lift it then.
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules.
   Nothing here assigns a level; §2.3 lists candidates for physician review only.
-- **Engineer notes.** (a) Cluster packs extend `base.intake` and are layer `cluster`; `build_pack`
-  defaults `extends` to `cluster.medical` and hard-codes `layer: specialty`. (b) `_merge_chain` merges
+- **Engineer notes.** (a) Cluster packs extend `base.intake` and are layer `cluster`. The generator's
+  cluster mode now emits `id: cluster.mental_health`, `layer: cluster` and `extends: base.intake` under
+  `review/cluster/` (verification cluster-wave-b §E-1). (b) `_merge_chain` merges
   sections by id, so these `sorular` slots are inherited by all five mental_health specialty packs. Where
   ruh_sagligi_ve_hastaliklari already asks the same fact, the same slot id and text are reused so the
-  specialty re-declaration replaces the cluster slot and nothing is asked twice. (c) **Çocuk ve Ergen Ruh
-  Sağlığı** extends this cluster but is a proxy branch; every item here is self-addressed, so a parent
-  would hear "uykunuz". A self/proxy variant keyed on base `subject_role` needs an ADR (wave 8
-  verification §E-4). Until then that branch must suppress these items or run its own L1 pack.
+  specialty re-declaration replaces the cluster slot. Other members ask some facts under other ids
+  (§4 gap 12). (c) **Çocuk ve Ergen Ruh Sağlığı** and **ÇEMATEM** extend this cluster but are proxy
+  branches whose packs speak to the parent; every item here is self-addressed, so a parent would hear
+  "uykunuz". A self/proxy variant keyed on base `subject_role` needs an ADR (wave 8 verification
+  §E-4). Until then an L1 pack still inherits every cluster slot (`_merge_chain`). Each branch needs
+  `suppress_slot` on all cluster slots, and must not run the cluster directly, before any under-18 path
+  opens (verification §E-3). (d) files/04 §2.1 sets full PHQ-9 and GAD-7 by default for this cluster,
+  which is a delivery setting on the instrument path. C-SSRS stays BLOCKED (HB-L2).
 - **Not repeated from base:** medications list, allergies, smoking, alcohol, living situation, occupation.
 - **Verification caveat.** MH-S1 and MH-S5 were downloaded with curl and extracted with `pdftotext`; the
   TPD lay pages and NICE pages were fetched as HTML (HTTP 200) and stripped of tags. MH-S1 is a two-column
@@ -202,8 +212,8 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032), never 
 | Alarm (§2.1) | Source | `base.life_threat` item | This proposal's role |
 |---|---|---|---|
 | Suicidal intent or plan | MH-S8 1.2.8–1.2.9; MH-S1 | `rf.crisis_disclosure_signposting` (`draft_needs_source`; HB-C17) | **no question drafted**; instrument path + wellbeing lane |
-| Risk to others | MH-S6 1.3.3.1; MH-S5 p. 10; MH-S4 | **absent** | Q18 is history only; no rule |
-| Psychotic agitation | MH-S1 p. 6; MH-S5 p. 18 | absent | Q16, Q17 history only |
+| Risk to others | MH-S6 1.3.3.1; MH-S5 p. 10; MH-S4 | **absent** | Q18 history only, held; no rule |
+| Psychotic agitation | MH-S1 p. 6; MH-S5 p. 18 | absent | Q16 history only; Q17 held |
 | Intoxication or withdrawal danger | MH-S5 p. 11; MH-S1 p. 5 | absent | Q15 history only; overlaps AMATEM / ÇEMATEM |
 
 ### 2.3 Red-flag candidates — for physician review, not encoded
@@ -315,29 +325,37 @@ resemblance to an item of a published mood-disorder questionnaire; the psychiatr
 
 **Q15 — Other recreational substance use** · archetype: `OBSERVATION.story.v1` (narrative only) · source: MH-S5 p. 11; MH-S1 p. 5 ("madde kullanımı"); MH-S6 1.3.3.1 (non-prescribed drug history)
 > "Alkol ve sigara dışında keyif verici bir madde kullanıyor musunuz?"
-gen: slot=diger_madde_kullanimi; type=boolean; delivery=text_first
+gen: slot=diger_madde_kullanimi; type=boolean; ask_if=subject_role == 'kendim'; delivery=text_first
 CANDIDATE — psychiatrist to approve wording. Same as ruh_sagligi_ve_hastaliklari. Alcohol and smoking are
 base items. Non-alcohol substance use is a D3-approved category: `text_first` plus an INT-349 register row.
+Gated to self-report (§0): a relative in a proxy session would otherwise answer about themselves.
 
 **Q16 — Hearing voices others do not hear** · archetype: `OBSERVATION.symptom_sign.v1` · source: MH-S1 p. 6 ("sanrı ve/veya varsanıların"); MH-S5 p. 18 ("hallucinatory experiences")
 > "Başkalarının duymadığı sesleri duyduğunuz oluyor mu?"
-gen: slot=baskalarinin_duymadigi_sesler; type=boolean; delivery=text_first
-CANDIDATE — psychiatrist to approve wording. History capture of one construct; not a screen, never scored.
-Sensitive and not a D3 category (§4 gap 7).
+gen: slot=baskalarinin_duymadigi_sesler; type=boolean; ask_if=subject_role == 'kendim'; delivery=text_first
+CANDIDATE — psychiatrist to approve wording. invariant 18: special_category_health like every symptom
+slot (verifier's reading, owner may overrule). INT-349 storage and encryption prerequisites apply.
+Capture only, never scored, never summed with any other item. Gated to self-report (§0).
 
 **Q17 — Thinking others want to harm them** · archetype: `OBSERVATION.symptom_sign.v1` · source: MH-S5 p. 18 ("suspicions; delusions"); MH-S1 p. 6
 > "Başkalarının size zarar vermek istediğini düşündüğünüz oluyor mu?"
-gen: slot=zarar_gorme_kuskusu; type=boolean; delivery=text_first
-CANDIDATE — psychiatrist to approve wording. History capture of one construct; never scored. Sensitive and
-not a D3 category (§4 gap 7).
+gen: slot=zarar_gorme_kuskusu; type=boolean; ask_if=subject_role == 'kendim'; delivery=text_first; hold=a yes cannot separate a persecutory belief from a real threat so the item elicits a safeguarding disclosure (files/13 §13) and awaits a psychiatrist and the owner
+CANDIDATE — psychiatrist to approve wording. **HELD.** A person under real threat (partner violence,
+stalking) truthfully answers "yes", and no lay wording separates the two. files/13 §13 says the product
+should not attempt to elicit a disclosure. **Category:** persecutory ideation, which in lay answers
+merges with personal safety. Owner and psychiatrist decision needed.
 
 **Q18 — Difficulty controlling anger** · archetype: `OBSERVATION.story.v1` · source: MH-S4 ("öfke patlamaları"; risk to "çevresindeki kişilere"); MH-S6 1.3.3.1 ("risk of harm to self or others")
 > "Son zamanlarda öfkenizi kontrol etmekte zorlandığınız oldu mu?"
-gen: slot=ofke_kontrol_guclugu; type=boolean; delivery=text_first
-CANDIDATE — psychiatrist to approve wording. The "safety of others" topic of files/04 §2.1, asked as
-history. It is not a violence-risk screen and feeds no rule (§0, §2.2).
+gen: slot=ofke_kontrol_guclugu; type=boolean; ask_if=subject_role == 'kendim'; delivery=text_first; hold=risk to others is not a D3 category and base.life_threat has no rule for it so it awaits the owner and a psychiatrist
+CANDIDATE — psychiatrist to approve wording. **HELD.** The "safety of others" topic of files/04 §2.1,
+drafted as history. It is not a violence-risk screen and feeds no rule (§0, §2.2). **Category:**
+aggression and risk to others, which is not a D3 category; forensic and personal safety covers the
+patient as a victim, not as a risk. Rewording it as a symptom would shadow GAD-7's irritability item.
+Owner and psychiatrist decision needed.
 
-*(18 candidate questions: Q1 general intake; Q2–Q18 source-backed. No candidate flag on any item.)*
+*(18 candidate questions drafted, 16 active, 2 held: Q1 general intake; Q2–Q18 source-backed. Q17 and
+Q18 are held. No candidate flag on any item.)*
 
 ---
 
@@ -355,15 +373,27 @@ history. It is not a violence-risk screen and feeds no rule (§0, §2.2).
 6. **Validated Turkish psychosis or mania screening item set** with a `GO` licence — none identified.
    **NO SOURCE FOUND (instrument).**
 7. **Sensitive-data categories for Q16–Q18** — psychotic experiences and anger are not among the D3
-   approvals. The owner decides the category; each needs an INT-349 row {category, purpose, basis,
-   retention, recipients} before promotion (invariant 18). Q15 is D3-approved but still needs its row.
+   approvals. Q16 is released as ordinary special-category health data on the verifier's reading; the
+   owner confirms, or holds it. Q17 (persecutory ideation, safeguarding boundary) and Q18 (risk to
+   others) are held for the owner and a psychiatrist. Each needs an INT-349 row {category, purpose,
+   basis, retention, recipients} before promotion (invariant 18). Q15 is D3-approved but still needs
+   its row.
 8. **Withdrawal danger signs, neuroleptic malignant syndrome, serotonin syndrome, lithium toxicity** —
    alarm wording **NO SOURCE FOUND**.
-9. **Çocuk ve Ergen Ruh Sağlığı** proxy address — structural (§0 engineer note c); no child-addressed item
-   drafted here.
+9. **Çocuk ve Ergen Ruh Sağlığı and ÇEMATEM** proxy address — structural (§0 engineer note c); no
+   child-addressed item drafted here. Latent while INT-223 refuses every under-18 path.
 10. **Every candidate level and all three RED axes** (invariant 21) — deliberately unassigned. EK-4
     acuity has no snapshot in the repo.
 11. **openEHR leaf paths** — deferred (INT-032); no social-history root (Q15).
+12. **Slot collisions for the owner** (one fact under two ids, asked twice once the specialty extends
+    this cluster; verification cluster-wave-b §F). Each fix lands in the specialty proposal:
+    - klinik_psikoloji_poliklinigi `psikiyatrik_ilac_kullanimi` → `ruh_sagligi_ilaci`, so Q12 and Q13
+      gate on the right slot;
+    - klinik_psikoloji_poliklinigi `onceki_psikoterapi` → `onceki_ruh_sagligi_destegi`;
+    - amatem `destek_cevresi` → `sosyal_destek`;
+    - amatem `gunluk_yasam_etkisi` → `islevsellik_etkilenimi`;
+    - ruh_sagligi_ve_hastaliklari Q12 (`diger_madde_kullanimi`) and klinik psikoloji
+      `zorlanmada_madde_kullanimi` take the same `subject_role == 'kendim'` gate as Q15.
 
 ---
 
@@ -380,7 +410,9 @@ history. It is not a violence-risk screen and feeds no rule (§0, §2.2).
   domain with the unscored PHQ-9/GAD-7 difficulty item; Q14 resembles a mood-disorder questionnaire item;
   Q16 and Q17 share constructs with published psychosis screening questionnaires. None may be scored or
   assembled into a screening category.
-- **Inv. 18** — Q15–Q18 are `text_first`; Q16–Q18 need an owner category decision (§4 gap 7).
+- **Inv. 18** — Q15 (D3) and Q16 (ordinary special-category health data, verifier's reading) are
+  `text_first` and gated to self-report. Q17 is held for the safeguarding boundary and Q18 for the
+  category. Both await the owner (§4 gap 7).
 - **Inv. 20** — no accuracy, cut-off or prevalence figure reproduced.
 - **Inv. 21** — RED axes intentionally unspecified.
 - **Inv. 22** — no numerals in any candidate question; no dose or count is asked.

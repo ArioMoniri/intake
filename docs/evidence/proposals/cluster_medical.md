@@ -114,7 +114,7 @@ clinician to sign off*. It assigns **no** RED/YELLOW/GREEN level and pins **no**
 - Quoted as retrieved in `gogus_hastaliklari.md` GH-S1 on 2026-09-26; **not re-retrieved here**.
 - **URL:** https://toraks.org.tr/bilgilendirici-kaynaklar/hastaliklar/kronik-obstruktif-akciger-hastaligi-koah
 - **Anchor:** "KOAH'da en sık görülen yakınmalar nefes darlığı, öksürük ve balgam çıkarmadır."
-- **Confidence: MEDIUM** (undated lay page). Used for the lay explanation of KOAH in Q8's follow-up.
+- **Confidence: MEDIUM** (undated lay page). Used for the lay explanation of KOAH in Q8's ask.
 
 ### MED-S6: T.C. Sağlık Bakanlığı HSGM, *Kronik Böbrek Hastalığı İzlem Kılavuzu* (Türkiye), **SECONDARY**
 - Quoted as retrieved in `nefroloji.md` N-S1 on 2026-09-26; **not re-retrieved here**. Cover "Ankara, 2019".
@@ -205,8 +205,21 @@ The committed OPT pins archetype **roots** only, with no at-codes. Leaf paths ar
 | Q7 high home readings | none in base | history only; the §2.3 BP candidate needs values the pack never collects as free text |
 
 Q12 and Q13 use the same slot ids as `aile_hekimligi.md` (`son_gunlerde_ates`,
-`istemsiz_kilo_kaybi`). Q2 matches `diyabet_poliklinigi.md` (`diyabet_tanisi`). A specialty that
-extends this cluster can drop or bind its duplicate.
+`istemsiz_kilo_kaybi`). Q2 matches `diyabet_poliklinigi.md` (`diyabet_tanisi`). Q5 uses nefroloji
+Q8's `yuksek_tansiyon_tanisi` (identical ask), so nefroloji's re-declaration replaces it. A specialty
+that extends this cluster can drop or bind its duplicate.
+
+Collisions owed by member proposals (same fact under another id, so it is asked twice once the branch
+resolves over this cluster; verification cluster-wave-a §F):
+
+- enfeksiyon_hastaliklari Q2 `ates_var_mi` (identical ask) rebinds to `son_gunlerde_ates`, and its Q3
+  gate follows;
+- diyabet_poliklinigi Q5 `aciklanamayan_kilo_kaybi` rebinds to `istemsiz_kilo_kaybi`;
+- tibbi_ekoloji Q8 `yuksek_tansiyon_oykusu` rebinds to `yuksek_tansiyon_tanisi`;
+- ic_hastaliklari Q3, Q4 and Q5 (`soru_N`, no `gen:` lines) add `gen:` lines with
+  `istemsiz_kilo_kaybi`, `son_gunlerde_ates` and `gece_terlemesi`;
+- yasli_sagligi Q2 `gunluk_islerde_yeni_zorluk` asks a change, not Q18's current limitation. It is a
+  different fact, so the clinician keeps both or merges them.
 
 ### 2.3 Red-flag candidates: for physician review, not encoded
 
@@ -233,8 +246,10 @@ Diagnosis gates use plain lay names ("şeker hastalığı", "yüksek tansiyon").
 already holds the diagnosis, the engine confirms it rather than asking again (files/04 §1).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün hangi sağlık sorununuz için geldiğinizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?"
+CANDIDATE — clinician to approve wording. kadın hastalıkları Q1's neutral text (verification
+cluster-wave-a §C). This cluster also serves examination, report and prevention clinics, so the ask
+presumes no complaint, and the "nedir?" ending selects the neutral reason follow-up.
 
 **Q2 — Known diabetes (gate)** · archetype: `EVALUATION.problem_diagnosis.v1` · source: MED-S2 PDF p. 28; MED-S3 §2.1
 > "Size daha önce şeker hastalığı tanısı konuldu mu?"
@@ -249,18 +264,20 @@ in lay words. History item only.
 
 **Q4 — Non-healing foot wound** · archetype: `OBSERVATION.symptom_sign.v1` · source: MED-S2 PDF p. 28 ("diyabetik ayak"); MED-S3 PDF p. 227 (Tablo 14.2)
 > "Ayağınızda iyileşmeyen bir yara var mı?"
-gen: slot=ayak_yarasi; type=boolean; ask_if=diyabet_tanisi == true; follow_up=Ayağınızda kızarıklık, çatlak ya da renk değişikliği fark ettiniz mi?
-CANDIDATE — clinician to approve wording. The internal-medicine red flag "foot ulcer with fever"
-(files/04 §2.2) belongs to the specialty pack. This item is its input only.
+gen: slot=ayak_yarasi; type=boolean; ask_if=diyabet_tanisi == true; follow_up=Ayağınızda uzun süredir kapanmayan bir yara ya da açıklık var mı?
+CANDIDATE — clinician to approve wording. The follow-up restates the ask. Redness, cracks or colour
+change is a broader fact and is not bound to this slot. The internal-medicine red flag "foot ulcer
+with fever" (files/04 §2.2) belongs to the specialty pack. This item is its input only.
 
 **Q5 — Known hypertension (gate)** · archetype: `EVALUATION.problem_diagnosis.v1` · source: MED-S1 PDF p. 4
 > "Size daha önce yüksek tansiyon tanısı konuldu mu?"
-gen: slot=hipertansiyon_tanisi; type=boolean; follow_up=Doktorunuz tansiyonunuzun yüksek olduğunu söyledi mi?
-CANDIDATE — clinician to approve wording. Gate for Q6.
+gen: slot=yuksek_tansiyon_tanisi; type=boolean; follow_up=Doktorunuz tansiyonunuzun yüksek olduğunu söyledi mi?
+CANDIDATE — clinician to approve wording. Gate for Q6. Same id and ask as nefroloji Q8, a cluster
+member, so its re-declaration replaces this slot.
 
 **Q6 — Measures blood pressure at home** · archetype: `OBSERVATION.story.v1` · source: MED-S1 PDF p. 5 ("Hipertansif hastalara ev kan basıncı ölçümü yapmaları önerilmelidir.")
 > "Evde tansiyonunuzu düzenli olarak ölçüyor musunuz?"
-gen: slot=evde_tansiyon_olcumu; type=boolean; ask_if=hipertansiyon_tanisi == true
+gen: slot=evde_tansiyon_olcumu; type=boolean; ask_if=yuksek_tansiyon_tanisi == true
 CANDIDATE — clinician to approve wording. Gate for Q7. It separates "does not measure" from "readings
 are not high", so a "hayır" on Q7 has one meaning.
 
@@ -271,10 +288,10 @@ CANDIDATE — clinician to approve wording. The pack never takes a reading as fr
 (invariant 22). The values come from e-Nabız home records, which MED-S1 tells the clinician to review.
 
 **Q8 — Known asthma or COPD (gate)** · archetype: `EVALUATION.problem_diagnosis.v1` · source: MED-S4 PDF p. 12; MED-S5
-> "Size daha önce astım ya da KOAH tanısı konuldu mu?"
-gen: slot=astim_koah_tanisi; type=boolean; follow_up=KOAH uzun süren bir akciğer hastalığıdır. Böyle bir tanı konuldu mu?
-CANDIDATE — clinician to approve wording. The follow-up explains the acronym (no jargon without
-explanation). Gate for Q9.
+> "Size daha önce astım ya da KOAH denen akciğer hastalığı tanısı konuldu mu?"
+gen: slot=astim_koah_tanisi; type=boolean; follow_up=Doktorunuz size astım ya da KOAH olduğunu söyledi mi?
+CANDIDATE — clinician to approve wording. The ask itself glosses KOAH as a lung disease (no jargon
+without explanation), and the follow-up restates both diagnoses. Gate for Q9.
 
 **Q9 — More frequent reliever use** · archetype: `ACTION.medication.v1` · source: MED-S4 PDF p. 12 ("SABA* reliever needed more than twice/week?")
 > "Son kontrolünüzden bu yana nefes açıcı spreyinize her zamankinden sık ihtiyaç duydunuz mu?"
@@ -284,7 +301,7 @@ frequency threshold stays in the rule, and GINA's footnote limits the signal to 
 (§4 gap 4).
 
 **Q10 — Known chronic kidney disease** · archetype: `EVALUATION.problem_diagnosis.v1` · source: MED-S6 (SECONDARY)
-> "Size daha önce süregen bir böbrek hastalığı tanısı konuldu mu?"
+> "Size daha önce uzun süren bir böbrek hastalığı tanısı konuldu mu?"
 gen: slot=bobrek_hastaligi_tanisi; type=boolean; follow_up=Doktorunuz böbreklerinizin iyi çalışmadığını söyledi mi?
 CANDIDATE — clinician to approve wording. Recorded for the note and as a candidate
 `overlay.ckd` fact (files/04 §2.3), which the patient or a clinician must confirm (invariant 12).
@@ -334,12 +351,14 @@ which record reactions rather than current concerns.
 
 **Q18 — Limitation in daily activities** · archetype: `OBSERVATION.story.v1` · source: MED-S2 PDF p. 67 ("Fonksiyonel durum…"); MED-S4 PDF p. 12 ("Any activity limitation")
 > "Sağlık sorununuz yüzünden günlük işlerinizi yapmakta zorlanıyor musunuz?"
-gen: slot=gunluk_islev_kisitlanmasi; type=boolean; follow_up=Yemek, giyinme ya da ev işlerinde eskisinden daha çok zorlanıyor musunuz?
-CANDIDATE — clinician to approve wording. Distinct from base `caregiver_present`, which asks who
-helps rather than whether function has changed.
+gen: slot=gunluk_islev_kisitlanmasi; type=boolean; follow_up=Yemek, giyinme ya da ev işleri gibi günlük işlerde zorlanıyor musunuz?
+CANDIDATE — clinician to approve wording. The follow-up restates the current state, not a change.
+Distinct from base `caregiver_present`, which asks who helps rather than whether daily activities are
+limited. yasli_sagligi `gunluk_islerde_yeni_zorluk` is the change item, a different fact.
 
-*(18 candidate questions: 17 sourced, 1 general intake. 6 are gated: Q3, Q4, Q6, Q7 and Q9 on earlier
-items of this pack, Q15 on base `immunosuppression`.)*
+*(18 candidate questions drafted: 17 sourced, 1 general intake. 6 are gated: Q3, Q4, Q6, Q7 and Q9 on
+earlier items of this pack, Q15 on base `immunosuppression`. A Q19 on hyperglycaemia symptoms with
+vomiting is a clinician decision and is not drafted here (§4 gap 3).)*
 
 ---
 
@@ -352,14 +371,17 @@ items of this pack, Q15 on base `immunosuppression`.)*
    rule's value and its source. The pack also collects no BP value at all. Q7 is subjective, and a
    rule on measured values needs an e-Nabız or device import.
 3. **Hyperglycaemia with vomiting.** MED-S3 gives the symptom cluster, but no base family exists to
-   receive it. **Clinician and base owner must decide** placement (invariant 7).
+   receive it. **Clinician and base owner must decide** placement (invariant 7). It is also the only
+   medical red flag with no input item in this cluster. Verification cluster-wave-a §C offers a Q19
+   with diyabet_poliklinigi Q8's text and id (`hiperglisemi_bulanti_kusma`, ungated there). Adding it,
+   and whether to gate it on `diyabet_tanisi`, is the **clinician's decision**.
 4. **Reliever-use delta (Q9).** GINA's item applies to SABA-reliever users only. For patients on
    ICS-formoterol (MART/AIR) the clinician must say whether Q9 is still meaningful or needs a
    different wording. **No COPD-specific delta** (e.g. GOLD exacerbation wording) was retrieved.
    **NO SOURCE FOUND.**
 5. **Thyroid delta.** Only the diagnosis gate (Q11) is drafted. MED-S10 lists symptoms but none is a
    cluster-level follow-up item. The clinician may add one to `endokrinoloji_ve_metabolizma` rather
-   than here.
+   than here. The CKD delta has the same shape (gap 14).
 6. **Sourced but not drafted, to stay within eighteen:** new ankle or leg swelling (ESC HF 2021
    "ankle swelling", SECONDARY via `kardiyoloji.md` S3; TKDCD 2021 via `kalp_ve_damar_cerrahisi.md`
    KVC-S1) and breathlessness on exertion. The clinician may swap them in.
@@ -368,9 +390,9 @@ items of this pack, Q15 on base `immunosuppression`.)*
 8. **Base value-set codes.** `vs.immunosuppression` has no definition file in the repository. Q15's
    literal `'hayir'` copies base's `lmp_date` gate convention. **DSL owner must confirm** the code,
    or the gate never opens.
-9. **Generator default.** `build_pack` writes `extends: cluster.medical` when the draft carries none.
-   For this pack that is self-reference. A cluster pack must extend `base.intake`. **Generator owner
-   must fix** before a cluster candidate is emitted.
+9. **Generator default.** Resolved (verification cluster-wave-a §E-2). The generator's cluster mode
+   emits `id: cluster.medical`, `layer: cluster` and `extends: base.intake` under
+   `packages/protocols/review/cluster/`, with no specialty draft precondition.
 10. **Proxy wording.** Items address the patient as "siz". No proxy variants keyed on base
     `subject_role` are drafted (wave 1–3 finding 25).
 11. **Copyright / snapshot licence.** NICE and GINA texts are copyrighted. Committing verbatim
@@ -379,6 +401,9 @@ items of this pack, Q15 on base `immunosuppression`.)*
     All three RED axes (invariant 21) are deliberately unassigned.
 13. **openEHR:** no functional-status, home-monitoring or procedure archetype in the OPT. Leaf paths
     are deferred (INT-032).
+14. **CKD delta.** files/04 §2.1 lists the CKD delta among the chronic-disease deltas. Q10 is a
+    diagnosis gate only, and no CKD follow-up item is drafted. **Clinician decides** whether one
+    belongs here or in `nefroloji`.
 
 ---
 

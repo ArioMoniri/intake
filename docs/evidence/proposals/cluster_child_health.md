@@ -37,7 +37,9 @@ Purpose: patient-owned, Turkish-first **pre-visit intake** (symptom capture for 
   child's age band as an input. No age slot exists in `base.intake`, INT-223 collects no date of birth
   today, and whether one must be collected is a counsel question (**HB-L20** `dob_collection_mandatory`,
   `unverified_dob`). The band boundaries themselves are a clinical value (**HB-C3**). This proposal
-  therefore **does not invent** an age slot or an age gate. Every item below is worded so it can be
+  therefore **does not invent** an age slot or an age gate. neonatoloji Q2 already asks a birth date
+  as a clinical slot (`bebegin_dogum_tarihi`). Whether a clinical date may feed the age band is HB-L20
+  (`dob_collection_mandatory`, `unverified_dob`). Every item below is worded so it can be
   answered for a child of any age. Infant-only items (bulging fontanelle, nappy count, bottle feeding) are
   left to the Neonatoloji and Çocuk Sağlığı specialty packs, which already carry them. Engineer: the
   cluster needs an age-band input keyed on base `subject_role` plus a counsel-approved age source before
@@ -48,8 +50,10 @@ Purpose: patient-owned, Turkish-first **pre-visit intake** (symptom capture for 
   section is delivered to the clinician and guardian visibility follows the treating clinic's written
   policy. **HB-L20** `adolescent_private_guardian_default` is open, so nothing may default. The section
   must key on base `subject_role` and the age band above, switch the speaker from guardian to adolescent,
-  and be `text_only` with safeguarding never elicited (files/13 §13). **No adolescent private item is
-  drafted in this file.** HEEADSSS domains (drugs, sexuality, suicide/depression, safety) are sensitive
+  and be `text_only` with safeguarding never elicited (files/13 §13). The section runs only on a
+  channel the guardian can neither see nor hear (CH-S1 'ergenle yalnız'; files/13 §13 third-party
+  moderator). INT-223 refuses every under-18 path today, so this cluster is unreachable until HB-L20
+  relaxes. **No adolescent private item is drafted in this file.** HEEADSSS domains (drugs, sexuality, suicide/depression, safety) are sensitive
   categories and the suicide/depression domain belongs to the instrument path and `base.life_threat`.
 - **Proxy address is fixed.** The generator has no self/proxy variant. An adolescent who answers for
   themselves (base `subject_role` = self) would still hear "çocuğunuz". A variant keyed on
@@ -61,13 +65,15 @@ Purpose: patient-owned, Turkish-first **pre-visit intake** (symptom capture for 
   young child and stay on the licensed instrument path; C-SSRS (**HB-L2**) and WHO-5 (**HB-L3**) are
   licence-BLOCKED.
 - **Engineer notes on generation.** (a) A cluster pack extends `base.intake` and belongs to layer
-  `cluster`; `build_pack` defaults `extends` to `cluster.medical` and hard-codes `layer: specialty`, so
-  those two fields must be set for a cluster before it is emitted. (b) `_merge_chain` merges sections by id,
+  `cluster`. The generator's cluster mode now emits `id: cluster.child_health`, `layer: cluster` and
+  `extends: base.intake` under `review/cluster/` (verification cluster-wave-b §E-1). (b) `_merge_chain` merges sections by id,
   so this pack's `sorular` slots are **inherited by every child_health specialty pack**. A specialty that
   re-declares the same slot id replaces the cluster slot; a specialty that asks the same fact under a
   different id asks it twice. Known collisions are listed in §4 gap 8.
 - **Not repeated from base:** medicines, allergies, anticoagulants, pregnancy, smoking, subject role and
-  proxy flag.
+  proxy flag. Base's self-addressed `must_ask` items (HPI, `pregnancy_status`, `weight_kg`) reach the
+  guardian in every session of this cluster. That is a base-owner defect (verification
+  cluster-wave-b §A.1), and this cluster does not fix it.
 - **Verification caveat.** CH-S1 was downloaded with curl and extracted with `pdftotext`. Its font is
   mis-encoded, so quotes were character-mapped (Ŧ→ı, Œ→ğ, Ɣ→ş). The flowchart pages also drop some
   letters; a restored letter is shown in [brackets]. Page numbers are **PDF page indices**. Before
@@ -167,7 +173,7 @@ The OPT pins roots only; leaf paths are **deferred** (`openehr_deferred_reason`,
 | Q7 | Passing urine as usual | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Dry mouth or sunken eyes | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Faster breathing than usual | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q10 | Chest indrawing | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q10 | Chest indrawing (IMCI lower-chest-wall sign) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q11 | Grunting | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Rash present | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q13 | Rash does not fade under pressure | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -272,11 +278,11 @@ CANDIDATE — paediatrician to approve wording. Same text as cocuk_sagligi_ve_ha
 cocuk_gogus_hastaliklari. The protocol's breaths-per-minute cut-offs are for the clinician, never asked.
 
 **Q10 — Chest indrawing** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S1 PDF p. 103 ("Göğüs çekintisi var m[ı]"), PDF p. 95; CH-S2 1.2.5
-> "Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?"
+> "Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?"
 gen: slot=gogus_icine_cekilme; type=boolean
-CANDIDATE — paediatrician to approve wording. Same text as cocuk_sagligi_ve_hastaliklari. Presence only;
-no grading (files/04 §8.1 rule 1). cocuk_gogus_hastaliklari has the same text under `gogus_ice_cekilmesi`
-(§4 gap 8).
+CANDIDATE — paediatrician to approve wording. IMCI lower-chest-wall sign plus intercostal indrawing.
+cocuk_sagligi and cocuk_gogus to adopt this text (verification cluster-wave-b §F). Presence only; no
+grading (files/04 §8.1 rule 1). cocuk_gogus_hastaliklari asks it under `gogus_ice_cekilmesi` (§4 gap 8).
 
 **Q11 — Grunting** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S1 PDF p. 95 ("İnleme var mı bakın ve dinleyin"); CH-S2 1.2.5 ("grunting")
 > "Çocuğunuz nefes verirken inler gibi bir ses çıkarıyor mu?"
@@ -287,15 +293,14 @@ infant sign; asked at every age because no age gate exists (§0).
 **Q12 — Rash present** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S2 1.7.2 ("how to identify a non-blanching rash"), 1.7.3
 > "Çocuğunuzun cildinde şu sıralarda bir döküntü var mı?"
 gen: slot=dokuntu_var; type=boolean
-CANDIDATE — paediatrician to approve wording. Gate for Q13, so a parent with no rash is not asked the
-pressure question. "Şu sıralarda" rather than "yeni" so a rash present for some days is not missed.
+CANDIDATE — paediatrician to approve wording. "Şu sıralarda" rather than "yeni" so a rash present for
+some days is not missed.
 
 **Q13 — Rash does not fade under pressure** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S2 Table 2 (Red, "Non-blanching rash"); CH-S2 1.7.3
 > "Çocuğunuzun cildinde, üzerine bastırınca solmayan kırmızı ya da mor renkli döküntüler oldu mu?"
-gen: slot=solmayan_dokuntu; type=boolean; ask_if=dokuntu_var == true
-CANDIDATE — paediatrician to approve wording. Same text as cocuk_sagligi_ve_hastaliklari, where it is
-ungated; the specialty re-declaration replaces this gated slot there. The paediatrician decides whether
-the cluster keeps the gate.
+gen: slot=solmayan_dokuntu; type=boolean
+CANDIDATE — paediatrician to approve wording. Ungated, as in cocuk_sagligi_ve_hastaliklari. A parent may
+not call pin-point spots a rash.
 
 **Q14 — Missing vaccine on the schedule** · archetype: none (export blocked, INT-041 posture) · source: CH-S1 PDF p. 26 ("Aşısız ya da eksik aşılı ise aşılarını tamamlayın")
 > "Çocuğunuzun aşı takviminde eksik kalan bir aşısı var mı?"
@@ -348,17 +353,37 @@ on any item.)*
    `adolescent_private_guardian_default` open. No item drafted.
 7. **Every candidate level and all three RED axes** (invariant 21) — deliberately unassigned; HB-C3.
 8. **Slot collisions for the owner** (one fact, several ids or texts across child_health review packs;
-   each would be asked twice once a specialty extends this cluster):
-   - chest indrawing: `gogus_icine_cekilme` (cocuk_sagligi_ve_hastaliklari) and `gogus_ice_cekilmesi`
-     (cocuk_gogus_hastaliklari), same text;
-   - fever: `ates_var_mi` ("var mı?") and `ates_oldu` ("oldu mu?", cocuk_enfeksiyon_hastaliklari);
-   - non-blanching rash: `solmayan_dokuntu` has two texts (cocuk_sagligi, cocuk_enfeksiyon);
-   - drinking: `beslenme_sivi_alimi` and `emebiliyor_icebiliyor` (cocuk_enfeksiyon_hastaliklari);
-   - urine: `cis_miktari` and `az_cis` (cocuk_gastroenterolojisi), opposite polarity;
-   - drowsiness: `uykulu_tepkisiz` and `asiri_uykulu_halsiz` + `uyandirma_zorlugu`
-     (cocuk_enfeksiyon_hastaliklari);
-   - long-term diagnosis: `suregen_tani` and `suregen_hastalik_tanisi`;
-   - missing vaccine: `eksik_asi` with two texts (sosyal_pediatri, cocuk_enfeksiyon_hastaliklari).
+   each would be asked twice once a specialty extends this cluster). The full list from verification
+   cluster-wave-b §F; each fix lands in the specialty proposal, not here. A same-polarity twin takes the
+   cluster id and keeps its own text, so its re-declaration replaces the cluster slot. An
+   opposite-polarity twin must not be renamed until the paediatrician fixes one polarity, because a
+   rename would invert it.
+   - Same polarity; the specialty renames to the cluster id:
+     - neonatoloji Q10 `ates` → `ates_var_mi`;
+     - neonatoloji Q11 `asiri_uykululuk` → `uykulu_tepkisiz`;
+     - cocuk_metabolizma_hastaliklari `uykulu_halsiz` → `uykulu_tepkisiz`;
+     - cocuk_genetik_hastaliklari `alisilmadik_halsizlik` → `uykulu_tepkisiz`;
+     - cocuk_enfeksiyon_hastaliklari `ates_oldu` → `ates_var_mi`, with its `ates_suresi` gate becoming
+       `ates_var_mi == true`;
+     - cocuk_enfeksiyon_hastaliklari `asiri_uykulu_halsiz` → `uykulu_tepkisiz`; the paediatrician
+       decides whether `uyandirma_zorlugu` stays separate;
+     - cocuk_enfeksiyon_hastaliklari `suregen_hastalik_tanisi` → `suregen_tani`;
+     - cocuk_gogus_hastaliklari `gogus_ice_cekilmesi` → `gogus_icine_cekilme`, with the Q10 text.
+   - Same id, text to align: cocuk_sagligi_ve_hastaliklari Q6 takes the Q10 text. `solmayan_dokuntu`
+     and `eksik_asi` each have two texts across the specialty packs.
+   - Opposite polarity; a polarity decision comes first: neonatoloji `beslenmede_azalma` and
+     `islak_bez_azalmasi`; cocuk_gastroenterolojisi `az_cis`; cocuk_nefrolojisi `idrar_azalmasi`
+     (against this cluster's Q5 and Q7, where `false` is the alarm direction).
+   - Construct choice for the paediatrician: `emebiliyor_icebiliyor` (CH-S1's danger sign, inability to
+     drink or breastfeed) against `beslenme_sivi_alimi` (feeding as usual).
+   - Overlaps; the paediatrician decides whether the cluster item stays where a specialty asks its own:
+     - vomiting: `sivi_tutamama`, `kusma_beslenme_reddi`, `tekrarlayan_kusma_beslenememe` against
+       `her_seyi_kusma`;
+     - growth: `buyume_ergenlik_endisesi`, `yavas_kilo_alma`, `buyume_geriligi`, `kilo_alamama` against
+       `buyume_endisesi`;
+     - breathing: neonatoloji `nefes_zorlanmasi` against `inleme` and `gogus_icine_cekilme`.
+   - The branch-diagnosis items (`kalp_tanisi`, `noroloji_tanisi` and the rest) are narrower than
+     `suregen_tani`. Acceptable.
 9. **openEHR** — no immunisation root and no growth root in the OPT (Q14, Q15 export blocked, INT-041
    posture); all leaf paths deferred (INT-032).
 

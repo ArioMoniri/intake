@@ -31,11 +31,16 @@ Purpose: patient-owned, Turkish-first **pre-visit intake** (history capture for 
   slot id `nefes_yutkunma_guclugu` and the shared text, but **gated** on facial swelling or tooth pain, so
   a routine recall is not asked about breathing. The gate is a proposal for the dentist and the owner. If
   the owner chooses the `base.life_threat` posture, Q10 is dropped. Nothing extends `base.life_threat`.
+  **Q10 is held** (`hold=` on its `gen:` line) until the owner decides between three postures: ask
+  gated (as drafted), ask ungated (waves 1–3), or leave it to `base.life_threat` (verification
+  cluster-wave-b §C). In pedodonti the gate opens on the child's pain and the ask addresses the parent.
+  Pedodonti must re-declare the slot for the child.
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules. Swelling
   with fever, trismus, airway difficulty and bleeding that does not stop are **captured only**. The rules
   are §2.3 candidates.
-- **Engineer notes.** (a) Cluster packs extend `base.intake` and are layer `cluster`; `build_pack` defaults
-  `extends` to `cluster.medical` and hard-codes `layer: specialty`. (b) `_merge_chain` merges sections by
+- **Engineer notes.** (a) Cluster packs extend `base.intake` and are layer `cluster`. The generator's
+  cluster mode now emits `id: cluster.dental`, `layer: cluster` and `extends: base.intake` under
+  `review/cluster/` (verification cluster-wave-b §E-1). (b) `_merge_chain` merges sections by
   id, so these `sorular` slots are inherited by all nine dental specialty packs. Slot ids and texts are
   reused from the dental review packs wherever the fact is the same, so the specialty re-declaration
   replaces the cluster slot and nothing is asked twice. (c) **Pedodonti** extends this cluster but
@@ -205,7 +210,7 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032), never 
 | Alarm (§2.1) | Captured by | `base.life_threat` today | This proposal's role |
 |---|---|---|---|
 | Facial swelling with fever or trismus | Q7, Q8, Q9 | no dental rule | capture only |
-| Airway concern with a dental infection | Q10 | no adult airway rule; base probes `rf_dyspnoea_rest`, `rf_sepsis_like` have no `ask_tr` | capture only; owner posture decision (§0) |
+| Airway concern with a dental infection | Q10 (held) | no adult airway rule; base probes `rf_dyspnoea_rest`, `rf_sepsis_like` have no `ask_tr` | capture only once released; owner posture decision (§0) |
 | Uncontrolled bleeding | Q12 (+ base `anticoagulant_use`) | `rf_severe_bleeding` probe has no `ask_tr` | capture only |
 | Recently avulsed permanent tooth | Q15 | absent | capture only; time-critical for the dentist |
 
@@ -283,10 +288,13 @@ check-up visit skips it; jaw-joint complaints are Ortodonti's own items.
 
 **Q10 — Difficulty breathing or swallowing** · archetype: `OBSERVATION.symptom_sign.v1` · source: DE-S7 (airway list: "Difficulty in breathing", "Dysphagia")
 > "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?"
-gen: slot=nefes_yutkunma_guclugu; type=boolean; ask_if=yuz_cene_sisligi == true || dis_agrisi == true
-CANDIDATE — dentist to approve wording. Same slot and text as dis_hekimligi and endodonti (ungated there).
-Not gated on Q9, because trismus is often absent in sublingual spread (DE-S7). Kept or dropped by the
-owner's airway decision (§0).
+gen: slot=nefes_yutkunma_guclugu; type=boolean; ask_if=yuz_cene_sisligi == true || dis_agrisi == true; hold=airway posture awaits the owner decision (wave 8 decision 1) between asking gated or ungated and leaving it to base.life_threat
+CANDIDATE — dentist to approve wording. **HELD** until the owner's airway decision (§0). Same slot and
+text as dis_hekimligi and endodonti (ungated there). Not gated on Q9, because trismus is often absent in
+sublingual spread (DE-S7). If the owner chooses "ask", release it gated (this line without `hold=`) or
+ungated (`gen: slot=nefes_yutkunma_guclugu; type=boolean`). If the owner chooses `base.life_threat`,
+delete Q10 and its §2.1 and §2.2 rows. In both "ask" cases pedodonti must re-declare the slot for the
+child before any under-18 path opens.
 
 **Q11 — Gums bleed on brushing or flossing** · archetype: `OBSERVATION.symptom_sign.v1` · source: DE-S3 PDF p. 19 ("dişeti kanamasıdır")
 > "Dişlerinizi fırçalarken ya da diş ipi kullanırken diş etleriniz kanıyor mu?"
@@ -333,7 +341,8 @@ gen: slot=dis_hekimi_kaygisi; type=boolean
 CANDIDATE — dentist to approve wording. Same slot as pedodonti, self-addressed here (acceptable per wave 8).
 Helps the team plan the visit; it is not a wellbeing screen and is never scored.
 
-*(18 candidate questions: Q1 general intake; Q2–Q18 source-backed. No candidate flag on any item.)*
+*(18 candidate questions drafted, 17 active, 1 held: Q1 general intake; Q2–Q18 source-backed. Q10 is
+held for the owner's airway decision. No candidate flag on any item.)*
 
 ---
 
@@ -359,7 +368,14 @@ Helps the team plan the visit; it is not a wellbeing screen and is never scored.
    - prolonged bleeding: `islem_sonrasi_uzun_kanama` and `uzamis_kanama_oykusu`;
    - bleeding gums: `dis_eti_kanamasi` with three texts;
    - antiresorptive: `kemik_ilaci` is `string` in agiz_dis_ve_cene_cerrahisi and agiz_dis_cene_radyolojisi
-     but `boolean` here and in periodontoloji and protetik (wave 8 §E-3).
+     but `boolean` here and in periodontoloji and protetik (wave 8 §E-3). Q17's gate `kemik_ilaci == true`
+     would then compare a string in those two packs, so either the chain is refused or
+     `kemik_ilaci_adi` is never asked there. Those packs make `kemik_ilaci` boolean plus
+     `kemik_ilaci_adi` (wave 8 §C);
+   - thermal pain: endodonti `sicak_soguk_agri` asks Q3's fact (`dis_hassasiyeti`) under another id, so
+     it is asked twice. Endodonti renames it to `dis_hassasiyeti`, and its `agri_sonra_suruyor` gate
+     becomes `dis_hassasiyeti == true`;
+   - restoratif `isirinca_ani_agri` (pain on release) is related to Q6 but a distinct sign; it stays.
 7. **Pedodonti proxy address** — structural (§0 engineer note c).
 8. **Every candidate level and all three RED axes** (invariant 21) — deliberately unassigned.
 9. **openEHR leaf paths** — deferred (INT-032).
