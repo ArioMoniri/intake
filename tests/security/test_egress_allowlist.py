@@ -457,6 +457,17 @@ NON_VENDOR_PURPOSES = frozenset(
     {EgressPurpose.CLINICAL_RECORD_PUSH, EgressPurpose.CONNECTOR_AUTHORIZATION}
 )
 
+#: INT-329. A VENDOR purpose whose row is a decision nobody has made yet. The
+#: SMS processor receives the patient's phone number — personal data, sent to a
+#: processor abroad — so its row needs the owner's DPA and cross-border
+#: decision, and on the PHI tier a ``phi_exception_approval`` naming that
+#: decision (docs/evidence/INT-329.md). The member exists because the OTP
+#: adapter must declare why it calls; the row does not, so the shipped policy
+#: refuses every such call. This set only shrinks: the test after next fails the
+#: moment a row declaring one of these purposes lands, so the row and the
+#: purpose's removal from here arrive in the same change.
+PURPOSES_AWAITING_THE_OWNER = frozenset({EgressPurpose.SMS_OTP_DELIVERY})
+
 
 def _shipped_rows() -> list[AllowlistEntry]:
     allowlist = load_allowlist(ALLOWLIST_PATH)
@@ -470,7 +481,7 @@ def test_every_purpose_in_the_vocabulary_is_used_by_the_shipped_allowlist() -> N
     every shipped row's purpose must be in the enum (the latter by type).
     """
     used = {entry.purpose_id for entry in _shipped_rows()}
-    expected = set(EgressPurpose) - NON_VENDOR_PURPOSES
+    expected = set(EgressPurpose) - NON_VENDOR_PURPOSES - PURPOSES_AWAITING_THE_OWNER
     assert used == expected, (
         f"unused purposes: {sorted(expected - used)}; "
         "a purpose nothing declares is vocabulary, not policy"
@@ -491,6 +502,30 @@ def test_a_connector_push_purpose_never_appears_in_the_vendor_allowlist() -> Non
         f"{offenders} declare a non-vendor purpose in the vendor allow-list; "
         "connector destinations belong in infra/connectors/destinations.yaml"
     )
+
+
+def test_a_purpose_awaiting_the_owner_has_no_row_and_every_tier_refuses_it() -> None:
+    """The stronger direction of the pending set above (INT-329).
+
+    No shipped row may declare a pending purpose — a row that lands must take
+    its purpose out of ``PURPOSES_AWAITING_THE_OWNER`` in the same change — and
+    until then the shipped policy refuses the SMS vendor on every tier, for
+    every data class, which is what keeps the OTP tier at 503 outside dev.
+    """
+    offenders = [
+        entry.name for entry in _shipped_rows() if entry.purpose_id in PURPOSES_AWAITING_THE_OWNER
+    ]
+    assert offenders == [], (
+        f"{offenders} declare a purpose still awaiting the owner; record the decision "
+        "and remove the purpose from PURPOSES_AWAITING_THE_OWNER in the same change"
+    )
+    allowlist = load_allowlist(ALLOWLIST_PATH)
+    for tier in ("dev", "phi_path"):
+        policy = EgressPolicy.for_tier(allowlist, tier, resolver=_resolver({}))  # type: ignore[arg-type]
+        for purpose in PURPOSES_AWAITING_THE_OWNER:
+            for data_class in DataClass:
+                context = EgressContext(purpose=purpose, data_class=data_class)
+                assert not policy.check("api.twilio.com", 443, context).allowed
 
 
 # --- the transfer log: {host, purpose, bytes, ts} -----------------------------------

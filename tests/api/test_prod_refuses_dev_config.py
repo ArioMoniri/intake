@@ -215,12 +215,21 @@ def test_the_boot_path_refuses_before_wiring_anything(strict_env: pytest.MonkeyP
 # --- F13: the OTP tier never claims a delivery it did not make -------------------------
 
 
+class _EmptyVault:
+    """OpenBao with no SMS vendor document (INT-329 reads it from there)."""
+
+    def get_kv(self, path: str) -> dict[str, object]:
+        raise KeyError(path)
+
+
 @pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
 def test_non_dev_never_wires_the_dev_log_delivery_adapter(environment: str) -> None:
-    """With no contracted SMS vendor wired, a non-dev API leaves the OTP tier
+    """With no SMS vendor configured, a non-dev API leaves the OTP tier
     unconfigured (every /v1/auth route answers 503 otp_auth_unconfigured)
-    rather than answering 202 for a code that never leaves the building."""
-    assert _auth_from_settings(_settings(environment=environment)) is None
+    rather than answering 202 for a code that never leaves the building.
+    INT-329 wires Twilio when it IS configured (tests/api/test_otp_twilio_wiring.py);
+    the dev logger is never the fallback."""
+    assert _auth_from_settings(_settings(environment=environment), secrets=_EmptyVault()) is None
 
 
 # --- the dev control: dev behaviour is unchanged ---------------------------------------
