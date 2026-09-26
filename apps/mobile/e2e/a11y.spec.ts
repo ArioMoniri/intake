@@ -353,23 +353,68 @@ describe("BK14 / SC 2.2.2 — motion stops when the OS says to", () => {
     expect(ungated).toEqual([]);
   });
 
-  it("no navigator hardcodes its transition", () => {
-    const hardcoded = TSX.filter((f) => /animation:\s*"fade"/.test(f.source)).map((f) => f.name);
-    expect(hardcoded).toEqual([]);
-  });
+  // INT-330 (MOTION-1). A native stack that names only its animation fades
+  // for the iOS default of 500 ms, and react-native-screens holds any push
+  // requested mid-transition until that transition ends — long enough to
+  // keep a RED behind it past 02 §8.1's 300 ms (motion-verification.md S-1).
+  // So the duration travels with the animation, from one policy, keyed by
+  // the route's path: a navigator that classified `consent` instead of
+  // `(auth)/consent` would quietly fade legal text.
+  const squash = (s: string) => s.replace(/\s+/g, "");
+  /** `...transitionFor(routeClassOf(`(auth)/${route.name}`)` for src/app/(auth)/_layout.tsx. */
+  function policySpread(fn: "transitionFor" | "tabTransition", layout: string): string {
+    const dir = layout.replace(/^src\/app\/?/, "").replace(/\/?_layout\.tsx$/, "");
+    const path = dir === "" ? "route.name" : `\`${dir}/\${route.name}\``;
+    return `...${fn}(routeClassOf(${path})`;
+  }
 
-  it("navigators take their transition from the reduce-motion policy", () => {
-    const navigators = TSX.filter((f) => /animation:\s*screenAnimation\(/.test(f.source))
-      .map((f) => f.name)
-      .sort();
-    expect(navigators).toEqual(
+  it("every native stack takes its transition, duration included, from the motion policy", () => {
+    const stacks = SCREENS.flatMap((f) => readOpenings(f.source, f.name, ["Stack"]));
+    expect(stacks.map((o) => o.file).sort()).toEqual(
       [
         "src/app/_layout.tsx",
         "src/app/(auth)/_layout.tsx",
-        "src/app/(tabs)/_layout.tsx",
         "src/app/(tabs)/visits/_layout.tsx",
       ].sort(),
     );
+    const unpinned = stacks
+      .filter(
+        (o) =>
+          !squash(propValue(o.props, "screenOptions") ?? "").includes(
+            policySpread("transitionFor", o.file),
+          ),
+      )
+      .map(where);
+    expect(unpinned).toEqual([]);
+  });
+
+  it("the JS tabs take theirs from the same policy", () => {
+    const tabs = SCREENS.flatMap((f) => readOpenings(f.source, f.name, ["Tabs"]));
+    expect(tabs.map((o) => o.file)).toEqual(["src/app/(tabs)/_layout.tsx"]);
+    const unpinned = tabs
+      .filter(
+        (o) =>
+          !squash(propValue(o.props, "screenOptions") ?? "").includes(
+            policySpread("tabTransition", o.file),
+          ),
+      )
+      .map(where);
+    expect(unpinned).toEqual([]);
+  });
+
+  it("no navigator or screen writes a transition literal", () => {
+    // Every transition key arrives by spreading the policy; none is written
+    // in a TSX file, whatever its value — "fade", 500, a primitive call.
+    const KEY =
+      /\b(animation|animationDuration|transitionSpec|gestureEnabled|fullScreenGestureEnabled|presentation|animationTypeForReplace|sceneStyleInterpolator)\s*:/;
+    const written = TSX.flatMap((f) =>
+      f.source
+        .split("\n")
+        .map((line, i) => ({ line, at: `${f.name}:${i + 1}` }))
+        .filter(({ line }) => KEY.test(line))
+        .map(({ at }) => at),
+    );
+    expect(written).toEqual([]);
   });
 
   it("programmatic scrolling is instantaneous under reduce-motion", () => {
@@ -727,9 +772,9 @@ describe("BK24 / SC 3.1.1 — text declares the language it is written in", () =
   });
 
   it("no screen renders a bare react-native Text, bypassing that declaration", () => {
-    const bare = TSX.filter((f) => /<Text[\s/>]/.test(f.source) && f.name !== "src/components/Themed.tsx").map(
-      (f) => f.name,
-    );
+    const bare = TSX.filter(
+      (f) => /<Text[\s/>]/.test(f.source) && f.name !== "src/components/Themed.tsx",
+    ).map((f) => f.name);
     expect(bare).toEqual([]);
   });
 });
