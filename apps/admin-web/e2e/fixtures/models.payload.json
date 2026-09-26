@@ -842,6 +842,70 @@
           }
         }
       }
+    },
+    {
+      "component": "edge-ingress",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.edge.yml, profile `edge` — traefik:v3.3.7 with the Coraza/OWASP-CRS middleware, on loopback 127.0.0.1:18080; traefik.yml and dynamic.yml GENERATED from infra/security/edge/edge-policy.yaml",
+      "license": "MIT (LICENSE.md blob verified @v3.3.7) + Apache-2.0 for the WAF middleware and its embedded ruleset — see licence_note",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-09-03",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "edge-ingress: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.edge.yml, profile `edge` — traefik:v3.3.7 with the Coraza/OWASP-CRS middleware, on loopback 127.0.0.1:18080; traefik.yml and dynamic.yml GENERATED from infra/security/edge/edge-policy.yaml)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "edge-crowdsec",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/docker-compose.edge.yml, profile `edge` — crowdsecurity/crowdsec:v1.6.8; scenarios and acquisition GENERATED from infra/security/edge/edge-policy.yaml; central API disabled",
+      "license": "MIT (LICENSE blob verified @v1.6.8 — see licence_note)",
+      "probe": "tcp_connect",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-09-03",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "edge-crowdsec: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.edge.yml, profile `edge` — crowdsecurity/crowdsec:v1.6.8; scenarios and acquisition GENERATED from infra/security/edge/edge-policy.yaml; central API disabled)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
     }
   ]
 }

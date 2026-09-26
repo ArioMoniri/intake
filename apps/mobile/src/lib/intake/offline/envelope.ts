@@ -37,12 +37,21 @@ export interface EncryptedEnvelope {
   ct: string;
 }
 
+/** Why a draft could not be opened: the blob is not an envelope at all, or
+ * it is one that will not decrypt (wrong key, tamper, malformed hex). */
+export type DraftDecryptKind = "not_an_envelope" | "undecryptable";
+
 /** Raised when a draft cannot be decrypted — wrong key, or tamper. The caller
  * treats an undecryptable blob as unusable (it fails closed), never as an
- * empty or partial draft. */
+ * empty or partial draft. The kind IS the message — codes, never narrative,
+ * as RecordsApiError does — so it carries no key, payload or id and no copy
+ * that belongs in the catalogue (invariant 5). */
 export class DraftDecryptError extends Error {
-  constructor(message = "draft could not be decrypted") {
-    super(message);
+  readonly kind: DraftDecryptKind;
+
+  constructor(kind: DraftDecryptKind = "undecryptable") {
+    super(kind);
+    this.kind = kind;
     this.name = "DraftDecryptError";
   }
 }
@@ -67,7 +76,7 @@ export function openEnvelope(key: Uint8Array, env: EncryptedEnvelope): string {
     throw new Error(`draft key must be ${KEY_BYTES} bytes`);
   }
   if (!isEncryptedEnvelope(env)) {
-    throw new DraftDecryptError("not a draft envelope");
+    throw new DraftDecryptError("not_an_envelope");
   }
   try {
     const iv = hexToBytes(env.iv);

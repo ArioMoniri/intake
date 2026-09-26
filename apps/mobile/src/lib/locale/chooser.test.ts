@@ -4,8 +4,8 @@
  * INT-296 landed the registry (which locales this build may OFFER, on two
  * separate conditions) and a resolver with no fallback. This module is the
  * layer the chooser UI reads: the offerable set turned into displayable
- * choices — each language in its OWN name and script (its endonym) and with
- * the writing direction its script implies — plus the one rule that a chooser
+ * choices — each language in its OWN name and script (its endonym), laid out
+ * left-to-right until INT-253's RTL audit — plus the one rule that a chooser
  * with a single option is worse than none, and the sanctioned switch that
  * refuses while a red-flag script is in flight.
  *
@@ -26,8 +26,8 @@ import {
   present,
   toChoices,
 } from "./chooser";
-import { localeDirection } from "./direction";
-import { LocaleNotOffered, RedScriptInFlight, type LocaleRegistration } from "./locale";
+import { TEXT_DIRECTION } from "./direction";
+import { LocaleNotOffered, RedScriptInFlight, type LocaleRegistration } from "../i18n/locale";
 
 const HERE = __dirname;
 const CHOOSER_SOURCE = readFileSync(join(HERE, "chooser.ts"), "utf8");
@@ -66,16 +66,17 @@ describe("toChoices", () => {
     expect(toChoices(["tr"])).toEqual([{ code: "tr", endonym: "Türkçe", direction: "ltr" }]);
   });
 
-  it("carries the writing direction the script implies, not a per-screen flag", () => {
+  it("lays every choice out left-to-right until INT-253's RTL audit", () => {
+    // Owner decision 2026-09-26 (INT-346): right-to-left layout is deferred to
+    // INT-253's P3 audit, so no locale — not even one written in Arabic
+    // script — is given a right-to-left direction by this build.
     const registry = {
       tr: reg("tr", "Türkçe", true, true),
       ar: reg("ar", "العربية", true, true),
     };
     const choices = toChoices(["tr", "ar"], registry);
-    expect(choices.find((c) => c.code === "tr")?.direction).toBe("ltr");
-    expect(choices.find((c) => c.code === "ar")?.direction).toBe("rtl");
-    // The direction is derived, never stored on the row by hand.
-    expect(choices.find((c) => c.code === "ar")?.direction).toBe(localeDirection("ar"));
+    expect(choices.map((c) => c.direction)).toEqual([TEXT_DIRECTION, TEXT_DIRECTION]);
+    expect(TEXT_DIRECTION).toBe("ltr");
   });
 
   it("refuses a code the registry does not know rather than inventing an endonym", () => {

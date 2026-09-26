@@ -24,7 +24,7 @@ import { AppText, PrimaryButton, Screen, SecondaryButton, useTheme } from "@/com
 import { verticalSlop } from "@/lib/a11y/target";
 import { testAccounts } from "@/lib/dev/accounts";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
-import { appLocaleChooser, chooseFromChooser } from "@/lib/i18n/chooser";
+import { appLocaleChooser, chooseFromChooser } from "@/lib/locale/chooser";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 

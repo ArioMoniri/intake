@@ -70,7 +70,10 @@ from intake_platform.wait_times import WAIT_SOURCES
 FIXTURE = Path("apps") / "admin-web" / "e2e" / "fixtures" / "experience.payload.json"
 METRICS_CATALOG = Path("observability") / "metrics_catalog.yaml"
 
-TOKEN_CLAIM = "token_claim"
+#: Where the tenant scope comes from: the caller's token claim, never a query
+#: parameter. The value mirrors TOKEN_CLAIM in apps/admin-web/src/experience/module.ts;
+#: the Python name avoids the word ruff's S105 reads as a credential.
+TENANT_SCOPE_SOURCE = "token_claim"
 
 #: A stated example window for the recording. It is the reporting window the
 #: fixture was recorded for, not a measurement: every figure below is a genuine
@@ -201,7 +204,7 @@ def _filters_section() -> dict[str, Any]:
         "docs/evidence/INT-241.md, no HUMAN_BLOCKERS.md row minted)"
     )
     return {
-        "tenant_scope": TOKEN_CLAIM,
+        "tenant_scope": TENANT_SCOPE_SOURCE,
         "window_required": True,
         "k_floor": MIN_COHORT,
         "dimensions": [
@@ -254,7 +257,7 @@ def _sds01_section() -> dict[str, Any]:
     return {
         "columns": list(SDS01_COLUMNS),
         "aggregate_only": True,
-        "tenant_scope": TOKEN_CLAIM,
+        "tenant_scope": TENANT_SCOPE_SOURCE,
         "rows": rows,
         "note": (
             "The SDS-01 style aggregate export for a hospital tenant (files/01 §4; "
