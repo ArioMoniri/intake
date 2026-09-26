@@ -213,14 +213,14 @@ CANDIDATE — clinician to approve wording. "Kaka" is the everyday parent word; 
 
 **Q10 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S3 PDF p. 8 ("ateş"); NE-S5 rec 1.4.9 (abnormal temperature)
 > "Bebeğinizde ateş olduğunu fark ettiniz mi?"
-gen: slot=ates; type=boolean
+gen: slot=ates_var_mi; type=boolean
 CANDIDATE — clinician to approve wording. No temperature value is requested (invariant 22). NE-S5 rec
 1.4.4 warns fever may be absent in a seriously ill baby, so a "hayır" here is not reassurance.
 **Feeds HB-C3 fever under three months (§2.2).**
 
 **Q11 — Unusually sleepy or hard to rouse** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S2 Tablo 1 ("uykuya eğilim"); NE-S3 PDF p. 8 ("uykuya meyil"); NE-S5 rec 1.4.9 ("unresponsive or unrousable")
 > "Bebeğinizde her zamankinden fazla uyku hali ya da uyanmakta zorlanma var mı?"
-gen: slot=asiri_uykululuk; type=boolean
+gen: slot=uykulu_tepkisiz; type=boolean
 CANDIDATE — clinician to approve wording. One noun-phrase question; "uyandırması zor" was the wrong voice
 (wave-7 fix). **Feeds HB-C3 lethargy (§2.2).**
 

@@ -47,26 +47,26 @@ sections:
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
   sorular:
     slots:
-      yuz_cene_dil_alti_sislik:
+      yuz_cene_sisligi:
         type: boolean
         required: false
         ask_tr:
           tr: Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
-      nefes_yutma_zorlugu:
+      nefes_yutkunma_guclugu:
         type: boolean
         required: false
         ask_tr:
           tr: Nefes almakta ya da yutkunmakta zorlanıyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
-      sislikle_ates:
+      sislik_ile_ates:
         type: boolean
         required: false
         ask_tr:
           tr: Bu şişlikle birlikte ateşiniz de var mı?
-        ask_if: yuz_cene_dil_alti_sislik == true
+        ask_if: yuz_cene_sisligi == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
-      agiz_acma_zorlugu:
+      agiz_acma_guclugu:
         type: boolean
         required: false
         ask_tr:
@@ -97,17 +97,24 @@ sections:
         ask_tr:
           tr: Ağzınızın içinde geçmeyen kırmızı ya da kırmızı-beyaz bir leke fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
-      uzamis_kanama_oykusu:
+      islem_sonrasi_uzun_kanama:
         type: boolean
         required: false
         ask_tr:
           tr: Daha önce bir diş çekimi ya da yaralanma sonrasında olağandan uzun süre kanamanız oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
       kemik_ilaci:
-        type: string
+        type: boolean
         required: false
         ask_tr:
           tr: Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      kemik_ilaci_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hatırlıyorsanız bu ilacın adını söyleyebilir misiniz?
+        ask_if: kemik_ilaci == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
       ilac_lokal_anestezik_lateks_alerjisi:
         type: string

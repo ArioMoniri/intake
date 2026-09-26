@@ -5,11 +5,14 @@ inside the draft_needs_source stub."""
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -253,8 +256,6 @@ def test_a_cluster_proposal_becomes_a_cluster_candidate_extending_base(
     monkeypatch.setattr(GEN, "PROP", prop)
     line, ok = GEN.gen("cluster_medical")
     assert ok, line
-    import yaml
-
     pack = yaml.safe_load((review / "medical.yaml").read_text(encoding="utf-8"))
     assert pack["id"] == "cluster.medical"
     assert pack["layer"] == "cluster"
@@ -267,3 +268,164 @@ def test_an_unknown_cluster_is_refused() -> None:
     line, ok = GEN.gen("cluster_not_a_cluster")
     assert not ok
     assert "unknown cluster" in line
+
+
+# --- One fact, one id along an extends chain (cluster verification §F) -------
+#
+# A branch pack extends its cluster, and the resolver's _merge_chain replaces a
+# cluster slot with the branch slot of the SAME id. The same fact under another
+# id is therefore asked twice. Each row below is a rebind applied from
+# docs/evidence/verification/cluster-wave-a.md or cluster-wave-b.md §F:
+# (branch slug, id before, cluster id). `soru_N` is the generator's id for an
+# item that had no `gen:` line.
+
+REVIEW_ROOT = ROOT / "packages/protocols/review"
+SIBLING_REBINDS = [
+    ("enfeksiyon_hastaliklari", "ates_var_mi", "son_gunlerde_ates"),
+    ("diyabet_poliklinigi", "aciklanamayan_kilo_kaybi", "istemsiz_kilo_kaybi"),
+    ("tibbi_ekoloji_ve_hidroklimatoloji", "yuksek_tansiyon_oykusu", "yuksek_tansiyon_tanisi"),
+    ("ic_hastaliklari", "soru_2", "istemsiz_kilo_kaybi"),
+    ("ic_hastaliklari", "soru_3", "son_gunlerde_ates"),
+    ("ic_hastaliklari", "soru_4", "gece_terlemesi"),
+    ("el_cerrahisi", "yaralanma_sonrasi_basladi", "travma_sonrasi_basladi"),
+    ("kulak_burun_bogaz_hastaliklari", "soru_1", "ani_isitme_azalmasi"),
+    ("kulak_burun_bogaz_hastaliklari", "soru_4", "donme_hissi"),
+    ("kulak_burun_bogaz_hastaliklari", "soru_6", "boyunda_sislik"),
+    ("kulak_burun_bogaz_hastaliklari", "soru_7", "ses_kisikligi"),
+    ("goz_hastaliklari", "soru_6", "goz_agrisi"),
+    ("goz_hastaliklari", "soru_8", "isik_cevresinde_halka"),
+    ("goz_hastaliklari", "soru_10", "kontakt_lens"),
+    ("gebe_poliklinigi", "siddetli_bas_agrisi", "gebelikte_siddetli_bas_agrisi"),
+    ("perinatoloji", "gorme_bulanikligi", "gebelikte_gorme_bozuklugu"),
+    ("jinekolojik_onkoloji", "kasik_alt_karin_agrisi", "alt_karin_agrisi"),
+    ("neonatoloji", "ates", "ates_var_mi"),
+    ("neonatoloji", "asiri_uykululuk", "uykulu_tepkisiz"),
+    ("cocuk_metabolizma_hastaliklari", "uykulu_halsiz", "uykulu_tepkisiz"),
+    ("cocuk_genetik_hastaliklari", "alisilmadik_halsizlik", "uykulu_tepkisiz"),
+    ("cocuk_enfeksiyon_hastaliklari", "ates_oldu", "ates_var_mi"),
+    ("cocuk_enfeksiyon_hastaliklari", "asiri_uykulu_halsiz", "uykulu_tepkisiz"),
+    ("cocuk_enfeksiyon_hastaliklari", "suregen_hastalik_tanisi", "suregen_tani"),
+    ("cocuk_gogus_hastaliklari", "gogus_ice_cekilmesi", "gogus_icine_cekilme"),
+    ("klinik_psikoloji_poliklinigi", "psikiyatrik_ilac_kullanimi", "ruh_sagligi_ilaci"),
+    ("klinik_psikoloji_poliklinigi", "onceki_psikoterapi", "onceki_ruh_sagligi_destegi"),
+    ("amatem", "destek_cevresi", "sosyal_destek"),
+    ("amatem", "gunluk_yasam_etkisi", "islevsellik_etkilenimi"),
+    ("endodonti", "sicak_soguk_agri", "dis_hassasiyeti"),
+    ("agiz_dis_ve_cene_cerrahisi", "yuz_cene_dil_alti_sislik", "yuz_cene_sisligi"),
+    ("agiz_dis_ve_cene_cerrahisi", "nefes_yutma_zorlugu", "nefes_yutkunma_guclugu"),
+    ("agiz_dis_ve_cene_cerrahisi", "sislikle_ates", "sislik_ile_ates"),
+    ("agiz_dis_ve_cene_cerrahisi", "agiz_acma_zorlugu", "agiz_acma_guclugu"),
+    ("agiz_dis_ve_cene_cerrahisi", "uzamis_kanama_oykusu", "islem_sonrasi_uzun_kanama"),
+    ("agiz_dis_cene_radyolojisi", "yuz_cene_dil_alti_sislik", "yuz_cene_sisligi"),
+    ("agiz_dis_cene_radyolojisi", "nefes_yutma_zorlugu", "nefes_yutkunma_guclugu"),
+]
+# Opposite polarity to the cluster's hydration items (`false` is the cluster's
+# alarm direction): renaming would invert the answer. The paediatrician picks
+# one polarity first (cluster-wave-b §F), so these keep their own ids.
+POLARITY_HELD = [
+    ("neonatoloji", "beslenmede_azalma", "beslenme_sivi_alimi"),
+    ("neonatoloji", "islak_bez_azalmasi", "cis_miktari"),
+    ("cocuk_gastroenterolojisi", "az_cis", "cis_miktari"),
+    ("cocuk_nefrolojisi", "idrar_azalmasi", "cis_miktari"),
+]
+
+
+def _pack(path: Path) -> dict[str, Any]:
+    doc: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return doc
+
+
+def _slots(pack: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        sid: slot
+        for section in (pack.get("sections") or {}).values()
+        for sid, slot in ((section or {}).get("slots") or {}).items()
+    }
+
+
+def _chain(slug: str) -> tuple[dict[str, Any], dict[str, Any], str]:
+    """(branch candidate, its cluster candidate, cluster proposal text)."""
+    branch = _pack(REVIEW_ROOT / "specialty" / f"{slug}.yaml")
+    name = branch["extends"].removeprefix("cluster.")
+    cluster = _pack(REVIEW_ROOT / "cluster" / f"{name}.yaml")
+    proposal = (GEN.PROP / f"cluster_{name}.md").read_text(encoding="utf-8")
+    return branch, cluster, proposal
+
+
+def _norm(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+def _chains() -> list[tuple[str, dict[str, Any], dict[str, Any]]]:
+    out = []
+    for path in sorted((REVIEW_ROOT / "specialty").glob("*.yaml")):
+        branch = _pack(path)
+        name = str(branch.get("extends", "")).removeprefix("cluster.")
+        cluster_p = REVIEW_ROOT / "cluster" / f"{name}.yaml"
+        if cluster_p.exists():
+            out.append((path.stem, branch, _pack(cluster_p)))
+    return out
+
+
+@pytest.mark.parametrize(
+    ("slug", "old", "new"), SIBLING_REBINDS, ids=[f"{s}:{o}->{n}" for s, o, n in SIBLING_REBINDS]
+)
+def test_a_rebound_branch_slot_takes_its_cluster_id(slug: str, old: str, new: str) -> None:
+    branch, cluster, cluster_proposal = _chain(slug)
+    slots, cluster_slots = _slots(branch), _slots(cluster)
+    assert new in slots, f"{slug} does not declare the cluster id {new}"
+    assert old not in slots, f"{slug} still declares {old}"
+    held = re.search(rf"^gen:\s*slot={new};.*\bhold=", cluster_proposal, re.M)
+    assert new in cluster_slots or held, f"{branch['extends']} declares no {new}"
+    if new in cluster_slots:
+        assert slots[new]["type"] == cluster_slots[new]["type"]
+    for sid, slot in slots.items():
+        assert old not in GEN.GATE_NAME.findall(slot.get("ask_if", "")), f"{slug}.{sid}"
+
+
+def test_no_chain_asks_one_text_under_two_ids() -> None:
+    twins = []
+    for slug, branch, cluster in _chains():
+        by_text = {_norm(s["ask_tr"]["tr"]): sid for sid, s in _slots(cluster).items()}
+        for sid, slot in _slots(branch).items():
+            other = by_text.get(_norm(slot["ask_tr"]["tr"]))
+            if other is not None and other != sid:
+                twins.append(f"{slug}.{sid} = {branch['extends']}.{other}")
+    assert twins == []
+
+
+def test_no_chain_declares_one_slot_id_with_two_types() -> None:
+    clashes = []
+    for slug, branch, cluster in _chains():
+        cluster_slots = _slots(cluster)
+        for sid, slot in _slots(branch).items():
+            if sid in cluster_slots and cluster_slots[sid]["type"] != slot["type"]:
+                clashes.append(f"{slug}.{sid}: {slot['type']} vs {cluster_slots[sid]['type']}")
+    assert clashes == []
+
+
+@pytest.mark.parametrize("slug", ["cocuk_sagligi_ve_hastaliklari", "cocuk_gogus_hastaliklari"])
+def test_the_chest_indrawing_twins_carry_the_cluster_text(slug: str) -> None:
+    branch, cluster, _ = _chain(slug)
+    ask = _slots(branch).get("gogus_icine_cekilme", {}).get("ask_tr", {}).get("tr")
+    assert ask == _slots(cluster)["gogus_icine_cekilme"]["ask_tr"]["tr"]
+
+
+@pytest.mark.parametrize(
+    ("slug", "sid"),
+    [
+        ("ruh_sagligi_ve_hastaliklari", "diger_madde_kullanimi"),
+        ("klinik_psikoloji_poliklinigi", "zorlanmada_madde_kullanimi"),
+    ],
+)
+def test_substance_items_are_gated_to_self_report(slug: str, sid: str) -> None:
+    branch, _, _ = _chain(slug)
+    assert _slots(branch)[sid].get("ask_if") == "subject_role == 'kendim'"
+
+
+@pytest.mark.parametrize(("slug", "own", "cluster_id"), POLARITY_HELD)
+def test_opposite_polarity_twins_keep_their_own_ids(slug: str, own: str, cluster_id: str) -> None:
+    branch, cluster, _ = _chain(slug)
+    assert own in _slots(branch)
+    assert cluster_id not in _slots(branch)
+    assert cluster_id in _slots(cluster)

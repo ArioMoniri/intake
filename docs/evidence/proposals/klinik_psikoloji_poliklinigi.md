@@ -209,12 +209,12 @@ CANDIDATE — clinician to approve wording. Strengths-based; no judgement implie
 
 **Q8 — Previous psychotherapy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: P-S6 (nonpharmacological psychiatric treatments), P-S4 1.3.1 (previously found helpful)
 > "Daha önce bir psikolog ya da psikiyatristle düzenli görüşmeler yaptınız mı?"
-gen: slot=onceki_psikoterapi; type=boolean
+gen: slot=onceki_ruh_sagligi_destegi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Current physician-prescribed psychiatric medicine** · archetype: `ACTION.medication.v1` · source: P-S2 ("ilaç tedavisinin birlikte yürümesi mümkündür"), P-S6 (adherence to pharmacological treatments)
 > "Şu anda ruh sağlığınız için bir hekimin verdiği ilacı kullanıyor musunuz?"
-gen: slot=psikiyatrik_ilac_kullanimi; type=boolean
+gen: slot=ruh_sagligi_ilaci; type=boolean
 CANDIDATE — clinician to approve wording. The general medication list is already confirmed by `base/intake.yaml`;
 this item tells the psychologist that a prescriber is involved.
 
@@ -226,7 +226,7 @@ Re-cited to ruh R-S5 1.2.7, because §1 quotes no P-S4 sleep item.
 
 **Q11 — Alcohol or other substance used to cope** · archetype: `OBSERVATION.story.v1` (narrative only) · source: P-S5 1.2.7 ("any comorbid substance misuse"), P-S3 (alkol veya madde kullanım bozukluğu)
 > "Zorlandığınızda alkol ya da başka bir maddeye başvurduğunuz oluyor mu?"
-gen: slot=zorlanmada_madde_kullanimi; type=boolean; delivery=text_first
+gen: slot=zorlanmada_madde_kullanimi; type=boolean; ask_if=subject_role == 'kendim'; delivery=text_first
 CANDIDATE — clinician to approve wording. `text_first` per files/13 §13 (substance use). **HOLD:** substance
 use beyond alcohol and tobacco carries criminal-law exposure and is a personal-data category with no inventory
 annotation (invariant 18) and no HB row; same hold as ruh Q12. It stays in the review queue and is not

@@ -83,13 +83,13 @@ sections:
         ask_tr:
           tr: Zorlandığınızda kendinizi rahatlatmak için neler yapıyorsunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
-      onceki_psikoterapi:
+      onceki_ruh_sagligi_destegi:
         type: boolean
         required: false
         ask_tr:
           tr: Daha önce bir psikolog ya da psikiyatristle düzenli görüşmeler yaptınız mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
-      psikiyatrik_ilac_kullanimi:
+      ruh_sagligi_ilaci:
         type: boolean
         required: false
         ask_tr:
@@ -106,6 +106,7 @@ sections:
         required: false
         ask_tr:
           tr: Zorlandığınızda alkol ya da başka bir maddeye başvurduğunuz oluyor mu?
+        ask_if: subject_role == 'kendim'
         delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
       kisisel_kulturel_tercih:

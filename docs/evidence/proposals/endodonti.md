@@ -210,13 +210,13 @@ CANDIDATE — clinician to approve wording.
 **Q3 — Thermal sensitivity** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —
 symptomatic irreversible pulpitis: "lingering thermal pain")
 > "Sıcak ya da soğuk bir şey yiyip içtiğinizde dişiniz ağrıyor mu?"
-gen: slot=sicak_soguk_agri; type=boolean
+gen: slot=dis_hassasiyeti; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q4 — Lingering thermal pain (if Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (AAE — symptomatic irreversible pulpitis: "lingering thermal pain")
 > "Bu ağrı, yiyecek ya da içecek ağzınızdan gittikten sonra da sürüyor mu?"
-gen: slot=agri_sonra_suruyor; type=boolean; ask_if=sicak_soguk_agri == true
+gen: slot=agri_sonra_suruyor; type=boolean; ask_if=dis_hassasiyeti == true
 CANDIDATE — clinician to approve wording. No duration threshold is asked: AAE says only "lingering".
 
 **Q5 — Spontaneous pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (AAE —

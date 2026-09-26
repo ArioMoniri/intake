@@ -71,7 +71,7 @@ sections:
         ask_tr:
           tr: Bazen kullanmak için güçlü bir istek ya da dürtü hissediyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/amatem.md'
-      gunluk_yasam_etkisi:
+      islevsellik_etkilenimi:
         type: boolean
         required: false
         ask_tr:
@@ -108,7 +108,7 @@ sections:
         ask_tr:
           tr: Bilmemizi istediğiniz başka bir sağlık durumunuz var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/amatem.md'
-      destek_cevresi:
+      sosyal_destek:
         type: boolean
         required: false
         ask_tr:

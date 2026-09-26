@@ -53,20 +53,20 @@ sections:
         ask_tr:
           tr: Bu şikâyetiniz başladığından beri zamanla nasıl bir değişim gösterdi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
-      soru_2:
-        type: string
+      istemsiz_kilo_kaybi:
+        type: boolean
         required: false
         ask_tr:
           tr: Son aylarda diyet yapmadan kilo verdiğinizi fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
-      soru_3:
-        type: string
+      son_gunlerde_ates:
+        type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda nedenini bilmediğiniz bir ateşiniz oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
-      soru_4:
-        type: string
+      gece_terlemesi:
+        type: boolean
         required: false
         ask_tr:
           tr: Geceleri sizi uyandıracak kadar çok terlediğiniz oldu mu?

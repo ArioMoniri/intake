@@ -47,8 +47,8 @@ sections:
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      ani_isitme_azalmasi:
+        type: boolean
         required: false
         ask_tr:
           tr: Bir ya da iki kulağınızda aniden başlayan bir işitme azalması oldu mu?
@@ -65,8 +65,8 @@ sections:
         ask_tr:
           tr: Kulağınızda çınlama ya da uğultu duyuyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md'
-      soru_4:
-        type: string
+      donme_hissi:
+        type: boolean
         required: false
         ask_tr:
           tr: Başınızın ya da etrafın döndüğünü hissettiğiniz oldu mu?
@@ -77,14 +77,14 @@ sections:
         ask_tr:
           tr: Kulağınızdan akıntı geliyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md'
-      soru_6:
-        type: string
+      boyunda_sislik:
+        type: boolean
         required: false
         ask_tr:
           tr: Boynunuzda kendiliğinden kaybolmayan bir şişlik ya da kitle fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md'
-      soru_7:
-        type: string
+      ses_kisikligi:
+        type: boolean
         required: false
         ask_tr:
           tr: Sesinizde düzelmeyen bir kısıklık ya da değişiklik var mı?

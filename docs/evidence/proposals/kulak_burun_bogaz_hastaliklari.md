@@ -186,6 +186,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q2 — Sudden hearing loss (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: K-S1 ("tek ya da çift taraflı işitme azlığı"), K-S3, K-S4 ("occurring over a 72 hour period"), K-S5
 > "Bir ya da iki kulağınızda aniden başlayan bir işitme azalması oldu mu?"
+gen: slot=ani_isitme_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording. Source urgency quoted only (K-S1 "hemen başvurmak"; K-S5
 "refer immediately"); no level asserted.
 
@@ -199,6 +200,7 @@ CANDIDATE — clinician to approve wording. Standalone tinnitus referral criteri
 
 **Q5 — Dizziness or spinning** · archetype: `OBSERVATION.symptom_sign.v1` · source: K-S1 ("Baş dönmesi bu belirtilere eşlik edebilir.")
 > "Başınızın ya da etrafın döndüğünü hissettiğiniz oldu mu?"
+gen: slot=donme_hissi; type=boolean
 CANDIDATE — clinician to approve wording. Vertigo red-flag criteria: **NO SOURCE FOUND** (§4 gap 7).
 
 **Q6 — Ear discharge** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
@@ -207,10 +209,12 @@ CANDIDATE — clinician to approve wording. NG98 immunocompromised-otorrhoea cri
 
 **Q7 — Persistent neck lump (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: K-S6 (persistent unexplained head and neck lumps, more than three weeks), K-S7 (KAS 2a, two weeks or more)
 > "Boynunuzda kendiliğinden kaybolmayan bir şişlik ya da kitle fark ettiniz mi?"
+gen: slot=boyunda_sislik; type=boolean
 CANDIDATE — clinician to approve wording. Duration threshold is a clinician choice (§4 gap 3).
 
 **Q8 — Persistent hoarseness (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: K-S6 (persistent hoarseness, more than three weeks), K-S8 ("within four weeks")
 > "Sesinizde düzelmeyen bir kısıklık ya da değişiklik var mı?"
+gen: slot=ses_kisikligi; type=boolean
 CANDIDATE — clinician to approve wording. Duration threshold is a clinician choice (§4 gap 4).
 
 **Q9 — Persistent throat pain or pain on swallowing (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: K-S6 ("Persistent pain in the throat or pain on swallowing"), K-S2 (context)

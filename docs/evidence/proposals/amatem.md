@@ -189,7 +189,7 @@ Q4.
 **Q6 — Effect on daily life / health** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1/S2 (harm
 topic)
 > "Bu durum günlük yaşamınızı ya da sağlığınızı etkiliyor mu?"
-gen: slot=gunluk_yasam_etkisi; type=boolean
+gen: slot=islevsellik_etkilenimi; type=boolean
 CANDIDATE — clinician to approve wording. Supportive, non-judgemental (S3).
 
 **Q7 — Concern from people close to them** · archetype: `OBSERVATION.story.v1` · source: S1/S2 ("concern
@@ -227,7 +227,7 @@ CANDIDATE — clinician to approve wording.
 **Q12 — Support around the person** · archetype: `OBSERVATION.story.v1` · source: general intake (S3
 supportive relationship)
 > "Bu süreçte yanınızda olan, size destek olan kişiler var mı?"
-gen: slot=destek_cevresi; type=boolean
+gen: slot=sosyal_destek; type=boolean
 CANDIDATE — clinician to approve wording.
 
 *(12 candidate questions after revision — all supportive intake; none is a crisis/red-flag item.)*

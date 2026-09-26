@@ -224,7 +224,7 @@ CANDIDATE — clinician to approve wording. Candidate level: none (orientation q
 
 **Q2 — Onset after an injury** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Elinizdeki ya da bileğinizdeki şikâyet bir yaralanmadan sonra mı başladı?"
-gen: slot=yaralanma_sonrasi_basladi; type=boolean
+gen: slot=travma_sonrasi_basladi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Complaint location** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
