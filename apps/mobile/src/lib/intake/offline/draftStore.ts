@@ -90,7 +90,7 @@ async function openFrom(backend: DraftBackend, id: string): Promise<DraftRecord 
   const key = await backend.vault.key();
   const parsed: unknown = JSON.parse(raw);
   if (!isEncryptedEnvelope(parsed)) {
-    throw new DraftDecryptError("blob is not an envelope");
+    throw new DraftDecryptError("not_an_envelope");
   }
   return JSON.parse(openEnvelope(key, parsed)) as DraftRecord;
 }
