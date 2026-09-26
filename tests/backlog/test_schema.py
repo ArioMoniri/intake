@@ -65,10 +65,15 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
     # cross-border mechanism, egress allow-list row — split out of INT-329
     # because no agent may make it)
+    # + INT-359 (accessibility device audit and statement publication, split
+    # out of INT-226 because they are owner and counsel work)
+    # + INT-360..363 (the four WCAG defects the INT-226 report found:
+    # orientation lock, OTP paste/autofill, iOS error/status announcements,
+    # kiosk idle warning)
     # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
     # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
     # Grow this count only with a stated reason.
-    assert len(ids) == 283
+    assert len(ids) == 288
     import re
 
     for i in ids:
