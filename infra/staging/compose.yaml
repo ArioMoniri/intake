@@ -1,0 +1,183 @@
+# INT-345: the staging backend. API, Postgres, Redis, OpenBao and a TLS proxy
+# run on ONE Linux host with Docker. Nothing runs on the developer laptop.
+#
+# SYNTHETIC PATIENTS ONLY. The AWS host is in us-east-1. No real patient data
+# may reach it until an in-country host exists (HB-I5, HB-L11). Every response
+# carries X-Intake-Environment: staging-synthetic-only (see Caddyfile).
+#
+# The API boots in a non-dev posture:
+#   - INTAKE_ENV=staging.
+#   - The KEK mode is transit: OpenBao Transit, in server mode on file storage.
+#   - No dev gate is set anywhere in this tier.
+#   - No tokenization key is set, so the OTP tier stays unconfigured (503).
+#     Wiring it would wire the dev delivery logger, and the SMS vendor and
+#     device attestation are both awaiting-human.
+#
+# Secrets come only from the root-only env file that init.sh generates on the
+# host (/etc/intake-staging/.env, mode 0600). Every compose call goes through
+# lib.sh, which passes that file together with -p intake-staging. Only caddy
+# publishes ports, and only 80 and 443.
+#
+# Images are pinned by digest. Digests were resolved from the registries' v2
+# APIs on 26 Sep 2026. Licences:
+#   postgres    PostgreSQL Licence
+#   redis 7.4   RSALv2/SSPLv1. Internal self-hosting is permitted, as recorded
+#               in observability/registry.yaml.
+#   openbao     MPL-2.0
+#   caddy       Apache-2.0
+name: intake-staging
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  api:
+    image: intake-staging/api:${INTAKE_GIT_SHA:?set by deploy.sh}
+    build:
+      context: ../..
+      dockerfile: infra/staging/Dockerfile.api
+      args:
+        GIT_SHA: ${INTAKE_GIT_SHA:?set by deploy.sh}
+        BUILT_AT: ${INTAKE_BUILT_AT:?set by deploy.sh}
+    environment:
+      INTAKE_ENV: staging
+      INTAKE_API_KEK_MODE: transit
+      OPENBAO_ADDR: http://openbao:8200
+      OPENBAO_TOKEN: ${OPENBAO_TOKEN:?run init.sh}
+      INTAKE_API_DB_URL: postgresql+psycopg://app_rw:${PG_APP_RW_PASSWORD:?run init.sh}@postgres:5432/intake
+      INTAKE_API_AUDIT_DB_URL: postgresql+psycopg://svc_audit_writer:${PG_AUDIT_WRITER_PASSWORD:?run init.sh}@postgres:5432/intake
+      INTAKE_API_BOOTSTRAP_DB_URL: postgresql+psycopg://intake:${POSTGRES_PASSWORD:?run init.sh}@postgres:5432/intake
+      INTAKE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      openbao:
+        condition: service_healthy
+    # both networks are internal: the API has no route to the internet
+    networks: [backend, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+    restart: unless-stopped
+    logging: *logging
+
+  postgres:
+    image: postgres:16.15-trixie@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    environment:
+      POSTGRES_USER: intake
+      POSTGRES_DB: intake
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run init.sh}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "intake", "-d", "intake"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    # The password reaches redis-server on stdin, so it never appears in any
+    # process's argv, which the host's `ps` shows to every user. redis-cli
+    # reads the same variable for the healthcheck.
+    user: redis
+    command:
+      - sh
+      - -c
+      - |
+        exec redis-server - <<EOF
+        requirepass $$REDISCLI_AUTH
+        appendonly yes
+        EOF
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?run init.sh}
+    volumes:
+      - redis-data:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  openbao:
+    image: openbao/openbao:2.6.3@sha256:a60afafda36337abe833c4a63894bf1095098f29abea4091e7e555a33dd52889
+    # The image's default CMD starts a dev server, and its entrypoint's
+    # `server` branch appends dev flags. This command starts with `bao`, so
+    # the entrypoint runs it unchanged, as the image's non-root user.
+    command: ["bao", "server", "-config=/openbao/config/openbao.hcl"]
+    environment:
+      BAO_ADDR: http://127.0.0.1:8200
+    volumes:
+      - openbao-data:/openbao/file
+      - ./openbao/openbao.hcl:/openbao/config/openbao.hcl:ro
+    # mlock stays on (disable_mlock = false). An unlimited memlock rlimit lets
+    # the non-root server lock its memory. IPC_LOCK covers a binary that
+    # carries the file capability.
+    ulimits:
+      memlock: -1
+    cap_add: [IPC_LOCK]
+    networks: [backend]
+    healthcheck:
+      # 200 only when initialised, unsealed and active, so the API waits for unseal
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    environment:
+      STAGING_HOSTNAME: ${STAGING_HOSTNAME:?run init.sh}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    # public: the published ports and ACME egress; edge: the only way to the API
+    networks: [public, edge]
+    depends_on:
+      api:
+        condition: service_started
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+networks:
+  public: {}
+  edge:
+    internal: true
+  backend:
+    internal: true
+
+volumes:
+  pgdata: {}
+  redis-data: {}
+  openbao-data: {}
+  caddy-data: {}
+  caddy-config: {}
