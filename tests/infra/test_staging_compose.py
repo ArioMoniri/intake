@@ -19,6 +19,9 @@ container. What IS decidable without booting anything:
   ``VersionInfo`` actually reads, and a build without them is refused;
 - every role a migration creates with a committed dev password is re-keyed
   on the host;
+- the object store runs the owner-approved image pinned by digest (owner
+  decision D1, INT-347), publishes no port, and takes its root pair from the
+  host-generated env file with no default;
 - the restart probe refuses a process-local KEK, and the negative control
   shows why: a file-dev KEK does not survive a process restart.
 
@@ -91,7 +94,7 @@ ARTEFACT = (
 )
 
 PROJECT = "intake-staging"
-SERVICES = {"api", "postgres", "redis", "openbao", "caddy"}
+SERVICES = {"api", "postgres", "redis", "openbao", "minio", "caddy"}
 STAGING_ENV = "staging"
 
 #: The dev-gate prefix, derived from the API's own gate names instead of being
@@ -110,6 +113,9 @@ PROCESS_LOCAL_KEK = "file-dev"
 
 #: Build-time stamps set by deploy.sh, not by the root-only .env.
 DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT"}
+
+#: Committed, non-secret values that lib.sh exports for every compose call.
+LIB_EXPORTED = {"OBJECT_STORE_IMAGE"}
 
 #: name:tag@sha256:<64 hex> — a tag for humans, a digest for the registry.
 PINNED = re.compile(r"^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$")
@@ -159,9 +165,33 @@ API_SOURCES = (
 #: The one template key the owner supplies; every other one is a generated secret.
 OWNER_SUPPLIED = {"STAGING_HOSTNAME"}
 
-#: The issue that owns the object-store image: the upstream minio/minio image
-#: is withdrawn, and no replacement image is approved in this repository.
+#: The issue that records the object-store image and its licence.
 OBJECT_STORE_ISSUE = "INT-347"
+
+#: The object-store image the owner chose on 2026-09-26 (owner decision D1:
+#: the maintained AGPL-3.0 community fork). INT-347 (PR #554) pins the same
+#: reference in observability/registry.yaml, with the licence read from the
+#: raw LICENSE blob, and its scan holds every reference in the tree to it.
+#: Assembled from its parts: a reference split across string literals would
+#: read as an unpinned one to that scan, which stops at a quote.
+_OBJECT_STORE_REPOSITORY = "pgsty/minio"
+_OBJECT_STORE_TAG = "RELEASE.2026-08-04T00-00-00Z"
+_OBJECT_STORE_DIGEST = "sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
+APPROVED_OBJECT_STORE_IMAGE = (
+    f"{_OBJECT_STORE_REPOSITORY}:{_OBJECT_STORE_TAG}@{_OBJECT_STORE_DIGEST}"
+)
+
+#: The S3 endpoint the API reads (``services/api/src/intake_api/app.py``).
+API_OBJECT_STORE_ENDPOINT = "MINIO_ENDPOINT"
+
+
+def _withdrawn_upstream_image() -> re.Pattern[str]:
+    """The withdrawn upstream server/client images, assembled from parts so
+    this file never spells what it forbids (the same shape INT-347 scans)."""
+    vendor = "min" + "io"
+    return re.compile(
+        rf"(?<![\w./-])(?:docker\.io/)?{vendor}/(?:{vendor}|mc)(?![\w-])|quay\.io/{vendor}/"
+    )
 
 
 # --- helpers ---------------------------------------------------------------------------
@@ -256,6 +286,26 @@ def _bash(script: str, *args: str, cwd: Path | None = None) -> subprocess.Comple
         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(cwd or REPO)},
         check=False,
     )
+
+
+def _lib_exported(name: str) -> str:
+    """The value a child of a lib.sh-sourcing script sees, i.e. what compose
+    interpolates. A variable lib.sh sets but does not export reads empty."""
+    result = _bash(f'bash -c \'printf "%s" "${{{name}:-}}"\'')
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
+def _object_store_image() -> str:
+    """compose's minio image, rendered from lib.sh's exported values."""
+    raw = str(_service("minio")["image"])
+
+    def substitute(match: re.Match[str]) -> str:
+        name = match.group(1)
+        assert name in LIB_EXPORTED, f"the object-store image interpolates {name}"
+        return _lib_exported(name)
+
+    return REQUIRED_INTERPOLATION_IN.sub(substitute, raw)
 
 
 def _required_credentials() -> tuple[str, ...]:
@@ -473,7 +523,8 @@ class TestSupplyChainAndExposure:
         for name, service in _compose()["services"].items():
             if "build" in service:
                 continue
-            assert PINNED.match(service["image"]), f"{name}: {service['image']}"
+            image = _object_store_image() if name == "minio" else service["image"]
+            assert PINNED.match(image), f"{name}: {image}"
 
     def test_every_dockerfile_base_is_pinned_by_digest(self) -> None:
         aliases = {alias for _, alias in _stages() if alias}
@@ -522,8 +573,10 @@ class TestSupplyChainAndExposure:
 
     def test_every_compose_interpolation_is_a_template_key_or_a_deploy_stamp(self) -> None:
         referenced = set(INTERPOLATION.findall(_text(COMPOSE)))
-        assert referenced - set(_env_template()) - DEPLOY_STAMPED == set()
+        assert referenced - set(_env_template()) - DEPLOY_STAMPED - LIB_EXPORTED == set()
         assert DEPLOY_STAMPED <= referenced
+        assert LIB_EXPORTED <= referenced
+        assert not LIB_EXPORTED & set(_env_template()), "committed values, not host secrets"
 
     def test_only_the_proxy_publishes_ports_and_only_80_and_443(self) -> None:
         for name, service in _compose()["services"].items():
@@ -544,7 +597,7 @@ class TestSupplyChainAndExposure:
 
     def test_data_services_sit_on_internal_networks_only(self) -> None:
         networks = _compose()["networks"]
-        for name in ("postgres", "redis", "openbao", "api"):
+        for name in ("postgres", "redis", "openbao", "minio", "api"):
             attached = _service(name)["networks"]
             for network in attached:
                 assert networks[network].get("internal") is True, (name, network)
@@ -894,31 +947,83 @@ class TestNonDevCredentials:
         assert user != password
 
 
-# --- INT-347: no object-store image is approved here, so deploy fails closed ---------
+# --- the object store: owner decision D1, recorded by INT-347 ---------------------------
 
 
-class TestObjectStoreGate:
-    """The upstream minio/minio image is withdrawn, and no replacement image is
-    approved in this repository (INT-347, #550). Until an approved,
-    digest-pinned image is committed, deploy.sh refuses: it names INT-347 and
-    touches nothing."""
+class TestObjectStore:
+    """The API's documents and WORM audit copies need an S3-compatible store.
+    The owner chose its image on 2026-09-26 (owner decision D1), and INT-347
+    records it with the licence read from the raw LICENSE blob. lib.sh holds
+    the one staging copy of the reference and exports it; compose's ``minio``
+    service interpolates it; deploy.sh's first statement refuses an empty or
+    unpinned value. The gate therefore checks exactly what compose pulls."""
 
-    def test_no_object_store_image_is_approved_yet(self) -> None:
-        result = _bash('printf "%s" "$OBJECT_STORE_IMAGE"')
-        assert result.returncode == 0, result.stderr
-        assert result.stdout == ""
-        assert "minio" not in " ".join(
-            str(service.get("image", "")) for service in _compose()["services"].values()
-        )
+    def test_lib_exports_the_owner_approved_pin(self) -> None:
+        image = _lib_exported("OBJECT_STORE_IMAGE")
+        assert image == APPROVED_OBJECT_STORE_IMAGE
+        assert PINNED.match(image)
 
-    def test_deploy_refuses_while_the_object_store_image_is_unset(self, tmp_path: Path) -> None:
+    def test_the_minio_service_runs_exactly_that_image(self) -> None:
+        raw = str(_service("minio")["image"])
+        match = REQUIRED_INTERPOLATION.match(raw)
+        assert match and match.group(1) == "OBJECT_STORE_IMAGE", raw
+        assert _object_store_image() == APPROVED_OBJECT_STORE_IMAGE
+
+    def test_the_store_publishes_no_port_and_sits_on_the_internal_network(self) -> None:
+        minio = _service("minio")
+        assert "ports" not in minio, "the store is reachable from the api only"
+        assert "network_mode" not in minio
+        assert minio["networks"] == ["backend"]
+        assert _compose()["networks"]["backend"].get("internal") is True
+        assert "backend" in _service("api")["networks"]
+
+    def test_the_root_pair_is_a_required_host_secret_shared_with_the_api(self) -> None:
+        store = _environment(_service("minio"))
+        api = _environment(_service("api"))
+        secrets = set(_env_template()) - OWNER_SUPPLIED
+        for name in ("MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD"):
+            match = REQUIRED_INTERPOLATION.match(store.get(name, ""))
+            assert match and match.group(1) == name, f"minio.{name} is defaulted or literal"
+            assert name in secrets
+            assert api[name] == store[name], f"the api and the store disagree on {name}"
+
+    def test_the_store_keeps_its_data_on_a_named_volume(self) -> None:
+        minio = _service("minio")
+        assert minio["command"] == ["server", "/data"]
+        data = [v for v in minio["volumes"] if str(v).endswith(":/data")]
+        assert data, "the documents and the WORM audit copies must survive a restart"
+        assert str(data[0]).split(":")[0] in _compose()["volumes"]
+
+    def test_the_web_console_is_off(self) -> None:
+        assert _environment(_service("minio"))["MINIO_BROWSER"] == "off"
+
+    def test_the_api_waits_for_a_healthy_store_and_reaches_it_internally(self) -> None:
+        assert _service("minio")["healthcheck"]["test"] == ["CMD", "mc", "ready", "local"]
+        assert _service("api")["depends_on"]["minio"] == {"condition": "service_healthy"}
+        assert _environment(_service("api"))[API_OBJECT_STORE_ENDPOINT] == "minio:9000"
+        source = "".join(_text(path) for path in API_SOURCES)
+        assert f'"{API_OBJECT_STORE_ENDPOINT}"' in source, "the API reads no such variable"
+
+    def test_no_bucket_is_pre_created(self) -> None:
+        """The API creates both buckets on first use
+        (``DocumentStore.ensure_buckets``), the audit bucket with object lock.
+        The store enables the lock only at creation, so a bucket pre-created
+        here without it would make the API fail closed on WORM."""
+        from intake_platform.documents import DocumentStore
+
+        assert "object_lock=True" in inspect.getsource(DocumentStore.ensure_buckets)
+        for path in (*SCRIPTS, COMPOSE):
+            assert not re.search(r"\bmc\s+mb\b|make_bucket", _text(path)), path.name
+
+    def test_deploy_no_longer_refuses_on_the_object_store(self, tmp_path: Path) -> None:
         result = _run_deploy(tmp_path)
+        # it still stops, later and for a host reason: not root, no docker, no env file
         assert result.returncode != 0
-        assert OBJECT_STORE_ISSUE in result.stderr
-        assert "object-store image" in result.stderr
-        # its own refusal, before the root check: the verdict does not depend on
-        # who runs it, and no host state was created
-        assert "run as root" not in result.stderr
+        assert "object-store image" not in result.stderr
+        assert OBJECT_STORE_ISSUE not in result.stderr
+        assert any(
+            reason in result.stderr for reason in ("run as root", "missing", "run ./init.sh first")
+        ), result.stderr
         assert not (tmp_path / "state").exists()
 
     def test_the_gate_runs_before_anything_touches_the_host(self) -> None:
@@ -932,7 +1037,7 @@ class TestObjectStoreGate:
         "image",
         [
             "",
-            "minio/minio:RELEASE.2024-01-16T16-07-38Z",
+            "registry.invalid/object-store:1.0",
             "registry.invalid/object-store@sha256:" + "0" * 64,
             "registry.invalid/object-store:1.0@sha256:" + "0" * 63,
         ],
@@ -950,10 +1055,27 @@ class TestObjectStoreGate:
         result = _bash('require_object_store_image "$1"', image)
         assert result.returncode == 0, result.stderr
 
-    def test_the_runbook_states_the_dependency(self) -> None:
+    def test_the_withdrawn_name_scan_recognises_what_it_forbids(self) -> None:
+        vendor = "min" + "io"
+        pattern = _withdrawn_upstream_image()
+        assert pattern.search(f"the upstream {vendor}/{vendor} image is withdrawn")
+        assert pattern.search(f"image: {vendor}/mc:RELEASE.x")
+        assert not pattern.search(f"https://github.com/{vendor}/{vendor}")
+        assert not pattern.search(APPROVED_OBJECT_STORE_IMAGE)
+
+    @pytest.mark.parametrize("path", (*ARTEFACT, RUNBOOK), ids=lambda p: p.name)
+    def test_no_staging_file_names_the_withdrawn_image(self, path: Path) -> None:
+        """INT-347's tree-wide scan forbids the withdrawn name outside dated
+        records, so the artefact stays clean for when both have landed."""
+        pattern = _withdrawn_upstream_image()
+        hits = [line.strip() for line in _text(path).splitlines() if pattern.search(line)]
+        assert not hits, f"{path.name}: {hits}"
+
+    def test_the_runbook_names_the_store_and_the_owner_decision(self) -> None:
         text = _text(RUNBOOK)
-        assert "depends on INT-347" in text
-        assert "#550" in text
+        assert "owner decision D1" in text
+        assert OBJECT_STORE_ISSUE in text
+        assert "depends on INT-347" not in text, "the deploy no longer waits on INT-347"
 
 
 # --- the runbook -----------------------------------------------------------------------

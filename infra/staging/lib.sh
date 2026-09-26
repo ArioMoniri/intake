@@ -22,14 +22,16 @@ API_IMAGE_REPO="intake-staging/api"
 # The restart probe's Transit key. TransitKekProvider names keys tenant-<id>,
 # and staging_probe.PROBE_TENANT is "staging-restart-probe".
 PROBE_KEK="tenant-staging-restart-probe"
-# The S3-compatible object store the API's documents need. The upstream
-# minio/minio image is withdrawn, and its replacement is the owner's choice:
-# INT-347 (#550) records it with a licence verified from the raw LICENSE blob
-# and a sha256 digest pin. Empty until then, and deploy.sh refuses while it
-# is. The API's MINIO_ROOT_USER/MINIO_ROOT_PASSWORD are generated into the env
-# file regardless, so the store INT-347 adds is keyed from the same file.
-# shellcheck disable=SC2034 # deploy.sh reads it
-OBJECT_STORE_IMAGE=""
+# The S3-compatible object store for the API's documents and WORM audit
+# copies. The owner chose the image on 2026-09-26 (owner decision D1): the
+# maintained AGPL-3.0 community fork, pinned by index digest. INT-347 (#550)
+# records the same reference in observability/registry.yaml, with the licence
+# read from the raw LICENSE blob. This is the only copy in this tier:
+# compose.yaml's minio service interpolates it, and deploy.sh refuses an
+# empty or unpinned value before it touches the host. It is exported so every
+# compose call (init, deploy, smoke) can interpolate it. It is not a secret.
+OBJECT_STORE_IMAGE="pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
+export OBJECT_STORE_IMAGE
 OBJECT_STORE_ISSUE="INT-347 (#550)"
 
 # Every LOGIN role that a migration creates with a committed dev password,
@@ -136,7 +138,7 @@ require_object_store_image() {
   # name:tag@sha256:<64 hex>, the same pin every other image here carries
   local image=${1:-}
   [[ -n $image ]] ||
-    die "no object-store image is approved: ${OBJECT_STORE_ISSUE} must record the owner's licence-verified, digest-pinned S3-compatible image that replaces the withdrawn minio/minio. deploy.sh refuses until it lands (docs/runbooks/staging.md)"
+    die "no object-store image is set: OBJECT_STORE_IMAGE in lib.sh must be the owner-approved, digest-pinned image that ${OBJECT_STORE_ISSUE} records (docs/runbooks/staging.md)"
   [[ $image =~ ^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$ ]] ||
     die "the object-store image is not pinned by digest (name:tag@sha256:<64 hex>): see ${OBJECT_STORE_ISSUE}"
 }

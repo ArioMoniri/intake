@@ -7,9 +7,9 @@
 # Run as root on the staging host, from infra/staging, after ./init.sh. Run it
 # again after every host reboot: OpenBao restarts sealed, and this unseals it.
 #
-# It refuses first, before touching the host, while no object-store image is
-# approved: the upstream minio/minio image is withdrawn and its replacement is
-# the owner's choice (INT-347, #550). This deploy depends on INT-347.
+# Its first check, before it touches the host, is that the object-store image
+# in lib.sh is set and pinned by digest (owner decision D1; INT-347 records
+# the image and its licence). compose runs exactly that value.
 #
 # What it does:
 #   1. Stamps the commit sha and build time, which /version reports.

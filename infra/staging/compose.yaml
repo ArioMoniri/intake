@@ -1,5 +1,6 @@
-# INT-345: the staging backend. API, Postgres, Redis, OpenBao and a TLS proxy
-# run on ONE Linux host with Docker. Nothing runs on the developer laptop.
+# INT-345: the staging backend. API, Postgres, Redis, OpenBao, an object
+# store and a TLS proxy run on ONE Linux host with Docker. Nothing runs on the
+# developer laptop.
 #
 # SYNTHETIC PATIENTS ONLY. The AWS host is in us-east-1. No real patient data
 # may reach it until an in-country host exists (HB-I5, HB-L11). Every response
@@ -16,9 +17,10 @@
 #     URLs and the object store's root pair) is a required interpolation of
 #     a host-generated secret. None has a default.
 #
-# No object store runs in this project yet. The upstream minio/minio image is
-# withdrawn and no replacement image is approved in this repository (INT-347,
-# #550), so deploy.sh refuses until an approved, digest-pinned image lands.
+# The object store's image is OBJECT_STORE_IMAGE, which lib.sh sets and
+# exports: the one the owner chose on 2026-09-26 (owner decision D1), pinned
+# by digest, and recorded with its licence by INT-347 (#550). deploy.sh
+# refuses an empty or unpinned value before anything runs.
 #
 # Secrets come only from the root-only env file that init.sh generates on the
 # host (/etc/intake-staging/.env, mode 0600). Every compose call goes through
@@ -31,6 +33,7 @@
 #   redis 7.4   RSALv2/SSPLv1. Internal self-hosting is permitted, as recorded
 #               in observability/registry.yaml.
 #   openbao     MPL-2.0
+#   minio       AGPL-3.0, verified from the raw LICENSE blob (INT-347)
 #   caddy       Apache-2.0
 name: intake-staging
 
@@ -58,9 +61,12 @@ services:
       INTAKE_API_AUDIT_DB_URL: postgresql+psycopg://svc_audit_writer:${PG_AUDIT_WRITER_PASSWORD:?run init.sh}@postgres:5432/intake
       INTAKE_API_BOOTSTRAP_DB_URL: postgresql+psycopg://intake:${POSTGRES_PASSWORD:?run init.sh}@postgres:5432/intake
       INTAKE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
-      # The object store's root pair. Outside dev the API refuses to boot
-      # without it (INT-325), and it has no default here. The store itself
-      # arrives with INT-347 (#550); deploy.sh refuses until then.
+      # The object store: the minio service below, over the internal backend
+      # network. The API creates its buckets itself on first use, the audit
+      # bucket with object lock, so nothing here pre-creates one.
+      MINIO_ENDPOINT: minio:9000
+      # The store's root pair. Outside dev the API refuses to boot without it
+      # (INT-325), and it has no default here.
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?run init.sh}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?run init.sh}
     depends_on:
@@ -69,6 +75,8 @@ services:
       redis:
         condition: service_healthy
       openbao:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     # both networks are internal: the API has no route to the internet
     networks: [backend, edge]
@@ -156,6 +164,31 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  minio:
+    # S3-compatible store for the documents and the WORM audit copies. The
+    # image is lib.sh's OBJECT_STORE_IMAGE (see the header). Its entrypoint
+    # prefixes `minio`, so this command runs `minio server /data`.
+    image: ${OBJECT_STORE_IMAGE:?set by lib.sh}
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?run init.sh}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?run init.sh}
+      # no web console: nothing on this host administers the store by hand
+      MINIO_BROWSER: "off"
+    volumes:
+      - minio-data:/data
+    # internal only, and no published port: the api is its only client
+    networks: [backend]
+    healthcheck:
+      # the image bundles the mc client; `mc ready local` is its readiness check
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
   caddy:
     image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
     environment:
@@ -191,5 +224,6 @@ volumes:
   pgdata: {}
   redis-data: {}
   openbao-data: {}
+  minio-data: {}
   caddy-data: {}
   caddy-config: {}

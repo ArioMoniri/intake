@@ -10,31 +10,33 @@ Every response from the host carries `X-Intake-Environment:
 staging-synthetic-only`.
 
 The artefact lives in `infra/staging/`. It runs API, Postgres, Redis, OpenBao
-(server mode, file storage, Transit KEK) and Caddy (automatic TLS) on this one
-host. Nothing runs on the developer laptop. Only Caddy publishes ports, and
+(server mode, file storage, Transit KEK), an S3-compatible object store and
+Caddy (automatic TLS) on this one host. Nothing runs on the developer laptop. Only Caddy publishes ports, and
 only 80 and 443. The llama.cpp model server on the same box stays bound to
 loopback (`docs/runbooks/model-server-aws.md`). The new security group opens
 80/443 to Caddy and to nothing else.
 
-## This deploy depends on INT-347 (object store)
+## Object store
 
-`./deploy.sh` **refuses** until an object-store image is approved. The
-upstream `minio/minio` image is withdrawn, and choosing its replacement is the
-owner's call: **INT-347 (#550)** records the image, with its licence verified
-from the raw LICENSE blob and a sha256 digest pin. Until that lands,
-`OBJECT_STORE_IMAGE` in `infra/staging/lib.sh` is empty. deploy.sh then stops
-before it touches the host and prints:
+The compose service `minio` is the API's document store and WORM audit copy.
+Its image is the one the owner chose on 2026-09-26 (**owner decision D1**):
+the maintained AGPL-3.0 community fork of the withdrawn upstream image, pinned
+by sha256 index digest. **INT-347 (#550)** records the same reference in
+`observability/registry.yaml`, with the licence verified from the raw LICENSE
+blob.
 
-```
-[intake-staging] ERROR: no object-store image is approved: INT-347 (#550) must record the owner's ...
-```
-
-The deploy does not boot the API without an object store. Outside dev the API
-also refuses to boot without the store's credentials (INT-325, PR #521).
-`./init.sh` still runs: it generates `MINIO_ROOT_USER` and
-`MINIO_ROOT_PASSWORD` into the root-only env file with every other secret, and
-compose passes them to the api with no default. The store that INT-347 adds
-is keyed from the same file.
+- `OBJECT_STORE_IMAGE` in `infra/staging/lib.sh` is the only copy in this
+  tier. lib.sh exports it and compose interpolates it. deploy.sh's first
+  statement refuses an empty or unpinned value before it touches the host.
+- The store publishes no port and sits on the internal `backend` network
+  only. The API reaches it at `minio:9000`, and its web console is off.
+- `./init.sh` generates `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` into the
+  root-only env file with every other secret. The store and the api take the
+  same pair, with no default. Outside dev the API refuses to boot without it
+  (INT-325, PR #521).
+- Data lives on the `minio-data` volume. Nothing pre-creates a bucket. The
+  API creates both on first use, the audit bucket with object lock, which the
+  store can enable only at creation.
 
 ## Prerequisites (owner, one-time)
 
@@ -127,8 +129,8 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
   - It runs the alembic migrations and re-keys every migration role away
     from its committed dev password.
 - `./deploy.sh` runs on every deploy **and after every host reboot**. It
-  depends on INT-347 and refuses until INT-347 lands (see above). OpenBao
-  restarts sealed, and this script unseals it. It then renews the API token,
+  first checks the object-store image pin (see above). OpenBao restarts
+  sealed, and this script unseals it. It then renews the API token,
   builds, migrates, runs `docker compose -p intake-staging up -d --build`,
   and probes `/healthz` and `/readyz` over HTTPS.
 - `./smoke.sh` runs these checks:
@@ -147,8 +149,6 @@ Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
 
 ## Known gaps, stated rather than hidden
 
-- **The deploy depends on INT-347.** deploy.sh refuses until an approved,
-  digest-pinned object-store image lands (see the section above).
 - **`/readyz` answers 503 on main as of 730e9288.** The response is
   `{"checks": {..., "dev_auth": "error"}}`, because the INT-197 `dev_auth`
   readiness check is mounted outside dev. INT-325 (PR #521, at be74a9d1)
@@ -162,8 +162,8 @@ Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
   and attestation, both awaiting-human. `infra/staging/staging_probe.py`
   drives the same `wiring_from_env()` cipher inside the api container.
 - `/version`'s `sbom_digest` stays `dev`: this artefact produces no SBOM.
-- Document upload has no object store (INT-347) and no ClamAV here, so it
-  fails closed.
+- Document upload has no ClamAV here, so it fails closed
+  (`scan_not_configured`) although the object store runs.
 - The synthetic probe registration and the staging banner/tenant belong to
   the API and app, not to this artefact.
 - **Key custody is a staging posture only.** The unseal shares sit on the
