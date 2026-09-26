@@ -5,7 +5,8 @@ compiler outputs), files/04 §1 (voice fields v1.1), files/12 §2 (core types,
 ``source:`` per rule), files/13 §13 (delivery), files/02 §5.3 via the rule
 schema documented inline in files/protocols/base.life_threat.yaml (route,
 register, location-keyed actions, do-nots). A field the blueprint does not
-name does not exist here.
+name does not exist here, with one recorded exception: ``Slot.data_category``
+comes from the owner's D3 decision of 2026-09-26 (INT-349).
 
 Naming note (files/protocols/base.life_threat.yaml, schema_reconciliation):
 the life-threat set spells the predicate ``gate:`` and the provenance block
@@ -40,6 +41,7 @@ from protocols.types import (
     AbandonmentHandler,
     AckStyle,
     CrisisNumber,
+    DataCategory,
     Delivery,
     EK4Level,
     NotifyClinic,
@@ -196,6 +198,13 @@ class Slot(FrozenModel):
     )
     delivery: Delivery | None = Field(
         default=None, description="voice|text_first|text_only (files/13 §13)."
+    )
+    data_category: DataCategory = Field(
+        default=DataCategory.GENERAL_HEALTH,
+        description="What kind of personal data the answer is, from the closed "
+        "set of owner decision D3 (INT-349). Anything but general_health is "
+        "envelope-encrypted at rest, and the compiler refuses to serve the slot "
+        "while its category row in docs/legal/data-categories.yaml is incomplete.",
     )
     openehr_path: str | None = Field(
         default=None,

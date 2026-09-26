@@ -15,7 +15,7 @@ import { SymbolView } from "expo-symbols";
 
 import { AppText, Hairline, useScheme, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
-import { palette, radius, shadow, spacing } from "@/lib/theme";
+import { motion, palette, radius, shadow, spacing } from "@/lib/theme";
 
 /** Action name for the row's nested trailing control. */
 const SECONDARY_ACTION = "secondary";
@@ -162,7 +162,7 @@ export function ListRow({
         style={({ pressed }) => [
           styles.row,
           inset ? styles.rowInset : null,
-          { opacity: pressed ? 0.7 : 1 },
+          { opacity: pressed ? motion.press.rowOpacity : 1 },
         ]}
       >
         {body}

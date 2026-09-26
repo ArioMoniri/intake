@@ -4983,16 +4983,15 @@
 - id: INT-329
   epic: E01-platform
   phase: P1
-  title: "Twilio SMS delivery adapter: tested, async, fail-closed under prod, egress and inventory rows"
+  title: "Twilio SMS delivery adapter: async, egress-guarded, secrets from OpenBao, fail-closed outside dev"
   depends_on: [INT-325]
   labels: [area:api, risk:security, risk:legal]
-  status: todo
+  status: doing
   acceptance:
-    - "the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"
-    - "delivery uses an async HTTP client so the OTP route never blocks the event loop"
-    - "under prod the adapter is Twilio when configured and nothing otherwise (INT-325); credentials resolve through the secrets path (invariant 14), never an in-code default"
-    - "api.twilio.com is added to infra/security/egress-allowlist.yaml with its EgressPurpose member and rendered proxy config, and the phone-number field carries the data-inventory annotation (invariant 18), only after the owner records the DPA and cross-border decision"
-  tests: [tests/api/test_otp_twilio.py]
+    - "the adapter uses an async HTTP client through the egress guard and maps every vendor failure to a typed OtpDeliveryError with a generic 503, logging no phone number, code, token or vendor body"
+    - "outside dev the OTP tier is configured only when the tokenization key and the OpenBao Twilio secret exist and the egress policy admits the host; otherwise it answers 503 and never falls back to a log-only sender"
+    - "MockTransport tests cover success, 4xx, 5xx, timeout and auth failure, and a log-capture test proves no personal data is logged"
+  tests: [tests/api/test_otp_twilio.py, tests/api/test_otp_twilio_wiring.py, tests/security/test_egress_async.py]
   legal: "KVKK-9,DPA"
   sec_row: "onboarding"
 - id: INT-330
@@ -5357,3 +5356,29 @@
   tests: [tests/protocols/test_data_register.py]
   legal: "KVKK-6,KVKK-10"
   sec_row: "data-at-rest"
+- id: INT-357
+  epic: E13-infra
+  phase: P0
+  title: "Staging passes App Attest and SMS configuration to the API; fail closed when unset"
+  depends_on: [INT-345]
+  labels: [area:infra, risk:security]
+  status: doing
+  acceptance:
+    - "staging.env.template and compose.yaml pass INTAKE_APP_ATTEST_TEAM_ID, INTAKE_APP_ATTEST_BUNDLE_ID, INTAKE_APP_ATTEST_ENVIRONMENT and the SMS vendor configuration to the api with no default, and init.sh generates INTAKE_TOKENIZATION_KEY"
+    - "deploy.sh refuses a team id without the SMS vendor configuration so an attested request can never reach a fake sender"
+  tests: [tests/infra/test_staging_compose.py]
+  sec_row: "platform"
+- id: INT-358
+  epic: E14-legal
+  phase: P0
+  title: "SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery"
+  depends_on: [INT-329]
+  labels: [area:legal, risk:legal, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner records the SMS vendor, its DPA and the KVKK Art. 9 cross-border mechanism for phone numbers and OTP codes, with a decision id"
+    - "the egress allow-list gains the vendor row in the tier the file's rules require, citing that decision id, with its EgressPurpose and rendered proxy config test"
+    - "the vendor credentials are written to OpenBao on each host by the operator, never committed"
+  tests: [tests/security/test_egress_allowlist.py]
+  legal: "KVKK-9,DPA"
+  sec_row: "onboarding"
