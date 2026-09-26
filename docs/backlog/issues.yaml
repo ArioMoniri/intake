@@ -4809,6 +4809,32 @@
   tests:
   - tests/infra/test_restore_drill.py
   sec_row: "backups"
+- id: INT-318
+  epic: E10-connectors
+  phase: P1
+  # Slice S2 of INT-354 (int-demo -> main). Cited by int-demo code with no
+  # backlog row anywhere; the id was reserved by the coordinator and filed as
+  # GitHub #603 before this row was written, not minted by an agent. The
+  # connector mechanism carried as written; the server route is REBUILT, because
+  # on int-demo it built its source row in code (audit 2026-09-26 F06, section 6
+  # item 8).
+  # The registry row itself is the humans' (HB-A15, HB-A5, HB-L27, the
+  # plaintext decision): until it exists the route answers "unavailable".
+  title: "Acıbadem appointments read source, /v1/visits/sync and the phone-first login it feeds"
+  depends_on: [INT-160, INT-131]
+  labels: [area:connectors, area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-318.md
+  acceptance:
+    - "the visits route reads its source row only from infra/connectors/sources.yaml, which ships sources: [], and fails closed when no row exists; no DPA or approval ref appears in code (audit F06, section 6 item 8)"
+    - "the hardening carries over: require_scopes, a hash-chained audit, resolve_identity for shared handsets, an ownership re-check, and upstream error -> upstream_unavailable (200, no visits)"
+    - "the mobile sync client runs only in a dev build (build-source 79a6fc58)"
+  tests:
+    - tests/connectors/test_acibadem.py
+    - tests/api/test_visits_acibadem_sync.py
+    - tests/api/test_visits_acibadem_registry.py
+    - apps/mobile/e2e/releaseDemoSurfaces.spec.ts
+  sec_row: "connectors"
 - id: INT-319
   epic: E05-voice
   phase: P1

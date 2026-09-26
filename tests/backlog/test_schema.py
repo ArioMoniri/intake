@@ -64,9 +64,11 @@ def test_ids_unique_and_well_formed() -> None:
     # own issue instead of INT-352's)
     # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
     # cross-border mechanism, egress allow-list row — split out of INT-329
-    # because no agent may make it).
+    # because no agent may make it)
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
     # Grow this count only with a stated reason.
-    assert len(ids) == 282
+    assert len(ids) == 283
     import re
 
     for i in ids:
