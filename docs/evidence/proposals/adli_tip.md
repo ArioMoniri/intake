@@ -170,48 +170,62 @@ items — explicitly **skippable**.
 > authoritative**. The authoritative RED/YELLOW and its action (route × register × location,
 > invariant 21) must come from `packages/protocols/triage`.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 21 and 28 apply. Q1–Q6 keep their numbers. Q7 (medications)
+and Q8 (allergies) are removed: they duplicate base `meds_confirmed`/`meds_new_or_stopped` and
+`allergies`. Q3, Q4 and Q5 are held under invariant 18 (finding 21): feeling-safe, companion and
+strangulation answers are a new sensitive data category on a patient-owned device that may be shared
+with the perpetrator. That is a stop-and-ask item (new categories of personal data) for the owner, the
+legal-reviewer and the clinician; none of the three is served until it is decided.
+
 **Q1 — Reason for the appointment** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake (no clinical threshold)
-> "Bugünkü randevunuz hangi konuyla ilgili? Kısaca yazabilirsiniz."
-CANDIDATE — clinician to approve wording.
+> "Bugünkü randevunuzun konusu nedir?"
+CANDIDATE — clinician to approve wording. The typed-only "yazabilirsiniz" is gone (voice-first,
+finding 28).
 
 **Q2 — Optional note for the doctor** · archetype: `OBSERVATION.story.v1` · source: general intake (posture informed by S3 — do NOT press for the incident account)
-> "Görüşmeden önce doktorun bilmesini istediğiniz bir şey var mı? Paylaşmak istemiyorsanız bu bölümü boş bırakabilirsiniz."
+> "İsterseniz bu soruyu geçebilirsiniz. Doktorun önceden bilmesini istediğiniz bir şey var mı?"
+gen: slot=doktora_onceden_not
 CANDIDATE — clinician to approve wording. **Must not** be turned into a demand for the details of any
-incident; detailed account-taking is for the trained clinician in person (S3).
+incident; detailed account-taking is for the trained clinician in person (S3). The skip offer now
+works in voice; "boş bırakabilirsiniz" was typed-only (finding 28).
 
 **Q3 — Feeling safe now** · archetype: `OBSERVATION.story.v1` (provisional) · source: S1 (Rec 1 first-line support; Rec 3 inquiry)
 > "Şu anda kendinizi güvende hissediyor musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)** if the person indicates they do not feel
-safe. Note S1's non-universal-screening caveat (§4).
+gen: hold=invariant 18 — new sensitive data category; owner decision required
+CANDIDATE — clinician to approve wording. HOLD (finding 21). Also open: S1's non-universal-screening
+caveat is not captured verbatim (§4 gap 3). If the hold is lifted, a "no" answer may at most feed a
+candidate_flag **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT
+authoritative)**.
 
 **Q4 — A trusted support person** · archetype: `OBSERVATION.story.v1` (provisional) · source: S1 (Rec 1 first-line support)
 > "Randevuya sizinle birlikte gelmesini istediğiniz, güvendiğiniz biri var mı?"
-CANDIDATE — clinician to approve wording.
+gen: hold=invariant 18 — new sensitive data category; owner decision required
+CANDIDATE — clinician to approve wording. HOLD (finding 21). Also open: inviting a companion
+conflicts with S2 Box A, which asks for the patient to be seen alone when the history is taken. That
+conflict is a clinician + legal decision.
 
 **Q5 — Neck-injury / strangulation symptom safety-net** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (IFAS Box B — airway red flags)
 > "Boynunuza baskı uygulanan bir olaydan sonra ses kısıklığı ya da yutkunmada zorlanma fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)** per S2. **Scope note:** this captures
-only the airway pair (voice change / swallowing) as one concern; the fuller IFAS red-flag set
-(breathing difficulty, neck swelling, loss of consciousness, memory change, incontinence, petechiae,
-visual symptoms) is **not** a single pre-visit question — it belongs to the clinician + rules-engine
-red-flag rule, and IFAS itself notes external signs are absent in half of cases (S2 Box A).
+gen: hold=invariant 18 — new sensitive data category; owner decision required
+CANDIDATE — clinician to approve wording. The reviewer passes the text (IFAS Box B supports voice
+change + dysphagia) but keeps it under finding 21's data decision, so it is held with Q3–Q4. If the
+hold is lifted: candidate_flag **YELLOW_REVIEW (candidate, pending clinician + rules-engine
+confirmation — NOT authoritative)** per S2. **Scope note:** this captures only the airway pair
+(voice change / swallowing) as one concern; the fuller IFAS red-flag set (breathing difficulty, neck
+swelling, loss of consciousness, memory change, incontinence, petechiae, visual symptoms) is **not** a
+single pre-visit question — it belongs to the clinician + rules-engine red-flag rule, and IFAS itself
+notes external signs are absent in half of cases (S2 Box A).
 
 **Q6 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (context noted by S2 Box A, "patients may have other injuries and/or medical conditions alongside")
 > "Doktorun bilmesi gereken, süregelen bir hastalığınız var mı?"
+gen: slot=suregelen_hastalik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q7 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (no clinical threshold)
-> "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q8 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake (no clinical threshold)
-> "Herhangi bir ilaca ya da maddeye karşı alerjiniz olduğunu biliyor musunuz?"
-CANDIDATE — clinician to approve wording.
-
-*(8 candidate questions: 2 sourced safety items (Q3–Q4 → S1; Q5 → S2), 5 general-intake items
-(Q1–Q2, Q6–Q8). Q2's posture is informed by S3.)*
+*(After revision: six candidate items. Three are emitted (Q1, Q2, Q6) and three are held under
+invariant 18 (Q3–Q5); Q7–Q8 were removed as base duplicates. No item is added to raise the count:
+none is sourced, and whether this pack belongs in a report-type pathway at all is still open (§4
+gap 1).)*
 
 ---
 
@@ -266,4 +280,3 @@ CANDIDATE — clinician to approve wording.
   consent-text change are **stop-and-ask-the-human** items. This proposal captures nothing; it only
   proposes candidate questions for review.
 - **HB-C1** — this pack awaits clinician sign-off; NOT served.
-</content>

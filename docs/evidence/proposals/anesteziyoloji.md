@@ -131,7 +131,7 @@ Notes:
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2: one question per
 turn); empathetic; no diagnosis/treatment/prognosis language; capture-only (a fasting *instruction*
-would be treatment-adjacent, so Q9 asks *when the patient last ate*, it does not tell them to fast).
+would be treatment-adjacent, so Q7–Q8 ask *when the patient last ate or drank*; they do not tell them to fast).
 **All marked "CANDIDATE — clinician to approve wording".** Per invariant 22 the protocol compiler
 must expand every digit to Turkish orthography before TTS; the drafts below contain **no bare
 numerals**.
@@ -141,66 +141,77 @@ numerals**.
 > authoritative RED/YELLOW must come from `packages/protocols/triage` with a committed `source`
 > snapshot and all three RED axes (route × register × location, invariant 21), none supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 19, 20 and 28 apply. Renumbering, old → new — sections outside
+§3 still use the old numbers: Q1 → Q1 · Q2 → Q2 · Q3 → Q3 · Q4 removed (base meds; two question marks,
+typed verb) · Q5 removed (base `anticoagulant_use`; its candidate_flag is dropped, finding 20) · Q6 →
+Q4 · Q7 → Q5 · Q8 → Q6 · Q9 → Q7 (last solid food) + Q8 (last drink) · Q10 → Q9 (candidate_flag
+dropped, finding 20).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Yaklaşan bir ameliyat için mi görüşüyoruz? Hangi ameliyatı olacağınızı kısaca yazabilir misiniz?"
+> "Hangi ameliyat ya da işlem için anestezi görüşmesine geldiniz?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Free narrative before anaesthesia** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Anestezi hazırlığıyla ilgili bize önceden iletmek istediğiniz bir konu var mı?"
+gen: slot=anestezi_oncesi_not
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Chronic conditions / comorbidities** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake (comorbidity capture; S2 lists "current diagnoses" as history content)
-> "Doktorunuzun takip ettiği süregelen bir rahatsızlığınız var mı? Örneğin şeker hastalığı, tansiyon
-> ya da astım."
+> "Şeker hastalığı, tansiyon ya da astım gibi süregelen bir rahatsızlığınız var mı?"
+gen: slot=suregelen_rahatsizlik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q4 — Current regular medications** · archetype: `ACTION.medication.v1` · source: S2 ("treatments,
-including medications ... used")
-> "Şu anda düzenli olarak kullandığınız ilaçlar var mı? Varsa isimlerini yazabilir misiniz?"
-CANDIDATE — clinician to approve wording.
-
-**Q5 — Blood thinners / anticoagulants** · archetype: `ACTION.medication.v1` · source: S2 (medications
-assessed for perioperative risk — see S2 verbatim + paraphrase caveat)
-> "Kanı sulandıran bir ilaç kullanıyor musunuz? Örneğin pıhtı önleyici ya da aspirin gibi bir ilaç."
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)** — the anticoagulant perioperative-risk
-wording is a §4 paraphrase gap until the ASA primary is confirmed verbatim.
-
-**Q6 — Drug / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: S2
+**Q4 — Drug / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: S2
 (allergies documented — see S2 verbatim + paraphrase caveat)
-> "Herhangi bir ilaca, lateks eldivene ya da başka bir maddeye karşı alerjiniz olduğu size söylendi mi?"
-CANDIDATE — clinician to approve wording.
+> "Herhangi bir ilaca ya da lateks eldivene alerjiniz var mı?"
+gen: slot=ilac_lateks_alerjisi
+CANDIDATE — clinician to approve wording. Latex is specialty-specific, so kept alongside base
+`allergies`; free-text slot so the drug is captured.
 
-**Q7 — Prior problem during own anaesthesia** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
+**Q5 — Prior problem during own anaesthesia** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
 source: S3 (previous anaesthetic experiences are part of the anaesthetic history)
 > "Daha önce anestezi aldıysanız, o sırada beklenmedik bir sorun yaşandığı size söylendi mi?"
+gen: slot=onceki_anestezi_sorunu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Difficult-airway / intubation history** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+**Q6 — Difficult-airway / intubation history** · archetype: `OBSERVATION.symptom_sign.v1` · source:
 S2 (airway is a required part of the assessment)
 > "Önceki bir ameliyatta soluk borunuza tüp yerleştirilirken zorluk yaşandığı size iletildi mi?"
+gen: slot=zor_entubasyon_oykusu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Fasting: last food and drink** · archetype: `OBSERVATION.story.v1` · source: S1 (aspiration
-risk; ESAIC clear fluids up to two hours, breast milk four hours, other milk / solids six hours)
-> "Ameliyat gününüzde en son ne zaman katı bir şey yediğinizi ve en son ne zaman sıvı içtiğinizi
-> belirtebilir misiniz?"
-CANDIDATE — clinician to approve wording. Note: capture-only; it does **not** instruct the patient to
-fast (PolicyGuard: no treatment/instruction language). The interval thresholds live in the rules
-engine, not in patient copy.
+**Q7 — Fasting: last solid food** · archetype: `OBSERVATION.story.v1` · source: S1 (aspiration
+risk; ESAIC fasting intervals)
+> "En son ne zaman katı bir şey yediniz?"
+gen: slot=son_kati_gida; type=date
+CANDIDATE — clinician to approve wording. Capture-only; it does **not** instruct the patient to fast
+(PolicyGuard). Finding 19: asked at pre-visit, days before surgery, the answer means nothing, so this
+item should be served only in a day-of-surgery context. The pack has no visit-type variable for
+`ask_if`, so where it is served is a clinician decision pending. The interval thresholds live in the
+rules engine; S1 is ESAIC 2011 (adults), and ESAIC 2022 updated the paediatric clear-fluid interval,
+which matters only to the rule.
 
-**Q10 — Family history of anaesthesia reactions** · archetype: **no archetype root — export blocked
+**Q8 — Fasting: last drink** · archetype: `OBSERVATION.story.v1` · source: S1 (aspiration risk; ESAIC
+fasting intervals)
+> "En son ne zaman bir şey içtiniz?"
+gen: slot=son_sivi; type=date
+CANDIDATE — clinician to approve wording. Same day-of-surgery caveat as Q7: clinician decision
+pending.
+
+**Q9 — Family history of anaesthesia reactions** · archetype: **no archetype root — export blocked
 (INT-041 posture)** · source: S3 ("family history of problems with anaesthesia is a mandatory part
 of the anaesthetic history")
 > "Ailenizde anestezi aldıktan sonra ciddi bir sorun yaşayan biri olduğunu biliyor musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)** — a positive family history of
-malignant-hyperthermia-type reactions is what S3 makes mandatory to ask; the threshold/action is
-the clinician's + rules engine's, not asserted here.
+gen: slot=ailede_anestezi_sorunu; type=boolean
+CANDIDATE — clinician to approve wording. This is a planning fact, not acuity: no candidate_flag
+(finding 20). S3 makes asking about a family history of malignant-hyperthermia-type reactions
+mandatory; any threshold or action is the clinician's + rules engine's.
 
-*(10 candidate questions. Requested pre-op topics all covered: allergies Q6, medications/
-anticoagulants Q4–Q5, prior anaesthesia problems Q7–Q8 + Q10, comorbidities Q3, fasting Q9.)*
+*(9 candidate questions after revision. Pre-op topics covered: allergies Q4, prior anaesthesia
+problems Q5–Q6 + Q9, comorbidities Q3, fasting Q7–Q8; medications and anticoagulants are asked by the
+base layer.)*
 
 ---
 

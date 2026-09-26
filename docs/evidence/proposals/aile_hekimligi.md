@@ -121,62 +121,67 @@ must in any case expand every digit to Turkish orthography before TTS.
 > committed `source` snapshot and all three RED axes (route × register × location, invariant 21),
 > none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 14 and 17 apply. Renumbering, old → new — sections outside §3
+still use the old numbers: Q1 → Q1 · Q2 removed (base `onset_date` + `trajectory`) · Q3 → Q2 · Q4 →
+Q3 · Q5 → Q4 · Q6 → Q5 · Q7 → Q6 · Q8 → Q7 · Q9 → Q8 · Q10 → Q9 · Q11 removed (base meds) · Q12
+removed (base `allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake (no clinical threshold)
-> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course of the complaint** · archetype: `OBSERVATION.story.v1` · source: general intake (no clinical threshold)
-> "Bu şikâyetiniz ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake (no clinical threshold; sepsis/fever escalation threshold NO SOURCE FOUND, §4)
+**Q2 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake (no clinical threshold; sepsis/fever escalation threshold NO SOURCE FOUND, §4)
 > "Son günlerde ateşiniz oldu mu?"
+gen: slot=son_gunlerde_ates; type=boolean
 CANDIDATE — clinician to approve wording. No urgency threshold asserted.
 
-**Q4 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.13.2, "unexplained weight loss")
+**Q3 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.13.2, "unexplained weight loss")
 > "Son aylarda, beslenmenizde bir değişiklik olmadığı hâlde, istemeden kilo verdiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** if unexplained weight loss is reported,
 per S1.
 
-**Q5 — Haemoptysis (blood when coughing)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.1.1, "unexplained haemoptysis")
+**Q4 — Haemoptysis (blood when coughing)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.1.1, "unexplained haemoptysis")
 > "Öksürürken balgamınızda ya da tükürüğünüzde kan fark ettiniz mi?"
+gen: slot=balgamda_kan; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**, per S1.
 
-**Q6 — Dysphagia (difficulty swallowing)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.2.1, "dysphagia")
+**Q5 — Dysphagia (difficulty swallowing)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.2.1, "dysphagia")
 > "Yemek ya da içecekleri yutarken takılma veya zorlanma yaşıyor musunuz?"
+gen: slot=yutma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**, per S1.
 
-**Q7 — Rectal bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.3.1, "rectal bleeding")
+**Q6 — Rectal bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.3.1, "rectal bleeding")
 > "Dışkınızda ya da tuvalete gittikten sonra kan fark ettiniz mi?"
+gen: slot=diskida_kan; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**, per S1.
 
-**Q8 — New unexplained lump** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.4.1, "unexplained breast lump"); broader-lump threshold NO SOURCE FOUND (§4)
-> "Vücudunuzun herhangi bir yerinde, sebebini bilmediğiniz yeni bir şişlik ya da ele gelen bir kitle fark ettiniz mi?"
-CANDIDATE — clinician to approve wording.
+**Q7 — New unexplained lump** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.4.1, "unexplained breast lump" — re-cite pending, see note); broader-lump threshold NO SOURCE FOUND (§4)
+> "Vücudunuzda nedenini bilmediğiniz yeni bir şişlik ya da sertlik fark ettiniz mi?"
+gen: slot=yeni_sislik_sertlik; type=boolean
+CANDIDATE — clinician to approve wording. "kitle" replaced by "sertlik" (finding 14). Finding 17: a
+whole-body lump is better anchored on the NG12 soft-tissue lump recommendation (unexplained lump
+increasing in size) than on the breast recommendation; verify and re-cite before sign-off.
 
-**Q9 — Post-menopausal bleeding** (women; conditional) · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.5.10, "post-menopausal bleeding")
+**Q8 — Post-menopausal bleeding** (women; conditional) · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.5.10, "post-menopausal bleeding")
 > "Adet dönemleriniz tamamen sona erdikten sonra herhangi bir kanamanız oldu mu?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)**, per S1.
+gen: slot=menopoz_sonrasi_kanama; type=boolean
+CANDIDATE — clinician to approve wording. The reviewer wants an `ask_if` on sex; the gate is a
+clinician decision pending, so no gate expression is written here. Candidate_flag: **YELLOW_REVIEW
+(candidate, pending clinician + rules-engine confirmation — NOT authoritative)**, per S1.
 
-**Q10 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (no clinical threshold)
-> "Daha önce doktorunuzun koyduğu, süregelen bir hastalığınız var mı? Örneğin şeker hastalığı ya da yüksek tansiyon."
+**Q9 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (no clinical threshold)
+> "Şeker hastalığı ya da yüksek tansiyon gibi süregelen bir hastalığınız var mı?"
+gen: slot=suregelen_hastalik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (no clinical threshold)
-> "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake (no clinical threshold)
-> "Herhangi bir ilaca ya da maddeye karşı alerjiniz olduğunu biliyor musunuz?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions: 6 alarm-symptom items sourced to S1 (Q4–Q9), 6 general-intake items
-(Q1–Q3, Q10–Q12).)*
+*(9 candidate questions after revision: 6 alarm-symptom items sourced to S1 (Q3–Q8), 3
+general-intake items (Q1, Q2, Q9).)*
 
 ---
 
@@ -224,5 +229,3 @@ CANDIDATE — clinician to approve wording.
   `status: draft_needs_source` and do not compile. This proposal supplies candidate source S1 for
   that block but does not itself commit a snapshot.
 - **HB-C1** — this pack awaits clinician sign-off; NOT served.
-</content>
-</invoke>

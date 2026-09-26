@@ -144,68 +144,80 @@ question (invariant 2); warm, supportive, **non-stigmatizing**, no diagnosis/tre
 language, no alarming wording, no blame. **All marked "CANDIDATE — clinician to approve wording".**
 No bare digits (invariant 22). **No crisis/self-harm item appears — by design (see §0).**
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Finding 25 applies. Renumbering, old → new — sections outside §3 still use the old
+numbers: Q1–Q7 keep their numbers · Q8 → Q8 (prior support) + Q9 (other health condition) · Q9
+removed (base meds) · Q10 removed (base `allergies` + `allergy_reaction`) · Q11 removed (base
+`patient_goals`) · Q12 → Q10.
+
+Address (finding 25): every item addresses the parent or guardian ("çocuğunuz"), as the reviewer
+directs. Nothing gates on base `subject_role`, so an adolescent answering for themselves would hear
+"çocuğunuz". Adolescent self-report and confidentiality are open (§4 gap 4) and go to the
+legal-reviewer (minors). The report gives no adolescent wording and the generator has no variant
+field, so no variant is written here.
+
 **Q1 — Reason for visit / support wanted** · archetype: `EVALUATION.reason_for_encounter.v1` · source:
 general intake (S3 family-inclusive framing)
-> "Bugün çocuğunuz için sizi buraya getiren konu nedir? Hangi konuda destek almak istersiniz?"
+> "Bugün çocuğunuz için hangi konuda destek almak istersiniz?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Parent's own-words narrative** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Fark ettiklerinizi kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?"
+gen: slot=ebeveyn_anlatimi
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Which substance / behaviour to discuss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (substances-used topic) / S2 (topic areas)
 > "Bugün çocuğunuzla ilgili hangi madde ya da alışkanlık konusunda konuşmak istersiniz?"
+gen: slot=konusulacak_madde
 CANDIDATE — clinician to approve wording. Non-stigmatizing; no label applied to the child.
 
 **Q4 — Changes noticed at home/school/with friends** · archetype: `OBSERVATION.story.v1` · source: S1
 (school/family/recreational domains)
 > "Son zamanlarda çocuğunuzun evdeki, okuldaki ya da arkadaşlarıyla ilişkilerindeki bir değişikliği fark ettiniz mi?"
+gen: slot=ev_okul_arkadas_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q5 — How often, recent period (proxy knowledge)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
 S1 (frequency topic)
 > "Bildiğiniz kadarıyla, son zamanlarda bu ne sıklıkla oluyor?"
+gen: slot=siklik
 CANDIDATE — clinician to approve wording. "Bildiğiniz kadarıyla" keeps it a proxy report, not a
 demand for certainty.
 
-**Q6 — Effects on the child the family is concerned about** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S1 (adverse consequences of use)
-> "Bu durumun çocuğunuzun günlük yaşamını ya da sağlığını etkilediğini düşündüğünüz, yardım almak istediğiniz bir yön var mı?"
+**Q6 — Effects on the child** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (adverse
+consequences of use)
+> "Bu durum çocuğunuzun günlük yaşamını ya da sağlığını etkiliyor mu?"
+gen: slot=gunluk_yasam_etkisi; type=boolean
 CANDIDATE — clinician to approve wording. Supportive, non-judgemental.
 
 **Q7 — Concern raised by school or others** · archetype: `OBSERVATION.story.v1` · source: S1 (school
 domain) / S2 (family/friends, trouble)
 > "Okuldan ya da çevrenizden biri bu konuda size endişesini dile getirdi mi?"
+gen: slot=cevre_endisesi; type=boolean
 CANDIDATE — clinician to approve wording. Gentle, no blame.
 
-**Q8 — Prior support / care received** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S1
+**Q8 — Prior support received** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S1
 (comprehensive assessment)
-> "Çocuğunuz daha önce bu konuda bir destek aldı mı, ya da bilmemizi istediğiniz başka bir sağlık durumu var mı?"
+> "Çocuğunuz daha önce bu konuda bir destek aldı mı?"
+gen: slot=onceki_destek; type=boolean
 CANDIDATE — clinician to approve wording. "destek" (support), not "tedavi", to stay PolicyGuard-clean
 and supportive.
 
-**Q9 — Current medications the child takes** · archetype: `ACTION.medication.v1` · source: S1 (medical
-domain)
-> "Çocuğunuzun şu anda düzenli olarak kullandığı herhangi bir ilaç var mı?"
+**Q9 — Other health conditions** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S1
+(comprehensive assessment)
+> "Bilmemizi istediğiniz başka bir sağlık durumu var mı?"
+gen: slot=diger_saglik_durumu
 CANDIDATE — clinician to approve wording.
 
-**Q10 — Drug allergy / adverse reaction** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
-S1 (medical domain)
-> "Çocuğunuzun herhangi bir ilaca karşı alerjisi ya da daha önce yaşadığı ciddi bir yan etki oldu mu?"
-CANDIDATE — clinician to approve wording.
-
-**Q11 — Goals / hopes from the visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source:
-general intake (S3 supportive framing)
-> "Bu görüşmeden ve önümüzdeki süreçten en çok ne elde etmeyi umuyorsunuz?"
-CANDIDATE — clinician to approve wording.
-
-**Q12 — Support around the family** · archetype: `OBSERVATION.story.v1` · source: general intake (S3
+**Q10 — Support around the family** · archetype: `OBSERVATION.story.v1` · source: general intake (S3
 family-inclusive care)
 > "Bu süreçte size ve çocuğunuza destek olan kişiler var mı?"
+gen: slot=destek_cevresi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions — all supportive proxy intake; none is a crisis/red-flag item.)*
+*(10 candidate questions after revision — all supportive proxy intake; none is a crisis/red-flag
+item.)*
 
 ---
 

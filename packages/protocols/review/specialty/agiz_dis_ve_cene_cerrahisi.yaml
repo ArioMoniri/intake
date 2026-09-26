@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.agiz_dis_ve_cene_cerrahisi
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Ağız, Diş ve Çene Cerrahisi ön görüşme protokolü
 extends: cluster.dental
@@ -31,69 +33,88 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?
+          tr: Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      yuz_cene_dil_alti_sislik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz nasıl başladı ve o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?
-      soru_2:
-        type: string
+          tr: Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      nefes_yutma_zorlugu:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yüzünüzde ya da ağız tabanınızda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?
-      soru_3:
-        type: string
+          tr: Nefes almakta ya da yutkunmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      sislikle_ates:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yüzünüzdeki ya da çenenizdeki şişliğe ateş de eşlik ediyor mu?
-      soru_4:
-        type: string
+          tr: Bu şişlikle birlikte ateşiniz de var mı?
+        ask_if: yuz_cene_dil_alti_sislik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      agiz_acma_zorlugu:
+        type: boolean
         required: false
         ask_tr:
-          tr: Ağzınızı açmakta son zamanlarda zorlanıyor musunuz ya da eskisi kadar açamıyor musunuz?
-      soru_5:
-        type: string
+          tr: Son zamanlarda ağzınızı açmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      iyilesmeyen_agiz_yarasi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Ağzınızda ya da dudağınızda üç haftadan uzun süredir iyileşmeyen bir yara var mı?
-      soru_6:
-        type: string
+          tr: Ağzınızda ya da dudağınızda iyileşmeyen bir yara var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      agiz_yarasi_suresi:
+        type: duration
         required: false
         ask_tr:
-          tr: Ağzınızda, dudağınızda ya da boynunuzda geçmeyen bir şişlik veya kitle fark ettiniz mi?
-      soru_7:
-        type: string
+          tr: Bu yara ne zamandır var?
+        ask_if: iyilesmeyen_agiz_yarasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      agiz_dudak_boyun_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağzınızda, dudağınızda ya da boynunuzda geçmeyen bir şişlik ya da sertlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      kirmizi_beyaz_leke:
+        type: boolean
         required: false
         ask_tr:
           tr: Ağzınızın içinde geçmeyen kırmızı ya da kırmızı-beyaz bir leke fark ettiniz mi?
-      soru_8:
-        type: string
-        required: false
-        ask_tr:
-          tr: Kanı sulandıran (pıhtılaşmayı önleyen) bir ilaç kullanıyor musunuz? Örneğin aspirin, varfarin ya da benzeri bir ilaç.
-      soru_9:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      uzamis_kanama_oykusu:
+        type: boolean
         required: false
         ask_tr:
           tr: Daha önce bir diş çekimi ya da yaralanma sonrasında olağandan uzun süre kanamanız oldu mu?
-      soru_10:
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      kemik_ilaci:
         type: string
         required: false
         ask_tr:
-          tr: Kemik erimesi ya da başka bir durum için kemikle ilgili iğne veya hap şeklinde bir ilaç kullanıyor musunuz ya da yakın zamanda kullandınız mı?
-      soru_11:
+          tr: Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
+      ilac_lokal_anestezik_lateks_alerjisi:
         type: string
         required: false
         ask_tr:
-          tr: Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı alerjiniz var mı?
+          tr: Herhangi bir ilaca, diş uyuşturma iğnesine ya da lateks eldivene alerjiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/agiz_dis_ve_cene_cerrahisi.md'
 red_flags:
 - id: rf.agiz_dis_ve_cene_cerrahisi_l0_taslak
   label_tr: Ağız, Diş ve Çene Cerrahisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

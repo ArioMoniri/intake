@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/anesteziyoloji.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/anesteziyoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.anesteziyoloji
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Anesteziyoloji ön görüşme protokolü
 extends: cluster.surgical
@@ -22,59 +24,68 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Yaklaşan bir ameliyat için mi görüşüyoruz? Hangi ameliyatı olacağınızı kısaca yazabilir misiniz?
+          tr: Hangi ameliyat ya da işlem için anestezi görüşmesine geldiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/anesteziyoloji.md'
   sorular:
     slots:
-      soru_1:
+      anestezi_oncesi_not:
         type: string
         required: false
         ask_tr:
           tr: Anestezi hazırlığıyla ilgili bize önceden iletmek istediğiniz bir konu var mı?
-      soru_2:
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      suregelen_rahatsizlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şeker hastalığı, tansiyon ya da astım gibi süregelen bir rahatsızlığınız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      ilac_lateks_alerjisi:
         type: string
         required: false
         ask_tr:
-          tr: Doktorunuzun takip ettiği süregelen bir rahatsızlığınız var mı? Örneğin şeker hastalığı, tansiyon ya da astım.
-      soru_3:
-        type: string
-        required: false
-        ask_tr:
-          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı? Varsa isimlerini yazabilir misiniz?
-      soru_4:
-        type: string
-        required: false
-        ask_tr:
-          tr: Kanı sulandıran bir ilaç kullanıyor musunuz? Örneğin pıhtı önleyici ya da aspirin gibi bir ilaç.
-      soru_5:
-        type: string
-        required: false
-        ask_tr:
-          tr: Herhangi bir ilaca, lateks eldivene ya da başka bir maddeye karşı alerjiniz olduğu size söylendi mi?
-      soru_6:
-        type: string
+          tr: Herhangi bir ilaca ya da lateks eldivene alerjiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      onceki_anestezi_sorunu:
+        type: boolean
         required: false
         ask_tr:
           tr: Daha önce anestezi aldıysanız, o sırada beklenmedik bir sorun yaşandığı size söylendi mi?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      zor_entubasyon_oykusu:
+        type: boolean
         required: false
         ask_tr:
           tr: Önceki bir ameliyatta soluk borunuza tüp yerleştirilirken zorluk yaşandığı size iletildi mi?
-      soru_8:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      son_kati_gida:
+        type: date
         required: false
         ask_tr:
-          tr: Ameliyat gününüzde en son ne zaman katı bir şey yediğinizi ve en son ne zaman sıvı içtiğinizi belirtebilir misiniz?
-      soru_9:
-        type: string
+          tr: En son ne zaman katı bir şey yediniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      son_sivi:
+        type: date
+        required: false
+        ask_tr:
+          tr: En son ne zaman bir şey içtiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      ailede_anestezi_sorunu:
+        type: boolean
         required: false
         ask_tr:
           tr: Ailenizde anestezi aldıktan sonra ciddi bir sorun yaşayan biri olduğunu biliyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/anesteziyoloji.md'
 red_flags:
 - id: rf.anesteziyoloji_l0_taslak
   label_tr: Anesteziyoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

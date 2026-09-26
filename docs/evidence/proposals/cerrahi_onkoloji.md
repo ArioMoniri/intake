@@ -151,41 +151,54 @@ English source quotes above is source text, not TTS copy.
 > snapshot and all three RED axes (route × register × location, invariant 21), none of which are
 > supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 14 and 17 apply. Renumbering, old → new — sections outside §3
+still use the old numbers: Q1–Q8 keep their numbers · Q9 → Q9 (earlier cancer diagnosis) + Q10
+(treated for it, if Q9) · Q10 removed (base meds + `anticoagulant_use`) · Q11 removed (base
+`allergies` + `allergy_reaction`) · Q12 → Q11.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüşmede sizi hekime getiren en önemli konu nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü görüşmede sizi hekime getiren en önemli konu nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Narrative / story** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durumu ilk ne zaman ve nasıl fark ettiğinizi kendi sözlerinizle anlatabilir misiniz?"
-CANDIDATE — clinician to approve wording.
+> "Bu durumu nasıl fark ettiğinizi kendi sözlerinizle anlatır mısınız?"
+gen: slot=nasil_fark_edildi
+CANDIDATE — clinician to approve wording. "When" is asked by base `onset_date`.
 
-**Q3 — New lump / swelling / mass** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (rec.
-1.4.1 unexplained lump) + S2 (WHO "lumps in the breast or other parts of the body")
-> "Vücudunuzun herhangi bir yerinde yeni fark ettiğiniz bir şişlik ya da elle hissedilen bir sertlik oldu mu?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)** if an unexplained lump, per S1.
+**Q3 — New lump / swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (rec.
+1.4.1 unexplained lump — re-cite pending, see note) + S2 (WHO "lumps in the breast or other parts of the body")
+> "Vücudunuzda yeni fark ettiğiniz bir şişlik ya da sertlik var mı?"
+gen: slot=yeni_sislik_sertlik; type=boolean
+CANDIDATE — clinician to approve wording. Finding 17: a whole-body lump is better anchored on the
+NG12 soft-tissue lump recommendation (unexplained lump increasing in size) than on the breast
+recommendation; verify and re-cite before sign-off. Candidate_flag: **YELLOW_REVIEW (candidate,
+pending clinician + rules-engine confirmation — NOT authoritative)** if an unexplained lump, per S1.
 
 **Q4 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (rec. 1.13.2)
 > "Son zamanlarda istemediğiniz hâlde kilo verdiğinizi fark ettiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** per S1 unexplained weight loss (exact NG12 wording pending re-verification, §4).
 
 **Q5 — Unexplained bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (rectal 1.3.1 /
 post-menopausal 1.5.10 / visible haematuria 1.6.4) + S2
-> "Son zamanlarda beklenmedik bir kanama fark ettiniz mi? Örneğin dışkıda, idrarda ya da başka bir şekilde."
+> "Son zamanlarda dışkıda, idrarda ya da başka bir yerden beklenmedik kanama oldu mu?"
+gen: slot=beklenmedik_kanama; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)** per the S1 unexplained-bleeding referral routes. One concern per turn: if the
-clinician wants site-specific detail (rectal vs urinary vs post-menopausal), split into follow-ups.
+authoritative)** per the S1 unexplained-bleeding referral routes.
 
 **Q6 — Difficulty swallowing (dysphagia)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (rec. 1.2.1 "if they have dysphagia")
 > "Yemek ya da içecekleri yutarken güçlük yaşıyor musunuz?"
+gen: slot=yutma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** per S1 dysphagia (NG12 routes dysphagia with no age threshold).
 
 **Q7 — Change in bowel / bladder habit** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (rec.
 1.3.1 change in bowel habit) + S2 (WHO "changes in bowel or bladder habits")
 > "Bağırsak ya da idrar alışkanlığınızda son zamanlarda geçmeyen bir değişiklik oldu mu?"
+gen: slot=bagirsak_idrar_aliskanligi_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: candidate only (S1 change-in-bowel-habit
 wording pending re-verification, §4); the authoritative level is the rules engine's.
 
@@ -193,32 +206,30 @@ wording pending re-verification, §4); the authoritative level is the rules engi
 ("encourage people to seek care when these arise"); **NICE site-specific abdominal-pain criteria are
 age- and site-specific — NOT captured verbatim (§4 gap 2)**
 > "Geçmeyen ya da giderek artan bir ağrınız var mı?"
+gen: slot=gecmeyen_agri; type=boolean
 CANDIDATE — clinician to approve wording. No candidate_flag from S2 alone; a specific pain red flag
 needs the primary NG12 site/age text (§4).
 
-**Q9 — Known cancer diagnosis / prior treatment** · archetype: `EVALUATION.problem_diagnosis.v1` ·
-source: n/a (history)
-> "Daha önce bir kanser tanısı aldınız mı ya da bununla ilgili bir ameliyat, ışın ya da ilaç tedavisi gördünüz mü?"
-CANDIDATE — clinician to approve wording. History item (asking about a *prior* diagnosis, not
-diagnosing) — PolicyGuard-clean.
+**Q9 — Known cancer diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: n/a (history)
+> "Daha önce size kanser tanısı konuldu mu?"
+gen: slot=onceki_kanser_tanisi; type=boolean
+CANDIDATE — clinician to approve wording. History item: it asks about a *prior* diagnosis and does not
+diagnose. Naming "kanser" is inconsistent with deri and hematoloji, which avoid it; confirm that the
+PolicyGuard diagnosis arm tells asking about a known diagnosis apart from asserting one.
 
-**Q10 — Current medications (incl. blood thinners)** · archetype: `ACTION.medication.v1` · source: n/a
-(history; pre-op relevance)
-> "Şu anda düzenli olarak kullandığınız ilaçlar var mı? Kan sulandırıcı bir ilaç kullanıyorsanız da belirtebilir misiniz?"
+**Q10 — Prior cancer treatment** · archetype: `EVALUATION.problem_diagnosis.v1` · source: n/a (history)
+> "Bunun için ameliyat, ışın ya da ilaç tedavisi gördünüz mü?"
+gen: slot=onceki_kanser_tedavisi; type=boolean; ask_if=onceki_kanser_tanisi == true
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Drug allergy / adverse reaction** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
-n/a (history)
-> "Herhangi bir ilaca ya da maddeye karşı alerjiniz veya daha önce yaşadığınız ciddi bir yan etkiniz var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q12 — Family history of cancer** · archetype: **export blocked (INT-041 posture)** · source: general
+**Q11 — Family history of cancer** · archetype: **export blocked (INT-041 posture)** · source: general
 intake
 > "Ailenizde kanser tanısı almış yakın akrabalarınız var mı?"
+gen: slot=ailede_kanser; type=boolean
 CANDIDATE — clinician to approve wording. Note: **no openEHR export target** (item 13, §2) — capture
 is proposed but export is blocked until an archetype root is authored.
 
-*(12 candidate questions.)*
+*(11 candidate questions after revision.)*
 
 ---
 

@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/cocuk_cerrahisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_cerrahisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.cocuk_cerrahisi
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Çocuk Cerrahisi ön görüşme protokolü
 extends: cluster.child_health
@@ -31,69 +33,84 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Çocuğunuzu bugün getiren temel şikâyet nedir? Kısaca anlatabilir misiniz?
+          tr: Çocuğunuzu bugün getiren temel şikâyet nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
   sorular:
     slots:
-      soru_1:
-        type: string
-        required: false
-        ask_tr:
-          tr: Bu şikâyet ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
-      soru_2:
-        type: string
+      karin_agrisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuzun karın ağrısı oluyor mu?
-      soru_3:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      atak_seklinde_karin_agrisi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Karın ağrısı zaman zaman gelip geçiyor ve bu sırada çocuğunuz soluyor ya da huzursuzlanıyor mu?
-      soru_4:
-        type: string
+          tr: Karın ağrısı gelip geçen ataklar hâlinde mi oluyor?
+        ask_if: karin_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      ataklarda_benzi_sararma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ağrı ataklarında çocuğunuzun benzi sararıyor mu?
+        ask_if: atak_seklinde_karin_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      kusma:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuz son zamanlarda kustu mu?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      yesil_kusma:
+        type: boolean
         required: false
         ask_tr:
-          tr: Kusmuğun rengi yeşil ya da koyu sarı-yeşil (safra gibi) miydi?
-      soru_6:
-        type: string
+          tr: Kusmuğun rengi yeşil ya da sarımsı yeşil miydi?
+        ask_if: kusma == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      diskida_kan:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuzun dışkısında kan ya da reçel kıvamında koyu kırmızı bir görünüm fark ettiniz mi?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      ani_testis_kasik_agrisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuzun testis ya da kasık bölgesinde aniden başlayan şiddetli bir ağrı oldu mu?
-      soru_8:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      kasik_testis_sislik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Çocuğunuzun kasığında ya da testis torbasında şişlik veya elle içeri gitmeyen bir sertlik fark ettiniz mi?
-      soru_9:
-        type: string
+          tr: Çocuğunuzun kasığında ya da testis torbasında bir şişlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      sislik_iceri_giriyor:
+        type: boolean
         required: false
         ask_tr:
-          tr: Çocuğunuza daha önce cerrahi bir tanı kondu mu? Örneğin inmemiş testis, kasık fıtığı ya da başka bir durum.
-      soru_10:
-        type: string
+          tr: Bu şişlik elle bastırınca ya da çocuk uzanınca içeri giriyor mu?
+        ask_if: kasik_testis_sislik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
+      onceki_cerrahi_tani:
+        type: boolean
         required: false
         ask_tr:
-          tr: Çocuğunuzun düzenli kullandığı ilaçlar var mı?
-      soru_11:
-        type: string
-        required: false
-        ask_tr:
-          tr: Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?
+          tr: Çocuğunuza daha önce kasık fıtığı ya da inmemiş testis gibi bir tanı kondu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_cerrahisi.md'
 red_flags:
 - id: rf.cocuk_cerrahisi_l0_taslak
   label_tr: Çocuk Cerrahisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

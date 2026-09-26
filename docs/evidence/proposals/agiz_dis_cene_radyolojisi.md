@@ -125,6 +125,11 @@ clinical value.
   radiograph) explicitly names "swelling, evidence of dental/facial trauma … pain and/or dysfunction of
   the temporomandibular joint, facial asymmetry … unexplained bleeding" — grounds Q9/Q11 as legitimate
   imaging-context items, not as triage.
+- **Reviewer note (finding 7):** the thyroid-collar sentence above is the 2004 FDA / 2006 ADA
+  recommendation. The ADA's 2024 radiation-safety recommendations (JADA 2024) reportedly
+  discontinue routine thyroid collars and aprons; verify before any wording relies on it. The
+  shielding rationale is dropped from patient text, and pregnancy is asked by base
+  `pregnancy_status`.
 
 ### S6 — AAOMS Position Paper on Medication-Related Osteonecrosis of the Jaws (antiresorptive + jaw bone)
 - **guideline_id (proposed):** `AAOMS-MRONJ-2022`
@@ -170,7 +175,7 @@ INT-032), never fabricated. Composition root: `openEHR-EHR-COMPOSITION.intake_pr
 | — | Candidate triage outcome (rules engine only; max `YELLOW_REVIEW` from LLM) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | deferred (INT-032) |
 
 Note: item 4 (pregnancy) has no dedicated archetype root in the committed template; binding to
-`problem_diagnosis` is a placeholder for clinician/architecture decision (candidate: INT-032). Do not
+`problem_diagnosis` is provisional, pending a clinician/architecture decision (candidate: INT-032). Do not
 invent an at-code path.
 
 ---
@@ -180,81 +185,94 @@ invent an at-code path.
 Register: formal **`siz`** throughout; **one concern per question** (invariant 2: one question per
 turn); empathetic; **no diagnosis/treatment/prognosis** language (PolicyGuard-clean). Numerals are
 **spelled out** (invariant 22: the compiler must expand every digit to Turkish orthography before TTS;
-these drafts already do so — e.g. "üç hafta"). **All marked "CANDIDATE — clinician to approve wording".**
+after this revision no number word remains in patient text, because the ulcer boundary moved to the rule). **All marked "CANDIDATE — clinician to approve wording".**
 
 > Triage note for every red-flag-derived item: any level is a **`candidate_flag` (max `YELLOW_REVIEW`),
 > pending clinician + rules-engine confirmation — NOT authoritative**. Authoritative RED/YELLOW must
 > come from `packages/protocols/triage` with a committed `source` snapshot and all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 7 and 14 apply. Renumbering, old → new — sections outside §3
+still use the old numbers: Q1 → Q1 · Q2 → Q2 · Q3 removed (duplicates the pack's fixed
+`sikayet_suresi`; two question marks) · Q4 removed (binds to base `pregnancy_status`; the shielding
+rationale is dropped, finding 7) · Q5 → Q3 · Q6 → Q4 (non-healing sore) + Q5 (how long, if Q4) ·
+Q7 → Q6 · Q8 → Q7 · Q9 → Q8 (swelling) + Q9 (breathing or swallowing, not gated) · Q10 → Q10 ·
+Q11 → Q11 · Q12 removed (binds to base `allergies`; if contrast history matters, the clinician adds
+it).
+
 **Q1 — Reason for imaging visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüntüleme randevunuza sizi yönlendiren asıl sebep nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü görüntüleme randevunuzun asıl sebebi nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Complaint narrative (story)** · archetype: `OBSERVATION.story.v1` · source: general intake (S3/S4: imaging follows history)
-> "Hangi bölgenizle ilgili bir şikâyetiniz olduğu için görüntüleme isteniyor? Biraz anlatır mısınız?"
+**Q2 — Region to be imaged** · archetype: `OBSERVATION.story.v1` · source: general intake (S3/S4: imaging follows history)
+> "Görüntüleme, ağzınızın ya da çenenizin hangi bölgesi için istendi?"
+gen: slot=goruntuleme_bolgesi
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Complaint duration** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
-> "Bu şikâyetiniz ne zamandır sürüyor? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?"
-CANDIDATE — clinician to approve wording.
-
-**Q4 — Pregnancy / possibility of pregnancy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S4
-(ADA/FDA: thyroid collar "strongly recommended for … pregnant women"; "may be prescribed … with careful
-adherence") + S3 (judicious use)
-> "Şu anda hamile olma ihtimaliniz var mı? Bunu, görüntüleme sırasında size uygun ek korumanın
-> uygulanabilmesi için soruyoruz."
-CANDIDATE — clinician to approve wording. One concern (pregnancy); reason stated is radiation protection,
-not a clinical judgement about the patient.
-
-**Q5 — Recent prior imaging elsewhere** · archetype: `OBSERVATION.story.v1` · source: S4 ("clinicians
+**Q3 — Recent prior imaging elsewhere** · archetype: `OBSERVATION.story.v1` · source: S4 ("clinicians
 should obtain recent dental radiographs from the patient's previous … provider")
 > "Son zamanlarda başka bir yerde ağzınızın, dişlerinizin ya da çenenizin filmi çekildi mi?"
+gen: slot=onceki_goruntuleme; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q6 — Non-healing mouth/lip sore > 3 weeks** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+**Q4 — Non-healing mouth/lip sore** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (NICE NG12 1.8.2 — "unexplained ulceration in the oral cavity lasting for more than 3 weeks")
-> "Ağzınızda ya da dudağınızda üç haftadan uzun süredir iyileşmeyen bir yara var mı?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
-rules-engine confirmation — NOT authoritative)** if "üç haftadan uzun" per S1 verbatim.
+> "Ağzınızda ya da dudağınızda iyileşmeyen bir yara var mı?"
+gen: slot=iyilesmeyen_agiz_yarasi; type=boolean
+CANDIDATE — clinician to approve wording. The NG12 duration boundary moves to the rule and is no
+longer in patient text; Q5 captures the duration. Candidate_flag: **YELLOW_REVIEW (candidate, pending
+clinician + rules-engine confirmation — NOT authoritative)** when the rule's S1 boundary is met.
 
-**Q7 — Lump/swelling in mouth, jaw or neck** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+**Q5 — How long the sore has been present** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.8.2)
+> "Bu yara ne zamandır var?"
+gen: slot=agiz_yarasi_suresi; type=duration; ask_if=iyilesmeyen_agiz_yarasi == true
+CANDIDATE — clinician to approve wording.
+
+**Q6 — Lump/swelling in mouth, jaw or neck** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (NICE NG12 1.8.2/1.8.3 — "lump … in the oral cavity", "unexplained lump in the neck")
-> "Ağzınızda, çenenizde ya da boynunuzda elinize gelen bir şişlik veya kitle fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)** per S1.
+> "Ağzınızda, çenenizde ya da boynunuzda elinize gelen bir şişlik ya da sertlik var mı?"
+gen: slot=agiz_cene_boyun_sislik; type=boolean
+CANDIDATE — clinician to approve wording. "kitle" replaced by "sertlik" (finding 14). Candidate_flag:
+**YELLOW_REVIEW (candidate — NOT authoritative)** per S1.
 
-**Q8 — Red / red-white patch in mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE
+**Q7 — Red / red-white patch in mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE
 NG12 1.8.3 — "red or red and white patch … consistent with erythroplakia or erythroleukoplakia")
 > "Ağzınızın içinde geçmeyen kırmızı ya da kırmızı-beyaz bir leke fark ettiniz mi?"
+gen: slot=kirmizi_beyaz_leke; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** per S1.
 
-**Q9 — Facial/jaw swelling with breathing or swallowing difficulty** · archetype:
+**Q8 — Facial/jaw/under-tongue swelling (airway pair, part one)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig symptom labels — "Neck swelling"; "Tongue swelling or protrusion …")
+> "Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?"
+gen: slot=yuz_cene_dil_alti_sislik; type=boolean
+CANDIDATE — clinician to approve wording. Airway pair in the wave 4–5 endodonti soru_7 form.
+
+**Q9 — Breathing or swallowing difficulty (airway pair, part two; not gated)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig — "Breathing difficulty is an emergency situation")
-> "Yüzünüzdeki ya da çenenizdeki şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **candidate acute-airway concern, pending
-clinician + rules-engine confirmation — NOT authoritative**; source is patient-education (S2, LOW–MEDIUM),
-RED script/axes NOT supplied (§4). Carried across the `dental` cluster as a universal safety screen.
+> "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?"
+gen: slot=nefes_yutma_zorlugu; type=boolean
+CANDIDATE — clinician to approve wording. Deliberately **not** gated on Q8. Candidate_flag:
+**candidate acute-airway concern, pending clinician + rules-engine confirmation — NOT
+authoritative**; source is patient-education (S2, LOW–MEDIUM), RED script/axes NOT supplied (§4).
+Whether the dental cluster carries this screen in every dental pack is still open (finding 26).
 
 **Q10 — Antiresorptive / bone medication** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ —
 antiresorptive medication + jaw bone; relevant to jaw imaging interpretation)
-> "Kemik erimesi ya da kemikle ilgili başka bir durum için iğne veya hap şeklinde düzenli bir ilaç
-> kullanıyor musunuz?"
-CANDIDATE — clinician to approve wording. Medication history only; no diagnosis asserted.
+> "Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?"
+gen: slot=kemik_ilaci
+CANDIDATE — clinician to approve wording. Past use counts for MRONJ; medication history only, no
+diagnosis asserted. Kept as a free-text slot so the drug name is captured.
 
 **Q11 — Recent facial/jaw trauma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (Table 1
 positive clinical sign: "evidence of dental/facial trauma")
 > "Son zamanlarda yüzünüze ya da çenenize bir darbe veya yaralanma oldu mu?"
+gen: slot=yuz_cene_darbe; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Drug / contrast allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Herhangi bir ilaca ya da görüntülemede kullanılan bir maddeye karşı alerjiniz ya da daha önce
-> yaşadığınız bir tepki oldu mu?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions: Q6–Q9 source-derived red-flag context; Q4/Q5/Q10/Q11 sourced imaging-context;
-Q1–Q3/Q12 general intake.)*
+*(11 candidate questions after revision: Q4–Q9 source-derived red-flag context; Q3/Q10/Q11 sourced
+imaging context; Q1–Q2 general intake. Pregnancy and allergy are asked by the base layer.)*
 
 ---
 

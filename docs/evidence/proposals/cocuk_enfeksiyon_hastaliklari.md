@@ -180,55 +180,91 @@ no free numeric entry on the clinical critical path (yes/no + optional narrative
 > clinician + rules-engine confirmation — NOT authoritative**. Items marked **→ base.life_threat** are
 > life-threatening families that already live in `base.intake` (inv. 7) and are **not** leveled here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 3 and 8 apply. Renumbering, old → new — sections outside §3
+(including the §4 table) still use the old numbers: Q1 → Q1 · Q2 removed (duplicates the pack's fixed
+`sikayet_suresi`; two question marks) · Q3 → Q2 (fever) + Q3 (how long, if Q2) · Q4 → Q4 · Q5 → Q5 ·
+Q6 → Q6 · Q7 → Q7 (sleepy or listless) + Q8 (hard to wake) · Q8 → Q9 · Q9 → Q10 · Q10 → Q11 (known
+chronic diagnosis) + Q12 (born early); immune status goes to base `immunosuppression` · Q11 → Q13 ·
+Q12 → Q14 (antibiotic in the last month); its regular-medication half goes to base meds.
+
 **Q1 — Başvuru nedeni** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün çocuğunuzu kliniğe getiren en önemli şikâyeti kendi cümlelerinizle kısaca anlatır mısınız?"
-> _CANDIDATE — clinician to approve._
+CANDIDATE — clinician to approve wording.
 
-**Q2 — Şikâyet süresi** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Çocuğunuzun bu şikâyeti ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?"
-> _CANDIDATE — clinician to approve. (No free numeric entry on the critical path — narrative only; inv. 22.)_
+**Q2 — Ateş** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.14 "fever lasting 5 days or longer"; rec 1.2.12/1.2.13 age thresholds); S3 (HSGM ateş eşikleri)
+> "Çocuğunuzun ateşi oldu mu?"
+gen: slot=ates_oldu; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q3.
 
-**Q3 — Ateş ve süresi** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.14 "fever lasting 5 days or longer"; rec 1.2.12/1.2.13 age thresholds); S3 (HSGM ateş eşikleri)
-> "Çocuğunuzun ateşi oldu mu? Olduysa kaç gündür sürdüğünü, örneğin beş günden uzun mu, söyleyebilir misiniz?"
-> _CANDIDATE — clinician to approve. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)** for fever ≥ "beş gün" (S1). The infant age–temperature thresholds (younger than three months / three-to-six months) are a clinician-set cut-off, surfaced qualitatively — the parent is asked below, not for a number._
+**Q3 — Ateşin süresi** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.14)
+> "Çocuğunuzun ateşi ne zamandır sürüyor?"
+gen: slot=ates_suresi; type=duration; ask_if=ates_oldu == true
+CANDIDATE — clinician to approve wording. The boundary moves to the rule as NG143's "5 days or
+longer" (finding 8: the old patient text said "longer than five days", which contradicted the
+source). Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation —
+NOT authoritative)** when the rule's boundary is met. The infant age–temperature thresholds are a
+clinician-set cut-off (G3); no number is asked of the parent.
 
 **Q4 — Sıvı/besin alamama** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (WHO IMCI "not able to drink or breastfeed"); S1 amber "poor feeding in infants"
-> "Çocuğunuz her zamanki gibi emebiliyor ya da su içebiliyor mu, yoksa ağızdan alamıyor mu?"
-> _CANDIDATE — clinician to approve._
+> "Çocuğunuz her zamanki gibi emebiliyor ya da bir şeyler içebiliyor mu?"
+gen: slot=emebiliyor_icebiliyor; type=boolean
+CANDIDATE — clinician to approve wording. The "yoksa" either/or is gone (finding 3).
 
 **Q5 — Her şeyi kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (WHO IMCI "vomits everything")
 > "Çocuğunuz ağızdan aldığı her şeyi kusuyor mu?"
-> _CANDIDATE — clinician to approve._
+gen: slot=her_seyi_kusma; type=boolean
+CANDIDATE — clinician to approve wording.
 
 **Q6 — Havale (nöbet)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (WHO IMCI "had convulsions"); S1 rec 1.7.3 "the child has a fit" · **→ base.life_threat (inv. 7); not leveled here**
-> "Çocuğunuz bu hastalık sırasında havale (nöbet) geçirdi mi?"
-> _CANDIDATE — clinician to approve. Life-threatening family (`rf` convulsion/sepsis) lives in base.intake; this question only surfaces the sign._
+> "Çocuğunuz bu hastalık sırasında havale ya da nöbet geçirdi mi?"
+gen: slot=havale_nobet; type=boolean
+CANDIDATE — clinician to approve wording. Life-threatening family (`rf` convulsion/sepsis) lives in
+base.intake; this question only surfaces the sign.
 
-**Q7 — Aşırı uyku hali / uyandıramama** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (WHO IMCI "lethargic or unconscious"); S1 red "does not wake or if roused does not stay awake" · **→ base.life_threat (inv. 7); not leveled here**
-> "Çocuğunuz aşırı uykulu ya da halsiz mi; uyandırmakta zorlanıyor musunuz?"
-> _CANDIDATE — clinician to approve._
+**Q7 — Aşırı uyku hali** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (WHO IMCI "lethargic or unconscious") · **→ base.life_threat (inv. 7); not leveled here**
+> "Çocuğunuz her zamankinden çok uykulu ya da halsiz mi?"
+gen: slot=asiri_uykulu_halsiz; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q8 — Solmayan döküntü** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.18 "fever and a non-blanching rash"); rec 1.7.3 · **→ base.life_threat (inv. 7); not leveled here**
-> "Çocuğunuzun cildinde, üzerine bardakla ya da parmakla bastırdığınızda solmayan (kaybolmayan) kırmızı veya mor döküntü fark ettiniz mi?"
-> _CANDIDATE — clinician to approve. Describes the sign only; the disease name is not in patient copy (PolicyGuard)._
+**Q8 — Uyandıramama** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 red "does not wake or if roused does not stay awake" · **→ base.life_threat (inv. 7); not leveled here**
+> "Çocuğunuzu uyandırmakta zorlanıyor musunuz?"
+gen: slot=uyandirma_zorlugu; type=boolean
+CANDIDATE — clinician to approve wording. The `;`-joined pair is split (finding 3).
 
-**Q9 — Nefes alışverişinde zorlanma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 red "respiratory rate greater than 60 breaths per minute", "moderate or severe chest indrawing"; amber "nasal flaring")
+**Q9 — Solmayan döküntü** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.18 "fever and a non-blanching rash"); rec 1.7.3 · **→ base.life_threat (inv. 7); not leveled here**
+> "Çocuğunuzun cildinde, üzerine bastırınca solmayan kırmızı ya da mor bir döküntü var mı?"
+gen: slot=solmayan_dokuntu; type=boolean
+CANDIDATE — clinician to approve wording. Describes the sign only; the disease name is not in patient
+copy (PolicyGuard).
+
+**Q10 — Nefes alışverişinde zorlanma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 red "respiratory rate greater than 60 breaths per minute", "moderate or severe chest indrawing"; amber "nasal flaring")
 > "Çocuğunuzun nefes alışverişinde zorlanma ya da her zamankinden hızlı soluma fark ettiniz mi?"
-> _CANDIDATE — clinician to approve._
+gen: slot=nefes_zorlanma; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q10 — Bilinen tanı / bağışıklık durumu** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (HSGM "Prematürite ve kronik hastalık varlığı", "Kronik hastalık varlığı")
-> "Çocuğunuzun daha önce konulmuş bir hastalık tanısı, örneğin bağışıklık sistemini etkileyen süregen bir hastalığı var mı?"
-> _CANDIDATE — clinician to approve._
+**Q11 — Bilinen süregen tanı** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (HSGM "Kronik hastalık varlığı")
+> "Çocuğunuza daha önce konulmuş süregen bir hastalık tanısı var mı?"
+gen: slot=suregen_hastalik_tanisi; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q11 — Aşı durumu** · archetype: ⚠️ no archetype fits — export blocked (gap G4) · source: general intake (paediatric-ID relevance)
-> "Çocuğunuzun aşıları ulusal aşı takvimine göre tamamlandı mı, yoksa eksik aşısı var mı?"
-> _CANDIDATE — clinician to approve. Archetype binding unresolved — do not export until G4 is closed._
+**Q12 — Erken doğum** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (HSGM "Prematürite")
+> "Çocuğunuz erken mi doğdu?"
+gen: slot=erken_dogum; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q12 — Kullanılan ilaçlar / son antibiyotik** · archetype: `ACTION.medication.v1` · source: S3 (HSGM — "Son bir ay içinde antibiyotik kullanım öyküsü antibiyotik ilişkili ishal tespiti için sorulur")
-> "Çocuğunuz şu anda düzenli bir ilaç kullanıyor mu? Son bir ay içinde antibiyotik kullandı mı?"
-> _CANDIDATE — clinician to approve. (Clinician may split "düzenli ilaç" and "son ay antibiyotik" into two turns.)_
+**Q13 — Aşı durumu** · archetype: ⚠️ no archetype fits — export blocked (gap G4) · source: general intake (paediatric-ID relevance)
+> "Bildiğiniz kadarıyla, çocuğunuzun eksik kalan bir aşısı var mı?"
+gen: slot=eksik_asi; type=boolean
+CANDIDATE — clinician to approve wording. Archetype binding unresolved — do not export until G4 is
+closed.
 
-*(12 candidate questions, Q1–Q12. All tagged CANDIDATE; none served.)*
+**Q14 — Son bir ayda antibiyotik** · archetype: `ACTION.medication.v1` · source: S3 (HSGM — "Son bir ay içinde antibiyotik kullanım öyküsü antibiyotik ilişkili ishal tespiti için sorulur")
+> "Çocuğunuz son bir ay içinde antibiyotik kullandı mı?"
+gen: slot=son_ay_antibiyotik; type=boolean
+CANDIDATE — clinician to approve wording.
+
+*(14 candidate questions after revision, Q1–Q14. All tagged CANDIDATE; none served.)*
 
 ---
 

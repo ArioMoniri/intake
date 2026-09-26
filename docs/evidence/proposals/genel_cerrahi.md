@@ -206,53 +206,70 @@ approve wording.** No item carries a triage level; alarm items may at most feed 
 `sikayet_suresi` slot, so no time threshold appears in patient copy. Q1 binds to the pack's
 `basvuru_nedeni` slot.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Finding 6 applies: the Q2 → Q3 gate that lived only in prose is now a `gen:`
+line, using the reviewer's exact slot ids. Numbering is unchanged.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün genel cerrahi polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Bulge in groin or abdomen (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S1 ("Ayağa kalktığınızda fıtığı hissetmek veya gerçek anlamda görmek daha belirgindir"), GEN-S8, GEN-S2
 > "Kasığınızda ya da karnınızda ayağa kalkınca belirginleşen bir şişlik var mı?"
-CANDIDATE — clinician to approve wording.
+gen: slot=kasik_karin_sislik; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q3.
 
 **Q3 — Bulge reduces on lying down (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S1 ("uzanırken fıtık tekrar küçülebilir veya kaybolabilir"; "küçültülemezse"), GEN-S8
 > "Bu şişlik uzandığınızda küçülüyor ya da kayboluyor mu?"
+gen: slot=sislik_uzaninca_kuculuyor; type=boolean; ask_if=kasik_karin_sislik == true
 CANDIDATE — clinician to approve wording. **Overlap: incarceration (§2.2).** A "no" answer is a gate
-input only; no level asserted. Ask only if Q2 is yes.
+input only; no level asserted. Asked only if Q2 is yes (the `ask_if` above).
 
 **Q4 — Previous abdominal surgery** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GEN-S1 ("önceki bir ameliyattan kalan bir skar altında bir fıtık")
 > "Daha önce karnınızdan ameliyat oldunuz mu?"
+gen: slot=onceki_karin_ameliyati; type=boolean
 CANDIDATE — clinician to approve wording. History item; no flag.
 
 **Q5 — Right upper or upper-middle abdominal pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S7 ("in the middle of your tummy, or just under your ribs on the right side")
 > "Sağ kaburgalarınızın altında ya da karnınızın üst ortasında ağrı oluyor mu?"
+gen: slot=sag_ust_karin_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Turkish source: **NO SOURCE FOUND** (§4 gap 3).
 
 **Q6 — Yellowing of skin or eyes (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S7 ("your skin or the white part of your eyes looks yellow"), GEN-S10 (rec 1.2.4, secondary)
 > "Derinizde ya da gözlerinizin beyaz kısmında sararma fark ettiniz mi?"
+gen: slot=deri_goz_sararma; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `rf.sepsis_like` when with fever (§2.2).**
 
 **Q7 — Breast lump** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S3 ("Memede ağrısız, zamanla büyüyen bir yumrunun (kitlenin) ele gelmesi"), GEN-S10 (rec 1.4.1, secondary)
 > "Memenizde yeni fark ettiğiniz bir yumru ya da sertlik var mı?"
-CANDIDATE — clinician to approve wording. Asked of every patient regardless of sex; clinician may gate.
+gen: slot=meme_yumru; type=boolean
+CANDIDATE — clinician to approve wording. Asked of every patient regardless of sex; it stays ungated
+unless the clinician gates it.
 
 **Q8 — New nipple change** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S3 ("Meme ucundan gelen kanlı akıntı"; "Meme ucunda içe çöküntü, kabuklanma")
 > "Meme ucunuzda içe çekilme ya da akıntı gibi yeni bir değişiklik var mı?"
+gen: slot=meme_ucu_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Armpit or collarbone swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S3 ("Koltuk altında veya köprücük kemiği çevresinde şişlik")
 > "Koltuk altınızda ya da köprücük kemiğinizin çevresinde şişlik var mı?"
+gen: slot=koltuk_alti_koprucuk_sislik; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q10 — Front-of-neck swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S6 ("Boyunda şişlik, yutma güçlüğü, nefes darlığı ve ses kısıklığı gibi semptomlar büyük nodüllerde")
-> "Boynunuzun ön tarafında bir şişlik ya da ele gelen bir kitle var mı?"
-CANDIDATE — clinician to approve wording. Swallowing / voice follow-ups not drafted (§4 gap 5).
+> "Boynunuzun ön tarafında bir şişlik ya da sertlik var mı?"
+gen: slot=boyun_on_sislik; type=boolean
+CANDIDATE — clinician to approve wording. "kitle" replaced by "sertlik" (finding 14). Swallowing /
+voice follow-ups not drafted (§4 gap 5).
 
 **Q11 — Blood after defecation** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S5 ("klozete damlama şeklinde … tuvalet kağıdına bulaşma şeklinde"), GEN-S4 ("Parlak ya da koyu kırmızı kanla karakterize rektal kanama")
 > "Tuvaletten sonra kâğıtta ya da klozette kan gördünüz mü?"
+gen: slot=diskilama_sonrasi_kan; type=boolean
 CANDIDATE — clinician to approve wording. Heavy bleeding belongs to `rf.severe_bleeding` (§2.2).
 
 **Q12 — Change in bowel habit** · archetype: `OBSERVATION.symptom_sign.v1` · source: GEN-S4 ("Bağırsak alışkanlıklarında ishal-kabızlık gibi değişikliklerin meydana gelmesi")
 > "Son zamanlarda tuvalet alışkanlığınızda ishal ya da kabızlık gibi bir değişiklik oldu mu?"
+gen: slot=tuvalet_aliskanligi_degisimi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 *(12 candidate questions.)*

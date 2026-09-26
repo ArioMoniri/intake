@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/agiz_dis_cene_radyolojisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/agiz_dis_cene_radyolojisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.agiz_dis_cene_radyolojisi
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Ağız-Diş-Çene Radyolojisi ön görüşme protokolü
 extends: cluster.dental
@@ -31,69 +33,81 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü görüntüleme randevunuza sizi yönlendiren asıl sebep nedir? Kısaca anlatabilir misiniz?
+          tr: Bugünkü görüntüleme randevunuzun asıl sebebi nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
   sorular:
     slots:
-      soru_1:
+      goruntuleme_bolgesi:
         type: string
         required: false
         ask_tr:
-          tr: Hangi bölgenizle ilgili bir şikâyetiniz olduğu için görüntüleme isteniyor? Biraz anlatır mısınız?
-      soru_2:
-        type: string
-        required: false
-        ask_tr:
-          tr: Bu şikâyetiniz ne zamandır sürüyor? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?
-      soru_3:
-        type: string
-        required: false
-        ask_tr:
-          tr: Şu anda hamile olma ihtimaliniz var mı? Bunu, görüntüleme sırasında size uygun ek korumanın uygulanabilmesi için soruyoruz.
-      soru_4:
-        type: string
+          tr: Görüntüleme, ağzınızın ya da çenenizin hangi bölgesi için istendi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      onceki_goruntuleme:
+        type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda başka bir yerde ağzınızın, dişlerinizin ya da çenenizin filmi çekildi mi?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      iyilesmeyen_agiz_yarasi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Ağzınızda ya da dudağınızda üç haftadan uzun süredir iyileşmeyen bir yara var mı?
-      soru_6:
-        type: string
+          tr: Ağzınızda ya da dudağınızda iyileşmeyen bir yara var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      agiz_yarasi_suresi:
+        type: duration
         required: false
         ask_tr:
-          tr: Ağzınızda, çenenizde ya da boynunuzda elinize gelen bir şişlik veya kitle fark ettiniz mi?
-      soru_7:
-        type: string
+          tr: Bu yara ne zamandır var?
+        ask_if: iyilesmeyen_agiz_yarasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      agiz_cene_boyun_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağzınızda, çenenizde ya da boynunuzda elinize gelen bir şişlik ya da sertlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      kirmizi_beyaz_leke:
+        type: boolean
         required: false
         ask_tr:
           tr: Ağzınızın içinde geçmeyen kırmızı ya da kırmızı-beyaz bir leke fark ettiniz mi?
-      soru_8:
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      yuz_cene_dil_alti_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      nefes_yutma_zorlugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Nefes almakta ya da yutkunmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      kemik_ilaci:
         type: string
         required: false
         ask_tr:
-          tr: Yüzünüzdeki ya da çenenizdeki şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?
-      soru_9:
-        type: string
-        required: false
-        ask_tr:
-          tr: Kemik erimesi ya da kemikle ilgili başka bir durum için iğne veya hap şeklinde düzenli bir ilaç kullanıyor musunuz?
-      soru_10:
-        type: string
+          tr: Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
+      yuz_cene_darbe:
+        type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda yüzünüze ya da çenenize bir darbe veya yaralanma oldu mu?
-      soru_11:
-        type: string
-        required: false
-        ask_tr:
-          tr: Herhangi bir ilaca ya da görüntülemede kullanılan bir maddeye karşı alerjiniz ya da daha önce yaşadığınız bir tepki oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/agiz_dis_cene_radyolojisi.md'
 red_flags:
 - id: rf.agiz_dis_cene_radyolojisi_l0_taslak
   label_tr: Ağız-Diş-Çene Radyolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

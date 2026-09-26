@@ -123,57 +123,77 @@ compiler must expand any digit before TTS; the drafts below contain **no bare nu
 > `packages/protocols/triage` with a committed `source` snapshot and all three RED axes (invariant
 > 21), none supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 18, 25 and 28 apply. Renumbering, old → new — sections outside §3 still
+use the old numbers: Q1 → Q1 · Q2 → Q2 · Q3 → Q3 · Q4 → Q4 · Q5 → Q5 (feeling unwell today) + Q6
+(fever today) · Q6 → Q7 · Q7 removed (near-verbatim duplicate of base `immunosuppression`) · Q8 → Q8:
+the pregnancy half binds to base `pregnancy_status`, and the breastfeeding half stays on hold until
+it is sourced (finding 18).
+
+Address (finding 25): every item addresses the vaccinee only. The reviewer asks for proxy variants
+keyed on base `subject_role`, as in wave 4–5 evde_saglik. The report gives no variant wording and the
+generator has no variant field, so no variant is written here; the proxy wording is a clinician
+decision pending.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün hangi aşıyı yaptırmayı planlıyorsunuz? Kısaca yazabilir misiniz?"
-CANDIDATE — clinician to approve wording.
+> "Bugün hangi aşıyı yaptırmayı planlıyorsunuz?"
+CANDIDATE — clinician to approve wording. The typed-only "yazabilir misiniz" is gone (finding 28).
 
 **Q2 — Prior vaccination narrative** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Daha önce yaptırdığınız aşılarla ilgili bize iletmek istediğiniz bir konu var mı?"
+gen: slot=onceki_asilar_not
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Severe reaction after a previous vaccine dose** · archetype:
 `EVALUATION.adverse_reaction_risk.v1` · source: S1 ("Severe allergic reaction (e.g., anaphylaxis)
 after a previous dose ...") + S2 (Türkiye-first, LOW confidence)
-> "Daha önce bir aşı olduktan sonra ciddi bir alerjik tepki yaşadınız mı? Örneğin yüzde şişme ya da
-> soluk almada zorluk."
+> "Daha önce bir aşıdan sonra ciddi bir alerjik tepki yaşadınız mı?"
+gen: slot=asi_sonrasi_ciddi_tepki; type=boolean; follow_up=Bu tepkide yüzünüzde şişme ya da nefes almada zorluk oldu mu?
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**, per S1 verbatim.
 
 **Q4 — Allergy to a vaccine component** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
 S1 ("... or to a vaccine component") + S3 (gelatine/neomycin/egg/yeast) + S2
 > "Yumurta, jelatin ya da bir ilaca karşı ciddi bir alerjiniz olduğu size söylendi mi?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)**, per S1 component wording.
+gen: slot=asi_bileseni_alerjisi
+CANDIDATE — clinician to approve wording. Free-text slot so the allergen is captured. Candidate_flag:
+**YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)**, per
+S1 component wording.
 
-**Q5 — Feeling unwell / fever today** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+**Q5 — Feeling unwell today** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 ("moderate or severe acute illness with or without a fever is a precaution")
-> "Bugün kendinizi hasta hissediyor musunuz ya da ateşiniz var mı?"
+> "Bugün kendinizi hasta hissediyor musunuz?"
+gen: slot=bugun_hasta; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** — S1 wording is a *precaution* (defer),
 not a hard contraindication; the clinician/rules engine decides.
 
-**Q6 — Immune status: immune-suppressing condition** · archetype:
+**Q6 — Fever today** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("moderate or severe
+acute illness with or without a fever is a precaution")
+> "Bugün ateşiniz var mı?"
+gen: slot=bugun_ates; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q5.
+
+**Q7 — Immune status: immune-suppressing condition** · archetype:
 `EVALUATION.problem_diagnosis.v1` · source: S1 ("Severely immunocompromised persons generally should
 not receive live vaccines") + S2 (severe immune deficiency → no live vaccines) + S3
 > "Bağışıklık sisteminizi zayıflatan bir rahatsızlığınız olduğu size söylendi mi?"
+gen: slot=bagisiklik_zayiflatan_rahatsizlik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** — relevant specifically to live
-vaccines, per S1/S2.
+vaccines, per S1/S2. Immune-suppressing medication is asked by base `immunosuppression`.
 
-**Q7 — Immune-suppressing medications** · archetype: `ACTION.medication.v1` · source: S1 (altered
-immunocompetence) + S3
-> "Bağışıklık sisteminizi baskılayan bir tedavi görüyor musunuz? Örneğin yüksek doz kortizon ya da
-> kemoterapi."
-CANDIDATE — clinician to approve wording.
+**Q8 — Breastfeeding** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+**NO SOURCE FOUND (verbatim)** — see §4 gap 3
+> "Şu anda bebeğinizi emziriyor musunuz?"
+gen: hold=breastfeeding not sourced (finding 18); re-retrieve S1 before lifting
+CANDIDATE — clinician to approve wording. HOLD. Pregnancy is asked by base `pregnancy_status`. The
+reviewer notes that S1's own contraindication table very likely lists pregnancy for live vaccines;
+re-retrieve it before the hold is lifted. Breastfeeding stays on hold until sourced.
 
-**Q8 — Pregnancy / breastfeeding** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
-**NO SOURCE FOUND (verbatim)** — see §4; asked here as general screening only
-> "Şu anda hamile misiniz ya da bebeğinizi emziriyor musunuz?"
-CANDIDATE — clinician to approve wording. Note: the live-vaccine-in-pregnancy precaution was **not
-retrieved verbatim**; this item stays general-screening until a source is committed (§4 gap).
-
-*(8 candidate questions. Requested topics covered: prior reactions Q3, allergies Q4, current illness/
-fever Q5, immune status Q6–Q7. Q8 pregnancy added but source-pending.)*
+*(8 candidate items after revision: seven emitted (Q1–Q7) and one held (Q8). Covered: prior
+reactions Q3, allergies Q4, current illness/fever Q5–Q6, immune status Q7. No item is added to raise
+the count; none is sourced.)*
 
 ---
 

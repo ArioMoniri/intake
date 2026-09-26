@@ -149,69 +149,84 @@ action scripts belong to `base.life_threat` / triage, never to an intake questio
 > authoritative RED for an acute surgical emergency comes from `base.life_threat` with all three RED
 > axes (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 10 and 14 apply. Renumbering, old → new — sections
+outside §3 still use the old numbers: Q1 → Q1 · Q2 removed (base `onset_date` + `trajectory`; the
+reviewer's C2 trajectory fallback only if those base slots are not served) · Q3 → Q2 · Q4 → Q3
+(attacks, if Q2) + Q4 (pallor during attacks, if Q3) · Q5 → Q5 · Q6 → Q6 (if Q5) · Q7 → Q7 · Q8 → Q8
+· Q9 → Q9 (swelling) + Q10 (goes back in, if Q9) · Q10 → Q11 · Q11 removed (base meds) · Q12 removed
+(base `allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel şikâyet nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel şikâyet nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyet ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Abdominal pain presence** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
+**Q2 — Abdominal pain presence** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
 (feeds S3)
 > "Çocuğunuzun karın ağrısı oluyor mu?"
+gen: slot=karin_agrisi; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q3.
+
+**Q3 — Pain comes in attacks** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("paroxysmal
+(colicky) abdominal pain"; "Intermittent pain or distress")
+> "Karın ağrısı gelip geçen ataklar hâlinde mi oluyor?"
+gen: slot=atak_seklinde_karin_agrisi; type=boolean; ask_if=karin_agrisi == true
 CANDIDATE — clinician to approve wording.
 
-**Q4 — Colicky pain with pallor** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3
-> "Karın ağrısı zaman zaman gelip geçiyor ve bu sırada çocuğunuz soluyor ya da huzursuzlanıyor mu?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)**, per S3 ("paroxysmal (colicky) abdominal
-pain", "Pallor, especially during episodes").
+**Q4 — Pallor during the attacks** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (pallor
+during episodes)
+> "Bu ağrı ataklarında çocuğunuzun benzi sararıyor mu?"
+gen: slot=ataklarda_benzi_sararma; type=boolean; ask_if=atak_seklinde_karin_agrisi == true
+CANDIDATE — clinician to approve wording. Replaces "soluyor", which reads as "breathing hard" as
+easily as "going pale" (finding 10). Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
+rules-engine confirmation — NOT authoritative)**, per S3.
 
 **Q5 — Vomiting presence** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
 (feeds S1/S3)
 > "Çocuğunuz son zamanlarda kustu mu?"
-CANDIDATE — clinician to approve wording.
+gen: slot=kusma; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q6.
 
 **Q6 — Bilious / green vomit** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-> "Kusmuğun rengi yeşil ya da koyu sarı-yeşil (safra gibi) miydi?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
-clinician + rules-engine confirmation — NOT authoritative)**; per S1, bilious vomiting "mandates
-immediate assessment" — the emergency itself is owned by `base.life_threat`.
+> "Kusmuğun rengi yeşil ya da sarımsı yeşil miydi?"
+gen: slot=yesil_kusma; type=boolean; ask_if=kusma == true
+CANDIDATE — clinician to approve wording. The jargon "safra" is gone. Candidate_flag: **YELLOW_REVIEW
+(candidate, pending clinician + rules-engine confirmation — NOT authoritative)**; per S1, bilious
+vomiting "mandates immediate assessment" — the emergency itself is owned by `base.life_threat`.
 
 **Q7 — Blood / red-currant-jelly stool** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3
 > "Çocuğunuzun dışkısında kan ya da reçel kıvamında koyu kırmızı bir görünüm fark ettiniz mi?"
+gen: slot=diskida_kan; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S3 a
 "late, less common" sign of bowel ischaemia.
 
 **Q8 — Sudden testicular / groin pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
 > "Çocuğunuzun testis ya da kasık bölgesinde aniden başlayan şiddetli bir ağrı oldu mu?"
+gen: slot=ani_testis_kasik_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S2
 torsion "if suspected … require urgent surgical evaluation" — the emergency is owned by
 `base.life_threat`.
 
-**Q9 — Groin / scrotal swelling or irreducible lump** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S2 (irreducible hernia)
-> "Çocuğunuzun kasığında ya da testis torbasında şişlik veya elle içeri gitmeyen bir sertlik fark
-> ettiniz mi?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S2
-irreducible hernia is an emergency owned by `base.life_threat`.
+**Q9 — Groin / scrotal swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (irreducible
+hernia)
+> "Çocuğunuzun kasığında ya da testis torbasında bir şişlik var mı?"
+gen: slot=kasik_testis_sislik; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q10.
 
-**Q10 — Prior surgical diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general
+**Q10 — Swelling goes back in** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+(irreducibility; mirrors genel_cerrahi Q2/Q3)
+> "Bu şişlik elle bastırınca ya da çocuk uzanınca içeri giriyor mu?"
+gen: slot=sislik_iceri_giriyor; type=boolean; ask_if=kasik_testis_sislik == true
+CANDIDATE — clinician to approve wording. A "no" answer is a gate input only; per S2 irreducible
+hernia is an emergency owned by `base.life_threat`.
+
+**Q11 — Prior surgical diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general
 intake (history)
-> "Çocuğunuza daha önce cerrahi bir tanı kondu mu? Örneğin inmemiş testis, kasık fıtığı ya da başka
-> bir durum."
+> "Çocuğunuza daha önce kasık fıtığı ya da inmemiş testis gibi bir tanı kondu mu?"
+gen: slot=onceki_cerrahi_tani; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun düzenli kullandığı ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions; 6 red-flag-derived — Q4, Q6, Q7, Q8, Q9 — plus general intake.)*
+*(11 candidate questions after revision; red-flag-derived: Q3–Q4, Q6–Q8, Q9–Q10.)*
 
 ---
 

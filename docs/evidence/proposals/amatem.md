@@ -149,66 +149,88 @@ Register: formal **`siz`** throughout; one concern per question (invariant 2); w
 "CANDIDATE — clinician to approve wording".** No bare digits (invariant 22). **No crisis/self-harm
 item appears — by design (see §0).**
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 24 and 28 apply. Renumbering, old → new — sections outside
+§3 still use the old numbers: Q1–Q7 keep their numbers · Q8 → Q8 (tried to cut down) + Q9 (what
+helped, if Q8) · Q9 removed (base `patient_goals`) · Q10 → Q10 (prior support) + Q11 (other health
+conditions) · Q11 removed (base meds) · Q12 → Q12.
+
 **Q1 — Reason for visit / support wanted** · archetype: `EVALUATION.reason_for_encounter.v1` · source:
 general intake (S3 supportive framing)
-> "Bugün burada olmanıza yol açan konu nedir? Hangi konuda destek almak istersiniz?"
+> "Bugün hangi konuda destek almak istersiniz?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Own-words narrative** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Yaşadıklarınızı kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?"
+gen: slot=kendi_sozleriyle
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Which substances to talk about** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (topic:
 substances used)
 > "Bugün hangi madde ya da alışkanlıkla ilgili konuşmak istersiniz?"
+gen: slot=konusulacak_madde
 CANDIDATE — clinician to approve wording. Non-stigmatizing; no label applied to the person.
 
 **Q4 — Frequency in recent period** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (frequency
 topic) / S2 (consumption domain)
-> "Son üç ay içinde bunu ne sıklıkla kullandığınızı paylaşmak ister misiniz?"
-CANDIDATE — clinician to approve wording. "üç" spelled out per invariant 22.
+> "Son zamanlarda bunu ne sıklıkla kullandığınızı anlatır mısınız?"
+gen: slot=kullanim_sikligi
+CANDIDATE — clinician to approve wording. ASSIST's three-month window and the yes/no "paylaşmak ister
+misiniz" mismatch are dropped (finding 24). Kept as history, not scored. ASSIST shadow: whether ASSIST
+should instead be delivered verbatim through the instrument path (with a new licence row) is a
+clinician decision pending.
 
 **Q5 — Craving / strong urge** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (craving topic)
 > "Bazen kullanmak için güçlü bir istek ya da dürtü hissediyor musunuz?"
-CANDIDATE — clinician to approve wording.
+gen: slot=guclu_istek; type=boolean
+CANDIDATE — clinician to approve wording. ASSIST shadow (finding 24): clinician decision pending, as
+Q4.
 
 **Q6 — Effect on daily life / health** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1/S2 (harm
 topic)
-> "Bu durumun günlük yaşamınızı ya da sağlığınızı etkilediğini ve yardım almak istediğiniz bir yönü olduğunu düşünüyor musunuz?"
+> "Bu durum günlük yaşamınızı ya da sağlığınızı etkiliyor mu?"
+gen: slot=gunluk_yasam_etkisi; type=boolean
 CANDIDATE — clinician to approve wording. Supportive, non-judgemental (S3).
 
 **Q7 — Concern from people close to them** · archetype: `OBSERVATION.story.v1` · source: S1/S2 ("concern
 expressed by others")
 > "Yakınlarınızdan biri bu konuda size endişesini dile getirdi mi?"
-CANDIDATE — clinician to approve wording. Gentle, no blame.
+gen: slot=yakin_endisesi; type=boolean
+CANDIDATE — clinician to approve wording. Gentle, no blame. ASSIST shadow (finding 24): clinician
+decision pending, as Q4.
 
-**Q8 — Prior attempts to cut down (strengths-based)** · archetype: `OBSERVATION.story.v1` · source: S1
-(cutting-down topic)
-> "Daha önce azaltmayı ya da bırakmayı denediniz mi? Denediyseniz size ne iyi geldi?"
+**Q8 — Prior attempts to cut down** · archetype: `OBSERVATION.story.v1` · source: S1 (cutting-down topic)
+> "Daha önce azaltmayı ya da bırakmayı denediniz mi?"
+gen: slot=azaltma_denemesi; type=boolean
+CANDIDATE — clinician to approve wording. ASSIST shadow (finding 24): clinician decision pending, as
+Q4.
+
+**Q9 — What helped (strengths-based)** · archetype: `OBSERVATION.story.v1` · source: S1 (cutting-down
+topic)
+> "O zaman size en çok ne iyi geldi?"
+gen: slot=iyi_gelen; ask_if=azaltma_denemesi == true
 CANDIDATE — clinician to approve wording. Strengths-based framing.
 
-**Q9 — Goals / hopes from the visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: S3
-(motivation & goals; "persuasive and supportive rather than … confrontational")
-> "Bu görüşmeden ve önümüzdeki süreçten en çok ne elde etmeyi umuyorsunuz?"
-CANDIDATE — clinician to approve wording.
-
-**Q10 — Prior support & known conditions** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3
-(comprehensive assessment)
-> "Daha önce bu konuda bir destek aldınız mı, ya da bilmemizi istediğiniz başka bir sağlık durumunuz var mı?"
+**Q10 — Prior support** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (comprehensive
+assessment)
+> "Daha önce bu konuda bir destek aldınız mı?"
+gen: slot=onceki_destek; type=boolean
 CANDIDATE — clinician to approve wording. "destek" (support), not "tedavi", to stay PolicyGuard-clean
 and supportive.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (S3 supports
-capturing current context)
-> "Şu anda düzenli olarak kullandığınız herhangi bir ilaç var mı?"
+**Q11 — Other known health conditions** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3
+(comprehensive assessment)
+> "Bilmemizi istediğiniz başka bir sağlık durumunuz var mı?"
+gen: slot=diger_saglik_durumu
 CANDIDATE — clinician to approve wording.
 
 **Q12 — Support around the person** · archetype: `OBSERVATION.story.v1` · source: general intake (S3
 supportive relationship)
 > "Bu süreçte yanınızda olan, size destek olan kişiler var mı?"
+gen: slot=destek_cevresi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions — all supportive intake; none is a crisis/red-flag item.)*
+*(12 candidate questions after revision — all supportive intake; none is a crisis/red-flag item.)*
 
 ---
 
@@ -252,9 +274,8 @@ CANDIDATE — clinician to approve wording.
   extends or relaxes it.
 - **Inv. 10** — no scripted red-flag `text_tr` is proposed (there are no red-flags in this set).
 - **Inv. 20** — no accuracy/performance figures reproduced.
-- **Inv. 22** — no bare digits in patient text ("üç" spelled out); compiler must expand before TTS.
+- **Inv. 22** — no bare digits in patient text (the three-month window was dropped from Q4, finding 24); compiler must expand before TTS.
 - **Clinical content rule / instrument licence** — ASSIST/AUDIT cited as topic sources only, not
   embedded or scored; an instrument without a `GO` licence does not compile.
 - **HB-C1** — this pack awaits clinician sign-off; NOT served. **HB-C17 / HB-L2** — crisis path and
   C-SSRS remain human-blocked and out of scope here.
-</content>

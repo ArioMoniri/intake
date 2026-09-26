@@ -149,70 +149,84 @@ Register: formal **`siz`** throughout; one concern per question (invariant 2); e
 diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to approve wording".**
 No numerals appear in patient copy (invariant 22).
 
-> Triage note for the alarm items (Q3, Q5): the level is a **`candidate_flag` (max `YELLOW_REVIEW`),
+> Triage note for the alarm items (Q3, Q5–Q6): the level is a **`candidate_flag` (max `YELLOW_REVIEW`),
 > pending clinician + rules-engine confirmation — NOT authoritative**. Authoritative RED/YELLOW must
 > come from `packages/protocols/triage` (or `base.life_threat` for `rf.weight_loss_unintentional`) with
 > a committed `source` snapshot and all three RED axes (route × register × location, invariant 21),
 > none of which are supplied here.
+
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old
+numbers: Q1–Q4 keep their numbers · Q5 → Q5 (swallowing) + Q6 (food sticking) · Q6 → Q7 · Q7 → Q8 ·
+Q8 removed (base meds + `otc_herbal`) · Q9 → Q9 · Q10 → Q10 · Q11 → Q11.
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün beslenme ve diyet bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Nutrition goal (narrative)** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Beslenmenizle ilgili en çok değiştirmek istediğiniz şey nedir? Biraz anlatabilir misiniz?"
+> "Beslenmenizle ilgili en çok neyi değiştirmek istersiniz?"
+gen: slot=beslenme_hedefi
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Unintentional weight loss (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (GLIM
 "istemsiz kilo kaybı — zorunlu"), S2 (">5% within past 6 mo"), S3 (NG12 unexplained weight loss)
-> "Son aylarda, özellikle bunun için çaba göstermediğiniz hâlde kilo verdiniz mi? Örneğin giysileriniz
-> size daha bol gelmeye başladı mı?"
-CANDIDATE — clinician to approve wording. **Overlap: base.life_threat `rf.weight_loss_unintentional`
-(§4).** Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT
-authoritative)**. Asked qualitatively; the S1/S2 percentages are clinician-side scoring, not asked of
-the patient.
+> "Son aylarda, çaba göstermediğiniz hâlde kilo verdiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean; follow_up=Giysileriniz size eskisinden bol gelmeye başladı mı?
+CANDIDATE — clinician to approve wording. **Overlap: base `rf_weight_loss_unintentional` (§4).** The
+base slot has no `ask_tr`, so this ask is kept and binds there (the reviewer's direction). Candidate_flag:
+**YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)**. Asked
+qualitatively; the S1/S2 percentages are clinician-side scoring, not asked of the patient.
 
 **Q4 — Reduced appetite / intake** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (etiologic
 "reduced food intake"), S1 ("son zamanlardaki besin alımı")
-> "Son zamanlarda iştahınızda azalma oldu mu ya da eskisine göre daha az mı yiyorsunuz?"
+> "Son zamanlarda iştahınız azaldı ya da daha az yemeye başladınız mı?"
+gen: slot=istah_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Swallowing difficulty (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NG12 Rec
 1.2.1, "with dysphagia … urgent … endoscopy … within 2 weeks")
-> "Yemek yerken ya da sıvı içerken yutmakta zorlanıyor musunuz veya boğazınızda takılma hissi oluyor mu?"
+> "Yemek yerken ya da bir şey içerken yutmakta zorlanıyor musunuz?"
+gen: slot=yutma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)** per NG12 dysphagia as a standalone urgent trigger;
 feeds a base/GI gate, this pack asserts no level.
 
-**Q6 — GI symptoms affecting intake** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("any
+**Q6 — Food sticking in the throat (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3
+(NG12 Rec 1.2.1)
+> "Yediğiniz lokmanın boğazınızda takıldığını hissediyor musunuz?"
+gen: slot=lokma_takilmasi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q5.
+
+**Q7 — GI symptoms affecting intake** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("any
 chronic GI condition that adversely impacts food assimilation")
 > "Son zamanlarda yemenizi etkileyen bulantı, kusma, ishal ya da kabızlık gibi bir sorun yaşıyor musunuz?"
-CANDIDATE — clinician to approve wording. Note: bundles related GI concerns; clinician may split per
-symptom to keep strictly one concern per turn.
+gen: slot=sindirim_sikayeti; type=boolean
+CANDIDATE — clinician to approve wording. Note: bundles related GI concerns; the reviewer passes it,
+and the clinician may still split it per symptom.
 
-**Q7 — Known conditions affecting nutrition** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+**Q8 — Known conditions affecting nutrition** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake (S2 "inflammation/disease burden" gives clinical relevance)
-> "Beslenmenizi etkileyebilecek, bir doktor tarafından konmuş bir hastalığınız var mı? Örneğin şeker
-> hastalığı ya da böbrek rahatsızlığı."
-CANDIDATE — clinician to approve wording.
-
-**Q8 — Current medications / supplements** · archetype: `ACTION.medication.v1` · source: general intake
-> "Şu anda düzenli olarak kullandığınız bir ilaç ya da takviye (vitamin, mineral veya bitkisel ürün) var mı?"
+> "Şeker hastalığı ya da böbrek hastalığı gibi, beslenmenizi etkileyen bir hastalığınız var mı?"
+gen: slot=beslenmeyi_etkileyen_hastalik; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Food allergy / intolerance** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Herhangi bir besine karşı alerjiniz ya da tahammülsüzlüğünüz var mı? Örneğin süt ya da gluten."
-CANDIDATE — clinician to approve wording.
+> "Size dokunan ya da alerji yapan bir yiyecek var mı?"
+gen: slot=besin_alerjisi
+CANDIDATE — clinician to approve wording. Free-text slot so the food is captured.
 
 **Q10 — Dietary restrictions** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Sağlık, inanç ya da tercih nedeniyle yemediğiniz besinler var mı? Kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Sağlık, inanç ya da tercih nedeniyle yemediğiniz besinler var mı?"
+gen: slot=diyet_kisitlamasi
+CANDIDATE — clinician to approve wording. Free-text slot so the foods are captured.
 
 **Q11 — Usual daily eating pattern** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Sıradan bir gününüzde genellikle neler yiyip içtiğinizi kısaca anlatabilir misiniz?"
+gen: slot=gunluk_beslenme_duzeni
 CANDIDATE — clinician to approve wording.
 
-*(11 candidate questions.)*
+*(11 candidate questions after revision.)*
 
 ---
 

@@ -135,77 +135,95 @@ clinician to approve wording".**
 > register × location, invariant 21), none supplied here. Life-threatening presentations (e.g.
 > febrile neutropenia) are owned by `base.life_threat`, not by this pack.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Findings 12, 14 and 15 apply. Renumbering, old → new — sections
+outside §3 still use the old numbers: Q1 → Q1 · Q2 removed (base `onset_date` + `trajectory`) · Q3
+→ Q2 · Q4 → Q3 (nose or gum bleeding) + Q4 (pinpoint spots) · Q5 → Q5 (pallor) + Q6 (persistent
+tiredness) · Q6 → Q7 · Q7 → Q8 · Q8 → Q9 · Q9 → Q10 · Q10 → Q11 · Q11 → Q12 (earlier diagnosis) +
+Q13 (on regular treatment, if Q12) · Q12 removed (base meds).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüşmede çocuğunuzla ilgili sizi en çok düşündüren konu nedir? Kısaca anlatabilir
-> misiniz?"
+> "Bugün çocuğunuzla ilgili sizi en çok düşündüren konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Story of the complaint** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyet ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Unexplained bruising** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.3,
+**Q2 — Unexplained bruising** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.3,
 "unexplained bruising")
-> "Çocuğunuzun vücudunda, nedeni belli olmayan ya da küçük darbelerle beklenenden kolay oluşan
-> morluklar fark ettiniz mi?"
+> "Çocuğunuzun vücudunda nedeni belli olmayan morluklar fark ettiniz mi?"
+gen: slot=nedensiz_morluk; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: feeds a symptom cluster; no standalone level
 asserted here.
 
-**Q4 — Unexplained bleeding / petechiae** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-(NG12 1.10.2 "petechiae"; 1.10.3 "unexplained bleeding")
-> "Çocuğunuzda nedeni belli olmayan burun ya da diş eti kanaması, veya ciltte iğne başı büyüklüğünde
-> kırmızı-mor noktacıklar oldu mu?"
+**Q3 — Unexplained nose or gum bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+(NG12 1.10.3 "unexplained bleeding")
+> "Çocuğunuzda nedeni belli olmayan burun ya da diş eti kanaması oldu mu?"
+gen: slot=burun_dis_eti_kanamasi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q5 — Pallor + persistent fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12
-1.10.3 "pallor, persistent fatigue")
-> "Çocuğunuz son zamanlarda her zamankinden solgun görünüyor mu ya da geçmeyen bir yorgunluk
-> yaşıyor mu?"
+**Q4 — Petechiae** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.2 "petechiae")
+> "Çocuğunuzun cildinde iğne başı büyüklüğünde kırmızı ya da mor noktalar fark ettiniz mi?"
+gen: slot=ciltte_kirmizi_mor_nokta; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q6 — Persistent fever / infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12
+**Q5 — Pallor** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.3 "pallor")
+> "Çocuğunuz son zamanlarda her zamankinden solgun görünüyor mu?"
+gen: slot=solukluk; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q6 — Persistent fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.3
+"persistent fatigue")
+> "Çocuğunuz son zamanlarda geçmeyen bir yorgunluk yaşıyor mu?"
+gen: slot=gecmeyen_yorgunluk; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q7 — Persistent fever / infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12
 1.10.3 "unexplained fever, unexplained persistent infection")
 > "Çocuğunuzda nedeni açıklanamayan, uzun süren ateş ya da sık tekrarlayan enfeksiyonlar oldu mu?"
-CANDIDATE — clinician to approve wording. (If the child has a known blood/oncology diagnosis and is on
-treatment — see Q11 — a current fever is handled by the `base.life_threat` neutropenic-fever gate, not
-here.)
+gen: slot=uzun_ates_sik_enfeksiyon; type=boolean
+CANDIDATE — clinician to approve wording. (If the child has a known diagnosis and is on treatment —
+see Q12–Q13 — a current fever is handled by the `base.life_threat` neutropenic-fever gate, not here.)
 
-**Q7 — Bone / joint pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.3
+**Q8 — Bone pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.3
 "persistent or unexplained bone pain"; 1.11.3 "unexplained bone swelling or pain")
-> "Çocuğunuz, özellikle geceleri uykudan uyandıran ya da geçmeyen bir kemik veya eklem ağrısından
-> yakınıyor mu?"
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuz geçmeyen ya da nedeni belli olmayan bir kemik ağrısından yakınıyor mu?"
+gen: slot=kemik_agrisi; type=boolean
+CANDIDATE — clinician to approve wording. The night-waking qualifier is removed: it is not in NG12
+1.10.3 and narrowed the ask (finding 15).
 
-**Q8 — Enlarged glands / lump** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.7
+**Q9 — Enlarged glands** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 1.10.7
 "unexplained lymphadenopathy or splenomegaly"; 1.10.3 "generalised lymphadenopathy")
-> "Çocuğunuzun boyun, koltuk altı ya da kasık bölgesinde, geçmeyen bir şişlik ya da ele gelen bir bez
-> fark ettiniz mi?"
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuzun boynunda, koltuk altında ya da kasığında geçmeyen bir şişlik fark ettiniz mi?"
+gen: slot=boyun_koltuk_kasik_sislik; type=boolean
+CANDIDATE — clinician to approve wording. "bez" is gone: in a paediatric pack it reads as "diaper"
+(finding 12).
 
-**Q9 — Abdominal swelling / mass** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12
+**Q10 — Abdominal swelling / mass** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12
 1.12.1 "palpable abdominal mass or unexplained enlarged abdominal organ"; 1.10.2 "hepatosplenomegaly")
-> "Çocuğunuzun karnında şişlik, dolgunluk ya da elinize gelen sert bir kitle fark ettiniz mi?"
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuzun karnında şişlik ya da elinize gelen bir sertlik fark ettiniz mi?"
+gen: slot=karinda_sislik_sertlik; type=boolean
+CANDIDATE — clinician to approve wording. "kitle" replaced by "sertlik" (finding 14).
 
-**Q10 — White pupil glow (retinoblastoma cue)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+**Q11 — White pupil glow (retinoblastoma cue)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
 S1 (NG12 1.12.2, "absent fundal ('red') reflex")
-> "Çocuğunuzun göz bebeğinde, özellikle fotoğraflarda beyaz bir parlama ya da normal kırmızı
-> yansımanın kaybolduğunu fark ettiniz mi?"
+> "Çocuğunuzun fotoğraflarında göz bebeğinin beyaz parladığını fark ettiniz mi?"
+gen: slot=goz_bebegi_beyaz_parlama; type=boolean
 CANDIDATE — clinician to approve wording. Note: absent red reflex is normally an examination finding;
 this question captures only what a parent can observe (e.g. in flash photographs).
 
-**Q11 — Known diagnosis + current treatment** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
-general intake (history; feeds `base.life_threat`)
-> "Çocuğunuza daha önce kanla ilgili bir hastalık tanısı kondu mu ve şu anda bunun için düzenli bir
-> tedavi görüyor mu?"
+**Q12 — Known serious diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general
+intake (history; feeds `base.life_threat`)
+> "Çocuğunuza daha önce kanla ilgili ya da başka ciddi bir hastalık tanısı kondu mu?"
+gen: slot=onceki_ciddi_tani; type=boolean
+CANDIDATE — clinician to approve wording. Widened beyond blood disease: children with a solid tumour
+on treatment carry the same neutropenic-fever context.
+
+**Q13 — Current regular treatment** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general
+intake (history; feeds `base.life_threat`)
+> "Çocuğunuz şu anda bu hastalık için düzenli bir tedavi görüyor mu?"
+gen: slot=duzenli_tedavi; type=boolean; ask_if=onceki_ciddi_tani == true
 CANDIDATE — clinician to approve wording. This history feeds the existing `base.life_threat`
 neutropenic-fever gate; it does not itself carry any triage level.
 
-**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun şu anda düzenli olarak kullandığı ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions.)*
+*(13 candidate questions after revision.)*
 
 ---
 

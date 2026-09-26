@@ -1,25 +1,29 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/amatem.md (WHO ASSIST/AUDIT topics, NICE CG115 — supportive,
-# non-judgemental), clinician-DIRECTED (Dr. A. Moniri), to be double-verified.
-# Supportive, person-first symptom-capture prompts only (inv 2/10) — not diagnosis,
-# not triage. Crisis/self-harm is NOT here — it stays in base.life_threat (inv 7).
-# Acuity is EK-4 LAW + physician of record (HB-C1); NOT fabricated.
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/amatem.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.amatem
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: AMATEM ön görüşme protokolü
-extends: cluster.medical
+extends: cluster.mental_health
 visit_types:
 - first
 - followup
+- preop
 - report
+- pregnancy_followup
 - chronic_review
 - post_discharge
+- screening
 - second_opinion
 - teleconsult
 sections:
@@ -29,72 +33,90 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugün burada olmanıza yol açan konu nedir? Hangi konuda destek almak istersiniz?
+          tr: Bugün hangi konuda destek almak istersiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/amatem.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu durumu ne zamandır yaşıyorsunuz? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/amatem.md'
   sorular:
     slots:
-      soru_1:
+      kendi_sozleriyle:
         type: string
         required: false
         ask_tr:
           tr: Yaşadıklarınızı kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?
-      soru_2:
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/amatem.md'
+      konusulacak_madde:
         type: string
         required: false
         ask_tr:
           tr: Bugün hangi madde ya da alışkanlıkla ilgili konuşmak istersiniz?
-      soru_3:
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/amatem.md'
+      kullanim_sikligi:
         type: string
         required: false
         ask_tr:
-          tr: Son üç ay içinde bunu ne sıklıkla kullandığınızı paylaşmak ister misiniz?
-      soru_4:
-        type: string
+          tr: Son zamanlarda bunu ne sıklıkla kullandığınızı anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/amatem.md'
+      guclu_istek:
+        type: boolean
         required: false
         ask_tr:
           tr: Bazen kullanmak için güçlü bir istek ya da dürtü hissediyor musunuz?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/amatem.md'
+      gunluk_yasam_etkisi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bu durumun günlük yaşamınızı ya da sağlığınızı etkilediğini ve yardım almak istediğiniz bir yönü olduğunu düşünüyor musunuz?
-      soru_6:
-        type: string
+          tr: Bu durum günlük yaşamınızı ya da sağlığınızı etkiliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/amatem.md'
+      yakin_endisesi:
+        type: boolean
         required: false
         ask_tr:
           tr: Yakınlarınızdan biri bu konuda size endişesini dile getirdi mi?
-      soru_7:
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/amatem.md'
+      azaltma_denemesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce azaltmayı ya da bırakmayı denediniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/amatem.md'
+      iyi_gelen:
         type: string
         required: false
         ask_tr:
-          tr: Daha önce azaltmayı ya da bırakmayı denediniz mi? Denediyseniz size ne iyi geldi?
-      soru_8:
+          tr: O zaman size en çok ne iyi geldi?
+        ask_if: azaltma_denemesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/amatem.md'
+      onceki_destek:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce bu konuda bir destek aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/amatem.md'
+      diger_saglik_durumu:
         type: string
         required: false
         ask_tr:
-          tr: Bu görüşmeden ve önümüzdeki süreçten en çok ne elde etmeyi umuyorsunuz?
-      soru_9:
-        type: string
-        required: false
-        ask_tr:
-          tr: Daha önce bu konuda bir destek aldınız mı, ya da bilmemizi istediğiniz başka bir sağlık durumunuz var mı?
-      soru_10:
-        type: string
-        required: false
-        ask_tr:
-          tr: Şu anda düzenli olarak kullandığınız herhangi bir ilaç var mı?
-      soru_11:
-        type: string
+          tr: Bilmemizi istediğiniz başka bir sağlık durumunuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/amatem.md'
+      destek_cevresi:
+        type: boolean
         required: false
         ask_tr:
           tr: Bu süreçte yanınızda olan, size destek olan kişiler var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/amatem.md'
 red_flags:
 - id: rf.amatem_l0_taslak
-  label_tr: AMATEM — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  label_tr: AMATEM ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
   when: 'TODO: amatem branch-specific red-flag trigger requires clinical sign-off'
   tense: ever
   tense_anchor: sikayet_suresi
@@ -102,4 +124,4 @@ red_flags:
   route: EXPEDITE
   notify_clinic: never
   status: draft_needs_source
-  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17). Crisis / self-harm is deliberately NOT modelled here — it belongs to base.life_threat (invariant 7; HB-L2). Supportive candidates recorded in docs/evidence/proposals/amatem.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. Owner: physician of record (HB-C1, HB-C2, HB-C7).'
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/amatem.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

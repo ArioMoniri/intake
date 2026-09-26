@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/cocuk_genetik_hastaliklari.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_genetik_hastaliklari.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.cocuk_genetik_hastaliklari
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Çocuk Genetik Hastalıkları ön görüşme protokolü
 extends: cluster.child_health
@@ -32,63 +34,79 @@ sections:
         required: true
         ask_tr:
           tr: Çocuğunuzun bugün genetik bölümüne yönlendirilmesinin sebebini kısaca anlatabilir misiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      gelisim_geriligi:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuz yaşıtlarına göre oturma, yürüme ya da konuşma gibi gelişim basamaklarında geride kaldı mı?
-      soru_2:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      beceri_kaybi:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuz daha önce yapabildiği bir beceriyi, örneğin yürümeyi ya da konuşmayı, sonradan kaybetti mi?
-      soru_3:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      farkli_gorunum:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuzun yüz görünümünde ya da vücut yapısında size farklı gelen bir özellik fark ettiniz mi?
-      soru_4:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      ailede_genetik_hastalik:
+        type: boolean
         required: false
         ask_tr:
           tr: Ailenizde kalıtsal ya da genetik bir hastalık tanısı almış bir kişi var mı?
-      soru_5:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      akraba_evliligi:
+        type: boolean
         required: false
         ask_tr:
-          tr: 'Bu soruyu yalnızca sağlık değerlendirmesi için soruyorum: anne ile baba arasında akrabalık var mı?'
-      soru_6:
-        type: string
+          tr: 'Bu soruyu yalnızca sağlık değerlendirmesi için soruyoruz: anne ile baba arasında akrabalık var mı?'
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      ailede_ureme_kaybi:
+        type: boolean
         required: false
         ask_tr:
           tr: Ailenizde tekrarlayan düşük, ölü doğum ya da bebeklik döneminde açıklanamayan bir kayıp yaşandı mı?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      topuk_kani_sonucu:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuzun yenidoğan döneminde yapılan topuk kanı taramasında şüpheli ya da anormal bir sonuç çıktı mı?
-      soru_8:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      alisilmadik_halsizlik:
+        type: boolean
         required: false
         ask_tr:
-          tr: Şu sıralarda çocuğunuz alışılmadık şekilde halsiz ya da uykuya meyilli mi, ya da tekrarlayan kusma veya beslenememe var mı?
-      soru_9:
-        type: string
+          tr: Çocuğunuz şu sıralarda alışılmadık şekilde halsiz ya da uykulu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      tekrarlayan_kusma_beslenememe:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz şu sıralarda tekrar tekrar kusuyor ya da beslenemiyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
+      onceki_genetik_test:
+        type: boolean
         required: false
         ask_tr:
           tr: Çocuğunuza daha önce genetik bir test, örneğin kromozom ya da DNA testi, yapıldı mı?
-      soru_10:
-        type: string
-        required: false
-        ask_tr:
-          tr: Çocuğunuz şu anda düzenli olarak kullandığı bir ilaç var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
 red_flags:
 - id: rf.cocuk_genetik_hastaliklari_l0_taslak
   label_tr: Çocuk Genetik Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

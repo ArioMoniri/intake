@@ -161,70 +161,94 @@ must expand any spelled numeral before TTS.
 > authoritative RED/YELLOW must come from `packages/protocols/triage` with a committed `source`
 > snapshot and all three RED axes (route × register × location, invariant 21), none supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old
+numbers: Q1 → Q1 · Q2 → Q2 ("when" is base `onset_date`) · Q3 removed (base `location_text`) · Q4
+removed (base `duration` + `timing_pattern`) · Q5 → Q3 (rest or night pain) + Q4 (wakes at night, if
+Q3) · Q6 → Q5 (weight loss) + Q6 (generally unwell) · Q7 → Q7 (bladder/bowel control) + Q8 (saddle
+numbness) · Q8 → Q9 · Q9 → Q10 · Q10 → Q11 · Q11 → Q12 · Q12 removed (base `allergies` +
+`allergy_reaction`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüşmede sizi en çok rahatsız eden ağrı nedir? Kısaca anlatabilir misiniz?"
+> "Bugün sizi en çok hangi ağrınız rahatsız ediyor?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Pain narrative (story)** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Ağrınızın ne zaman ve nasıl başladığını kendi sözlerinizle anlatabilir misiniz?"
+> "Ağrınızın nasıl başladığını kendi sözlerinizle anlatır mısınız?"
+gen: slot=agri_hikayesi
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Pain location** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
-> "Ağrıyı en çok vücudunuzun hangi bölgesinde hissediyorsunuz?"
-CANDIDATE — clinician to approve wording.
-
-**Q4 — Onset / duration / pattern** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
-> "Bu ağrı ne kadar süredir devam ediyor ve gün içinde artıp azalıyor mu?"
-CANDIDATE — clinician to approve wording.
-
-**Q5 — Night / rest pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("nocturnal pain
+**Q3 — Rest / night pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("nocturnal pain
 disrupting sleep"), S4 ("Gece ağrısı")
-> "Ağrınız geceleri ya da dinlenirken de oluyor mu, uykunuzu bölüyor mu?"
+> "Ağrınız dinlenirken ya da geceleri de oluyor mu?"
+gen: slot=dinlenme_gece_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: none by itself; contributes context to a
 clinician-set red-flag pattern per S2/S4.
 
-**Q6 — Weight loss / feeling unwell** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
-("Weight loss …", "Feeling generally unwell …"), S4 ("Açıklanamayan kilo kaybı")
-> "Son zamanlarda istemediğiniz halde kilo verdiniz mi ya da kendinizi genel olarak halsiz hissettiniz mi?"
+**Q4 — Night pain that wakes** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("nocturnal pain
+disrupting sleep")
+> "Ağrınız sizi geceleri uykudan uyandırıyor mu?"
+gen: slot=geceleri_uyandiran_agri; type=boolean; ask_if=dinlenme_gece_agrisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q5 — Unintentional weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+("Weight loss …"), S4 ("Açıklanamayan kilo kaybı")
+> "Son zamanlarda istemeden kilo verdiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** per S2 malignancy/infection wording.
 
-**Q7 — Bladder/bowel or saddle numbness (cauda equina)** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S1 (cauda equina emergency note), S4 ("Eyer şeklinde anestezi", "İdrar yapmakta zorluk")
-> "Son günlerde idrarınızı ya da bağırsağınızı kontrol etmekte zorluk yaşadınız mı, ya da oturduğunuz bölgede uyuşma fark ettiniz mi?"
+**Q6 — Feeling generally unwell** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Feeling
+generally unwell …")
+> "Son zamanlarda kendinizi genel olarak halsiz ya da hasta hissediyor musunuz?"
+gen: slot=genel_halsizlik; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q5.
+
+**Q7 — New bladder or bowel control problem (cauda equina)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S4 ("İdrar yapmakta zorluk")
+> "Son günlerde idrar ya da dışkı kontrolünüzde yeni bir sorun oldu mu?"
+gen: slot=idrar_diski_kontrol_sorunu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**; this maps to a known neurological
-emergency (S1), so the authoritative level and RED action script must be set by the rules engine.
+emergency, so the authoritative level and RED action script must be set by the rules engine. The
+reviewer anchors Q7–Q8 on S4 and a GIRFT source rather than NG59, which excludes cauda-equina detail;
+no GIRFT source has been retrieved for this proposal (§4 gap 1).
 
-**Q8 — Progressive leg weakness / numbness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+**Q8 — New saddle numbness (cauda equina)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4
+("Eyer şeklinde anestezi")
+> "Bacaklarınızın arasında ya da makat çevresinde yeni bir uyuşma fark ettiniz mi?"
+gen: slot=eyer_uyusmasi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q7.
+
+**Q9 — Progressive leg weakness / numbness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
 ("Widespread neurological symptoms especially sphincter disturbance"), S4 ("İlerleyici nörolojik defisit")
 > "Bacaklarınızda giderek artan güçsüzlük ya da uyuşma hissediyor musunuz?"
+gen: slot=bacakta_ilerleyen_guc_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** per S2/S4.
 
-**Q9 — Severity / interference** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (comprehensive
+**Q10 — Severity / interference** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (comprehensive
 assessment incl. "assessment of pain severity using an appropriate pain measurement tool")
 > "Ağrınız günlük işlerinizi, çalışmanızı ya da uykunuzu ne ölçüde etkiliyor?"
+gen: slot=agri_etkisi
 CANDIDATE — clinician to approve wording. Note: a validated pain-severity scale (e.g. an NRS) is a
 clinician/instrument decision, not set here.
 
-**Q10 — Known diagnoses / cancer history** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2
+**Q11 — Known diagnoses / cancer history** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2
 / S4 ("Kanser öyküsü")
 > "Daha önce kanser ya da başka önemli bir hastalık tanısı aldınız mı?"
+gen: slot=onceki_onemli_tani; type=boolean
 CANDIDATE — clinician to approve wording. Note: prior-cancer history is a documented red-flag
 context (S2/S4); the level stays with the rules engine.
 
-**Q11 — Current pain medications** · archetype: `ACTION.medication.v1` · source: general intake (S3
+**Q12 — Current pain medications** · archetype: `ACTION.medication.v1` · source: general intake (S3
 supports capturing current management)
 > "Şu anda ağrınız için düzenli olarak kullandığınız ilaç var mı?"
-CANDIDATE — clinician to approve wording.
+gen: slot=agri_ilaci
+CANDIDATE — clinician to approve wording. Pain-specific, so kept; free-text slot so the drug name is
+captured.
 
-**Q12 — Drug allergy / adverse reaction** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
-general intake
-> "Herhangi bir ilaca karşı alerjiniz ya da daha önce yaşadığınız kötü bir ilaç tepkiniz oldu mu?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions.)*
+*(12 candidate questions after revision.)*
 
 ---
 
@@ -277,5 +301,3 @@ CANDIDATE — clinician to approve wording.
   `status: draft_needs_source` and do not compile. This proposal supplies candidate sources S1–S4 for
   that block but does not itself commit a snapshot.
 - **HB-C1** — this pack awaits clinician sign-off; NOT served.
-</content>
-</invoke>

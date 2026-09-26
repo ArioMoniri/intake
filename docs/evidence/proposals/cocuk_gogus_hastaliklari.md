@@ -165,70 +165,105 @@ diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to
 Per invariant 22, none of the drafts below contains a numeral; the protocol compiler must still expand
 any future digit to Turkish orthography before TTS.
 
-> Triage note for every alarm-derived item (Q6–Q9): the level is a **`candidate_flag` (max
+> Triage note for every alarm-derived item (Q7–Q12): the level is a **`candidate_flag` (max
 > `YELLOW_REVIEW`), pending clinician + rules-engine confirmation — NOT authoritative**. The
 > authoritative RED for acute respiratory distress / apnoea / cyanosis stays in `base.life_threat`
 > with a committed `source` snapshot and all three RED axes (route × register × location, invariant
 > 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old
+numbers: Q1 → Q1 · Q2 → Q2 (cough) + Q3 (how long, if Q2) · Q3 → Q4 (if Q2) · Q4 → Q5 (held) · Q5 →
+Q6 · Q6 → Q7 (fast breathing) + Q8 (chest indrawing) + Q9 (grunting) · Q7 → Q10 · Q8 → Q11 · Q9 →
+Q12 · Q10 → Q13 · Q11 → Q14 · Q12 → Q15.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün hekime getiren en önemli konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün hekime getiren en önemli konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Cough (presence / duration)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("wet cough" / chronic cough)
-> "Çocuğunuzun öksürüğü var mı? Varsa yaklaşık ne zamandır sürüyor?"
+**Q2 — Cough (presence)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("wet cough" / chronic cough)
+> "Çocuğunuzun öksürüğü var mı?"
+gen: slot=oksuruk; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q3–Q4.
+
+**Q3 — Cough (duration)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (chronic cough)
+> "Bu öksürük ne zamandır sürüyor?"
+gen: slot=oksuruk_suresi; type=duration; ask_if=oksuruk == true
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Wet cough / sputum** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Wet cough")
-> "Çocuğunuz öksürürken balgam ya da sümük çıkarıyor mu?"
-CANDIDATE — clinician to approve wording.
+**Q4 — Wet cough** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Wet cough")
+> "Çocuğunuzun öksürüğü balgamlı gibi mi geliyor?"
+gen: slot=balgamli_oksuruk; type=boolean; ask_if=oksuruk == true
+CANDIDATE — clinician to approve wording. "sümük" is gone: it confounds with nasal discharge.
 
-**Q4 — Wheeze** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 candidate (verbatim not yet captured — see §4)
+**Q5 — Wheeze** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 candidate (verbatim not yet captured — see §4)
 > "Çocuğunuz nefes alıp verirken hırıltı ya da ıslık gibi bir ses çıkarıyor mu?"
-CANDIDATE — clinician to approve wording.
+gen: hold=S4 verbatim not captured; text passes, re-source before lifting
+CANDIDATE — clinician to approve wording. HOLD until S4 is captured verbatim; the reviewer passes the
+text.
 
-**Q5 — Exertional breathlessness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Exertional dyspnea")
+**Q6 — Exertional breathlessness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Exertional dyspnea")
 > "Çocuğunuz oyun oynarken ya da koşarken yaşıtlarına göre daha çabuk yoruluyor veya nefesi
 > daralıyor mu?"
+gen: slot=eforla_nefes_darligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q6 — Respiratory distress** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Grunting" / "chest indrawing" / tachypnoea) — **feeds `base.life_threat`**
-> "Şu sıralarda çocuğunuzun nefesi çok hızlandı mı ya da nefes alırken göğsü içeri çekiliyor,
-> inler gibi bir ses çıkarıyor mu?"
+**Q7 — Fast breathing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (tachypnoea) — **feeds `base.life_threat`**
+> "Çocuğunuz şu sıralarda her zamankinden hızlı nefes alıyor mu?"
+gen: slot=hizli_nefes; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)**; the authoritative RED is owned by
 `base.life_threat` (invariant 7), not this pack.
 
-**Q7 — Central cyanosis** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Pale/mottled/ashen/blue"); S2 ("cyanosis or pallor") — **feeds `base.life_threat`**
+**Q8 — Chest indrawing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("chest indrawing") — **feeds `base.life_threat`**
+> "Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?"
+gen: slot=gogus_ice_cekilmesi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q7.
+
+**Q9 — Grunting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Grunting") — **feeds `base.life_threat`**
+> "Çocuğunuz nefes verirken inler gibi bir ses çıkarıyor mu?"
+gen: slot=inleme; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q7.
+
+**Q10 — Central cyanosis** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Pale/mottled/ashen/blue"); S2 ("cyanosis or pallor") — **feeds `base.life_threat`**
 > "Çocuğunuzun dudaklarında ya da dilinde morarma fark ettiniz mi?"
+gen: slot=morarma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; RED owned by `base.life_threat`.
 
-**Q8 — Apnoea / pauses in breathing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("absent, decreased, or irregular breathing") — **feeds `base.life_threat`**
+**Q11 — Apnoea / pauses in breathing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("absent, decreased, or irregular breathing") — **feeds `base.life_threat`**
 > "Çocuğunuzun nefesinin bir an durduğu ya da kesildiği oldu mu?"
+gen: slot=nefes_durmasi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)**; RED owned by `base.life_threat`. Note: S2 (BRUE) is defined for infants under one
-year — the clinician must set the age scope.
+authoritative)**; RED owned by `base.life_threat`. S2 (BRUE) is defined for infants, so the reviewer
+wants an infant-age `ask_if`; the age cut-off is a clinical value, so the gate is a clinician decision
+pending and no age is proposed here.
 
-**Q9 — Recurrent chest infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Recurrent pneumonia")
+**Q12 — Recurrent chest infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Recurrent pneumonia")
 > "Çocuğunuz sık sık zatürre ya da göğüs enfeksiyonu geçirdi mi?"
+gen: slot=sik_gogus_enfeksiyonu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q10 — Feeding-related cough / choking** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Cough associated swallowing" / "Feeding difficulties")
+**Q13 — Feeding-related cough / choking** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Cough associated swallowing" / "Feeding difficulties")
 > "Çocuğunuz beslenirken öksürüyor ya da tıkanıyor mu?"
+gen: slot=beslenirken_oksurme; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Known respiratory diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
+**Q14 — Known respiratory diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
 > "Çocuğunuza daha önce astım ya da kistik fibrozis gibi bir solunum tanısı kondu mu?"
+gen: slot=solunum_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Current respiratory medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuz şu anda solunumu için düzenli kullandığı bir ilaç ya da nefes açıcı kullanıyor mu?"
-CANDIDATE — clinician to approve wording.
+**Q15 — Current respiratory medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
+> "Çocuğunuz solunumu için düzenli bir ilaç ya da nefes açıcı kullanıyor mu?"
+gen: slot=solunum_ilaci
+CANDIDATE — clinician to approve wording. Respiratory-specific, so kept alongside base meds;
+free-text slot so the medicine is captured.
 
-*(12 candidate questions. Family history of atopy and home smoke exposure — openEHR items 18–19 — are
-clinically relevant but deliberately NOT drafted as questions here because they have no export target;
-export blocked, INT-041 posture, pending an archetype decision.)*
+*(15 candidate items after revision: fourteen emitted, Q5 held. Family history of atopy and home smoke
+exposure — openEHR items 18–19 — are clinically relevant but deliberately NOT drafted as questions
+here because they have no export target; export blocked, INT-041 posture, pending an archetype
+decision.)*
 
 ---
 

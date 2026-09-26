@@ -148,10 +148,16 @@ diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to
 Per invariant 22, none of the drafts below contains a numeral. The consanguinity item (Q6) is phrased
 sensitively and states its clinical purpose.
 
-> Triage note for the alarm-derived item (Q9): the level is a **`candidate_flag` (max `YELLOW_REVIEW`),
+> Triage note for the alarm-derived items (Q9–Q10): the level is a **`candidate_flag` (max `YELLOW_REVIEW`),
 > pending clinician + rules-engine confirmation — NOT authoritative**. The authoritative RED for acute
 > metabolic decompensation stays in `base.life_threat` with a committed `source` snapshot and all
 > three RED axes (route × register × location, invariant 21), none of which are supplied here.
+
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Finding 29 applies. Renumbering, old → new — sections outside §3 still use
+the old numbers: Q1–Q8 keep their numbers (Q6 now uses one system voice, "soruyoruz") · Q9 → Q9
+(unusually listless or sleepy) + Q10 (repeated vomiting or unable to feed) · Q10 → Q11 · Q11 removed
+(base meds).
 
 **Q1 — Reason for referral** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Çocuğunuzun bugün genetik bölümüne yönlendirilmesinin sebebini kısaca anlatabilir misiniz?"
@@ -160,58 +166,69 @@ CANDIDATE — clinician to approve wording.
 **Q2 — Developmental delay** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (developmental delay flag)
 > "Çocuğunuz yaşıtlarına göre oturma, yürüme ya da konuşma gibi gelişim basamaklarında geride
 > kaldı mı?"
+gen: slot=gelisim_geriligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Developmental regression** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("loss of previously gained skills … require urgent further assessment")
 > "Çocuğunuz daha önce yapabildiği bir beceriyi, örneğin yürümeyi ya da konuşmayı, sonradan
 > kaybetti mi?"
+gen: slot=beceri_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)** — S1 calls regression a red flag requiring *urgent*
 assessment; the authoritative level stays with the rules engine.
 
 **Q4 — Dysmorphic features** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("dysmorphic features")
 > "Çocuğunuzun yüz görünümünde ya da vücut yapısında size farklı gelen bir özellik fark ettiniz mi?"
+gen: slot=farkli_gorunum; type=boolean
 CANDIDATE — clinician to approve wording. (Sensitive wording; no judgemental phrasing.)
 
 **Q5 — Family history of genetic disease** · archetype: **no root — export blocked (INT-041)** · source: S1 ("family history")
 > "Ailenizde kalıtsal ya da genetik bir hastalık tanısı almış bir kişi var mı?"
+gen: slot=ailede_genetik_hastalik; type=boolean
 CANDIDATE — clinician to approve wording. **Export blocked (INT-041 posture): no family-history
 archetype root.**
 
 **Q6 — Parental consanguinity (sensitive)** · archetype: **no root — export blocked (INT-041)** · source: S1 ("parental consanguinity")
-> "Bu soruyu yalnızca sağlık değerlendirmesi için soruyorum: anne ile baba arasında akrabalık var mı?"
-CANDIDATE — clinician to approve wording. Sensitive framing states the clinical purpose. **Export
-blocked (INT-041 posture): no family-history archetype root.**
+> "Bu soruyu yalnızca sağlık değerlendirmesi için soruyoruz: anne ile baba arasında akrabalık var mı?"
+gen: slot=akraba_evliligi; type=boolean
+CANDIDATE — clinician to approve wording. Sensitive framing states the clinical purpose; "soruyoruz"
+gives one system voice (finding 29). **Export blocked (INT-041 posture): no family-history archetype
+root.**
 
 **Q7 — Family reproductive history** · archetype: **no root — export blocked (INT-041)** · source: general intake (genetics family-history capture)
 > "Ailenizde tekrarlayan düşük, ölü doğum ya da bebeklik döneminde açıklanamayan bir kayıp yaşandı mı?"
+gen: slot=ailede_ureme_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. **Export blocked (INT-041 posture): no family-history
 archetype root.** Not an alarm — no guideline threshold asserted.
 
 **Q8 — Newborn-screening result** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2 (HSGM Ulusal Yenidoğan Tarama Programı)
 > "Çocuğunuzun yenidoğan döneminde yapılan topuk kanı taramasında şüpheli ya da anormal bir sonuç
 > çıktı mı?"
+gen: slot=topuk_kani_sonucu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Acute metabolic decompensation** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("altered mental status and vomiting"; "poor feeding … lethargy") — **feeds `base.life_threat`**
-> "Şu sıralarda çocuğunuz alışılmadık şekilde halsiz ya da uykuya meyilli mi, ya da tekrarlayan
-> kusma veya beslenememe var mı?"
+**Q9 — Unusually listless or sleepy (acute metabolic decompensation)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("altered mental status and vomiting"; "poor feeding … lethargy") — **feeds `base.life_threat`**
+> "Çocuğunuz şu sıralarda alışılmadık şekilde halsiz ya da uykulu mu?"
+gen: slot=alisilmadik_halsizlik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; the authoritative RED for acute metabolic decompensation is owned by
-`base.life_threat` (invariant 7). Source caveat: S3 is a LOW-confidence review summary — re-verify /
-replace with a Türkiye-first metabolic-emergency source before sign-off.
+`base.life_threat` (invariant 7). Source caveat: S3 is a LOW-confidence review summary — re-source
+(ideally Türkiye-first) before sign-off.
 
-**Q10 — Prior genetic testing** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
+**Q10 — Repeated vomiting or unable to feed (acute metabolic decompensation)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("altered mental status and vomiting"; "poor feeding … lethargy") — **feeds `base.life_threat`**
+> "Çocuğunuz şu sıralarda tekrar tekrar kusuyor ya da beslenemiyor mu?"
+gen: slot=tekrarlayan_kusma_beslenememe; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag and source caveat: as Q9.
+
+**Q11 — Prior genetic testing** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
 > "Çocuğunuza daha önce genetik bir test, örneğin kromozom ya da DNA testi, yapıldı mı?"
+gen: slot=onceki_genetik_test; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuz şu anda düzenli olarak kullandığı bir ilaç var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(11 candidate questions. Q5–Q7 are the family-history / consanguinity / reproductive-history items;
-they are drafted because they are core to a genetics intake, but each is flagged export-blocked
-(INT-041) — captured for the clinician, with no openEHR export target until an archetype is added.)*
+*(11 candidate questions after revision. Q5–Q7 are the family-history / consanguinity /
+reproductive-history items; they are drafted because they are core to a genetics intake, but each is
+flagged export-blocked (INT-041) — captured for the clinician, with no openEHR export target until an
+archetype is added.)*
 
 ---
 
