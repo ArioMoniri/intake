@@ -12,7 +12,10 @@ container. What IS decidable without booting anything:
 - the API boots under a non-dev environment: no dev gate anywhere in the
   artefact, the KEK mode is Transit (the OpenBao-backed provider), and
   ``INTAKE_ENV`` is staging;
-- OpenBao runs in server mode on file storage, never ``-dev``;
+- OpenBao runs in server mode on file storage, never ``-dev``, and its
+  config sets no mlock key, which 2.6 refuses at load;
+- because OpenBao can no longer lock its memory, init.sh and deploy.sh
+  refuse a host whose active swap is not encrypted, before OpenBao starts;
 - every image is pinned by digest and nothing secret-shaped is committed;
 - only the TLS proxy publishes ports, and only 80/443; the API runs non-root;
 - ``/version`` is stamped through build args that the platform's
@@ -37,6 +40,7 @@ import inspect
 import io
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -183,6 +187,19 @@ APPROVED_OBJECT_STORE_IMAGE = (
 
 #: The S3 endpoint the API reads (``services/api/src/intake_api/app.py``).
 API_OBJECT_STORE_ENDPOINT = "MINIO_ENDPOINT"
+
+#: The config key OpenBao 2.6 refuses outright ("OpenBao has dropped support
+#: for mlock"), whatever its value.
+MLOCK_KEY = "disable_mlock"
+
+#: lib.sh's host check: active swap must be absent, zram, or dm-crypt backed.
+SWAP_GUARD = "require_no_unencrypted_swap"
+
+#: The runbook section the guard's refusal points at.
+SWAP_SECTION = "Host memory: swap off or encrypted"
+
+#: The first statement that starts OpenBao, in init.sh and in deploy.sh.
+OPENBAO_START = "compose up -d postgres redis openbao"
 
 
 def _withdrawn_upstream_image() -> re.Pattern[str]:
@@ -362,6 +379,74 @@ def _role_password_keys() -> dict[str, str]:
     return dict(entries)
 
 
+def _code(path: Path) -> str:
+    """A script's statements, comment lines dropped."""
+    return "\n".join(line for line in _text(path).splitlines() if not line.lstrip().startswith("#"))
+
+
+def _shim(path: Path, body: str) -> None:
+    path.write_text("#!/bin/sh\n" + body, encoding="utf-8")
+    path.chmod(0o755)
+
+
+def _swap_host(
+    tmp_path: Path,
+    swaps: list[tuple[str, str]],
+    chains: dict[str, list[str]] | None = None,
+    *,
+    swapon_rc: int = 0,
+) -> Path:
+    """A bin dir that stands in for the host's util-linux.
+
+    ``swapon`` answers ``--show`` with one ``NAME TYPE`` line per active swap
+    area and refuses any other call. ``lsblk`` answers for a device with its
+    own TYPE, or, under ``--inverse``, with its TYPE followed by the TYPE of
+    every device beneath it, as the real one does."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    listing = tmp_path / "swaps"
+    listing.write_text("".join(f"{name} {kind}\n" for name, kind in swaps), encoding="utf-8")
+    _shim(
+        bin_dir / "swapon",
+        'case "$*" in *--show*) ;; *) exit 99 ;; esac\n'
+        f"[ {swapon_rc} -eq 0 ] || exit {swapon_rc}\n"
+        f'cat "{listing}"\n',
+    )
+    chain_dir = tmp_path / "chains"
+    chain_dir.mkdir()
+    for device, types in (chains or {}).items():
+        (chain_dir / Path(device).name).write_text("\n".join(types) + "\n", encoding="utf-8")
+    _shim(
+        bin_dir / "lsblk",
+        "inverse=no\n"
+        "for arg; do\n"
+        '  [ "$arg" = --inverse ] && inverse=yes\n'
+        "  device=$arg\n"
+        "done\n"
+        f'chain="{chain_dir}/$(basename "$device")"\n'
+        '[ -f "$chain" ] || exit 32\n'
+        'if [ "$inverse" = yes ]; then cat "$chain"; else head -n 1 "$chain"; fi\n',
+    )
+    return bin_dir
+
+
+def _run_swap_guard(bin_dir: Path, *, path: str | None = None) -> subprocess.CompletedProcess[str]:
+    """lib.sh's swap guard against the shimmed host, in a clean bash."""
+    bash = shutil.which("bash")
+    assert bash is not None
+    return subprocess.run(
+        [bash, "-c", f'source "{LIB}"; {SWAP_GUARD}', "lib-test"],
+        capture_output=True,
+        text=True,
+        cwd=bin_dir.parent,
+        env={
+            "PATH": path or f"{bin_dir}:{os.environ.get('PATH', '/usr/bin:/bin')}",
+            "HOME": str(bin_dir.parent),
+        },
+        check=False,
+    )
+
+
 # --- the artefact exists and is runnable -----------------------------------------------
 
 
@@ -460,11 +545,17 @@ class TestOpenBao:
         env = _environment(_service("openbao"))
         assert not [k for k in env if "DEV" in k]
 
-    def test_openbao_config_is_file_storage_with_mlock(self) -> None:
+    def test_openbao_config_is_file_storage_behind_one_listener(self) -> None:
         text = _text(OPENBAO_CONFIG)
         assert re.search(r'storage\s+"file"\s*\{[^}]*path\s*=\s*"/openbao/file"', text, re.S)
-        assert re.search(r"disable_mlock\s*=\s*false", text)
+        assert re.search(r'listener\s+"tcp"\s*\{[^}]*address\s*=\s*"0\.0\.0\.0:8200"', text, re.S)
         assert not re.search(r"^\s*(dev|-dev)", text, re.M)
+
+    def test_openbao_config_carries_no_mlock_key(self) -> None:
+        """OpenBao 2.6 dropped memory locking: a config that sets the key at
+        all, even to false, is refused at load and the server restart-loops.
+        Swap is the host's job instead (TestSwapGuard)."""
+        assert not re.search(r"\b" + MLOCK_KEY + r"\b", _text(OPENBAO_CONFIG))
 
     def test_openbao_state_lives_on_a_named_volume(self) -> None:
         compose = _compose()
@@ -772,6 +863,117 @@ class TestHostScripts:
         assert "compose restart openbao" in text
         for mode in ("env", "write", "read"):
             assert f"staging_probe.py {mode}" in text, mode
+
+
+# --- host swap: OpenBao 2.6 cannot lock its memory ------------------------------------
+
+
+class TestSwapGuard:
+    """OpenBao 2.6 dropped mlock, so an unsealed server's keys, and the API's
+    KEK material, can be paged out. init.sh and deploy.sh therefore refuse a
+    host whose active swap could reach a disk in the clear, before OpenBao
+    starts. Admitted: no swap, zram (compressed RAM), or a device with
+    dm-crypt at or beneath it. Everything else, swap files included, is
+    refused, and so is a host where the check itself cannot run."""
+
+    def test_lib_defines_the_guard_on_swapon_show(self) -> None:
+        lib = _code(LIB)
+        assert re.search(rf"^{SWAP_GUARD}\(\) \{{", lib, re.M)
+        assert "swapon --show" in lib
+
+    @pytest.mark.parametrize("script", (INIT, DEPLOY), ids=lambda p: p.name)
+    def test_the_guard_runs_before_openbao_starts(self, script: Path) -> None:
+        code = _code(script)
+        assert re.search(rf"^{SWAP_GUARD}$", code, re.M), f"{script.name} never calls the guard"
+        guard = code.index(SWAP_GUARD)
+        assert code.index("require_root") < guard, "the root check stays first"
+        assert guard < code.index("compose "), "nothing touches docker before the guard"
+        assert guard < code.index(OPENBAO_START)
+
+    def test_a_host_without_swap_is_admitted(self, tmp_path: Path) -> None:
+        result = _run_swap_guard(_swap_host(tmp_path, []))
+        assert result.returncode == 0, result.stderr
+
+    @pytest.mark.parametrize(
+        ("device", "chain"),
+        [
+            ("/dev/zram0", ["disk"]),
+            ("/dev/dm-0", ["crypt", "part", "disk"]),
+            ("/dev/dm-2", ["lvm", "crypt", "part", "disk"]),
+        ],
+        ids=["zram", "dm-crypt", "lvm-on-dm-crypt"],
+    )
+    def test_encrypted_swap_is_admitted(
+        self, tmp_path: Path, device: str, chain: list[str]
+    ) -> None:
+        """Positive control: the guard is an encryption check, not a refusal
+        of all swap. LVM on dm-crypt passes only if the guard walks the
+        devices beneath the swap device, not just its own type."""
+        bin_dir = _swap_host(tmp_path, [(device, "partition")], {device: chain})
+        result = _run_swap_guard(bin_dir)
+        assert result.returncode == 0, result.stderr
+
+    @pytest.mark.parametrize(
+        ("device", "kind", "chain"),
+        [
+            ("/dev/nvme0n1p3", "partition", ["part", "disk"]),
+            ("/swapfile", "file", None),
+            # a file is refused on its kind alone, whatever lsblk answers
+            ("/swapfile", "file", ["crypt", "part", "disk"]),
+            ("/dev/dm-1", "partition", ["lvm", "part", "disk"]),
+            ("/dev/dm-9", "partition", None),
+        ],
+        ids=[
+            "plain-partition",
+            "swap-file",
+            "swap-file-on-dm-crypt",
+            "plain-lvm",
+            "unknown-device",
+        ],
+    )
+    def test_unencrypted_swap_is_refused(
+        self, tmp_path: Path, device: str, kind: str, chain: list[str] | None
+    ) -> None:
+        bin_dir = _swap_host(tmp_path, [(device, kind)], {device: chain} if chain else {})
+        result = _run_swap_guard(bin_dir)
+        assert result.returncode != 0
+        # the guard's own refusal, not bash failing to find it
+        assert "not encrypted" in result.stderr, result.stderr
+        assert device in result.stderr
+        assert "docs/runbooks/staging.md" in result.stderr
+        assert SWAP_SECTION in result.stderr
+
+    def test_one_clear_area_among_encrypted_ones_is_refused_by_name(self, tmp_path: Path) -> None:
+        swaps = [("/dev/zram0", "partition"), ("/dev/xvdb", "partition")]
+        chains = {"/dev/zram0": ["disk"], "/dev/xvdb": ["disk"]}
+        result = _run_swap_guard(_swap_host(tmp_path, swaps, chains))
+        assert result.returncode != 0
+        assert "/dev/xvdb" in result.stderr and "/dev/zram0" not in result.stderr
+
+    def test_a_host_without_swapon_is_refused(self, tmp_path: Path) -> None:
+        """Fail closed: a check that cannot run is not a pass."""
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        dirname = shutil.which("dirname")
+        assert dirname is not None
+        (bin_dir / "dirname").symlink_to(dirname)
+        result = _run_swap_guard(bin_dir, path=str(bin_dir))
+        assert result.returncode != 0
+        assert "cannot tell whether swap is active" in result.stderr, result.stderr
+
+    def test_a_failing_swapon_is_refused(self, tmp_path: Path) -> None:
+        bin_dir = _swap_host(tmp_path, [("/dev/zram0", "partition")], swapon_rc=1)
+        result = _run_swap_guard(bin_dir)
+        assert result.returncode != 0
+        assert "cannot tell whether swap is active" in result.stderr, result.stderr
+
+    def test_the_runbook_section_the_refusal_names_exists(self) -> None:
+        assert SWAP_SECTION in _text(LIB)
+        runbook = _text(RUNBOOK)
+        assert re.search(rf"^## {re.escape(SWAP_SECTION)}$", runbook, re.M)
+        section = runbook.split(f"## {SWAP_SECTION}", 1)[1].split("\n## ", 1)[0]
+        for needle in ("swapon --show", "swapoff", "zram", "dm-crypt", "no swap"):
+            assert needle in section, needle
 
 
 # --- the restart probe ------------------------------------------------------------------

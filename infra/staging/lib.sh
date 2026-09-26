@@ -143,6 +143,42 @@ require_object_store_image() {
     die "the object-store image is not pinned by digest (name:tag@sha256:<64 hex>): see ${OBJECT_STORE_ISSUE}"
 }
 
+# --- host memory -------------------------------------------------------------------------
+
+# OpenBao 2.6 dropped mlock, so an unsealed server's keys can be paged out.
+# This tier runs only where active swap never reaches a disk in the clear: no
+# swap, zram (compressed RAM), or a device with dm-crypt at or beneath it. A
+# swap file is refused, because nothing here can prove its filesystem is
+# encrypted. A check that cannot run refuses too.
+SWAP_RUNBOOK='docs/runbooks/staging.md, section "Host memory: swap off or encrypted"'
+
+swap_area_is_encrypted() {
+  local device=$1 kind=$2
+  [[ $kind == partition ]] || return 1
+  [[ $device =~ ^/dev/zram[0-9]+$ ]] && return 0
+  command -v lsblk >/dev/null 2>&1 ||
+    die "missing tool: lsblk (util-linux): cannot tell whether swap on $device is encrypted (${SWAP_RUNBOOK})"
+  # --inverse lists the device, then every device beneath it (LVM on dm-crypt)
+  lsblk --list --noheadings --inverse --output TYPE "$device" 2>/dev/null |
+    awk '$1 == "crypt" { found = 1 } END { exit !found }'
+}
+
+require_no_unencrypted_swap() {
+  local listing device kind exposed=()
+  command -v swapon >/dev/null 2>&1 ||
+    die "missing tool: swapon (util-linux): cannot tell whether swap is active (${SWAP_RUNBOOK})"
+  listing=$(swapon --show=NAME,TYPE --noheadings --raw) ||
+    die "swapon --show failed: cannot tell whether swap is active (${SWAP_RUNBOOK})"
+  while read -r device kind; do
+    [[ -n $device ]] || continue
+    swap_area_is_encrypted "$device" "$kind" || exposed+=("$device ($kind)")
+  done <<<"$listing"
+  if ((${#exposed[@]} > 0)); then
+    die "active swap is not encrypted: ${exposed[*]}. OpenBao can no longer lock its memory, so its keys could be paged to disk in the clear. Turn swap off or encrypt it, then re-run (${SWAP_RUNBOOK})"
+  fi
+  log "swap: none active, or every active area is encrypted"
+}
+
 # --- host state --------------------------------------------------------------------------
 
 prepare_state_dir() {

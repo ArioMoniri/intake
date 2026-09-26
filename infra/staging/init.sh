@@ -7,6 +7,10 @@
 # Run as root on the staging host, from infra/staging:
 #   STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
 #
+# Before anything else it refuses a host whose active swap is not encrypted:
+# OpenBao 2.6 cannot lock its memory, so its keys must not be paged to disk
+# in the clear (docs/runbooks/staging.md, "Host memory").
+#
 # What it does:
 #   1. Creates the root-only state dir and env file, and generates every
 #      secret in it here, once: the database and Redis passwords, the
@@ -26,6 +30,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 require_root
 require_tools
+require_no_unencrypted_swap
 prepare_state_dir
 
 host=${STAGING_HOSTNAME:-$(env_get "$ENV_FILE" STAGING_HOSTNAME)}

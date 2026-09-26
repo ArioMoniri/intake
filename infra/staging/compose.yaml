@@ -146,9 +146,11 @@ services:
     volumes:
       - openbao-data:/openbao/file
       - ./openbao/openbao.hcl:/openbao/config/openbao.hcl:ro
-    # mlock stays on (disable_mlock = false). An unlimited memlock rlimit lets
-    # the non-root server lock its memory. IPC_LOCK covers a binary that
-    # carries the file capability.
+    # OpenBao 2.6 no longer locks its memory, so swap is kept off or
+    # encrypted on the host instead (lib.sh require_no_unencrypted_swap, run
+    # by init.sh and deploy.sh before this service starts). The memlock
+    # rlimit and IPC_LOCK stay only so a binary that carries the file
+    # capability still starts.
     ulimits:
       memlock: -1
     cap_add: [IPC_LOCK]

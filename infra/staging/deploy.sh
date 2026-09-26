@@ -11,6 +11,10 @@
 # in lib.sh is set and pinned by digest (owner decision D1; INT-347 records
 # the image and its licence). compose runs exactly that value.
 #
+# Like init.sh, it refuses a host whose active swap is not encrypted before
+# OpenBao starts. A reboot can bring swap back, and this is the script that
+# unseals OpenBao after one (docs/runbooks/staging.md, "Host memory").
+#
 # What it does:
 #   1. Stamps the commit sha and build time, which /version reports.
 #   2. Unseals OpenBao and renews the API's periodic token.
@@ -24,6 +28,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 require_object_store_image "$OBJECT_STORE_IMAGE"
 require_root
 require_tools
+require_no_unencrypted_swap
 load_env
 stamp_revision
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}) to https://${STAGING_HOSTNAME}"

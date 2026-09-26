@@ -38,6 +38,37 @@ blob.
   API creates both on first use, the audit bucket with object lock, which the
   store can enable only at creation.
 
+## Host memory: swap off or encrypted
+
+OpenBao 2.6 dropped mlock. It refuses to load a config that still sets
+`disable_mlock`, so `infra/staging/openbao/openbao.hcl` no longer sets it. An
+unsealed server's keys now sit in ordinary memory, which the kernel may page
+out. The host must therefore run with swap disabled, or with swap that never
+reaches a disk in the clear.
+
+- `./init.sh` and `./deploy.sh` check this before OpenBao starts
+  (`require_no_unencrypted_swap` in `lib.sh`). They read `swapon --show` and
+  refuse unless every active swap area is either zram (compressed RAM) or
+  has dm-crypt at or beneath it, for example LVM on LUKS. A swap file is
+  refused, because the script cannot prove that its filesystem is encrypted.
+  A host where `swapon` cannot run is refused too.
+- The AWS host has no swap today: `swapon --show` prints nothing. Nothing
+  needs doing unless that changes.
+- `./deploy.sh` repeats the check on every run, because a reboot re-reads
+  `/etc/fstab` and can bring swap back.
+
+If the check refuses, turn swap off, as root:
+
+```bash
+swapon --show   # what is active
+swapoff -a      # turn it all off now
+# then delete the swap line(s) from /etc/fstab, so a reboot does not bring it back
+```
+
+The alternative is to keep swap but encrypt it: move it onto dm-crypt with a
+fresh random key per boot (a `swap` entry in `/etc/crypttab`), or onto zram.
+Then re-run the script that refused.
+
 ## Prerequisites (owner, one-time)
 
 - On the laptop: `awscli`, `session-manager-plugin`, and `aws sso login`
@@ -47,6 +78,7 @@ blob.
   `docker compose version`. If Docker is missing, install Docker Engine from
   Docker's own apt repository. Whether a runtime may be installed on this box
   is the owner's call (HB-I13 records the same question for the edge tier).
+- On the host: swap off or encrypted (see "Host memory" above).
 - A private S3 bucket in the account for shipping the tree. `ARTEFACT_BUCKET`
   below is the owner's existing bucket name. It is not invented here.
 
@@ -118,6 +150,8 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
 ```
 
 - `./init.sh` is run once and is idempotent.
+  - It first refuses a host whose active swap is not encrypted (see "Host
+    memory" above).
   - It generates every secret into `/etc/intake-staging/.env` (0600, in a
     0700 dir): the Postgres and Redis passwords, the object store's root pair
     and the API's OpenBao token. A re-run keeps every existing value and
@@ -129,7 +163,8 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
   - It runs the alembic migrations and re-keys every migration role away
     from its committed dev password.
 - `./deploy.sh` runs on every deploy **and after every host reboot**. It
-  first checks the object-store image pin (see above). OpenBao restarts
+  first checks the object-store image pin and then the host's swap (see
+  above). OpenBao restarts
   sealed, and this script unseals it. It then renews the API token,
   builds, migrates, runs `docker compose -p intake-staging up -d --build`,
   and probes `/healthz` and `/readyz` over HTTPS.
