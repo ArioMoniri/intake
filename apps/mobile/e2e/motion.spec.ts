@@ -25,6 +25,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { animatable, animatedStyleKeys, code, literalDurations, loops } from "./motionSource";
+
 const MOBILE = join(__dirname, "..");
 
 function walk(dir: string): string[] {
@@ -196,5 +198,187 @@ describe("MOTION-2 — Reanimated reads the app's reduce-motion policy", () => {
     ).map((f) => f.name);
     expect(staticImporters).toEqual([]);
     expect(prefs).toMatch(/import\(\s*["']@\/lib\/motion\/native\/reduceMotionSource["']\s*\)/);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-335 (MOTION-6) — Reanimated hygiene, before its first consumer  */
+/* ------------------------------------------------------------------ */
+
+/*
+ * docs/design/motion/motion-verification.md §4 MOTION-6, with the rules of
+ * intake-voice-motion-spec.md §3.2 P0 and §3.4: animate opacity and transform
+ * only, never a layout property; no layout transition, no spring, no hop to
+ * the RN runtime from a worklet; a CSS transition takes its timing from the
+ * one fade policy. These guards land while nothing in src uses Reanimated to
+ * animate, so the first consumer meets them instead of setting precedent.
+ */
+
+/** Everything under src/, tests included: "in src" means all of it. */
+const SRC_TREE = TREE.filter((f) => f.name.startsWith("src/"));
+
+const FADE_MODULE = "src/lib/motion/fade.ts";
+
+/** Forbidden APIs, spelled from parts so this file never names them whole. */
+const LINEAR = ["Linear", "Transition"].join("");
+const SPRING = ["with", "Spring"].join("");
+const TO_JS = ["run", "On", "JS"].join("");
+const TO_RN = ["schedule", "On", "RN"].join("");
+const LAYOUT_ANIMATION = ["Layout", "Animation"].join("");
+
+/** What each forbidden API looks like in code, by the name the spec gives it. */
+function forbiddenApis(source: string): string[] {
+  const text = code(source);
+  const checks: readonly (readonly [string, boolean])[] = [
+    [LINEAR, new RegExp(`\\b${LINEAR}\\b`).test(text)],
+    [
+      "layout transition",
+      /\b(?:Fading|Sequenced|Jumping|Curved|EntryExit)Transition\b/.test(text) ||
+        /\slayout\s*=\s*\{/.test(text) ||
+        /\bLayout\s*\.\s*\w+\s*\(/.test(text) ||
+        clausesFrom(text, REANIMATED).some((clause) => /\bLayout\b/.test(clause)),
+    ],
+    // React Native's own layout animation; Reanimated's LayoutAnimationConfig
+    // (skipEntering on a first mount, MOTION-8) is a different name.
+    [LAYOUT_ANIMATION, new RegExp(`\\b${LAYOUT_ANIMATION}\\b`).test(text)],
+    [
+      SPRING,
+      new RegExp(`\\b${SPRING}\\b`).test(text) ||
+        /\bAnimated\s*\.\s*spring\b/.test(text) ||
+        /\.\s*springify\s*\(/.test(text),
+    ],
+    [TO_JS, new RegExp(`\\b(?:${TO_JS}|${TO_RN})\\b`).test(text)],
+  ];
+  return checks.filter(([, hit]) => hit).map(([name]) => name);
+}
+
+/** Any Reanimated CSS transition key, shorthand included. */
+const CSS_TRANSITION = /\btransition(?:Property|Duration|TimingFunction|Delay|Behavior)?\??\s*:/;
+
+describe("MOTION-6 — Reanimated hygiene gates", () => {
+  it("no file that loops carries a literal duration", () => {
+    // Non-vacuity: every way to write a period down is caught, and the two
+    // ways to read one (a token, a policy result) are not.
+    const cases: readonly (readonly [string, readonly string[]])[] = [
+      ["Animated.loop(Animated.timing(v, { toValue: 0.3, duration: 700 }))", ["700"]],
+      ["v.value = withRepeat(withTiming(0.3, { duration: 700 }), -1, true)", ["700"]],
+      ["const HALF = 700;\nv.value = withRepeat(withTiming(1, { duration: HALF }), -1)", ["HALF"]],
+      ['const s = { animationDuration: "1.4s", animationIterationCount: "infinite" }', ['"1.4s"']],
+      ["withRepeat(x, -1);\nconst e = FadeIn.duration(700)", ["700"]],
+      ["withRepeat(withTiming(0, { duration: motion.loop.pulsePeriodMs / 2 }), -1, true)", []],
+      ["withRepeat(withTiming(0, { duration: t.durationMs }), -1, true)", []],
+    ];
+    for (const [sample, literal] of cases) {
+      expect(loops(sample), sample).toBe(true);
+      expect(literalDurations(sample), sample).toEqual(literal);
+    }
+
+    const looping = APP_SOURCE.filter((f) => loops(f.source));
+    expect(looping.map((f) => f.name)).toContain("src/components/DialogueIntake.tsx");
+    const offenders = looping.flatMap((f) =>
+      literalDurations(f.source).map((value) => `${f.name}: ${value}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("app-authored animated styles touch only opacity and transform", () => {
+    const refused: readonly (readonly [string, string])[] = [
+      ["const s = useAnimatedStyle(() => ({ opacity: o.value, height: h.value }));", "height"],
+      ['const s = useAnimatedStyle(() => { "worklet"; return { width: w.value }; });', "width"],
+      [
+        "const a = useRef(new Animated.Value(0)).current;\n<Animated.View style={[x, { marginTop: a }]} />",
+        "marginTop",
+      ],
+      [
+        "const a = new Animated.Value(0);\nconst tint = a.interpolate(r);\n<Animated.View style={{ backgroundColor: tint }} />",
+        "backgroundColor",
+      ],
+      ["const top = useSharedValue(0);\n<Animated.View style={{ top }} />", "top"],
+      ["const s = { animationName: { from: { width: 0 }, to: { width: 9 } } };", "width"],
+      ["const k = new Keyframe({ 0: { height: 0 }, 100: { height: 9 } });", "height"],
+      ["const e = () => ({ initialValues: { height: 0 }, animations: { opacity: o } });", "height"],
+    ];
+    for (const [sample, key] of refused) {
+      const keys = animatedStyleKeys(sample).map((k) => k.key);
+      expect(keys, sample).toContain(key);
+      expect(animatable(key), key).toBe(false);
+    }
+    const allowed = [
+      "const s = useAnimatedStyle(() => ({ opacity: o.value, transform: [{ scale: s.value }] }));",
+      "const opacity = useRef(new Animated.Value(1)).current;\n<Animated.View style={[a, { backgroundColor: c, opacity }]} />",
+      "const x = useSharedValue(0);\n<Animated.View style={{ transform: [{ translateX: x }] }} />",
+    ];
+    for (const sample of allowed) {
+      const keys = animatedStyleKeys(sample).map((k) => k.key);
+      expect(keys.length, sample).toBeGreaterThan(0);
+      expect(
+        keys.filter((k) => !animatable(k)),
+        sample,
+      ).toEqual([]);
+    }
+
+    const found = APP_SOURCE.flatMap((f) =>
+      animatedStyleKeys(f.source).map((k) => ({ ...k, file: f.name })),
+    );
+    // The dialogue's pulse drives opacity today; a silent zero would make
+    // this vacuous.
+    expect(found.length).toBeGreaterThan(0);
+    const offenders = found
+      .filter((k) => !animatable(k.key))
+      .map((k) => `${k.file} ${k.site} ${k.key}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("no LinearTransition, Layout animation, withSpring or runOnJS in src", () => {
+    const samples: readonly (readonly [string, string])[] = [
+      [`<Animated.View layout={${LINEAR}} />`, LINEAR],
+      ["<Animated.View layout={FadingTransition.duration(d)} />", "layout transition"],
+      [`import { Layout } from "${REANIMATED}";`, "layout transition"],
+      [`${LAYOUT_ANIMATION}.configureNext(p);`, LAYOUT_ANIMATION],
+      [`import { ${SPRING} as bounce } from "${REANIMATED}";`, SPRING],
+      ["Animated.spring(v, { toValue: 1 }).start();", SPRING],
+      ["const e = FadeIn.springify();", SPRING],
+      [`${TO_JS}(done)();`, TO_JS],
+      [`${TO_RN}(done);`, TO_JS],
+    ];
+    for (const [sample, name] of samples) {
+      expect(forbiddenApis(sample), sample).toContain(name);
+    }
+    // Reanimated's LayoutAnimationConfig, a comment, and a plain fade pass.
+    expect(
+      forbiddenApis(`import { ${LAYOUT_ANIMATION}Config, FadeIn } from "${REANIMATED}";`),
+    ).toEqual([]);
+    expect(forbiddenApis(`// never ${SPRING} or ${TO_JS} here\nconst x = 1;`)).toEqual([]);
+
+    expect(SRC_TREE.length).toBeGreaterThan(100);
+    const offenders = SRC_TREE.flatMap((f) =>
+      forbiddenApis(f.source).map((name) => `${f.name}: ${name}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("Reanimated CSS transitions take their duration from cssFade", () => {
+    for (const sample of [
+      "const s = { transitionProperty: p, transitionDuration: 120 };",
+      'const s = { transition: "opacity 120ms ease-out" };',
+      '<Animated.View style={{ transitionTimingFunction: "ease-out" }} />',
+    ]) {
+      expect(CSS_TRANSITION.test(code(sample)), sample).toBe(true);
+    }
+    // The navigators' `transitionSpec` and a comment are not CSS transitions.
+    expect(CSS_TRANSITION.test(code("const o = { transitionSpec: s };"))).toBe(false);
+    expect(CSS_TRANSITION.test(code("// the tab transition: spread it"))).toBe(false);
+
+    // The one place a CSS transition is written, and its duration is read
+    // from the tokens there, never written down.
+    const fade = file(FADE_MODULE);
+    expect(CSS_TRANSITION.test(code(fade))).toBe(true);
+    expect(code(fade)).toMatch(/\bmotion\.duration\.fade\b/);
+    expect(literalDurations(fade)).toEqual([]);
+
+    const writers = APP_SOURCE.filter(
+      (f) => f.name !== FADE_MODULE && CSS_TRANSITION.test(code(f.source)),
+    ).map((f) => f.name);
+    expect(writers).toEqual([]);
   });
 });

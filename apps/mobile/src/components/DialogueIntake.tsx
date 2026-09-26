@@ -45,6 +45,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -78,7 +79,7 @@ import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
-import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
+import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
 
 interface DialogueIntakeProps {
   visitId: string | undefined;
@@ -115,8 +116,13 @@ function valueLabels(questionId: string, values: readonly string[]): string {
     .join(", ");
 }
 
+/** The pulse's curve: ease-in-out sine, so the turn has no visible corner. */
+const BREATH = Easing.bezier(...motion.easing.breath);
+
 /** Quiet pulse for the open-mic turn — a single fading element, within
- * the 02 §5.2a budget (fades only, one animated element at a time). */
+ * the 02 §5.2a budget (fades only, one animated element at a time). Its
+ * period is `motion.loop.pulsePeriodMs`, a FULL cycle: each half is one
+ * fade, far slower than SC 2.3.1's 3 Hz (INT-335). */
 function PulseDot() {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -133,8 +139,18 @@ function PulseDot() {
     }
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: motion.loop.pulsePeriodMs / 2,
+          easing: BREATH,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: motion.loop.pulsePeriodMs / 2,
+          easing: BREATH,
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();

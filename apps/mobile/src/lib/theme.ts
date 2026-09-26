@@ -96,10 +96,29 @@ export const radius = { card: 24, control: 999, hero: 32, chip: 999, group: 16 }
  * every stack and tab transition, `instant` for the ones that must not move
  * at all (legal text). `fadeMs` predates it and stays as its alias, so the
  * budget is one number however it is spelled.
+ *
+ * INT-335 (MOTION-6) adds the two curves and the first loop period, each with
+ * its first consumer:
+ * - `easing.out` is every app-authored transient (lib/motion/fade.ts); no
+ *   ease-in exists, because an element that starts slowly reads as late;
+ * - `easing.breath` (ease-in-out sine) is for loops only: symmetric, so the
+ *   turn of the loop has no visible corner;
+ * - `loop` holds FULL periods. SC 2.3.1 draws the line at a 167 ms half, and
+ *   theme.test.ts checks every period against it; the dialogue's listening
+ *   pulse is the first to read one.
  */
+export type Bezier = readonly [number, number, number, number];
+
 const duration = { instant: 0, fade: 120 } as const;
 
-export const motion = { fadeMs: duration.fade, duration } as const;
+const easing = {
+  out: [0.23, 1, 0.32, 1] as Bezier,
+  breath: [0.37, 0, 0.63, 1] as Bezier,
+} as const;
+
+const loop = { pulsePeriodMs: 1400 } as const;
+
+export const motion = { fadeMs: duration.fade, duration, easing, loop } as const;
 
 /**
  * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app
