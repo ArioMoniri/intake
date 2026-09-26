@@ -156,7 +156,6 @@ not asked here and not pinned (§4 gap 3).
 **Q4 — Unexplained fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 Rec 1.10.1
 ("unexplained fever")
 > "Son zamanlarda nedenini bilmediğiniz bir ateşiniz oldu mu?"
-gen: slot=son_gunlerde_ates; type=boolean
 CANDIDATE — clinician to approve wording. Feeds `base.life_threat` (sepsis stays there,
 invariant 7) — no level assigned here.
 
