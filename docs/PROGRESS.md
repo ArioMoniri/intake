@@ -105,6 +105,38 @@
 - Next: coordinator reviews/merges the PR (Sec-Row `admin-console`). Main filed the INT-351 row (todo, #557) while this branch was open; the merge keeps main's row and count (280) and flips the row to done with this evidence.
 - LOOP_STATUS: DONE
 
+### 2026-09-26T21:45:00Z · INT-226 · awaiting-human (delivered=partial: report yes, publication no)
+- Goal: acceptance verbatim — *"report generated from a11y CI results; statement published in-app and web"*.
+- Plan:
+  - The source of record is `docs/compliance/accessibility-conformance.yaml`: all 55 WCAG 2.2 A and AA criteria (with BK1–BK31 on the Level A rows), 27 EN 301 549 V3.2.1 clauses beyond 11.1–11.4, 25 dated manual checks, 8 device-audit items and the contrast pairs.
+  - `scripts/compliance/render_a11y_report.py` renders it to `docs/compliance/accessibility-conformance-report.md`. It resolves every citation against the vitest source CI runs, computes contrast from `theme.ts`, and derives EN 11.1–11.4.
+  - The statement source gets factual status only. The INT-144 report gets a banner saying the status of record has moved.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_a11y_report.py` (26), including negatives for a renamed citation, a Supports row with no evidence, a citation to a non-suite file, an undated manual check, a device-decided row set to Supports, and a fixed palette.
+  - RED 1: collection error, because the renderer was missing (rc=2). RED 2: 2 failed, 23 passed (report unrendered; statement unaware).
+  - GREEN: 26/26. The wider suites (legal, backlog, ci, docs, smoke) pass 557/557. Mobile vitest passes 2003/2003, and all 80 cited tests passed in a JSON run.
+  - Mutations, each restored from a backup: skipping a cited test turns the gate red; the recommended `border` fix forces 1.4.11 to be re-assessed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Targeted lanes only (listed in docs/evidence/INT-226.md). ruff, format and bandit are clean. `no_placeholders` and `claims_scan` exit 0 after staging.
+  - `make check` end to end, `make safety` and `make security` were not run and are not claimed. This change adds no service, endpoint, dependency, metric, model or PHI path.
+- Invariants touched and still passing: **20** (tested results with date and method, no blanket-conformance phrasing, test-enforced), **18** (no legal text authored, no loader points at the statement), **17**, **8**.
+- Decisions / ADRs / `00_STATE.md` rows: none. Posture choices are stated per row, not taken as decisions:
+  - Not Evaluated is used at A/AA, where a VPAT would reserve it for AAA;
+  - 1.4.12 is N/A, because the criterion is scoped to markup;
+  - 2.4.5 and 2.4.1 are N/A under WCAG2ICT.
+- Findings (reported, not fixed; they are mobile changes for their own issues):
+  - SC 1.3.4: `app.json` locks portrait.
+  - SC 3.3.8: the six one-character OTP boxes cannot take a pasted or autofilled code.
+  - SC 3.3.1 / 4.1.3: `issue-link.tsx`, `ConfirmCard.tsx` and `RecordReading.tsx` are Android-only announcements, missed because the BK28 test's list is hand-maintained.
+  - SC 2.2.1: the BK13 test scans `.tsx` only, and kiosk's 60 s wipe sits in `lib/`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: run DA-01 to DA-08 (report §5) on a release build (HB-L9).
+  - Owner: name the feedback channel.
+  - Counsel: the enforcement route and the Turkish statement text (HB-L9), signed under HB-L27.
+  - Two rows added to blockers.md. No HB id minted.
+- Next: PR review. The OTP single-field fix and the announcement-list fix are the obvious follow-ups for the mobile lane.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)
 - Goal: acceptance verbatim — *"every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default · disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"*.
 - Plan: add `motion.press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 }` to `theme.ts` (the §2.2 table minus `retentionOffset`) and point all 10 literal sites on `main` (6 files) at it. This normalises the composer's disabled send from 0.4 to 0.5. No `pressRetentionOffset` is set. `VisitCalendar` (whose 0.6 is the other normalisation) is not on `main`: it lives on the unmerged `int-visits-calendar`/`int-demo*` branches, and the guard forces its sites onto the tokens when it lands.
