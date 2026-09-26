@@ -34,6 +34,7 @@ import { useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
+import { AnnouncedRegion, AnnouncedText } from "@/components/Announced";
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import {
   AppText,
@@ -149,20 +150,18 @@ export default function TypedIntake() {
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       {integrityCompromised ? (
-        <View
-          accessible
-          accessibilityLabel={joinParts(
-            t("auth.integrity.warnTitle"),
-            t("auth.integrity.warnBody"),
-          )}
-          accessibilityLiveRegion="polite"
+        // SC 4.1.3 on both platforms (INT-362): one element, named by both lines.
+        <AnnouncedRegion
+          tone="status"
+          merged
+          message={joinParts(t("auth.integrity.warnTitle"), t("auth.integrity.warnBody"))}
           style={styles.integrityWarn}
         >
           <AppText role="label">{t("auth.integrity.warnTitle")}</AppText>
           <AppText role="caption" color="inkSoft">
             {t("auth.integrity.warnBody")}
           </AppText>
-        </View>
+        </AnnouncedRegion>
       ) : null}
       <DevVoiceBanner report={voiceProbe} />
       <View style={styles.body}>
@@ -575,9 +574,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <LayoutAnimationConfig skipEntering>
           <Animated.View key={step.key} entering={enteringFor(step.enter)} style={styles.step}>
             {voiceFailed && question.id === initialQuestion.id ? (
-              <AppText role="caption" color="inkFaint">
-                {t("voiceFirst.failed")}
-              </AppText>
+              // SC 4.1.3: why the conversation became these steps. A status, not
+              // an error — nothing the patient did failed (INT-362).
+              <AnnouncedText
+                tone="status"
+                role="caption"
+                color="inkFaint"
+                message={t("voiceFirst.failed")}
+              />
             ) : null}
             {/* The bar is untitled by design (pass 6), so the question line is
             this screen's title and must be a heading (SC 1.3.1). An instrument
