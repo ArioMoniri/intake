@@ -330,6 +330,27 @@ export function DialogueIntake({
     onHandoff(toPrefill(leftovers));
   };
 
+  /**
+   * "Bitirdim": the patient is finished. Leave the conversation cleanly and go
+   * to the review/summary with whatever was confirmed. Every answer commits at
+   * its own confirm (invariant 1 posture), so the note already holds them and
+   * nothing is lost by ending here — the review is where the note is checked
+   * and sent. This is the escape the per-turn stop only *looked* like: it is
+   * always available, so a patient whose microphone cannot be heard (the sim's
+   * silent mic, a denied permission) or who has simply said enough is never
+   * trapped in the dialogue. Per-turn "I'm done speaking this answer" stays on
+   * the listening bubble, which advances the turn without leaving.
+   *
+   * Synchronous on purpose (INT-339: no navigation waits on anything). The
+   * teardown starts in this tick: `leave` stops the mic watch, the playback
+   * and the pending work before its first await, and the recording discard
+   * and clip clear then finish on their own, as the unmount cleanup's do.
+   */
+  const finishToReview = () => {
+    void session.leave();
+    router.replace(`/(tabs)/visits/${visitId}/review`);
+  };
+
   if (turn.phase === "done" || turn.phase === "failed" || turn.phase === "handoff") {
     return null; // terminal callbacks route away / hand over
   }
@@ -659,14 +680,6 @@ export function DialogueIntake({
             total={model.total}
             onPress={() => setSheetOpen(true)}
           />
-          {turn.phase === "listening" ? (
-            <View style={styles.barItem}>
-              <PrimaryButton
-                label={t("voiceFirst.stop")}
-                onPress={() => void session.finishListening()}
-              />
-            </View>
-          ) : null}
           {turn.phase === "confirming" ? (
             <View style={[styles.barItem, styles.barStack]}>
               <PrimaryButton
@@ -682,6 +695,20 @@ export function DialogueIntake({
               />
             </View>
           ) : null}
+          {/* "Bitirdim" completes the previsit → the review/summary, and is
+              always reachable. The per-turn "done speaking" that advances the
+              mic lives on the pulsing listening bubble in the stream above
+              (finishListening); this is the different act — finishing — so it
+              no longer masquerades as a per-turn stop that does nothing when
+              the mic is silent (invariant 1 posture: answers already committed
+              per confirm, the review is where the note is checked and sent). */}
+          <View style={styles.barItem}>
+            <SecondaryButton
+              label={t("voiceFirst.stop")}
+              hint={t("a11y.dialogue.finishHint")}
+              onPress={finishToReview}
+            />
+          </View>
           {/* The persistent composer: typing is always available — voice
               and text are one conversation, never two modes. */}
           <View style={styles.composerRow}>

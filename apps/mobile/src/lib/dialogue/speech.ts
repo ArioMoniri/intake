@@ -72,15 +72,19 @@ export function questionAsideTr(question: IntakeQuestion): string | null {
   // are read to you is a multiple-choice question however open its wording.
   //
   // Enumeration is therefore what a CLOSED question gets, and an open one
-  // gets the authored invitation instead, at every list length. Nothing is
-  // traded away for it: the option list is still the value space the
-  // extractor resolves onto (lib/extract.ts drops any id the pack does not
-  // declare), still what `confirmSpeechTr` reads back for the patient to
-  // confirm, and still the control on the typed screen. It has stopped being
-  // the way the question is ASKED — files/13 §5.3's "branch, don't
-  // enumerate", one step further along.
+  // gets nothing added, at every list length. Nothing is traded away for it:
+  // the option list is still the value space the extractor resolves onto
+  // (lib/extract.ts drops any id the pack does not declare), still what
+  // `confirmSpeechTr` reads back for the patient to confirm, and still the
+  // control on the typed screen. It has stopped being the way the question is
+  // ASKED — files/13 §5.3's "branch, don't enumerate", one step further along.
+  //
+  // An open question used to carry a spoken invitation to answer in the
+  // patient's own words. Repeated on every open turn it read as noise, so it
+  // is not spoken (int-demo b2301f8e, INT-371); the typed screen shows its
+  // invitation once per session instead (lib/intake/openHint.ts).
   if (isOpenAsk(question)) {
-    return trText("dialogue.openInvite");
+    return null;
   }
   const options = question.options ?? [];
   if (options.length === 0 || options.length > MAX_SPOKEN_OPTION_HINTS) {

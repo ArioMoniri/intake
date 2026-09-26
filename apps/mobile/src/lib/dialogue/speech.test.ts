@@ -62,8 +62,9 @@ describe("questionSpeechTr", () => {
 // options, which fits the Cowan bound, so the agent read
 // "Seçenekler: hareket ya da eforla, dinlenirken de oluyor, …" — a
 // multiple-choice question delivered by voice. Now the agent asks the
-// scripted question verbatim and invites the patient's own words; the option
-// list survives as the CONFIRMATION read-back, and on the typed screen.
+// scripted question verbatim and adds nothing (INT-371 retired the per-turn
+// invitation); the option list survives as the CONFIRMATION read-back, and
+// on the typed screen.
 describe("an open question is asked, never enumerated (INT-286)", () => {
   it("the photographed four-option question is no longer read out as a list", () => {
     expect(breathTiming.ask).toBe("open");
@@ -75,11 +76,14 @@ describe("an open question is asked, never enumerated (INT-286)", () => {
     expect(speech).not.toContain(tr["intake.opt.rest"]);
   });
 
-  it("the aside becomes the authored invitation to answer in the patient's own words", () => {
-    expect(questionAsideTr(breathTiming)).toBe(tr["dialogue.openInvite"]);
-    expect(questionSpeechTr(duration)).toBe(
-      `${tr["intake.q.duration"]} ${tr["dialogue.openInvite"]}`,
-    );
+  it("an open question adds no spoken aside — the invitation moved to the top of the flow (INT-371)", () => {
+    // The per-turn "kendi sözlerinizle" invitation read as noise repeated on
+    // every open turn, so the spoken lane drops it (int-demo b2301f8e's
+    // questionAsideTr change); the typed flow shows its invitation once per
+    // session instead. An open question is asked verbatim, with nothing
+    // appended.
+    expect(questionAsideTr(breathTiming)).toBeNull();
+    expect(questionSpeechTr(duration)).toBe(tr["intake.q.duration"]);
   });
 
   it("no open question in any pack enumerates its options", () => {
@@ -102,12 +106,13 @@ describe("an open question is asked, never enumerated (INT-286)", () => {
     expect(speech).toContain(tr["dialogue.confirmAsk"]);
   });
 
-  it("the invitation is one sentence and adds no second question", () => {
-    // files/03 §4.2: ≤ 2 sentences and ONE question per turn. The aside
-    // replaces an aside, so the turn's shape is exactly what it was.
-    expect(tr["dialogue.openInvite"]).not.toContain("?");
-    expect(en["dialogue.openInvite"]).not.toContain("?");
-    expect(tr["dialogue.openInvite"].split(".").filter((s) => s.trim().length > 0)).toHaveLength(1);
+  it("the retired spoken invitation leaves no key behind in either catalogue", () => {
+    // files/03 §4.2: ≤ 2 sentences and ONE question per turn. With no aside
+    // an open turn is exactly the scripted question, so the invitation's key
+    // has no reader left; the release gate forbids an orphan, and a key kept
+    // "in case" would be copy nobody reviews.
+    expect(Object.prototype.hasOwnProperty.call(tr, "dialogue.openInvite")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(en, "dialogue.openInvite")).toBe(false);
   });
 });
 
@@ -157,17 +162,18 @@ describe("questionSpeechTr — the typed lane's control copy never crosses (INT-
     expect(questionAsideTr(substance)).toBe(
       `${tr["dialogue.optionsIntro"]} ${tr["intake.opt.no"]}, ${tr["intake.opt.yes"]} ${tr["dialogue.or"]} ${tr["intake.opt.notStated"]}.`,
     );
-    // An open question: the invitation, at every list length.
-    expect(questionAsideTr(complaint)).toBe(tr["dialogue.openInvite"]);
+    // An open question adds nothing spoken, at every list length: the
+    // invitation is a once-per-session affordance on the typed screen now
+    // (INT-371), not a per-turn aside.
+    expect(questionAsideTr(complaint)).toBeNull();
     // Free text is already the patient's own words: nothing to add.
     expect(questionAsideTr(extra)).toBeNull();
     // Speech is exactly question + aside, so the two channels cannot drift.
     expect(questionSpeechTr(substance)).toBe(
       `${tr["intake.q.substance"]} ${questionAsideTr(substance)}`,
     );
-    expect(questionSpeechTr(duration)).toBe(
-      `${tr["intake.q.duration"]} ${questionAsideTr(duration)}`,
-    );
+    // …and an open question is spoken as just the scripted question.
+    expect(questionSpeechTr(duration)).toBe(tr["intake.q.duration"]);
   });
 });
 
@@ -227,8 +233,6 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
     "dialogue.confirmIntro",
     "dialogue.confirmAsk",
     "dialogue.confirmTextGeneric",
-    // INT-286 — what an OPEN question is asked with instead of its list.
-    "dialogue.openInvite",
     "dialogue.confirm",
     "dialogue.speakCorrection",
     "dialogue.typeThisStep",

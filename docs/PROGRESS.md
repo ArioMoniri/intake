@@ -1,5 +1,36 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T02:40:00Z · INT-371 · delivered (PR open; clinical-reviewer and device check pending)
+- Goal: acceptance verbatim (GitHub #605):
+  - *"Bitirdim ends the dialogue and lands on review; the open-invite hint shows once per session; the typed → handoff path is covered by a test"*
+  - *"the a11y.dialogue.finishHint register finding is recorded and routed to clinical-reviewer"*
+
+  This is slice S4 of INT-354: int-demo `20aca9e2` plus the `speech.ts` aside of `b2301f8e`.
+- Plan:
+  - Red commit first, then the cherry-pick, resolved from git's own conflict list (`intake.tsx`, `speech.test.ts`).
+  - Adapt to INT-339, which merged meanwhile: its MOTION-10 guard rejects the commit's `async` finish handler, so the handler is synchronous (`void session.leave(); router.replace(review)`).
+  - Pin the typed invitation to the first open question met (`lib/intake/openHint.ts`), not step one, because a hand-off resumes past step one.
+  - Retire the orphaned `dialogue.openInvite`.
+- Tests added:
+  - `e2e/intakeFinish.spec.ts`;
+  - `src/lib/intake/openHint.test.ts` (5);
+  - `typedFlow.test.ts` (ported);
+  - `speech.test.ts` (aside null, key absent);
+  - `tests/release` records `a11y.dialogue.finishHint`.
+
+  RED: 8 failed plus a missing module; the i18n gate is red on the unrecorded key. GREEN: 53/53 targeted. Mutation (`showsOpenHint` → `open`) is killed by 3 tests.
+- Result:
+  - mobile vitest 108 files / 2037 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - check-i18n plus the Python suites that read `apps/mobile` 556 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 1, 3 (the mic stops before the first await; discard as on unmount), 5, 10, 17, 8.
+- Decisions: none new. The finish-hint register and the retired spoken invitation go to the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Review steps are pending.
+- Next: INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
 - Goal: acceptance verbatim (GitHub #538):
   - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*

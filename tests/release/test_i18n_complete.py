@@ -206,6 +206,12 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "kiosk.lock.body",
         "kiosk.pin.hint",
         "shares.issue.recipient.hint",
+        # INT-371 (INT-354 slice S4, int-demo 20aca9e2): the dialogue finish
+        # hint, written before this gate existed, in the same "…için iki kez
+        # dokunun." form as every sibling a11y hint above. Recorded, not
+        # rewritten, for the same reason (build-source dea9bb8a recorded it
+        # first). Awaiting clinical-reviewer register decision.
+        "a11y.dialogue.finishHint",
     }
 )
 
