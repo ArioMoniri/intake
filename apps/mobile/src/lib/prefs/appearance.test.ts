@@ -289,6 +289,22 @@ describe("reduced motion", () => {
     expect(reducedMotion(false, true)).toBe(true);
     expect(reducedMotion(true, true)).toBe(true);
   });
+
+  it("unknown OS answer is reduced", () => {
+    // INT-331 (motion S-2): `null` is an OS that has not answered yet, or a
+    // read that failed. Until it answers, nothing animates.
+    expect(reducedMotion(false, null)).toBe(true);
+    expect(reducedMotion(true, null)).toBe(true);
+  });
+
+  it("the in-app switch still only adds reduced motion", () => {
+    for (const os of [true, false, null] as const) {
+      // Switching it on always reduces; switching it off never takes away
+      // what the OS asked for, or what an unanswered OS defaults to.
+      expect(reducedMotion(true, os), `os=${String(os)}`).toBe(true);
+      expect(reducedMotion(false, os), `os=${String(os)}`).toBe(os !== false);
+    }
+  });
 });
 
 describe("the stored shape", () => {

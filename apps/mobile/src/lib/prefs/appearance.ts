@@ -254,9 +254,13 @@ export function resolveScheme(pref: ThemePref, osScheme: string | null | undefin
  * OR, deliberately, and not an override in either direction: the app switch
  * can ADD reduced motion for a patient whose OS setting missed it, and can
  * never take it away from a patient who asked the OS for it.
+ *
+ * `null` is an OS that has not answered, or a read that failed (INT-331,
+ * motion S-2). It counts as reduced: until the OS says motion is allowed,
+ * nothing animates.
  */
-export function reducedMotion(appOverride: boolean, osReduced: boolean): boolean {
-  return appOverride || osReduced;
+export function reducedMotion(appOverride: boolean, osReduced: boolean | null): boolean {
+  return appOverride || osReduced !== false;
 }
 
 function isTextStep(value: unknown): value is TextStep {
