@@ -90,6 +90,11 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
     # the roles that answer for capacity, and registered as the tier-2 action
     # its execution will require.
     AdminRoute("GET", "/admin/models", "admin.models.read", _PLATFORM_SCOPE_ROLES),
+    # INT-351 — the ops console composite (files/08 §3 Ops): API health, model
+    # hosts and GPU, model usage, clip cache, wait time, satisfaction, CI/CD.
+    # A statement about the PLATFORM, aggregates and ids only, read only — so
+    # the same platform-scope set as the registry read, and no DangerousAction.
+    AdminRoute("GET", "/admin/ops", "admin.ops.read", _PLATFORM_SCOPE_ROLES),
     AdminRoute(
         "POST",
         "/admin/models/{component}/benchmark",
