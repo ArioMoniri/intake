@@ -58,12 +58,21 @@ from protocols.taxonomy import (
 )
 from protocols.types import PackLayer
 
-__all__ = ["load_registry", "main"]
+__all__ = ["REVIEW_QUEUE_DIRNAME", "ReviewQueueRootError", "load_registry", "main"]
 
 # The Makefile is the only entry point (CLAUDE.md §Commands) and runs from
 # the repo root, so the defaults are root-relative; tests pass explicit paths.
 DEFAULT_TAXONOMY = Path("packages/protocols/taxonomy/branches.yaml")
 DEFAULT_PACKS_ROOT = Path("packages/protocols")
+
+# packages/protocols/review/ mirrors the layer layout and holds candidates
+# awaiting the physician of record's sign-off (HB-C1). They carry the served
+# drafts' own ids, so it must never be read as a packs root (INT-353).
+REVIEW_QUEUE_DIRNAME = "review"
+
+
+class ReviewQueueRootError(PackSchemaError):
+    """The review queue was passed where the served pack tree belongs."""
 
 
 def load_registry(packs_root: Path) -> PackRegistry:
@@ -71,8 +80,15 @@ def load_registry(packs_root: Path) -> PackRegistry:
 
     Non-``pack`` documents (``life_threat_set``, ``ek4_mapping``) live in the
     same tree and belong to the compiler slice — they are passed over here.
-    A malformed chain pack still fails loudly via ``load_pack``.
+    A malformed chain pack still fails loudly via ``load_pack``. The review
+    queue is refused as a root; it is never a layer, so the default root
+    never reads it either (CLAUDE.md invariant 13; HB-C1).
     """
+    if packs_root.resolve().name == REVIEW_QUEUE_DIRNAME:
+        raise ReviewQueueRootError(
+            f"{packs_root}: the review queue holds unsigned candidates and is "
+            "never a served pack tree (invariant 13; promotion needs HB-C1)"
+        )
     registry = PackRegistry()
     for layer in PackLayer:
         for path in sorted((packs_root / layer.value).glob("*.yaml")):
