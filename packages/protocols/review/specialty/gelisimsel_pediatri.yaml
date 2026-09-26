@@ -1,0 +1,140 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/gelisimsel_pediatri.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.gelisimsel_pediatri
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Gelişimsel Pediatri ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün gelişimsel pediatri polikliniğine getiren konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu durumu ne zamandır fark ediyorsunuz?
+        follow_up_tr:
+          tr: Ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+  sorular:
+    slots:
+      ilk_fark_eden:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu konuyu ilk kez kim fark etti?
+        follow_up_tr:
+          tr: Bunu ilk kimin fark ettiğini söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      beceri_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce yapabildiği bir beceriyi sonradan kaybetti mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      kaybedilen_beceri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi beceride bu değişikliği fark ettiniz?
+        follow_up_tr:
+          tr: Konuşma, yürüme ya da oyun gibi hangi beceride değişiklik oldu?
+        ask_if: beceri_kaybi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      gebelikte_saglik_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun doğumundan önce, hamilelik sırasında önemli bir sağlık sorunu yaşandı mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      erken_dogum:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz zamanından önce, yani erken doğdu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      yenidogan_yogun_bakim:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Doğumdan sonra çocuğunuz yenidoğan yoğun bakımında kaldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      isitme_endisesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun işitmesiyle ilgili bir endişeniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      gorme_endisesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun görmesiyle ilgili bir endişeniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      onceki_gelisim_degerlendirmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun gelişimi daha önce bir uzman tarafından değerlendirildi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      gelisim_destegi_aliyor:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz şu anda özel eğitim, konuşma terapisi ya da fizyoterapi gibi bir destek alıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      ailede_gelisim_gecikmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun ailesinde gelişimi ya da konuşması geç kalan başka biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+      anne_baba_akrabaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu soruyu her aileye soruyoruz. Çocuğunuzun anne ve babası arasında akrabalık var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/gelisimsel_pediatri.md'
+red_flags:
+- id: rf.gelisimsel_pediatri_l0_taslak
+  label_tr: Gelişimsel Pediatri ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: gelisimsel_pediatri branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/gelisimsel_pediatri.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

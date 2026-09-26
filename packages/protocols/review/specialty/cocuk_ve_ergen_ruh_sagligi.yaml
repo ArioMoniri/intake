@@ -1,0 +1,121 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_ve_ergen_ruh_sagligi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Çocuk ve Ergen Ruh Sağlığı ön görüşme protokolü
+extends: cluster.mental_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün çocuğunuz için hangi konuda destek almak istersiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+  sorular:
+    slots:
+      ebeveyn_anlatimi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Fark ettiklerinizi kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      ruh_hali_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun son zamanlardaki ruh hâlinde sizi düşündüren bir değişiklik oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      korku_endise:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun sizi düşündüren korkuları ya da endişeleri var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      dikkat_hareketlilik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz dikkatini toplamakta ya da yerinde durmakta zorlanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      evde_ve_okulda:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu durum hem evde hem de okulda oluyor mu?
+        ask_if: dikkat_hareketlilik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      uyku_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun uykuya dalmasında ya da uykusunda bir değişiklik oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      okul_gunluk_etkisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu durumun çocuğunuzun okuldaki ya da günlük yaşamındaki işlerini etkilediğini düşünüyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      iliski_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun arkadaşlarıyla ya da ailesiyle ilişkilerinde son zamanlarda bir değişiklik oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      onceki_destek:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce bu konuda bir destek aldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+      diger_saglik_gelisim_durumu:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bilmemizi istediğiniz başka bir sağlık ya da gelişim durumu var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md'
+red_flags:
+- id: rf.cocuk_ve_ergen_ruh_sagligi_l0_taslak
+  label_tr: Çocuk ve Ergen Ruh Sağlığı ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_ve_ergen_ruh_sagligi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

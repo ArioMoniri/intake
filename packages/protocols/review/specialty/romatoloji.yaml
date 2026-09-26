@@ -1,0 +1,141 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/romatoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.romatoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Romatoloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün romatoloji polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/romatoloji.md'
+  sorular:
+    slots:
+      eklem_sisligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Eklemlerinizde şişlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      kucuk_eklem_agri_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ellerinizin ya da ayaklarınızın küçük eklemlerinde ağrı veya şişlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      sabah_eklem_sertligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sabah uyandığınızda eklemlerinizde sertlik hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      bel_sirt_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Belinizde ya da sırtınızda ağrı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      bel_agrisi_dinlenince_artar:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ağrı dinlendiğinizde artıyor mu?
+        ask_if: bel_sirt_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      bel_agrisi_hareketle_azalir:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ağrı hareket ettiğinizde hafifliyor mu?
+        ask_if: bel_sirt_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      sabah_topuk_taban_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sabah yataktan kalkıp yere bastığınızda topuğunuz ya da ayağınızın altı ağrıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      goz_akinda_kizariklik_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gözünüzün akında günlerce geçmeyen kızarıklık ya da ağrı oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      tekrarlayan_agiz_yarasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağzınızda sık sık tekrarlayan ağrılı yaralar çıkıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      genital_agrili_yara:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cinsel bölgenizde ağrılı yaralar çıktığı oldu mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      kendiliginden_gecen_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ara ara gelen ve birkaç günde kendi kendine geçen ateşleriniz oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      pullu_deri_lekesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Derinizde üzeri beyaz pullarla kaplı lekeler oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+      cignerken_cene_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yemek çiğnerken çenenizde ağrı ya da yorulma oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/romatoloji.md'
+red_flags:
+- id: rf.romatoloji_l0_taslak
+  label_tr: Romatoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: romatoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/romatoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'
