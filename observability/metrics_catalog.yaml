@@ -258,6 +258,41 @@ metrics:
       files/10 §7: chaos results are tracked as metrics. Emitted by
       intake_platform.chaos.run_vendor_kill via `make chaos
       EXPERIMENT=<id>` (INT-024).
+  # --- live series (INT-100): per-vendor circuit breakers + speech-lane failover
+  # files/10 §5 LLM10 "circuit breakers per vendor"; §9 voice row "vendor
+  # errors". Not files/08 §4 ids, so no `id` (the INT-024 precedent). Label
+  # values are registry component names, the closed BreakerState set, or
+  # `typed` — never a session id or text (inv. 6).
+  - name: vendor_breaker_state
+    type: gauge
+    labels: [component, state]
+    owner: voice-runtime
+    unit: "bool"
+    description: >-
+      Circuit breaker state per vendor component, one-hot: 1 on the current
+      state (closed / open / half_open), 0 on the other two. Emitted by
+      intake_voice_runtime.resilience.breaker.CircuitBreaker from the moment a
+      lane is bound, so every speech lane's state is visible before it fails.
+  - name: vendor_breaker_transitions_total
+    type: counter
+    labels: [component, from_state, to_state]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Circuit breaker state transitions by vendor component: closed -> open
+      after consecutive failures, open -> half_open after the cooldown,
+      half_open -> closed or open on the trial's outcome. Emitted by
+      intake_voice_runtime.resilience.breaker.CircuitBreaker (INT-100).
+  - name: vendor_failovers_total
+    type: counter
+    labels: [from_component, to_component]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Speech-lane failovers: a session left from_component for the next lane
+      in the registry's fallback order, or for `typed` (the text lane) when no
+      lane was left. Emitted by
+      intake_voice_runtime.resilience.failover.FailoverSynthesizer (INT-100).
   # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
   # Wazuh's and Falco's own liveness are probes, not error budgets (the
   # `wazuh-manager`, `wazuh-indexer` and `falco` rows of

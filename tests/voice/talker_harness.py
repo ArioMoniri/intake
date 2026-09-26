@@ -25,6 +25,7 @@ from typing import Any
 from intake_voice_runtime.ports import (
     EngineSnapshot,
     PatientRecord,
+    SpeechSynthesizer,
     WorkRequest,
     WorkState,
     WorkTicket,
@@ -56,6 +57,19 @@ class FakeClock:
 
     def now_ms(self) -> float:
         return self._now_s * 1000.0
+
+    def advance(self, seconds: float) -> None:
+        """Charge virtual time to a *synchronous* call (INT-100).
+
+        The speech adapters are ordinary functions, so a double standing in for
+        one cannot park on :meth:`sleep`; it spends its latency here instead —
+        a lane that answers in 140 ms, or one that holds the socket until its
+        wire timeout. Forward only: a clock that could run backwards would let
+        a slow lane look fast.
+        """
+        if seconds < 0:
+            raise ValueError(f"virtual time only moves forward (got {seconds} s)")
+        self._now_s += seconds
 
     async def sleep(self, seconds: float) -> None:
         if seconds <= 0:
@@ -304,7 +318,7 @@ def build_session(
     backend: StalledBackend | None = None,
     catalogue: ClipCatalogue | None = None,
     clip_store: RecordedClipStore | None = None,
-    synthesizer: RecordingSynthesizer | None = None,
+    synthesizer: SpeechSynthesizer | None = None,
     sink: Any = None,
     memory: InMemoryPatientMemory | None = None,
     rule_ids: frozenset[str] = frozenset(),

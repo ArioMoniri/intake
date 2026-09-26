@@ -1091,7 +1091,7 @@
   title: "Vendor failover + circuit breakers + typed fallback <=2s + chaos test"
   depends_on: [INT-095, INT-024]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "breaker per vendor; failover order from probes registry; chaos kill proves <=2s"
   tests: [tests/chaos/test_vendor_failover.py]
