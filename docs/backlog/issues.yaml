@@ -5436,7 +5436,8 @@
   title: "WCAG 3.3.8: the OTP field accepts a pasted or autofilled code"
   depends_on: [INT-226]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-361.md
   acceptance:
     - "pasting a six-digit code into any OTP box fills all six boxes, and the platform one-time-code autofill (iOS oneTimeCode, Android sms-otp) fills them"
     - "the code never reaches a log line, analytics event or error report (invariant 6)"
