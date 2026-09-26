@@ -39,6 +39,7 @@ __all__ = [
     "invalid_window",
     "not_found",
     "otp_auth_unconfigured",
+    "otp_delivery_unavailable",
     "otp_invalid",
     "otp_limited",
     "phone_invalid",
@@ -150,6 +151,14 @@ def otp_auth_unconfigured() -> HTTPException:
     """OTP auth needs Redis + a tokenization key; without them it fails
     closed while the dev-bearer tier keeps carrying the demo (INT-197)."""
     return HTTPException(status_code=503, detail={"error": "otp_auth_unconfigured"})
+
+
+def otp_delivery_unavailable() -> HTTPException:
+    """INT-329: the SMS vendor could not deliver the code (unreachable, refused,
+    timed out, or the egress policy refused the call). One generic code for
+    every cause: the reason is logged as an id-shaped enum, and a vendor body —
+    which can echo the phone number — never reaches the caller."""
+    return HTTPException(status_code=503, detail={"error": "otp_delivery_unavailable"})
 
 
 def attestation_required() -> HTTPException:
