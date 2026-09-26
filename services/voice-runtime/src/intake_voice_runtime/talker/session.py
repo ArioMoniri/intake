@@ -59,6 +59,7 @@ from intake_voice_runtime.ports import (
     work_key,
 )
 from intake_voice_runtime.profiles import VoiceProfile
+from intake_voice_runtime.resilience.failover import SpeechLanesExhausted
 from intake_voice_runtime.steps import NextStep
 from intake_voice_runtime.talker.clips import ClipCatalogue
 from intake_voice_runtime.talker.delivery import (
@@ -67,7 +68,7 @@ from intake_voice_runtime.talker.delivery import (
     DuplexState,
     TurnYieldPolicy,
 )
-from intake_voice_runtime.talker.egress import TurnEgress, text_for
+from intake_voice_runtime.talker.egress import Emission, TurnEgress, text_for
 from intake_voice_runtime.talker.insertion import InsertionScheduler, PendingSpeech, Speak
 from intake_voice_runtime.talker.policy_guard import (
     FormOfAddress,
@@ -823,7 +824,7 @@ class TalkerSession:
         verdict = self.guard.filter(text, scripted=not step.allow_paraphrase)
         if verdict.bridge_required:
             return await self._speak_bridge(step, started_ms)
-        emitted = await self.router.emit(
+        emitted = await self._emit(
             verdict.text_tr, clip_id=self._clip_for(verdict.text_tr), label=step.step_id
         )
         self._record_playback(started_ms)
@@ -866,12 +867,36 @@ class TalkerSession:
         verdict = self.guard.filter(text, scripted=False)
         if not verdict.text_tr:
             return
-        await self.router.emit(
+        await self._emit(
             verdict.text_tr,
             clip_id=self._clip_for(verdict.text_tr),
             label=decision.item.work_id,
         )
         self._record_playback(started_ms)
+
+    async def _emit(self, text_tr: str, *, clip_id: str | None, label: str) -> Emission:
+        """Hand one sentence to the egress — and, if no voice is left, to the screen.
+
+        INT-100. files/03 §4.9.4 row 11 ends *"then to ``typed``"*: when the
+        failover ladder has no speech lane left it raises
+        :class:`~intake_voice_runtime.resilience.failover.SpeechLanesExhausted`,
+        and this is the one place that turns it into the typed profile. It does
+        so **inside the turn**, re-emitting the same verbatim string on the
+        screen, because a question the patient never heard is a question they
+        must still be able to answer — the ladder already spent at most the
+        2 s budget, and the screen write adds no playback.
+
+        Only the synthesis path can raise it (a cached clip never touches a
+        speech lane), so the retry carries no ``clip_id`` — the typed egress
+        refuses one. A session with no screen re-raises from
+        :meth:`fall_back_to_typed` as ``KillSwitchNotArmed``, chained to the
+        exhaustion: loud, rather than a session that goes silent mid-intake.
+        """
+        try:
+            return await self.router.emit(text_tr, clip_id=clip_id, label=label)
+        except SpeechLanesExhausted:
+            self.fall_back_to_typed(LaneSwitchReason.SPEECH_LANES_EXHAUSTED)
+            return await self.router.emit(text_tr, clip_id=None, label=label)
 
     def _record_playback(self, started_ms: float) -> None:
         """Remember when the agent was audible — the §7.6 overlap gate reads it."""

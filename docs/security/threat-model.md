@@ -294,7 +294,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §5 LLM10 budgets and circuit breakers; §6 capacity — autoscaling
   on queue depth, monthly chaos experiments; typed fallback within 2 s (backlog INT-100).
 - **Signals:** budget exhaustion and vendor errors (§9 voice row) land with INT-024/INT-100.
+  **(INT-100)** `vendor_breaker_state` (one-hot per component), `vendor_breaker_transitions_total`
+  and `vendor_failovers_total` (`to_component="typed"` when no speech lane is left), all
+  catalogued live.
 - **Tests:** chaos harness and fallback timing land with INT-024, INT-100, INT-207.
+  **(INT-100)** `tests/chaos/test_vendor_failover.py` kills the primary TTS lane mid-turn (dead,
+  dying in flight, hung) under a real Talker turn and proves the next lane or the screen within
+  2 s of virtual time, with the Backend stalled underneath (invariant 9); the order is read from
+  `observability/registry.yaml` and a cloud fallback on the PHI path is refused (invariant 19).
+  Unit coverage in `tests/voice/test_vendor_resilience.py`.
 
 ## `self-hosting` — model supply chain and residency
 

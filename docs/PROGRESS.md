@@ -1925,3 +1925,33 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The GitHub API was unreachable from this host, so the issue and PR are still to be opened, and INT-355 still needs its `docs/backlog/issues.yaml` row (`sec_row: triage`) for `sec_row_linkage`.
 - Next: open the issue and PR once the GitHub API is reachable.
 - LOOP_STATUS: CONTINUE
+### 2026-09-26T20:30:00Z · INT-100 · done (PR open, not merged)
+- Goal: acceptance verbatim — *"breaker per vendor; failover order from probes registry; chaos kill proves <=2s"*.
+- Plan: new `intake_voice_runtime.resilience` package with three modules.
+  - `breaker.py`: one closed/open/half-open breaker per vendor component on an injected clock, shared across sessions through `BreakerBoard`. Defaults are sourced from files/03 §4.5b: 30 s anti-flap and T3's "two consecutive".
+  - `order.py`: the order is the `observability/registry.yaml` `fallback` chain. On the PHI path a non-self-hostable lane is refused (`CloudFailoverRefused`), never skipped (invariant 19).
+  - `failover.py`: `FailoverSynthesizer`, a `SpeechSynthesizer`, tries the lanes under one 2 000 ms budget. Each attempt gets its share as the wire timeout, and the lane choice is sticky per session (§4.9.4 row 11).
+  - `TalkerSession._emit` turns `SpeechLanesExhausted` into `fall_back_to_typed(SPEECH_LANES_EXHAUSTED)` and re-renders the same verbatim text on the screen in the same turn.
+  - Three catalogued live families: `vendor_breaker_state`, `vendor_breaker_transitions_total` and `vendor_failovers_total`.
+- Tests added (with the near-miss negative for any safety rule): `tests/chaos/test_vendor_failover.py` (11) and `tests/voice/test_vendor_resilience.py` (54).
+  - The chaos file drives a real Talker turn over the real `HttpSpeechSynthesizer` behind `httpx.MockTransport`, with the order read from the real registry. The primary dies in flight → next lane at 720 ms. A hung primary → next lane at 1 520 ms. Both lanes killed → screen at 0 ms. Both lanes hung → screen at 2 000 ms. Every turn runs with the Backend stalled 0, 10 or 10 000 s, and the latencies are identical (invariant 9).
+  - Five near-miss mutations were each caught (M1–M5 in the evidence file) and restored from backups: no budget split, no cloud refusal, no typed catch, not sticky, breaker late by one.
+  - RED: collection errors (module absent), plus the parity reason-set test failing on the new member. GREEN: 65 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Main check-py pytest lane: 6844 passed, 95.76 % (≥ 85).
+  - Voice-runtime: 98.56 % (≥ 90); the resilience modules are at 100 %.
+  - `make safety`: exit 0.
+  - `ruff`, `ruff format` and `mypy --strict` (428 files) are clean, and `no_placeholders` is OK after staging.
+  - `make security` and `check-integration` were not run locally (CI-only). `check-ts` was not run because no TypeScript changed.
+- Invariants touched and still passing:
+  - **9**: six tools unchanged; the Talker never awaits the Backend, proved under chaos.
+  - **10**: the fallback renders `text_tr` verbatim.
+  - **13**: every emitted family is catalogued.
+  - **19**: `residency_tr` never fails over to a cloud lane; this is asserted on the order object and at lane binding.
+  - **22**: a numeral is refused before any lane or breaker is touched.
+  - **6**: labels and exception text carry ids and outcomes, never text.
+  - **8**: floors hold.
+- Decisions / ADRs / `00_STATE.md` rows: none new. `LaneSwitchReason` gains `speech_lanes_exhausted`, the fourth route into typed, which files/03 §4.9.4 rows 7 and 11 name. Scope is the speech *egress* lanes (TTS rows 11 → 12). The ASR row 1 → 2 fallback lives in the media plane, where row 1 has no registry row (HB-I11), and the component-keyed breaker and order bind to it unchanged.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. GitHub issue #83 had been closed by INT-083's PR #392 (an issue-number collision). It was reopened so this PR closes it.
+- Next: PR review.
+- LOOP_STATUS: CONTINUE
