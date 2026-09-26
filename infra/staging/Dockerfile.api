@@ -1,0 +1,63 @@
+# INT-345: the staging API image. Multi-stage, non-root, every base pinned by
+# digest. The build context is the repository root; Dockerfile.api.dockerignore
+# (next to this file, which BuildKit reads in place of a root .dockerignore)
+# decides what is sent.
+#
+# /version is stamped from the GIT_SHA and BUILT_AT build args. They become
+# INTAKE_GIT_SHA and INTAKE_BUILT_AT, the names intake_platform.health.
+# VersionInfo reads. deploy.sh supplies both. A build without them, or with
+# "dev", is refused in the runtime stage.
+#
+# Digests were resolved from the registries' v2 APIs on 26 Sep 2026:
+#   ghcr.io/astral-sh/uv:0.12.19       (MIT OR Apache-2.0)
+#   python:3.12.14-slim-trixie          (PSF-2.0; the current python:3.12-slim)
+
+FROM ghcr.io/astral-sh/uv:0.12.19@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424 AS uv
+
+FROM python:3.12.14-slim-trixie@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS builder
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_CACHE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON=/usr/local/bin/python3.12 \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+WORKDIR /app
+COPY . /app
+# The API and its workspace dependencies, installed exactly as locked. They
+# are editable installs, so the repo-relative data files the API reads at
+# runtime (docs/legal, the branch taxonomy, the model registry) resolve under
+# /app. The ASGI server is not in the lock and is added hash-pinned.
+RUN uv sync --frozen --no-dev --package intake-api \
+ && uv pip install --python /app/.venv/bin/python --require-hashes --no-deps \
+      -r infra/staging/requirements-server.txt
+
+FROM python:3.12.14-slim-trixie@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS runtime
+ARG GIT_SHA
+ARG BUILT_AT
+RUN if [ -z "$GIT_SHA" ] || [ "$GIT_SHA" = "dev" ] || [ -z "$BUILT_AT" ] || [ "$BUILT_AT" = "dev" ]; then \
+      echo "refusing to build: GIT_SHA and BUILT_AT must be real stamps (deploy.sh sets them)" >&2; \
+      exit 1; \
+    fi \
+ && groupadd --system --gid 10001 intake \
+ && useradd --system --uid 10001 --gid 10001 --no-create-home \
+      --home-dir /nonexistent --shell /usr/sbin/nologin intake
+# root-owned and therefore read-only to the service user
+COPY --from=builder /app /app
+ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    INTAKE_GIT_SHA=${GIT_SHA} \
+    INTAKE_BUILT_AT=${BUILT_AT}
+LABEL org.opencontainers.image.title="intake-api staging (synthetic patients only)" \
+      org.opencontainers.image.revision=${GIT_SHA} \
+      org.opencontainers.image.created=${BUILT_AT}
+WORKDIR /app
+USER 10001:10001
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
+  CMD ["python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).status == 200 else 1)"]
+# Forwarded headers are trusted from any peer. The only listener is on the
+# compose-internal networks, where the sole HTTP client is Caddy, and Caddy
+# overwrites X-Forwarded-* from the internet instead of passing it through.
+CMD ["uvicorn", "intake_api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-server-header"]

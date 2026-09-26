@@ -54,9 +54,14 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-349..354 (2026-09-26 owner follow-ups: sensitive intake categories,
     # CI part 2, admin ops console, production API host, specialty review
     # queue landing, int-demo consolidation into main)
+    # + INT-355 (bare ask_if/skip_if slot names never resolved across the
+    # pack chain, so gated questions were never asked)
+    # + INT-356 (counsel-supplied values for the data-category register that
+    # INT-349's fail-closed gate reads; split out because no agent may author
+    # them)
     # + INT-317 (previsit output store + hospital read-back, from int-demo).
     # Grow this count only with a stated reason.
-    assert len(ids) == 279
+    assert len(ids) == 281
     import re
 
     for i in ids:
