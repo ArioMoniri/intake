@@ -189,7 +189,7 @@ Q4.
 **Q6 — Effect on daily life / health** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1/S2 (harm
 topic)
 > "Bu durum günlük yaşamınızı ya da sağlığınızı etkiliyor mu?"
-gen: slot=islevsellik_etkilenimi; type=boolean
+gen: slot=gunluk_yasam_etkisi; type=boolean
 CANDIDATE — clinician to approve wording. Supportive, non-judgemental (S3).
 
 **Q7 — Concern from people close to them** · archetype: `OBSERVATION.story.v1` · source: S1/S2 ("concern

@@ -65,8 +65,8 @@ sections:
         ask_tr:
           tr: Kulağınızda çınlama ya da uğultu duyuyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md'
-      donme_hissi:
-        type: boolean
+      soru_4:
+        type: string
         required: false
         ask_tr:
           tr: Başınızın ya da etrafın döndüğünü hissettiğiniz oldu mu?
@@ -77,8 +77,8 @@ sections:
         ask_tr:
           tr: Kulağınızdan akıntı geliyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md'
-      boyunda_sislik:
-        type: boolean
+      soru_6:
+        type: string
         required: false
         ask_tr:
           tr: Boynunuzda kendiliğinden kaybolmayan bir şişlik ya da kitle fark ettiniz mi?

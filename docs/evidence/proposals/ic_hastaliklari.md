@@ -162,7 +162,6 @@ invariant 7) — no level assigned here.
 **Q5 — Night sweats** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 Rec 1.10.8 ("fever,
 night sweats, shortness of breath, pruritus, weight loss")
 > "Geceleri sizi uyandıracak kadar çok terlediğiniz oldu mu?"
-gen: slot=gece_terlemesi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q6 — Persistent fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 Rec 1.10.1

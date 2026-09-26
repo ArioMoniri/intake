@@ -83,7 +83,7 @@ sections:
         ask_tr:
           tr: Zorlandığınızda kendinizi rahatlatmak için neler yapıyorsunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
-      onceki_ruh_sagligi_destegi:
+      onceki_psikoterapi:
         type: boolean
         required: false
         ask_tr:

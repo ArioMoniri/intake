@@ -285,11 +285,8 @@ SIBLING_REBINDS = [
     ("diyabet_poliklinigi", 5, "aciklanamayan_kilo_kaybi", "istemsiz_kilo_kaybi"),
     ("tibbi_ekoloji_ve_hidroklimatoloji", 8, "yuksek_tansiyon_oykusu", "yuksek_tansiyon_tanisi"),
     ("ic_hastaliklari", 3, "soru_2", "istemsiz_kilo_kaybi"),
-    ("ic_hastaliklari", 5, "soru_4", "gece_terlemesi"),
     ("el_cerrahisi", 2, "yaralanma_sonrasi_basladi", "travma_sonrasi_basladi"),
     ("kulak_burun_bogaz_hastaliklari", 2, "soru_1", "ani_isitme_azalmasi"),
-    ("kulak_burun_bogaz_hastaliklari", 5, "soru_4", "donme_hissi"),
-    ("kulak_burun_bogaz_hastaliklari", 7, "soru_6", "boyunda_sislik"),
     ("kulak_burun_bogaz_hastaliklari", 8, "soru_7", "ses_kisikligi"),
     ("goz_hastaliklari", 7, "soru_6", "goz_agrisi"),
     ("goz_hastaliklari", 9, "soru_8", "isik_cevresinde_halka"),
@@ -306,9 +303,7 @@ SIBLING_REBINDS = [
     ("cocuk_enfeksiyon_hastaliklari", 11, "suregen_hastalik_tanisi", "suregen_tani"),
     ("cocuk_gogus_hastaliklari", 8, "gogus_ice_cekilmesi", "gogus_icine_cekilme"),
     ("klinik_psikoloji_poliklinigi", 9, "psikiyatrik_ilac_kullanimi", "ruh_sagligi_ilaci"),
-    ("klinik_psikoloji_poliklinigi", 8, "onceki_psikoterapi", "onceki_ruh_sagligi_destegi"),
     ("amatem", 12, "destek_cevresi", "sosyal_destek"),
-    ("amatem", 6, "gunluk_yasam_etkisi", "islevsellik_etkilenimi"),
     ("endodonti", 3, "sicak_soguk_agri", "dis_hassasiyeti"),
     ("agiz_dis_ve_cene_cerrahisi", 2, "yuz_cene_dil_alti_sislik", "yuz_cene_sisligi"),
     ("agiz_dis_ve_cene_cerrahisi", 3, "nefes_yutma_zorlugu", "nefes_yutkunma_guclugu"),
@@ -318,11 +313,19 @@ SIBLING_REBINDS = [
     ("agiz_dis_cene_radyolojisi", 8, "yuz_cene_dil_alti_sislik", "yuz_cene_sisligi"),
     ("agiz_dis_cene_radyolojisi", 9, "nefes_yutma_zorlugu", "nefes_yutkunma_guclugu"),
 ]
-# A near duplicate the clinician decides (review of PR #582, §D-1; HB-C1): ic
-# Q4 asks an unexplained fever over an open window, the cluster any fever in
-# recent days, so Q4 keeps its generator id until the clinician merges or not.
+# Near duplicates the clinician decides (review of PR #582, §D-1 and §D-3;
+# HB-C1, plus a psychiatrist for amatem and klinik psikoloji). The branch ask
+# differs from the cluster's in recall window or construct, so each keeps its
+# pre-PR id until the clinician adopts the cluster text or keeps it apart: a
+# repeated question fails closed, a wrong merge loses a window or a construct.
+# (branch slug, proposal question number, own id, cluster id)
 CLINICIAN_HELD = [
     ("ic_hastaliklari", 4, "soru_3", "son_gunlerde_ates"),
+    ("ic_hastaliklari", 5, "soru_4", "gece_terlemesi"),
+    ("kulak_burun_bogaz_hastaliklari", 5, "soru_4", "donme_hissi"),
+    ("kulak_burun_bogaz_hastaliklari", 7, "soru_6", "boyunda_sislik"),
+    ("amatem", 6, "gunluk_yasam_etkisi", "islevsellik_etkilenimi"),
+    ("klinik_psikoloji_poliklinigi", 8, "onceki_psikoterapi", "onceki_ruh_sagligi_destegi"),
 ]
 # Opposite polarity to the cluster's hydration items (`false` is the cluster's
 # alarm direction): renaming would invert the answer. The paediatrician picks
@@ -452,15 +455,20 @@ def test_opposite_polarity_twins_keep_their_own_ids(slug: str, own: str, cluster
     assert cluster_id in _slots(cluster)
 
 
-@pytest.mark.parametrize(("slug", "qnum", "own", "cluster_id"), CLINICIAN_HELD)
+@pytest.mark.parametrize(
+    ("slug", "qnum", "own", "cluster_id"),
+    CLINICIAN_HELD,
+    ids=[f"{s}:Q{q}:{o}" for s, q, o, _ in CLINICIAN_HELD],
+)
 def test_a_near_duplicate_left_to_the_clinician_keeps_its_own_id(
     slug: str, qnum: int, own: str, cluster_id: str
 ) -> None:
     branch, cluster, _ = _chain(slug)
     slots = _slots(branch)
     question = _question(slug, qnum)
-    assert question.slot is None, f"{slug} Q{qnum} binds {question.slot}"
-    assert slots[own]["ask_tr"]["tr"] == question.text
+    # A `soru_N` id comes from a question with no `gen:` slot.
+    assert question.slot in (None, own), f"{slug} Q{qnum} binds {question.slot}"
+    assert slots[own]["ask_tr"]["tr"] == question.text, f"{slug}.{own} is not Q{qnum}'s ask"
     assert cluster_id not in slots
     assert cluster_id in _slots(cluster)
 

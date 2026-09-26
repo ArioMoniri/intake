@@ -209,7 +209,7 @@ CANDIDATE — clinician to approve wording. Strengths-based; no judgement implie
 
 **Q8 — Previous psychotherapy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: P-S6 (nonpharmacological psychiatric treatments), P-S4 1.3.1 (previously found helpful)
 > "Daha önce bir psikolog ya da psikiyatristle düzenli görüşmeler yaptınız mı?"
-gen: slot=onceki_ruh_sagligi_destegi; type=boolean
+gen: slot=onceki_psikoterapi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Current physician-prescribed psychiatric medicine** · archetype: `ACTION.medication.v1` · source: P-S2 ("ilaç tedavisinin birlikte yürümesi mümkündür"), P-S6 (adherence to pharmacological treatments)
