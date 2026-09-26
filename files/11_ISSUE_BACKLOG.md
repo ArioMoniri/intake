@@ -234,7 +234,7 @@
 | INT-332 | ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer) | E00-governance | — | area:mobile, approval:owner | todo |
 | INT-333 | Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic | E08-mobile | INT-330, INT-332 | area:mobile, risk:clinical | todo |
 | INT-343 | Mobile George client authenticates and requests only compiled-pack clip text | E08-mobile | INT-326 | area:mobile, area:voice, risk:security | todo |
-| INT-351 | Admin ops console: rendered tiles for API health, model hosts/GPU, model usage, clip cache, wait time, CSAT and CI/CD | E12-admin | INT-180, INT-183, INT-163, INT-186 | area:admin, area:observability | done |
+| INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-180, INT-183, INT-163, INT-186 | area:admin, area:observability | done |
 
 ## P2
 

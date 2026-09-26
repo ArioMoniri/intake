@@ -215,6 +215,14 @@ export interface OpsView {
       miss: string | null;
       hitRatio: string | null;
       syntheses: { gateway: string; outcome: string; count: string | null }[];
+      manifests: {
+        pack: string;
+        locale: string;
+        voice: string;
+        rows: string | null;
+        present: string | null;
+        coverage: string | null;
+      }[];
     };
     waitTime: {
       state: TileState;
@@ -353,7 +361,7 @@ export function renderOps(payload: OpsPayload, health: HealthResponses): OpsView
   // clip cache
   const clip = t.clip_cache;
   const clipReason = reason(clip, "clip cache");
-  blank(clip, [clip.hit, clip.miss, clip.syntheses], "clip cache");
+  blank(clip, [clip.hit, clip.miss, clip.syntheses, clip.manifests], "clip cache");
   const lookups = (clip.hit ?? 0) + (clip.miss ?? 0);
   const hitRatio =
     clip.hit !== null && clip.miss !== null && lookups > 0 ? percent(clip.hit / lookups) : null;
@@ -361,6 +369,15 @@ export function renderOps(payload: OpsPayload, health: HealthResponses): OpsView
     gateway: id(s.gateway, "gateway"),
     outcome: id(s.outcome, "outcome"),
     count: count(s.count),
+  }));
+  const manifests = clip.manifests.map((m) => ({
+    pack: id(m.pack, "pack"),
+    locale: id(m.locale, "locale"),
+    voice: id(m.voice, "voice"),
+    rows: count(m.rows),
+    present: count(m.present),
+    coverage:
+      m.rows !== null && m.present !== null && m.rows > 0 ? percent(m.present / m.rows) : null,
   }));
 
   // wait time
@@ -424,6 +441,7 @@ export function renderOps(payload: OpsPayload, health: HealthResponses): OpsView
         miss: count(clip.miss),
         hitRatio,
         syntheses,
+        manifests,
       },
       waitTime: {
         state: wait.state,

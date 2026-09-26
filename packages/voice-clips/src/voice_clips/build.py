@@ -47,6 +47,7 @@ from voice_clips.errors import ClipCacheError
 from voice_clips.gateway import TtsGateway, assert_speakable_tr
 from voice_clips.metrics import (
     gateway_kind,
+    record_coverage,
     record_lookup,
     record_synthesis,
     write_clip_metrics_from_env,
@@ -150,9 +151,16 @@ def build_clip_cache(
 
 
 def clip_coverage(manifest: CompiledClipManifest, cache: ClipCache) -> ClipCoverage:
-    """Ask the store, row by row, whether the clip is there."""
+    """Ask the store, row by row, whether the clip is there — and publish it."""
     missing = tuple(
         row.entry.clip_id for row in manifest.entries if not cache.has(clip_object_key(row.entry))
+    )
+    record_coverage(
+        pack=manifest.pack_id,
+        locale=manifest.locale,
+        voice=manifest.voice,
+        rows=len(manifest.entries),
+        present=len(manifest.entries) - len(missing),
     )
     return ClipCoverage(
         pack_id=manifest.pack_id,

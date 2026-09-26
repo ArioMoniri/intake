@@ -1916,8 +1916,8 @@ metrics:
   # The offline scripted-clip build (ADR-028; make clips) counts its cache
   # hits and its syntheses on its own registry (voice_clips.metrics) and
   # writes them as a Prometheus textfile; the ops collector re-exports exactly
-  # these two families from it. Every label is a closed set — the script text
-  # never becomes one (invariant 6).
+  # these four families from it. Every label is a closed set or a compiler id —
+  # the script text never becomes one (invariant 6).
   - name: voice_clip_cache_lookups_total
     type: counter
     labels: [outcome]
@@ -1935,6 +1935,23 @@ metrics:
     description: >-
       Scripted-clip syntheses during a clip build, by gateway kind
       (self_hosted / recorded / elevenlabs / other) and outcome (ok / failed).
+  - name: voice_clip_manifest_rows
+    type: gauge
+    labels: [pack, locale, voice]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Scripted-clip rows a compiled pack's clip manifest declares, per pack,
+      locale and voice (all compiler ids), set by the clip build's coverage walk.
+  - name: voice_clip_manifest_present
+    type: gauge
+    labels: [pack, locale, voice]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Manifest rows whose clip is in the cache, per pack, locale and voice. Below
+      voice_clip_manifest_rows, a scripted turn would fall to dynamic TTS — the
+      same hole that fails the build.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):

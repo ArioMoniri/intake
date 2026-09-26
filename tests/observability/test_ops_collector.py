@@ -81,6 +81,8 @@ OPS_FAMILIES = (
     "ops_collector_source_up",
     "voice_clip_cache_lookups_total",
     "voice_clip_syntheses_total",
+    "voice_clip_manifest_rows",
+    "voice_clip_manifest_present",
 )
 
 
@@ -337,6 +339,12 @@ voice_clip_cache_lookups_total{outcome="miss"} 3.0
 # HELP voice_clip_syntheses_total Clip syntheses during a clip build.
 # TYPE voice_clip_syntheses_total counter
 voice_clip_syntheses_total{gateway="elevenlabs",outcome="ok"} 3.0
+# HELP voice_clip_manifest_rows Scripted-clip manifest rows per pack.
+# TYPE voice_clip_manifest_rows gauge
+voice_clip_manifest_rows{locale="tr",pack="base.intake",voice="george"} 44.0
+# HELP voice_clip_manifest_present Manifest rows whose clip is in the cache.
+# TYPE voice_clip_manifest_present gauge
+voice_clip_manifest_present{locale="tr",pack="base.intake",voice="george"} 44.0
 """
 
 
@@ -353,6 +361,15 @@ class TestClipTextfileReexport:
             )
             == 3
         )
+
+    def test_it_reexports_the_manifest_coverage_gauges(self, tmp_path: Path) -> None:
+        path = tmp_path / "clips.prom"
+        path.write_text(CLIP_TEXTFILE, encoding="utf-8")
+        registry = CollectorRegistry()
+        registry.register(ClipTextfileCollector(path))
+        labels = {"pack": "base.intake", "locale": "tr", "voice": "george"}
+        assert registry.get_sample_value("voice_clip_manifest_rows", labels) == 44
+        assert registry.get_sample_value("voice_clip_manifest_present", labels) == 44
 
     def test_a_missing_textfile_exports_nothing_rather_than_zeros(self, tmp_path: Path) -> None:
         registry = CollectorRegistry()

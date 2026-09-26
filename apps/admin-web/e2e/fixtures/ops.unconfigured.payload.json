@@ -327,7 +327,8 @@
       "window": "last_build",
       "hit": null,
       "miss": null,
-      "syntheses": []
+      "syntheses": [],
+      "manifests": []
     },
     "wait_time": {
       "state": "unknown",

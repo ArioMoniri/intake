@@ -62,6 +62,13 @@ export interface ClipTilePayload extends TileBase {
   hit: number | null;
   miss: number | null;
   syntheses: { gateway: string; outcome: string; count: number | null }[];
+  manifests: {
+    pack: string;
+    locale: string;
+    voice: string;
+    rows: number | null;
+    present: number | null;
+  }[];
 }
 
 export interface WaitTilePayload extends TileBase {

@@ -280,6 +280,38 @@ function Clips({ view, c }: { view: OpsView; c: Copy }): ReactElement {
           </tbody>
         </ScrollTable>
       ) : null}
+      {t.manifests.length > 0 ? (
+        <ScrollTable>
+          <thead>
+            <tr>
+              <th>{c.clips.pack}</th>
+              <th>{c.clips.locale}</th>
+              <th>{c.clips.voice}</th>
+              <th>{c.clips.present}</th>
+              <th>{c.clips.coverage}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.manifests.map((m) => (
+              <tr key={`${m.pack}-${m.locale}-${m.voice}`}>
+                <td>
+                  <code>{m.pack}</code>
+                </td>
+                <td>{m.locale}</td>
+                <td>
+                  <code>{m.voice}</code>
+                </td>
+                <td>
+                  <Cell value={m.present} c={c} /> / <Cell value={m.rows} c={c} />
+                </td>
+                <td>
+                  <Cell value={m.coverage} c={c} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </ScrollTable>
+      ) : null}
     </Tile>
   );
 }

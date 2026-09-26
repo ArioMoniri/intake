@@ -89,6 +89,11 @@ const tr = {
     syntheses: "Sentez",
     gateway: "Ağ geçidi",
     outcome: "Sonuç",
+    pack: "Paket",
+    locale: "Dil",
+    voice: "Ses",
+    present: "Önbellekte / manifestte",
+    coverage: "Kapsam",
   },
   wait: {
     title: "Bekleme (check-in → görülme)",
@@ -201,6 +206,11 @@ const en: Copy = {
     syntheses: "Syntheses",
     gateway: "Gateway",
     outcome: "Outcome",
+    pack: "Pack",
+    locale: "Locale",
+    voice: "Voice",
+    present: "Cached / in manifest",
+    coverage: "Coverage",
   },
   wait: {
     title: "Wait (check-in → seen)",

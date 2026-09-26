@@ -73,6 +73,8 @@ OPS_QUERIES: Final[Mapping[str, str]] = {
     ),
     "clip_lookups": "sum by (outcome) (voice_clip_cache_lookups_total)",
     "clip_syntheses": "sum by (gateway, outcome) (voice_clip_syntheses_total)",
+    "clip_manifest_rows": "max by (pack, locale, voice) (voice_clip_manifest_rows)",
+    "clip_manifest_present": "max by (pack, locale, voice) (voice_clip_manifest_present)",
     "wait_count": f"sum(increase(wait_checkin_to_seen_min_count[{COHORT_WINDOW}]))",
     "wait_sum": f"sum(increase(wait_checkin_to_seen_min_sum[{COHORT_WINDOW}]))",
     "csat_count": f"sum(increase(csat_score_count[{COHORT_WINDOW}]))",
@@ -96,6 +98,8 @@ _LABELS: Final[Mapping[str, frozenset[str]]] = {
     "adapter_failures": frozenset({"adapter"}),
     "clip_lookups": frozenset({"outcome"}),
     "clip_syntheses": frozenset({"gateway", "outcome"}),
+    "clip_manifest_rows": frozenset({"pack", "locale", "voice"}),
+    "clip_manifest_present": frozenset({"pack", "locale", "voice"}),
     "wait_count": frozenset(),
     "wait_sum": frozenset(),
     "csat_count": frozenset(),
@@ -243,9 +247,21 @@ def _usage(session: _Session) -> dict[str, Any]:
 def _clips(session: _Session) -> dict[str, Any]:
     lookups = _by(session.fetch("clip_lookups"), "outcome")
     syntheses = session.fetch("clip_syntheses")
-    if not lookups and not syntheses:
+    rows = _by(session.fetch("clip_manifest_rows"), "pack", "locale", "voice")
+    present = _by(session.fetch("clip_manifest_present"), "pack", "locale", "voice")
+    if not lookups and not syntheses and not rows:
         raise _Unknown("no_series")
     return {
+        "manifests": [
+            {
+                "pack": pack,
+                "locale": locale,
+                "voice": voice,
+                "rows": _count(value),
+                "present": _count(present.get((pack, locale, voice))),
+            }
+            for (pack, locale, voice), value in sorted(rows.items())
+        ],
         # a family that answered without a child for an outcome counted none
         "hit": _count(lookups.get(("hit",), 0.0)) if lookups else None,
         "miss": _count(lookups.get(("miss",), 0.0)) if lookups else None,
@@ -322,7 +338,13 @@ def _cicd(session: _Session) -> dict[str, Any]:
 _EMPTY: Final[Mapping[str, Mapping[str, Any]]] = {
     "gpu": {"hosts": []},
     "model_usage": {"window": USAGE_WINDOW, "lanes": []},
-    "clip_cache": {"window": CLIP_WINDOW, "hit": None, "miss": None, "syntheses": []},
+    "clip_cache": {
+        "window": CLIP_WINDOW,
+        "hit": None,
+        "miss": None,
+        "syntheses": [],
+        "manifests": [],
+    },
     "wait_time": {
         "metric_id": "wait.checkin_to_seen_min",
         "window": COHORT_WINDOW,

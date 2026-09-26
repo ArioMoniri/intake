@@ -254,6 +254,44 @@
       ]
     }
   },
+  "clip_manifest_rows": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "pack": "base.intake",
+            "locale": "tr",
+            "voice": "george"
+          },
+          "value": [
+            1790438400.0,
+            "44"
+          ]
+        }
+      ]
+    }
+  },
+  "clip_manifest_present": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "pack": "base.intake",
+            "locale": "tr",
+            "voice": "george"
+          },
+          "value": [
+            1790438400.0,
+            "41"
+          ]
+        }
+      ]
+    }
+  },
   "wait_count": {
     "status": "success",
     "data": {

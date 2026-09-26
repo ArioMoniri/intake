@@ -39,6 +39,7 @@ from intake_api.admin.ops_console import (
     OPS_QUERIES,
     OPS_SCHEMA,
     build_ops_console,
+    load_ops_console,
 )
 from intake_api.admin.ops_prom import (
     ENV_PROMETHEUS_URL,
@@ -165,6 +166,7 @@ class TestUnconfigured:
         assert tiles["model_usage"]["lanes"] == []
         assert tiles["clip_cache"]["hit"] is None
         assert tiles["clip_cache"]["miss"] is None
+        assert tiles["clip_cache"]["manifests"] == []
         assert tiles["wait_time"]["n"] is None
         assert tiles["wait_time"]["mean_min"] is None
         assert tiles["satisfaction"]["csat_mean"] is None
@@ -229,6 +231,9 @@ class TestConfigured:
         clip = tiles["clip_cache"]
         assert (clip["hit"], clip["miss"]) == (41, 3)
         assert clip["syntheses"] == [{"gateway": "elevenlabs", "outcome": "ok", "count": 3}]
+        assert clip["manifests"] == [
+            {"pack": "base.intake", "locale": "tr", "voice": "george", "rows": 44, "present": 41}
+        ]
         wait = tiles["wait_time"]
         assert wait["metric_id"] == "wait.checkin_to_seen_min"
         assert (wait["n"], wait["mean_min"], wait["window"]) == (14, 21.5, "30d")
@@ -252,7 +257,13 @@ class TestConfigured:
 
     def test_an_empty_answer_is_no_series_not_zero(self) -> None:
         empty = _vector()
-        silent = {"gpu_host_up": empty, "clip_lookups": empty, "clip_syntheses": empty}
+        silent = {
+            "gpu_host_up": empty,
+            "clip_lookups": empty,
+            "clip_syntheses": empty,
+            "clip_manifest_rows": empty,
+            "clip_manifest_present": empty,
+        }
         tiles = _console(_prom({**silent, "ci_runs": empty}))["tiles"]
         assert (tiles["gpu"]["state"], tiles["gpu"]["reason"]) == ("unknown", "no_series")
         assert tiles["clip_cache"]["reason"] == "no_series"
@@ -277,6 +288,45 @@ class TestConfigured:
         assert tiles["satisfaction"]["state"] == "unknown"
         assert tiles["satisfaction"]["reason"] == "prometheus_query_error"
         assert tiles["gpu"]["state"] == "ok"
+
+
+class TestEachTileFailsClosed:
+    """One test per tile (issue #557): its source unreachable, the tile reads
+    unknown with a reason and carries no figure — never a stale or zero value."""
+
+    @pytest.mark.parametrize("tile", PROM_TILES)
+    def test_an_unreachable_prometheus_blanks_the_tile(self, tile: str) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("refused", request=request)
+
+        prom = PromClient(base_url=PROM, transport=httpx.MockTransport(handler))
+        payload = _console(prom)
+        assert payload["sources"]["prometheus"] == "unreachable"
+        got = payload["tiles"][tile]
+        assert (got["state"], got["reason"]) == ("unknown", "prometheus_unreachable")
+        empty = _console(None)["tiles"][tile]
+        figures = {k: v for k, v in got.items() if k not in ("state", "reason")}
+        assert figures == {k: v for k, v in empty.items() if k not in ("state", "reason")}
+
+    def test_an_unreadable_registry_blanks_the_models_tile(self) -> None:
+        payload = build_ops_console(prom=None, models=None, results={}, now=NOW)
+        models = payload["tiles"]["models"]
+        assert (models["state"], models["reason"]) == ("unknown", "registry_unreadable")
+        assert models["rows"] == []
+        assert models["release_blocked"] is None
+        assert payload["sources"]["registry"] == "unreadable"
+
+    def test_a_missing_registry_file_is_unreadable_not_a_crash(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        monkeypatch.setenv("INTAKE_REGISTRY_PATH", str(tmp_path / "absent.yaml"))
+        payload = load_ops_console(NOW, env={})
+        assert payload["tiles"]["models"]["reason"] == "registry_unreadable"
+
+    def test_a_malformed_prometheus_url_is_misconfigured_not_a_guess(self) -> None:
+        payload = load_ops_console(NOW, env={ENV_PROMETHEUS_URL: "prometheus:9090"})
+        assert payload["sources"]["prometheus"] == "misconfigured"
+        assert payload["tiles"]["gpu"]["reason"] == "prometheus_misconfigured"
 
 
 class TestPhiAndFloor:

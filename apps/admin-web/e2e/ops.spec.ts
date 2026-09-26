@@ -231,6 +231,43 @@ describe("the rendered tiles (recorded composite)", () => {
     expect(page).toContain("gpu-a");
     expect(page).toContain("extract_slots");
     expect(page).toContain("6dd1f2a");
+    expect(page).toContain("base.intake");
+  });
+
+  it("shows the clip manifest coverage per pack, locale and voice", () => {
+    const view = renderOps(payload(), responses());
+    expect(view.tiles.clipCache.manifests).toEqual([
+      {
+        pack: "base.intake",
+        locale: "tr",
+        voice: "george",
+        rows: "44",
+        present: "41",
+        coverage: "93\u00a0%",
+      },
+    ]);
+    expect(view.tiles.clipCache.hitRatio).toEqual("93\u00a0%");
+  });
+
+  it("refuses a manifest pack label that is not id-shaped (invariant 6)", () => {
+    const p = payload();
+    const manifests = p.tiles.clip_cache.manifests.map((m) => ({ ...m, pack: "Hasta Adı" }));
+    expect(() => renderOps(withTile("clip_cache", { manifests }), responses())).toThrow(
+      OpsLabelLeaked,
+    );
+  });
+
+  it("renders an unreadable registry as an unknown models tile", async () => {
+    const bent = withTile("models", {
+      state: "unknown",
+      reason: "registry_unreadable",
+      release_blocked: null,
+      rows: [],
+    });
+    const { state } = await load({ "/admin/ops": { status: 200, body: bent }, ...healthRoutes() });
+    const page = html(state);
+    expect(page).toMatch(/data-tile="models"[^>]*data-tile-state="unknown"/);
+    expect(page).toContain('data-reason="registry_unreadable"');
   });
 
   it("shows the API's health, readiness and build from the configured base", () => {

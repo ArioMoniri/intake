@@ -382,6 +382,15 @@
           "outcome": "ok",
           "count": 3
         }
+      ],
+      "manifests": [
+        {
+          "pack": "base.intake",
+          "locale": "tr",
+          "voice": "george",
+          "rows": 44,
+          "present": 41
+        }
       ]
     },
     "wait_time": {

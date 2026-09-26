@@ -32,6 +32,7 @@ from clip_harness import (
 from conftest import PACK_ID, VOICE
 from prometheus_client.parser import text_string_to_metric_families
 from protocols.compile import CompiledBundle, write_bundle
+from protocols.locale_text import DEFAULT_LOCALE as LOCALE
 from voice_clips import (
     ClipCache,
     HttpTtsGateway,
@@ -165,7 +166,7 @@ class TestGatewayKind:
 
 
 class TestTextfile:
-    def test_the_textfile_holds_exactly_the_two_families(
+    def test_the_textfile_holds_exactly_the_clip_families(
         self, bundle: CompiledBundle, dist: Path, cache: ClipCache, tmp_path: Path
     ) -> None:
         manifest = load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE)
@@ -177,7 +178,12 @@ class TestTextfile:
         out = tmp_path / "clips.prom"
         write_clip_metrics(out)
         names = {family.name for family in text_string_to_metric_families(out.read_text("utf-8"))}
-        assert names == {"voice_clip_cache_lookups", "voice_clip_syntheses"}
+        assert names == {
+            "voice_clip_cache_lookups",
+            "voice_clip_syntheses",
+            "voice_clip_manifest_rows",
+            "voice_clip_manifest_present",
+        }
         assert "text_tr" not in out.read_text("utf-8")
 
     def test_the_cli_writes_the_textfile_when_configured(
@@ -215,3 +221,44 @@ class TestTextfile:
             cache=cache,
         )
         assert list(tmp_path.glob("*.prom")) == []
+
+
+class TestManifestCoverage:
+    """The manifest side of the tile: what each compiled pack declares, and
+    how much of it the cache actually holds — per pack, locale and voice, all
+    ids (invariant 6). A hole is a scripted turn that would fall to dynamic
+    TTS, which is exactly what an operator needs to see before a session does."""
+
+    def test_a_complete_build_reports_every_row_present(
+        self, bundle: CompiledBundle, dist: Path, cache: ClipCache, tmp_path: Path
+    ) -> None:
+        rows = len(load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE).entries)
+        code = run_clip_build(
+            dist_root=dist,
+            voice=VOICE,
+            gateway=RecordedTtsGateway(root=_recordings(bundle, tmp_path / "rec")),
+            cache=cache,
+        )
+        assert code == 0
+        labels = {"pack": PACK_ID, "locale": LOCALE, "voice": VOICE}
+        assert _value("voice_clip_manifest_rows", **labels) == rows
+        assert _value("voice_clip_manifest_present", **labels) == rows
+
+    def test_a_verify_over_an_empty_cache_reports_the_hole(
+        self, dist: Path, cache: ClipCache, tmp_path: Path
+    ) -> None:
+        rows = len(load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE).entries)
+        code = run_clip_build(
+            dist_root=dist,
+            voice=VOICE,
+            gateway=_Refusing(),
+            cache=cache,
+            verify_only=True,
+        )
+        assert code == 1  # incomplete coverage fails the build, as before
+        labels = {"pack": PACK_ID, "locale": LOCALE, "voice": VOICE}
+        assert _value("voice_clip_manifest_rows", **labels) == rows
+        assert CLIP_METRICS.get_sample_value("voice_clip_manifest_present", labels) == 0.0
+        # verify-only asks the cache per row for coverage, not for a build:
+        # it is not a lookup and pays no gateway
+        assert _value("voice_clip_syntheses_total", gateway="other", outcome="failed") == 0

@@ -43,7 +43,7 @@ from intake_platform.egress import (
     load_allowlist,
 )
 from prometheus_client import Gauge
-from prometheus_client.core import CounterMetricFamily
+from prometheus_client.core import CounterMetricFamily, GaugeMetricFamily
 from prometheus_client.metrics_core import Metric
 from prometheus_client.parser import text_string_to_metric_families
 from prometheus_client.registry import Collector
@@ -125,12 +125,15 @@ OPS_COLLECTOR_SOURCE_UP = Gauge(
     ["source"],
 )
 
-#: The only families the clip textfile may re-export (voice_clips.metrics).
-CLIP_FAMILIES: Final = frozenset({"voice_clip_cache_lookups", "voice_clip_syntheses"})
-_CLIP_LABELS: Final[Mapping[str, tuple[str, ...]]] = {
-    "voice_clip_cache_lookups": ("outcome",),
-    "voice_clip_syntheses": ("gateway", "outcome"),
+#: The only families the clip textfile may re-export (voice_clips.metrics),
+#: each with its type and its exact label names.
+_CLIP_SHAPES: Final[Mapping[str, tuple[str, tuple[str, ...]]]] = {
+    "voice_clip_cache_lookups": ("counter", ("outcome",)),
+    "voice_clip_syntheses": ("counter", ("gateway", "outcome")),
+    "voice_clip_manifest_rows": ("gauge", ("pack", "locale", "voice")),
+    "voice_clip_manifest_present": ("gauge", ("pack", "locale", "voice")),
 }
+CLIP_FAMILIES: Final = frozenset(_CLIP_SHAPES)
 
 
 class _Secrets(Protocol):
@@ -147,7 +150,7 @@ def _default_secrets() -> _Secrets:
 
 
 class ClipTextfileCollector(Collector):
-    """Re-export the clip build's two counter families from its textfile.
+    """Re-export the clip build's families from its textfile.
 
     A textfile is a file on disk; re-exporting whatever it holds would make it
     a way to publish an uncatalogued series (invariant 13). Only the two clip
@@ -165,12 +168,19 @@ class ClipTextfileCollector(Collector):
         except (OSError, ValueError):
             return
         for family in families:
-            labels = _CLIP_LABELS.get(family.name)
-            if family.type != "counter" or labels is None:
+            shape = _CLIP_SHAPES.get(family.name)
+            if shape is None or family.type != shape[0]:
                 continue
-            out = CounterMetricFamily(family.name, family.documentation, labels=list(labels))
+            kind, labels = shape
+            out: CounterMetricFamily | GaugeMetricFamily
+            if kind == "counter":
+                out = CounterMetricFamily(family.name, family.documentation, labels=list(labels))
+                sample_name = f"{family.name}_total"
+            else:
+                out = GaugeMetricFamily(family.name, family.documentation, labels=list(labels))
+                sample_name = family.name
             for sample in family.samples:
-                if sample.name != f"{family.name}_total" or set(sample.labels) != set(labels):
+                if sample.name != sample_name or set(sample.labels) != set(labels):
                     continue
                 out.add_metric([sample.labels[name] for name in labels], sample.value)
             yield out

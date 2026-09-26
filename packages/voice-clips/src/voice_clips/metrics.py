@@ -11,7 +11,13 @@ a synthesis. Two families carry that, both catalogued in
   asked (``self_hosted`` / ``recorded`` / ``elevenlabs`` / ``other``) and
   whether it answered (``ok`` / ``failed``).
 
-Every label is a closed set. The script text, its hash and the voice never
+And the manifest side, per compiled pack, locale and voice — what the manifest
+declares and how much of it the cache holds, from the same coverage walk the
+build already fails on (``voice_clip_manifest_rows`` /
+``voice_clip_manifest_present``). A gap is a scripted turn that would fall to
+dynamic TTS.
+
+Every label is a closed set or an id. The script text and its hash never
 become a label (invariant 6) — a clip id is an id, but one series per clip is
 a cardinality nobody asked for and a map of the protocol nobody needs.
 
@@ -19,8 +25,8 @@ a cardinality nobody asked for and a map of the protocol nobody needs.
 counters live on their own registry — never the process-wide default one a
 long-lived service serves — and are written as a Prometheus *textfile* when
 ``INTAKE_CLIPS_METRICS_TEXTFILE`` names one. The ops collector
-(``intake_probes.ops_collector``) re-exports exactly these two families from
-that file, which is how the admin console's clip-cache tile reads them.
+(``intake_probes.ops_collector``) re-exports exactly these families from that
+file, which is how the admin console's clip-cache tile reads them.
 """
 
 from __future__ import annotations
@@ -29,17 +35,20 @@ import os
 from pathlib import Path
 from typing import Final
 
-from prometheus_client import CollectorRegistry, Counter, write_to_textfile
+from prometheus_client import CollectorRegistry, Counter, Gauge, write_to_textfile
 from prometheus_client.metrics_core import Metric
 from prometheus_client.registry import Collector
 
 __all__ = [
     "CLIP_CACHE_LOOKUPS_TOTAL",
+    "CLIP_MANIFEST_PRESENT",
+    "CLIP_MANIFEST_ROWS",
     "CLIP_METRICS",
     "CLIP_SYNTHESES_TOTAL",
     "ENV_CLIPS_METRICS_TEXTFILE",
     "GATEWAY_KINDS",
     "gateway_kind",
+    "record_coverage",
     "record_lookup",
     "record_synthesis",
     "reset_clip_metrics",
@@ -72,6 +81,20 @@ CLIP_SYNTHESES_TOTAL = Counter(
     registry=CLIP_METRICS,
 )
 
+CLIP_MANIFEST_ROWS = Gauge(
+    "voice_clip_manifest_rows",
+    "Scripted-clip rows a compiled manifest declares, per pack, locale and voice.",
+    ["pack", "locale", "voice"],
+    registry=CLIP_METRICS,
+)
+
+CLIP_MANIFEST_PRESENT = Gauge(
+    "voice_clip_manifest_present",
+    "Manifest rows whose clip is in the cache, per pack, locale and voice.",
+    ["pack", "locale", "voice"],
+    registry=CLIP_METRICS,
+)
+
 
 def gateway_kind(gateway: object) -> str:
     """The closed-set kind of a TTS gateway, by its concrete class.
@@ -100,17 +123,28 @@ def record_synthesis(*, gateway: str, ok: bool) -> None:
     CLIP_SYNTHESES_TOTAL.labels(gateway=gateway, outcome="ok" if ok else "failed").inc()
 
 
+def record_coverage(*, pack: str, locale: str, voice: str, rows: int, present: int) -> None:
+    labels = {"pack": pack, "locale": locale, "voice": voice}
+    CLIP_MANIFEST_ROWS.labels(**labels).set(rows)
+    CLIP_MANIFEST_PRESENT.labels(**labels).set(present)
+
+
 def reset_clip_metrics() -> None:
     """Drop every child, so one build's counts never carry into the next."""
-    CLIP_CACHE_LOOKUPS_TOTAL.clear()
-    CLIP_SYNTHESES_TOTAL.clear()
+    for family in (
+        CLIP_CACHE_LOOKUPS_TOTAL,
+        CLIP_SYNTHESES_TOTAL,
+        CLIP_MANIFEST_ROWS,
+        CLIP_MANIFEST_PRESENT,
+    ):
+        family.clear()
 
 
 class _TotalsOnly(Collector):
-    """The two families with their ``_total`` samples and nothing else.
+    """The clip families, counters reduced to their ``_total`` samples.
 
     prometheus_client adds a ``*_created`` timestamp sample to every counter
-    child; in a textfile it parses back as a third, uncatalogued family. The
+    child; in a textfile it parses back as another, uncatalogued family. The
     process-wide switch that disables it would change every other registry in
     a process that merely imports this package, so the filter is local.
     """
@@ -119,13 +153,15 @@ class _TotalsOnly(Collector):
         families: list[Metric] = []
         for family in CLIP_METRICS.collect():
             kept = Metric(family.name, family.documentation, family.type, family.unit)
-            kept.samples = [s for s in family.samples if s.name.endswith("_total")]
+            kept.samples = [
+                s for s in family.samples if family.type != "counter" or s.name.endswith("_total")
+            ]
             families.append(kept)
         return families
 
 
 def write_clip_metrics(path: Path) -> None:
-    """Write the two families as a Prometheus textfile (atomic rename)."""
+    """Write the clip families as a Prometheus textfile (atomic rename)."""
     registry = CollectorRegistry(auto_describe=False)
     registry.register(_TotalsOnly())
     write_to_textfile(str(path), registry)
