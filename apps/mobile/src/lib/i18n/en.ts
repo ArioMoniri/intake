@@ -205,8 +205,6 @@ export const en: Record<MessageKey, string> = {
   "me.title": "Profile",
   "me.consents": "Your consents",
   "me.language": "Language",
-  "lang.tr": "Türkçe",
-  "lang.en": "English",
   "me.learned": "What it learned about me",
   "me.learnedEmpty":
     "Vizite never permanently learns anything about you without your confirmation.",

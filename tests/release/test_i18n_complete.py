@@ -397,8 +397,9 @@ def test_no_value_is_empty(tr: dict[str, str], en: dict[str, str]) -> None:
 #: is a property of the value rather than of the translation:
 #:
 #: - ``app.name`` and ``a11y.speaker.agent`` are the product's own name;
-#: - ``lang.tr`` / ``lang.en`` are endonyms — a language names itself the same
-#:   way in every catalogue, which is the whole point of an endonym;
+#: - (INT-346) the ``lang.tr`` / ``lang.en`` endonym keys left with INT-301,
+#:   which reads each language's endonym from the locale registry instead of
+#:   a catalogue label; the orphaned keys were deleted, so their exemption goes;
 #: - the SI unit symbols (INT-282) are locale-invariant by definition. BIPM
 #:   fixes ``cm`` and ``kg`` as symbols, not abbreviations of a word, so a
 #:   "translated" unit would be WRONG rather than merely different — and the
@@ -408,8 +409,6 @@ IDENTICAL_BY_NATURE: Final[frozenset[str]] = frozenset(
     {
         "app.name",
         "a11y.speaker.agent",
-        "lang.tr",
-        "lang.en",
         "intake.unit.cm",
         "intake.unit.kg",
     }

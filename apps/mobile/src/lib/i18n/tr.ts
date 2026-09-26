@@ -207,8 +207,6 @@ export const tr = {
   "me.title": "Profilim",
   "me.consents": "İzinleriniz",
   "me.language": "Dil",
-  "lang.tr": "Türkçe",
-  "lang.en": "English",
   "me.learned": "Hakkımda öğrendikleri",
   "me.learnedEmpty": "Vizite sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
   "learned.guide.kicker": "Şeffaflık",
