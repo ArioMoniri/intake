@@ -70,9 +70,15 @@ EXPECTED_OBJECT_STORE_SERVICES = {
     ("infra/docker-compose.backup.yml", "mc"),
 }
 
-#: Dated records of what happened before this change. They quote the old
-#: reference as history, not as configuration.
-HISTORICAL_PREFIXES = ("docs/evidence/",)
+#: Records, not configuration: the dated evidence and iteration log quote the
+#: old reference as history, and the backlog (plus files/11, generated from
+#: it) names the image its INT-347 row asks to replace. Nothing pulls from them.
+HISTORICAL_PREFIXES = (
+    "docs/evidence/",
+    "docs/PROGRESS.md",
+    "docs/backlog/",
+    "files/11_ISSUE_BACKLOG.md",
+)
 
 
 def _withdrawn_pattern() -> re.Pattern[str]:
