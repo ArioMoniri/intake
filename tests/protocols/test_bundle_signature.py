@@ -664,9 +664,9 @@ def _directory(name: str) -> tarfile.TarInfo:
 
 class TestTheTrustRootFailsClosed:
     def test_no_configured_trust_root_refuses_and_names_int_019(self) -> None:
-        with pytest.raises(TrustRootMissing, match="INT-019"):
+        with pytest.raises(TrustRootMissing, match="is unset.*INT-019"):
             load_trust_root({})
-        with pytest.raises(TrustRootMissing, match="INT-019"):
+        with pytest.raises(TrustRootMissing, match="is unset.*INT-019"):
             load_trust_root({TRUST_ROOT_ENV: "   "})
 
     def test_the_process_environment_is_the_default_source(
