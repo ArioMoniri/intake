@@ -34,6 +34,7 @@ import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import {
   fonts,
   lineHeight,
+  motion,
   palette,
   radius,
   scaledSize,
@@ -329,13 +330,16 @@ export function PrimaryButton({ label, onPress, disabled = false, hint }: Button
       accessibilityHint={hint}
       // Declared rather than left to RN's implicit merge: a dimmed CTA the
       // patient cannot use must SAY it is unavailable, not just look it
-      // (SC 1.4.1 — the 0.5 opacity is the sighted half of this signal).
+      // (SC 1.4.1 — the disabled opacity is the sighted half of this signal).
       accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.primaryButton,
-        { backgroundColor: theme.cta, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+        {
+          backgroundColor: theme.cta,
+          opacity: disabled ? motion.press.disabledOpacity : pressed ? motion.press.opacity : 1,
+        },
       ]}
     >
       <AppText role="body" color="onCta" style={styles.buttonLabel}>
@@ -365,7 +369,7 @@ export function SecondaryButton({ label, onPress, disabled = false, hint }: Butt
         styles.primaryButton,
         {
           backgroundColor: theme.surfaceRaised,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? motion.press.disabledOpacity : pressed ? motion.press.opacity : 1,
         },
       ]}
     >

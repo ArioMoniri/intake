@@ -1,0 +1,143 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/immunoloji_ve_alerji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.immunoloji_ve_alerji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: İmmünoloji ve Alerji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün alerji ve immünoloji polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+  sorular:
+    slots:
+      burun_belirtileri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sık hapşırık, burun akıntısı, burun tıkanıklığı ya da burun kaşıntısı yaşıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      mevsimsel_artis:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu burun şikâyetleriniz her yıl aynı mevsimde artıyor mu?
+        ask_if: burun_belirtileri == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      goz_kasinti_sulanma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gözlerinizde kaşıntı ya da sulanma oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      hisilti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Nefes alıp verirken göğsünüzden hışıltı ya da ıslık gibi bir ses geliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      gece_sabah_solunum_sikayeti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gece veya sabaha karşı öksürük ya da nefes darlığı yaşıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      tetikleyici_ile_artis:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şikâyetleriniz ev tozu, polen, evcil hayvan ya da iş yerinizdeki bir maddeyle artıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      kurdesen:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Derinizde kurdeşen gibi kaşıntılı, kabarık ve kısa sürede geçen kızarıklıklar çıkıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      sislik_ataklari:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dudaklarınızda, göz kapaklarınızda ya da yüzünüzde nedeni belli olmayan şişlikler oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      ailede_sislik_ataklari:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde benzer şişlik atakları yaşayan başka biri var mı?
+        ask_if: sislik_ataklari == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      besin_sonrasi_tepki:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Belirli bir yiyeceği yedikten kısa süre sonra kaşıntı, kurdeşen ya da şişlik oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      ari_sokmasi_yaygin_tepki:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Arı sokmasından sonra, sokulan yerin dışında vücudunuzda da bir tepki oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      tekrarlayan_enfeksiyon:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sık tekrarlayan ya da zor iyileşen zatürre, sinüzit gibi enfeksiyonlar geçiriyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+      ailede_bagisiklik_yetmezligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde bağışıklık sistemi yetmezliği tanısı almış biri var mı?
+        ask_if: tekrarlayan_enfeksiyon == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/immunoloji_ve_alerji.md'
+red_flags:
+- id: rf.immunoloji_ve_alerji_l0_taslak
+  label_tr: İmmünoloji ve Alerji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: immunoloji_ve_alerji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/immunoloji_ve_alerji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

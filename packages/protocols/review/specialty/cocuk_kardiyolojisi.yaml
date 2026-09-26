@@ -1,0 +1,151 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_kardiyolojisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_kardiyolojisi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Çocuk Kardiyolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün getiren temel konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+  sorular:
+    slots:
+      morarma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun dudaklarında, dilinde ya da tırnaklarında morarma fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      beslenirken_yorulma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz emerken ya da mama alırken çabuk yoruluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      beslenirken_terleme:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz beslenirken terliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      yavas_kilo_alma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun kilo alması ya da büyümesi size yavaş mı geliyor?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      cabuk_yorulma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda her zamankinden çabuk yoruluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      nefes_darligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda nefes almakta zorlanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      goz_kapagi_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun göz kapaklarında şişlik oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      carpinti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun kalbinin hızlı, düzensiz ya da çok güçlü çarptığı oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      bayilma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz hiç bayıldı ya da bayılacak gibi olduğunu hissetti mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      eforla_carpinti_bayilma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu çarpıntı ya da baygınlık koşarken ya da oyun oynarken oluyor mu?
+        ask_if: carpinti == true || bayilma == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      ailede_ani_olum:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde genç yaşta nedeni bilinmeyen ani ölüm yaşandı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      ailede_ritim_hastaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde kalıtsal bir kalp ritmi hastalığı olan biri var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      kalp_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuza daha önce bir kalp hastalığı tanısı kondu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      kalp_ameliyati:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce kalp ameliyatı oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+      duzenli_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun kalbi ya da başka bir durumu için düzenli kullandığı ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md'
+red_flags:
+- id: rf.cocuk_kardiyolojisi_l0_taslak
+  label_tr: Çocuk Kardiyolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_kardiyolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -1,0 +1,133 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_romatolojisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_romatolojisi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Çocuk Romatolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün hekime getiren en önemli konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+  sorular:
+    slots:
+      eklem_sisligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bir ya da birden fazla ekleminde şişlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      eklem_sisligi_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu eklem şişliği ne zamandır sürüyor?
+        ask_if: eklem_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      sabah_tutuklugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz sabahları ya da uzun süre hareketsiz kaldıktan sonra eklemlerinde tutukluk veya ağrı yaşıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      gunluk_hareket_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz günlük hareketlerinde, örneğin yürürken, giyinirken ya da oyun oynarken zorlanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      aksama_kullanmama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz aksıyor, ayağına basmaktan kaçınıyor ya da bir kolunu veya bacağını kullanmak istemiyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      gece_uyandiran_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun ağrısı onu geceleri uykudan uyandırıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      agri_kesiciye_ragmen_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun ağrısı ağrı kesiciye rağmen devam ediyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      eklemle_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun eklem şikâyetleriyle birlikte uzun süredir devam eden ya da tekrarlayan ateşi oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      ani_sicak_kizarik_eklem:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu sıralarda çocuğunuzun bir eklemi aniden sıcak, kızarık ve çok ağrılı hâle geldi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      genel_durum_bozuklugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzda son zamanlarda kilo kaybı, iştahsızlık, solukluk ya da alışılmadık bir hâlsizlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      eklemle_dokuntu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun eklem şikâyetleriyle birlikte ciltte döküntü ortaya çıktı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+      romatizmal_tani:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuza daha önce romatizmal ya da bağışıklık sistemiyle ilgili bir hastalık tanısı kondu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_romatolojisi.md'
+red_flags:
+- id: rf.cocuk_romatolojisi_l0_taslak
+  label_tr: Çocuk Romatolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_romatolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_romatolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'
