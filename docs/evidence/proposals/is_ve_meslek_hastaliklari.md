@@ -24,21 +24,31 @@ off*. It assigns **no** RED/YELLOW/GREEN level and pins **no** clinical value.
   a report (işe giriş / periyodik muayene raporu, or a meslek hastalığı assessment with legal and
   social-security consequences). The pack captures history only. Q2 records the **patient's own
   belief** that work is involved; it never asserts that it is.
-- **Data-category line (invariant 18) — owner decision required.** The persona research in
-  files/02 names the employer as a person patients fear will see their data, and IM-S3 requires the
-  worker's health information to be kept confidential. This draft therefore splits the work history
-  in two:
-  - **Kept (not held):** the patient's own symptoms, the temporal pattern, and **yes/no hazard
-    classes** about the patient's own work (Q5, Q7, Q9, Q11). These are treated as health history
-    next to base `occupation` (`packages/protocols/base/intake.yaml`, social history).
-  - **Held (`gen: hold=invariant 18`):** anything that names an **employer or workplace**, names a
-    **specific agent or sector**, describes **workplace conditions** (protective equipment), or
-    records **employment or social-security history** (tenure, sick leave, leaving a job). If the
-    owner rules that the yes/no hazard classes are also a new category, flip Q5/Q7/Q9/Q11 to hold.
+- **Data-category line (invariant 18) — approved under D3; `text_first`; INT-349 row.** The persona
+  research in files/02 names the employer as a person patients fear will see their data, and IM-S3
+  requires the worker's health information to be kept confidential. Owner decision D3
+  (`docs/evidence/verification/owner-decisions-2026-09-26.md`) approved "employer / occupational
+  exposure" as a category for the review-queue candidates. Therefore:
+  - **Work-history items are `delivery: text_first`:** the patient's belief that work is involved
+    (Q2), co-workers' complaints (Q4), the yes/no hazard classes (Q5, Q7, Q9, Q11), psychosocial
+    exposure (Q14) and the items formerly held under invariant 18: named agents (Q6), employer (Q15),
+    protective equipment (Q16), work-related sick leave (Q17) and tenure (Q18). Each needs its
+    data-inventory row: invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row
+    pending counsel review (INT-349).
+  - D3 names "employer / occupational exposure"; Q17 (sick leave) and Q18 (tenure) are read as within
+    that line. The owner narrows it if not.
+  - **Symptom items stay `voice`:** Q3, Q8, Q10, Q12, Q13.
+  - D3 does not settle storage, encryption, the per-category legal basis or slot tagging; those stay
+    open under INT-349 and must close before any of these items is served.
+- **Report and screening visits may carry no complaint.** Q2a asks whether a health complaint exists
+  now; Q2–Q4, which presume one, are gated on it. The owner may drop the gate if this clinic sees only
+  symptomatic referrals; Q2–Q4 then lose their `ask_if`.
 - **Not repeated from base:** occupation itself (`occupation`: "Ne iş yapıyorsunuz?"), medications,
   allergies, smoking, alcohol and pregnancy are asked by base intake.
-- **No validated instrument is reproduced.** Q14 (burnout) is a single own-words question; it is not
-  an item of the Maslach Burnout Inventory or any other scale.
+- **No validated instrument is reproduced.** Q14 asks about the psychosocial exposure IM-S1 names
+  ("Aşırı iş yükü"), in line with the pack's other hazard items. The earlier "tükenmiş hissediyor
+  musunuz" wording had the shape of the Maslach Burnout Inventory's emotional-exhaustion item and was
+  replaced. Mood and burnout screening stay with the consented wellbeing module.
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules.
   Nothing here assigns a level, route or trigger.
 - **Verification caveat (every quote in §1):** IM-S1, IM-S2 and IM-S3 were downloaded and their text
@@ -138,11 +148,12 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q | Captured item | Archetype ROOT | RM type | Leaf path |
 |---|---|---|---|---|
 | Q1 | Reason for visit | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | EVALUATION | deferred (INT-032) |
+| Q2a | Current health complaint (gate) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q2 | Patient believes work is involved | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q3 | Better away from work | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q4 | Similar complaints in co-workers | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q5 | Dust / fume / gas / chemical exposure (yes/no) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; **no exposure archetype in the OPT** |
-| Q6 | HELD — named agents / sector | — | — | — |
+| Q6 | Names of the agents (if Q5 yes) | no candidate archetype | — | deferred (INT-032) |
 | Q7 | Noisy workplace (yes/no) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q8 | Ringing ears / reduced hearing | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Vibrating hand tools (yes/no) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
@@ -150,8 +161,8 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q11 | Heavy lifting / repetitive movement (yes/no) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q12 | Cough / wheeze / breathlessness | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q13 | Hand / forearm skin symptoms | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q14 | Feeling burnt out by work | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q15–Q18 | HELD — employer, protective equipment, sick leave / job loss, tenure | — | — | — |
+| Q14 | Excess workload or stress at work (psychosocial exposure) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q15–Q18 | Employer, protective equipment, work-related sick leave, tenure | no candidate archetype | — | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -176,58 +187,77 @@ No level, route, register or location is proposed for any row (invariants 1, 21)
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (18 drafted: 13 active, 5 held)
+## 3. Candidate B1 Turkish pre-visit questions (19 drafted, all active)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE —
 clinician to approve wording.** Own words throughout; the IM-S1 screening list is a source, not a
 script. No item carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot; duration comes
-from the pack's `sikayet_suresi` slot. "Şu anki ya da önceki işlerinizde" is used because relevant
-exposure can be lifetime (IM-S1 "geçmişte maruz kaldınız mı").
+from the pack's `sikayet_suresi` slot, whose fixed ask fits the symptom-driven visits this clinic
+mostly sees (no sourced alternative exists for periodic examinations). Q1 ends in "nedir?" so the
+generator's neutral follow-up is used, not the complaint follow-up. "Şu anki ya da önceki
+işlerinizde" is used because relevant exposure can be lifetime (IM-S1 "geçmişte maruz kaldınız mı").
+Work-history items are `text_first` under owner decision D3 (§0).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün iş ve meslek hastalıkları polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
+> "Bugün iş ve meslek hastalıkları polikliniğine gelme nedeniniz nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Patient's belief that work is involved** · archetype: `OBSERVATION.story.v1` · source: IM-S1 (short list)
+**Q2a — Current health complaint (gate)** · archetype: `OBSERVATION.story.v1` · source: IM-S1 short list (asked of a worker with a health problem)
+> "Şu anda sizi rahatsız eden bir sağlık şikâyetiniz var mı?"
+gen: slot=guncel_saglik_sikayeti; type=boolean
+CANDIDATE — clinician to approve wording. Report and screening visits (işe giriş, periyodik muayene)
+may carry no complaint; Q2–Q4 read this gate. The owner may drop the gate if this clinic sees only
+symptomatic referrals, and Q2–Q4 then lose their `ask_if`.
+
+**Q2 — Patient's belief that work is involved (if Q2a yes)** · archetype: `OBSERVATION.story.v1` · source: IM-S1 (short list)
 > "Şikâyetinizin yaptığınız işten kaynaklanıyor olabileceğini düşünüyor musunuz?"
-gen: slot=isten_kaynaklandigi_dusuncesi; type=boolean
-CANDIDATE — clinician to approve wording. Records the patient's view only; never a work-relatedness decision.
+gen: slot=isten_kaynaklandigi_dusuncesi; type=boolean; ask_if=guncel_saglik_sikayeti == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Records the patient's view only; never a work-relatedness
+decision. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
-**Q3 — Better away from work** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 (causal question; occupational-asthma advice to ask about holidays)
+**Q3 — Better away from work (if Q2a yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 (causal question; occupational-asthma advice to ask about holidays)
 > "İşten uzak kaldığınız tatil günlerinde şikâyetleriniz azalıyor mu?"
-gen: slot=tatilde_azalma; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=tatilde_azalma; type=boolean; ask_if=guncel_saglik_sikayeti == true
+CANDIDATE — clinician to approve wording. Symptom pattern, so `voice`.
 
-**Q4 — Similar complaints in co-workers** · archetype: `OBSERVATION.story.v1` · source: IM-S1 (causal question; short list)
+**Q4 — Similar complaints in co-workers (if Q2a yes)** · archetype: `OBSERVATION.story.v1` · source: IM-S1 (causal question; short list)
 > "İş arkadaşlarınızda da benzer şikâyetler var mı?"
-gen: slot=is_arkadaslarinda_benzer_sikayet; type=boolean
-CANDIDATE — clinician to approve wording. No co-worker is identified.
+gen: slot=is_arkadaslarinda_benzer_sikayet; type=boolean; ask_if=guncel_saglik_sikayeti == true; delivery=text_first
+CANDIDATE — clinician to approve wording. No co-worker is identified. invariant 18: owner-approved
+2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q5 — Dust, fume, gas or chemical exposure** · archetype: `OBSERVATION.story.v1` · source: IM-S1 ("kimyasallar, tozlar, metaller"), IM-S2 (2.1, 2.2)
 > "Şu anki ya da önceki işlerinizde toz, duman, gaz veya kimyasal maddeyle karşılaştınız mı?"
-gen: slot=toz_kimyasal_maruziyeti; type=boolean
-CANDIDATE — clinician to approve wording. Yes/no hazard class only (§0 data-category line).
+gen: slot=toz_kimyasal_maruziyeti; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Yes/no hazard class (§0). invariant 18: owner-approved
+2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
-**Q6 — Names of the agents or the sector (if Q5 yes)** · archetype: none · source: IM-S1 ("İş türü / Endüstri")
-> "Karşılaştığınız maddelerin adlarını ya da çalıştığınız iş kolunu söyleyebilir misiniz?"
-gen: slot=maruziyet_ayrintisi; type=string; ask_if=toz_kimyasal_maruziyeti == true; hold=invariant 18 — exposure detail and sector are a new data category; owner decision required
-CANDIDATE — HELD. Free text can name the employer; needs an inventory annotation and consent scope.
+**Q6 — Names of the agents (if Q5 yes)** · archetype: none · source: IM-S1 ("kimyasallar, tozlar, metaller")
+> "Karşılaştığınız toz, duman, gaz ya da kimyasalların adlarını söyleyebilir misiniz?"
+gen: slot=maruziyet_ayrintisi; type=string; ask_if=toz_kimyasal_maruziyeti == true; follow_up=Adlarını bilmiyorsanız nasıl maddeler olduğunu anlatır mısınız?; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3. The sector is no longer asked here: base
+`occupation` and Q15 cover it, and the double object left one string slot holding either of two
+facts. Free text can still name the employer. invariant 18: owner-approved 2026-09-26;
+VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q7 — Noisy workplace** · archetype: `OBSERVATION.story.v1` · source: IM-S1 (Gürültü), IM-S2 (1.2.1)
 > "Şu anki ya da önceki işlerinizde gürültülü bir ortamda çalıştınız mı?"
-gen: slot=gurultulu_ortam; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=gurultulu_ortam; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. invariant 18: owner-approved 2026-09-26;
+VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q8 — Ringing in the ears or reduced hearing** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 ("kulak çınlaması, işitmenin azalması")
 > "Kulaklarınızda çınlama ya da işitmenizde azalma fark ettiniz mi?"
 gen: slot=cinlama_isitme_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording. Not gated on Q7; hearing loss has other work causes.
+Hava ve uzay hekimliği Q5 shares this text and slot.
 
 **Q9 — Vibrating hand tools** · archetype: `OBSERVATION.story.v1` · source: IM-S1 (el-kol titreşimi), IM-S2 (1.2.2)
 > "Şu anki ya da önceki işlerinizde titreşen el aletleri kullandınız mı?"
-gen: slot=titresimli_alet; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=titresimli_alet; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. invariant 18: owner-approved 2026-09-26;
+VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q10 — Finger whitening or numbness in the cold (if Q9 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 (vibration white finger; "uyuşma ve karıncalanma")
 > "Soğukta parmaklarınızda beyazlaşma, uyuşma ya da karıncalanma oluyor mu?"
@@ -235,46 +265,61 @@ gen: slot=parmak_beyazlasma_uyusma; type=boolean; ask_if=titresimli_alet == true
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Heavy lifting or repetitive movement** · archetype: `OBSERVATION.story.v1` · source: IM-S1 ("sık tekrarlanan hareketler"; Birikimsel travma, Tablo 1), IM-S2 (2.3)
-> "İşiniz ağır yük kaldırmayı ya da aynı hareketi sık tekrarlamayı gerektiriyor mu?"
-gen: slot=agir_yuk_tekrarli_hareket; type=boolean
-CANDIDATE — clinician to approve wording.
+> "Şimdiye kadar yaptığınız işler ağır yük ya da sık tekrarlanan hareket gerektirdi mi?"
+gen: slot=agir_yuk_tekrarli_hareket; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Covers past work as well as the current job, like Q5, Q7 and
+Q9, with one predicate. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row
+pending counsel review (INT-349).
 
 **Q12 — Cough, wheeze or breathlessness** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 (occupational asthma symptoms), IM-S2 (2.1)
 > "Öksürük, hırıltılı nefes ya da nefes darlığı yaşıyor musunuz?"
 gen: slot=solunum_belirtileri; type=boolean
 CANDIDATE — clinician to approve wording. History only; **overlap `rf.dyspnoea_rest` (§2.2)**.
 
-**Q13 — Hand or forearm skin symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 ("sıklıkla ellerde başlar ve önkola yayılır"), IM-S2 (2.2)
-> "Ellerinizde ya da kollarınızda kaşıntı, kızarıklık, kuruma veya çatlama oluyor mu?"
+**Q13 — Hand or forearm skin symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 ("sıklıkla ellerde başlar ve önkola yayılır"; "Ciltte kızarıklık, kaşıntı, … lokal şişlik"), IM-S2 (2.2)
+> "Ellerinizde ya da kollarınızda kaşıntı, kızarıklık ya da şişlik oluyor mu?"
 gen: slot=el_kol_cilt_belirtileri; type=boolean
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. Aligned with the IM-S1 quote; the clinician may add dryness
+or cracking back with a source.
 
-**Q14 — Feeling burnt out by work** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 (Tükenmişlik sendromu; "Aşırı iş yükü"), IM-S2 (2.4)
-> "İş yükünüz ya da iş stresiniz yüzünden kendinizi tükenmiş hissediyor musunuz?"
-gen: slot=is_kaynakli_tukenmislik; type=boolean
-CANDIDATE — clinician to approve wording. Not a scale item; no score attached.
+**Q14 — Excess workload or stress at work (psychosocial exposure)** · archetype: `OBSERVATION.symptom_sign.v1` · source: IM-S1 ("Aşırı iş yükü"), IM-S2 (2.4)
+> "İşinizde aşırı iş yükü ya da stres yaşıyor musunuz?"
+gen: slot=asiri_is_yuku_stres; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. An exposure item, like Q5, Q7, Q9 and Q11; not a scale item,
+no score. Mood and burnout screening stay with the consented wellbeing module. invariant 18:
+owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q15 — Employer or workplace** · archetype: none · source: IM-S1 ("İşveren adı / Adres")
 > "Hangi iş yerinde çalıştığınızı söyleyebilir misiniz?"
-gen: slot=is_yeri; type=string; hold=invariant 18 — employer identity is a new data category; owner decision required
-CANDIDATE — HELD. IM-S3 confidentiality and the files/02 employer fear apply.
+gen: slot=is_yeri; type=string; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3. IM-S3 confidentiality and the files/02
+employer fear apply. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row
+pending counsel review (INT-349).
 
-**Q16 — Protective equipment at work** · archetype: none · source: IM-S1 ("İşyerinde kişisel koruyucu kullanıyor musunuz?")
+**Q16 — Protective equipment at work (if Q5 or Q7 yes)** · archetype: none · source: IM-S1 ("İşyerinde kişisel koruyucu kullanıyor musunuz?")
 > "İş yerinde maske, eldiven ya da kulak koruyucu kullanıyor musunuz?"
-gen: slot=kisisel_koruyucu; type=boolean; hold=invariant 18 — workplace-conditions detail is a new data category; owner decision required
-CANDIDATE — HELD. The answer describes the employer's practice as well as the patient's exposure.
+gen: slot=kisisel_koruyucu; type=boolean; ask_if=toz_kimyasal_maruziyeti == true || gurultulu_ortam == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3; gated on an exposure. The answer
+describes the employer's practice as well as the patient's exposure. Polarity: `true` is the
+protective answer, unlike the symptom slots; rule authors (HB-C) must read it that way. invariant 18:
+owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
-**Q17 — Sick leave or leaving a job for a work-related health problem** · archetype: none · source: IM-S1 ("rapor kullandınız mı, işten ayrıldınız mı")
+**Q17 — Sick leave for a work-related health problem** · archetype: none · source: IM-S1 ("rapor kullandınız mı, işten ayrıldınız mı")
 > "İşle ilgili bir sağlık sorunu yüzünden daha önce rapor aldınız mı?"
-gen: slot=isle_ilgili_rapor; type=boolean; hold=invariant 18 — employment and social-security history is a new data category; owner decision required
-CANDIDATE — HELD.
+gen: slot=isle_ilgili_rapor; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3, read as within "employer / occupational
+exposure"; the owner narrows it if not. invariant 18: owner-approved 2026-09-26; VERBİS/data-category
+register row pending counsel review (INT-349).
 
 **Q18 — Time in the current job** · archetype: none · source: IM-S1 ("Bu işte çalışmaya ne zaman başladınız?")
 > "Şu anki işinizde ne zamandır çalışıyorsunuz?"
-gen: slot=is_suresi; type=duration; hold=invariant 18 — employment history is a new data category; owner decision required
-CANDIDATE — HELD. Clinically useful for latency; the clinician may argue it into the kept set.
+gen: slot=is_suresi; type=duration; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3, read as within "employer / occupational
+exposure"; the owner narrows it if not. Clinically useful for latency; `type=duration`, so no free
+numeric entry. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending
+counsel review (INT-349).
 
-*(18 drafted: 13 active, 5 held.)*
+*(19 drafted, all active.)*
 
 ---
 
@@ -286,14 +331,16 @@ CANDIDATE — HELD. Clinically useful for latency; the clinician may argue it in
    (versioned) — clinician must supply.**
 2. **İşe giriş / periyodik muayene content** — IM-S3 names the visit types, but the Ministry's
    periodic-examination rules (Çalışanların Sağlık Gözetimi) were not retrieved. **NO SOURCE FOUND.**
-3. **Data-category decisions (invariant 18)** — Q6, Q15, Q16, Q17, Q18 are held; Q5/Q7/Q9/Q11 are
-   kept on the §0 reasoning. **Owner + DPO decision required**; HB row to be cross-referenced by the
-   owner. No inventory annotation exists for any of these fields.
+3. **Data-category decisions (invariant 18)** — resolved by D3 (owner, 2026-09-26), except the
+   INT-349 open items: per-item data-inventory rows, encrypted storage, counsel's per-category legal
+   basis, retention, recipients and VERBİS entry, and slot tagging. All work-history items are
+   `text_first` (§0). No inventory annotation exists yet for any of these fields.
 4. **Latency and exposure-duration thresholds** (e.g., how long after starting a job symptoms
    appear) — present in IM-S1 as numbers; **not put into patient copy** (invariant 22); a clinician
    must decide whether a rule needs them.
-5. **Psychosocial risk and mental-health items beyond burnout** (ILO 2.4.1 post-traumatic stress) —
-   not drafted. Clinician may add, with PolicyGuard review.
+5. **Psychosocial risk and mental-health items beyond workload** (ILO 2.4.1 post-traumatic stress) —
+   not drafted. Clinician may add, with PolicyGuard review; mood and burnout screening stay with the
+   consented wellbeing module.
 6. **Occupational cancer and ionising-radiation history** (IM-S1 chapters; ILO 1.2.4, section 3) —
    not drafted to stay near twelve active items.
 7. **EK-4 acuity** (RG 13/9/2022 sayı 31952) — no snapshot in repo; **no level proposed**. All three
@@ -311,8 +358,11 @@ CANDIDATE — HELD. Clinically useful for latency; the clinician may argue it in
 - **Inv. 7** — acute inhalation / asphyxiant exposure and breathlessness at rest left to
   `base.life_threat` and the physician (§2.2); nothing extends it.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
-- **Inv. 18** — five items held for a new data category (employer, agents/sector, workplace
-  conditions, employment and social-security history); owner decision required.
+- **Inv. 18** — employer and occupational-exposure items approved under D3 (2026-09-26): the five
+  formerly held items (Q6, Q15–Q18) are released, and every work-history item (Q2, Q4, Q5, Q6, Q7,
+  Q9, Q11, Q14, Q15–Q18) is `text_first`. Each needs its INT-349 row; storage, encryption, the
+  counsel decisions and slot tagging stay open under INT-349.
+- **Instruments** — Q14 is a psychosocial-exposure item, not the Maslach emotional-exhaustion item.
 - **Inv. 21** — RED axes intentionally unspecified (gap 7).
 - **Inv. 22** — no numerals in any candidate question; source numbers stay in §1 only.
 - **Fitness-to-work** — history capture only; the report and any work-relatedness decision are the

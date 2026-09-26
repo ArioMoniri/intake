@@ -139,7 +139,7 @@ procedure root, so practice history is narrative.
 | Q8 | Treating physician aware | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q9 | Open or new surgical wound | `OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 | Q10 | Past clot or vessel blockage | `EVALUATION.problem_diagnosis.v1` | deferred (INT-032) |
-| Q11 | Past severe anaemia | `EVALUATION.problem_diagnosis.v1` | deferred (INT-032) |
+| Q11 | Past anaemia | `EVALUATION.problem_diagnosis.v1` | deferred (INT-032) |
 | Q12 | Known heart disease | `EVALUATION.problem_diagnosis.v1` | deferred (INT-032) |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -190,7 +190,8 @@ CANDIDATE — clinician to approve wording.
 **Q5 — Done in a health facility (if Q2 yes)** · archetype: `OBSERVATION.story.v1` · source: GT-S1 Madde 9(1) ("Bakanlıkça yetkilendirilmiş uygulama merkezi veya uygulama ünitelerinde")
 > "Bu uygulamalar bir hastanede ya da sağlık kuruluşunda mı yapıldı?"
 gen: slot=saglik_kurulusunda_yapildi; type=boolean; ask_if=onceki_getat_uygulamasi == true
-CANDIDATE — clinician to approve wording. Records setting only; the patient is not judged.
+CANDIDATE — clinician to approve wording. Records setting only; the patient is not judged. Polarity:
+`true` is the protective answer, unlike the symptom slots; rule authors (HB-C) must read it that way.
 
 **Q6 — Unexpected problem afterwards (if Q2 yes)** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: GT-S1 Madde 11(8), GT-S3 (side-effect list)
 > "Bir uygulamadan sonra beklemediğiniz bir yakınma ya da sorun yaşadınız mı?"
@@ -217,10 +218,11 @@ CANDIDATE — clinician to approve wording.
 gen: slot=damar_tikanikligi_oykusu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Past severe anaemia** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GT-S2 ("Derin kansızlık")
-> "Size daha önce ağır kansızlık olduğu söylendi mi?"
-gen: slot=agir_kansizlik_oykusu; type=boolean
-CANDIDATE — clinician to approve wording.
+**Q11 — Past anaemia** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GT-S2 ("Derin kansızlık")
+> "Size daha önce kansızlık olduğu söylendi mi?"
+gen: slot=kansizlik_oykusu; type=boolean
+CANDIDATE — clinician to approve wording. "Ağır" is dropped so the patient is not asked to grade
+severity; the clinician grades it against GT-S2. Same text and slot as tıbbi ekoloji Q10.
 
 **Q12 — Known heart disease** · archetype: `EVALUATION.problem_diagnosis.v1` · source: GT-S2 ("Kalp hastalığı"), GT-S3 ("Kalp krizi", "Son dönem kalp ytmezliği")
 > "Size daha önce bir kalp hastalığı olduğu söylendi mi?"

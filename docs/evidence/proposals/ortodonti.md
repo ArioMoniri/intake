@@ -102,7 +102,8 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032; HB-C12)
 | Q6 | Jaw catching or limited opening | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Clenching or grinding (self-report) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Mouth breathing | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q9 | Oral habits | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032); no habit archetype in the OPT |
+| Q9a | Oral habits (yes/no) | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032); no habit archetype in the OPT |
+| Q9b | Which oral habit | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032); no habit archetype in the OPT |
 | Q10 | Past injury to front teeth | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q11 | Previous orthodontic treatment | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Gums bleed on brushing | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -129,7 +130,7 @@ No level, route, register or location is proposed (invariants 1, 7, 21).
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (13)
 
 Register: formal **siz**; one concern and exactly one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22); written in our own
@@ -176,10 +177,16 @@ CANDIDATE — clinician to approve wording.
 gen: slot=agizdan_nefes; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Oral habits** · archetype: `OBSERVATION.story.v1` · source: OR-S2 PDF p. 4 (habits); OR-S4 PDF p. 4 ("fingernail biting, clenching, bruxism")
+**Q9a — Oral habits** · archetype: `OBSERVATION.story.v1` · source: OR-S2 PDF p. 4 (habits); OR-S4 PDF p. 4 ("fingernail biting, clenching, bruxism")
 > "Parmak emme, dudak ya da tırnak ısırma gibi bir alışkanlığınız var mı?"
-gen: slot=agiz_aliskanligi; type=boolean; follow_up=Hangi alışkanlık olduğunu söyleyebilir misiniz?
-CANDIDATE — clinician to approve wording.
+gen: slot=agiz_aliskanligi; type=boolean
+CANDIDATE — clinician to approve wording. Yes/no gate for Q9b.
+
+**Q9b — Which oral habit** · archetype: `OBSERVATION.story.v1` · source: OR-S2 PDF p. 4 (habits); OR-S4 PDF p. 4
+> "Hangi alışkanlığınız olduğunu söyleyebilir misiniz?"
+gen: slot=agiz_aliskanligi_turu; type=string; ask_if=agiz_aliskanligi == true
+CANDIDATE — clinician to approve wording. Split from Q9 (wave 8 verification): a boolean slot cannot
+store the habit's name, so the name has its own string slot.
 
 **Q10 — Past injury to front teeth** · archetype: `OBSERVATION.story.v1` · source: OR-S1 PDF p. 78 ("travmatik diş kayıplarından"); OR-S4 PDF p. 5
 > "Ön dişleriniz daha önce bir darbe ya da kaza sonucu zarar gördü mü?"
@@ -196,7 +203,8 @@ CANDIDATE — clinician to approve wording.
 gen: slot=dis_eti_kanamasi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions: Q1 general intake; Q2–Q12 source-backed; no candidate flag on any item.)*
+*(13 candidate questions: Q1 general intake; Q2–Q12 source-backed, with Q9 split into Q9a and Q9b; no
+candidate flag on any item.)*
 
 ---
 
@@ -207,7 +215,9 @@ CANDIDATE — clinician to approve wording.
    SOURCE FOUND (current Turkish orthodontic guideline) — clinician must supply** if one exists.
 2. **Minors and proxy sessions.** Many orthodontic patients are children. These asks address the
    patient; a parent-voiced variant ("çocuğunuz") keyed on base `subject_role` is needed. **Clinician
-   and product decision.**
+   and product decision.** Wave 8 verification (§A, owner decision 2) confirms it: either the pack is
+   self-report only, or it needs a parent-addressed variant. No parent wording is proposed here —
+   **clinician decision pending**.
 3. **Omitted to stay at twelve — sourced, clinician may swap in:** snoring or observed breathing pauses
    in sleep (OR-S2 PDF p. 4); tongue thrust (OR-S2 PDF p. 4); earlier treatment for a jaw-joint problem
    (OR-S3 PDF p. 3).
@@ -218,12 +228,21 @@ CANDIDATE — clinician to approve wording.
    dedicated appliance-metal item was not sourced. **NO SOURCE FOUND — clinician to decide.**
 6. **Standard duration slot.** The generator adds `sikayet_suresi` ("Bu şikâyetiniz ne zamandır
    var?"), which fits a complaint but reads oddly for an alignment concern. **Clinician to decide**
-   (generator-level).
+   (generator-level). Wave 8 verification confirms that no source supports a duration question for an
+   alignment concern. No `pack:` line is written and no wording is proposed: **clinician decision
+   pending** — clinician wording, or the slot left out once the generator's `duration=omit` option
+   (wave 7 §E-2) exists.
 7. **Copyright / snapshot licence.** AAPD texts are © AAPD; the TDB book is a professional
    publication. A committed verbatim snapshot needs **permission or a legal-review decision.**
 8. **Every triage level and all three RED axes** (invariant 21) — deliberately **not** assigned.
 9. **openEHR** — leaf paths deferred (INT-032, HB-C12); no habit or lifestyle archetype in the OPT.
 10. **PolicyGuard lexicon is itself unsigned (HB-C23).**
+11. **Dental airway ask.** §2.2 leaves spreading swelling with breathing or swallowing difficulty to
+    `base.life_threat`, but `rf.dyspnoea_rest` and `rf.sepsis_like` are named-gap stubs there with no
+    ask, so no layer asks about the airway in this pack. Four sibling dental packs carry an ungated
+    airway ask instead. Whether every dental pack carries it under one shared slot id, or none does, is
+    an owner and physician decision (wave 8 verification §A, owner decision 1). No item is added here —
+    **clinician decision pending**.
 
 ---
 

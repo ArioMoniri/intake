@@ -185,9 +185,10 @@ gen: slot=kansizlik_oykusu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Known diabetes** · archetype: `EVALUATION.problem_diagnosis.v1` · source: TE-S2 ("tip 2 diyabet")
-> "Size daha önce şeker hastalığı olduğu söylendi mi?"
-gen: slot=seker_hastaligi_oykusu; type=boolean
-CANDIDATE — clinician to approve wording.
+> "Size daha önce şeker hastalığı tanısı konuldu mu?"
+gen: slot=diyabet_tanisi; type=boolean
+CANDIDATE — clinician to approve wording. The shared `diyabet_tanisi` text and slot (nefroloji,
+nükleer tıp).
 
 **Q12 — Past cancer diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: TE-S2 ("Kesin kontrendikasyonlar; kanser")
 > "Size daha önce kanser tanısı konuldu mu?"

@@ -25,9 +25,16 @@ and pins **no** clinical value.
   topic-specific content belongs to the relevant specialty pack.
 - **Not repeated from base:** medications, allergies, caregiver presence (`caregiver_present`), living
   situation, patient goals (`patient_goals`).
-- **Health literacy is not measured.** HE-S2 names health literacy as part of the "educational
-  diagnosis", but asking about reading ability creates a new personal-data category; Q10 is **held**.
-  No health-literacy instrument (e.g. REALM, NVS, HLS-EU) is reproduced.
+- **Q10 asks for an accommodation, not a measure; voice.** HE-S2 names health literacy as part of the
+  "educational diagnosis" and says education is "adapted to the patient"; that supports asking for the
+  accommodation, not measuring literacy. The earlier wording ("okuyup anlamakta zorlanır mısınız?") had
+  the shape of the published single-item literacy screeners and was replaced by a preference: whether
+  written information should also be read aloud. Reading and learning difficulty is a category owner
+  decision D3 approved, so Q10 needs its INT-349 row (the answer is a literacy proxy). It is `voice`,
+  not D3's `text_first`, because a reading-difficulty item shown as text first cannot reach the patient
+  it is for; **the owner confirms this departure from D3's delivery line.** No health-literacy
+  instrument (e.g. REALM, NVS, HLS-EU) is reproduced.
+- **Held for a missing item-level source:** Q7 (learning format) and Q8 (sensory barriers), §4 gap 3.
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules.
   Nothing here assigns a level, route or trigger.
 - **Verification caveat:** HE-S1 was captured with WebFetch from a nursing-education society's copy
@@ -99,10 +106,10 @@ education or learning-needs root; all items are narrative.
 | Q4 | Difficulty with that care | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q5 | Question about a device or meter | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q6 | Main worry | `OBSERVATION.story.v1` (narrative only) | deferred |
-| Q7 | Preferred way of learning | `OBSERVATION.story.v1` (narrative only) | deferred |
-| Q8 | Vision or hearing barrier to teaching | `OBSERVATION.story.v1` (narrative only) | deferred |
+| Q7 | Preferred way of learning (HELD — no item-level source) | `OBSERVATION.story.v1` (narrative only) | deferred |
+| Q8 | Vision or hearing barrier to teaching (HELD — no item-level source) | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q9 | Wants a relative to attend | `OBSERVATION.story.v1` (narrative only) | deferred |
-| Q10 | Reading difficulty (HELD) | — | — |
+| Q10 | Wants written information also read aloud (accommodation preference) | no candidate archetype | deferred (INT-032) |
 | Q11 | Recent discharge | `OBSERVATION.story.v1` (narrative only) | deferred |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -122,6 +129,11 @@ Register: formal **siz**; one concern and one question mark per turn; at most fi
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE —
 clinician and lead education nurse to approve wording.** No item carries a triage level or a score.
 Q1 binds to the pack's `basvuru_nedeni` slot.
+
+**Duration ask — clinician decision pending.** An education visit is not a complaint visit, so the
+generator's fixed `sikayet_suresi` ask ("Bu şikâyetiniz ne zamandır var?") fits poorly, and no source
+supports another wording. No `pack:` line is written. The clinician supplies the wording, or the slot
+is omitted once the generator can leave it out (gap 6).
 
 **Q1 — Topic to learn** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake; HE-S1 ("eğitim, danışmanlık")
 > "Bugün hemşire eğitim polikliniğinde öğrenmek istediğiniz konu nedir?"
@@ -155,30 +167,37 @@ does not suggest there is cause for alarm.
 
 **Q7 — Preferred way of learning** · archetype: `OBSERVATION.story.v1` · source: HE-S2 ("adapted to the patient and their condition" — general; no verbatim on formats)
 > "Yeni bilgileri en kolay nasıl öğrenirsiniz, örneğin dinleyerek, izleyerek ya da okuyarak?"
-gen: slot=ogrenme_tercihi; type=string
-CANDIDATE — clinician to approve wording. A preference, not a literacy measure.
+gen: slot=ogrenme_tercihi; type=string; hold=no item-level source for learning format (gap 3)
+HELD — no item-level source (§4 gap 3); HE-S2's "adapted to the patient" is a principle, not an item.
+A preference, not a literacy measure.
 
 **Q8 — Vision or hearing barrier** · archetype: `OBSERVATION.story.v1` · source: HE-S2 ("adapted to the patient and their condition" — general; **no verbatim on sensory barriers**)
 > "Görme ya da işitmenizle ilgili, eğitimi takip etmenizi zorlaştıracak bir durum var mı?"
-gen: slot=gorme_isitme_engeli; type=boolean
-CANDIDATE — clinician to approve wording; weakly sourced (§4 gap 3).
+gen: slot=gorme_isitme_engeli; type=boolean; hold=no item-level source for sensory barriers (gap 3)
+HELD — no item-level source (§4 gap 3).
 
 **Q9 — Wants a relative to attend** · archetype: `OBSERVATION.story.v1` · source: HE-S2 ("supported by their carers and families"), HE-S1 ("Çocuk ve ailesini … evde bakıma hazırlar")
 > "Eğitime sizinle birlikte bir yakınınızın da katılmasını ister misiniz?"
 gen: slot=yakin_katilimi; type=boolean
 CANDIDATE — clinician to approve wording. A yes/no preference only; no relative's details are asked.
 
-**Q10 — Reading difficulty** · archetype: none · source: HE-S2 ("health literacy level")
-> "Yazılı bilgileri okuyup anlamakta zorlanır mısınız?"
-gen: hold=invariant 18 — new data category; owner decision required
-HELD — reading ability / literacy is a new personal-data category; owner decision required.
+**Q10 — Written information also read aloud (accommodation preference)** · archetype: none · source: HE-S2 ("health literacy level"; "adapted to the patient and their condition")
+> "Yazılı bilgilerin size ayrıca sesli olarak anlatılmasını ister misiniz?"
+gen: slot=sesli_anlatim_tercihi; type=boolean; delivery=voice
+CANDIDATE — clinician to approve wording. Released under D3 (reading and learning difficulty) and
+reframed as an accommodation the nurse acts on, not a literacy measure (§0). `voice` on purpose: a
+reading-difficulty item shown as text first cannot reach the patient it is for; the owner confirms
+this departure from D3's `text_first` line. The answer is a literacy proxy, so it still needs its
+row. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending counsel
+review (INT-349).
 
 **Q11 — Recent discharge** · archetype: `OBSERVATION.story.v1` · source: HE-S1 ("taburculuğa ve evde bakıma hazırlar" — paediatric nurse duty, generalised)
 > "Hastaneden yakın zamanda taburcu oldunuz mu?"
 gen: slot=yakin_taburculuk; type=boolean
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. The booking's `post_discharge` visit type may already record
+the discharge; kept, because base `new_diagnoses_since_last_visit` does not.
 
-*(11 candidate questions; 10 generate, 1 held.)*
+*(11 candidate questions; 9 generate, 2 held.)*
 
 ---
 
@@ -188,12 +207,14 @@ CANDIDATE — clinician to approve wording.
    found. **NO SOURCE FOUND — clinician/lead nurse must supply.**
 2. **Primary text of HE-S1** — society copy only; annex number and wording to be re-checked.
 3. **Learning-format and sensory-barrier items (Q7, Q8)** — only the general "adapted to the patient"
-   principle is sourced. **NO SOURCE FOUND (item-level).**
+   principle is sourced. **NO SOURCE FOUND (item-level).** Both are held until one is quoted.
 4. **Topic-specific teaching needs** (insulin, stoma, inhaler, dialysis, breastfeeding) — deliberately
    left to the specialty packs; the routing from this clinic to them is a product decision.
 5. **Emotional status and acceptance** (HE-S2) — not drafted; a mood item risks becoming an unvalidated
    wellbeing screen (CLAUDE.md clinical content rules on instruments). Clinician to decide.
-6. **The generator's standard `sikayet_suresi` slot** — fits poorly; the clinician may drop it.
+6. **The generator's standard `sikayet_suresi` slot** — fits an education visit poorly and no sourced
+   wording exists. **Clinician decision pending:** clinician wording, or omit the slot once the
+   generator supports it.
 7. **EK-4 acuity** — no level proposed; RED axes (invariant 21) deliberately unassigned.
 8. **openEHR leaf paths** — deferred (INT-032); no education root in the OPT (INT-041).
 
@@ -206,7 +227,8 @@ CANDIDATE — clinician to approve wording.
   wording; no worry-inducing wording; each draft marked CANDIDATE.
 - **Inv. 7** — nothing added to or extending `base.life_threat`.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval.
-- **Inv. 18** — Q10 (reading difficulty) held as a new personal-data category.
+- **Inv. 18** — Q10 released under D3 as an accommodation preference with its INT-349 row; `voice`,
+  not `text_first`, which the owner confirms (§0). Q7 and Q8 are held for a missing item-level source.
 - **Inv. 21** — RED axes intentionally unspecified.
 - **Inv. 22** — no numerals in any candidate question.
 - **Instruments** — no health-literacy or self-efficacy instrument reproduced.

@@ -27,10 +27,16 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
   history declaration, and MED.A.025(a)(3) makes an incomplete or false declaration reportable to the
   licensing authority. Pre-visit answers must not be presented, stored or exported as that
   declaration. **Legal-reviewer decision required** before this pack is served to licence holders.
-- **Data-category line (invariant 18):** the applicant's certification history (earlier restriction
-  or unfit decision, HU-S1 MED.A.035(b)(2)(iii)) is a licensing record, not health history. Q15 is
-  therefore **held**. Q2 records only whether an earlier aviation medical took place, to gate the
-  "since your last examination" items.
+- **Q15 is held for the statutory-declaration boundary (gap 4), a legal reason.** The applicant's
+  certification history (earlier restriction or adverse decision) is literally a MED.A.035(b)(2)(iii)
+  declaration item, and an inconsistency is reportable under MED.A.025(a)(3). It is also not among the
+  categories owner decision D3 approved, so the owner confirms it before release as well. Its text is
+  already fixed (the "engel" label is gone), so release needs only those two answers. Q2 records only
+  whether an earlier aviation medical took place, to gate the "since your last aviation examination"
+  items.
+- **No work-capacity self-judgement.** Q11 asks about a significant injury in the source's neutral
+  words ("önemli bir yaralanma"). Whether an injury makes duty harder is the MED.A.020(b)(3) trigger
+  and the examiner's call (MED.A.025), so it is never put to the patient.
 - **Not repeated from base:** occupation (pilot, cabin crew or air traffic controller is captured by
   base `occupation`), medications (HU-S1 MED.A.020(b)(2)), pregnancy (MED.A.020(b)(5)), hospital
   admission since the last visit (base `new_diagnoses_since_last_visit` follow-up), alcohol and
@@ -147,17 +153,17 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q2 | Earlier aviation medical (yes/no) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q3 | Ear / sinus pain in flight | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q4 | Cold / blocked nose / sinus complaint now | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q5 | Reduced hearing / ringing ears | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5 | Ringing ears / reduced hearing (shared slot `cinlama_isitme_azalmasi`) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q6 | Nausea / dizziness / disorientation in flight | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Sleep disrupted by shifts / time zones | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Fatigue not relieved by rest | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Back pain from long sitting | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q10 | Surgery or procedure since last exam | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; **no procedure archetype in the OPT** |
-| Q11 | Significant injury since last exam | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
-| Q12 | First glasses or lenses since last exam | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
+| Q10 | Surgery or procedure since last aviation exam | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; **no procedure archetype in the OPT** |
+| Q11 | Significant injury since last aviation exam | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
+| Q12 | First glasses or lenses since last aviation exam | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q13 | Fainting / loss of consciousness ever | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q14 | Recurrent throbbing headaches | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q15 | HELD — earlier restriction or unfit decision | — | — | — |
+| Q15 | HELD (legal, gap 4) — earlier restriction or adverse decision | — | — | — |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -187,11 +193,17 @@ No level, route, register or location is proposed for any row (invariants 1, 21)
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE —
 clinician to approve wording.** No item carries a triage level. Q1 binds to the pack's
-`basvuru_nedeni` slot; duration comes from the pack's `sikayet_suresi` slot. Q10–Q12 are gated on
-Q2 so a first-time applicant is not asked about a "last examination" they never had.
+`basvuru_nedeni` slot and ends in "nedir?" so the generator's neutral follow-up is used, not the
+complaint follow-up. Q10–Q12 are gated on Q2 so a first-time applicant is not asked about a "last
+examination" they never had.
+
+**Duration ask — clinician decision pending.** The generator's fixed `sikayet_suresi` ask ("Bu
+şikâyetiniz ne zamandır var?") fits an examination visit poorly: such a visit has no complaint, and
+no source supports another wording. No `pack:` line is written. The clinician supplies the wording,
+or the slot is omitted once the generator can leave it out (verification wave 9 §E-1).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün hava ve uzay hekimliği polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
+> "Bugün hava ve uzay hekimliği polikliniğine gelme nedeniniz nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Earlier aviation medical** · archetype: `OBSERVATION.story.v1` · source: HU-S1 MED.A.035(b)(2)(ii)
@@ -210,9 +222,10 @@ gen: slot=guncel_ust_solunum_sikayeti; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Reduced hearing or ringing ears** · archetype: `OBSERVATION.symptom_sign.v1` · source: HU-S5 ("çınlama", "işitme kayıplarıyla"), HU-S1 MED.B.080(d)(1) ("Hipoakuzi")
-> "İşitmenizde azalma ya da kulaklarınızda çınlama fark ettiniz mi?"
-gen: slot=isitme_azalma_cinlama; type=boolean
-CANDIDATE — clinician to approve wording.
+> "Kulaklarınızda çınlama ya da işitmenizde azalma fark ettiniz mi?"
+gen: slot=cinlama_isitme_azalmasi; type=boolean
+CANDIDATE — clinician to approve wording. Same text and slot as iş ve meslek hastalıkları Q8 (one
+fact, one id).
 
 **Q6 — Nausea, dizziness or disorientation in flight** · archetype: `OBSERVATION.symptom_sign.v1` · source: HU-S3 ("vestibüler ve görsel illüzyonlar"), HU-S4 ("Uçak tutması"), HU-S6 ("araç tutması"), HU-S1 MED.B.080(d)(5)
 > "Uçuş sırasında bulantı, baş dönmesi ya da yönünüzü şaşırma hissi yaşıyor musunuz?"
@@ -240,14 +253,17 @@ gen: slot=son_muayeneden_beri_ameliyat; type=boolean; ask_if=onceki_havacilik_mu
 CANDIDATE — clinician to approve wording. "Benzeri bir tıbbi işlem" stands in for "invaziv müdahale".
 
 **Q11 — Significant injury since the last examination (if Q2 yes)** · archetype: `OBSERVATION.story.v1` · source: HU-S1 MED.A.020(b)(3)
-> "Son muayenenizden bu yana görevinizi yapmanızı zorlaştıran bir yaralanma geçirdiniz mi?"
+> "Son havacılık muayenenizden bu yana önemli bir yaralanma geçirdiniz mi?"
 gen: slot=son_muayeneden_beri_yaralanma; type=boolean; ask_if=onceki_havacilik_muayenesi == true
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. The source's neutral "önemli bir yaralanma". Whether the
+injury affects duty is the MED.A.020(b)(3) trigger and the examiner's call (MED.A.025); it is not put
+to the patient. "Son havacılık muayenenizden" matches Q10, so the question cannot mean any medical
+visit when heard alone.
 
 **Q12 — First glasses or contact lenses since the last examination (if Q2 yes)** · archetype: `OBSERVATION.story.v1` · source: HU-S1 MED.A.020(b)(7)
-> "Son muayenenizden bu yana ilk kez gözlük ya da lens kullanmaya başladınız mı?"
+> "Son havacılık muayenenizden bu yana ilk kez gözlük ya da lens kullanmaya başladınız mı?"
 gen: slot=ilk_kez_gozluk_lens; type=boolean; ask_if=onceki_havacilik_muayenesi == true
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. "Son havacılık muayenenizden" matches Q10.
 
 **Q13 — Fainting or loss of consciousness, ever (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: HU-S1 MED.B.065(b)(2), (c)(7); HU-S3 ("basit senkop")
 > "Daha önce hiç bayıldığınız ya da kısa süreli bilinç kaybı yaşadığınız oldu mu?"
@@ -259,10 +275,13 @@ CANDIDATE — clinician to approve wording. Lifetime history; **exertional colla
 gen: slot=tekrarlayan_zonklayan_bas_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. The word "migren" is not put to the patient, so no label is suggested.
 
-**Q15 — Earlier restriction or unfit decision** · archetype: none · source: HU-S1 MED.A.035(b)(2)(iii)
-> "Önceki bir havacılık muayenesinde size kısıtlama ya da engel kararı verildi mi?"
-gen: slot=onceki_kisitlama_karari; type=boolean; ask_if=onceki_havacilik_muayenesi == true; hold=invariant 18 — certification history is a licensing record and a new data category; owner and legal decision required
-CANDIDATE — HELD. The answer overlaps the statutory declaration (§0).
+**Q15 — Earlier restriction or adverse decision (if Q2 yes)** · archetype: none · source: HU-S1 MED.A.035(b)(2)(iii)
+> "Önceki bir havacılık muayenesinde size kısıtlama ya da olumsuz bir karar verildi mi?"
+gen: slot=onceki_kisitlama_karari; type=boolean; ask_if=onceki_havacilik_muayenesi == true; delivery=text_first; hold=statutory declaration boundary awaits the legal-reviewer (gap 4)
+CANDIDATE — HELD for the statutory-declaration boundary (gap 4), a legal hold: the item is literally a
+MED.A.035(b)(2)(iii) declaration item, and an inconsistency is reportable under MED.A.025(a)(3). The
+text is ready for release; only the legal answer is missing. Certification history is not a D3
+category, so the owner also confirms it before release.
 
 *(15 drafted: 14 active, 1 held.)*
 
@@ -279,7 +298,8 @@ CANDIDATE — HELD. The answer overlaps the statutory declaration (§0).
 4. **Statutory declaration boundary** — whether any pre-visit answer may be shown to the AeMC / AME
    next to the MED.A.035 declaration, and how an inconsistency is handled (MED.A.025(a)(3)).
    **Legal-reviewer decision required.**
-5. **Certification history (Q15)** — held under invariant 18; owner decision and HB row required.
+5. **Certification history (Q15)** — held for the statutory-declaration boundary (gap 4), not for a
+   data category. It is not a D3 category either, so the owner confirms it before release.
 6. **Hypoxia, cabin decompression and cosmic-radiation exposure history** — mentioned in HU-S3; not
    drafted (no patient-answerable wording sourced).
 7. **Psychiatric and substance items** (HU-S1 psychiatry and psychology sections) — not drafted;
@@ -290,6 +310,9 @@ CANDIDATE — HELD. The answer overlaps the statutory declaration (§0).
    RED axes (route × register × location, invariant 21) are **deliberately unassigned**.
 10. **openEHR leaf paths (at-codes)** and a **procedure / device-use archetype** — deferred
     (`openehr_deferred_reason`, INT-032).
+11. **Duration ask** — the fixed `sikayet_suresi` ask fits an examination visit poorly and no source
+    supports another wording. **Clinician decision pending** (clinician wording, or omit the slot
+    once the generator supports it).
 
 ---
 
@@ -301,7 +324,9 @@ CANDIDATE — HELD. The answer overlaps the statutory declaration (§0).
 - **Inv. 7** — in-flight incapacitation, exertional collapse and decompression illness left to
   `base.life_threat` and the physician (§2.2); nothing extends it.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
-- **Inv. 18** — Q15 held (certification history); statutory-declaration boundary flagged (§0, gap 4).
+- **Inv. 18** — Q15 (certification history) held for the statutory-declaration boundary (§0, gap 4);
+  not a D3 category, so the owner also confirms it before release.
+- **Verdicts** — no work-capacity judgement is asked of the patient (Q11 reworded, §0).
 - **Inv. 21** — RED axes intentionally unspecified (gap 9).
 - **Inv. 22** — no numerals in any candidate question; regulation item numbers stay in §1 only.
 - **Fitness-to-fly** — history capture only; the decision is the examiner's by regulation (HU-S1

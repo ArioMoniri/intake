@@ -113,8 +113,10 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032; HB-C12)
 | Q7 | Teeth brushed morning and evening | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Toothpaste contains fluoride | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Fear or strong worry about the dentist | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
-| Q10 | Long-term health condition or special need | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
-| Q11 | Heart condition present from birth or past heart surgery | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q10a | Long-term health condition or special need (yes/no) | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q10b | Description of the condition or need | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q11a | Heart condition present from birth or past heart surgery (yes/no) | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q11b | Description of the heart condition | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q12 | Past injury to the teeth | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
@@ -141,7 +143,7 @@ No level, route, register or location is proposed (invariants 1, 7, 21). The pae
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (14)
 
 Register: formal **siz**, addressed to the **parent**; the child is always "çocuğunuz"; one concern and
 exactly one question mark per turn; at most fifteen words per sentence; no diagnosis/treatment/prognosis
@@ -149,6 +151,12 @@ language; no numerals (invariant 22); written in our own words. **All CANDIDATE 
 (paediatric dentist) to approve wording.** No item carries a triage level. Q1 binds to
 `basvuru_nedeni`. Checked by hand and by script against the Turkish PolicyGuard arms (unsigned —
 HB-C23).
+
+The pack line below replaces the fixed duration ask, which addressed the parent's own complaint (§4
+gap 6). It is addressed to the parent and about the child, with the same text as neonatoloji so one clip
+serves both. It changes the address only and carries no clinical content.
+
+pack: duration_ask=Bu durumu ne zamandır fark ediyorsunuz?; duration_follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün çocuğunuzu diş hekimine getiren en önemli konu nedir?"
@@ -198,23 +206,36 @@ CANDIDATE — clinician to approve wording. The strength and amount by age stay 
 gen: slot=dis_hekimi_kaygisi; type=boolean
 CANDIDATE — clinician to approve wording. Helps the team plan the visit; it is not a wellbeing screen.
 
-**Q10 — Long-term health condition or special need** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PE-S3 Table 1 ("special health care needs"); PE-S1 PDF p. 8
+**Q10a — Long-term health condition or special need** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PE-S3 Table 1 ("special health care needs"); PE-S1 PDF p. 8
 > "Çocuğunuzun sürekli takip edilen bir sağlık sorunu ya da özel gereksinimi var mı?"
-gen: slot=ozel_saglik_gereksinimi; type=boolean; follow_up=Bu durumu kısaca anlatır mısınız?
-CANDIDATE — clinician to approve wording.
+gen: slot=ozel_saglik_gereksinimi; type=boolean
+CANDIDATE — clinician to approve wording. Yes/no gate for Q10b.
 
-**Q11 — Heart condition from birth or past heart surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PE-S5 PDF p. 4, Table 4 (AHA 2021)
+**Q10b — Description of the condition or need** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PE-S3 Table 1; PE-S1 PDF p. 8
+> "Çocuğunuzun bu durumunu kısaca anlatır mısınız?"
+gen: slot=ozel_saglik_gereksinimi_aciklama; type=string; ask_if=ozel_saglik_gereksinimi == true
+CANDIDATE — clinician to approve wording. Split from Q10 (wave 8 verification): a boolean slot cannot
+store the description, so it has its own string slot.
+
+**Q11a — Heart condition from birth or past heart surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PE-S5 PDF p. 4, Table 4 (AHA 2021)
 > "Çocuğunuzda doğuştan gelen bir kalp sorunu ya da geçirilmiş kalp ameliyatı var mı?"
-gen: slot=kalp_sorunu; type=boolean; follow_up=Bu kalp sorununu kısaca anlatır mısınız?
+gen: slot=kalp_sorunu; type=boolean
 CANDIDATE — clinician to approve wording. Base intake does not ask this. The clinician decides whether
-the answer falls in Table 4 (§2.3).
+the answer falls in Table 4 (§2.3). Yes/no gate for Q11b.
+
+**Q11b — Description of the heart condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PE-S5 PDF p. 4, Table 4 (AHA 2021)
+> "Çocuğunuzun kalp sorununu kısaca anlatır mısınız?"
+gen: slot=kalp_sorunu_aciklama; type=string; ask_if=kalp_sorunu == true
+CANDIDATE — clinician to approve wording. Split from Q11 (wave 8 verification), for the same reason as
+Q10b.
 
 **Q12 — Past injury to the teeth** · archetype: `OBSERVATION.story.v1` · source: PE-S2 PDF p. 72 (trauma history); AAPD periodicity PDF p. 5 (injuries are frequent; see §4 gap 3)
 > "Çocuğunuzun dişleri daha önce bir düşme ya da darbeyle zarar gördü mü?"
 gen: slot=onceki_dis_travmasi; type=boolean
 CANDIDATE — clinician to approve wording. History only; a fresh knocked-out tooth is §2.2.
 
-*(12 candidate questions: Q1 general intake; Q2–Q12 source-backed; no candidate flag on any item.)*
+*(14 candidate questions: Q1 general intake; Q2–Q12 source-backed, with Q10 and Q11 each split into a
+yes/no item and a description item; no candidate flag on any item.)*
 
 ---
 
@@ -238,7 +259,8 @@ CANDIDATE — clinician to approve wording. History only; a fresh knocked-out to
    p. 5).
 6. **Standard duration slot wording.** The generator adds `sikayet_suresi` ("Bu şikâyetiniz ne zamandır
    var?"), which addresses the parent's own complaint; for a proxy session it should refer to the child.
-   **Clinician to decide** (generator-level).
+   Resolved by the `pack:` line in §3 (wave 8 verification): neonatoloji's parent-addressed text, which
+   changes the address only.
 7. **Numeric cut-offs** (PE-S3 sugar-exposure frequency; PE-S1 toothpaste strength and amount by age)
    belong in any rule or clinician note, never in patient text (invariant 22).
 8. **Copyright / snapshot licence.** TPD, TDB and AAPD texts are copyrighted; DBOH is UK Crown copyright.
@@ -247,6 +269,12 @@ CANDIDATE — clinician to approve wording. History only; a fresh knocked-out to
    deliberately **not** assigned; **paediatric reviewer** (HB-C3) must supply.
 10. **openEHR** — leaf paths deferred (INT-032, HB-C12); no diet or oral-hygiene archetype in the OPT.
 11. **PolicyGuard lexicon is itself unsigned (HB-C23).**
+12. **Dental airway ask.** §2.2 leaves spreading swelling with breathing or swallowing difficulty to
+    `base.life_threat`, whose paediatric airway rule is `draft_needs_source` (HB-C3), so no layer asks
+    about the airway in this pack; Q4 (gum swelling) is the item this matters for. Four sibling dental
+    packs carry an ungated airway ask instead. Whether every dental pack carries it under one shared
+    slot id, or none does, is an owner and physician decision, joined by the paediatric reviewer
+    (wave 8 verification §A, owner decision 1). No item is added here — **clinician decision pending**.
 
 ---
 

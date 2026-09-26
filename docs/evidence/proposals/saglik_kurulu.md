@@ -24,9 +24,13 @@ disability or eligibility verdict. This file is a *proposal for a clinician to s
   *kişisel sağlık bilgi formu* on e-Devlet before applying. This intake is not that form, is not a
   legal "beyan", and must never be labelled or exported as one. **Legal review required** (invariant
   18; legal-reviewer).
-- **Purpose of the report is not asked** (Q2 held). SK-S1 Madde 8 restricts what purpose may appear
-  on a report, and the purpose (employment, weapon licence, benefit, driving) is a new personal-data
-  category. The employment link (Q10) is held for the same reason.
+- **Purpose of the report is asked under D3; kept out of the report itself (SK-S1 Madde 8).** Owner
+  decision D3 (2026-09-26) approved report purpose as a data category. Q2 is `delivery: text_first`
+  and needs its INT-349 row. SK-S1 Madde 8 bars the purpose from the report unless criteria exist, so
+  the clinician note may carry `rapor_amaci` but no report export may; the legal-reviewer decides the
+  export boundary. The yes/no employment link (Q10) duplicates Q2's answer and is held as superseded.
+- **Held for a missing source:** Q8 (assistive device: no verbatim source) and Q9a with its split Q9b
+  (SK-S2 Madde 6 was captured as a paraphrase, not verbatim).
 - **Not repeated from base:** medications, allergies, occupation, living situation, caregiver,
   pregnancy, smoking, alcohol.
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules.
@@ -105,15 +109,16 @@ Leaf paths are **deferred** (`openehr_deferred_reason`, INT-032), never invented
 | Q | Captured item | Archetype ROOT | Leaf path |
 |---|---|---|---|
 | Q1 | Health problems to be assessed | `EVALUATION.reason_for_encounter.v1` | deferred (INT-032) |
-| Q2 | Report purpose (HELD) | — | — |
+| Q2 | Report purpose (note only; never on the report, SK-S1 Madde 8) | no candidate archetype | deferred (INT-032) |
 | Q3 | Prior discharge letters, reports or results exist | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q4 | Under regular hospital follow-up | `EVALUATION.problem_diagnosis.v1` | deferred (INT-032) |
 | Q5 | Which departments | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q6 | Admission for these problems | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q7 | Needs help with daily tasks | `OBSERVATION.story.v1` (narrative only) | deferred; **no ICF coding** |
-| Q8 | Uses an assistive device | `OBSERVATION.story.v1` (narrative only) | deferred; no device root |
-| Q9 | Vision, hearing or mental-health concern to raise | `OBSERVATION.story.v1` (narrative only) | deferred |
-| Q10 | Employment link (HELD) | — | — |
+| Q8 | Uses an assistive device (HELD — no verbatim source) | `OBSERVATION.story.v1` (narrative only) | deferred; no device root |
+| Q9a | Vision, hearing or mental-health concern to raise (HELD — paraphrased source) | `OBSERVATION.story.v1` (narrative only) | deferred |
+| Q9b | That concern, briefly (HELD — as Q9a) | `OBSERVATION.story.v1` (narrative only) | deferred |
+| Q10 | Employment link (HELD — superseded by Q2) | — | — |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
 
@@ -126,22 +131,31 @@ None proposed. The sources are procedural regulations and carry no clinical urge
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (10)
+## 3. Candidate B1 Turkish pre-visit questions (11 drafted: 7 generate, 4 held)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE —
 clinician to approve wording.** No item carries a triage level, a score or a verdict. Q1 binds to the
-pack's `basvuru_nedeni` slot and asks about health, not about the report's purpose.
+pack's `basvuru_nedeni` slot and asks about health, not about the report's purpose. It ends in
+"nedir?" so the generator's neutral follow-up is used; the complaint follow-up ("Sizi hekime getiren
+en önemli şikâyetiniz nedir?") would misframe a legal board process.
+
+**Duration ask — clinician decision pending.** A board visit is not a complaint visit, so the
+generator's fixed `sikayet_suresi` ask ("Bu şikâyetiniz ne zamandır var?") fits poorly, and no source
+supports another wording. No `pack:` line is written. The clinician supplies the wording, or the slot
+is omitted once the generator can leave it out (gap 7).
 
 **Q1 — Health problems to be assessed** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake; SK-S1 Madde 4 (board decides on "sağlık durumları")
-> "Kurulda değerlendirilmesini istediğiniz sağlık sorunlarınızı kısaca anlatır mısınız?"
+> "Kurulda değerlendirilecek sağlık sorunlarınız nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Purpose of the report** · archetype: none · source: SK-S1 Madde 8 ("Raporun hangi amaçla alındığı … rapora eklenemez")
-> "Bu raporu hangi amaçla aldığınızı kısaca anlatır mısınız?"
-gen: hold=invariant 18 — new data category; owner decision required
-HELD — the purpose (employment, licence, benefit) is a new personal-data category and its place on a
-report is restricted by SK-S1. The booking already records the report type.
+> "Bu raporun hangi amaçla istendiğini kısaca söyler misiniz?"
+gen: slot=rapor_amaci; type=string; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3 (report purpose). "İstendiğini" does not
+say the report has already been obtained. Keep it out of the report text (SK-S1 Madde 8): the note may
+carry it, and the legal-reviewer decides the export boundary. invariant 18: owner-approved 2026-09-26;
+VERBİS/data-category register row pending counsel review (INT-349).
 
 **Q3 — Prior documents exist** · archetype: `OBSERVATION.story.v1` · source: SK-S2 Madde 8 ("klinik bulgular, ICD kodları, radyolojik tetkikler, laboratuvar bilgileri")
 > "Bu sorunlarla ilgili hastane çıkış belgesi, eski rapor ya da tahlil sonucunuz var mı?"
@@ -167,23 +181,32 @@ CANDIDATE — clinician to approve wording.
 > "Günlük işlerinizi yaparken başka birinin yardımına ihtiyaç duyuyor musunuz?"
 gen: slot=gunluk_islerde_yardim; type=boolean
 CANDIDATE — clinician to approve wording. History only: no scale, no ICF qualifier, no inference.
+Overlaps base `caregiver_present`, which asks whether someone helps; Q7 asks whether help is needed,
+and a board needs the second fact. Kept.
 
 **Q8 — Assistive device** · archetype: `OBSERVATION.story.v1` · source: **NO verbatim source** (SK-S2 Madde 5 ICF, context only)
 > "Baston, tekerlekli sandalye, işitme cihazı ya da protez gibi bir yardımcı araç kullanıyor musunuz?"
-gen: slot=yardimci_arac; type=boolean
-CANDIDATE — clinician to approve wording. Clinician must confirm the item is wanted (§4 gap 3).
+gen: slot=yardimci_arac; type=boolean; hold=no verbatim source for an assistive-device item (gap 3)
+HELD — no verbatim source (§4 gap 3); ICF is context only. Held until one is quoted.
 
-**Q9 — Vision, hearing or mental-health concern** · archetype: `OBSERVATION.story.v1` · source: SK-S2 Madde 6 (board includes eye, ENT and psychiatry — paraphrased)
+**Q9a — Vision, hearing or mental-health concern** · archetype: `OBSERVATION.story.v1` · source: SK-S2 Madde 6 (board includes eye, ENT and psychiatry — paraphrased)
 > "Görme, işitme ya da ruhsal sağlığınızla ilgili de anlatmak istediğiniz bir konu var mı?"
-gen: slot=ek_brans_konusu; type=boolean
-CANDIDATE — clinician to approve wording.
+gen: slot=ek_brans_konusu; type=boolean; delivery=text_first; hold=SK-S2 Madde 6 was captured as a paraphrase not a verbatim quote
+HELD — its only source, SK-S2 Madde 6, is marked in §1 as paraphrased by the fetch. Held until
+Madde 6 is snapshotted. Split into Q9a and Q9b so the concern itself is not lost in a boolean. `text_first`
+because it can carry mental-health content.
+
+**Q9b — That concern, briefly (if Q9a yes)** · archetype: `OBSERVATION.story.v1` · source: as Q9a
+> "Bu konuyu kısaca anlatır mısınız?"
+gen: slot=ek_brans_konusu_aciklama; type=string; ask_if=ek_brans_konusu == true; delivery=text_first; hold=same as Q9a
+HELD — same reason as Q9a.
 
 **Q10 — Employment link** · archetype: none · source: SK-S1 Madde 8 (purpose restriction)
 > "Bu rapor işiniz ya da bir iş başvurusu için mi isteniyor?"
-gen: hold=invariant 18 — new data category; owner decision required
-HELD — employment purpose of a board report is a new personal-data category.
+gen: slot=is_icin_rapor; type=boolean; delivery=text_first; hold=superseded by Q2 which records the report purpose
+HELD — with Q2 released, this yes/no duplicates the purpose answer. The text stays.
 
-*(10 candidate questions; 8 generate, 2 held.)*
+*(11 drafted: 7 generate, 4 held. The emitted pack is Q1 plus Q2 through Q7.)*
 
 ---
 
@@ -193,14 +216,18 @@ HELD — employment purpose of a board report is a new personal-data category.
    Alomaliye) were read, and they disagree on Madde 6(1). **Re-snapshot before sign-off.**
 2. **Superseded instruments** — the former SB *Sağlık Raporları Usul ve Esasları Hakkında Yönerge* is
    replaced by SK-S1 (transitional validity was seen only in a search summary, not quoted).
-3. **Assistive-device item (Q8)** — no verbatim source; ICF is cited as context only. **NO SOURCE FOUND.**
+3. **Assistive-device item (Q8)** — no verbatim source; ICF is cited as context only. **NO SOURCE
+   FOUND.** Q8 is held until one is quoted. Q9a and Q9b are held likewise until SK-S2 Madde 6 is
+   snapshotted verbatim.
 4. **Children's board (ÇÖZGER, *Çocuklar İçin Özel Gereksinim Değerlendirmesi Hakkında Yönetmelik*)**
    — not retrieved; this pack is adult-only until a paediatric variant is sourced and signed.
 5. **Other report types** (driver, weapon licence, sports, security guard — SK-S1 categories) — no
    type-specific history is drafted; each has its own criteria annex, not retrieved.
 6. **Interaction with the e-Devlet *kişisel sağlık bilgi formu*** — whether the two may be linked, and
    how the app must label itself, is a legal/product decision (invariant 18, legal-reviewer).
-7. **The generator's standard `sikayet_suresi` slot** — fits poorly; the clinician may drop it.
+7. **The generator's standard `sikayet_suresi` slot** — fits a board visit poorly and no sourced
+   wording exists. **Clinician decision pending:** clinician wording, or omit the slot once the
+   generator supports it.
 8. **EK-4 acuity** — no level proposed; RED axes (invariant 21) deliberately unassigned.
 9. **openEHR leaf paths** — deferred (INT-032); no functioning or device root in the OPT (INT-041).
 
@@ -213,8 +240,10 @@ HELD — employment purpose of a board report is a new personal-data category.
   wording, no fitness or disability language; each draft marked CANDIDATE.
 - **Inv. 7** — nothing added to or extending `base.life_threat`.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval.
-- **Inv. 18** — report purpose (Q2) and employment link (Q10) held; the pack is not the legal
-  *kişisel sağlık bilgi formu* and must not be presented as one.
+- **Inv. 18** — report purpose (Q2) asked under D3, `text_first`, with its INT-349 row; it stays out
+  of the report text (SK-S1 Madde 8) and the legal-reviewer decides the export boundary. The
+  employment link (Q10) is held as superseded by Q2. The pack is not the legal *kişisel sağlık bilgi
+  formu* and must not be presented, stored or exported as one.
 - **Inv. 21** — RED axes intentionally unspecified.
 - **Inv. 22** — no numerals; no disability rate is asked, shown or computed.
 - **HB-C1** — awaits clinician sign-off; NOT served.

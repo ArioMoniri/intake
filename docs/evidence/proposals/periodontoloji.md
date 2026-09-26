@@ -113,8 +113,10 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032; HB-C12)
 | Q8 | Chewing difficulty from gums or teeth | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Diabetes | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q10 | Previous gum treatment | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
-| Q11 | Medicine for bone thinning or other bone problems (ever) | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
-| Q12 | Heart-valve surgery or previous endocarditis | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q11a | Medicine for bone thinning or other bone problems (ever) | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
+| Q11b | Name of that medicine | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
+| Q12a | Heart-valve procedure or previous endocarditis | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q12b | Description of that heart condition | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Left to `base.life_threat` or the physician (NOT extended — invariant 7)
@@ -140,7 +142,7 @@ No level, route, register or location is proposed (invariants 1, 7, 21).
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (14)
 
 Register: formal **siz**; one concern and exactly one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22); written in our own
@@ -190,29 +192,47 @@ gen: slot=cigneme_zorlugu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Diabetes** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PD-S1 PDF pp. 4, 6 (diabetes as a grading factor); PD-S3 abstract ("bidirectional relationship")
-> "Sizde şeker hastalığı (diyabet) var mı?"
-gen: slot=diyabet; type=boolean
+> "Size daha önce şeker hastalığı tanısı konuldu mu?"
+gen: slot=diyabet_tanisi; type=boolean
 CANDIDATE — clinician to approve wording. Base intake does not ask this. The HbA1c cut-off in PD-S1
-Tablo 3 is a number: it comes from records, never from patient speech (invariant 22).
+Tablo 3 is a number: it comes from records, never from patient speech (invariant 22). Same text and
+slot as nefroloji, göz and nükleer tıp, so one clip serves all of them.
 
 **Q10 — Previous gum treatment** · archetype: `OBSERVATION.story.v1` · source: PD-S1 PDF p. 33 ("stabil periodontitis hastası")
 > "Daha önce size diş eti tedavisi yapıldı mı?"
 gen: slot=onceki_dis_eti_tedavisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Medicine for bone thinning or other bone problems (ever)** · archetype: `ACTION.medication.v1` · source: PD-S4 PDF p. 3 ("past, current, or possible future use")
+**Q11a — Medicine for bone thinning or other bone problems (ever)** · archetype: `ACTION.medication.v1` · source: PD-S4 PDF p. 3 ("past, current, or possible future use")
 > "Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?"
-gen: slot=kemik_ilaci; type=boolean; follow_up=Hatırlıyorsanız ilacın adını söyleyebilir misiniz?
+gen: slot=kemik_ilaci; type=boolean
 CANDIDATE — clinician to approve wording. Wording follows the wave 1–3 reviewer text
 (docs/evidence/verification/specialty-wave1-3.md) so the dental packs share one form. Past use counts.
+Yes/no gate for Q11b. PD-S4 also names possible future use, which this text does not capture; a
+planned-use item is a clinician decision.
 
-**Q12 — Heart-valve surgery or previous endocarditis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PD-S5 Table 4 (AHA 2021)
-> "Daha önce kalp kapağı ameliyatı ya da kalp iç zarı iltihabı geçirdiniz mi?"
-gen: slot=kalp_kapagi_endokardit; type=boolean; follow_up=Bu durumu kısaca anlatır mısınız?
-CANDIDATE — clinician to approve wording. Base intake does not ask this. Congenital heart disease is not
-named here to stay within B1 length; see §4 gap 3.
+**Q11b — Name of that medicine** · archetype: `ACTION.medication.v1` · source: PD-S4 PDF p. 3
+> "Hatırlıyorsanız bu ilacın adını söyleyebilir misiniz?"
+gen: slot=kemik_ilaci_adi; type=string; ask_if=kemik_ilaci == true
+CANDIDATE — clinician to approve wording. Split from Q11 (wave 8 verification): a boolean slot cannot
+store the medicine's name, so it has its own string slot. Same pair as protetik Q11a/Q11b.
 
-*(12 candidate questions: Q1 general intake; Q2–Q12 source-backed; no candidate flag on any item.)*
+**Q12a — Heart-valve procedure or previous endocarditis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PD-S5 Table 4 (AHA 2021)
+> "Kalp kapağınızla ilgili bir işlem ya da kalp iç zarı iltihabı geçirdiniz mi?"
+gen: slot=kalp_kapagi_endokardit; type=boolean
+CANDIDATE — clinician to approve wording. Base intake does not ask this. "Kalp kapağınızla ilgili bir
+işlem" covers valve surgery, catheter-implanted valves and valve-repair material, all of which PD-S5's
+list includes ("prosthetic valves or valve-repair material"). Congenital heart disease is not named here
+to stay within B1 length; see §4 gap 3. Yes/no gate for Q12b.
+
+**Q12b — Description of that heart condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: PD-S5 Table 4 (AHA 2021)
+> "Bu kalp durumunu kısaca anlatır mısınız?"
+gen: slot=kalp_kapagi_endokardit_aciklama; type=string; ask_if=kalp_kapagi_endokardit == true
+CANDIDATE — clinician to approve wording. Split from Q12 (wave 8 verification), for the same reason as
+Q11b.
+
+*(14 candidate questions: Q1 general intake; Q2–Q12 source-backed, with Q11 and Q12 each split into a
+yes/no item and a free-text item; no candidate flag on any item.)*
 
 ---
 
@@ -238,6 +258,13 @@ named here to stay within B1 length; see §4 gap 3.
 8. **Every triage level and all three RED axes** (invariant 21) — deliberately **not** assigned.
 9. **openEHR** — leaf paths deferred (INT-032, HB-C12).
 10. **PolicyGuard lexicon is itself unsigned (HB-C23).**
+11. **Dental airway ask.** §2.2 leaves spreading swelling with breathing or swallowing difficulty to
+    `base.life_threat`, but `rf.dyspnoea_rest` and `rf.sepsis_like` are named-gap stubs there with no
+    ask, so no layer asks about the airway in this pack; Q6 (pus, which PD-S2 links to systemic spread)
+    is the item this matters for. Four sibling dental packs carry an ungated airway ask instead.
+    Whether every dental pack carries it under one shared slot id, or none does, is an owner and
+    physician decision (wave 8 verification §A, owner decision 1). No item is added here — **clinician
+    decision pending**.
 
 ---
 

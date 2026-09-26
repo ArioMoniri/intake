@@ -178,7 +178,7 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q2 | Has ever dived (scuba or breath-hold) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q3 | Past diving illness ("vurgun") | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q4 | Ear pain / hearing change / ringing with diving | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q5 | Flying on the dive day or the next day | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
+| Q5 | Flying soon after diving | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | Q6 | Difficulty equalising ear pressure | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Cold / blocked nose / sinus complaint now | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Past collapsed lung or chest surgery | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
@@ -219,11 +219,13 @@ Register: formal **siz**; one concern and one question mark per turn; at most fi
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE —
 clinician to approve wording.** Lay terms are used: "vurgun" for decompression sickness, "akciğer
 sönmesi" for pneumothorax, "basınç odası" for the chamber, "ışın tedavisi" for radiotherapy. No item
-carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot; duration comes from the pack's
-`sikayet_suresi` slot.
+carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot and ends in "nedir?" so the
+generator's neutral follow-up is used, not the complaint follow-up. Duration comes from the pack's
+`sikayet_suresi` slot; the fixed ask fits hyperbaric referrals (wound, sudden hearing loss), where
+onset time matters, and fitness-to-dive visits answer "none".
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün sualtı ve hiperbarik tıp polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
+> "Bugün sualtı ve hiperbarik tıp polikliniğine gelme nedeniniz nedir?"
 CANDIDATE — clinician to approve wording. The clinic's own name is kept so the patient recognises it.
 
 **Q2 — Has ever dived** · archetype: `OBSERVATION.story.v1` · source: SH-S1 (dalışa uygunluk), SH-S6 ("scuba diving and freediving")
@@ -242,9 +244,10 @@ gen: slot=dalista_kulak_sorunu; type=boolean; ask_if=dalis_deneyimi == true
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Flying soon after diving (if Q2 yes)** · archetype: `OBSERVATION.story.v1` · source: SH-S3 ("dalıştan hemen sonra uçuş, risklidir"), SH-S8, SH-S9
-> "Dalış yaptığınız gün ya da ertesi gün uçağa bindiğiniz oluyor mu?"
+> "Dalıştan kısa süre sonra uçağa bindiğiniz oluyor mu?"
 gen: slot=dalis_sonrasi_ucus; type=boolean; ask_if=dalis_deneyimi == true
-CANDIDATE — clinician to approve wording. No waiting time is stated to the patient; sources differ (§1 note).
+CANDIDATE — clinician to approve wording. "Kısa süre sonra" is SH-S8's own wording. No waiting window
+is put into the question, because the sources disagree (§1 note).
 
 **Q6 — Difficulty equalising ear pressure** · archetype: `OBSERVATION.symptom_sign.v1` · source: SH-S2 Madde 15, SH-S4 ("kulaklarındaki basıncı nasıl eşitleyecekleri")
 > "Kulaklarınızdaki basıncı eşitlemekte, örneğin uçak inerken, zorlandığınız olur mu?"
@@ -262,14 +265,16 @@ gen: slot=akciger_sonmesi_gogus_ameliyati; type=boolean
 CANDIDATE — clinician to approve wording. Past history only (§2.2).
 
 **Q9 — Past seizure or unexplained fainting** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SH-S2 Madde 14 (3), SH-S5 ("convulsions")
-> "Daha önce hiç epilepsi (sara) nöbeti ya da nedeni bilinmeyen bayılma geçirdiniz mi?"
+> "Daha önce hiç sara, yani epilepsi nöbeti ya da nedeni bilinmeyen bayılma geçirdiniz mi?"
 gen: slot=nobet_bayilma_oykusu; type=boolean
-CANDIDATE — clinician to approve wording. "Epilepsi (sara)" avoids the shift-duty sense of "nöbet".
+CANDIDATE — clinician to approve wording. "Sara, yani epilepsi nöbeti" avoids the shift-duty sense of
+"nöbet" and keeps a parenthesis out of spoken copy (TTS, invariant 10), using the "yani" pattern of Q13.
 
 **Q10 — Distress in closed, narrow spaces** · archetype: `OBSERVATION.symptom_sign.v1` · source: SH-S5 ("Claustrophobia"), SH-S4 ("basınç odasının kapıları kapatılır"), SH-S9 ("kapalı yer korkusu")
-> "Kapalı ve dar yerlerde bulunmak sizi çok huzursuz eder mi?"
-gen: slot=kapali_alan_huzursuzlugu; type=boolean
-CANDIDATE — clinician to approve wording. Not a phobia label; no scale.
+> "Kapalı ya da dar alanlarda bulunmak sizi çok huzursuz eder mi?"
+gen: slot=kapali_alan_huzursuzluk; type=boolean
+CANDIDATE — clinician to approve wording. Not a phobia label; no scale. Same text and slot as nükleer
+tıp; radyasyon onkolojisi shares the slot with a mask-specific wording.
 
 **Q11 — Slow-healing or non-healing wound** · archetype: `OBSERVATION.symptom_sign.v1` · source: SH-S4 ("Yara iyileşmesinin geciktiği durumlar"), SH-S7 ("Selected Problem Wounds")
 > "İyileşmesi uzun süren ya da kapanmayan bir yaranız var mı?"
@@ -282,9 +287,10 @@ gen: slot=ani_isitme_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording. Time-sensitive content for the physician (§2.3); no level here.
 
 **Q13 — Past radiotherapy** · archetype: `OBSERVATION.story.v1` · source: SH-S4 ("Radyasyon tedavisi geç dönem hasarları"), SH-S7 ch. 8
-> "Daha önce ışın tedavisi, yani radyoterapi, aldınız mı?"
-gen: slot=radyoterapi_oykusu; type=boolean
-CANDIDATE — clinician to approve wording. Body site is left to the clinician's follow-up.
+> "Daha önce vücudunuzun herhangi bir bölgesine ışın tedavisi uygulandı mı?"
+gen: slot=onceki_isin_tedavisi; type=boolean; follow_up=Daha önce radyoterapi aldınız mı?
+CANDIDATE — clinician to approve wording. Same text, slot and follow-up as radyasyon onkolojisi and
+nükleer tıp; the follow-up has the same polarity as the ask. Body site is left to the clinician.
 
 *(13 candidate questions.)*
 

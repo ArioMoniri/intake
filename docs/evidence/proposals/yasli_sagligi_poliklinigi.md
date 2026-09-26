@@ -160,12 +160,13 @@ a `candidate_flag` (max `YELLOW_REVIEW`) pending clinician + rules-engine confir
 pack's `basvuru_nedeni` slot. The "son bir yıl" window in Q6 is the sources' own (YS-S1, YS-S5).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün yaşlı sağlığı polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+> "Bugün yaşlı sağlığı polikliniğine gelme nedeniniz nedir?"
+CANDIDATE — clinician to approve wording. Ends with "nedir?" so a periodic-review or prevention visit
+(YS-S1; YS-S3 "koruyucu hekimlik") gets the neutral follow-up rather than one asking for a complaint.
 
 **Q2 — New difficulty with usual tasks** · archetype: `OBSERVATION.story.v1` · source: YS-S1 ("fonksiyonel kapasitede herhangi bir değişiklik olduğunda ileri değerlendirme")
 > "Son zamanlarda eskiden kolayca yaptığınız işlerde zorlanmaya başladınız mı?"
-gen: slot=gunluk_islerde_yeni_zorluk; type=boolean; follow_up=Eskiden yaptığınız bir işi artık yapamadığınız oluyor mu?
+gen: slot=gunluk_islerde_yeni_zorluk; type=boolean; follow_up=Eskiden kolayca yaptığınız bir işte artık zorlandığınız oluyor mu?
 CANDIDATE — clinician to approve wording. Change question only; the ADL scale is the clinician's (§0).
 
 **Q3 — Vision problem affecting daily life** · archetype: `OBSERVATION.symptom_sign.v1` · source: YS-S1 ("işitme/görme sorunu olup olmadığı değerlendirilir"), YS-S2, YS-S4 ("Görme keskinliğinde azalma")
@@ -180,7 +181,7 @@ CANDIDATE — clinician to approve wording. Not an item of YS-S1's hearing-scree
 
 **Q5 — Teeth or denture problem affecting eating** · archetype: `OBSERVATION.symptom_sign.v1` · source: YS-S1 ("ağız-diş sağlığı açısından genel değerlendirme"), YS-S2 ("ağız ve diş sağlığı sorunları")
 > "Dişleriniz ya da diş protezinizle ilgili yemek yemenizi zorlaştıran bir sorun var mı?"
-gen: slot=agiz_dis_sorunu; type=boolean; follow_up=Çiğnerken ağzınızda ağrı ya da rahatsızlık oluyor mu?
+gen: slot=agiz_dis_sorunu; type=boolean; follow_up=Dişleriniz ya da protezinizle yemek yerken zorlandığınız oluyor mu?
 CANDIDATE — clinician to approve wording.
 
 **Q6 — Fall in the past year** · archetype: `OBSERVATION.story.v1` · source: YS-S1 ("son bir yılda düşme öyküsünün olup olmadığı sorulur"), YS-S5
@@ -189,9 +190,10 @@ gen: slot=son_yil_dusme; type=boolean; follow_up=Son bir yılda yere düştüğ�
 CANDIDATE — clinician to approve wording. History item; no flag by itself.
 
 **Q7 — Fall injury needing a doctor (gate input)** · archetype: `OBSERVATION.story.v1` · source: YS-S1 ("Hasar"), YS-S5 ("severe enough to require a consult with a physician")
-> "Bu düşmede hekime görünmenizi gerektiren bir yaralanma oldu mu?"
-gen: slot=dusme_yaralanma; type=boolean; ask_if=son_yil_dusme == true; follow_up=Düştüğünüzde bir yeriniz incindi ya da kırıldı mı?
-CANDIDATE — clinician to approve wording. Past-year history; a fresh head injury is §2.2.
+> "Düştüğünüzde hekime görünmenizi gerektiren bir yaralanma oldu mu?"
+gen: slot=dusme_yaralanma; type=boolean; ask_if=son_yil_dusme == true; follow_up=Düştükten sonra yaralandığınız için hekime gitmeniz gerekti mi?
+CANDIDATE — clinician to approve wording. Past-year history; a fresh head injury is §2.2. Neither text
+assumes a single fall, and the follow-up keeps YS-S5's threshold (an injury needing a doctor).
 
 **Q8 — Urinary incontinence** · archetype: `OBSERVATION.symptom_sign.v1` · source: YS-S1 ("üriner/fekal inkontinans olup olmadığı sorulur"), YS-S2 ("inkontinans varlığı"), YS-S3
 > "İstemeden idrar kaçırdığınız oluyor mu?"
@@ -200,9 +202,10 @@ CANDIDATE — clinician to approve wording.
 
 **Q9 — Influenza vaccination this season** · archetype: `OBSERVATION.story.v1` · source: YS-S1 ("Influenza aşısı … olup olmadıkları sorgulaması yapılır")
 > "Bu yıl grip aşısı oldunuz mu?"
-gen: slot=grip_asisi; type=boolean; follow_up=Son grip mevsiminde aşı yaptırdınız mı?
+gen: slot=grip_asisi; type=boolean; follow_up=Bu yıl içinde size grip aşısı yapıldı mı?
 CANDIDATE — clinician to approve wording. YS-S1 gives no time window; "bu yıl" is framing for the
-clinician to confirm (§4). The other vaccines YS-S1 lists are not drafted.
+clinician to confirm (§4). The follow-up restates the ask so both texts use one window; calendar year
+or season is a clinician decision pending (gap 4). The other vaccines YS-S1 lists are not drafted.
 
 **Q10 — Previous bone-density measurement** · archetype: `OBSERVATION.story.v1` · source: YS-S1 ("osteoporoz açısından değerlendirilmiş olup olmadığı sorgulanır"), YS-S3 ("osteoporoz")
 > "Daha önce kemik erimesi için kemik ölçümü yaptırdınız mı?"
@@ -211,8 +214,9 @@ CANDIDATE — clinician to approve wording. Age/sex eligibility stays in the sou
 
 **Q11 — Fracture after a minor fall** · archetype: `EVALUATION.problem_diagnosis.v1` · source: YS-S1 ("boy yüksekliğinde bir yerden düşme gibi minimum bir travma ile")
 > "Kendi boyunuzdan düşme gibi hafif bir kazada kemiğiniz kırıldı mı?"
-gen: slot=hafif_kazada_kirik; type=boolean; follow_up=Basit bir düşmeden sonra bileğinizde, kalçanızda ya da belinizde kırık oldu mu?
-CANDIDATE — clinician to approve wording. History item; no flag by itself.
+gen: slot=hafif_kazada_kirik; type=boolean; follow_up=Basit bir düşme sonrasında vücudunuzda herhangi bir kemik kırıldı mı?
+CANDIDATE — clinician to approve wording. History item; no flag by itself. The follow-up names no body
+site, because the YS-S1 quote names none.
 
 **Q12 — Known memory-related diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: YS-S1 ("Bireyin demansının olup olmadığı sorgulanır"), YS-S3 ("bellek bozukluğu")
 > "Size daha önce unutkanlık hastalığı (demans) tanısı konuldu mu?"
@@ -244,6 +248,11 @@ CANDIDATE — clinician to approve wording. History of a diagnosis only; no reca
 10. **EK-4 acuity** (RG 13/9/2022 sayı 31952) — no snapshot in repo; **no level proposed**. Every
     `candidate_flag` level and all three RED axes (invariant 21) are **deliberately unassigned**.
 11. **openEHR leaf paths (at-codes)** — deferred (`openehr_deferred_reason`, INT-032); not fabricated.
+12. **Standard duration slot.** The generator adds `sikayet_suresi` ("Bu şikâyetiniz ne zamandır
+    var?"), but a periodic review (YS-S1) often has no complaint to time, and no source supports a
+    duration question for it. No `pack:` line is written and no wording is proposed here: **clinician
+    decision pending** — clinician wording, or the slot left out once the generator's `duration=omit`
+    option (wave 7 §E-2) exists (wave 8 verification §A).
 
 ---
 

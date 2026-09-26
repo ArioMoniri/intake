@@ -1,0 +1,161 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/klinik_norofizyoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.klinik_norofizyoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Klinik Nörofizyoloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi bu teste yönlendiren şikâyetinizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+  sorular:
+    slots:
+      istenen_test_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Size istenen test adını biliyorsanız söyler misiniz?
+        follow_up_tr:
+          tr: Sevk belgenizde yazan test adını okuyabilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      uyusma_karincalanma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kollarınızda ya da bacaklarınızda uyuşma veya karıncalanma var mı?
+        follow_up_tr:
+          tr: Ellerinizde ya da ayaklarınızda iğnelenme hissi oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      kol_bacak_gucsuzluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kollarınızda ya da bacaklarınızda güçsüzlük hissediyor musunuz?
+        follow_up_tr:
+          tr: Bir şeyi tutarken ya da merdiven çıkarken zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      kas_kramp_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kaslarınızda kramp ya da ağrı oluyor mu?
+        follow_up_tr:
+          tr: Kaslarınızın kasılıp tutulduğu oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      implante_cihaz:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Vücudunuzda kalp pili ya da beyin pili gibi bir cihaz var mı?
+        follow_up_tr:
+          tr: Göğsünüzde ya da vücudunuzda takılı bir pil veya cihaz bulunuyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      kanama_bozuklugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce kanın pıhtılaşmasıyla ilgili bir hastalık tanısı konuldu mu?
+        follow_up_tr:
+          tr: Kanınızın geç pıhtılaştığı size daha önce söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      bilinc_degisikligi_atak:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kendinizden geçtiğiniz ya da çevrenizi fark etmediğiniz ataklar oluyor mu?
+        follow_up_tr:
+          tr: Bir süre ne olduğunu hatırlamadığınız anlar yaşıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      atak_tanigi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu atakları görmüş ve anlatabilecek bir yakınınız var mı?
+        follow_up_tr:
+          tr: Atak sırasında yanınızda olan biri size neler olduğunu anlattı mı?
+        ask_if: bilinc_degisikligi_atak == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      atak_videosu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ataklardan birinin telefonla çekilmiş bir videosu var mı?
+        follow_up_tr:
+          tr: Bir yakınınız atak sırasında sizi videoya çekti mi?
+        ask_if: bilinc_degisikligi_atak == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      atakta_dil_isirma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Atak sırasında dilinizi ısırdığınız oldu mu?
+        follow_up_tr:
+          tr: Ataktan sonra dilinizde yara ya da ağrı fark ettiniz mi?
+        ask_if: bilinc_degisikligi_atak == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      uykusuzlukla_atak:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uykusuz kaldığınız dönemlerde bu ataklar artıyor mu?
+        follow_up_tr:
+          tr: Az uyuduğunuz günlerden sonra atak geçirdiğiniz oluyor mu?
+        ask_if: bilinc_degisikligi_atak == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+      ailede_epilepsi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde sara (epilepsi) hastalığı olan biri var mı?
+        follow_up_tr:
+          tr: Akrabalarınızdan sara hastalığı olan ya da nöbet geçiren biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_norofizyoloji.md'
+red_flags:
+- id: rf.klinik_norofizyoloji_l0_taslak
+  label_tr: Klinik Nörofizyoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: klinik_norofizyoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/klinik_norofizyoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

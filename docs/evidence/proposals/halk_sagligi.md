@@ -29,9 +29,14 @@ sign off*. It assigns **no** RED/YELLOW/GREEN level and pins **no** clinical val
 - **No validated instrument is reproduced.** Q6–Q8 are generic questions worded from the HSGM activity
   guide and a TÜBER 2022 presentation; they are not items of GPAQ, IPAQ or any food-frequency tool and
   carry no frequency scale.
+- **Data categories (invariant 18, owner decision D3, 2026-09-26).** Household contacts and relatives'
+  family health history are approved categories. Q11 (tuberculosis in the household) is released and
+  Q4 (colorectal cancer in the family) is kept; both are `delivery: text_first` and each needs its
+  INT-349 row. Q10 (travel plans) stays held for its missing source only; because travel plans are not
+  a D3 category, release also needs the owner.
 - **Triage:** per invariant 1, RED/YELLOW can only be produced by `packages/protocols/triage` rules.
-  Nothing here assigns a level, route or trigger. Rabies-risk contact (Q9) is history only; the source
-  urgency wording is quoted in §2.3 for physician review.
+  Nothing here assigns a level, route or trigger. Rabies-risk contact (Q9) and household tuberculosis
+  contact (Q11) are history only; the source urgency wording is quoted in §2.3 for physician review.
 - **Verification caveat:** HS-S1, HS-S2, HS-S3 and HS-S6 were captured with WebFetch, whose output is
   model-rendered; HS-S4, HS-S5 and HS-S7 were downloaded to a scratch directory (never the repo) and
   extracted locally with `pdftotext`. Before sign-off each sentence MUST be re-checked against the
@@ -119,7 +124,7 @@ sign off*. It assigns **no** RED/YELLOW/GREEN level and pins **no** clinical val
   > "Verem hastası ile aynı havayı paylaşan ve tüberküloz basiline maruz kalan kişilere temaslı
   > denilir. Temaslılarda verem hastalığı görülme oranı yüksektir."
   > "Yakınması olanların hemen başvurması gereklidir."
-- **Confidence: MEDIUM–HIGH** for text. Used only by the **held** item Q11.
+- **Confidence: MEDIUM–HIGH** for text. Used only by Q11 (released under D3).
 
 ---
 
@@ -142,15 +147,15 @@ or family-history root.
 | Q7 | Daily vegetables and fruit | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q8 | Frequent sugary drinks | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q9 | Recent animal bite or scratch | `OBSERVATION.story.v1` (narrative only) | deferred |
-| Q10 | Travel plans abroad (HELD) | — | — |
-| Q11 | Household tuberculosis contact (HELD) | — | — |
+| Q10 | Travel plans abroad (HELD — no source) | — | — |
+| Q11 | Household tuberculosis contact | no candidate archetype | deferred (INT-032) |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
 
 | Item | Source | base item | This proposal's role |
 |---|---|---|---|
 | Rabies-risk animal contact | HS-S6 | **absent** from base.life_threat | Q9 is history only; placement is a §4 gap for the base owner |
-| Cough with tuberculosis contact | HS-S7 | **absent** | Held (Q11); nothing asked |
+| Cough with tuberculosis contact | HS-S7 | **absent** | Q11 asks about the household contact only (history input, no rule); placement is for the base owner |
 
 ### 2.3 Red-flag candidates — for physician review — NOT encoded
 
@@ -170,6 +175,11 @@ words per sentence; no diagnosis/treatment/prognosis language; no numerals (inva
 CANDIDATE — clinician to approve wording.** No item carries a triage level. Q1 binds to the pack's
 `basvuru_nedeni` slot.
 
+**Duration ask — clinician decision pending.** A preventive visit has no complaint, so the
+generator's fixed `sikayet_suresi` ask ("Bu şikâyetiniz ne zamandır var?") fits poorly, and no source
+supports another wording. No `pack:` line is written. The clinician supplies the wording, or the slot
+is omitted once the generator can leave it out (gap 7).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün halk sağlığı polikliniğine gelme nedeniniz nedir?"
 CANDIDATE — clinician to approve wording.
@@ -186,8 +196,10 @@ CANDIDATE — clinician to approve wording.
 
 **Q4 — Colorectal cancer or polyps in the family** · archetype: **no root — export blocked (INT-041)** · source: HS-S2 ("Ailede kalın bağırsak polipleri veya kalın bağırsak kanseri öyküsünün olması")
 > "Anne, baba ya da kardeşlerinizde kalın bağırsak kanseri ya da polip olan var mı?"
-gen: slot=ailede_kalin_bagirsak_kanseri; type=boolean
+gen: slot=ailede_kalin_bagirsak_kanseri; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Asks about relatives' condition only, never their identity.
+Relatives' health data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category
+register row pending counsel review (INT-349).
 
 **Q5 — Tetanus vaccine as an adult** · archetype: `OBSERVATION.story.v1` · source: HS-S3 (erişkin Td)
 > "Yetişkin olduktan sonra tetanoz aşısı oldunuz mu?"
@@ -195,19 +207,23 @@ gen: slot=eriskin_tetanoz_asisi; type=boolean
 CANDIDATE — clinician to approve wording. The ten-year booster interval stays out of patient copy.
 
 **Q6 — Regular moderate activity** · archetype: `OBSERVATION.story.v1` · source: HS-S4 ("yürüyüş, hafif koşu, bisiklet veya yüzme gibi dayanıklılık aktiviteleri")
-> "Haftanın çoğu günü, nefesinizi biraz hızlandıran yürüyüş gibi hareketler yapıyor musunuz?"
+> "Nefesinizi biraz hızlandıran yürüyüş gibi hareketleri düzenli olarak yapıyor musunuz?"
 gen: slot=duzenli_fiziksel_aktivite; type=boolean
-CANDIDATE — clinician to approve wording. Not a GPAQ/IPAQ item; no minutes asked.
+CANDIDATE — clinician to approve wording. Not a GPAQ/IPAQ item; no minutes asked. "Düzenli olarak"
+replaces "haftanın çoğu günü", a frequency cut-off no quote supports (HS-S4 gives a weekly-minutes
+threshold); the clinician sets any threshold.
 
 **Q7 — Daily vegetables and fruit** · archetype: `OBSERVATION.story.v1` · source: HS-S5 ("meyveler, sebzeler")
 > "Her gün sebze ve meyve yiyor musunuz?"
 gen: slot=gunluk_sebze_meyve; type=boolean
-CANDIDATE — clinician to approve wording. No portion count (invariant 22).
+CANDIDATE — clinician to approve wording. No portion count (invariant 22). "Her gün" is a plain daily
+question; the clinician may prefer "sık", as in Q8.
 
 **Q8 — Sugary drinks** · archetype: `OBSERVATION.story.v1` · source: HS-S5 ("özellikle şekerli gazlı içeceklerin tüketiminin sınırlandırılması")
-> "Şekerli ya da gazlı içecekleri sık içer misiniz?"
+> "Kola, gazoz gibi şekerli içecekleri sık içer misiniz?"
 gen: slot=sekerli_icecek; type=boolean
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. Follows the source's "şekerli gazlı içecekler"; the earlier
+"şekerli ya da gazlı" also captured sparkling mineral water.
 
 **Q9 — Recent animal bite or scratch** · archetype: `OBSERVATION.story.v1` · source: HS-S6 ("kuduz hayvanın ısırması"; "tırmalama")
 > "Son zamanlarda sizi bir hayvan ısırdı ya da tırmaladı mı?"
@@ -216,15 +232,19 @@ CANDIDATE — clinician to approve wording. History only; see §2.3. The clinici
 
 **Q10 — Travel plans abroad** · archetype: none · source: NO SOURCE FOUND (seyahat sağlığı)
 > "Yakın zamanda yurt dışına bir yolculuk planınız var mı?"
-gen: hold=invariant 18 — new data category; owner decision required
-HELD — travel plans are a personal-data category the product does not yet hold; also unsourced.
+gen: slot=yurt_disi_seyahat_plani; type=boolean; delivery=text_first; hold=no travel-health source retrieved (gap 4)
+HELD — unsourced (gap 4). The SB Seyahat Sağlığı site already used by other proposals is the obvious
+place to look. When a source is found, release also needs the owner, because travel plans are not a
+D3 category.
 
 **Q11 — Tuberculosis in the household** · archetype: none · source: HS-S7 ("aynı havayı paylaşan … temaslı")
 > "Birlikte yaşadığınız biri son zamanlarda verem tanısı aldı mı?"
-gen: hold=invariant 18 — new data category; owner decision required
-HELD — asks about a household member's diagnosis; owner decision required before it is asked.
+gen: slot=evde_verem_temasi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Released under D3 (household contacts). Asks about a
+household member's diagnosis, never their identity; history input only, no rule (§2.2). invariant 18:
+owner-approved 2026-09-26; VERBİS/data-category register row pending counsel review (INT-349).
 
-*(11 candidate questions; 9 generate, 2 held.)*
+*(11 candidate questions; 10 generate, 1 held.)*
 
 ---
 
@@ -237,13 +257,15 @@ HELD — asks about a household member's diagnosis; owner decision required befo
 3. **Salt intake, sleep, blood-pressure checks, adult influenza and pneumococcal vaccination** — not
    drafted; no verbatim patient-level source was retrieved (the Aşı Portalı influenza fragment was a
    reimbursement sentence only). **NO SOURCE FOUND (verbatim).**
-4. **Travel health (seyahat sağlığı)** — no SB source retrieved; Q10 is held regardless (invariant 18).
+4. **Travel health (seyahat sağlığı)** — no SB source retrieved; Q10 is held for this gap. Travel
+   plans are not a D3 category, so release also needs the owner.
 5. **Rabies and tuberculosis placement** — neither is in `base.life_threat`. Whether a recent
    rabies-risk contact needs a rules-engine rule is a decision for the base.life_threat owner and the
    physician of record (HB-C1).
 6. **Look-back windows** ("son zamanlarda" in Q9, Q11) — deliberately vague; the clinician must set them.
-7. **The generator's standard `sikayet_suresi` slot** fits a complaint visit poorly here; the clinician
-   may drop it at sign-off.
+7. **The generator's standard `sikayet_suresi` slot** fits a preventive visit poorly and no sourced
+   wording exists. **Clinician decision pending:** clinician wording, or omit the slot once the
+   generator supports it.
 8. **EK-4 acuity** (RG 13/9/2022 sayı 31952) — no snapshot in repo; **no level proposed**. All three RED
    axes (route × register × location, invariant 21) are **deliberately unassigned**.
 9. **openEHR leaf paths (at-codes)** — deferred (INT-032); screening, immunisation, lifestyle and
@@ -258,7 +280,8 @@ HELD — asks about a household member's diagnosis; owner decision required befo
   wording; each draft marked CANDIDATE.
 - **Inv. 7** — nothing added to or extending `base.life_threat`.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
-- **Inv. 18** — Q10 (travel) and Q11 (household contact) held as new personal-data categories.
+- **Inv. 18** — Q11 (household contact) released under D3; Q4 and Q11 are `text_first` with INT-349
+  rows. Q10 (travel) is held for its missing source; release also needs the owner.
 - **Inv. 21** — RED axes intentionally unspecified (gap 8).
 - **Inv. 22** — no numerals in any candidate question; programme ages, intervals and minutes stay in §1.
 - **Instruments** — no GPAQ, IPAQ or food-frequency item reproduced.

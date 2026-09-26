@@ -123,7 +123,8 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032; HB-C12)
 | Q8 | Chewing difficulty | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Dry mouth | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q10 | Clenching or grinding | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q11 | Medicine for bone thinning or other bone problems (ever) | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
+| Q11a | Medicine for bone thinning or other bone problems (ever) | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
+| Q11b | Name of that medicine | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
 | Q12 | Past radiotherapy to head or neck | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032); no procedure archetype in the OPT |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
@@ -149,7 +150,7 @@ No level, route, register or location is proposed (invariants 1, 7, 21).
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (13)
 
 Register: formal **siz**; one concern and exactly one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22); written in our own
@@ -206,18 +207,25 @@ CANDIDATE — clinician to approve wording.
 gen: slot=dis_sikma_gicirdatma; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Medicine for bone thinning or other bone problems (ever)** · archetype: `ACTION.medication.v1` · source: PR-S4 PDF p. 3 ("past, current, or possible future use")
+**Q11a — Medicine for bone thinning or other bone problems (ever)** · archetype: `ACTION.medication.v1` · source: PR-S4 PDF p. 3 ("past, current, or possible future use")
 > "Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?"
-gen: slot=kemik_ilaci; type=boolean; follow_up=Hatırlıyorsanız ilacın adını söyleyebilir misiniz?
+gen: slot=kemik_ilaci; type=boolean
 CANDIDATE — clinician to approve wording. Wording follows the wave 1–3 reviewer text
-(docs/evidence/verification/specialty-wave1-3.md). Past use counts. See §2.3.
+(docs/evidence/verification/specialty-wave1-3.md). Past use counts. See §2.3. Yes/no gate for Q11b.
+
+**Q11b — Name of that medicine** · archetype: `ACTION.medication.v1` · source: PR-S4 PDF p. 3
+> "Hatırlıyorsanız bu ilacın adını söyleyebilir misiniz?"
+gen: slot=kemik_ilaci_adi; type=string; ask_if=kemik_ilaci == true
+CANDIDATE — clinician to approve wording. Split from Q11 (wave 8 verification): a boolean slot cannot
+store the medicine's name, so it has its own string slot. Same pair as periodontoloji Q11a/Q11b.
 
 **Q12 — Past radiotherapy to head or neck** · archetype: `OBSERVATION.story.v1` · source: PR-S5 abstract ("secondary to head and neck radiation therapy")
 > "Baş ya da boyun bölgenize hiç ışın tedavisi (radyoterapi) uygulandı mı?"
 gen: slot=bas_boyun_isin_tedavisi; type=boolean
 CANDIDATE — clinician to approve wording. Base intake does not ask this. It names no disease. See §2.3.
 
-*(12 candidate questions: Q1 general intake; Q2–Q12 source-backed; no candidate flag on any item.)*
+*(13 candidate questions: Q1 general intake; Q2–Q12 source-backed, with Q11 split into Q11a and Q11b;
+no candidate flag on any item.)*
 
 ---
 
@@ -244,6 +252,17 @@ CANDIDATE — clinician to approve wording. Base intake does not ask this. It na
 8. **Every triage level and all three RED axes** (invariant 21) — deliberately **not** assigned.
 9. **openEHR** — leaf paths deferred (INT-032, HB-C12); no device or procedure archetype in the OPT.
 10. **PolicyGuard lexicon is itself unsigned (HB-C23).**
+11. **Standard duration slot.** The generator adds `sikayet_suresi` ("Bu şikâyetiniz ne zamandır
+    var?"), but a denture recall (PR-S3 annual check) or a new-denture visit often has no complaint to
+    time, and no source supports a duration question for it. No `pack:` line is written and no wording
+    is proposed here: **clinician decision pending** — clinician wording, or the slot left out once the
+    generator's `duration=omit` option (wave 7 §E-2) exists (wave 8 verification §A).
+12. **Dental airway ask.** §2.2 leaves spreading swelling with breathing or swallowing difficulty to
+    `base.life_threat`, but `rf.dyspnoea_rest` and `rf.sepsis_like` are named-gap stubs there with no
+    ask, so no layer asks about the airway in this pack. Four sibling dental packs carry an ungated
+    airway ask instead. Whether every dental pack carries it under one shared slot id, or none does, is
+    an owner and physician decision (wave 8 verification §A, owner decision 1). No item is added here —
+    **clinician decision pending**.
 
 ---
 

@@ -162,6 +162,12 @@ clinician to approve wording.** No item carries a triage level; items may at mos
 captured by the pack's `sikayet_suresi` slot, so U-S1's duration wording stays out of patient copy.
 Q1 binds to the pack's `basvuru_nedeni` slot.
 
+The pack line below keeps the fixed duration ask and replaces its follow-up, which offered only days or
+weeks. It offers weeks, months and years, the units U-S1's month-scale threshold and U-S3's chronic
+complaint need; the threshold itself stays in the source.
+
+pack: duration_ask=Bu şikâyetiniz ne zamandır var?; duration_follow_up=Hafta, ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün uyku polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording.
@@ -183,19 +189,23 @@ CANDIDATE — clinician to approve wording.
 
 **Q5 — Daytime impact of poor sleep** · archetype: `OBSERVATION.story.v1` · source: U-S1 ("günlük işlevleri bozuyorsa"), U-S3 ("daytime impairment"), U-S2 ("yaptığı işe kendini verememe")
 > "Uykunuzdaki bu sorun gündüz işlerinizi yapmanızı zorlaştırıyor mu?"
-gen: slot=gunduz_islev_etkisi; type=boolean; follow_up=Kötü uyuduğunuz günlerde gün içinde kendinizi yorgun hissediyor musunuz?
-CANDIDATE — clinician to approve wording. Not an item of any insomnia severity scale.
+gen: slot=gunduz_islev_etkisi; type=boolean; ask_if=uykuya_dalma_guclugu == true || gece_uyanip_uyuyamama == true || erken_uyanma == true; follow_up=Kötü uyuduğunuz günlerde gün içinde kendinizi yorgun hissediyor musunuz?
+CANDIDATE — clinician to approve wording. Not an item of any insomnia severity scale. Asked only when
+Q2, Q3 or Q4 is yes, because "bu sorun" presupposes the night-time complaint (U-S3 ties daytime
+impairment to it); a patient referred only for snoring does not hear it.
 
 **Q6 — Falling asleep unintentionally in the day** · archetype: `OBSERVATION.symptom_sign.v1` · source: U-S2 ("gündüz aşırı uykululuk"), U-S4 ("excessive sleepiness"), U-S1
-> "Gün içinde istemediğiniz anlarda uyuyakaldığınız oluyor mu?"
-gen: slot=gunduz_uyuklama; type=boolean; follow_up=Gündüz uyanık kalmakta zorlanıyor musunuz?
+> "Gün içinde istemeden uyuyakaldığınız oluyor mu?"
+gen: slot=gunduz_istemsiz_uyuma; type=boolean; follow_up=Gündüz uyanık kalmakta zorlanıyor musunuz?
 CANDIDATE — clinician to approve wording. Deliberately names no situation, so no Epworth item is
-paraphrased; sleepiness while driving is §2.2.
+paraphrased; sleepiness while driving is §2.2. Same text and slot as obezite Q9, so one clip serves
+both packs.
 
 **Q7 — Loud snoring reported by others** · archetype: `OBSERVATION.symptom_sign.v1` · source: U-S1 ("şiddetli horlama"), U-S3 ("bed partner reports"), U-S4 ("loud snoring")
 > "Size uykuda yüksek sesle horladığınızı söyleyen oldu mu?"
-gen: slot=yuksek_sesle_horlama; type=boolean; follow_up=Birlikte kaldığınız kişi horlamanızdan şikâyet ediyor mu?
-CANDIDATE — clinician to approve wording.
+gen: slot=yuksek_sesle_horlama; type=boolean; follow_up=Başkaları yüksek sesle horladığınızı söylüyor mu?
+CANDIDATE — clinician to approve wording. The follow-up does not presume that someone lives with the
+patient.
 
 **Q8 — Witnessed breathing pauses** · archetype: `OBSERVATION.symptom_sign.v1` · source: U-S1 ("aralarda kesintilerin (tanıklı apne)"), U-S4 ("witnessed apneas")
 > "Uyurken nefesinizin durduğunu fark eden biri oldu mu?"

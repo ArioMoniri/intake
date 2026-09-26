@@ -27,9 +27,14 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
   **Legal-reviewer decision required** on how the two are shown side by side.
 - **Fitness-to-play is the physician's report.** SP-S1 Madde 4 (g) defines the sporcu sağlık raporu
   as the result of a physician's examination and evaluation (EK-3). The pack never implies a verdict.
-- **Exertional collapse / fainting and chest pain on exercise are not asked here** (brief; invariant
-  7). They are the core EK-1 cardiac items and belong to base `rf.chest_pain_*` and the physician;
-  they are listed in §2.2 and §2.3 only.
+- **Exertional fainting and exertional chest discomfort — clinician decision.** An earlier draft said
+  these "belong to base". That was wrong: base has only an acute chest-pain probe
+  (`rf_chest_pain_acute`) and no exertional-syncope rule, so as drafted the two central
+  pre-participation cardiac items reached no note. Q14 and Q15 are now drafted from sourced wording
+  (SP-S2 items 13 and 14, a non-OCR source; SP-S1 EK-1 items 5 and 6) as **history inputs only**: no
+  rule reads them and they do not extend `base.life_threat` (invariant 7). They carry
+  `hold=clinician decision — base.life_threat posture`, so they are recorded but not emitted until
+  the clinician decides.
 - **No validated instrument is reproduced.** EK-1 opens with four mental-health items scored over the
   last fortnight (the PHQ-2 / GAD-2 pattern). They are **not** reproduced and **not** described as
   Turkish-validated; mental-health screening stays with the consented wellbeing module.
@@ -44,7 +49,11 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
   quotes below have diacritics restored by hand — they MUST be re-read against the image**. SP-S2 was
   extracted locally with `pdftotext`. Before sign-off each sentence MUST be committed as a verbatim
   snapshot with `source: {guideline_id, version, date, url, retrieved_on}`. Until then any derived
-  rule stays `status: draft_needs_source`.
+  rule stays `status: draft_needs_source`. The wave 9 verification re-fetch of SP-S1's Resmî Gazete
+  page failed TLS verification, so SP-S1 and its EK-1 remain **unverified**.
+- **OCR-only items (Q2, Q3, Q7, Q8, Q9, Q10).** Each rests only on the OCR'd EK-1 text. They are kept
+  because the topics are standard pre-participation topics and the asks are own words, but none may be
+  promoted, or cited by a rule, until the EK-1 image is re-read and snapshotted.
 - This file does **not** edit `packages/protocols/specialty/spor_hekimligi.yaml` or any served pack.
 
 ---
@@ -106,6 +115,12 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
   predates SP-S1 and uses a different family-history age threshold. A numeric performance claim in
   its foreword is deliberately **not** quoted (invariant 20).
 
+### Cited in §3 but not yet quoted here
+- EK-1 item 15 (Q4), EK-1 item 29 (Q13, the "yeme düzeni" half) and SP-S2 item 19 (Q11) are cited by
+  §3 items but their text was not captured in this section. SP-S2 item 8's treatment phrase appears
+  only in Q5's source line. Each must be quoted verbatim here, from the primary text, before its item
+  is promoted; for Q13 the alternative is to cut the ask to weight only.
+
 ---
 
 ## 2. openEHR mapping and `base.life_threat` overlap
@@ -122,7 +137,7 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q3 | Current sports injury | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q4 | Past injury that cost training or matches | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q5 | Surgery for that injury | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; **no procedure archetype in the OPT** |
-| Q6 | Head knock with lasting headache or forgetfulness | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q6 | Past concussion or head injury | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Cough / wheeze / hard breathing with exercise | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Unwell while exercising in the heat | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Fast or irregular heartbeat during sport | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -130,14 +145,16 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q11 | Young sudden or cardiac death in the family | **no root — export blocked (INT-041)** | — | — |
 | Q12 | Past epileptic seizure | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q13 | Worry about weight or eating | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q14 | HELD (clinician decision) — fainting or near-fainting with exercise | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q15 | HELD (clinician decision) — chest discomfort with exercise | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
 
 | Alarm sign | Source | base item | This proposal's role |
 |---|---|---|---|
-| Fainting or near-fainting during or after exercise | SP-S1 EK-1 item 5, SP-S2 item 13 | base / physician (exertional syncope is **absent** as a named base rule) | **Not asked.** |
-| Chest pain or pressure on exercise | SP-S1 EK-1 item 6, SP-S2 item 14 | `rf.chest_pain_*` | **Not asked.** |
+| Fainting or near-fainting during or after exercise | SP-S1 EK-1 item 5, SP-S2 item 13 | **absent** (no exertional-syncope rule in base) | History input; no rule (Q14, held: clinician decision) |
+| Chest pain or pressure on exercise | SP-S1 EK-1 item 6, SP-S2 item 14 | only the acute probe `rf_chest_pain_acute`; no exertional item | History input; no rule (Q15, held: clinician decision) |
 | Heat illness happening now | SP-S1 EK-1 item 23 | **absent** from base.life_threat | **Not asked.** Q8 is past history only |
 | New weakness or numbness after a head or neck impact now | SP-S1 EK-1 item 22 | `rf.stroke_fast` / `rf.new_neuro_deficit_subacute` | **Not asked.** Q6 is past history only |
 | Breathlessness at rest | — | `rf.dyspnoea_rest` | Q7 is exercise-related history only |
@@ -149,88 +166,119 @@ referral notes are quoted as provenance, not adopted as triage.
 
 | Candidate | Verbatim source wording | Source |
 |---|---|---|
-| Exertional fainting or near-fainting | "Egzersiz sırasında veya sonrasında hiç bayıldınız mı veya bayılmak üzere oldunuz mu?" | SP-S1 EK-1 item 5 |
-| Exertional chest discomfort | "Egzersiz sırasında göğsünüzde hiç rahatsızlık, ağrı, sıkışma veya basınç oldu mu?" | SP-S1 EK-1 item 6 |
+| Exertional fainting or near-fainting (Q14, held) | "Egzersiz sırasında veya sonrasında hiç bayıldınız mı veya bayılmak üzere oldunuz mu?" | SP-S1 EK-1 item 5 |
+| Exertional chest discomfort (Q15, held) | "Egzersiz sırasında göğsünüzde hiç rahatsızlık, ağrı, sıkışma veya basınç oldu mu?" | SP-S1 EK-1 item 6 |
 | Palpitations during exercise (Q9) | "Egzersiz sırasında çarpıntı veya düzensiz atış hissettiniz mi?" | SP-S1 EK-1 item 7 |
 | Young sudden or cardiac death in the family (Q11) | "beklenmedik veya açıklanamayan ani bir ölüm yaşadı mı" | SP-S1 EK-1 item 12 |
-| Head injury with lasting symptoms (Q6) | "bir beyin sarsıntısı veya baş yaralanması geçirdiniz mi?" | SP-S1 EK-1 item 21 |
+| Past concussion or head injury (Q6) | "bir beyin sarsıntısı veya baş yaralanması geçirdiniz mi?" | SP-S1 EK-1 item 21 |
 | Statutory routing on any cardiac "yes" | "Herhangi biri “Evet” ise spor hekimi veya aile hekimine yönlendirilmelidir." | SP-S1 EK-1 |
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (13)
+## 3. Candidate B1 Turkish pre-visit questions (15 drafted: 13 active, 2 held)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE —
 clinician to approve wording.** Own words throughout; EK-1 and Form-1 are sources, not scripts. No
-item carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot; duration comes from the
-pack's `sikayet_suresi` slot.
+item carries a triage level. Q1 binds to the pack's `basvuru_nedeni` slot and ends in "nedir?" so the
+generator's neutral follow-up is used, not the complaint follow-up. Duration comes from the pack's
+`sikayet_suresi` slot, whose fixed ask fits injury visits. For pre-participation report visits there
+is no sourced alternative wording: **clinician decision pending** (no `pack:` line is written).
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugün spor hekimliği polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
+> "Bugün spor hekimliği polikliniğine gelme nedeniniz nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Sport played** · archetype: `OBSERVATION.story.v1` · source: SP-S1 EK-1 ("Hangi spor dalı için talep edildiği")
 > "Hangi sporu yapıyorsunuz?"
 gen: slot=spor_dali; type=string
 CANDIDATE — clinician to approve wording. Open answer; the risk group (A/B/C, SP-S1 Madde 4 (c)) is set by the ministry list, not by the patient.
+OCR-only source — re-read the scan before promotion.
 
 **Q3 — Current sports injury** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 item 16
 > "Şu anda sizi rahatsız eden bir spor yaralanmanız var mı?"
 gen: slot=guncel_spor_yaralanmasi; type=boolean
 CANDIDATE — clinician to approve wording. Site and character come from base `location_text` / `character_text`.
+OCR-only source — re-read the scan before promotion.
 
 **Q4 — Past injury that cost training or matches** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SP-S1 EK-1 item 15, SP-S2 item 8
 > "Daha önce antrenman ya da maç kaçırmanıza yol açan bir yaralanma geçirdiniz mi?"
 gen: slot=gecmis_spor_yaralanmasi; type=boolean
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. EK-1 item 15 is cited but not quoted in §1; quote it before
+promotion.
 
 **Q5 — Surgery for that injury (if Q4 yes)** · archetype: `OBSERVATION.story.v1` · source: SP-S2 item 8 ("tedavinizi (ameliyat, alçı, fizik tedavi")
 > "Bu yaralanma için ameliyat oldunuz mu?"
 gen: slot=yaralanma_ameliyati; type=boolean; ask_if=gecmis_spor_yaralanmasi == true
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. The SP-S2 item 8 phrase is not yet quoted in §1; quote it
+before promotion.
 
-**Q6 — Head knock with lasting symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 item 21
-> "Başınıza aldığınız bir darbeden sonra uzun süren baş ağrısı ya da unutkanlık yaşadınız mı?"
-gen: slot=kafa_darbesi_sonrasi_belirti; type=boolean
-CANDIDATE — clinician to approve wording. Past event only (§2.2).
+**Q6 — Past concussion or head injury** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 item 21
+> "Daha önce beyin sarsıntısı ya da baş yaralanması geçirdiniz mi?"
+gen: slot=beyin_sarsintisi_oykusu; type=boolean
+CANDIDATE — clinician to approve wording. Past event only (§2.2). Follows the source construct:
+a concussion without lasting symptoms is still pre-participation history.
 
 **Q7 — Cough, wheeze or hard breathing with exercise** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 item 17
 > "Egzersiz sırasında ya da sonrasında öksürük, hırıltı ya da nefes almada zorluk oluyor mu?"
 gen: slot=egzersizle_solunum_belirtisi; type=boolean
 CANDIDATE — clinician to approve wording. Exercise-related history; breathlessness at rest is base (§2.2).
+OCR-only source — re-read the scan before promotion.
 
 **Q8 — Unwell while exercising in the heat** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 item 23
 > "Sıcak havada spor yaparken hiç fenalaştığınız oldu mu?"
 gen: slot=sicakta_fenalasma; type=boolean
 CANDIDATE — clinician to approve wording. Past event only (§2.2).
+OCR-only source — re-read the scan before promotion.
 
 **Q9 — Fast or irregular heartbeat during sport** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 item 7
 > "Spor yaparken kalbinizin çok hızlı ya da düzensiz attığını hissettiniz mi?"
 gen: slot=sporda_carpinti; type=boolean
 CANDIDATE — clinician to approve wording. §2.3 candidate; no level.
+OCR-only source — re-read the scan before promotion.
 
 **Q10 — Heart problem previously named by a doctor** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SP-S1 EK-1 item 8
 > "Bir doktor size daha önce kalbinizle ilgili bir sorun olduğunu söyledi mi?"
 gen: slot=bilinen_kalp_sorunu; type=boolean
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. EK-1's broader "kalp sorunu" suits sports cardiology.
+OCR-only source — re-read the scan before promotion.
 
 **Q11 — Young sudden or cardiac death in the family** · archetype: **no root — export blocked (INT-041)** · source: SP-S1 EK-1 item 12, SP-S2 item 19
-> "Ailenizde genç yaşta aniden ya da kalp hastalığından ölen biri oldu mu?"
-gen: slot=ailede_genc_yasta_ani_olum; type=boolean
-CANDIDATE — clinician to approve wording. "Genç yaşta" replaces the sources' age thresholds, which differ (§4 gap 3).
+> "Ailenizde genç yaşta aniden ya da kalp hastalığı nedeniyle kaybettiğiniz biri oldu mu?"
+gen: slot=ailede_genc_yasta_ani_olum; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. "Genç yaşta" replaces the sources' age thresholds, which
+differ (§4 gap 3). The softer "kaybettiğiniz" follows tibbi_genetik's `ailede_ani_aciklanamayan_kayip`.
+SP-S2 item 19 is cited but not quoted in §1; quote it before promotion. Relatives' health data, so
+`text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register row pending
+counsel review (INT-349).
 
 **Q12 — Past epileptic seizure** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SP-S1 EK-1 item 11, SP-S2 item 20
-> "Daha önce hiç epilepsi (sara) nöbeti geçirdiniz mi?"
+> "Daha önce hiç sara, yani epilepsi nöbeti geçirdiniz mi?"
 gen: slot=epilepsi_nobeti_oykusu; type=boolean
-CANDIDATE — clinician to approve wording. "Epilepsi (sara)" avoids the shift-duty sense of "nöbet".
+CANDIDATE — clinician to approve wording. "Sara, yani epilepsi nöbeti" avoids the shift-duty sense of
+"nöbet" and keeps a parenthesis out of spoken copy (TTS, invariant 10).
 
 **Q13 — Worry about weight or eating** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S1 EK-1 items 26 and 29, SP-S2 item 22
 > "Kilonuz ya da yeme düzeniniz konusunda sizi kaygılandıran bir durum var mı?"
-gen: slot=kilo_yeme_kaygisi; type=boolean
-CANDIDATE — clinician to approve wording. Not a screening scale; the word "bozukluk" is not put to the patient.
+gen: slot=kilo_yeme_kaygisi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Not a screening scale; the word "bozukluk" is not put to the
+patient. An eating-behaviour disclosure, and athletes are often accompanied by a coach or parent, so
+`text_first`. EK-1 item 29 (the "yeme düzeni" half) is not quoted in §1: quote it, or cut the ask to
+weight only (clinician decision pending).
 
-*(13 candidate questions.)*
+**Q14 — Fainting or near-fainting with exercise** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S2 item 13, SP-S1 EK-1 item 5
+> "Spor yaparken ya da hemen sonra hiç bayıldınız ya da bayılacak gibi oldunuz mu?"
+gen: slot=egzersizde_bayilma; type=boolean; hold=clinician decision — base.life_threat posture
+CANDIDATE — HELD for the clinician decision (§0). History input only; no rule reads it and it does
+not extend `base.life_threat`. SP-S2 is a pdftotext extraction, not OCR.
+
+**Q15 — Chest discomfort with exercise** · archetype: `OBSERVATION.symptom_sign.v1` · source: SP-S2 item 14, SP-S1 EK-1 item 6
+> "Spor yaparken göğsünüzde ağrı, sıkışma ya da baskı hissettiniz mi?"
+gen: slot=egzersizde_gogus_rahatsizligi; type=boolean; hold=clinician decision — base.life_threat posture
+CANDIDATE — HELD for the clinician decision (§0). History input only; no rule reads it and it does
+not extend `base.life_threat`. SP-S2 is a pdftotext extraction, not OCR.
+
+*(15 drafted: 13 active, 2 held.)*
 
 ---
 
@@ -245,7 +293,8 @@ CANDIDATE — clinician to approve wording. Not a screening scale; the word "boz
 3. **Family-history age threshold** — SP-S1 EK-1 and SP-S2 use different ages; the patient text says
    "genç yaşta". A clinician must choose the threshold for any rule.
 4. **EK-1 wording** — read by English-model OCR from a scan; every EK-1 quote must be re-verified
-   against the image before a snapshot is committed.
+   against the image before a snapshot is committed. Q2, Q3, Q7, Q8, Q9 and Q10 rest on that text
+   alone and may not be promoted, or cited by a rule, until it is.
 5. **Statutory declaration boundary** — how pack answers sit next to the EK-1 declaration on
    e-Nabız. **Legal-reviewer decision required.**
 6. **Female athlete items** (SP-S1 EK-1 items 30–33, SP-S2 item 23: menstrual history) — not drafted;
@@ -258,6 +307,13 @@ CANDIDATE — clinician to approve wording. Not a screening scale; the word "boz
    RED axes (route × register × location, invariant 21) are **deliberately unassigned**.
 9. **openEHR leaf paths (at-codes)**, a **physical-activity archetype** and a **family-history
    archetype** — deferred (`openehr_deferred_reason`, INT-032; INT-041 for Q11).
+10. **Exertional fainting and exertional chest discomfort (Q14, Q15)** — drafted from SP-S2 items 13
+    and 14 as history inputs with no rule; held until the clinician decides the base.life_threat
+    posture. Any rule placement stays with the base owner (invariant 7).
+11. **Quotes cited but not captured** — EK-1 items 15 and 29, SP-S2 item 19 and SP-S2 item 8's
+    treatment phrase (Q4, Q13, Q11, Q5; §1). Quote each before its item is promoted.
+12. **Duration ask for report visits** — the fixed `sikayet_suresi` ask fits injury visits; no sourced
+    wording exists for pre-participation report visits. **Clinician decision pending.**
 
 ---
 
@@ -266,8 +322,11 @@ CANDIDATE — clinician to approve wording. Not a screening scale; the word "boz
 - **Inv. 1** — no RED/YELLOW asserted; candidates max `YELLOW_REVIEW`, pending the rules engine.
 - **Inv. 2 / patient copy** — `siz`, B1, one question mark per turn, no diagnosis/treatment/prognosis
   wording; each draft marked CANDIDATE.
-- **Inv. 7** — exertional fainting, exertional chest pain, heat illness now and new neurological
-  signs after impact left to `base.life_threat` and the physician (§2.2); nothing extends it.
+- **Inv. 7** — heat illness now and new neurological signs after impact left to `base.life_threat`
+  and the physician (§2.2). Exertional fainting and exertional chest discomfort are drafted as history
+  inputs (Q14, Q15), held for the clinician's decision; nothing extends `base.life_threat`.
+- **Inv. 18** — Q11 (relatives' health) and Q13 (eating-behaviour disclosure) are `text_first`; Q11
+  needs its INT-349 row under D3.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
 - **Instruments** — EK-1's four mental-health items (PHQ-2 / GAD-2 pattern) are not reproduced and
   not described as Turkish-validated.

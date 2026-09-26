@@ -129,7 +129,8 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032; HB-C12)
 | Q7 | Frequent acidic drinks | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032); no diet archetype in the OPT |
 | Q8 | Sour or bitter fluid rising into the mouth | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Frequent sugary snacks or drinks between meals | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
-| Q10 | Brushes morning and evening with fluoride toothpaste | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q10a | Brushes morning and evening | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q10b | Toothpaste contains fluoride | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q11 | Dry mouth | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Clenching or grinding | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
@@ -154,7 +155,7 @@ No level, route, register or location is proposed (invariants 1, 7, 21).
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (13)
 
 Register: formal **siz**; one concern and exactly one question mark per turn; at most fifteen words per
 sentence; no diagnosis/treatment/prognosis language; no numerals (invariant 22); written in our own
@@ -192,9 +193,10 @@ gen: slot=dis_asinmasi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q7 — Frequent acidic drinks** · archetype: `OBSERVATION.story.v1` · source: RE-S1 PDF p. 57 ("asitli yiyecek"); RE-S3 ch. 7 ("extrinsic acid"); RE-S6 abstract
-> "Gazlı içecek ya da meyve suyu gibi asitli içecekleri sık içer misiniz?"
+> "Gazlı içecek ya da meyve suyu gibi asitli içecekleri sık içiyor musunuz?"
 gen: slot=asitli_icecek; type=boolean
-CANDIDATE — clinician to approve wording. No frequency number is asked (invariant 22).
+CANDIDATE — clinician to approve wording. No frequency number is asked (invariant 22). "İçiyor
+musunuz" keeps the habitual reading; "içer misiniz" is also the everyday form of an offer.
 
 **Q8 — Sour or bitter fluid rising into the mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: RE-S3 ch. 7 ("intrinsic acid", reflux); RE-S6 abstract ("reflux")
 > "Mideden ağzınıza sık sık ekşi ya da acı su geliyor mu?"
@@ -208,11 +210,18 @@ gen: slot=ara_ogun_seker; type=boolean
 CANDIDATE — clinician to approve wording. RE-S1's frequency cut-off stays in any rule, never in patient
 text (invariant 22).
 
-**Q10 — Brushes morning and evening with fluoride toothpaste** · archetype: `OBSERVATION.story.v1` · source: RE-S3 ch. 2 Table 1f; RE-S2 PDF p. 8
-> "Dişlerinizi her gün sabah ve akşam florürlü macunla fırçalıyor musunuz?"
-gen: slot=florurlu_fircalama; type=boolean
-CANDIDATE — clinician to approve wording. One sourced habit (RE-S3 states it as a single
-recommendation); the reviewer may split frequency and fluoride into two items.
+**Q10a — Brushes morning and evening** · archetype: `OBSERVATION.story.v1` · source: RE-S3 ch. 2 Table 1f; RE-S2 PDF p. 8
+> "Dişlerinizi her gün sabah ve akşam fırçalıyor musunuz?"
+gen: slot=sabah_aksam_fircalama; type=boolean
+CANDIDATE — clinician to approve wording. Split from Q10 (wave 8 verification): the single item asked
+twice-daily brushing and fluoride toothpaste under one answer, so a patient who did one but not the
+other could not say which (invariant 2). Same slot as pedodonti Q7, addressed to the patient.
+
+**Q10b — Toothpaste contains fluoride** · archetype: `OBSERVATION.story.v1` · source: RE-S3 ch. 2 Table 1f; RE-S2 PDF p. 8
+> "Kullandığınız diş macununda florür var mı?"
+gen: slot=florurlu_macun; type=boolean; follow_up=Macunun kutusunda florür yazıyor mu?
+CANDIDATE — clinician to approve wording. Same slot and follow-up as pedodonti Q8, addressed to the
+patient.
 
 **Q11 — Dry mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: RE-S1 PDF p. 50 ("Birçok ilacın tükürük"); RE-S7 ("hyposalivatory medication(s)")
 > "Ağzınızda sık sık kuruluk hissediyor musunuz?"
@@ -224,7 +233,8 @@ CANDIDATE — clinician to approve wording. Medicines themselves come from the b
 gen: slot=dis_sikma_gicirdatma; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions: Q1 general intake; Q2–Q12 source-backed; no candidate flag on any item.)*
+*(13 candidate questions: Q1 general intake; Q2–Q12 source-backed, with Q10 split into Q10a and Q10b;
+no candidate flag on any item.)*
 
 ---
 
@@ -251,6 +261,12 @@ CANDIDATE — clinician to approve wording.
 8. **Every triage level and all three RED axes** (invariant 21) — deliberately **not** assigned.
 9. **openEHR** — leaf paths deferred (INT-032, HB-C12); no diet or oral-hygiene archetype in the OPT.
 10. **PolicyGuard lexicon is itself unsigned (HB-C23).**
+11. **Dental airway ask.** §2.2 leaves spreading swelling with breathing or swallowing difficulty to
+    `base.life_threat`, but `rf.dyspnoea_rest` and `rf.sepsis_like` are named-gap stubs there with no
+    ask, so no layer asks about the airway in this pack. Four sibling dental packs carry an ungated
+    airway ask instead. Whether every dental pack carries it under one shared slot id, or none does, is
+    an owner and physician decision (wave 8 verification §A, owner decision 1). No item is added here —
+    **clinician decision pending**.
 
 ---
 

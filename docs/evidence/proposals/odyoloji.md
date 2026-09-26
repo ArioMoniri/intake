@@ -21,9 +21,14 @@ file is a *proposal for a clinician to sign off*. It assigns **no** RED/YELLOW/G
   pages of the Kulak Burun Boğaz ve Baş Boyun Cerrahisi Vakfı (TKBBV; OD-S2 … OD-S4). **No Türk Odyoloji
   Derneği or SB audiology document was found** (§4 gap 1). NICE NG98 is cited only through a secondary
   source because nice.org.uk returned HTTP 403 (not bypassed).
-- **Sudden hearing loss is NOT asked here.** It is left to `base.life_threat` and the physician (see
-  §2.2 and the sibling `kulak_burun_bogaz_hastaliklari.md`, which carries the sudden-loss item). This
-  pack asks about hearing difficulty in daily life, never about onset speed.
+- **Sudden hearing loss — clinician decision.** An earlier draft said it was "left to
+  base.life_threat". That was wrong: `base.life_threat` has no sudden-hearing-loss rule (§2.2), and an
+  audiology booking is where sudden hearing loss often first presents. Q13 is drafted with sualtı ve
+  hiperbarik tıp Q12's text and slot as a **history input only**: no rule reads it and it does not
+  extend `base.life_threat` (invariant 7). It carries `hold=clinician decision — base.life_threat
+  posture`, so it is recorded but not emitted until the clinician decides. Placement of any rule stays
+  with the base owner. If the clinician declines Q13, this bullet still stands corrected: base has no
+  such rule.
 - **No validated instrument is reproduced.** OD-S3 and OD-S4 list lay self-check questions; Q2 is
   written in our own words and is not an item of HHIE-S or any other hearing-handicap scale.
 - **Not repeated from base:** medications (ototoxic drugs are covered by the medication list),
@@ -125,12 +130,13 @@ Leaf paths are **deferred** (`openehr_deferred_reason`, INT-032), never invented
 | Q10 | Hearing loss in the family | **no root — export blocked (INT-041)** | — |
 | Q11 | Something put in the ear at home | `OBSERVATION.story.v1` (narrative only) | deferred |
 | Q12 | Past prolonged in-hospital drug treatment | `OBSERVATION.story.v1` (narrative only) | deferred |
+| Q13 | Recent sudden drop in hearing (HELD — clinician decision) | `OBSERVATION.symptom_sign.v1` | deferred (INT-032) |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
 
 | Alarm sign | Source | base item | This proposal's role |
 |---|---|---|---|
-| Sudden hearing loss | OD-S1 ("If sudden, refer urgently"), OD-S2 ("hemen başvurmak"), OD-S5 | not a base rule; physician / KBB pack | **Not asked here** — left to base.life_threat owner and physician |
+| Sudden hearing loss | OD-S1 ("If sudden, refer urgently"), OD-S2 ("hemen başvurmak"), OD-S5 | **absent** — not a base rule; physician / KBB pack | History input; no rule (Q13, held: clinician decision). Rule placement is for the base owner |
 | Sudden one-sided hearing loss with facial droop | NG98 wording seen in search summaries only | `rf.stroke_fast` (named gap) | Not asked; see `noroloji.md` |
 | Mastoiditis (pain behind the ear, fever, discharge) | OD-S1 ("Refer urgently … Mastoiditis needs urgent management!") | **absent** from base.life_threat | Q6, Q7 are history inputs only; §4 gap for the base owner |
 
@@ -165,7 +171,7 @@ CANDIDATE — clinician to approve wording. Own words; not an HHIE-S item.
 **Q3 — One ear hears less** · archetype: `OBSERVATION.symptom_sign.v1` · source: OD-S1 ("whether one or both ears are affected")
 > "Bir kulağınız diğerine göre daha az mı duyuyor?"
 gen: slot=tek_kulakta_daha_az_duyma; type=boolean
-CANDIDATE — clinician to approve wording. Onset speed is not asked (§2.2).
+CANDIDATE — clinician to approve wording. Onset speed is Q13's (held; §2.2).
 
 **Q4 — Ringing or buzzing** · archetype: `OBSERVATION.symptom_sign.v1` · source: OD-S1 ("persistent ringing or buzzing sensation in the ear"), OD-S2 ("çınlama uğultu")
 > "Kulağınızda çınlama ya da uğultu gibi bir ses duyuyor musunuz?"
@@ -188,9 +194,10 @@ gen: slot=kulak_agrisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q8 — Long exposure to loud sound** · archetype: `OBSERVATION.story.v1` · source: OD-S1 ("hearing loud noise for a long time (such as working in a factory)")
-> "İşinizde ya da günlük hayatınızda uzun süre yüksek sesli ortamlarda bulunuyor musunuz?"
+> "İşte ya da günlük hayatta uzun süre çok gürültülü ortamlarda bulunduğunuz oldu mu?"
 gen: slot=yuksek_sese_maruziyet; type=boolean
 CANDIDATE — clinician to approve wording. Exposure only; the job itself comes from base `occupation`.
+Asked as "ever", because OD-S1 asks for a *history* of long loud-noise exposure.
 
 **Q9 — Current hearing-aid use** · archetype: `OBSERVATION.story.v1` · source: OD-S1 ("use of hearing aids and cochlear implants")
 > "Şu anda işitme cihazı kullanıyor musunuz?"
@@ -199,8 +206,10 @@ CANDIDATE — clinician to approve wording.
 
 **Q10 — Hearing loss in the family** · archetype: **no root — export blocked (INT-041)** · source: OD-S1 ("Hearing loss can be hereditary and carried through generations of a family.")
 > "Ailenizde işitme kaybı olan biri var mı?"
-gen: slot=ailede_isitme_kaybi; type=boolean
-CANDIDATE — clinician to approve wording. Relatives' condition only, never their identity.
+gen: slot=ailede_isitme_kaybi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' condition only, never their identity. Relatives'
+health data, so `text_first`. invariant 18: owner-approved 2026-09-26; VERBİS/data-category register
+row pending counsel review (INT-349).
 
 **Q11 — Something put in the ear at home** · archetype: `OBSERVATION.story.v1` · source: OD-S1 NOTE ("put any foreign objects in their ear, or used any home remedies, such as hot oil")
 > "Kulağınıza evde yağ ya da başka bir şey koyduğunuz oldu mu?"
@@ -212,7 +221,13 @@ CANDIDATE — clinician to approve wording.
 gen: slot=uzun_sureli_hastane_ilac_tedavisi; type=boolean
 CANDIDATE — clinician to approve wording. Ototoxic-drug context; current medicines come from base.
 
-*(12 candidate questions; all 12 generate.)*
+**Q13 — Recent sudden drop in hearing** · archetype: `OBSERVATION.symptom_sign.v1` · source: OD-S1 ("If sudden, refer urgently"), OD-S2 ("hemen başvurmak")
+> "Son zamanlarda işitmenizde ani bir azalma oldu mu?"
+gen: slot=ani_isitme_azalmasi; type=boolean; hold=clinician decision — base.life_threat posture
+CANDIDATE — HELD for the clinician decision (§0). Same text and slot as sualtı ve hiperbarik tıp Q12.
+History input only; no rule reads it and it does not extend `base.life_threat`.
+
+*(13 drafted: 12 generate, 1 held.)*
 
 ---
 
@@ -226,7 +241,8 @@ CANDIDATE — clinician to approve wording. Ototoxic-drug context; current medic
    summaries (the HSGM pages returned 404); paediatric milestones (OD-S1 has them) are not drafted. A
    paediatric variant needs a paediatrician's sign-off.
 4. **Mastoiditis and sudden hearing loss** — neither is a `base.life_threat` rule today; placement is for
-   the base owner and physician (invariant 7). This pack asks neither.
+   the base owner and physician (invariant 7). Sudden hearing loss is drafted as a history input (Q13),
+   held for the clinician's decision; mastoiditis is not asked.
 5. **Hearing-aid detail** (type, side, satisfaction) and **cochlear implant** — not drafted.
 6. **Prior ear surgery** — no verbatim source retrieved; not drafted.
 7. **EK-4 acuity** — no level proposed; RED axes (invariant 21) deliberately unassigned.
@@ -239,7 +255,9 @@ CANDIDATE — clinician to approve wording. Ototoxic-drug context; current medic
 - **Inv. 1** — no RED/YELLOW asserted; candidates max `YELLOW_REVIEW`, pending the rules engine.
 - **Inv. 2 / patient copy** — `siz`, B1, one question mark per turn, no diagnosis/treatment/prognosis
   wording; each draft marked CANDIDATE.
-- **Inv. 7** — sudden hearing loss and mastoiditis left to `base.life_threat` / physician (§2.2).
+- **Inv. 7** — mastoiditis left to the base owner / physician (§2.2). Sudden hearing loss is drafted as
+  a history input (Q13), held for the clinician's decision; nothing extends `base.life_threat`.
+- **Inv. 18** — Q10 (relatives' health) is `text_first` with its INT-349 row under D3.
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval.
 - **Inv. 21** — RED axes intentionally unspecified.
 - **Inv. 22** — no numerals in any candidate question.

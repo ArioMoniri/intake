@@ -150,12 +150,12 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q1 | Reason for visit | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | EVALUATION | deferred (INT-032) |
 | Q2 | Fall in the past year | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q3 | What happened during the fall (narrative) | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
-| Q4 | Difficulty getting up after the fall | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q4 | Unable to get up after the fall | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q5 | Unsteadiness when walking | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q6 | Fear of falling affecting daily life | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q6 | Worry about falling | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Dizziness or dimming on standing | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Urinary incontinence | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q9 | Faecal / flatus incontinence | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q9 | Faecal incontinence | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q10 | Increased forgetfulness noticed | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q11 | Forgetfulness disrupting daily tasks | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred; no functional-status archetype in the OPT — §4 |
 | Q12 | Difficulty falling or staying asleep | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -211,20 +211,22 @@ CANDIDATE — clinician to approve wording. History item; no flag by itself.
 gen: slot=dusme_nasil_oldu; type=string; ask_if=son_yil_dusme == true; follow_up=Düştüğünüz anda ne yapıyordunuz?
 CANDIDATE — clinician to approve wording. Narrative answer, so the slot stays a string.
 
-**Q4 — Difficulty getting up after the fall (gate input)** · archetype: `OBSERVATION.story.v1` · source: GE-S1 ("Düşme sonrası kalkamama"), GE-S8 ("no capacity to get up")
-> "Düştükten sonra yerden kendi başınıza kalkmakta zorlandınız mı?"
+**Q4 — Unable to get up after the fall (gate input)** · archetype: `OBSERVATION.story.v1` · source: GE-S1 ("Düşme sonrası kalkamama"), GE-S8 ("no capacity to get up")
+> "Düştükten sonra yerden kendi başınıza kalkamadığınız oldu mu?"
 gen: slot=dusme_sonrasi_kalkamama; type=boolean; ask_if=son_yil_dusme == true; follow_up=Düştükten sonra kalkmak için birinin yardımı gerekti mi?
-CANDIDATE — clinician to approve wording. Past-year history; the long-lie candidate is §2.3.
+CANDIDATE — clinician to approve wording. Past-year history; the long-lie candidate is §2.3. The ask
+says inability, as both sources and the slot name do (wave 8 verification).
 
 **Q5 — Unsteadiness when walking** · archetype: `OBSERVATION.symptom_sign.v1` · source: GE-S8 ("Feels unsteady when standing or walking?"), GE-S4 ("denge ve yürüme")
 > "Yürürken dengenizi korumakta zorlanıyor musunuz?"
 gen: slot=yururken_denge_guclugu; type=boolean; follow_up=Yürürken sendelediğiniz ya da bir yere tutunma ihtiyacı duyduğunuz oluyor mu?
 CANDIDATE — clinician to approve wording. The gait/balance test itself is the clinician's (§0).
 
-**Q6 — Fear of falling affecting daily life** · archetype: `OBSERVATION.story.v1` · source: GE-S8 ("Worries about falling?")
-> "Düşme korkusu günlük yaşamınızı etkiliyor mu?"
-gen: slot=dusme_korkusu; type=boolean; follow_up=Düşerim diye bazı işlerden kaçındığınız oluyor mu?
-CANDIDATE — clinician to approve wording. Own words; the WFG item is not translated literally.
+**Q6 — Worry about falling** · archetype: `OBSERVATION.story.v1` · source: GE-S8 ("Worries about falling?")
+> "Düşmekten endişe ediyor musunuz?"
+gen: slot=dusme_korkusu; type=boolean; follow_up=Düşme korkusu yaşadığınız oluyor mu?
+CANDIDATE — clinician to approve wording. Asks the worry construct of GE-S8, not its impact on daily
+life. The wording names the construct in four words and still follows no source sentence.
 
 **Q7 — Dizziness or dimming on standing** · archetype: `OBSERVATION.symptom_sign.v1` · source: GE-S2 ("Baş dönmesi-bayılma"), GE-S5 ("Hipotansiyon (Tansiyon düşmesi)"), GE-S7 ("aniden değil yavaşça kalkın")
 > "Ayağa kalktığınızda baş dönmesi ya da gözlerde kararma oluyor mu?"
@@ -236,10 +238,10 @@ CANDIDATE — clinician to approve wording. Fainting with a fall is §2.2, not a
 gen: slot=idrar_kacirma; type=boolean; follow_up=Tutamadan ya da farkında olmadan idrarınızın geldiği oluyor mu?
 CANDIDATE — clinician to approve wording. Neutral phrasing chosen because GE-S1 notes "utanç, damgalanma".
 
-**Q9 — Faecal or flatus incontinence** · archetype: `OBSERVATION.symptom_sign.v1` · source: GE-S1 ("üriner/fekal inkontinans"), GE-S2 ("dışkı kaçırma")
-> "İstemeden gaz ya da dışkı kaçırdığınız oluyor mu?"
+**Q9 — Faecal incontinence** · archetype: `OBSERVATION.symptom_sign.v1` · source: GE-S1 ("üriner/fekal inkontinans"), GE-S2 ("dışkı kaçırma")
+> "İstemeden dışkı kaçırdığınız oluyor mu?"
 gen: slot=diski_kacirma; type=boolean; follow_up=Bağırsaklarınızı tutmakta zorlandığınız oluyor mu?
-CANDIDATE — clinician to approve wording.
+CANDIDATE — clinician to approve wording. Flatus is in neither source, so it is not asked.
 
 **Q10 — Increased forgetfulness noticed** · archetype: `OBSERVATION.symptom_sign.v1` · source: GE-S1 ("hastanın öyküsü aracılığıyla"), GE-S3 ("bellek bozukluğu")
 > "Siz ya da yakınlarınız son zamanlarda unutkanlığınızın arttığını fark ettiniz mi?"
@@ -257,9 +259,10 @@ gen: slot=uyku_guclugu; type=boolean; follow_up=Geceleri iyi uyuyamadığınız�
 CANDIDATE — clinician to approve wording.
 
 **Q13 — Redness or sore over pressure areas** · archetype: `OBSERVATION.symptom_sign.v1` · source: GE-S1 ("basınç ülserinin olup olmadığı değerlendirilir"), GE-S2 ("Bası yaraları")
-> "Uzun süre yattığınız ya da oturduğunuz yerlerde ciltte kızarıklık ya da yara var mı?"
-gen: slot=basi_bolgesi_cilt; type=boolean; follow_up=Kalçanızda, topuğunuzda ya da sırtınızda yara fark ettiniz mi?
+> "Uzun süre yatmaktan ya da oturmaktan cildinizde kızarıklık ya da yara var mı?"
+gen: slot=basi_bolgesi_cilt; type=boolean; follow_up=Topuğunuzda, kalçanızda ya da kuyruk sokumunuzda kızarıklık ya da yara fark ettiniz mi?
 CANDIDATE — clinician to approve wording. GE-S1's immobility time threshold stays out of patient copy.
+The follow-up keeps redness and uses the `evde_saglik` body sites.
 
 *(13 candidate questions.)*
 

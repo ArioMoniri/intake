@@ -204,8 +204,10 @@ doctor must be told. A test-planning fact, never a flag.
 
 **Q7 — Known bleeding or clotting disorder** · archetype: `EVALUATION.problem_diagnosis.v1` · source: KN-S1 ("İleri derecede kan pıhtılaşma bozukluğu"), KN-S5 ("have hemophilia")
 > "Size daha önce kanın pıhtılaşmasıyla ilgili bir hastalık tanısı konuldu mu?"
-gen: slot=kanama_bozuklugu; type=boolean; follow_up=Küçük bir kesikte kanamanızın durması uzun sürüyor mu?
-CANDIDATE — clinician to approve wording. Blood thinners stay with base `anticoagulant_use`.
+gen: slot=kanama_bozuklugu; type=boolean; follow_up=Kanınızın geç pıhtılaştığı size daha önce söylendi mi?
+CANDIDATE — clinician to approve wording. Blood thinners stay with base `anticoagulant_use`. The
+follow-up restates the diagnosed disorder (KN-S1, KN-S5) rather than a symptom, so a yes never records a
+diagnosis the patient does not have in the slot that feeds the needle-EMG safety check.
 
 **Q8 — Episodes of lost or altered awareness** · archetype: `OBSERVATION.symptom_sign.v1` · source: KN-S3 ("Epileptik bir atak …"; "nöbet düşünülen her hastada EEG"), KN-S2
 > "Kendinizden geçtiğiniz ya da çevrenizi fark etmediğiniz ataklar oluyor mu?"
@@ -236,8 +238,12 @@ CANDIDATE — clinician to approve wording. Alcohol, the other trigger KN-S3 nam
 
 **Q13 — Epilepsy in the family** · archetype: `OBSERVATION.story.v1` · source: KN-S3 ("Ailede nöbet, epilepsi öyküsü")
 > "Ailenizde sara (epilepsi) hastalığı olan biri var mı?"
-gen: slot=ailede_epilepsi; type=boolean; follow_up=Anne, baba ya da kardeşlerinizden nöbet geçiren var mı?
-CANDIDATE — clinician to approve wording. Which relative and which type is a clinician follow-up.
+gen: slot=ailede_epilepsi; type=boolean; follow_up=Akrabalarınızdan sara hastalığı olan ya da nöbet geçiren biri var mı?; delivery=text_first
+CANDIDATE — clinician to approve wording. Which relative and which type is a clinician follow-up. The
+follow-up keeps KN-S3's "nöbet, epilepsi" pair without narrowing the family. Relatives' health is a
+sensitive-data category: delivered `text_first` under the owner's decision D3
+(docs/evidence/verification/owner-decisions-2026-09-26.md), and it needs a sensitive-data register row
+(INT-349, relatives' health) before promotion.
 
 *(13 candidate questions.)*
 
