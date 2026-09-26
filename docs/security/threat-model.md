@@ -862,7 +862,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   refused (invariant 10); no vendor hostname is a literal anywhere in the tree
   (`scripts/ci/assert_no_vendor_calls.sh`); NO runtime egress-allow-list row is added, because
   the runtime never calls the vendor. Licence/terms and the KVKK Art. 9 transfer question are
-  human blockers (docs/backlog/blockers.md).
+  human blockers (docs/backlog/blockers.md). The DEV on-demand variant
+  (`POST /dev/voice/george-clip`, `intake_api.dev_voice`) is the one place a running API may
+  dial the vendor, so it carries four server-side doors (INT-326, audit F05): a patient
+  principal (401/403 before anything else); a catalogue — `text_tr` is admitted only when its
+  `clip_text_hash` is a row of a compiled clip manifest, else 422 with no dial, so arbitrary or
+  patient text cannot reach the vendor through it; a per-principal Redis token bucket (429, and
+  503 when the budget store is unreachable); and no mount and no wiring when `INTAKE_ENV` is
+  prod, whatever the dev flags say.
 - **Signals:** build-time tool, so its runtime evidence is a NEGATIVE — the per-session egress
   socket count for TTS stays zero (shared with `cloud-boundary`/`observer-lanes`) and the clip
   cache serves the fixed set (`voice.clip_cache_hit_ratio` high, no runtime synth for scripted
@@ -872,7 +879,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   echoed on any failure, normaliser off, the key+budget selection gate); tests/voice/
   test_tts_latency.py (the harness: numeral-free corpus, the A/B reported blocked without the
   key); scripts/ci/assert_no_vendor_calls.sh (no vendor FQDN in the build); tests/voice/
-  test_audio_retention_guard.py (no audio content-type strings leak into the package). The live
+  test_audio_retention_guard.py (no audio content-type strings leak into the package);
+  tests/api/test_dev_voice_hardening.py (the dev route's four doors, each proven with the vendor
+  fake at zero calls, near-miss catalogue controls included). The live
   small-run validation (7 Turkish questions, 229 characters) is recorded in
   docs/evidence/INT-319.md with its date and named corpus, described as a measurement (invariant
   20).
