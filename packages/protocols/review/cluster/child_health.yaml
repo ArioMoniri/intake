@@ -1,0 +1,154 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cluster_child_health.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: cluster.child_health
+layer: cluster
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Çocuk Sağlığı
+extends: base.intake
+visit_types:
+- first
+- followup
+- report
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün hekime getiren en önemli konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu durumu ne zamandır fark ediyorsunuz?
+        follow_up_tr:
+          tr: Gün, hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_child_health.md'
+  sorular:
+    slots:
+      ates_var_mi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun ateşi var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      ates_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun ateşi ne zamandır sürüyor?
+        ask_if: ates_var_mi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      uykulu_tepkisiz:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz her zamankinden daha uykulu, güç uyandırılan ya da size karşı tepkisiz mi görünüyor?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      beslenme_sivi_alimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz her zamanki kadar beslenip bir şeyler içebiliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      her_seyi_kusma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz ağızdan aldığı her şeyi kusuyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      cis_miktari:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz her zamanki kadar çiş yapıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      agiz_kuru_goz_cokuk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun ağzı kuru ya da gözleri çökük görünüyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      hizli_nefes:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz şu sıralarda her zamankinden hızlı nefes alıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      gogus_icine_cekilme:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      inleme:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz nefes verirken inler gibi bir ses çıkarıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      dokuntu_var:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun cildinde şu sıralarda bir döküntü var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      solmayan_dokuntu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun cildinde, üzerine bastırınca solmayan kırmızı ya da mor renkli döküntüler oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      eksik_asi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun aşı takviminde eksik kalan bir aşısı var mı?
+        follow_up_tr:
+          tr: Aşı kartında yapılmamış görünen bir aşı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_child_health.md'
+      buyume_endisesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun boy uzaması ya da kilo alımıyla ilgili bir endişeniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_child_health.md'
+      erken_dogum:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz erken mi doğdu?
+        follow_up_tr:
+          tr: Çocuğunuz beklenen doğum tarihinden önce mi doğdu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+      suregen_tani:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bilinen süregelen bir hastalığı ya da daha önce konmuş önemli bir tanısı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
+red_flags:
+- id: rf.cluster_child_health_l0_taslak
+  label_tr: Çocuk Sağlığı — kümeye özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cluster_child_health branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cluster_child_health.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

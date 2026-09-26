@@ -1,0 +1,168 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/perinatoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.perinatoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Perinatoloji ön görüşme protokolü
+extends: cluster.womens_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi bu polikliniğe yönlendiren durum nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu durumu ne zamandır biliyorsunuz?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/perinatoloji.md'
+  sorular:
+    slots:
+      tahmini_dogum_tarihi:
+        type: date
+        required: false
+        ask_tr:
+          tr: Size söylenen tahmini doğum tarihiniz nedir?
+        follow_up_tr:
+          tr: Ultrason raporunuzdaki tahmini doğum tarihini söyler misiniz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      cogul_gebelik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikte ikiz ya da daha fazla bebek mi bekliyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      tedavi_yardimiyla_gebelik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelik tüp bebek ya da başka bir tedavi yardımıyla mı oldu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      gebelik_oncesi_saglik_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hamilelikten önce başlayan şeker, tansiyon ya da kalp gibi bir sorununuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      gebelik_oncesi_saglik_sorunu_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu sorunun adını söyleyebilir misiniz?
+        ask_if: gebelik_oncesi_saglik_sorunu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      gebelikte_yuksek_tansiyon:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikte size tansiyonunuzun yüksek olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      gebelikte_yuksek_seker:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikte size kan şekerinizin yüksek olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      onceki_gebelik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikten önce hiç hamile kaldınız mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      onceki_gebelik_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu soru zor gelebilir. Önceki gebeliklerinizde erken doğum, düşük ya da bebek kaybı yaşadınız mı?
+        ask_if: onceki_gebelik == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      onceki_gebelik_kaybi_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: İsterseniz bunu kısaca anlatır mısınız?
+        ask_if: onceki_gebelik_kaybi == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      ultrason_bulgusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ultrasonda bebeğinizle ilgili size özel bir durum söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      ultrason_bulgusu_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Size söylenenleri kısaca anlatır mısınız?
+        ask_if: ultrason_bulgusu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      kasik_basi_kasilma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kasıklarınızda sık sık gelen bası ya da kasılma hissi oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      gorme_bulanikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde görmenizde bulanıklık ya da ışık çakmaları oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      bebek_hareketi_hissediliyor:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bebeğinizin hareketlerini hissetmeye başladınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+      bebek_hareketlerinde_azalma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde bebeğinizin hareketlerinde azalma oldu mu?
+        ask_if: bebek_hareketi_hissediliyor == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/perinatoloji.md'
+red_flags:
+- id: rf.perinatoloji_l0_taslak
+  label_tr: Perinatoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: perinatoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/perinatoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

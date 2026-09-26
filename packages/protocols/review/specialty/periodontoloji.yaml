@@ -1,0 +1,140 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/periodontoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.periodontoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Periodontoloji ön görüşme protokolü
+extends: cluster.dental
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi diş eti muayenesine getiren asıl şikâyetiniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/periodontoloji.md'
+  sorular:
+    slots:
+      dis_eti_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizi fırçalarken ya da diş ipi kullanırken diş etleriniz kanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      dis_eti_cekilmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Diş etlerinizin çekildiğini, yani dişlerinizin eskisinden uzun göründüğünü fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      dis_sallanmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizden herhangi biri sallanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      dis_kaymasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizin yer değiştirdiğini ya da aralarının açıldığını fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      dis_eti_akinti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Diş etinizden iltihaplı bir akıntı geldiğini fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      agrili_dis_eti_yarasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizin arasındaki diş eti uçlarında ağrılı yaralar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      cigneme_zorlugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Diş etleriniz ya da dişleriniz yüzünden çiğnemekte zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      diyabet_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce şeker hastalığı tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      onceki_dis_eti_tedavisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce size diş eti tedavisi yapıldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      kemik_ilaci:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      kemik_ilaci_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hatırlıyorsanız bu ilacın adını söyleyebilir misiniz?
+        ask_if: kemik_ilaci == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      kalp_kapagi_endokardit:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kalp kapağınızla ilgili bir işlem ya da kalp iç zarı iltihabı geçirdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+      kalp_kapagi_endokardit_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu kalp durumunu kısaca anlatır mısınız?
+        ask_if: kalp_kapagi_endokardit == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/periodontoloji.md'
+red_flags:
+- id: rf.periodontoloji_l0_taslak
+  label_tr: Periodontoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: periodontoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/periodontoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -1,0 +1,127 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_metabolizma_hastaliklari
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Çocuk Metabolizma Hastalıkları ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün getiren temel konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+  sorular:
+    slots:
+      topuk_kani_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun doğumdan sonra yapılan topuk kanı taramasında bir sorun bildirildi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      ailede_metabolizma_hastaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde kalıtsal bir metabolizma hastalığı olan biri var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      ebeveyn_akrabaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: 'Bu soruyu yalnızca sağlık değerlendirmesi için soruyoruz: anne ile baba arasında akrabalık var mı?'
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      kusma_beslenme_reddi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda sık sık kusuyor ya da beslenmeyi reddediyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      uykulu_halsiz:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz alışılmadık şekilde uykulu, halsiz ya da zor uyandırılır hâle geldi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      hastalik_aclikla_artis:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu belirtiler çocuğunuz hastalandığında ya da uzun süre aç kaldığında artıyor mu?
+        ask_if: kusma_beslenme_reddi == true || uykulu_halsiz == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      beceri_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce yapabildiği oturma, yürüme ya da konuşma gibi becerileri kaybetti mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      gelisim_yavaslamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun gelişimi son zamanlarda yavaşladı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      metabolizma_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun daha önce konmuş bir metabolizma hastalığı tanısı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      ozel_diyet_mama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz özel bir diyet ya da özel bir mama kullanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+      ilac_vitamin_takviye:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun düzenli kullandığı bir ilaç, vitamin ya da takviye var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
+red_flags:
+- id: rf.cocuk_metabolizma_hastaliklari_l0_taslak
+  label_tr: Çocuk Metabolizma Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_metabolizma_hastaliklari branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -1,0 +1,133 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/ortodonti.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.ortodonti
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Ortodonti ön görüşme protokolü
+extends: cluster.dental
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Diş ve çene düzeninizle ilgili sizi bugün getiren asıl konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ortodonti.md'
+  sorular:
+    slots:
+      gorunum_rahatsizligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizin ya da gülüşünüzün görünümü sizi rahatsız ediyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      cigneme_zorlugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yiyecekleri ısırırken ya da çiğnerken zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      cene_eklemi_ses:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağzınızı açıp kaparken kulağınızın önündeki çene ekleminden ses geliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      cene_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çiğnerken ya da ağzınızı genişçe açarken çenenizde ağrı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      cene_takilma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çenenizin takılıp kaldığı ya da ağzınızı tam açamadığınız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      dis_sikma_gicirdatma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizi sıktığınızı ya da gıcırdattığınızı fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      agizdan_nefes:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Burnunuz yerine çoğunlukla ağzınızdan nefes alıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      agiz_aliskanligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Parmak emme, dudak ya da tırnak ısırma gibi bir alışkanlığınız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      agiz_aliskanligi_turu:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi alışkanlığınız olduğunu söyleyebilir misiniz?
+        ask_if: agiz_aliskanligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      onceki_dis_travmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ön dişleriniz daha önce bir darbe ya da kaza sonucu zarar gördü mü?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      onceki_ortodonti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce diş teli ya da şeffaf plakla tedavi gördünüz mü?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ortodonti.md'
+      dis_eti_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizi fırçalarken diş etleriniz kanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ortodonti.md'
+red_flags:
+- id: rf.ortodonti_l0_taslak
+  label_tr: Ortodonti ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: ortodonti branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/ortodonti.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'
