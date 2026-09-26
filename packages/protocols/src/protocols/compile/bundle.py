@@ -29,6 +29,7 @@ from protocols.compile.emit_fhir import questionnaire
 from protocols.compile.errors import CompileError
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.resolve import ResolvedProtocol, resolve_protocol
+from protocols.data_register import DataCategoryRegister
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
@@ -100,8 +101,11 @@ def compile_bundle(
     overlays: Sequence[str] = (),
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
+    data_register: DataCategoryRegister | None = None,
 ) -> CompiledBundle:
-    """Resolve, project, and hash. Raises :class:`CompileError` on any refusal."""
+    """Resolve, project, and hash. Raises :class:`CompileError` on any refusal.
+
+    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows."""
     document = resolve_protocol(
         pack_id=pack_id,
         registry=registry,
@@ -110,6 +114,7 @@ def compile_bundle(
         overlays=overlays,
         licences=licences,
         locale=locale,
+        data_register=data_register,
     )
     clips, prompts, clip_refusals = clip_manifest(document, voice, locale=locale)
     doc, fhir_refusals = questionnaire(document, prompts)
