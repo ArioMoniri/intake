@@ -64,9 +64,12 @@ def test_ids_unique_and_well_formed() -> None:
     # own issue instead of INT-352's)
     # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
     # cross-border mechanism, egress allow-list row — split out of INT-329
-    # because no agent may make it).
+    # because no agent may make it)
+    # + INT-317 (previsit output store + hospital read-back: filed on int-demo
+    # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
+    # id is held by no other row on main or any remote branch).
     # Grow this count only with a stated reason.
-    assert len(ids) == 282
+    assert len(ids) == 283
     import re
 
     for i in ids:

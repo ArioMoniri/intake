@@ -4809,6 +4809,79 @@
   tests:
   - tests/infra/test_restore_drill.py
   sec_row: "backups"
+- id: INT-317
+  epic: E10-connectors
+  phase: P1
+  # The owner directive, in the owner's words: "after the previsit is done write
+  # output version of json which is worked on in a sql in the data folder under
+  # intake and the acibadem side will then send a request there to get the
+  # previsit details of json for that patient with the same structure". INT-160
+  # built the framework for PUSHING clinical records to a hospital; this is the
+  # same disclosure with the arrow reversed, and reversing it changes which
+  # controls are load-bearing: there is no send-time consent gate to reuse
+  # because the trigger is the hospital's, not ours. Filed on int-demo on
+  # 2026-09-04 (56e8c19b) and carried to main by INT-354 slice 1; the id is
+  # held by no other row on main or on any remote branch.
+  title: 'previsit output store + hospital read-back: one frozen versioned
+    document per completed previsit, fetched by patient number under a consent
+    scope and an audit entry'
+  depends_on: []
+  labels:
+  - area:connectors
+  - area:api
+  - area:data
+  - area:security
+  status: doing
+  evidence: docs/evidence/INT-317.md
+  acceptance:
+  - 'a completed previsit writes exactly one `previsit_outputs` row - a frozen,
+    versioned `PreVisitOutput` document inside an EncryptedField envelope
+    (invariant 14), keyed on the pseudonymised patient so it can be found by
+    patient. A DRAFT save writes nothing and a resend replaces the row rather
+    than appending: the note is the working artefact and this is the finished
+    one, so "the finished previsit" stays singular'
+  - 'the read-back is a SHARE, not a read: `share:previsit_output` is checked per
+    patient per fetch through the one `ensure_consent` evaluator, and the
+    disclosure is written to the hash-chained audit chain against
+    `previsit_output:<id>` BEFORE it is answered (invariant 4). It is a distinct
+    parameter of the files/06 §2 share family and the dev-seeded
+    `share:previsit_note` grant must not answer for it - handing a note to one
+    clinician and handing the whole previsit to a hospital system that keeps it
+    under its own retention are different disclosures, and answering the second
+    with the first is the bundled consent §2 forbids'
+  - 'three near-miss controls, each a separate test: a fetch with no consent
+    scope is refused AND leaves no audit entry (a refused read is not a read); a
+    patient with no stored previsit gets 404 rather than an empty document (a
+    shell with no sections reads as "the patient told us nothing"); and a
+    successful share leaves EXACTLY ONE audit entry carrying the resource ref
+    the receiver was given'
+  - 'the hospital patient number is a direct identifier and has no carrier: it
+    travels in the POST body and never a path or query (asserted over the live
+    route table, the same rule the Doctor Link token obeys), it is resolved
+    through `Tokenizer.pseudonym` against `patients.pseudonym` rather than
+    stored, no column of the new table holds it, and a malformed one is refused
+    without being echoed (invariants 6, 14)'
+  - 'both gates ship SHUT and a test proves each: the committed recipient
+    registry has zero rows so every tenant is refused, and `share:previsit_output`
+    has no docs/legal text (HB-L27) and no seeded grant. A recipient row is
+    refused unless it names `dpa_ref`, `approval_ref` and `retention_ref` - the
+    third because files/06 §3 states how long INTAKE keeps a record and says
+    nothing about a copy that has left, and a period invented here would be an
+    invented retention'
+  - 'invariant 1 survives the new wire: `triage` is a union of the rules-engine
+    result and an explicit `not_evaluated`, `LlmCandidateTriage` is not a member
+    and `None` is not a member either - an omitted determination reads as GREEN
+    to a receiver, which is the same laundering by a quieter route. Candidate
+    flags travel in a sibling field with no path into a level'
+  - 'scope stays on `shares.scope_sections` and is read from there, so the
+    read-back can never widen what the patient sent and taking the note back to
+    draft closes it - one home for scope, the rule the Doctor Link view already
+    obeys'
+  tests:
+  - tests/api/test_previsit_output.py
+  - tests/schemas/test_previsit_output_contract.py
+  - tests/platform/test_previsit_output_recipients.py
+  sec_row: "connectors"
 - id: INT-319
   epic: E05-voice
   phase: P1
