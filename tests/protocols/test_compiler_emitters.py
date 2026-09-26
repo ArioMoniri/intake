@@ -242,11 +242,16 @@ def test_cli_compile_writes_the_bundle(tmp_path: Path, pack_tree: Path) -> None:
     )
     assert exit_code == 0
     written = sorted(p.name for p in (tmp_path / PACK_ID).iterdir())
+    # INT-058: the signable archive and its digest sit beside the loose
+    # artefacts, and the archive carries the resolved document itself.
     assert written == [
+        "bundle.tar.gz",
+        "bundle.tar.gz.sha256",
         f"clips.{TR}.{VOICE}.json",
         "manifest.json",
         "openehr_bindings.json",
         "questionnaire.json",
+        "resolved_protocol.json",
         "slots.py",
         "slots.ts",
     ]

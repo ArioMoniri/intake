@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile sign clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -176,6 +176,30 @@ coverage-matrix:
 protocols-compile:
 	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
 	uv run protocols compile --pack $(PACK) --voice $(VOICE) $(if $(LOCALE),--locale $(LOCALE))
+
+PROTOCOL_DIST := packages/protocols/dist
+
+# INT-058: sign every compiled protocol bundle (dist/<pack>/bundle.tar.gz, which
+# protocols-compile writes) with cosign sign-blob. The sigstore bundle lands
+# beside it as bundle.tar.gz.sigstore.json, which protocols.serving.trust
+# verifies before any session can pin the pack (files/04 §7; files/10 §8).
+# SIGN_KEY is a cosign key reference and has NO default: hashivault://<key> for
+# an OpenBao transit key, awskms://... for a KMS key, or a local file for a
+# rehearsal key. No production key exists yet — its custody is INT-019
+# (awaiting the owner) — so without SIGN_KEY this exits 2 and signs nothing.
+# COSIGN_FLAGS is passed through untouched (e.g. the transparency-log choice,
+# which is part of the same owner decision). Container images: none are built
+# yet; security.yml sign-and-attest is their extension point.
+sign:
+	@test -n "$(SIGN_KEY)" || { echo "usage: make sign SIGN_KEY=<cosign key ref> — no production signing key exists yet (INT-019); nothing signed"; exit 2; }
+	@command -v cosign >/dev/null 2>&1 || { echo "FAIL: cosign not installed — brew install cosign (invariant 14: never skip a gate)"; exit 1; }
+	@set -e; signed=0; \
+	for archive in $(PROTOCOL_DIST)/*/bundle.tar.gz; do \
+	  [ -f "$$archive" ] || continue; \
+	  cosign sign-blob --yes --key "$(SIGN_KEY)" --new-bundle-format=true --bundle "$$archive.sigstore.json" $(COSIGN_FLAGS) "$$archive"; \
+	  echo "signed $$archive"; signed=$$((signed + 1)); \
+	done; \
+	[ $$signed -gt 0 ] || { echo "no compiled bundle under $(PROTOCOL_DIST) — run make protocols-compile first"; exit 1; }
 
 # INT-060: pre-synthesise the compiled clip manifests for one voice into the
 # MinIO clip cache (files/03 §4.9.1 row 10, keyed sha256(text_tr, voice_id,

@@ -9,6 +9,11 @@ is emitted with sorted keys, every collection comes out of the resolved
 document in resolution order, and nothing in this module reads a clock, an
 environment variable or a filesystem path. ``write_bundle`` writes exactly
 what ``compile_bundle`` computed, so a second write is a no-op diff.
+
+INT-058 adds the resolved document itself as a sixth artefact and has
+``write_bundle`` pack all of them into the signable ``bundle.tar.gz``
+(:mod:`protocols.compile.archive`); the runtime half is
+:mod:`protocols.serving`.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from clinical_schemas.common import FrozenModel, Sha256
 from pydantic import Field
 
 from protocols.bindings import OperationalTemplate
+from protocols.compile.archive import write_archive
 from protocols.compile.emit_clips import ClipRow, clip_manifest
 from protocols.compile.emit_code import pydantic_module, typescript_module
 from protocols.compile.emit_fhir import questionnaire
@@ -34,7 +40,7 @@ from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
 
-__all__ = ["DIST_ROOT", "CompiledBundle", "compile_bundle", "write_bundle"]
+__all__ = ["DIST_ROOT", "MANIFEST", "RESOLVED", "CompiledBundle", "compile_bundle", "write_bundle"]
 
 DIST_ROOT = Path("packages/protocols/dist")
 """Where the CLI writes, repo-root relative (INT-041 acceptance)."""
@@ -44,6 +50,12 @@ BINDINGS = "openehr_bindings.json"
 PYDANTIC = "slots.py"
 TYPESCRIPT = "slots.ts"
 MANIFEST = "manifest.json"
+RESOLVED = "resolved_protocol.json"
+"""The merged document itself (INT-058). files/04 §7 puts "YAML + compiled
+outputs" in the signed bundle; this is the chain's YAML after resolution, in
+the by-alias JSON form that validates back into :class:`ResolvedProtocol`, so
+the runtime re-derives the resolved-protocol hash from content it verified
+rather than trusting the number the manifest states."""
 
 
 class CompiledBundle(FrozenModel):
@@ -123,6 +135,7 @@ def compile_bundle(
         raise CompileError(refusals)
     artifacts: dict[str, str] = {
         QUESTIONNAIRE: _dump(doc),
+        RESOLVED: _dump(document.model_dump(mode="json", by_alias=True)),
         BINDINGS: _dump(_bindings_rows(document)),
         PYDANTIC: pydantic_module(document),
         TYPESCRIPT: typescript_module(document),
@@ -178,7 +191,8 @@ def compile_bundle(
 
 
 def write_bundle(bundle: CompiledBundle, dist_root: Path) -> tuple[Path, ...]:
-    """Write every artefact under ``<dist_root>/<pack_id>/``, sorted."""
+    """Write every artefact under ``<dist_root>/<pack_id>/``, sorted, then the
+    signable ``bundle.tar.gz`` and its digest beside them (INT-058)."""
     target = dist_root / bundle.pack_id
     target.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
@@ -186,4 +200,5 @@ def write_bundle(bundle: CompiledBundle, dist_root: Path) -> tuple[Path, ...]:
         path = target / name
         path.write_text(content, encoding="utf-8")
         written.append(path)
+    written.extend(write_archive(bundle, target))
     return tuple(written)
