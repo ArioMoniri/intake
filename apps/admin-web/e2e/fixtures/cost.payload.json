@@ -1,0 +1,1317 @@
+{
+  "currency": "USD",
+  "config": {
+    "path": "infra/costs/unit-prices.yaml",
+    "sha256": "ad96a1162363f38454dffbad87a9dd819ee21034316f0dee180469fd05664e0d",
+    "blocker": "HB-O8"
+  },
+  "source": {
+    "configured": false,
+    "reason": "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+  },
+  "sessions_metric": "voice_sessions_metered_total",
+  "allocation_rule": "a component with no profile label is allocated evenly across every session metered in the window",
+  "components": [
+    {
+      "component": "asr",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "audio_second",
+      "attribution": "direct",
+      "profiles": [
+        "residency_tr"
+      ],
+      "usage_metric": "voice_stt_audio_s",
+      "usage_metric_status": "planned",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "tts_dynamic",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "direct",
+      "profiles": [
+        "residency_tr"
+      ],
+      "usage_metric": "voice_tts_chars",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "llm_talker",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "direct",
+      "profiles": [
+        "residency_tr",
+        "typed"
+      ],
+      "usage_metric": "voice_talker_tokens",
+      "usage_metric_status": "planned",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "llm_extraction",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "direct",
+      "profiles": [
+        "residency_tr",
+        "typed"
+      ],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "clip_synthesis",
+      "vendor": "elevenlabs",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "sms",
+      "vendor": null,
+      "vendor_note": "no SMS provider has been chosen: notification dispatch reports blocked_transport_unconfigured for the sms channel",
+      "unit": "message",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "notification_dispatch_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "gpu_host_onvizit_api",
+      "vendor": "aws",
+      "vendor_note": null,
+      "unit": "host_hour",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "gpu_host_team",
+      "vendor": null,
+      "vendor_note": "the team GPU server that serves the dev and synthetic model lanes (observability/registry.yaml); no provider or billing is recorded for it",
+      "unit": "host_hour",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "no catalogued host-uptime series exists on main",
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    }
+  ],
+  "windows": [
+    {
+      "period": "day",
+      "window": "1d",
+      "sessions": {
+        "state": "source_unavailable",
+        "reason": "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero",
+        "by_profile": {
+          "residency_tr": null,
+          "typed": null
+        }
+      },
+      "per_session": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        }
+      ],
+      "by_vendor": [
+        {
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "asr",
+            "tts_dynamic",
+            "llm_talker",
+            "llm_extraction"
+          ]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "clip_synthesis"
+          ]
+        },
+        {
+          "vendor": null,
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "sms",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "gpu_host_onvizit_api"
+          ]
+        },
+        {
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "llm_talker",
+            "llm_extraction"
+          ]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "clip_synthesis"
+          ]
+        },
+        {
+          "vendor": null,
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "sms",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "vendor": "aws",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "gpu_host_onvizit_api"
+          ]
+        }
+      ],
+      "by_profile": [
+        {
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "asr",
+            "tts_dynamic",
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        }
+      ],
+      "spend": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)"
+          ]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main"
+          ]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "unit": "message",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main"
+          ]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: no catalogued host-uptime series exists on main"
+          ]
+        }
+      ]
+    },
+    {
+      "period": "month",
+      "window": "30d",
+      "sessions": {
+        "state": "source_unavailable",
+        "reason": "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero",
+        "by_profile": {
+          "residency_tr": null,
+          "typed": null
+        }
+      },
+      "per_session": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: no catalogued host-uptime series exists on main",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        }
+      ],
+      "by_vendor": [
+        {
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "asr",
+            "tts_dynamic",
+            "llm_talker",
+            "llm_extraction"
+          ]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "clip_synthesis"
+          ]
+        },
+        {
+          "vendor": null,
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "sms",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "gpu_host_onvizit_api"
+          ]
+        },
+        {
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "llm_talker",
+            "llm_extraction"
+          ]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "clip_synthesis"
+          ]
+        },
+        {
+          "vendor": null,
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "sms",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "vendor": "aws",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "gpu_host_onvizit_api"
+          ]
+        }
+      ],
+      "by_profile": [
+        {
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "asr",
+            "tts_dynamic",
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        }
+      ],
+      "spend": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)"
+          ]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main"
+          ]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "unit": "message",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main"
+          ]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "usage not metered: no catalogued host-uptime series exists on main"
+          ]
+        }
+      ]
+    }
+  ],
+  "budgets": [
+    {
+      "budget_id": "all-vendors-day",
+      "scope": "all_vendors",
+      "vendor": null,
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "asr",
+        "tts_dynamic",
+        "llm_talker",
+        "llm_extraction",
+        "clip_synthesis",
+        "sms",
+        "gpu_host_onvizit_api",
+        "gpu_host_team"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "all-vendors-month",
+      "scope": "all_vendors",
+      "vendor": null,
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "asr",
+        "tts_dynamic",
+        "llm_talker",
+        "llm_extraction",
+        "clip_synthesis",
+        "sms",
+        "gpu_host_onvizit_api",
+        "gpu_host_team"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "self-hosted-day",
+      "scope": "vendor",
+      "vendor": "self-hosted",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "asr",
+        "tts_dynamic",
+        "llm_talker",
+        "llm_extraction"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "self-hosted-month",
+      "scope": "vendor",
+      "vendor": "self-hosted",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "asr",
+        "tts_dynamic",
+        "llm_talker",
+        "llm_extraction"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "elevenlabs-day",
+      "scope": "vendor",
+      "vendor": "elevenlabs",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "clip_synthesis"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "elevenlabs-month",
+      "scope": "vendor",
+      "vendor": "elevenlabs",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "clip_synthesis"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "aws-day",
+      "scope": "vendor",
+      "vendor": "aws",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "gpu_host_onvizit_api"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    },
+    {
+      "budget_id": "aws-month",
+      "scope": "vendor",
+      "vendor": "aws",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "gpu_host_onvizit_api"
+      ],
+      "reason": "budget not configured",
+      "alerts": [
+        "CostBudgetNotConfigured"
+      ]
+    }
+  ],
+  "alerts": {
+    "rules_path": "infra/observability/cost-rules.yaml",
+    "rules": [
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "all-vendors-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "all-vendors-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "self-hosted-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "self-hosted-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "elevenlabs-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "elevenlabs-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "aws-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "aws-month",
+        "severity": "ticket"
+      }
+    ]
+  }
+}

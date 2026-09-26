@@ -20,6 +20,7 @@ __all__ = [
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
+    "VOICE_SESSIONS_METERED",
     "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -181,4 +182,15 @@ VOICE_TTS_CHARS = Histogram(
     "Characters synthesised per turn, by tenant, profile, branch and vendor.",
     ["tenant", "profile", "branch", "vendor"],
     buckets=(16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1_024.0, float("inf")),
+)
+
+#: Sessions composed around a ``SessionMeter`` (INT-190). The cost module's
+#: per-session figure is usage in a window divided by this count over the same
+#: window, so it is emitted by the same meter that emits the usage series — a
+#: ratio of two populations would be a number about neither. One increment per
+#: session, never a session id: tenant, profile and branch only (invariant 6).
+VOICE_SESSIONS_METERED = Counter(
+    "voice_sessions_metered_total",
+    "Sessions composed with a cost meter, by tenant, profile and branch.",
+    ["tenant", "profile", "branch"],
 )

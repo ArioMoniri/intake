@@ -1,0 +1,141 @@
+# TEST FIXTURE — not a price list (INT-190).
+#
+# The same components and budgets as infra/costs/unit-prices.yaml, with
+# SYNTHETIC rates and limits so the cost arithmetic, the budget verdicts and
+# the alert expressions have something to multiply in tests. The values are
+# deliberately absurd (whole US dollars per character, per token, per audio
+# second) so that no reader can mistake one for a vendor's price, and every row
+# says so in its `source`. Nothing outside tests/ and the recorded console
+# fixture reads this file.
+#
+# Two rows are left unpriced on purpose: `sms` and `gpu_host_team` exercise the
+# "price not configured" path next to priced rows.
+schema_version: 1
+currency: USD
+
+components:
+  - component: asr
+    vendor: self-hosted
+    vendor_note: null
+    unit: audio_second
+    profiles: [residency_tr]
+    usage:
+      metric: voice_stt_audio_s
+      aggregation: histogram_sum
+      selector: {vendor: self-hosted}
+    usage_note: null
+    price: {usd_per_unit: 3, source: "synthetic test rate, not a price", as_of: 2026-09-26}
+
+  - component: tts_dynamic
+    vendor: self-hosted
+    vendor_note: null
+    unit: character
+    profiles: [residency_tr]
+    usage:
+      metric: voice_tts_chars
+      aggregation: histogram_sum
+      selector: {vendor: self-hosted}
+    usage_note: null
+    price: {usd_per_unit: 2, source: "synthetic test rate, not a price", as_of: 2026-09-26}
+
+  - component: llm_talker
+    vendor: self-hosted
+    vendor_note: null
+    unit: token
+    profiles: [residency_tr, typed]
+    usage:
+      metric: voice_talker_tokens
+      aggregation: histogram_sum
+      selector: {vendor: self-hosted}
+    usage_note: null
+    price: {usd_per_unit: 1, source: "synthetic test rate, not a price", as_of: 2026-09-26}
+
+  - component: llm_extraction
+    vendor: self-hosted
+    vendor_note: null
+    unit: token
+    profiles: [residency_tr, typed]
+    usage: null
+    usage_note: no catalogued series exports extraction tokens
+    price: {usd_per_unit: 1, source: "synthetic test rate, not a price", as_of: 2026-09-26}
+
+  - component: clip_synthesis
+    vendor: elevenlabs
+    vendor_note: null
+    unit: character
+    profiles: []
+    usage: null
+    usage_note: no catalogued clip-synthesis series
+    price: {usd_per_unit: 4, source: "synthetic test rate, not a price", as_of: 2026-09-26}
+
+  - component: sms
+    vendor: null
+    vendor_note: no SMS provider has been chosen
+    unit: message
+    profiles: []
+    usage:
+      metric: notification_dispatch_total
+      aggregation: counter_increase
+      selector: {channel: sms, status: delivered}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: gpu_host_onvizit_api
+    vendor: aws
+    vendor_note: null
+    unit: host_hour
+    profiles: []
+    usage: null
+    usage_note: no catalogued host-uptime series
+    price: {usd_per_unit: 5, source: "synthetic test rate, not a price", as_of: 2026-09-26}
+
+  - component: gpu_host_team
+    vendor: null
+    vendor_note: no provider or billing is recorded
+    unit: host_hour
+    profiles: []
+    usage: null
+    usage_note: no catalogued host-uptime series
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+budgets:
+  - budget_id: all-vendors-day
+    scope: all_vendors
+    vendor: null
+    period: day
+    limit: {usd: 1, source: "synthetic test limit, not a budget", as_of: 2026-09-26}
+  - budget_id: all-vendors-month
+    scope: all_vendors
+    vendor: null
+    period: month
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: self-hosted-day
+    scope: vendor
+    vendor: self-hosted
+    period: day
+    limit: {usd: 50000, source: "synthetic test limit, not a budget", as_of: 2026-09-26}
+  - budget_id: self-hosted-month
+    scope: vendor
+    vendor: self-hosted
+    period: month
+    limit: {usd: 10000000, source: "synthetic test limit, not a budget", as_of: 2026-09-26}
+  - budget_id: elevenlabs-day
+    scope: vendor
+    vendor: elevenlabs
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: elevenlabs-month
+    scope: vendor
+    vendor: elevenlabs
+    period: month
+    limit: {usd: 100, source: "synthetic test limit, not a budget", as_of: 2026-09-26}
+  - budget_id: aws-day
+    scope: vendor
+    vendor: aws
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: aws-month
+    scope: vendor
+    vendor: aws
+    period: month
+    limit: {usd: null, source: null, as_of: null}
