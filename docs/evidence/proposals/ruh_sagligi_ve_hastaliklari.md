@@ -27,7 +27,7 @@ clinician to sign off*. It assigns **no** authoritative RED/YELLOW/GREEN level a
   are **not** Turkish-validated; the PHQ-9 Turkish evidence is a reliability study only; the GAD-7 Turkish
   cut-off is 8 (HB-L24). For that reason no low-mood or loss-of-interest question is drafted below: those two
   constructs are the PHQ-2 items (and NICE NG222 rec 1.2.1's identification questions), so they stay in the
-  instrument path. Q4 (sleep) and Q5 (appetite) are free-text history items, **never scored and never mapped
+  instrument path. Q4 (sleep) and Q5 (appetite) are boolean history items, **never scored and never mapped
   onto a PHQ-9 item**.
 - **No suicide / self-harm screening question here — by design.** That path belongs to `base.life_threat`
   (`files/protocols/base.life_threat.yaml`, `rf.crisis_disclosure_signposting`: consent-independent, `SILENT`,
@@ -179,15 +179,15 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q1 | Reason for visit | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | EVALUATION | deferred (INT-032) |
 | Q2 | Stressful life event before onset | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q3 | Course since onset | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
-| Q4 | Sleep change (free text, unscored) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q5 | Appetite change (free text, unscored) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q4 | Sleep change (boolean, unscored) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5 | Appetite change (boolean, unscored) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q6 | Effect on work / daily responsibilities | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Social support | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Prior mental-health care | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q9 | What helped before | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q10 | Prior psychiatric hospitalisation | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q11 | Periods of mood elevation (history) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q12 | Other substance use | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; **no social-history root in the OPT** (same posture as `base/intake.yaml` `alcohol_use`) |
+| Q12 | Other recreational substance use (held, invariant 18) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; **no social-history root in the OPT** (same posture as `base/intake.yaml` `alcohol_use`) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 Medications, allergies, smoking and alcohol are already collected by `packages/protocols/base/intake.yaml`
@@ -230,48 +230,67 @@ CANDIDATE — clinician to approve wording.
 
 **Q2 — Stressful life event before onset** · archetype: `OBSERVATION.story.v1` · source: R-S2 (psikososyal zorlayıcı etmen), R-S5 1.2.7 (stressful life events)
 > "Bu durum başlamadan önce hayatınızda sizi zorlayan bir olay yaşandı mı?"
-CANDIDATE — clinician to approve wording. Asks about an event, not about trauma detail (§4 gap 6).
+gen: slot=baslangic_oncesi_zorlayici_olay; type=boolean
+CANDIDATE — clinician to approve wording. Asks about an event, not about trauma detail (§4 gap 6). Boolean on
+purpose: it asks whether an event happened, not what happened, so no trauma narrative is drawn out.
 
 **Q3 — Course since onset** · archetype: `OBSERVATION.story.v1` · source: R-S1 (tüm yaşam öyküsü), R-S2 (şiddeti ve öyküsü), R-S5 1.2.6 (duration and course)
 > "Şikâyetleriniz başladığından beri nasıl değişti?"
+gen: slot=sikayet_seyri; type=string
 CANDIDATE — clinician to approve wording. Duration itself is captured by the pack's `sikayet_suresi` slot.
+Overlaps base `trajectory`; drop it if the base history questions run in the same session.
 
 **Q4 — Sleep change** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S3 ("uykusunun ve iştahının bozulması"), R-S5 1.2.7 (sleep)
 > "Son zamanlarda uyku düzeninizde bir değişiklik oldu mu?"
-CANDIDATE — clinician to approve wording. Free-text history item; never scored.
+gen: slot=uyku_duzeni_degisikligi; type=boolean
+CANDIDATE — clinician to approve wording. Boolean history item; never scored, never mapped to a PHQ-9 item.
 
 **Q5 — Appetite change** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S3 ("uykusunun ve iştahının bozulması"), R-S5 1.2.7 (diet)
 > "Son zamanlarda iştahınızda bir değişiklik oldu mu?"
-CANDIDATE — clinician to approve wording. Free-text history item; never scored.
+gen: slot=istah_degisikligi; type=boolean
+CANDIDATE — clinician to approve wording. Boolean history item; never scored, never mapped to a PHQ-9 item.
 
 **Q6 — Effect on work and daily responsibilities** · archetype: `OBSERVATION.story.v1` · source: R-S3 ("iş, aile ve sosyal yaşamları olumsuz etkilenir"), R-S6 1.2.6 (functional impairment), R-S5 1.2.6
 > "Bu durum işinizi ya da günlük sorumluluklarınızı etkiliyor mu?"
-CANDIDATE — clinician to approve wording.
+gen: slot=islevsellik_etkilenimi; type=boolean
+CANDIDATE — clinician to approve wording. Covers a domain of the unscored PHQ-9/GAD-7 difficulty item with
+different wording and answer form; never mapped to it.
 
 **Q7 — Social support** · archetype: `OBSERVATION.story.v1` · source: R-S1 ("yetersiz sosyal destek"), R-S5 1.2.7 (supportive relationships)
 > "Zor zamanlarınızda destek alabildiğiniz biri var mı?"
+gen: slot=sosyal_destek; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q8 — Prior mental-health care** · archetype: `EVALUATION.problem_diagnosis.v1` · source: R-S7 Statement 3, R-S6 1.2.7 (history of mental health disorders), R-S5 1.2.7
 > "Daha önce ruh sağlığınızla ilgili bir hekimden ya da psikologdan destek aldınız mı?"
+gen: slot=onceki_ruh_sagligi_destegi; type=boolean
 CANDIDATE — clinician to approve wording. "destek" preferred over "tedavi" to stay PolicyGuard-clean.
 
 **Q9 — What helped before** · archetype: `OBSERVATION.story.v1` · source: R-S5 1.2.7 ("response to, previous treatments"), R-S7 ("Response to past psychiatric treatments")
-> "Daha önce size iyi gelen bir ilaç ya da yöntem oldu mu?"
-CANDIDATE — clinician to approve wording.
+> "Daha önce denediğiniz ilaç ya da yöntemlerden size en çok ne iyi geldi?"
+gen: slot=onceden_iyi_gelen; type=string; ask_if=onceki_ruh_sagligi_destegi == true
+CANDIDATE — clinician to approve wording. Open item, asked only when Q8 is yes, so it captures the response to
+previous treatment that the sources ask for rather than a bare yes/no.
 
 **Q10 — Prior psychiatric hospitalisation** · archetype: `EVALUATION.problem_diagnosis.v1` · source: R-S1 ("hastaneye yatış öyküsü"), R-S7 Statement 3
 > "Ruh sağlığınız nedeniyle daha önce hastanede yattığınız oldu mu?"
+gen: slot=psikiyatrik_yatis_oykusu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Periods of mood elevation (history)** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S1 ("enerji artışı, uyku gereksiniminde azalma"), R-S4, R-S5 1.2.7 (history of mood elevation)
 > "Uykuya pek ihtiyaç duymadan kendinizi aşırı enerjik hissettiğiniz dönemler oldu mu?"
-CANDIDATE — clinician to approve wording. Original wording; not an item of any mood questionnaire.
+gen: slot=yukselmis_duygudurum_donemi; type=boolean
+CANDIDATE — clinician to approve wording. Original wording following the TPD lay page (R-S4). The verifier
+notes it resembles an item of a published mood-disorder screening questionnaire; the clinician should confirm.
 
 **Q12 — Other substance use** · archetype: `OBSERVATION.story.v1` (narrative only) · source: R-S7 Guideline II, R-S1 ("madde kullanımı (örn. alkol, kannabis, opioidler)"), R-S5 1.2.7
-> "Alkol ve sigara dışında kullandığınız herhangi bir madde var mı?"
+> "Alkol ve sigara dışında keyif verici bir madde kullanıyor musunuz?"
+gen: slot=diger_madde_kullanimi; type=boolean; delivery=text_first; hold=invariant 18 — substance-use data category; owner decision required
 CANDIDATE — clinician to approve wording. Alcohol and smoking are already asked by `base/intake.yaml`; misuse of
-prescribed medicines is a clinician follow-up.
+prescribed medicines is a clinician follow-up. "keyif verici" replaces "herhangi bir madde", which would also
+catch prescribed medicines. `text_first` per files/13 §13 (substance use). **HOLD:** non-alcohol substance use
+carries criminal-law exposure and is a personal-data category with no inventory annotation (invariant 18) and
+no HB row; it stays in the review queue and is not servable until a human records the category.
 
 *(12 candidate questions.)*
 

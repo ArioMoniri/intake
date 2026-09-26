@@ -141,7 +141,8 @@ lifestyle items are narrative only.
 |---|---|---|---|---|
 | Q1 | Reason for visit | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | EVALUATION | deferred (INT-032) |
 | Q2 | Life period when weight gain began | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
-| Q3 | Previous weight-loss attempts | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q3a | Any previous weight-loss attempt (gate) | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q3b | Previous weight-loss attempts | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q4 | What made those attempts hard | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q5 | Where meals are mostly eaten | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; no social-history root |
 | Q6 | Loss-of-control eating | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
@@ -176,7 +177,7 @@ lifestyle items are narrative only.
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (13)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 non-stigmatising and non-judgemental (O-S1 §5.1, O-S3 1.1.5); no diagnosis/treatment/prognosis language; no
@@ -184,56 +185,83 @@ numerals (invariant 22). **All CANDIDATE — clinician to approve wording.** No 
 raises a `candidate_flag`, and no item is an item of any sleep, eating or motivation scale. Q1 binds to the pack's
 `basvuru_nedeni` slot.
 
+**Duration ask override pending clinician wording.** The generator's fixed `sikayet_suresi` question ("Bu
+şikâyetiniz ne zamandır var?") frames weight as a complaint (O-S3 1.1.5). The verification report gives no
+replacement text, so no pack-level duration override is set here; a clinician must supply the
+branch-appropriate wording.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake; O-S3 1.1.5 (non-stigmatising language)
 > "Bugün bu polikliniğe gelme nedeninizi kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording. The clinic name is deliberately not spoken.
 
 **Q2 — Life period when weight gain began** · archetype: `OBSERVATION.story.v1` · source: O-S1 Tablo 1 ("Obezite öyküsü, çocukluk, gençlik, evlilik öncesi ve sonrası, doğum sonrası ağırlıkları"), O-S3 1.1.1 (weight history)
 > "Kilo almaya hayatınızın hangi döneminde başladınız?"
+gen: slot=kilo_alma_donemi; type=string
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Previous weight-loss attempts** · archetype: `OBSERVATION.story.v1` · source: O-S1 ("Hastanın daha önceki kilo verme girişimleri sorgulanmalıdır."), O-S3 1.1.1
+**Q3a — Any previous weight-loss attempt** · archetype: `OBSERVATION.story.v1` · source: O-S1 ("Hastanın daha önceki kilo verme girişimleri sorgulanmalıdır."), O-S3 1.1.1
+> "Daha önce kilo vermeyi denediniz mi?"
+gen: slot=onceki_kilo_verme_denemesi; type=boolean
+CANDIDATE — clinician to approve wording. Yes/no gate for Q3b and Q4.
+
+**Q3b — Previous weight-loss attempts** · archetype: `OBSERVATION.story.v1` · source: O-S1 ("Hastanın daha önceki kilo verme girişimleri sorgulanmalıdır."), O-S3 1.1.1
 > "Daha önce kilo vermek için neler denediniz?"
-CANDIDATE — clinician to approve wording.
+gen: slot=kilo_verme_yontemleri; type=string; ask_if=onceki_kilo_verme_denemesi == true
+CANDIDATE — clinician to approve wording. Asked only when Q3a is yes.
 
 **Q4 — What made those attempts hard** · archetype: `OBSERVATION.story.v1` · source: O-S1 ("başarısızlığına neden olan sebepler not edilmelidir")
 > "Bu denemelerde sizi en çok zorlayan şey neydi?"
-CANDIDATE — clinician to approve wording. Neutral framing; avoids the word *başarısızlık*. Depends on Q3, so
-it needs an `ask_if` on Q3 when the pack is built (the generator's default `soru_N` slots carry none).
+gen: slot=kilo_vermeyi_zorlastiran; type=string; ask_if=onceki_kilo_verme_denemesi == true
+CANDIDATE — clinician to approve wording. Neutral framing; avoids the word *başarısızlık*. Asked only when
+Q3a is yes.
 
 **Q5 — Where meals are mostly eaten** · archetype: `OBSERVATION.story.v1` (narrative only) · source: O-S1 Tablo 1 ("yemeğini evde mi, dışarıda mı yediği"; Beslenme öyküsü, eating places)
 > "Öğünlerinizi çoğunlukla nerede yiyorsunuz?"
+gen: slot=ogun_yeri; type=string
 CANDIDATE — clinician to approve wording. Open wording, so the answer is not forced into an either/or.
 
 **Q6 — Loss-of-control eating** · archetype: `OBSERVATION.symptom_sign.v1` · source: O-S1 (tıkanırcasına yeme: "kendini kaybedebilir"), O-S3 1.1.1 (disordered eating)
-> "Kendinizi durduramıyormuş gibi hissederek kısa sürede çok fazla yediğiniz olur mu?"
+> "Kendinizi durduramadan kısa sürede çok fazla yediğiniz oluyor mu?"
+gen: slot=kontrolsuz_yeme; type=boolean
 CANDIDATE — clinician to approve wording. Original wording; not an item of any eating-behaviour scale.
+Simplified to B1: the evidential-plus-converb form is gone, and "oluyor mu" cannot be heard as "is that all
+right?".
 
 **Q7 — Self-induced vomiting after eating** · archetype: `OBSERVATION.symptom_sign.v1` · source: O-S1 (bulimia: "kendini kusturma"), O-S2, O-S3 1.1.2
 > "Yediklerinizi çıkarmak için kendinizi kusturduğunuz oldu mu?"
+gen: slot=kendini_kusturma; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. **Sensitive:** the clinician may prefer to ask it in person (§4 gap 4).
+`text_first` is not required by files/13 §13; it is recommended because of that sensitivity, and the
+clinician may drop it.
 
 **Q8 — Witnessed pauses in breathing during sleep** · archetype: `OBSERVATION.symptom_sign.v1` · source: O-S1 §4.11 ("tanıklı apne"; "birlikte yaşadığı kişilere sorulabilir")
 > "Uyurken nefesinizin durduğunu fark eden biri oldu mu?"
-CANDIDATE — clinician to approve wording.
+gen: slot=tanikli_apne; type=boolean
+CANDIDATE — clinician to approve wording. Same text and slot as `gogus_hastaliklari.md` Q12. Also an item
+shape on the sleep-apnoea screeners that are out of scope: history only, never a score built from pack answers.
 
 **Q9 — Falling asleep unintentionally in the daytime** · archetype: `OBSERVATION.symptom_sign.v1` · source: O-S1 ("gündüz aşırı uyku hali"; "gün içi uykusuzluk çekip çekmediği"; §5.7 accidents)
 > "Gün içinde istemeden uyuyakaldığınız oluyor mu?"
+gen: slot=gunduz_istemsiz_uyuma; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q10 — New medicine when weight gain began** · archetype: `ACTION.medication.v1` · source: O-S1 (§5.1 "kilo artışına neden olabilecek ilaçları sorgulanmalıdır"; Tablo 1), O-S3 1.1.1 (medicines and weight)
 > "Kilo almaya başladığınız dönemde yeni bir ilaç kullanmaya başladınız mı?"
+gen: slot=kilo_alimi_doneminde_yeni_ilac; type=boolean
 CANDIDATE — clinician to approve wording. The current medication list is confirmed by `base/intake.yaml`.
 
 **Q11 — Regular walking or exercise** · archetype: `OBSERVATION.story.v1` (narrative only) · source: O-S1 ("düzenli egzersiz yapıp yapmadığı"; Tablo 1 "Egzersiz alışkanlığı")
 > "Düzenli olarak yürüyüş ya da egzersiz yapıyor musunuz?"
+gen: slot=duzenli_egzersiz; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q12 — Readiness to change habits** · archetype: `OBSERVATION.story.v1` · source: O-S1 §5.8 ("ne derece hazır olduğu sorgulanmalıdır"), O-S3 1.1.1 (readiness to engage with change)
 > "Yaşam alışkanlıklarınızı değiştirmeye kendinizi ne kadar hazır hissediyorsunuz?"
-CANDIDATE — clinician to approve wording. Open wording; not TEMD Tablo 3's staging item.
+gen: slot=aliskanlik_degisimine_hazirlik; type=string
+CANDIDATE — clinician to approve wording. Open wording; not TEMD Tablo 3's staging item. A numeric answer is
+acceptable in a string slot because it is not a clinical quantity; the generator has no `choices_tr`.
 
-*(12 candidate questions.)*
+*(13 candidate questions after revision: Q3 split into Q3a–Q3b.)*
 
 ---
 

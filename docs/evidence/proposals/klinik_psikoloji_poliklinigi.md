@@ -138,9 +138,10 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032), never 
 | Q7 | Current coping | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Previous psychotherapy / regular sessions | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q9 | Current physician-prescribed psychiatric medicine | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
-| Q10 | Sleep change (free text, unscored) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q11 | Alcohol or other substance used to cope | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; no social-history root in the OPT |
-| Q12 | Personal or cultural preferences for sessions | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q10 | Sleep change (boolean, unscored) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q11 | Alcohol or other substance used to cope (held, invariant 18) | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred; no social-history root in the OPT |
+| Q12a | Personal or cultural preference for sessions (gate) | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
+| Q12b | The preference itself | `openEHR-EHR-OBSERVATION.story.v1` | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -162,7 +163,7 @@ Roots only; leaf paths **deferred** (`openehr_deferred_reason`, INT-032), never 
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (13)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 neutral, non-judgemental, no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All
@@ -174,51 +175,74 @@ none is an item of any instrument or psychological test. Q1 binds to the pack's 
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Referred by a physician** · archetype: `EVALUATION.reason_for_encounter.v1` · source: P-S1 (Law 1219: "uzman tabibin teşhisine ve tedavi için yönlendirmesine bağlı olarak")
-> "Bu görüşmeye sizi bir hekim mi yönlendirdi?"
-CANDIDATE — clinician to approve wording. Routing context for staff only; never a gate for triage.
+> "Bu görüşmeye gelmeniz için bir hekim sizi yönlendirdi mi?"
+gen: slot=hekim_yonlendirmesi; type=boolean
+CANDIDATE — clinician to approve wording. Neutral yes/no: it no longer assumes someone referred the patient.
+Routing context for staff only; never a gate for access or triage (§4 gap 2).
 
 **Q3 — Hoped-for change** · archetype: `EVALUATION.reason_for_encounter.v1` · source: P-S4 1.3.1 ("what they hope to gain from treatment"), P-S2 (hedefler)
 > "Bu görüşmelerden sonra hayatınızda neyin değişmesini istersiniz?"
-CANDIDATE — clinician to approve wording.
+gen: slot=beklenen_degisiklik; type=string
+CANDIDATE — clinician to approve wording. Overlaps base `patient_goals`; drop it if the base history questions
+run in the same session.
 
 **Q4 — Stressful life event before onset** · archetype: `OBSERVATION.story.v1` · source: P-S4 1.2.7 (stressful life events)
 > "Bu durum başlamadan önce hayatınızda sizi zorlayan bir olay yaşandı mı?"
+gen: slot=baslangic_oncesi_zorlayici_olay; type=boolean
 CANDIDATE — clinician to approve wording. Asks about an event, not trauma detail (§4 gap 6).
 
 **Q5 — Effect on work and daily responsibilities** · archetype: `OBSERVATION.story.v1` · source: P-S2 ("gün içindeki işlevlerini nasıl etkilediğini"), P-S5 1.2.6 (functional impairment)
 > "Bu durum işinizi ya da günlük sorumluluklarınızı etkiliyor mu?"
-CANDIDATE — clinician to approve wording.
+gen: slot=islevsellik_etkilenimi; type=boolean
+CANDIDATE — clinician to approve wording. With Q6, covers domains of the unscored PHQ-9/GAD-7 difficulty item
+with different wording and answer form; never mapped to it.
 
 **Q6 — Effect on close relationships** · archetype: `OBSERVATION.story.v1` · source: P-S4 1.2.7 ("difficulties with previous and current interpersonal relationships")
 > "Bu durum yakınlarınızla olan ilişkilerinizi etkiliyor mu?"
+gen: slot=iliskilere_etki; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q7 — Current coping** · archetype: `OBSERVATION.story.v1` · source: P-S2 ("halen kullandığı baş etme yöntemleri"), P-S4 1.2.7 (personal strengths and resources)
 > "Zorlandığınızda kendinizi rahatlatmak için neler yapıyorsunuz?"
+gen: slot=basa_cikma_yollari; type=string
 CANDIDATE — clinician to approve wording. Strengths-based; no judgement implied.
 
 **Q8 — Previous psychotherapy** · archetype: `EVALUATION.problem_diagnosis.v1` · source: P-S6 (nonpharmacological psychiatric treatments), P-S4 1.3.1 (previously found helpful)
 > "Daha önce bir psikolog ya da psikiyatristle düzenli görüşmeler yaptınız mı?"
+gen: slot=onceki_psikoterapi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Current physician-prescribed psychiatric medicine** · archetype: `ACTION.medication.v1` · source: P-S2 ("ilaç tedavisinin birlikte yürümesi mümkündür"), P-S6 (adherence to pharmacological treatments)
 > "Şu anda ruh sağlığınız için bir hekimin verdiği ilacı kullanıyor musunuz?"
+gen: slot=psikiyatrik_ilac_kullanimi; type=boolean
 CANDIDATE — clinician to approve wording. The general medication list is already confirmed by `base/intake.yaml`;
 this item tells the psychologist that a prescriber is involved.
 
-**Q10 — Sleep change** · archetype: `OBSERVATION.symptom_sign.v1` · source: ruh_sagligi_ve_hastaliklari.md R-S3 ("uykusunun ve iştahının bozulması"), P-S4 (current lifestyle, sleep)
+**Q10 — Sleep change** · archetype: `OBSERVATION.symptom_sign.v1` · source: ruh_sagligi_ve_hastaliklari.md R-S3 ("uykusunun ve iştahının bozulması"), ruh_sagligi_ve_hastaliklari.md R-S5 1.2.7 (sleep)
 > "Son zamanlarda uyku düzeninizde bir değişiklik oldu mu?"
-CANDIDATE — clinician to approve wording. Free-text history; never scored.
+gen: slot=uyku_duzeni_degisikligi; type=boolean
+CANDIDATE — clinician to approve wording. Boolean history item; never scored, never mapped to a PHQ-9 item.
+Re-cited to ruh R-S5 1.2.7, because §1 quotes no P-S4 sleep item.
 
 **Q11 — Alcohol or other substance used to cope** · archetype: `OBSERVATION.story.v1` (narrative only) · source: P-S5 1.2.7 ("any comorbid substance misuse"), P-S3 (alkol veya madde kullanım bozukluğu)
 > "Zorlandığınızda alkol ya da başka bir maddeye başvurduğunuz oluyor mu?"
-CANDIDATE — clinician to approve wording.
+gen: slot=zorlanmada_madde_kullanimi; type=boolean; delivery=text_first; hold=invariant 18 — substance-use data category; owner decision required
+CANDIDATE — clinician to approve wording. `text_first` per files/13 §13 (substance use). **HOLD:** substance
+use beyond alcohol and tobacco carries criminal-law exposure and is a personal-data category with no inventory
+annotation (invariant 18) and no HB row; same hold as ruh Q12. It stays in the review queue and is not
+servable until a human records the category.
 
-**Q12 — Personal or cultural preferences for sessions** · archetype: `OBSERVATION.story.v1` · source: P-S6 (cultural factors; treatment-related preferences), P-S4 1.3.1 (preferences)
+**Q12a — Personal or cultural preferences for sessions** · archetype: `OBSERVATION.story.v1` · source: P-S6 (cultural factors; treatment-related preferences), P-S4 1.3.1 (preferences)
 > "Görüşmelerde dikkate alınmasını istediğiniz kişisel ya da kültürel bir tercihiniz var mı?"
-CANDIDATE — clinician to approve wording.
+gen: slot=kisisel_kulturel_tercih; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q12b.
 
-*(12 candidate questions.)*
+**Q12b — The preference itself** · archetype: `OBSERVATION.story.v1` · source: P-S6 (treatment-related preferences), P-S4 1.3.1 (preferences)
+> "Bu tercihinizi kısaca anlatır mısınız?"
+gen: slot=kisisel_kulturel_tercih_aciklama; type=string; ask_if=kisisel_kulturel_tercih == true
+CANDIDATE — clinician to approve wording. Asked only when Q12a is yes, so the preference itself is captured.
+
+*(13 candidate questions after revision: Q12 split into Q12a–Q12b.)*
 
 ---
 

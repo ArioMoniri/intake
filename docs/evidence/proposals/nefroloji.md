@@ -173,47 +173,60 @@ CANDIDATE — clinician to approve wording.
 
 **Q2 — Swelling of feet, ankles or eyelids** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S2 ("ödem"), N-S3 ("swelling … legs, feet, or ankles"), N-S4 ("puffy eyelids")
 > "Ayaklarınızda, ayak bileklerinizde ya da göz kapaklarınızda şişlik fark ettiniz mi?"
+gen: slot=ayak_goz_kapagi_sisligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Foamy urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S4 ("foamy urine"), N-S2 (proteinüri context)
 > "İdrarınızın normalden fazla köpürdüğünü fark ettiniz mi?"
+gen: slot=kopuklu_idrar; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q4 — Pink, red or brown urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S5 ("pink, red, or brown"), N-S1 (hematüri), N-S2
 > "İdrarınızda pembe, kırmızı ya da kahverengi bir renk değişikliği gördünüz mü?"
+gen: slot=idrar_renk_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording. Persistence is a clinician item (RF-3).
 
 **Q5 — Reduced urine volume (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S3 ("make little or no urine"), N-S2 ("oligüri")
 > "Son zamanlarda idrar miktarınızda belirgin bir azalma oldu mu?"
+gen: slot=idrar_miktari_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording. **Acute kidney injury has no base.life_threat rule (§2.2)**;
 source wording quoted only; no level asserted.
 
 **Q6 — Persistent itch** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S3 ("feel itchy")
 > "Derinizde geçmeyen bir kaşıntı var mı?"
+gen: slot=gecmeyen_kasinti; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q7 — Poor appetite or nausea** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S3 ("feel sick to your stomach … not feel hungry")
 > "Son zamanlarda iştahınızda azalma ya da mide bulantısı oluyor mu?"
+gen: slot=istahsizlik_bulanti; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q8 — Known high blood pressure** · archetype: `EVALUATION.problem_diagnosis.v1` · source: N-S1 ("hipertansif hastalar"), N-S2 (nefritik sendrom)
 > "Size daha önce yüksek tansiyon tanısı konuldu mu?"
+gen: slot=yuksek_tansiyon_tanisi; type=boolean
 CANDIDATE — clinician to approve wording. History item; no flag.
 
 **Q9 — Known diabetes** · archetype: `EVALUATION.problem_diagnosis.v1` · source: N-S1 ("Diyabetik … hastalar")
 > "Size daha önce şeker hastalığı tanısı konuldu mu?"
+gen: slot=diyabet_tanisi; type=boolean
 CANDIDATE — clinician to approve wording. Same wording as the göz proposal Q12 (reuse one clip).
 
 **Q10 — Past kidney stones** · archetype: `EVALUATION.problem_diagnosis.v1` · source: N-S1 ("taş"; Tablo 3 "Tekrarlayan veya yaygın böbrek taşı")
 > "Daha önce böbreklerinizde taş olduğu söylendi mi?"
+gen: slot=bobrek_tasi_oykusu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Family history of kidney disease** · archetype: `OBSERVATION.story.v1` (narrative only) · source: N-S1 ("ailede kronik böbrek yetmezliği hikayesi"; "soy geçmişi (Polikistik Böbrek Hastalığı, Alport, vb.)"; Tablo 3 "Ailevi böbrek hastalığı")
 > "Ailenizde böbrek hastalığı olan biri var mı?"
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_bobrek_hastaligi; type=boolean
+CANDIDATE — clinician to approve wording. Family history is health data about third parties; it
+exports as narrative only (gap 8), the same posture as the family-history items already in the review
+queue.
 
 **Q12 — Regular painkiller use** · archetype: `ACTION.medication.v1` · source: N-S1 ("NSAII kullanımı … durumlardan sakınması"), N-S2 ("non-steroid anti-inflamatuar ilaç")
 > "Ağrı kesici ilaçları sık ya da uzun süre kullanıyor musunuz?"
+gen: slot=duzenli_agri_kesici; type=boolean
 CANDIDATE — clinician to approve wording. Complements base intake's medication list; not a flag.
 
 *(12 candidate questions.)*

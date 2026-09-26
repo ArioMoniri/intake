@@ -170,49 +170,72 @@ pack's `basvuru_nedeni` slot.
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Weakness or tiring easily** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S1 p. 26 ("Halsizlik," "Güçsüzlük,"), H-S4 ("fatigue")
-> "Son zamanlarda kendinizi sık sık halsiz ya da çabuk yorulmuş hissediyor musunuz?"
-CANDIDATE — clinician to approve wording.
+> "Son zamanlarda kendinizi alışılmadık şekilde halsiz ya da yorgun hissediyor musunuz?"
+gen: slot=halsizlik_yorgunluk; type=boolean
+CANDIDATE — clinician to approve wording. Same text as the diyabet proposal's fatigue item (one audio
+clip).
 
 **Q3 — Breathlessness on exertion** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S1 p. 26 ("Egzersizle nefes darlığı,")
 > "Yürürken ya da merdiven çıkarken nefesinizin daraldığı oluyor mu?"
+gen: slot=eforla_nefes_darligi; type=boolean
 CANDIDATE — clinician to approve wording. Breathlessness at rest is `rf.dyspnoea_rest` (base).
 
 **Q4 — Easy or unexplained bruising (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S2 ("Kolay morarma"), H-S4 ("bruising")
 > "Vücudunuzda nedensiz ya da kolayca morarmalar oluyor mu?"
-CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).**
+gen: slot=kolay_morarma; type=boolean
+CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).** Q4–Q6 rest on a
+source about one rare disorder (H-S2; §4 gap 2): symptom capture only, never a bleeding score.
 
 **Q5 — Frequent nose or gum bleeding (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S2 ("burun kanaması ve diş eti kanaması")
 > "Burnunuzdan ya da diş etlerinizden sık sık kanama oluyor mu?"
-CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).**
+gen: slot=burun_dis_eti_kanamasi; type=boolean
+CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).** Symptom capture
+only; never a bleeding score.
 
 **Q6 — Prolonged bleeding after extraction or surgery** · archetype: `OBSERVATION.story.v1` (narrative only) · source: H-S2 ("Cerrahi, diş çekimi ve travma sonrası kanamalar")
-> "Diş çekimi ya da ameliyattan sonra kanamanız uzun sürdü mü?"
-CANDIDATE — clinician to approve wording. History item; not a flag.
+> "Diş çekimi ya da ameliyat sonrasında uzun süren bir kanamanız oldu mu?"
+gen: slot=islem_sonrasi_uzun_kanama; type=boolean
+CANDIDATE — clinician to approve wording. History item; not a flag, never a bleeding score. Reworded
+so it no longer assumes the patient has had a procedure.
 
 **Q7 — Heavy or prolonged menstrual bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S1 p. 25 ("Menoraji,"), H-S2 ("kadınlarda menoraji")
-> "Adet görüyorsanız, adet kanamanız çok fazla ya da uzun süreli mi oluyor?"
-CANDIDATE — clinician to approve wording. Conditional lead-in keeps one question; the pack may instead
-gate it on the base intake's menstrual-period slot.
+> "Adet görüyorsanız, adet kanamanız çok fazla ya da uzun süreli oluyor mu?"
+gen: slot=yogun_uzun_adet_kanamasi; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. `text_first` because files/13 §13 covers reproductive
+history. The conditional lead-in stays and the item is **ungated**: base intake has no sex or
+menstrual-status slot, and `lmp_date` is asked only when `pregnancy_status != 'hayir'`, so a gate on it
+would close for most women. Gating is a clinician decision pending; the missing base slot is a gap for
+the base owner (HB-C6 family).
 
 **Q8 — Blood or tar-black colour in stool (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S1 p. 25 ("Hematemez veya melena,")
 > "Dışkınızda kan ya da katran gibi siyah renk fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).**
+gen: slot=diskida_kan_siyah_renk; type=boolean
+CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).** H-S1 supports the
+black, tarry stool part only; fresh blood in the stool is not in the quoted source (verification
+caveat).
 
 **Q9 — Persistent swelling in neck, armpit or groin** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S4 ("Lymphadenopathy … persisting … or generalised")
 > "Boynunuzda, koltuk altınızda ya da kasığınızda geçmeyen bir şişlik fark ettiniz mi?"
+gen: slot=boyun_koltuk_kasik_sisligi; type=boolean
 CANDIDATE — clinician to approve wording. No size or duration threshold in patient copy (§4 gap 4).
 
 **Q10 — Heavy night sweats** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S3 ("yineleyen gece terlemeleri"; "aşırı gece terlemesi"), H-S4 ("night sweats")
 > "Geceleri uykunuzda aşırı terleme oluyor mu?"
+gen: slot=gece_terlemesi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Unintended weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S3 (B symptoms), H-S4 ("weight loss")
 > "Son aylarda istemeden kilo kaybettiniz mi?"
-CANDIDATE — clinician to approve wording. Same wording as göğüs Q11 (reuse one clip).
+gen: slot=istemsiz_kilo_kaybi; type=boolean
+CANDIDATE — clinician to approve wording. Same wording and slot as göğüs Q11 (reuse one clip).
+Captures the same fact as the base probe `rf_weight_loss_unintentional`; remove this duplicate once
+HB-C1 writes that probe.
 
 **Q12 — Family history of anaemia or blood disease** · archetype: `OBSERVATION.story.v1` (narrative only) · source: H-S1 p. 26 ("Ailede DEA öyküsü … talasemi"), H-S2 ("kişisel ve aile öyküsü çok önemlidir")
 > "Ailenizde kansızlık ya da kan hastalığı olan biri var mı?"
-CANDIDATE — clinician to approve wording.
+gen: slot=ailede_kan_hastaligi; type=boolean
+CANDIDATE — clinician to approve wording. Family history; exports as narrative only (§4 gap 7), same
+posture as nefroloji Q11.
 
 *(12 candidate questions.)*
 

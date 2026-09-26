@@ -144,7 +144,7 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q4 | Breathlessness compared with peers | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q5 | Blood in sputum | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q6 | Wheeze | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q7 | Night / early-morning worsening | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q7 | Night / early-morning symptoms | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Triggers (dust, smoke, smells, cold air) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Biomass smoke exposure | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); **no exposure archetype in the OPT** — see §4 |
 | Q10 | Workplace dust / fume / gas exposure | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); **no exposure archetype in the OPT** — see §4 |
@@ -186,61 +186,79 @@ the reviewing clinician can decide whether any becomes a `draft_needs_source` ru
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE — clinician to
 approve wording.** No item carries a triage level; alarm items may at most feed a `candidate_flag`
-(max `YELLOW_REVIEW`) pending clinician + rules-engine confirmation. Q2–Q4 reuse the TTD page's own
-patient wording (GH-S1) — its count-based advice is **not** encoded. Q1 binds to the pack's
-`basvuru_nedeni` slot.
+(max `YELLOW_REVIEW`) pending clinician + rules-engine confirmation. Q2–Q4 ask about the same three
+complaints as the TTD page's self-check (GH-S1) but in our own wording (verification wave 6); the TTD
+sentences are no longer reused in patient copy. The page's count-based advice is **not** encoded and
+must never be attached to these three items (§4 gap 3). Q1 binds to the pack's `basvuru_nedeni` slot.
 
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün göğüs hastalıkları polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Frequent cough most days** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (TTD wording verbatim), GH-S3 ("Devamlı yoğun öksürük"), GH-S6
-> "Haftanın çoğu günü sık sık öksürüyor musunuz?"
-CANDIDATE — clinician to approve wording. Verbatim reuse of TTD text needs TTD permission (§4 gap 4).
+**Q2 — Frequent cough most days** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (complaint only; own wording), GH-S3 ("Devamlı yoğun öksürük"), GH-S6
+> "Günlerin çoğunda öksürüğünüz oluyor mu?"
+gen: slot=cogu_gun_oksuruk; type=boolean
+CANDIDATE — clinician to approve wording. Own wording; the TTD self-check sentence is not reused (§4 gap 4).
 
-**Q3 — Sputum most days** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (TTD wording verbatim)
-> "Haftanın çoğu günü balgam çıkarıyor musunuz?"
-CANDIDATE — clinician to approve wording.
+**Q3 — Sputum most days** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (complaint only; own wording)
+> "Günlerin çoğunda balgamınız oluyor mu?"
+gen: slot=cogu_gun_balgam; type=boolean
+CANDIDATE — clinician to approve wording. Own wording.
 
-**Q4 — Breathlessness compared with peers (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (TTD wording verbatim), GH-S6 ("shortness of breath")
-> "Yaşıtlarınıza göre nefesiniz daha kolay mı daralıyor?"
-CANDIDATE — clinician to approve wording. **Overlap: `rf.dyspnoea_rest` (§2.2)** — breathlessness at
-rest is base.life_threat's determination, not this pack's.
+**Q4 — Breathlessness compared with peers (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (complaint only; own wording), GH-S6 ("shortness of breath")
+> "Aynı yaştaki kişilerden daha çabuk nefes nefese kalıyor musunuz?"
+gen: slot=akranlardan_cabuk_nefes_darligi; type=boolean
+CANDIDATE — clinician to approve wording. Own wording. **Overlap: `rf.dyspnoea_rest` (§2.2)** —
+breathlessness at rest is base.life_threat's determination, not this pack's.
 
 **Q5 — Blood in sputum (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S3 ("Kanlı balgam ve kan tükürme"), GH-S4 ("Balgamında kan görülmesi"), GH-S7
-> "Balgamınızda kan gördüğünüz ya da kan tükürdüğünüz oldu mu?"
-CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` (§2.2).** Source urgency
-quoted only (RF-1, RF-2); no level asserted.
+> "Son zamanlarda balgamınızda kan gördüğünüz ya da kan tükürdüğünüz oldu mu?"
+gen: slot=balgamda_kan; type=boolean
+CANDIDATE — clinician to approve wording. Same text and slot as `sigara_birakma_poliklinigi.md` Q3
+(one audio clip). **Overlap: `rf.severe_bleeding` (§2.2).** Source urgency quoted only (RF-1, RF-2);
+no level asserted.
 
 **Q6 — Wheeze (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("hışıltılı solunum"), GH-S3 ("Hışıltılı solunum"), GH-S6 ("wheeze")
 > "Nefes alıp verirken göğsünüzden hışıltı ya da hırıltı sesi geliyor mu?"
+gen: slot=hisiltili_solunum; type=boolean
 CANDIDATE — clinician to approve wording. Distinct from the KBB stridor item (throat, on breathing in).
 
-**Q7 — Night or early-morning worsening** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("gece veya sabaha karşı"), GH-S6 ("at night or when the person wakes up")
-> "Öksürük ya da nefes darlığınız gece veya sabaha karşı artıyor mu?"
-CANDIDATE — clinician to approve wording.
+**Q7 — Night or early-morning symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("gece veya sabaha karşı"), GH-S6 ("at night or when the person wakes up")
+> "Gece veya sabaha karşı öksürük ya da nefes darlığı yaşıyor musunuz?"
+gen: slot=gece_sabah_solunum_sikayeti; type=boolean
+CANDIDATE — clinician to approve wording. Asks whether the symptoms occur at night or early morning,
+so it assumes no symptom and needs no gate.
 
 **Q8 — Triggers** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("Toz, duman koku gibi uyaranlar"), GH-S6 ("allergens, or cold air")
 > "Toz, duman, koku ya da soğuk hava şikâyetlerinizi başlatıyor mu?"
+gen: slot=tetikleyici_uyaranlar; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Biomass smoke exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S1 ("çalı, çırpı ya da tezek yakmak"), GH-S6 p. 10 ("exposure to biomass fuel")
 > "Evde ısınmak veya yemek için uzun süre tezek ya da çalı yaktınız mı?"
+gen: slot=biyokutle_dumani; type=boolean
 CANDIDATE — clinician to approve wording. The word *odun* is deliberately absent — see §5 (lexicon
-false positive). Risk-factor context only; not a flag.
+false positive, routed to the HB-C23 lexicon owner). Risk-factor context only; not a flag.
 
-**Q10 — Workplace dust, fume or gas exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S1 ("toz, duman ve gazlara maruz kalma"), GH-S6 p. 9 (occupational asthma)
-> "İşinizde uzun süre toz, duman ya da gaz soludunuz mu?"
-CANDIDATE — clinician to approve wording. Complements base intake's job-title question; not a flag.
+**Q10 — Work-related dust, fume or gas exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S1 ("toz, duman ve gazlara maruz kalma"), GH-S6 p. 9 (occupational asthma)
+> "Çalıştığınız işlerde uzun süre toz, duman ya da gaz soludunuz mu?"
+gen: slot=mesleki_toz_duman_gaz; type=boolean
+CANDIDATE — clinician to approve wording. Asks about every job held, not only the current one (base
+intake's `occupation` already asks the current job); not a flag.
 
 **Q11 — Unintended weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S3 ("açıklanamayan kilo kaybı"), GH-S4 ("Kilo kaybı"), GH-S7 ("weight loss")
 > "Son aylarda istemeden kilo kaybettiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. No weight or time threshold is pinned into patient copy.
+Captures the same fact as the base probe `rf_weight_loss_unintentional`; remove this duplicate once
+HB-C1 writes that probe.
 
 **Q12 — Witnessed breathing pauses in sleep** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S5 ("tanıklı apne")
-> "Uyurken nefesinizin durduğunu yanınızda uyuyan biri fark etti mi?"
-CANDIDATE — clinician to approve wording. Daytime sleepiness while driving (RF-8) is a clinician
-counselling item, not drafted.
+> "Uyurken nefesinizin durduğunu fark eden biri oldu mu?"
+gen: slot=tanikli_apne; type=boolean
+CANDIDATE — clinician to approve wording. Same text and slot as `obezite_poliklinigi.md` Q8; it no
+longer assumes a bed partner. Daytime sleepiness while driving (RF-8) is a clinician counselling item,
+not drafted.
 
 *(12 candidate questions.)*
 
@@ -256,8 +274,10 @@ counselling item, not drafted.
    is **not** quoted. **NO SOURCE FOUND (verbatim).**
 3. **TTD three-of-four self-check score** (GH-S1) — a screening rule, not intake. Not encoded; the
    clinician decides whether it belongs anywhere.
-4. **Permission for verbatim reuse of TTD wording** in patient copy (Q2–Q4) — not sought. Human must
-   confirm with TTD or reword.
+4. **Permission for TTD wording** — resolved for patient copy: Q2–Q4 were reworded in our own words
+   (verification wave 6), so no TTD sentence is spoken to the patient. Permission is still needed
+   before any verbatim TTD snapshot is committed; it was not sought, and no HB row exists for it yet.
+   The owner must register one.
 5. **NICE NG12 lung recommendations** — nice.org.uk HTTP 403; NCBI Bookshelf served a reCAPTCHA, which
    was **not** bypassed. GH-S7 is used instead.
 6. **Sourced but not drafted** (to stay at twelve): chest tightness (GH-S2, GH-S6; also chest-pain
@@ -280,7 +300,7 @@ counselling item, not drafted.
 - **Inv. 2 / patient copy** — `siz`, B1, one question mark per turn, at most fifteen words, no
   diagnosis/treatment/prognosis wording, no lexicon jargon (e.g. *dispne* avoided). Checked against the
   Turkish PolicyGuard arms (INT-248 lexicon). **Lexicon finding:** the common word *odun* matches the
-  `sen`-past arm (`…dun` like *geldin*) and would be rejected; Q9 avoids it. Flag for the lexicon owner.
+  `sen`-past arm (`…dun` like *geldin*) and would be rejected; Q9 avoids it. Routed to the lexicon owner (HB-C23).
 - **Inv. 7** — breathlessness at rest, chest pain, severe bleeding, sepsis left in `base.life_threat` (§2.2).
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
 - **Inv. 21** — RED axes intentionally unspecified (gap 9).

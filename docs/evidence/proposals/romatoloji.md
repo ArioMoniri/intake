@@ -127,13 +127,15 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q2 | Joint swelling | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q3 | Small joints of hands or feet | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q4 | Morning joint stiffness | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q5 | Back pain worse at rest, better with movement | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5a | Back pain present (gate) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5b | Back pain worse at rest | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5c | Back pain eased by movement | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q6 | Heel / sole pain on first steps | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q7 | Red, painful white of the eye | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q8 | Recurrent painful mouth sores | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q9 | Painful genital sores | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q10 | Self-limiting fever attacks | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
-| Q11 | Scaly psoriasis patches | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q11 | Scaly skin patches (white scale) | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Jaw pain or tiredness on chewing | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
@@ -162,7 +164,7 @@ None of these is a rule, a level or a route.
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (14)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE — clinician to
@@ -177,53 +179,77 @@ CANDIDATE — clinician to approve wording.
 
 **Q2 — Joint swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S1 ("eklemlerde ağrı, tutukluk ve şişlik"), R-S4 ("eklemlerde ağrı, şişme")
 > "Eklemlerinizde şişlik fark ettiniz mi?"
+gen: slot=eklem_sisligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Small joints of hands or feet** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S1 ("küçük eklemleri çift taraflı")
 > "Ellerinizin ya da ayaklarınızın küçük eklemlerinde ağrı veya şişlik var mı?"
+gen: slot=kucuk_eklem_agri_sislik; type=boolean
 CANDIDATE — clinician to approve wording. Symmetry is a clinician follow-up.
 
-**Q4 — Morning joint stiffness** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S1 ("Sabahları … eklemlerde tutukluk (katılık/sertlik)")
-> "Sabah kalktığınızda eklemlerinizde tutukluk ya da katılık oluyor mu?"
-CANDIDATE — clinician to approve wording. The booklet's duration figure is not asked (§4 gap 6).
+**Q4 — Morning joint stiffness** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S1 (morning joint stiffness; own wording)
+> "Sabah uyandığınızda eklemlerinizde sertlik hissediyor musunuz?"
+gen: slot=sabah_eklem_sertligi; type=boolean
+CANDIDATE — clinician to approve wording. Own wording (TRD quotation notice, §0). The booklet's
+duration figure is not asked (§4 gap 6).
 
-**Q5 — Back pain worse at rest, better with movement** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 ("Dinlenmeyle … ortaya çıkması ve hareketle azalması")
-> "Bel ya da sırt ağrınız dinlenince artıp hareket edince azalıyor mu?"
-CANDIDATE — clinician to approve wording. One pattern (rest versus movement), asked as one question.
+**Q5a — Back pain present** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 (inflammatory back pain; own wording)
+> "Belinizde ya da sırtınızda ağrı var mı?"
+gen: slot=bel_sirt_agrisi; type=boolean
+CANDIDATE — clinician to approve wording. Gate for Q5b and Q5c, so neither assumes back pain. The
+former Q5 joined two claims in one answer; it is split into one claim per item (verification wave 6).
 
-**Q6 — Heel or sole pain on first steps** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 ("sabahları ilk kalkışta … topuk veya ayak tabanı ağrısı")
-> "Sabah ilk adımlarınızda topuğunuzda ya da ayak tabanınızda ağrı oluyor mu?"
-CANDIDATE — clinician to approve wording.
+**Q5b — Back pain worse at rest** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 (worse with rest; own wording)
+> "Bu ağrı dinlendiğinizde artıyor mu?"
+gen: slot=bel_agrisi_dinlenince_artar; type=boolean; ask_if=bel_sirt_agrisi == true
+CANDIDATE — clinician to approve wording. Asked only when Q5a is yes.
 
-**Q7 — Red, painful white of the eye (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 ("Gözün beyaz kısmında … kızarıklık, ağrı"), R-S3 (Behçet eye)
-> "Gözünüzün beyaz kısmında birkaç gün süren kızarıklık ya da ağrı oldu mu?"
-CANDIDATE — clinician to approve wording. **Overlap: sudden vision loss → `rf.stroke_fast` / GCA
-(§2.2).**
+**Q5c — Back pain eased by movement** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 (eased by movement; own wording)
+> "Bu ağrı hareket ettiğinizde hafifliyor mu?"
+gen: slot=bel_agrisi_hareketle_azalir; type=boolean; ask_if=bel_sirt_agrisi == true
+CANDIDATE — clinician to approve wording. Asked only when Q5a is yes.
+
+**Q6 — Heel or sole pain on first steps** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 (heel or sole pain on first rising; own wording)
+> "Sabah yataktan kalkıp yere bastığınızda topuğunuz ya da ayağınızın altı ağrıyor mu?"
+gen: slot=sabah_topuk_taban_agrisi; type=boolean
+CANDIDATE — clinician to approve wording. Own wording (TRD quotation notice, §0).
+
+**Q7 — Red, painful white of the eye (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S2 (redness or pain of the white of the eye; own wording), R-S3 (Behçet eye)
+> "Gözünüzün akında günlerce geçmeyen kızarıklık ya da ağrı oldu mu?"
+gen: slot=goz_akinda_kizariklik_agri; type=boolean
+CANDIDATE — clinician to approve wording. Own wording (TRD quotation notice, §0). **Overlap: sudden
+vision loss stays with base → `rf.stroke_fast` / GCA (§2.2).**
 
 **Q8 — Recurrent painful mouth sores** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S3 ("Ağız yaralarına hemen hemen her hastada rastlanır"; "tekrar eder")
 > "Ağzınızda sık sık tekrarlayan ağrılı yaralar çıkıyor mu?"
+gen: slot=tekrarlayan_agiz_yarasi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Painful genital sores** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S3 ("Cinsel Bölge Yaraları … ağrılı olurlar")
 > "Cinsel bölgenizde ağrılı yaralar çıktığı oldu mu?"
-CANDIDATE — clinician to approve wording. Sensitive item: clinician to confirm it is asked in the
-voice flow rather than typed-only.
+gen: slot=genital_agrili_yara; type=boolean; delivery=text_first
+CANDIDATE — clinician to approve wording. Sensitive item: files/13 §13 makes sexual or reproductive
+history `text_first`, so it is shown as text first rather than spoken.
 
-**Q10 — Self-limiting fever attacks** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S4 ("Hastalık ataklar ile seyreder"; "kendiliğinden geçer")
-> "Birkaç gün süren ve kendiliğinden geçen ateş atakları yaşıyor musunuz?"
-CANDIDATE — clinician to approve wording. Accompanying abdominal, chest or joint pain is a clinician
-follow-up (one concern per turn).
+**Q10 — Self-limiting fever attacks** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S4 (attacks that resolve on their own; own wording)
+> "Ara ara gelen ve birkaç günde kendi kendine geçen ateşleriniz oluyor mu?"
+gen: slot=kendiliginden_gecen_ates; type=boolean
+CANDIDATE — clinician to approve wording. Own wording (TRD quotation notice, §0). Accompanying
+abdominal, chest or joint pain is a clinician follow-up (one concern per turn).
 
-**Q11 — Scaly psoriasis patches** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S5 ("Deride pullanma gösteren beyaz renkli sedef lezyonları")
-> "Derinizde pullanan, beyaz renkli sedef lekeleri oldu mu?"
-CANDIDATE — clinician to approve wording. Nail changes (R-S5) are a follow-up.
+**Q11 — Scaly skin patches** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S5 (white scaling skin lesions; own wording)
+> "Derinizde üzeri beyaz pullarla kaplı lekeler oldu mu?"
+gen: slot=pullu_deri_lekesi; type=boolean
+CANDIDATE — clinician to approve wording. Own wording (TRD quotation notice, §0); describes only the
+white scale and names no condition to the patient. Nail changes (R-S5) are a follow-up.
 
 **Q12 — Jaw pain or tiredness on chewing (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: R-S7 ("jaw or tongue claudication")
 > "Yemek çiğnerken çenenizde ağrı ya da yorulma oluyor mu?"
+gen: slot=cignerken_cene_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: GCA (§2.2).** Source urgency quoted only (RF-1);
 no level asserted. Age context is read from the record, not asked here.
 
-*(12 candidate questions.)*
+*(14 candidate questions after revision: Q5 split into Q5a–Q5c.)*
 
 ---
 
@@ -235,6 +261,9 @@ no level asserted. Age context is read from the record, not asked here.
    supply.**
 2. **TRD quotation permission** — the booklets restrict public quotation without the Society's
    permission. Committed verbatim snapshots (clinical content rule) need **TRD permission — human**.
+   Patient copy no longer follows TRD wording: Q4–Q7, Q10 and Q11 were reworded in our own words
+   (verification wave 6), and the §1 fragments stay minimal provenance only. No HB row exists for TRD
+   permission yet; the owner must register one.
 3. **EULAR 2016 early-arthritis recommendations** — identified (Combe B, et al. Ann Rheum Dis
    2017;76(6):948–959, doi:10.1136/annrheumdis-2016-210602) but only the abstract was retrieved, which
    carries no recommendation text. **Not quoted.** NICE NG100 (RA) not retrieved (nice.org.uk HTTP 403).

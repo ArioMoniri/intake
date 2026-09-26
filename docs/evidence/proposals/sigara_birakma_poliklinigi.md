@@ -191,54 +191,74 @@ non-judgemental (SB-S1); no diagnosis/treatment/prognosis language; no numerals 
 feed a `candidate_flag` (max `YELLOW_REVIEW`) pending clinician + rules-engine confirmation. No item is a
 Fagerström item or paraphrase. Q1 binds to the pack's `basvuru_nedeni` slot.
 
+**Duration ask override pending clinician wording.** The generator's fixed `sikayet_suresi` question ("Bu
+şikâyetiniz ne zamandır var?") does not fit this clinic: it invites a number of smoking years (gap 6,
+invariant 22). The verification report gives no replacement text, so no pack-level duration override is set
+here; a clinician must supply the branch-appropriate wording.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün sigara bırakma polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Other tobacco or nicotine products** · archetype: `OBSERVATION.story.v1` (narrative only) · source: SB-S1 (nargile, puro, pipo, sarmalık; "herhangi bir tütün mamulü"), SB-S4 1.11.3 (nicotine-containing products)
 > "Sigara dışında nargile, sarma tütün ya da elektronik sigara gibi bir ürün kullanıyor musunuz?"
+gen: slot=diger_tutun_nikotin_urunu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q3 — Blood in sputum (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: SB-S5 1.1.1 ("unexplained haemoptysis")
-> "Son zamanlarda balgamınızda kan gördünüz mü?"
-CANDIDATE — clinician to approve wording. May at most feed a `candidate_flag` (max `YELLOW_REVIEW`) pending
+> "Son zamanlarda balgamınızda kan gördüğünüz ya da kan tükürdüğünüz oldu mu?"
+gen: slot=balgamda_kan; type=boolean
+CANDIDATE — clinician to approve wording. Same text and slot as `gogus_hastaliklari.md` Q5 (one audio clip);
+it now also covers spitting blood. May at most feed a `candidate_flag` (max `YELLOW_REVIEW`) pending
 clinician + rules engine; the source's age threshold is **not** pinned into patient copy. No level asserted.
 
 **Q4 — Previous serious quit attempt** · archetype: `OBSERVATION.story.v1` · source: SB-S1 ("Daha önce sigarayı bırakma konusunda ciddi bir girişiminiz oldu mu?"), SB-S3
 > "Daha önce sigarayı bırakmak için ciddi bir girişiminiz oldu mu?"
-CANDIDATE — clinician to approve wording.
+gen: slot=onceki_birakma_girisimi; type=boolean
+CANDIDATE — clinician to approve wording. Almost word for word the Ministry handbook's question (SB-S1); a
+short functional question, so the IP risk is low. Gate for Q5.
 
 **Q5 — What made quitting hard** · archetype: `OBSERVATION.story.v1` · source: SB-S1 ("neden nüks olduğu belirlenmelidir"), SB-S2 ("yol gösterici olabilir")
-> "Bırakmayı denediyseniz, sizi en çok zorlayan şey neydi?"
-CANDIDATE — clinician to approve wording. Depends on Q4, so it needs an `ask_if` on Q4 when the pack is built
-(the generator's default `soru_N` slots carry none).
+> "Bırakmayı denediğinizde sizi en çok zorlayan şey neydi?"
+gen: slot=birakmayi_zorlastiran; type=string; ask_if=onceki_birakma_girisimi == true
+CANDIDATE — clinician to approve wording. Asked only when Q4 is yes, so the "if you tried" lead-in is dropped.
 
 **Q6 — Stop-smoking aids used before** · archetype: `ACTION.medication.v1` · source: SB-S1 ("farmakolojik yardımcılar"), SB-S4 1.11.3 and 1.12.7 (previous experience of stop-smoking aids)
 > "Bırakmak için daha önce ilaç, nikotin bandı ya da sakız kullandınız mı?"
+gen: slot=onceki_birakma_yardimcisi; type=boolean
 CANDIDATE — clinician to approve wording. History only; names products, recommends none.
 
 **Q7 — Main reason for quitting** · archetype: `EVALUATION.reason_for_encounter.v1` · source: SB-S1 ("Sigarayı neden bırakmak istiyorsunuz? … en önemli nedeni belirleyin.")
 > "Sigarayı bırakmak istemenizin en önemli nedeni nedir?"
+gen: slot=birakma_nedeni; type=string
 CANDIDATE — clinician to approve wording.
 
 **Q8 — Readiness to quit** · archetype: `OBSERVATION.story.v1` · source: SB-S1 ("1.Bırakma isteğini sorun."), SB-S4 1.12.7 (preferences)
 > "Sigarayı bırakmaya kendinizi ne kadar hazır hissediyorsunuz?"
-CANDIDATE — clinician to approve wording. Open wording; not the ALO 171 *kararlılık testi*.
+gen: slot=birakmaya_hazirlik; type=string
+CANDIDATE — clinician to approve wording. Open wording; not the ALO 171 *kararlılık testi*. The answer may be
+a number; that is acceptable in a string slot because it is not a clinical quantity. A choices list would be
+cleaner, but the generator has no `choices_tr`.
 
 **Q9 — Triggers and high-risk situations** · archetype: `OBSERVATION.story.v1` · source: SB-S1 ("tetikleyicileri ve yüksek riskli durumları"), SB-S2 ("yemek sonrası, cay, kahve"), SB-S3 ("yaşam olayları ve stres etkenleri")
 > "Hangi durumlarda sigara içme isteğiniz artıyor?"
+gen: slot=sigara_istegini_artiran_durumlar; type=string
 CANDIDATE — clinician to approve wording.
 
 **Q10 — Smoker in the household** · archetype: `OBSERVATION.story.v1` (narrative only) · source: SB-S1 ("Ailede içenler var mı?"), SB-S3 ("evde sigara kullananların"), SB-S4 1.11.8 ("anyone else in the household.")
 > "Evde sizinle birlikte yaşayan ve sigara içen biri var mı?"
+gen: slot=evde_sigara_icen; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Prior mental-health care** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SB-S1 (bupropion: "bipolar hastalığı olanlarda"; varenicline p. 76), SB-S3 ("psikiyatrik bozukluklar … daha yaygındır"), SB-S4 1.12.7 (contraindications)
 > "Daha önce ruh sağlığınızla ilgili bir hekimden destek aldınız mı?"
-CANDIDATE — clinician to approve wording. Pharmacotherapy-safety context for the physician; not a screen.
+gen: slot=onceki_ruh_sagligi_hekim_destegi; type=boolean
+CANDIDATE — clinician to approve wording. Pharmacotherapy-safety context for the physician; not a screen. A
+different slot id from ruh Q8, because this item leaves out psychologists.
 
 **Q12 — Seizure history** · archetype: `EVALUATION.problem_diagnosis.v1` · source: SB-S1 (bupropion: "konvulsiyon … öyküsü veren olgularda")
 > "Daha önce hiç nöbet ya da havale geçirdiniz mi?"
+gen: slot=nobet_oykusu; type=boolean
 CANDIDATE — clinician to approve wording. Pharmacotherapy-safety history; not a flag by itself.
 
 *(12 candidate questions.)*
@@ -261,7 +281,7 @@ CANDIDATE — clinician to approve wording. Pharmacotherapy-safety history; not 
 6. **When smoking began, and worry about weight gain** — sourced (SB-S1 "Ne zaman başlamış?"; SB-S3 "Kilo
    alacağı endişesi") but not drafted. The start question overlaps the generator's automatic `sikayet_suresi`
    slot and invites a free numeric answer (invariant 22), so it belongs with the structured pack-years slot
-   (gap 3). Clinician may swap weight-gain worry in.
+   (gap 3). Clinician may swap weight-gain worry in. Duration ask override pending clinician wording (§3).
 7. **Adolescent smoking-cessation clinics** — seen only in a news report (not a primary source; not used).
    Minors are out of scope here (HB-L20).
 8. **WHO 2024 clinical treatment guideline for tobacco cessation**: retrieval was not attempted, because WHO
