@@ -34,6 +34,10 @@ dependencies = [
     # self-reporting "LGPL version 3 or later", and it ships no licence blob
     # for any bundled binary (docs/evidence/INT-060.md).
     "soundfile>=0.13",
+    # INT-351: the build's hit/miss and synthesis counters, written as a
+    # Prometheus textfile (voice_clips.metrics). Already in the lock through
+    # intake-platform; Apache-2.0.
+    "prometheus-client>=0.20",
 ]
 
 [project.scripts]
