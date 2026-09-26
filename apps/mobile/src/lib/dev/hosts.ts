@@ -14,6 +14,19 @@
  */
 
 /**
+ * The dev LAN walk exists only in a dev build (INT-328's rule, audit F01/F17).
+ * A release build gets no candidate — no Metro host, no `extra.asrHosts`
+ * entry, no loopback or LAN address — and the walk is never run, so a store
+ * build neither raises the iOS local-network prompt nor waits on a lane that
+ * cannot exist on a patient's network. Every voice lane then reports
+ * unreachable and the intake takes the typed door, as it does today when a
+ * tunnel is down. Pass `__DEV__`, never a literal.
+ */
+export function devLanCandidates<T>(isDev: boolean, walk: () => T[]): T[] {
+  return isDev ? walk() : [];
+}
+
+/**
  * Candidate service bases, most specific first. The Metro hostUri names the
  * dev Mac directly in LAN mode; in tunnel mode it is an exp.direct name with
  * no route back to the Mac, so only the configured dev hosts remain.
