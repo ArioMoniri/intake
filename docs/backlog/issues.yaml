@@ -5239,26 +5239,48 @@
   tests: [tests/api/test_play_integrity_verifier.py]
   legal: "KVKK-12"
   sec_row: "onboarding"
+- id: INT-349
+  epic: E02-data
+  phase: P0
+  title: "Sensitive slot categories: per-slot data-category tag, encrypted storage, fail-closed register gate"
+  depends_on: [INT-327]
+  labels: [area:data, risk:legal, risk:security]
+  status: doing
+  acceptance:
+    - "protocol Slot carries a closed data_category tag (general_health plus the owner-approved categories) and an unknown value is refused by schema, loader and compiler"
+    - "answers to any non-general category are written with envelope encryption through the existing field-encryption path, proven by reading the raw row, while general_health storage is unchanged"
+    - "the compiler refuses to serve a slot whose category row in docs/legal/data-categories.yaml is incomplete (DATA_CATEGORY_REGISTER_INCOMPLETE) and a child pack cannot drop or change an inherited category (DATA_CATEGORY_RELAXED)"
+  tests: [tests/data/test_sensitive_slot_categories.py, tests/protocols/test_data_category_gate.py, tests/protocols/test_data_register.py]
+  legal: "KVKK-6,KVKK-9"
+  sec_row: "data-at-rest"
+- id: INT-350
+  epic: E13-infra
+  phase: P0
+  title: "CI part 2: check-integration builds the pinned edge plugin; osv findings fixed"
+  depends_on: [INT-346]
+  labels: [area:ci]
+  status: todo
+  acceptance:
+    - "the check-integration job runs make edge-plugin (sha256-verified against the pinned digest) before the edge suite, so tests/infra/test_edge_stack_integration.py runs and passes rather than erroring on a missing plugin"
+    - "the osv scanner reports zero fixable vulnerabilities on main HEAD, reached by upgrading the affected dependencies, never by adding a suppression or ignore entry"
+    - "red and green CI runs recorded in docs/evidence/INT-350.md"
+  tests: [tests/infra/test_edge_stack_integration.py]
+  sec_row: "cicd"
 - id: INT-351
   epic: E12-admin
   phase: P1
   title: "Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD"
-  depends_on: [INT-180, INT-183, INT-163, INT-186]
-  labels: [area:admin, area:observability]
+  depends_on: [INT-181, INT-186, INT-187]
+  labels: [area:admin]
   status: done
   evidence: docs/evidence/INT-351.md
-  # GitHub #557. Audit F26: apps/admin-web was headless view-models + fixture
-  # specs only. This issue adds the minimal Next.js App Router shell files/08 §7
-  # calls for and the first rendered page (/ops). The page forwards the
-  # caller's bearer to GET /admin/ops, so admission is the INT-180 gate (OIDC,
-  # IP allow-list HB-A16, platform-scope roles, audit) — without configuration
-  # nobody is admitted. Tiles read the registry and Prometheus only (files/08
-  # §0b F1); GPU and CI facts arrive through an ops collector in
-  # services/probes that runs server-side with its own access (nvidia-smi
-  # beside the host; a read-only GitHub token from OpenBao through the egress
-  # guard). It delivers the ops/CI tiles INT-181 and INT-187 name without
-  # closing them: their SLO/burn-rate, Argo CD, canary and rollback scope stays
-  # theirs.
+  # Delivered by PR #562 (GitHub #557). Audit F26: apps/admin-web was headless
+  # view-models + fixture specs. The page forwards the caller's bearer to an
+  # audited GET /admin/ops (the INT-180 gate decides admission); tiles read the
+  # registry and Prometheus only; GPU and CI facts come from an ops collector in
+  # services/probes. It delivers the ops/CI tiles INT-181 and INT-187 name
+  # without closing them: their SLO/burn-rate, Argo CD, canary and rollback
+  # scope stays theirs.
   acceptance:
     - "a rendered admin-web page (not headless modules only) shows one tile each for server health (/healthz, /readyz, /version), GPU quota and model hosts, model usage, the ElevenLabs clip cache manifest and usage, wait time (wait.checkin_to_seen_min), CSAT/NPS and GitHub Actions status, each read from its real source; every Prometheus metric a tile reads exists in observability/metrics_catalog.yaml"
     - "each tile fails closed to 'unknown' when its source is unreachable, never to a stale or zero value (one test per tile)"
@@ -5266,3 +5288,72 @@
     - "no tile renders PHI or a patient identifier (invariant 6)"
   tests: [apps/admin-web/e2e/ops.spec.ts, tests/admin/test_ops_console.py, tests/observability/test_ops_collector.py, tests/voice/test_clip_cache_metrics.py]
   sec_row: "admin-console"
+- id: INT-352
+  epic: E13-infra
+  phase: P0
+  title: "Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host)"
+  depends_on: [INT-345, INT-347, INT-325]
+  labels: [area:infra, risk:security, risk:legal]
+  status: todo
+  acceptance:
+    - "main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"
+    - "a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"
+    - "the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file, and the host moves to Frankfurt when the eu-central-1 request is approved"
+    - "real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"
+  tests: [tests/infra/test_staging_compose.py]
+  legal: "KVKK-9"
+  sec_row: "platform"
+- id: INT-353
+  epic: E03-protocols
+  phase: P1
+  title: "Land the specialty review queue, generator and verification trail on main"
+  depends_on: [INT-327]
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "packages/protocols/review/specialty (91 candidates), scripts/dev/gen_specialty_packs.py with its tests, docs/evidence/proposals and docs/evidence/verification land on main, with the served specialty tree byte-identical to protocols generate-l0 output"
+    - "make safety and tests/protocols are green, with CODEOWNER review"
+    - "no candidate is servable: resolving any of them for a live session raises (the L0 guard, invariant 13)"
+  tests: [tests/protocols/test_gen_specialty_packs.py]
+  sec_row: "clinical-content"
+- id: INT-354
+  epic: E17-release
+  phase: P0
+  title: "Consolidate int-demo into main; main becomes the TestFlight build source"
+  depends_on: [INT-328, INT-344]
+  labels: [area:mobile, area:release]
+  status: todo
+  acceptance:
+    - "every int-demo commit not on main (git log main..int-demo) lands through one-issue PRs or is dropped with its reason recorded in docs/evidence/INT-354.md"
+    - "demo-scoped code (hardcoded connector refs, recipients.demo.yaml) never reaches main"
+    - "main carries exactly one apps/mobile/app.json and one apps/mobile/eas.json"
+    - "an EAS build from main installs on a device and shows Önvizit"
+  tests: [apps/mobile/e2e/intakeMode.spec.ts]
+  sec_row: "mobile"
+- id: INT-355
+  epic: E04-engines
+  phase: P0
+  title: "Gated questions never asked: resolve bare ask_if slot names across the pack chain"
+  depends_on: []
+  labels: [area:engine, risk:clinical]
+  status: doing
+  acceptance:
+    - "a bare ask_if/skip_if slot name resolves to the unique slot of that name across the resolved pack chain (base + cluster + specialty) and section-qualified names keep working"
+    - "a bare name held by two sections is refused at compile (GATE_REF_AMBIGUOUS) and a name nothing holds is refused (GATE_REF_UNKNOWN)"
+    - "base.intake's lmp_date and proxy_reported gates open as specified and a specialty boolean gate opens on true and stays closed on false or unanswered, tested through a real IntakeEngine"
+  tests: [tests/protocols/test_gate_refs.py, tests/engine/test_bare_gates.py]
+  sec_row: "triage"
+- id: INT-356
+  epic: E14-legal
+  phase: P0
+  title: "Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice)"
+  depends_on: [INT-349]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "every row of docs/legal/data-categories.yaml carries counsel-supplied basis, retention, recipients, consent_scope and counsel_reviewed_at, and other_subject_basis_and_notice where another person is the data subject (household, relatives_health, partner_fertility)"
+    - "the VERBİS entry for each category is recorded (INT-211)"
+    - "no value in the register is authored by an agent"
+  tests: [tests/protocols/test_data_register.py]
+  legal: "KVKK-6,KVKK-10"
+  sec_row: "data-at-rest"

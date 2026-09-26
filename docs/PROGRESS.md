@@ -8,8 +8,24 @@
 - Invariants touched and still passing: 6, 13, 14, 15, 17, 20, 22 (details in docs/evidence/INT-351.md).
 - Decisions / ADRs / 00_STATE rows: no ADR (implements files/08 §0b F1 / §7 as written). The CI read reuses the `api.github.com` row's `issue_tracking` purpose; EC2 vCPU quota is not collected (needs a new egress row — owner call). No HB id minted; HB-A16 referenced.
 - Blocked on: nothing for the acceptance. Owner config for live use: `INTAKE_ADMIN_API_BASE` + an OIDC ingress; `INTAKE_ADMIN_OIDC_*` and `INTAKE_ADMIN_IP_ALLOWLIST` (HB-A16 — must include the admin-web host); `INTAKE_OPS_PROMETHEUS_URL`; collector `INTAKE_OPS_GPU_HOST_ID`, `INTAKE_OPS_GITHUB_REPO` + `INTAKE_OPS_GITHUB_TOKEN_PATH`, `INTAKE_OPS_CLIP_METRICS_TEXTFILE`.
-- Next: coordinator reviews/merges the PR (Sec-Row `admin-console`); the backlog count (273) will need the usual re-resolution against concurrent rows.
+- Next: coordinator reviews/merges the PR (Sec-Row `admin-console`). Main filed the INT-351 row (todo, #557) while this branch was open; the merge keeps main's row and count (280) and flips the row to done with this evidence.
 - LOOP_STATUS: DONE
+
+### 2026-09-26T14:15:00Z · INT-330 · delivered (device timing pending)
+- Goal: acceptance verbatim — *"a pure transition policy (route class hierarchy/auth/intake/legal) drives the root, auth and visits stacks and the tabs; no transition literal remains in any TSX · iOS stack fades run the fade token (120 ms) and 0 under reduce motion, removing the 500 ms default that could hold a RED behind an in-flight push (docs/design/motion/motion-verification.md S-1) · legal screens never animate in either direction at any setting; the intake route cannot be swiped away · device measurement of push/pop timing on the owner's two reference devices recorded in the evidence file"*.
+- Plan: add a pure `apps/mobile/src/lib/motion/transitions.ts` (`ROUTE_CLASSES`, `routeClassOf`, `transitionFor`, `tabTransition`) over the kept `screenAnimation`/`motionMs`; add `motion.duration = { instant, fade }` with `fadeMs` as its alias. The root, `(auth)` and `visits` stacks and the JS tabs spread the policy from a function-form `screenOptions`, keyed by `<dir>/${route.name}`. No `Stack.Screen` child is declared, because that would reorder expo-router's screens. `animationMatchesGesture` is untouched.
+- Tests added (with the near-miss negative for any safety rule):
+  - `transitions.test.ts`: the 7 MOTION-1 tests. The legal guard discovers the routes that render the docs/legal payload (a route or rendered component importing the consent ledger) instead of reading a list kept in the test.
+  - `theme.test.ts`: 2 new tests.
+  - `e2e/a11y.spec.ts` BK14 rewritten: the policy spread, with the route path each stack must classify; the tabs; and a ban on transition keys in any TSX.
+  - Near-miss: dropping `(auth)/consent` from the policy fails two tests. Mutation was checked and restored from a backup copy.
+  - RED: 3 files failed, 5 failed | 62 passed, plus the transitions suite failing to load. GREEN: 74/74 targeted; whole mobile suite 98 files / 1904 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck` and `pnpm -r lint` are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **18** (hash-bound legal text no longer moves), **17** (only tokens with a consumer land: `instant`, `fade`), **8** (the primitives' tests are kept).
+- Decisions / ADRs / `00_STATE.md` rows: none. The policy implements the spec's settled MOTION-1, and the ADR "Motion system v1" is MOTION-3's. Android's fixed 150 ms fade is recorded as a platform fact in `docs/evidence/INT-330.md`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner must name the two reference devices and record the release-build push/pop timing on each. This is a human step, and the evidence file marks it pending. No HB id is minted.
+- Next: PR review. The RED-mid-transition measurement belongs to INT-135's DoD.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-08T12:30:00Z · dev-voice-george-ondemand · awaiting-human (delivered)
 - Goal: user-requested DEV-lane enhancement (no backlog issue) — the ON-DEMAND variant of ADR-028. Today scripted questions are spoken from pre-baked ElevenLabs clips (offline) and a `text_tr` with no bundled clip falls to the self-hosted TTS. Add a DEV-only path where a scripted question with no cached George clip is synthesised via ElevenLabs at runtime through a server route, cached addressed by `sha256(text_tr)`, and played; a second occurrence of the same text is a cache hit (no second API call). Gives George's voice to dynamically-selected scripted questions without pre-baking every one.

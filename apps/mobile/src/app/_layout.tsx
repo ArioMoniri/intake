@@ -1,7 +1,7 @@
 /**
  * Root layout (INT-130): session provider + auth gate. Signed out → (auth)
  * welcome; signed in → the five-tab shell. Animations obey the motion budget
- * (02 §5.2a): fades only.
+ * (02 §5.2a): fades only, 120 ms, from the policy in lib/motion/transitions.
  *
  * The navigator is keyed by the active locale: `t()` reads a module-level
  * catalog, so a language switch must remount the tree — otherwise screens
@@ -25,8 +25,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
 import { KioskGate } from "@/components/KioskGate";
-import { screenAnimation } from "@/lib/a11y/motion";
 import { useReducedMotion } from "@/lib/a11y/prefs";
+import { routeClassOf, transitionFor } from "@/lib/motion/transitions";
 import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
 import { SessionProvider, useSession } from "@/lib/session";
 import { clientTelemetry, installCrashHandler } from "@/lib/telemetry/expoTelemetry";
@@ -38,9 +38,14 @@ function LocalizedStack() {
   const { locale } = useSession();
   const reduceMotion = useReducedMotion();
   return (
+    // INT-330: the transition, its 120 ms duration included, comes from the
+    // motion policy by route — never the iOS 500 ms default (motion S-1).
     <Stack
       key={locale}
-      screenOptions={{ headerShown: false, animation: screenAnimation(reduceMotion) }}
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        ...transitionFor(routeClassOf(route.name), { reduce: reduceMotion }),
+      })}
     >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
