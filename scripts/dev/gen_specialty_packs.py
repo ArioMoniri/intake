@@ -40,7 +40,22 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "packages/protocols/specialty"
 REVIEW = ROOT / "packages/protocols/review/specialty"
+REVIEW_CLUSTER = ROOT / "packages/protocols/review/cluster"
+SERVED_CLUSTER = ROOT / "packages/protocols/cluster"
 PROP = ROOT / "docs/evidence/proposals"
+TAXONOMY = ROOT / "packages/protocols/taxonomy/branches.yaml"
+CLUSTER_PREFIX = "cluster_"
+# Display labels for the cluster packs (UI titles, not clinical content).
+CLUSTER_TITLES = {
+    "medical": "Dahili Bilimler",
+    "surgical": "Cerrahi Bilimler",
+    "sensory": "Göz ve Kulak Burun Boğaz",
+    "womens_health": "Kadın Sağlığı",
+    "child_health": "Çocuk Sağlığı",
+    "mental_health": "Ruh Sağlığı",
+    "dental": "Ağız ve Diş Sağlığı",
+    "allied_and_reports": "Destek Hizmetleri ve Raporlar",
+}
 
 # The sanctioned pending-value marker (invariant 17's sole-exception form) is
 # assembled from parts so this generator's own source never carries the token
@@ -209,6 +224,7 @@ def build_pack(
     *,
     base_slots: frozenset[str] = frozenset(),
     options: dict[str, str] | None = None,
+    layer: str = "specialty",
 ) -> dict[str, Any]:
     """Pure: the pack document for `slug` (maturity L0 until signed).
 
@@ -238,7 +254,7 @@ def build_pack(
     return {
         "kind": "pack",
         "id": draft["id"],
-        "layer": "specialty",
+        "layer": layer,
         "version": "0.3.0",
         "schema_version": 2,
         "maturity": "L0",
@@ -273,7 +289,10 @@ def build_pack(
         "red_flags": [
             {
                 "id": f"rf.{slug}_l0_taslak",
-                "label_tr": f"{title} — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)",
+                "label_tr": (
+                    f"{title} — {'kümeye' if layer == 'cluster' else 'branşa'} özgü kırmızı "
+                    "bayrak taslağı (klinik onay bekliyor)"
+                ),
                 "when": (
                     f"{PENDING_MARKER} {slug} branch-specific red-flag trigger "
                     "requires clinical sign-off"
@@ -318,15 +337,47 @@ def eligible(candidate_text: str, candidate: dict[str, Any]) -> str | None:
     return "hand-authored"
 
 
+def taxonomy_clusters() -> frozenset[str]:
+    """Cluster ids that carry a pack in taxonomy/branches.yaml."""
+    doc = yaml.safe_load(TAXONOMY.read_text(encoding="utf-8"))
+    return frozenset(c["id"] for c in doc.get("clusters", []) if c.get("pack"))
+
+
+def cluster_target(slug: str) -> tuple[dict[str, Any], Path, Path] | str:
+    """(draft, review path, served path) for a cluster_* proposal, else why not."""
+    name = slug[len(CLUSTER_PREFIX) :]
+    if name not in taxonomy_clusters() or name not in CLUSTER_TITLES:
+        return f"unknown cluster {name!r}"
+    draft = {
+        "id": f"cluster.{name}",
+        "title_tr": CLUSTER_TITLES[name],
+        "extends": "base.intake",
+        "visit_types": ["first", "followup", "report"],
+    }
+    return draft, REVIEW_CLUSTER / f"{name}.yaml", SERVED_CLUSTER / f"{name}.yaml"
+
+
 def gen(slug: str) -> tuple[str, bool]:
-    draft_p = SPEC / f"{slug}.yaml"
-    out_p = REVIEW / f"{slug}.yaml"
     prop_p = PROP / f"{slug}.md"
-    if not draft_p.exists():
-        return f"skip {slug}: no L0 draft for this branch", True
-    draft = yaml.safe_load(draft_p.read_text(encoding="utf-8"))
-    if draft.get("maturity") != "L0":
-        return f"skip {slug}: served pack is past L0", True
+    layer = "cluster" if slug.startswith(CLUSTER_PREFIX) else "specialty"
+    if layer == "cluster":
+        target = cluster_target(slug)
+        if isinstance(target, str):
+            return f"SKIP {slug}: {target}", False
+        draft, out_p, served_p = target
+        if (
+            served_p.exists()
+            and yaml.safe_load(served_p.read_text("utf-8")).get("maturity") != "L0"
+        ):
+            return f"skip {slug}: served cluster pack is past L0", True
+    else:
+        draft_p = SPEC / f"{slug}.yaml"
+        out_p = REVIEW / f"{slug}.yaml"
+        if not draft_p.exists():
+            return f"skip {slug}: no L0 draft for this branch", True
+        draft = yaml.safe_load(draft_p.read_text(encoding="utf-8"))
+        if draft.get("maturity") != "L0":
+            return f"skip {slug}: served pack is past L0", True
     if out_p.exists():
         out_text = out_p.read_text(encoding="utf-8")
         why = eligible(out_text, yaml.safe_load(out_text))
@@ -345,7 +396,9 @@ def gen(slug: str) -> tuple[str, bool]:
         # Never let a later question silently become the visit-reason slot.
         return f"SKIP {slug}: Q1 (reason for visit) was refused or held{notes}", False
     try:
-        pack = build_pack(draft, slug, qs, base_slots=base_slot_names(), options=options)
+        pack = build_pack(
+            draft, slug, qs, base_slots=base_slot_names(), options=options, layer=layer
+        )
     except ValueError as exc:
         return f"SKIP {slug}: {exc}{notes}", False
     out_p.parent.mkdir(parents=True, exist_ok=True)

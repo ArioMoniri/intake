@@ -82,7 +82,9 @@ def load_registry(packs_root: Path) -> PackRegistry:
     same tree and belong to the compiler slice — they are passed over here.
     A malformed chain pack still fails loudly via ``load_pack``. The review
     queue is refused as a root; it is never a layer, so the default root
-    never reads it either (CLAUDE.md invariant 13; HB-C1).
+    never reads it either. A layer directory or pack file that resolves into
+    the queue (``review/<layer>/<pack>.yaml``, e.g. ``cluster/`` linked to
+    ``review/cluster``) is refused too (CLAUDE.md invariant 13; HB-C1).
     """
     if packs_root.resolve().name == REVIEW_QUEUE_DIRNAME:
         raise ReviewQueueRootError(
@@ -92,6 +94,11 @@ def load_registry(packs_root: Path) -> PackRegistry:
     registry = PackRegistry()
     for layer in PackLayer:
         for path in sorted((packs_root / layer.value).glob("*.yaml")):
+            if path.resolve().parent.parent.name == REVIEW_QUEUE_DIRNAME:
+                raise ReviewQueueRootError(
+                    f"{path}: resolves into the review queue; a candidate is "
+                    "never served (invariant 13; promotion needs HB-C1)"
+                )
             raw = yaml.safe_load(path.read_text(encoding="utf-8"))
             if isinstance(raw, dict) and raw.get("kind") != "pack":
                 continue

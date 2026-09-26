@@ -240,3 +240,30 @@ def test_a_pack_line_overrides_the_duration_ask_with_one_question_only() -> None
     assert ask == "Sigarayı ne zamandır içiyorsunuz?"
     with pytest.raises(ValueError):
         GEN.extract_pack_options(text.replace("içiyorsunuz?", "içiyorsunuz? Kaç yıl?"))
+
+
+def test_a_cluster_proposal_becomes_a_cluster_candidate_extending_base(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    review, served, prop = tmp_path / "review", tmp_path / "served", tmp_path / "proposals"
+    prop.mkdir()
+    (prop / "cluster_medical.md").write_text(PROPOSAL, encoding="utf-8")
+    monkeypatch.setattr(GEN, "REVIEW_CLUSTER", review)
+    monkeypatch.setattr(GEN, "SERVED_CLUSTER", served)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("cluster_medical")
+    assert ok, line
+    import yaml
+
+    pack = yaml.safe_load((review / "medical.yaml").read_text(encoding="utf-8"))
+    assert pack["id"] == "cluster.medical"
+    assert pack["layer"] == "cluster"
+    assert pack["extends"] == "base.intake"
+    assert pack["maturity"] == "L0"
+    assert not served.exists()
+
+
+def test_an_unknown_cluster_is_refused() -> None:
+    line, ok = GEN.gen("cluster_not_a_cluster")
+    assert not ok
+    assert "unknown cluster" in line
