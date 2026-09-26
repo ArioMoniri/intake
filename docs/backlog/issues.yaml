@@ -1091,7 +1091,7 @@
   title: "Vendor failover + circuit breakers + typed fallback <=2s + chaos test"
   depends_on: [INT-095, INT-024]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "breaker per vendor; failover order from probes registry; chaos kill proves <=2s"
   tests: [tests/chaos/test_vendor_failover.py]
@@ -5292,13 +5292,21 @@
   title: "Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD"
   depends_on: [INT-181, INT-186, INT-187]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-351.md
+  # Delivered by PR #562 (GitHub #557). Audit F26: apps/admin-web was headless
+  # view-models + fixture specs. The page forwards the caller's bearer to an
+  # audited GET /admin/ops (the INT-180 gate decides admission); tiles read the
+  # registry and Prometheus only; GPU and CI facts come from an ops collector in
+  # services/probes. It delivers the ops/CI tiles INT-181 and INT-187 name
+  # without closing them: their SLO/burn-rate, Argo CD, canary and rollback
+  # scope stays theirs.
   acceptance:
     - "a rendered admin-web page (not headless modules only) shows one tile each for server health (/healthz, /readyz, /version), GPU quota and model hosts, model usage, the ElevenLabs clip cache manifest and usage, wait time (wait.checkin_to_seen_min), CSAT/NPS and GitHub Actions status, each read from its real source; every Prometheus metric a tile reads exists in observability/metrics_catalog.yaml"
     - "each tile fails closed to 'unknown' when its source is unreachable, never to a stale or zero value (one test per tile)"
     - "the page requires the admin OIDC role behind the INT-180 IP allow-list; while HB-A16's ranges are unset it admits nobody"
     - "no tile renders PHI or a patient identifier (invariant 6)"
-  tests: [apps/admin-web/e2e/ops.spec.ts]
+  tests: [apps/admin-web/e2e/ops.spec.ts, tests/admin/test_ops_console.py, tests/observability/test_ops_collector.py, tests/voice/test_clip_cache_metrics.py]
   sec_row: "admin-console"
 - id: INT-352
   epic: E13-infra
