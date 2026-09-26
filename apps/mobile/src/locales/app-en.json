@@ -1,5 +1,5 @@
 {
-  "CFBundleDisplayName": "Vizite",
+  "CFBundleDisplayName": "Önvizit",
   "NSMicrophoneUsageDescription": "Microphone access is needed so what you describe during a voice visit can reach your clinician. No audio recording is kept.",
   "NSCameraUsageDescription": "Camera access is needed so you can photograph your reports and test results and add them to your visit. The photo is kept only as a document you uploaded."
 }

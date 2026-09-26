@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "distribution": "store",
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "autoIncrement": true
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "/Users/ario/.appstore/AuthKey_UBF4FBLAPR.p8",
+        "ascApiKeyId": "UBF4FBLAPR",
+        "ascAppId": "6814005465"
+      }
+    }
+  }
+}
