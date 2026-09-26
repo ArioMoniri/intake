@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 __all__ = [
+    "InsufficientUserAuthentication",
     "admin_console_unconfigured",
     "admin_refused",
     "benchmark_refused",
@@ -305,6 +306,30 @@ def source_ip_refused() -> HTTPException:
     """files/08 §2.3's console IP allow-list. Empty admits nobody, which is
     the correct shipping state — no file in this repository names a range."""
     return HTTPException(status_code=403, detail={"error": "source_ip_refused"})
+
+
+class InsufficientUserAuthentication(HTTPException):
+    """INT-365 (files/08 §2.3): a verified staff token that does not show the
+    second factor its console roles need.
+
+    RFC 9470 gives the shape: 401, with ``insufficient_user_authentication``
+    in the ``WWW-Authenticate`` challenge, so admin-web knows to send the user
+    back through Keycloak rather than show a dead end. The body is that one
+    code. It is the same for "no second factor" and "not WebAuthn", and it
+    names no claim, factor or role (invariant 6).
+
+    ``subject`` is not part of the response. The console's audit wrapper
+    reads it to name the caller on the refusal row. It is the verified,
+    id-shaped ``sub`` or ``None``.
+    """
+
+    def __init__(self, subject: str | None) -> None:
+        super().__init__(
+            status_code=401,
+            detail={"error": "insufficient_user_authentication"},
+            headers={"WWW-Authenticate": 'Bearer error="insufficient_user_authentication"'},
+        )
+        self.subject = subject
 
 
 def admin_refused(code: str) -> HTTPException:

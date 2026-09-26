@@ -16,6 +16,12 @@ whose own claim carries no tenant precisely because its scope is all of them.
 **Roles are intersected, not trusted.** A Keycloak realm carries roles that
 are not console roles (`clinician`, `patient`); those are dropped, and a token
 left with none is refused rather than admitted as an empty-privilege session.
+
+**The second factor is checked here, once, for every verifier** (INT-365).
+Every claim set reaches the console through this function, whichever
+verifier produced it, so this is the one place a token issued without the
+factors files/08 §2.3 demands can be refused. The check runs as soon as the
+console roles are known, because the roles decide what counts as enough.
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ from typing import Any, Protocol
 
 from intake_platform.admin.four_eyes import ActorBlock
 from intake_platform.admin.roles import ADMIN_ROLES, AdminRole
+from intake_platform.admin.second_factor import require_second_factor
 
 __all__ = [
     "AdminClaimsVerifier",
@@ -124,6 +131,10 @@ def _required_id(claims: Mapping[str, Any], key: str) -> str:
     return value
 
 
+def _id_or_none(value: object) -> str | None:
+    return value if isinstance(value, str) and _ID_SHAPE.fullmatch(value) else None
+
+
 def principal_from_claims(claims: Mapping[str, Any], *, source_ip: str) -> AdminPrincipal:
     realm_access = claims.get("realm_access")
     raw_roles = realm_access.get("roles", ()) if isinstance(realm_access, Mapping) else ()
@@ -132,6 +143,7 @@ def principal_from_claims(claims: Mapping[str, Any], *, source_ip: str) -> Admin
     )
     if not roles:
         raise NoConsoleRole("the token carries no files/08 §2.1 console role")
+    require_second_factor(claims.get("amr"), roles, subject=_id_or_none(claims.get("sub")))
     tenant = claims.get("tenant")
     if tenant is not None and (not isinstance(tenant, str) or not _ID_SHAPE.fullmatch(tenant)):
         raise MalformedClaims("claim 'tenant' is not id-shaped")

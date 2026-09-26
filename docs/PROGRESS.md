@@ -1,5 +1,38 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T09:00:00Z · INT-365 · delivered (live realm and staff enrolment with the owner)
+- Goal: acceptance verbatim (GitHub #592):
+  - *"the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"*
+  - *"the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"*
+- Plan:
+  - New `intake_platform.admin.second_factor`. The token must show `amr` ⊇ {`pwd`} plus `otp` or `hwk`, and `hwk` for any role whose §2.1 patient-content path is not `NONE` (six roles, derived rather than listed).
+  - The claim is a JSON array of exact, case-sensitive strings or it is no evidence. `acr` is never read.
+  - The policy is called in `principal_from_claims`, the seam every verifier feeds.
+  - The refusal is RFC 9470's 401 `insufficient_user_authentication` with one generic body. It is audited under the verified subject id.
+  - Realm: OTP and WebAuthn policies, a `staff browser` flow (password, then WebAuthn or TOTP, each execution tagged with its `amr` reference), the AMR mapper on `admin-web`, and 8 h / 30 min bounds, offline sessions included.
+  - What Keycloak actually emits is cited in `docs/evidence/INT-365.md`, from the 26.1.4 docs and source.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` (135): role mapping against the spec table; the policy, including 44 shape and case spoofing cases and acr-alone; the console's 401, body, challenge and audit row; the realm flow evaluated path by path; the policies; the session bounds.
+  - Near-miss: `pwd`+`otp` is admitted for `auditor` and refused when only the role changes to `clinical_lead`. Every realm checker is also run against a one-field mutation.
+  - RED: collection error, then 96 failed / 39 passed. GREEN: 135 passed. Mutation check: 11/11 killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `tests/admin tests/api tests/security tests/observability tests/docs`: 1601 passed. The 20 deselected are integration tests and the 4 deid-NER tests, whose model cache is absent from a fresh worktree.
+  - ruff, ruff format and `mypy --strict` (240 files) are clean. Pinned bandit found 0 issues on the touched paths. `no_placeholders` is OK after staging.
+  - `make check` was not run in full: check-integration is CI-only, since no container runtime is available. `make safety` is untouched: no protocol, triage or voice change.
+- Invariants touched and still passing:
+  - **4**: every refusal is on the one chain.
+  - **6**: the refusal body and audit row carry codes and ids only; no claim, factor or role.
+  - **14**: no secret added; the realm's dev passwords are unchanged.
+  - **16**: Sec-Row `admin-console`, threat-model section extended.
+  - **17**: nothing stubbed; an unenrolled or unmapped deployment fails closed.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. RFC 8176 and RFC 9470 are applied at the existing seam.
+  - WebAuthn is tagged `hwk`; `webauthn` is not an RFC 8176 value, and the fixture's old value matched no realm.
+  - No HB, ADR or alembic id minted.
+- Blocked on: nothing for the code. The owner applies the realm settings to the deployed Keycloak and enrols each staff account's factor (WebAuthn for the six patient-content roles) before its first console login.
+- Next: PR (Sec-Row `admin-console`, Closes #592). After #590 lands: flip the INT-365 row to done, regenerate files/11, and close and reopen the PR so the sec-row gate re-runs.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):
   - *"the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"*
