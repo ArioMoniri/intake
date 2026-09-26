@@ -19,6 +19,7 @@ import {
   useTheme,
 } from "@/components/Themed";
 import { AuthApiError, requestOtp } from "@/lib/auth/api";
+import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { setPendingPhone } from "@/lib/auth/flow";
 import { normaliseTrPhone } from "@/lib/auth/phone";
 import { labelled } from "@/lib/a11y/labels";
@@ -35,7 +36,7 @@ function errorKey(error: unknown): MessageKey {
       case "phone":
         return "auth.phone.invalid";
       case "attestation":
-        return "auth.error.attestation";
+        return attestationMessageKey(error.attestation);
       case "network":
         return "auth.error.network";
       case "unconfigured":

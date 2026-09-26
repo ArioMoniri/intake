@@ -1,0 +1,150 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/nukleer_tip.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.nukleer_tip
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Nükleer Tıp ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün nükleer tıp polikliniğine gelme nedeniniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/nukleer_tip.md'
+  sorular:
+    slots:
+      diyabet_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce şeker hastalığı tanısı konuldu mu?
+        follow_up_tr:
+          tr: Kan şekerinizin yüksek olduğu size söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      emzirme:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda emziriyor musunuz?
+        follow_up_tr:
+          tr: Şu anda bir bebeği anne sütüyle besliyor musunuz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      yakin_kontrastli_cekim:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son haftalarda damardan ilaç verilerek tomografi ya da başka bir film çekildi mi?
+        follow_up_tr:
+          tr: Son zamanlarda ilaçlı tomografi çektirdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      onceki_radyoiyot:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce atom tedavisi olarak bilinen radyoaktif iyot tedavisi aldınız mı?
+        follow_up_tr:
+          tr: Daha önce atom tedavisi aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      onceki_isin_tedavisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce vücudunuzun herhangi bir bölgesine ışın tedavisi uygulandı mı?
+        follow_up_tr:
+          tr: Daha önce radyoterapi aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      yakin_ameliyat_biyopsi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son aylarda ameliyat ya da iğneyle parça alma işlemi oldunuz mu?
+        follow_up_tr:
+          tr: Yakın zamanda biyopsi yaptırdınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      yakin_travma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda düşme, darbe ya da kemik kırığı yaşadınız mı?
+        follow_up_tr:
+          tr: Yakın zamanda bir yerinizi incittiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      hareketsiz_yatma_zorlugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bir süre sırtüstü ve hareketsiz yatmak sizin için zor olur mu?
+        follow_up_tr:
+          tr: Sırtüstü yatınca ağrı ya da nefes darlığı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      kapali_alan_huzursuzluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kapalı ya da dar alanlarda bulunmak sizi çok huzursuz eder mi?
+        follow_up_tr:
+          tr: Dar ve kapalı yerlerde bunaldığınız olur mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      idrar_kacirma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İdrarınızı tutmakta zorlandığınız ya da kaçırdığınız oluyor mu?
+        follow_up_tr:
+          tr: Tuvalete yetişemediğiniz oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+      evde_cocuk_gebe:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Evinizde küçük çocuk ya da gebe biri yaşıyor mu?
+        follow_up_tr:
+          tr: Evde bakımını üstlendiğiniz bir bebek ya da küçük çocuk var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nukleer_tip.md'
+red_flags:
+- id: rf.nukleer_tip_l0_taslak
+  label_tr: Nükleer Tıp ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: nukleer_tip branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/nukleer_tip.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

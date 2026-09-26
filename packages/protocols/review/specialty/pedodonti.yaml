@@ -1,0 +1,143 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/pedodonti.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.pedodonti
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Pedodonti ön görüşme protokolü
+extends: cluster.dental
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün çocuğunuzu diş hekimine getiren en önemli konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu durumu ne zamandır fark ediyorsunuz?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/pedodonti.md'
+  sorular:
+    slots:
+      dis_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda diş ağrısından yakınıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      kendiliginden_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ağrı, çocuğunuz bir şey yemezken de kendiliğinden başlıyor mu?
+        ask_if: dis_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      dis_eti_sisligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun diş etinde şişlik ya da sivilce gibi bir kabarcık var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      ara_ogun_seker:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz öğün aralarında şekerli yiyecek ya da içecekleri sık tüketiyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      gece_biberon:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz uykuya dalarken biberonla süt ya da şekerli bir içecek içiyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      sabah_aksam_fircalama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun dişleri her gün sabah ve akşam fırçalanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      florurlu_macun:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun diş macununda florür var mı?
+        follow_up_tr:
+          tr: Macunun kutusunda florür yazıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      dis_hekimi_kaygisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz diş hekimine gitmekten korkuyor ya da çok kaygılanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      ozel_saglik_gereksinimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun sürekli takip edilen bir sağlık sorunu ya da özel gereksinimi var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      ozel_saglik_gereksinimi_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bu durumunu kısaca anlatır mısınız?
+        ask_if: ozel_saglik_gereksinimi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      kalp_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzda doğuştan gelen bir kalp sorunu ya da geçirilmiş kalp ameliyatı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      kalp_sorunu_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun kalp sorununu kısaca anlatır mısınız?
+        ask_if: kalp_sorunu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/pedodonti.md'
+      onceki_dis_travmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun dişleri daha önce bir düşme ya da darbeyle zarar gördü mü?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/pedodonti.md'
+red_flags:
+- id: rf.pedodonti_l0_taslak
+  label_tr: Pedodonti ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: pedodonti branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/pedodonti.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

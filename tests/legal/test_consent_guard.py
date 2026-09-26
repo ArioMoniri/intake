@@ -238,6 +238,7 @@ def test_pre_auth_declarations_are_exactly_the_auth_bootstrap_routes(
     assert marked == [
         "GET /v1/auth/dev/otp-peek",
         "POST /v1/auth/attest/challenge",
+        "POST /v1/auth/attest/key",
         "POST /v1/auth/otp/request",
         "POST /v1/auth/otp/verify",
         "POST /v1/auth/token/refresh",
