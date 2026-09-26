@@ -29,6 +29,13 @@ The block is optional rather than mandatory because the three model rows
 that predate it (qwen3.5-9b, whisper-tr-medical, freya-tts) record their
 pins as prose inside `host` and their blobs have not all been read. Forcing
 them now would mean inventing hashes; backfilling them is its own issue.
+
+INT-347 adds one more optional key, `image`: the container image a row runs,
+pinned `<repo>:<tag>@sha256:<64 hex>` (invariant 14). It is a field of its
+own rather than prose in `host` because the console serves `host` and no
+admin response may carry a 64-hex string (the audit chain head is one). A row
+that pins an image must also record the dated licence verification from the
+raw LICENSE blob (invariant 19).
 """
 
 from __future__ import annotations
@@ -48,6 +55,9 @@ __all__ = ["FallbackKind", "ProbeId", "Registry", "RegistryEntry", "load_registr
 _SHA256_RE = r"^[0-9a-f]{64}$"
 #: a full 40-hex git revision — an abbreviated sha is not a pin
 _REVISION_RE = r"^[0-9a-f]{40}$"
+#: `<repo>:<tag>@sha256:<64 hex>` — the tag is for the reader, the digest is
+#: what the runtime resolves; a tag alone can be repointed
+_IMAGE_RE = r"^[a-z0-9]+(?:[._/-][a-z0-9]+)*:[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}@sha256:[0-9a-f]{64}$"
 
 
 class ProbeId(StrEnum):
@@ -108,6 +118,11 @@ class RegistryEntry(BaseModel):
     #: anything an auditor would otherwise have to discover the hard way
     licence_note: str | None = Field(default=None, min_length=1)
 
+    # --- optional container-image pin (INT-347) -----------------------------
+    #: the image this component runs, digest-pinned (invariant 14); never
+    #: projected to the console, which serves `host` instead
+    image: str | None = Field(default=None, pattern=_IMAGE_RE)
+
     @model_validator(mode="after")
     def _weight_hashes_are_sha256(self) -> Self:
         for name, digest in (self.weights_sha256 or {}).items():
@@ -132,6 +147,17 @@ class RegistryEntry(BaseModel):
                 f"{self.model_id!r} but omits {', '.join(missing)} — a model row "
                 "is pinned by model_id@revision + sha256 with a dated licence "
                 "verification (CLAUDE.md invariant 19, files/03 §4.9.4)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _image_pin_requires_a_verified_licence(self) -> Self:
+        if self.image is not None and self.licence_verified_at is None:
+            raise ValueError(
+                f"component {self.component!r} pins image {self.image!r} but omits "
+                "licence_verified_at — an image row is pinned by digest with a dated "
+                "licence verification from the raw LICENSE blob (CLAUDE.md "
+                "invariants 14 and 19)"
             )
         return self
 
