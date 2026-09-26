@@ -78,7 +78,7 @@ import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
-import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
+import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
 
 interface DialogueIntakeProps {
   visitId: string | undefined;
@@ -416,7 +416,10 @@ export function DialogueIntake({
         )}
         accessibilityHint={t("a11y.dialogue.bargeInHint")}
         onPress={session.bargeIn}
-        style={({ pressed }) => [...bubbleStyle, { opacity: pressed ? 0.7 : 1 }]}
+        style={({ pressed }) => [
+          ...bubbleStyle,
+          { opacity: pressed ? motion.press.rowOpacity : 1 },
+        ]}
       >
         {body}
         <View style={styles.stateRow}>
@@ -550,7 +553,7 @@ export function DialogueIntake({
               {
                 backgroundColor: theme.primarySoft,
                 borderColor: dark ? "transparent" : theme.primary,
-                opacity: pressed ? 0.7 : 1,
+                opacity: pressed ? motion.press.rowOpacity : 1,
               },
             ]}
           >
@@ -710,7 +713,7 @@ export function DialogueIntake({
               accessibilityRole="button"
               accessibilityLabel={t("dialogue.send")}
               // Icon-only, so the disabled state has no visible word either:
-              // 0.4 opacity is the sighted half and this is the other half.
+              // the disabled opacity is the sighted half and this is the other.
               accessibilityState={{ disabled: draft.trim().length === 0 }}
               disabled={draft.trim().length === 0}
               onPress={send}
@@ -718,7 +721,12 @@ export function DialogueIntake({
                 styles.sendButton,
                 {
                   backgroundColor: theme.cta,
-                  opacity: draft.trim().length === 0 ? 0.4 : pressed ? 0.85 : 1,
+                  opacity:
+                    draft.trim().length === 0
+                      ? motion.press.disabledOpacity
+                      : pressed
+                        ? motion.press.opacity
+                        : 1,
                 },
               ]}
             >
