@@ -342,15 +342,19 @@ class DevVoiceScriptedDeclaration:
     other markers: the caller is the patient's own device asking for the agent's
     scripted speech, and there is no Vizite data subject whose consent ledger a
     scope could be checked against — files/06 §2's purposes are about a subject's
-    clinical data, and no clinical datum is read or written here. The
-    scripted-only guarantee is upheld where it can be — the client sends only a
-    nominal ``ScriptedTr`` composed from an ``IntakeQuestion`` — and this route
-    additionally refuses any numeral before the vendor (invariant 22).
+    clinical data, and no clinical datum is read or written here.
+
+    What it is NOT: a check. This marker only explains the missing scope; the
+    route enforces its own doors (INT-326) — a patient principal, a server-side
+    catalogue (only a compiled clip-manifest ``text_tr`` is admitted, so the
+    scripted-only guarantee no longer rests on the client), a per-principal
+    budget, the numeral refusal (invariant 22), and no mount at all in
+    production.
 
     Why it may not stay silent. The scan accepts this marker ONLY under
     DEV_VOICE_PREFIX (as a path segment, not a substring), so a ``/v1`` data
     route cannot borrow it to dodge a scope. The route is dev-gated and fails
-    closed (503) when the dev flag or vendor key is absent.
+    closed (503) when the dev flag, vendor key or compiled catalogue is absent.
     """
 
     async def __call__(self) -> None:
