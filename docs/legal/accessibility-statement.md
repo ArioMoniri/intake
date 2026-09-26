@@ -12,8 +12,8 @@
 >   facts for the statement that will one day be published, and claims nothing
 >   beyond them. `tests/legal/test_a11y_report.py` fails if a criterion the
 >   report does not fully support is missing from §4 below.
-> - Publication in the app and on the web is the half of INT-226 that remains
->   open. It is gated on **HUMAN_BLOCKERS.md HB-L9** (the posture decision on
+> - Publication in the app and on the web was split out of INT-226 into
+>   INT-359, which remains open. It is gated on **HUMAN_BLOCKERS.md HB-L9** (the posture decision on
 >   how conformance is reported in the Ministry checklist's own BK numbering)
 >   and on counsel sign-off. The Turkish text of the statement belongs to
 >   counsel and the owner. Like every legal text, it will be signed into
@@ -141,7 +141,7 @@ that builds it must carry.
 
 ---
 
-## 5 · Feedback and enforcement — still open after INT-226
+## 5 · Feedback and enforcement — still open (INT-359)
 
 A published statement must carry a feedback mechanism and the national
 enforcement route. INT-226 generated the report. It did not decide these, and

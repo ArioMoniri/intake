@@ -299,7 +299,7 @@ wcag:
     bk: BK14
     status: Supports
     tests:
-      - "apps/mobile/e2e/a11y.spec.ts::every looping animation is gated on the reduce-motion preference"
+      - "apps/mobile/e2e/a11y.spec.ts::every looping animation, core or Reanimated, is gated on the app's reduce-motion hook"
       - "apps/mobile/src/lib/a11y/motion.test.ts::stops looping decoration — SC 2.2.2, the listening pulse"
       - "apps/mobile/e2e/motion.spec.ts::the root mounts ReducedMotionConfig from the app policy"
       - "apps/mobile/e2e/appearance.spec.ts::useReducedMotion folds the stored override in"
@@ -315,7 +315,7 @@ wcag:
     bk: BK15
     status: Supports
     tests:
-      - "apps/mobile/e2e/a11y.spec.ts::BK15 / SC 2.3.1 — the only repeating animation is far below 3 Hz"
+      - "apps/mobile/e2e/a11y.spec.ts::every loop period comes from motion.loop, and every half-period exceeds 167 ms"
     remarks: The listening pulse is an opacity fade at about 0.7 Hz, and nothing else repeats.
 
   - sc: "2.4.1"
