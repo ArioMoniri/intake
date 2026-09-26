@@ -70,8 +70,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-360..363 (the four WCAG defects the INT-226 report found:
     # orientation lock, OTP paste/autofill, iOS error/status announcements,
     # kiosk idle warning).
+    # + INT-373 (the Keycloak realm emits the claims the admin console
+    # requires; found by INT-365).
     # Grow this count only with a stated reason.
-    assert len(ids) == 287
+    assert len(ids) == 288
     import re
 
     for i in ids:

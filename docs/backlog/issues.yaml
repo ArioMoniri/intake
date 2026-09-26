@@ -5471,3 +5471,21 @@
   tests: [apps/mobile/src/lib/kiosk/kioskState.test.ts, apps/mobile/e2e/a11y.spec.ts]
   legal: "5378,EN301549"
   sec_row: "mobile"
+- id: INT-373
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id)"
+  depends_on: [INT-180]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-373.md
+  # Found by INT-365 (PR #598). aud, org and tenant are stock mappers. No stock
+  # Keycloak 26.1.4 authenticator writes the AAGUID or credential id anywhere a
+  # mapper can read, so those two mappers read user-session notes that a
+  # WebAuthn provider must write (docs/runbooks/keycloak-realm.md §3). Until it
+  # exists, every real token lacks them and the console refuses it.
+  acceptance:
+    - "the committed realm adds these mappers to the `admin-web` client; a test decodes a token minted from the realm config and asserts each claim, with a near-miss control"
+    - "the deployed-realm runbook lists the same mappers for the owner to apply"
+  tests: [tests/admin/test_realm_claim_mappers.py]
+  sec_row: "admin-console"
