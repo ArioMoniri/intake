@@ -32,6 +32,35 @@ export {
   type Severity,
 } from "./models/module";
 export { UnlabelledMeasurement, renderMeasurement, type Measurement } from "./models/measurement";
+// INT-190 — the Cost module (files/08 §3 "Cost", §4 J): per-session cost by
+// component, vendor and profile, budgets and their alerts.
+export {
+  BUDGET_NOT_CONFIGURED,
+  CostContentLeaked,
+  CostFigureWithoutPrice,
+  CostFigureWithoutUsage,
+  CurrencyNotCatalogued,
+  PartialTotalRendered,
+  PRICE_NOT_CONFIGURED,
+  renderCostModule,
+  UnknownCostProfile,
+  UnknownCostState,
+  UnsoundBudgetVerdict,
+  UnsourcedPrice,
+  VENDOR_NOT_CONFIGURED,
+  type BudgetPresentation,
+  type BudgetWire,
+  type ComponentPresentation,
+  type ComponentWire,
+  type CostPayload,
+  type CostPresentation,
+  type PerSessionRowPresentation,
+  type PerSessionWire,
+  type SpendPresentation,
+  type TotalPresentation,
+  type WindowPresentation,
+  type WindowWire,
+} from "./cost/module";
 export {
   ChainMaterialLeaked,
   MissingLawfulBasis,

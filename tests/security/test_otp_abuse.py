@@ -997,7 +997,7 @@ class RecordingDelivery:
     def __init__(self) -> None:
         self.sends = 0
 
-    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
         del phone_e164, code
         self.sends += 1
         return DeliveryReceipt(delivery_id=uuid.uuid4().hex)

@@ -1,5 +1,71 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
+- Goal: acceptance verbatim (GitHub #528):
+  - *"the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"*
+  - *"delivery uses an async HTTP client so the OTP route never blocks the event loop"*
+  - *"under prod the adapter is Twilio when configured and nothing otherwise (INT-325); credentials resolve through the secrets path (invariant 14), never an in-code default"*
+  - *"api.twilio.com is added to infra/security/egress-allowlist.yaml with its EgressPurpose member and rendered proxy config, and the phone-number field carries the data-inventory annotation (invariant 18), only after the owner records the DPA and cross-border decision"*
+  - Audit F13: the off-main adapter blocked the loop, had no tests, read env credentials, sat off the allow-list and fell back silently.
+- Plan:
+  - `intake_platform.egress`: add `guarded_async_transport` / `guarded_async_client`. They are the same admission step (`_admit`) as the sync guard, now shared by both, with an awaited send and DNS resolution in a worker thread. Add `EgressPurpose.SMS_OTP_DELIVERY`.
+  - New `intake_api.otp_twilio`: an `httpx.AsyncClient` over that guard, declaring the SMS purpose and `DataClass.PHI`, with credentials from OpenBao `secret/api/twilio` only.
+  - Make the OTP seam async, with a typed `OtpDeliveryError` and a generic `503 otp_delivery_unavailable`.
+  - Wiring outside dev: Twilio when the egress policy admits it **and** the vault holds all three values; otherwise the tier stays unconfigured. The dev logger is never wired outside dev.
+  - Evidence in `docs/evidence/INT-329.md`.
+- Tests added:
+  - `tests/api/test_otp_twilio.py` + `tests/api/test_otp_twilio_wiring.py` (81): 11 vendor-failure scenarios plus success, each mapped to one reason; a log-capture test over every scenario covering the error chain and the transfer log; an event-loop ticker test; credential shape checks named by field; the prod/staging matrix (any vault value missing, vault absent or unreachable, env-only credentials, the shipped allow-list, the PHI runtime gate unset, an unreadable allow-list, no tokenization key); dev unchanged; the route's 202 and 503.
+  - `tests/security/test_egress_async.py` (17): the INT-018 negatives through the async path, resolution off the loop thread, and sync/async decision parity.
+  - Near-miss negative: the SMS purpose is refused on every tier of the shipped allow-list, for every data class.
+  - RED: 106 failed, 114 passed, 1 collection error. GREEN: 271 passed. Mutation check: 5/5 killed.
+- Result: `tests/api` 467 passed (was 386). The adjacent suites passed 2360; 4 deid-NER tests failed only because the model cache is absent from a fresh worktree, and they pass with the shared cache. mypy strict is clean on 425 files; ruff is clean; `make safety` exits 0; `no_placeholders` is OK. `make check` was not run in full, because check-integration needs a container runtime and none is available here.
+- Invariants touched and still passing:
+  - **6**: no phone, code, token or vendor body in logs or errors; errors are unchained.
+  - **14**: vendor secret from OpenBao only; the call goes through the egress guard with purpose and data class.
+  - **17**: no fake adapter; the missing row fails closed and the content is left empty.
+  - **18**: nothing new is persisted.
+  - **19**: the PHI-path tier stays empty.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. The async guard is ADR-025's single enforcer: one admission function, two send paths.
+  - One bounded exemption added to the allow-list vocabulary test (`PURPOSES_AWAITING_THE_OWNER`). It can only shrink: a row declaring the purpose fails the companion test.
+  - No HB, ADR or alembic id minted.
+- Blocked on: **the owner, with counsel**. *May the patient's phone number and a one-time code go to Twilio, a US processor, for OTP delivery, and under which DPA and which KVKK Art. 9 cross-border transfer mechanism?* The decision id becomes the row's `phi_exception_approval`. No HUMAN_BLOCKERS id exists yet; the owner allocates one.
+- Next:
+  - PR (Sec-Row `onboarding`, Refs #528).
+  - After the decision:
+    - the `phi_path` row, re-rendered into the squid config;
+    - the pending-set removal;
+    - the recipient annotation;
+    - the ADR-025 topology change;
+    - staging: a kv-v2 mount, a policy grant on `secret/data/api/twilio`, the runbook step, and pointing the #573 guard at the vault.
+
+### 2026-09-26T20:30:00Z · INT-190 · delivered (prices and budgets pending)
+- Goal: acceptance verbatim — *"per-session cost by component/vendor/profile; budgets + alerts"*.
+- Plan:
+  - Give money one home, the owner-filled `infra/costs/unit-prices.yaml`. It holds 8 components and 8 budgets, every value is empty, and each value needs a `source` and an `as_of` date.
+  - Bind each component to a catalogued usage series (inv 13).
+  - `intake_platform.cost` computes per-session cost by component, vendor and profile, as usage in a 1d or 30d window divided by the new live `voice_sessions_metered_total`, which the INT-101 meter counts once per composed session. It also computes spend and day/month budget verdicts per vendor and for all vendors.
+  - `infra/observability/cost-rules.yaml` is generated from the file and drift-gated, and mounted into the obs Prometheus. Retention is raised from 7d to files/06 §3's 30d, so a month budget sees a whole month.
+  - admin-web gets `renderCostModule` with nine refusals. `scripts/dev/record_cost_fixture.py` records the committed-state and priced (test-only) payloads.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_cost_config.py`, `test_cost_module.py` and `test_cost_queries.py`.
+  - `tests/observability/test_cost_rules.py`, `tests/voice/test_sessions_metered.py` and `apps/admin-web/e2e/cost.spec.ts` (28).
+  - Every refusal is paired with the near-miss it must accept: an unsourced price vs a sourced one, a lower bound under the limit (not_evaluable) vs over it (exceeded), a tampered zero on an unpriced row vs the untampered payload.
+  - RED: pytest collection rc=2 (4 import errors); vitest rc=1 (module missing).
+  - GREEN: 97 cost tests at 100 % branch on `intake_platform.cost`; admin-web 145; voice lane 1364 at 98.47 %.
+- Result (`make check` / `make safety` / `make security` summary): `make check` was not run whole (check-integration is CI-only). Its lanes were run individually: ruff, ruff format and `mypy --strict`; the voice-runtime lane; the whole-tree pytest at the 85 % floor; `pnpm -r typecheck`; and admin-web lint, typecheck and test. `no_placeholders` exits 0 after staging. No protocol or triage surface changed, so `make safety` is untouched.
+- Invariants touched and still passing:
+  - **13**: only catalogued series, with a new live divisor.
+  - **6**: no session id; a response label is refused.
+  - **17 / rule 1**: no invented price; empty means not configured, never 0.
+  - **19**: the closed profile pair.
+  - **20**: no product measurement.
+  - **22**: every number is rendered as one atom with its unit.
+- Decisions / ADRs / `00_STATE.md` rows: none. The month window is 30d rolling, matching the retention files/06 §3 already states.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner must fill the USD rate per component (with source and date) and a daily and monthly budget per vendor and for all vendors. This is HB-O8 (b), extended to the spend budgets; no id was minted.
+- Next: PR review. After INT-351 (#562) merges, serve `GET /admin/cost` through its Prometheus reader, and attach `ops_gpu_host_up` to the host rows.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)
 - Goal: acceptance verbatim — *"every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default · disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"*.
 - Plan: add `motion.press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 }` to `theme.ts` (the §2.2 table minus `retentionOffset`) and point all 10 literal sites on `main` (6 files) at it. This normalises the composer's disabled send from 0.4 to 0.5. No `pressRetentionOffset` is set. `VisitCalendar` (whose 0.6 is the other normalisation) is not on `main`: it lives on the unmerged `int-visits-calendar`/`int-demo*` branches, and the guard forces its sites onto the tokens when it lands.

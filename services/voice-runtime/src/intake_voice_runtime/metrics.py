@@ -23,6 +23,7 @@ __all__ = [
     "VENDOR_BREAKER_STATE",
     "VENDOR_BREAKER_TRANSITIONS_TOTAL",
     "VENDOR_FAILOVERS_TOTAL",
+    "VOICE_SESSIONS_METERED",
     "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -217,4 +218,15 @@ VENDOR_FAILOVERS_TOTAL = Counter(
     "vendor_failovers_total",
     "Speech-lane failovers by the lane a session left and the lane it moved to.",
     ["from_component", "to_component"],
+)
+
+#: Sessions composed around a ``SessionMeter`` (INT-190). The cost module's
+#: per-session figure is usage in a window divided by this count over the same
+#: window, so it is emitted by the same meter that emits the usage series — a
+#: ratio of two populations would be a number about neither. One increment per
+#: session, never a session id: tenant, profile and branch only (invariant 6).
+VOICE_SESSIONS_METERED = Counter(
+    "voice_sessions_metered_total",
+    "Sessions composed with a cost meter, by tenant, profile and branch.",
+    ["tenant", "profile", "branch"],
 )

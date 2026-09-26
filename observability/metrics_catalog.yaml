@@ -999,7 +999,26 @@ metrics:
       GPU-hour rate from. A rate invented to make this series emit would be
       the artefact rule 1 forbids, and a zero would be a claim that a session
       was free — so nothing declares a Gauge for this name and the row stays
-      planned until a human supplies a rate.
+      planned until a human supplies a rate. INT-190 puts the rates in one
+      owner-filled file, infra/costs/unit-prices.yaml (every price empty until
+      a human supplies it with a source and a date — HB-O8), and the admin
+      console's cost module computes the per-session figure from the usage
+      series below and that file at read time. This series itself is still
+      not emitted: a per-session gauge would need the runtime to hold a price.
+  - name: voice_sessions_metered_total
+    type: counter
+    labels: [tenant, profile, branch]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Sessions composed around an INT-101 SessionMeter, counted once per session
+      by the meter whose labels the usage series carry (INT-190). It is the
+      divisor of the cost module's per-session figure — usage in a window over
+      the sessions metered in that window — so numerator and denominator
+      describe the same sessions. Emitted by
+      intake_voice_runtime.metering.SessionMeter.count_session from the
+      composition root. No session id, ever: a per-session identifier on a
+      series would make its cardinality the number of patients seen (inv. 6).
   # --- files/08 §4 M. Security (files/10 §7)
   - name: sec_auth_failures_total
     id: sec.auth_failures_total
