@@ -15,8 +15,9 @@ Rebuilt, the row comes from the registry file and nowhere else:
   from the schema, never spelled here — a guard must not name what it forbids);
 * the read clears the purpose the ROW names, so ``core`` alone unlocks nothing;
 * a row serves only the tenant it is registered for;
-* the runtime gate and the plaintext decision stay the connector's, and an
-  unconfigured OpenBao, an invalid file or two rows for one adapter wire
+* the runtime gate and the plaintext decision stay the connector's, a
+  credential OpenBao does not hold is ``unavailable`` with nothing sent, and
+  an unconfigured OpenBao, an invalid file or two rows for one adapter wire
   nothing.
 """
 
@@ -36,10 +37,12 @@ from acibadem_sync_harness import (
     SyncHarness,
     build_sync_harness,
     consumer_source,
+    feed_client,
 )
 from intake_api import visits_acibadem
 from intake_api.app import wiring_from_env
 from intake_connectors.acibadem import ADAPTER_ID
+from intake_connectors.credentials import InMemoryCredentialResolver
 from intake_connectors.sources import ClinicalSource, load_sources
 from intake_platform.consent.registry import CORE, PURPOSES, LegalBasis
 from intake_platform.secrets import SecretsBootError, SecretsProvider
@@ -272,6 +275,24 @@ def test_the_runtime_gate_off_answers_unavailable_and_sends_nothing(
         assert response.status_code == 200, response.text
         assert response.json() == {"outcome": "unavailable", "patient_name": None, "visits": []}
         # the LanSourcePolicy refused before the inner transport saw a request
+        assert harness.feed.calls == []
+
+
+def test_a_credential_openbao_does_not_hold_answers_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("INTAKE_ALLOW_LAN_SOURCE", "explicit-yes")
+    feed = CountingFeed()
+    empty_store = feed_client(feed, consumer_source(), resolver=InMemoryCredentialResolver({}))
+    for harness in build_sync_harness(tmp_path, feed=feed, client=empty_store):
+        dpop = DpopClient()
+        bundle = harness.sign_up(FATMA_PHONE, dpop)
+        harness.grant_core(bundle["patient_id"])
+
+        response = harness.sync(FATMA_PHONE, bundle["access_token"], dpop)
+        assert response.status_code == 200, response.text
+        assert response.json() == {"outcome": "unavailable", "patient_name": None, "visits": []}
+        # the key is read before the request is built, so nothing was sent
         assert harness.feed.calls == []
 
 

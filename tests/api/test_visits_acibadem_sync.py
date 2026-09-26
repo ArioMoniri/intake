@@ -206,3 +206,41 @@ def test_an_upstream_failure_is_upstream_unavailable_not_a_500(
         }
         # the directory read was attempted once and nothing followed it
         assert harness.feed.calls == ["/api/v1/appointments/upcoming"]
+
+
+def test_a_failed_appointments_read_after_a_match_is_upstream_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("INTAKE_ALLOW_LAN_SOURCE", "explicit-yes")
+    directory_only = CountingFeed()
+    directory_only.routes.pop("/api/v1/patients/40000003/appointments")
+    for harness in build_sync_harness(tmp_path, feed=directory_only):
+        dpop = DpopClient()
+        bundle = harness.sign_up(FATMA_PHONE, dpop)
+        harness.grant_core(bundle["patient_id"])
+
+        response = harness.sync(FATMA_PHONE, bundle["access_token"], dpop)
+        assert response.status_code == 200, response.text
+        # a half-answered sync shows nothing rather than a name without visits
+        assert response.json() == {
+            "outcome": "upstream_unavailable",
+            "patient_name": None,
+            "visits": [],
+        }
+        assert harness.feed.calls == [
+            "/api/v1/appointments/upcoming",
+            "/api/v1/patients/40000003/appointments",
+        ]
+
+
+def test_a_number_that_is_not_a_turkish_mobile_is_refused_before_the_feed(
+    sync_harness: SyncHarness,
+) -> None:
+    dpop = DpopClient()
+    bundle = sync_harness.sign_up(FATMA_PHONE, dpop)
+    sync_harness.grant_core(bundle["patient_id"])
+
+    response = sync_harness.sync("+4930123456", bundle["access_token"], dpop)
+    assert response.status_code == 200, response.text
+    assert response.json()["outcome"] == "phone_invalid"
+    assert sync_harness.feed.calls == []

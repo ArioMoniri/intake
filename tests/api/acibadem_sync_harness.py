@@ -61,6 +61,7 @@ from intake_api.otp import (  # noqa: E402
 )
 from intake_api.settings import ApiSettings  # noqa: E402
 from intake_connectors.acibadem import AcibademAppointmentsClient  # noqa: E402
+from intake_connectors.credentials import InMemoryCredentialResolver  # noqa: E402
 from intake_connectors.sources import ClinicalSource  # noqa: E402
 
 __all__ = [
@@ -126,9 +127,15 @@ class CountingFeed:
         return httpx.MockTransport(self._handle)
 
 
-def feed_client(feed: CountingFeed, source: ClinicalSource) -> AcibademAppointmentsClient:
-    """The real connector client for one registered row, over the counting feed."""
-    return acb.client(feed.transport(), src=source)
+def feed_client(
+    feed: CountingFeed,
+    source: ClinicalSource,
+    *,
+    resolver: InMemoryCredentialResolver | None = None,
+) -> AcibademAppointmentsClient:
+    """The real connector client for one registered row, over the counting feed.
+    ``resolver`` replaces the harness credential store (e.g. an empty one)."""
+    return acb.client(feed.transport(), src=source, resolver=resolver)
 
 
 # --- DPoP client (RFC 9449), copied from the OTP suite so this file stands alone ----------
@@ -260,10 +267,12 @@ def build_sync_harness(
     feed: CountingFeed | None = None,
     source: ClinicalSource | None = None,
     registered: bool = True,
+    client: AcibademAppointmentsClient | None = None,
 ) -> Iterator[SyncHarness]:
     """The app with the OTP tier and, unless ``registered`` is False, one
     Acıbadem client built from ``source`` (the consumer-tenant test row by
-    default). ``registered=False`` is the shipped state: no row, no client."""
+    default) — or ``client`` itself when given. ``registered=False`` is the
+    shipped state: no row, no client."""
     feed = feed if feed is not None else CountingFeed()
     app_db = tmp_path / "sync.db"
     audit_db = tmp_path / "sync-audit.db"
@@ -276,9 +285,11 @@ def build_sync_harness(
     engine = create_async_engine(f"sqlite+aiosqlite:///{app_db}", poolclass=NullPool)
     clock = Clock()
     acibadem = (
-        feed_client(feed, source if source is not None else consumer_source())
-        if registered
-        else None
+        None
+        if not registered
+        else client
+        if client is not None
+        else feed_client(feed, source if source is not None else consumer_source())
     )
 
     wiring = ApiWiring(
