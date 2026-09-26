@@ -79,6 +79,7 @@ from voice_clips import (
     run_clip_build,
     silence_edges_ms,
     tts_gateway_from_env,
+    wav_bytes,
     wav_to_speech,
 )
 from voice_clips.cli import main
@@ -327,6 +328,44 @@ class TestTheWavReader:
         with pytest.raises(MalformedWavError) as raised:
             wav_to_speech(riff_wave(speech_like())[:36])
         assert "fmt+data" in str(raised.value)
+
+
+class TestTheWavWriter:
+    """`wav_bytes` is the inverse of `wav_to_speech`: it frames agent-speech PCM
+    as a WAV for the ADR-028 on-demand dev route (services/api dev_voice.py),
+    which needs a playable container and used to assemble the header ad hoc. The
+    framing lives here — the one module invariant 3's audio-retention guard
+    allows agent-audio encoding in — so the api service names no audio artefact.
+    """
+
+    def test_it_frames_a_riff_wave_body(self) -> None:
+        speech = SynthesisedSpeech(
+            pcm_s16le=speech_like().astype("<i2").tobytes(), sample_rate_hz=24000, channels=MONO
+        )
+        body = wav_bytes(speech)
+        assert body[:4] == b"RIFF"
+        assert body[8:12] == b"WAVE"
+
+    def test_it_round_trips_through_the_reader(self) -> None:
+        """The bytes it writes are exactly what the reader reads back — same PCM,
+        rate and channel count — so the two stay each other's inverse."""
+        speech = SynthesisedSpeech(
+            pcm_s16le=speech_like().astype("<i2").tobytes(), sample_rate_hz=24000, channels=MONO
+        )
+        back = wav_to_speech(wav_bytes(speech))
+        assert back.pcm_s16le == speech.pcm_s16le
+        assert back.sample_rate_hz == speech.sample_rate_hz
+        assert back.channels == speech.channels
+
+    def test_the_declared_length_matches_the_pcm_payload(self) -> None:
+        """The RIFF size fields are the payload's, so a truncated or padded body
+        would be a reader refusal rather than a silently wrong duration."""
+        pcm = speech_like().astype("<i2").tobytes()
+        body = wav_bytes(SynthesisedSpeech(pcm_s16le=pcm, sample_rate_hz=24000, channels=MONO))
+        assert body.endswith(pcm)
+        assert int.from_bytes(body[4:8], "little") == 36 + len(pcm)  # RIFF chunk size
+        assert body[36:40] == b"data"
+        assert int.from_bytes(body[40:44], "little") == len(pcm)  # data chunk size
 
 
 # ------------------------------------------------------------------ the store

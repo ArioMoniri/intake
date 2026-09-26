@@ -43,6 +43,8 @@ function errorKey(error: unknown): MessageKey {
         return attestationMessageKey(error.attestation);
       case "network":
         return "auth.error.network";
+      case "unconfigured":
+        return "auth.error.unconfigured";
       default:
         return "auth.error.generic";
     }

@@ -23,7 +23,7 @@ import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/compon
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
-import { chooseFromChooser, present, toChoices } from "@/lib/i18n/chooser";
+import { chooseFromChooser, present, toChoices } from "@/lib/locale/chooser";
 import { offerableAppLocales } from "@/lib/i18n/locale";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";

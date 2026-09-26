@@ -20,6 +20,8 @@ ENV_TOKEN_ADMIN = "INTAKE_DEV_TOKEN_ADMIN"  # noqa: S105 — env var name
 ENV_TOKENIZATION_KEY = "INTAKE_TOKENIZATION_KEY"  # noqa: S105 — env var name
 ENV_TOKENIZATION_KEY_ID = "INTAKE_TOKENIZATION_KEY_ID"
 ENV_REDIS_URL = "INTAKE_REDIS_URL"
+#: The compose dev tier's Redis; one spelling for every consumer of it.
+DEFAULT_REDIS_URL = "redis://127.0.0.1:6379/0"
 # Dev-only gates (INT-131): anything but the exact phrase is OFF (fail closed).
 ENV_DEV_OTP_PEEK = "INTAKE_DEV_OTP_PEEK"
 ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
@@ -59,7 +61,7 @@ class ApiSettings:
     # INT-131 OTP tier — all fail closed by default: no tokenization key
     # means no OTP auth (503), and the dev gates are off unless the env
     # carries the exact phrase "explicit-yes".
-    redis_url: str = "redis://127.0.0.1:6379/0"
+    redis_url: str = DEFAULT_REDIS_URL
     tokenization_key: str | None = None
     tokenization_key_id: str = "v1"
     dev_otp_peek: bool = False
@@ -130,7 +132,7 @@ class ApiSettings:
                 os.environ.get("POSTGRES_PASSWORD", "intake-dev-only"),
             ),
             kek_mode=kek_mode,
-            redis_url=os.environ.get(ENV_REDIS_URL) or "redis://127.0.0.1:6379/0",
+            redis_url=os.environ.get(ENV_REDIS_URL) or DEFAULT_REDIS_URL,
             tokenization_key=os.environ.get(ENV_TOKENIZATION_KEY) or None,
             tokenization_key_id=os.environ.get(ENV_TOKENIZATION_KEY_ID) or "v1",
             dev_otp_peek=os.environ.get(ENV_DEV_OTP_PEEK) == EXPLICIT_YES,

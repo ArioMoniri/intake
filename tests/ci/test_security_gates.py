@@ -765,8 +765,13 @@ LOCKFILE = REPO / "pnpm-lock.yaml"
 # one names. A package resolving BELOW its fixed version is the advisory
 # returning; the ids are carried alongside so the suppression sweep below can
 # look for them by name.
+#
+# INT-346 raised the vitest floor and added @vitest/mocker: GHSA-82fw-gwwq-j7x9
+# (published 8 Sep 2026, during the Actions billing outage) affects both from
+# 2.1.0 up to the 4.1.11 fix, so no 3.x release clears it (docs/evidence/INT-346.md).
 FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
-    "vitest": (3, 2, 6),  # GHSA-5xrq-8626-4rwp, CVSS 9.8
+    "vitest": (4, 1, 11),  # GHSA-5xrq-8626-4rwp (3.2.6), GHSA-82fw-gwwq-j7x9 (4.1.11)
+    "@vitest/mocker": (4, 1, 11),  # GHSA-82fw-gwwq-j7x9
     "vite": (6, 4, 3),  # GHSA-fx2h-pf6j-xcff, GHSA-4w7w-66w2-5vf9, GHSA-v6wh-96g9-6wx3
     "esbuild": (0, 25, 0),  # GHSA-67mh-4wv8-2f99
     "uuid": (11, 1, 1),  # GHSA-w5hq-g745-h8pq (CVE-2026-41907, CVE-2026-41988)
@@ -781,6 +786,7 @@ ADVISORY_IDS = (
     "GHSA-67mh-4wv8-2f99",
     "GHSA-w5hq-g745-h8pq",
     "GHSA-vcc3-ghjq-m6fr",
+    "GHSA-82fw-gwwq-j7x9",
     "CVE-2026-47429",
     "CVE-2026-41907",
     "CVE-2026-41988",

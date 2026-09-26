@@ -13,6 +13,7 @@ export {
   isEncryptedEnvelope,
   openEnvelope,
   sealEnvelope,
+  type DraftDecryptKind,
   type EncryptedEnvelope,
 } from "./envelope";
 export {

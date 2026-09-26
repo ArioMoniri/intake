@@ -72,6 +72,28 @@ describe("envelope — AES-256-GCM seal/open", () => {
     expect(() => openEnvelope(key(1), tampered)).toThrow(DraftDecryptError);
   });
 
+  it("names a failed open by a code, never narrative (the RecordsApiError convention)", () => {
+    // INT-346: the message used to be an English sentence, which the i18n gate
+    // (tests/release/test_i18n_complete.py) rightly reads as copy outside the
+    // catalogue. A code is what the caller branches on and what a crash report
+    // may carry; the patient-facing words stay in the catalogue.
+    const env = sealEnvelope(key(1), iv(2), PHI);
+    const failure = (() => {
+      try {
+        openEnvelope(key(9), env);
+      } catch (err) {
+        return err;
+      }
+      return null;
+    })();
+    expect(failure).toBeInstanceOf(DraftDecryptError);
+    expect((failure as DraftDecryptError).kind).toBe("undecryptable");
+    expect((failure as DraftDecryptError).message).toBe("undecryptable");
+    expect(() => openEnvelope(key(1), { iv: "00", ct: "00" } as never)).toThrow(
+      new DraftDecryptError("not_an_envelope"),
+    );
+  });
+
   it("rejects a key or nonce of the wrong length rather than sealing weakly", () => {
     expect(() => sealEnvelope(new Uint8Array(16), iv(2), PHI)).toThrow();
     expect(() => sealEnvelope(key(1), new Uint8Array(8), PHI)).toThrow();

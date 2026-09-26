@@ -8,12 +8,14 @@
  * the UI maps kinds to tr copy) — no server narrative is ever rendered.
  * Tokens go through tokens.ts (SecureStore); nothing here logs a phone, a
  * code or a token.
+ *
+ * INT-328: the base comes from the one resolver (apiBase.ts via
+ * expoApiBase.ts). A release build uses only its configured https base and
+ * throws `ApiBaseUnconfigured` (kind `unconfigured`) without one; a dev build
+ * walks the LAN exactly as before.
  */
-import { configuredServiceCandidates } from "@/lib/dev/expoHosts";
-
 import { attestationPorts, forgetAttestKey } from "./attestation";
 import {
-  type AttestationFailure,
   AttestationFailureError,
   type KeyRegistration,
   buildAttestationHeader,
@@ -21,6 +23,8 @@ import {
   shouldReattest,
 } from "./attestationPlan";
 import { dpopProof } from "./dpop";
+import { AuthApiError } from "./errors";
+import { buildApiBase } from "./expoApiBase";
 import {
   clearSession,
   getAccessToken,
@@ -30,55 +34,21 @@ import {
   setAccessToken,
 } from "./tokens";
 
-const API_PORT = 8000;
-
-export type AuthErrorKind =
-  "limited" | "phone" | "code" | "attestation" | "network" | "session" | "generic";
-
-export class AuthApiError extends Error {
-  readonly kind: AuthErrorKind;
-  readonly retryAfterS: number | null;
-  /** why the device could not be attested, when the client knows (INT-344) */
-  readonly attestation: AttestationFailure | null;
-
-  constructor(
-    kind: AuthErrorKind,
-    retryAfterS: number | null = null,
-    attestation: AttestationFailure | null = null,
-  ) {
-    super(kind); // the kind IS the message — codes, never narrative
-    this.kind = kind;
-    this.retryAfterS = retryAfterS;
-    this.attestation = attestation;
-  }
-}
+export { ApiBaseUnconfigured } from "./apiBase";
+export { AuthApiError, type AuthErrorKind } from "./errors";
 
 let cachedBase: string | null = null;
-
-async function probeHealthz(base: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1500);
-  try {
-    const response = await fetch(`${base}/healthz`, { signal: controller.signal });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export async function apiBase(): Promise<string> {
   if (cachedBase !== null) {
     return cachedBase;
   }
-  for (const base of configuredServiceCandidates(API_PORT)) {
-    if (await probeHealthz(base)) {
-      cachedBase = base;
-      return base;
-    }
+  const base = await buildApiBase();
+  if (base === null) {
+    throw new AuthApiError("network"); // dev: no LAN host answered
   }
-  throw new AuthApiError("network");
+  cachedBase = base;
+  return base;
 }
 
 interface ErrorBody {

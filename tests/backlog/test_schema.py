@@ -43,9 +43,19 @@ def test_ids_unique_and_well_formed() -> None:
     # "Start pre-visit" button + tenant handshake, ADR-029) + INT-321 (mobile
     # intake mode chooser up front) + INT-322 (embed intake mode bound inside
     # the signed launch ticket) + INT-323 (department-dynamic previsit routing:
-    # inbound department → branch → served pack).
+    # inbound department → branch → served pack) + INT-324..329 and
+    # INT-343..345 (the 2026-09-26 production audit's agent-owned P0/P1 fixes:
+    # audio guard, prod refusal of dev config, George route, generator marker,
+    # mobile API base, Twilio, George client, attestation, staging artefact) +
+    # INT-330..342 (motion system MOTION-1..13 from
+    # docs/design/motion/motion-verification.md) + INT-346 (CI restoration
+    # after the billing outage) + INT-347 (withdrawn MinIO image)
+    # + INT-348 (Play Integrity + device login smoke, split from INT-344)
+    # + INT-349..354 (2026-09-26 owner follow-ups: sensitive intake categories,
+    # CI part 2, admin ops console, production API host, specialty review
+    # queue landing, int-demo consolidation into main).
     # Grow this count only with a stated reason.
-    assert len(ids) == 247
+    assert len(ids) == 278
     import re
 
     for i in ids:

@@ -22,13 +22,20 @@ touches.
 
 **Layered guards — what each layer is responsible for.**
 
+- *A patient principal* (INT-326). The route resolves the same principal every
+  patient route does (``intake_api.auth``: DPoP/OTP or the dev bearer) and
+  refuses anyone else — 401 before the lane even says whether it is configured.
 - *Scripted-only* (the "patient words never reach the vendor" guarantee) is
-  enforced at the CLIENT boundary, because only the client knows which text was
-  composed from the catalog (``speech.ts``) versus derived from a patient. The
-  mobile George client accepts a nominal ``ScriptedTr`` produced solely from an
-  ``IntakeQuestion`` and refuses any other string
-  (``apps/mobile/src/lib/dialogue/georgeClip.ts``). This route is the dev egress
-  the client calls; it is dev-gated so nothing else can reach the vendor.
+  enforced HERE (INT-326): ``text_tr`` is admitted only when its
+  ``clip_text_hash`` is a row of a compiled clip manifest
+  (``intake_api.dev_voice_guard``), otherwise 422 and no dial. The mobile
+  client's nominal ``ScriptedTr`` (``apps/mobile/src/lib/dialogue/georgeClip.ts``)
+  stays as defence in depth; the server no longer trusts it.
+- *A per-principal budget* (INT-326) on the INT-012 Redis token bucket; every
+  authenticated request costs a token, an empty bucket is 429, an unreachable
+  store is 503.
+- *Absent in production* (INT-326): with ``INTAKE_ENV`` prod the route is not
+  mounted (``intake_api.app``) and no wiring is built, whatever the dev flags say.
 - *Invariant 22* (no numeral crosses into a TTS) is enforced HERE too, before
   the wire, by ``voice_clips.gateway.assert_speakable_tr`` — a patient-shaped
   answer carrying a numeral is refused before any dial.
@@ -36,23 +43,27 @@ touches.
   (``TTS_ELEVENLABS_API_KEY``), never a source file, never a log, never an
   exception (files/10 §2). The MOBILE DEVICE never holds the key — generation
   goes through this server route, which reads it from the process environment.
-- *Fail closed.* No dev flag, or no key/base, or the vendor unreachable/refused
-  → a 4xx/5xx the mobile treats as "unavailable" and falls back to the
-  self-hosted TTS. Never a crash, never a blocked turn.
+- *Fail closed.* No dev flag, or no key/base, or no readable compiled catalogue,
+  or the vendor unreachable/refused → a 4xx/5xx the mobile treats as
+  "unavailable" and falls back to the self-hosted TTS. Never a crash, never a
+  blocked turn.
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
-import struct
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Protocol
+from typing import Final
 
+import redis
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
+from intake_platform.security.rate_limit import RateLimitExceeded, TokenBucketLimiter
 from protocols.dsl import clip_text_hash
 from pydantic import BaseModel, ConfigDict, Field
+from voice_clips.audio import wav_bytes
 from voice_clips.gateway import (
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
@@ -63,7 +74,15 @@ from voice_clips.gateway import (
     assert_speakable_tr,
 )
 
+from intake_api.auth import Principal, require_patient
 from intake_api.consent_guard import dev_voice_scripted
+from intake_api.dev_voice_guard import (
+    ScriptedCatalogue,
+    george_budget,
+    intake_env_is_prod,
+    scripted_catalogue_from_env,
+)
+from intake_api.settings import DEFAULT_REDIS_URL
 
 __all__ = [
     "ENV_DEV_GEORGE",
@@ -75,7 +94,6 @@ __all__ = [
     "GeorgeClipIn",
     "GeorgeWiring",
     "george_wiring_from_env",
-    "pcm_to_wav",
     "router",
 ]
 
@@ -101,37 +119,6 @@ _DEFAULT_CACHE_DIR: Final = ".cache/george-clips"
 router = APIRouter(tags=["dev-voice"])
 
 
-class _Speech(Protocol):
-    """The three fields this module reads off a synthesis; avoids importing
-    numpy/soundfile-backed ``SynthesisedSpeech`` into the api at runtime.
-    Read-only members so a frozen ``SynthesisedSpeech`` satisfies it."""
-
-    @property
-    def pcm_s16le(self) -> bytes: ...
-    @property
-    def sample_rate_hz(self) -> int: ...
-    @property
-    def channels(self) -> int: ...
-
-
-def pcm_to_wav(speech: _Speech) -> bytes:
-    """Wrap raw signed 16-bit LE PCM in a canonical RIFF/WAVE header.
-
-    ElevenLabs ``pcm_<rate>`` is headerless; expo-av plays a container, so the
-    dev route hands back a WAV. This is agent speech (a scripted clip), which
-    invariant 3 explicitly permits writing — it governs *patient* audio.
-    """
-    pcm = speech.pcm_s16le
-    rate = int(speech.sample_rate_hz)
-    channels = int(speech.channels)
-    byte_rate = rate * channels * 2
-    block_align = channels * 2
-    header = b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVE"
-    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, rate, byte_rate, block_align, 16)
-    header += b"data" + struct.pack("<I", len(pcm))
-    return header + pcm
-
-
 @dataclass
 class GeorgeClipCache:
     """A ``sha256(text_tr)``-addressed clip cache over an injected gateway.
@@ -146,18 +133,24 @@ class GeorgeClipCache:
     voice_id: str = GEORGE_VOICE_ID
 
     def ensure(self, text_tr: str) -> tuple[bytes, bool]:
-        """Return ``(wav_bytes, cache_hit)``.
+        """Return ``(wav_body, cache_hit)``.
+
+        The WAV framing is the sanctioned :func:`voice_clips.audio.wav_bytes`,
+        never assembled here — agent-audio encoding lives in the one module
+        invariant 3's guard allows it (files/03 §4.2), not ad hoc in a service.
+        The on-disk cache is addressed by ``clip_text_hash(text_tr)`` alone,
+        with no file extension, so this service names no audio artefact.
 
         Raises :class:`NumeralInScriptError` (invariant 22) or another
         :class:`TtsError` (vendor unreachable/refused); the route maps both to a
         refusal that never echoes the key.
         """
         assert_speakable_tr(text_tr)  # invariant 22 — before the vendor, always
-        path = self.cache_dir / f"{clip_text_hash(text_tr)}.wav"
+        path = self.cache_dir / clip_text_hash(text_tr)
         if path.is_file():
             return path.read_bytes(), True
         speech = self.gateway.synthesise(text_tr=text_tr, voice_id=self.voice_id)
-        wav = pcm_to_wav(speech)
+        wav = wav_bytes(speech)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         path.write_bytes(wav)
         return wav, False
@@ -166,31 +159,47 @@ class GeorgeClipCache:
 @dataclass
 class GeorgeWiring:
     """What the route needs; ``None`` on ``app.state.george`` means the surface
-    is unconfigured and every request fails closed (503)."""
+    is unconfigured and every request fails closed (503).
+
+    ``catalogue`` is the server-side allow-list and ``budget`` the per-principal
+    token bucket (INT-326); neither has a default, so a wiring cannot exist
+    without both doors."""
 
     cache: GeorgeClipCache
+    catalogue: ScriptedCatalogue
+    budget: TokenBucketLimiter
 
 
-def george_wiring_from_env() -> GeorgeWiring | None:
+def george_wiring_from_env(redis_url: str = DEFAULT_REDIS_URL) -> GeorgeWiring | None:
     """Build the dev George wiring, or ``None`` (fail closed).
 
-    Off unless (1) the opt-in phrase is set AND (2) the ADR-028 ElevenLabs base
-    and key are both present in the environment. Any gap → ``None`` → the route
-    answers 503 and the mobile falls back to the self-hosted lane. The key is
-    read here from the environment only and is never logged (files/10 §2).
+    Never in production (INT-326): checked FIRST, so a prod process does not
+    even read the vendor key, whatever the dev flags say. Otherwise off unless
+    (1) the opt-in phrase is set AND (2) the ADR-028 ElevenLabs base and key are
+    both present in the environment AND (3) a compiled clip catalogue is
+    readable and non-empty. Any gap → ``None`` → the route answers 503 and the
+    mobile falls back to the self-hosted lane. The key is read here from the
+    environment only and is never logged (files/10 §2).
     """
+    if intake_env_is_prod():
+        return None
     if os.environ.get(ENV_DEV_GEORGE) != _EXPLICIT_YES:
         return None
     base = os.environ.get(ENV_ELEVENLABS_BASE, "").strip()
     key = os.environ.get(ENV_ELEVENLABS_KEY, "").strip()
     if not (base and key):
         return None
+    catalogue = scripted_catalogue_from_env()
+    if catalogue is None:
+        return None
     cache_dir = Path(os.environ.get(ENV_GEORGE_CACHE_DIR) or _DEFAULT_CACHE_DIR)
     return GeorgeWiring(
         cache=GeorgeClipCache(
             gateway=ElevenLabsClipGenGateway(base_url=base, api_key=key),
             cache_dir=cache_dir,
-        )
+        ),
+        catalogue=catalogue,
+        budget=george_budget(redis_url),
     )
 
 
@@ -203,15 +212,50 @@ class GeorgeClipIn(BaseModel):
     text_tr: str = Field(min_length=1, max_length=MAX_SCRIPTED_LEN)
 
 
+async def _refusal(wiring: GeorgeWiring, account_id: str, text_tr: str) -> JSONResponse | None:
+    """The INT-326 doors after authentication, in order; ``None`` admits.
+
+    The budget is charged FIRST, so a refused request still costs a token
+    (hammering the door with off-catalogue text is not free). No refusal
+    echoes the text (invariant 6), and none of them reaches the vendor.
+    """
+    try:
+        # sync Redis client, so the call hops off the event loop (INT-131 precedent)
+        await asyncio.to_thread(wiring.budget.consume, "user", account_id)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            {"error": "george_rate_limited"},
+            status_code=429,
+            headers={"Retry-After": str(int(exc.retry_after_s) + 1)},
+        )
+    except redis.RedisError:
+        # no budget can be checked, so none is granted (fail closed)
+        return JSONResponse({"error": "george_budget_unavailable"}, status_code=503)
+    try:
+        assert_speakable_tr(text_tr)
+    except NumeralInScriptError:
+        # invariant 22 keeps its own, more specific refusal
+        return JSONResponse({"error": "not_speakable"}, status_code=422)
+    if not wiring.catalogue.admits(text_tr):
+        # not a compiled clip-manifest row: never scripted text, never dialled
+        return JSONResponse({"error": "not_in_catalogue"}, status_code=422)
+    return None
+
+
 @router.post(GEORGE_CLIP_PATH, dependencies=[dev_voice_scripted()])
-async def george_clip(payload: GeorgeClipIn, request: Request) -> Response:
+async def george_clip(payload: GeorgeClipIn, request: Request, principal: Principal) -> Response:
     """Synthesise (or serve from cache) one scripted question clip in George's
-    voice. Dev-gated, fail-closed, and never echoes the vendor key."""
+    voice. Patient-only, catalogue-only, budgeted, dev-gated, fail-closed, and
+    never echoes the vendor key."""
+    account, _ = require_patient(principal)
     wiring: GeorgeWiring | None = getattr(request.app.state, "george", None)
     if wiring is None:
-        # No dev flag / no key — the mobile treats this as "unavailable" and
-        # falls back to the self-hosted TTS (ADR-028 posture, on demand).
+        # No dev flag / no key / no catalogue — the mobile treats this as
+        # "unavailable" and falls back to the self-hosted TTS (ADR-028 posture).
         return JSONResponse({"error": "george_unconfigured"}, status_code=503)
+    refusal = await _refusal(wiring, account.account_id, payload.text_tr)
+    if refusal is not None:
+        return refusal
     try:
         wav, hit = wiring.cache.ensure(payload.text_tr)
     except NumeralInScriptError:
@@ -221,8 +265,14 @@ async def george_clip(payload: GeorgeClipIn, request: Request) -> Response:
         # vendor unreachable/refused; the key is never in the message (files/10
         # §2). The turn is never blocked — the mobile falls back.
         return JSONResponse({"error": "george_unavailable"}, status_code=502)
+    # The body is a WAV built by voice_clips (agent speech, invariant 3), but the
+    # api service names no audio content type: invariant 3's audio-retention
+    # guard keeps `audio/*` literals out of every module but the clip cache, and
+    # the allow-list is locked to exactly that grant. The mobile client reads the
+    # bytes opaquely and plays them by file URI (apps/mobile georgeClip.ts), so it
+    # never inspects this content type — octet-stream is both honest and inert.
     return Response(
         content=wav,
-        media_type="audio/wav",
+        media_type="application/octet-stream",
         headers={"X-George-Cache": "hit" if hit else "miss"},
     )

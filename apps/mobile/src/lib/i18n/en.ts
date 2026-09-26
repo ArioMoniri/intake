@@ -47,6 +47,8 @@ export const en: Record<MessageKey, string> = {
   "auth.error.limited": "Too many attempts. Please wait a little and try again.",
   "auth.error.code": "The code could not be verified. Check it or request a new one.",
   "auth.error.network": "The server could not be reached. Check your connection.",
+  "auth.error.unconfigured":
+    "This version of the app is not connected to the service yet. Please update the app and try again.",
   "auth.error.attestation":
     "This device could not be verified. Please update the app and try again.",
   "auth.error.attestationUnsupported":
@@ -211,8 +213,6 @@ export const en: Record<MessageKey, string> = {
   "me.title": "Profile",
   "me.consents": "Your consents",
   "me.language": "Language",
-  "lang.tr": "Türkçe",
-  "lang.en": "English",
   "me.learned": "What it learned about me",
   "me.learnedEmpty":
     "Vizite never permanently learns anything about you without your confirmation.",
