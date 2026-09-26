@@ -65,6 +65,7 @@ __all__ = [
     "encode_clip",
     "silence_edges_ms",
     "trim_silence",
+    "wav_bytes",
     "wav_to_speech",
 ]
 
@@ -196,6 +197,34 @@ def wav_to_speech(body: bytes) -> SynthesisedSpeech:
             return SynthesisedSpeech(pcm_s16le=payload, sample_rate_hz=rate, channels=channels)
         offset += 8 + size + (size % 2)
     raise MalformedWavError("RIFF/WAVE body carries no fmt+data pair")
+
+
+def wav_bytes(speech: SynthesisedSpeech) -> bytes:
+    """Frame raw signed 16-bit LE PCM as a canonical RIFF/WAVE body.
+
+    The inverse of :func:`wav_to_speech`, and the one sanctioned place agent
+    speech is wrapped into a WAV — for a caller that needs a playable container
+    rather than the Ogg/Opus :func:`encode_clip` produces (the ADR-028
+    on-demand dev route, which hands the byte stream to expo-av). Like
+    everything in this module the bytes are agent speech, a scripted clip and
+    never patient audio (invariant 3); the module docstring above is the whole
+    argument for why that distinction holds and why this framing belongs here
+    and not ad hoc in a service. It is header assembly only — no file is
+    opened, no audio library is called and the constants are RIFF's own (36 =
+    the header bytes after the RIFF size field; 16-byte PCM ``fmt `` chunk;
+    format tag 1 = PCM; 16 bits per sample), so it carries no allow-listed
+    dependency and the numeral/consent guarantees the caller made upstream are
+    the only ones that matter here.
+    """
+    pcm = speech.pcm_s16le
+    rate = int(speech.sample_rate_hz)
+    channels = int(speech.channels)
+    byte_rate = rate * channels * 2
+    block_align = channels * 2
+    header = b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, rate, byte_rate, block_align, 16)
+    header += b"data" + struct.pack("<I", len(pcm))
+    return header + pcm
 
 
 def silence_edges_ms(pcm: Pcm) -> tuple[float, float]:

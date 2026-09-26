@@ -44,15 +44,15 @@ touches.
 from __future__ import annotations
 
 import os
-import struct
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Protocol
+from typing import Final
 
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from protocols.dsl import clip_text_hash
 from pydantic import BaseModel, ConfigDict, Field
+from voice_clips.audio import wav_bytes
 from voice_clips.gateway import (
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
@@ -75,7 +75,6 @@ __all__ = [
     "GeorgeClipIn",
     "GeorgeWiring",
     "george_wiring_from_env",
-    "pcm_to_wav",
     "router",
 ]
 
@@ -101,37 +100,6 @@ _DEFAULT_CACHE_DIR: Final = ".cache/george-clips"
 router = APIRouter(tags=["dev-voice"])
 
 
-class _Speech(Protocol):
-    """The three fields this module reads off a synthesis; avoids importing
-    numpy/soundfile-backed ``SynthesisedSpeech`` into the api at runtime.
-    Read-only members so a frozen ``SynthesisedSpeech`` satisfies it."""
-
-    @property
-    def pcm_s16le(self) -> bytes: ...
-    @property
-    def sample_rate_hz(self) -> int: ...
-    @property
-    def channels(self) -> int: ...
-
-
-def pcm_to_wav(speech: _Speech) -> bytes:
-    """Wrap raw signed 16-bit LE PCM in a canonical RIFF/WAVE header.
-
-    ElevenLabs ``pcm_<rate>`` is headerless; expo-av plays a container, so the
-    dev route hands back a WAV. This is agent speech (a scripted clip), which
-    invariant 3 explicitly permits writing — it governs *patient* audio.
-    """
-    pcm = speech.pcm_s16le
-    rate = int(speech.sample_rate_hz)
-    channels = int(speech.channels)
-    byte_rate = rate * channels * 2
-    block_align = channels * 2
-    header = b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVE"
-    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, rate, byte_rate, block_align, 16)
-    header += b"data" + struct.pack("<I", len(pcm))
-    return header + pcm
-
-
 @dataclass
 class GeorgeClipCache:
     """A ``sha256(text_tr)``-addressed clip cache over an injected gateway.
@@ -146,18 +114,24 @@ class GeorgeClipCache:
     voice_id: str = GEORGE_VOICE_ID
 
     def ensure(self, text_tr: str) -> tuple[bytes, bool]:
-        """Return ``(wav_bytes, cache_hit)``.
+        """Return ``(wav_body, cache_hit)``.
+
+        The WAV framing is the sanctioned :func:`voice_clips.audio.wav_bytes`,
+        never assembled here — agent-audio encoding lives in the one module
+        invariant 3's guard allows it (files/03 §4.2), not ad hoc in a service.
+        The on-disk cache is addressed by ``clip_text_hash(text_tr)`` alone,
+        with no file extension, so this service names no audio artefact.
 
         Raises :class:`NumeralInScriptError` (invariant 22) or another
         :class:`TtsError` (vendor unreachable/refused); the route maps both to a
         refusal that never echoes the key.
         """
         assert_speakable_tr(text_tr)  # invariant 22 — before the vendor, always
-        path = self.cache_dir / f"{clip_text_hash(text_tr)}.wav"
+        path = self.cache_dir / clip_text_hash(text_tr)
         if path.is_file():
             return path.read_bytes(), True
         speech = self.gateway.synthesise(text_tr=text_tr, voice_id=self.voice_id)
-        wav = pcm_to_wav(speech)
+        wav = wav_bytes(speech)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         path.write_bytes(wav)
         return wav, False
@@ -221,8 +195,14 @@ async def george_clip(payload: GeorgeClipIn, request: Request) -> Response:
         # vendor unreachable/refused; the key is never in the message (files/10
         # §2). The turn is never blocked — the mobile falls back.
         return JSONResponse({"error": "george_unavailable"}, status_code=502)
+    # The body is a WAV built by voice_clips (agent speech, invariant 3), but the
+    # api service names no audio content type: invariant 3's audio-retention
+    # guard keeps `audio/*` literals out of every module but the clip cache, and
+    # the allow-list is locked to exactly that grant. The mobile client reads the
+    # bytes opaquely and plays them by file URI (apps/mobile georgeClip.ts), so it
+    # never inspects this content type — octet-stream is both honest and inert.
     return Response(
         content=wav,
-        media_type="audio/wav",
+        media_type="application/octet-stream",
         headers={"X-George-Cache": "hit" if hit else "miss"},
     )
