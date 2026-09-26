@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**278 issues.** By phase: P0 152 · P1 72 · P2 47 · P3 7. By status: awaiting-human 20 · doing 11 · done 150 · todo 96 · withdrawn 1.
+**280 issues.** By phase: P0 154 · P1 72 · P2 47 · P3 7. By status: awaiting-human 21 · doing 13 · done 150 · todo 95 · withdrawn 1.
 
 ## P0
 
@@ -159,10 +159,12 @@
 | INT-346 | Restore main CI to green after the billing outage | E13-infra | — | area:ci | doing |
 | INT-347 | Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store | E13-infra | INT-346 | area:infra, risk:security | awaiting-human |
 | INT-348 | Play Integrity verification and a real-device OTP login smoke on TestFlight and Play | E08-mobile | INT-344 | area:mobile, area:api, risk:security | awaiting-human |
-| INT-349 | Sensitive intake categories: per-slot data-category tag, encrypted storage, register rows | E02-data | INT-327 | area:data, risk:legal, risk:security | todo |
+| INT-349 | Sensitive slot categories: per-slot data-category tag, encrypted storage, fail-closed register gate | E02-data | INT-327 | area:data, risk:legal, risk:security | doing |
 | INT-350 | CI part 2: check-integration builds the pinned edge plugin; osv findings fixed | E13-infra | INT-346 | area:ci | todo |
 | INT-352 | Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host) | E13-infra | INT-345, INT-347, INT-325 | area:infra, risk:security, risk:legal | todo |
 | INT-354 | Consolidate int-demo into main; main becomes the TestFlight build source | E17-release | INT-328, INT-344 | area:mobile, area:release | todo |
+| INT-355 | Gated questions never asked: resolve bare ask_if slot names across the pack chain | E04-engines | — | area:engine, risk:clinical | doing |
+| INT-356 | Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice) | E14-legal | INT-349 | area:legal, risk:legal | awaiting-human |
 
 ## P1
 

@@ -71,7 +71,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ApiSettings
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
 if TYPE_CHECKING:
@@ -164,10 +164,12 @@ def _documents_from_env() -> DocumentsConfig:
             scanner = DevNullScanner()
         except DevScannerForbiddenError:
             scanner = None
+    # the dev defaults below never apply outside dev: ApiSettings.from_env
+    # has already refused a non-dev boot with either variable absent (INT-325)
     client = Minio(
         os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
-        access_key=os.environ.get("MINIO_ROOT_USER", "intake-dev"),
-        secret_key=os.environ.get("MINIO_ROOT_PASSWORD", "intake-dev-only"),
+        access_key=os.environ.get(ENV_MINIO_USER, "intake-dev"),
+        secret_key=os.environ.get(ENV_MINIO_PASSWORD, "intake-dev-only"),
         secure=os.environ.get("INTAKE_MINIO_SECURE", "") == "true",
     )
     return DocumentsConfig(
@@ -209,8 +211,16 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
     Play Integrity never until HB-A3 supplies a decoder, the dev tier only
     under the dev phrase — every unconfigured piece fails closed with a typed
     reason. The delivery adapter is the dev event logger — the SMS vendor
-    contract is awaiting-human (docs/evidence/INT-131.md)."""
+    contract is awaiting-human (docs/evidence/INT-131.md).
+
+    INT-325 (audit F13): outside dev the dev logger is never wired. It
+    records an event and sends nothing, so the tier would answer "sent" for a
+    code that never arrives. With no contracted SMS adapter the tier stays
+    unconfigured (every /v1/auth route answers 503)."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
+        return None
+    if not settings.dev_tier_expected:
+        logger.warning("otp tier unconfigured outside dev: no SMS delivery adapter is wired")
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
@@ -458,14 +468,17 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     async def _dev_auth_ready() -> bool:
         return w.settings.dev_auth_configured
 
-    mount_health(
-        app,
-        readiness=[
-            ReadinessCheck("db", _db_ready),
-            ReadinessCheck("audit_store", state.audit.healthy),
-            ReadinessCheck("dev_auth", _dev_auth_ready),
-        ],
-    )
+    readiness = [
+        ReadinessCheck("db", _db_ready),
+        ReadinessCheck("audit_store", state.audit.healthy),
+    ]
+    if w.settings.dev_tier_expected:
+        # INT-197 dev tier: not ready until both dev bearers are set. Only the
+        # dev environment expects them (INT-325): every other environment,
+        # staging included, refuses them at boot, so anywhere else this check
+        # would hold the API not-ready forever.
+        readiness.append(ReadinessCheck("dev_auth", _dev_auth_ready))
+    mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
     app.include_router(notes.router)

@@ -5242,15 +5242,15 @@
 - id: INT-349
   epic: E02-data
   phase: P0
-  title: "Sensitive intake categories: per-slot data-category tag, encrypted storage, register rows"
+  title: "Sensitive slot categories: per-slot data-category tag, encrypted storage, fail-closed register gate"
   depends_on: [INT-327]
   labels: [area:data, risk:legal, risk:security]
-  status: todo
+  status: doing
   acceptance:
-    - "the protocol Slot model carries a closed data_category tag (the compiler rejects an unknown value), and every specialty candidate slot that collects one of the owner-approved categories in docs/evidence/verification/owner-decisions-2026-09-26.md declares it"
-    - "answers to a tagged slot are written with field-level envelope encryption: slots.sensitivity is never SlotSensitivity.PLAIN for them (services/api/src/intake_api/store.py), and a test reads the stored row back and proves no plaintext answer is at rest"
-    - "each category has a data-register/VERBİS row whose legal basis, retention, recipients and consent scope are counsel-supplied; while any of those fields is awaiting-human the row is incomplete and a slot carrying that tag is not servable (fails closed, invariant 18)"
-  tests: [tests/data/test_sensitive_slot_categories.py]
+    - "protocol Slot carries a closed data_category tag (general_health plus the owner-approved categories) and an unknown value is refused by schema, loader and compiler"
+    - "answers to any non-general category are written with envelope encryption through the existing field-encryption path, proven by reading the raw row, while general_health storage is unchanged"
+    - "the compiler refuses to serve a slot whose category row in docs/legal/data-categories.yaml is incomplete (DATA_CATEGORY_REGISTER_INCOMPLETE) and a child pack cannot drop or change an inherited category (DATA_CATEGORY_RELAXED)"
+  tests: [tests/data/test_sensitive_slot_categories.py, tests/protocols/test_data_category_gate.py, tests/protocols/test_data_register.py]
   legal: "KVKK-6,KVKK-9"
   sec_row: "data-at-rest"
 - id: INT-350
@@ -5322,3 +5322,30 @@
     - "an EAS build from main installs on a device and shows Önvizit"
   tests: [apps/mobile/e2e/intakeMode.spec.ts]
   sec_row: "mobile"
+- id: INT-355
+  epic: E04-engines
+  phase: P0
+  title: "Gated questions never asked: resolve bare ask_if slot names across the pack chain"
+  depends_on: []
+  labels: [area:engine, risk:clinical]
+  status: doing
+  acceptance:
+    - "a bare ask_if/skip_if slot name resolves to the unique slot of that name across the resolved pack chain (base + cluster + specialty) and section-qualified names keep working"
+    - "a bare name held by two sections is refused at compile (GATE_REF_AMBIGUOUS) and a name nothing holds is refused (GATE_REF_UNKNOWN)"
+    - "base.intake's lmp_date and proxy_reported gates open as specified and a specialty boolean gate opens on true and stays closed on false or unanswered, tested through a real IntakeEngine"
+  tests: [tests/protocols/test_gate_refs.py, tests/engine/test_bare_gates.py]
+  sec_row: "triage"
+- id: INT-356
+  epic: E14-legal
+  phase: P0
+  title: "Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice)"
+  depends_on: [INT-349]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "every row of docs/legal/data-categories.yaml carries counsel-supplied basis, retention, recipients, consent_scope and counsel_reviewed_at, and other_subject_basis_and_notice where another person is the data subject (household, relatives_health, partner_fertility)"
+    - "the VERBİS entry for each category is recorded (INT-211)"
+    - "no value in the register is authored by an agent"
+  tests: [tests/protocols/test_data_register.py]
+  legal: "KVKK-6,KVKK-10"
+  sec_row: "data-at-rest"
