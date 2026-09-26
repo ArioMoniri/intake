@@ -4238,7 +4238,7 @@
     the chooser is absent rather than a one-item list, because a chooser with
     one choice teaches a patient the feature does not work'
   tests:
-  - apps/mobile/src/lib/i18n/chooser.test.ts
+  - apps/mobile/src/lib/locale/chooser.test.ts
   - apps/mobile/e2e/locale.spec.ts
   sec_row: "mobile"
 - id: INT-302

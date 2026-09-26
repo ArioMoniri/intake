@@ -24,7 +24,6 @@ import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { getLocale } from "@/lib/i18n";
-import { localeDirection } from "@/lib/locale/direction";
 import {
   CTA_MIN_HEIGHT,
   effectiveFontScale,
@@ -191,10 +190,6 @@ export function AppText({
       color: theme[color],
       fontSize: scaledSize(role, fontScale),
       lineHeight: lineHeight(role, fontScale),
-      // INT-301: text writes in the locale's own direction. Derived here, in
-      // the one text primitive, so no screen sets it and every line is bidi-
-      // correct the day a right-to-left locale is registered. `tr` is ltr.
-      writingDirection: localeDirection(getLocale()),
     },
     display ? { fontFamily: DISPLAY_FONT } : null,
     style,
@@ -235,19 +230,13 @@ export function Screen({
   edges?: readonly Edge[];
 }) {
   const theme = useTheme();
-  // INT-301: the screen container carries the locale's layout direction, and
-  // Yoga flips every `flexDirection: "row"` beneath it. Right-to-left is a
-  // property of the shared anatomy here, not a fix repeated screen by screen;
-  // with only `tr` registered this is always "ltr".
-  const screenDirection = localeDirection(getLocale());
+  // No layout direction is set: every shipped locale is left-to-right (React
+  // Native's default), and right-to-left layout waits for INT-253's P3 audit
+  // (owner decision 2026-09-26, INT-346).
   return (
     <SafeAreaView
       edges={edges as Edge[] | undefined}
-      style={[
-        styles.screen,
-        { backgroundColor: theme.background, direction: screenDirection },
-        style,
-      ]}
+      style={[styles.screen, { backgroundColor: theme.background }, style]}
     >
       {children}
     </SafeAreaView>

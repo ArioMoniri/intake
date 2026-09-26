@@ -1,20 +1,22 @@
 /**
- * INT-301 — the language chooser, the mid-visit switch, and right-to-left,
- * pinned on the source tree.
+ * INT-301 — the language chooser and the mid-visit switch, pinned on the
+ * source tree.
  *
  * Same shape and the same reason as every other e2e/*.spec.ts here: React
  * Native has no DOM, so a rendered assertion needs a device. What CAN be
  * proved from the tree is the wiring — that the chooser reads the registry
  * rather than a hardcoded list, that it is reachable at first run and from the
- * Me screen, that a language switch changes only the PRESENTATION (answers are
- * values, so switching never touches the note), and that right-to-left is a
- * property of the SHARED anatomy rather than a fix sprinkled screen by screen.
+ * Me screen, and that a language switch changes only the PRESENTATION (answers
+ * are values, so switching never touches the note).
  *
- * The chooser itself is ABSENT today (only `tr` is registered), so the
- * two things this file cannot prove — that two real endonyms render, and that
- * the enlarged anatomy flips coherently under RTL — are the simulator's job
- * the day a second locale lands. What it pins is that nothing in the tree will
- * have to be touched screen-by-screen when it does.
+ * Right-to-left layout is NOT part of this build: the owner deferred it to
+ * INT-253's P3 audit on 2026-09-26 (INT-346), so section 3 pins that no layout
+ * direction is applied anywhere, and keeps the physical-edge hygiene that makes
+ * that audit cheaper when it comes.
+ *
+ * The chooser itself is ABSENT today (only `tr` is registered), so what this
+ * file cannot prove — that two real endonyms render — is the simulator's job
+ * the day a second locale lands.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -120,29 +122,19 @@ describe("switching keeps the session", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/* 3 — right-to-left is a property of the shared anatomy                */
+/* 3 — no layout direction is applied until INT-253's RTL audit          */
 /* ------------------------------------------------------------------ */
 
-describe("right-to-left is a layout property, not a per-screen fix", () => {
-  it("the shared anatomy derives direction from the locale, in ONE place", () => {
-    const themed = file("src/components/Themed.tsx");
-    expect(themed).toMatch(/from "@\/lib\/locale\/direction"/);
-    // The screen container flips; text writes in the locale's direction.
-    expect(themed).toMatch(/direction:/);
-    expect(themed).toMatch(/writingDirection:/);
-  });
-
-  it("no other screen or component sets a layout direction — it is inherited", () => {
-    // The render tree is screens (src/app) and components (src/components); the
-    // locale lib is where direction is DEFINED and carried as data, not applied
-    // as a style, so it is not in scope here.
+describe("layout direction waits for INT-253's RTL audit", () => {
+  // Owner decision 2026-09-26 (INT-346): the right-to-left wiring INT-301 put
+  // in the shared anatomy is removed until INT-253's P3 audit. Every shipped
+  // locale is left-to-right, which is React Native's default, so nothing in
+  // the render tree sets a direction — the shared anatomy included.
+  it("no screen or component sets a layout direction, the shared anatomy included", () => {
+    // The render tree is screens (src/app) and components (src/components).
     const setters = TREE.filter((f) => {
       const isRenderTree = f.name.startsWith("src/app/") || f.name.startsWith("src/components/");
-      return (
-        isRenderTree &&
-        f.name !== "src/components/Themed.tsx" &&
-        /\b(writingDirection|direction):/.test(codeOnly(f.source))
-      );
+      return isRenderTree && /\b(writingDirection|direction):/.test(codeOnly(f.source));
     }).map((f) => f.name);
     // Allow-list ships EMPTY and may only shrink (the INT-284/INT-295 rule).
     expect(setters).toEqual([]);

@@ -7,7 +7,9 @@
  * that offerable set into what a chooser needs:
  *
  *  - each language in its OWN name and script — its endonym from the registry,
- *    plus the writing direction its script implies (`./direction`);
+ *    plus its writing direction, which is left-to-right for every offered
+ *    locale until INT-253's RTL audit (`./direction`, owner decision
+ *    2026-09-26);
  *  - the one rule that a chooser with a single option is worse than none, so a
  *    would-be one-item chooser is ABSENT (acceptance 4);
  *  - a narrowing to the pack in play, because an intake speaks that pack's
@@ -19,7 +21,7 @@
  * ABSENT. That is the deliverable: the mechanism, waiting for HB-O5 to name a
  * second language and HB-C19 to sign it. This module adds no locale.
  */
-import { localeDirection, type TextDirection } from "./direction";
+import { TEXT_DIRECTION, type TextDirection } from "./direction";
 import {
   LOCALE_REGISTRY,
   chooseSessionLocale,
@@ -32,7 +34,7 @@ import {
 } from "../i18n/locale";
 
 /** One row a chooser draws: the code it selects, the language's own name, and
- * the direction its script is written in. Nothing here is patient input. */
+ * the direction it is laid out in. Nothing here is patient input. */
 export interface LocaleChoice {
   readonly code: string;
   readonly endonym: string;
@@ -54,7 +56,7 @@ export function toChoices(
 ): LocaleChoice[] {
   return codes.map((code) => {
     const entry = resolve(code, registry);
-    return { code: entry.code, endonym: entry.endonym, direction: localeDirection(entry.code) };
+    return { code: entry.code, endonym: entry.endonym, direction: TEXT_DIRECTION };
   });
 }
 
