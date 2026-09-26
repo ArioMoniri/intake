@@ -1,14 +1,16 @@
 /**
  * OTP entry (INT-131; 02 §4 auth flow): one masked field per register, six
  * registers, auto-advance, resend behind the visible cooldown (02 §8.2:
- * resend limits shown). Verification issues DPoP-bound tokens (SecureStore
+ * resend limits shown). A pasted or OS-autofilled code fills all six boxes
+ * from whichever box receives it (INT-361, SC 3.3.8), so the patient never
+ * has to transcribe it. Verification issues DPoP-bound tokens (SecureStore
  * custody) and signs the patient in; no consent is granted here — the shell
  * keeps every gate closed until INT-132 asks in context. In __DEV__ a peek
  * link fetches the code from the server's flag-gated dev endpoint.
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { AnnouncedText } from "@/components/Announced";
 import {
@@ -24,7 +26,7 @@ import {
 import { AuthApiError, devPeekOtp, requestOtp, verifyOtp } from "@/lib/auth/api";
 import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
-import { OTP_LENGTH, isCompleteOtp, maskPhone } from "@/lib/auth/phone";
+import { OTP_LENGTH, enterOtp, isCompleteOtp, maskPhone, type OtpUpdate } from "@/lib/auth/phone";
 import { labelled } from "@/lib/a11y/labels";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -89,14 +91,13 @@ export default function OtpEntry() {
     return <Screen>{null}</Screen>;
   }
 
-  const setDigit = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, "").slice(-1);
-    const next = [...digits];
-    next[index] = digit;
-    setDigits(next);
+  // One typed digit, or a whole pasted / autofilled code: enterOtp decides
+  // which registers change (INT-361). Nothing is submitted here.
+  const apply = (index: number, update: OtpUpdate) => {
+    setDigits(update.digits);
     setProblem(null);
-    if (digit !== "" && index < OTP_LENGTH - 1) {
-      inputs.current[index + 1]?.focus();
+    if (update.focus !== index) {
+      inputs.current[update.focus]?.focus();
     }
   };
 
@@ -172,11 +173,18 @@ export default function OtpEntry() {
                 accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
                 allowFontScaling={false}
                 value={digit}
-                onChangeText={(value) => setDigit(index, value)}
+                // No maxLength: the platform applies it before onChangeText
+                // sees the text, so a cap of one kept only the first digit of
+                // a paste or of the OS autofill. enterOtp keeps one digit per
+                // register instead.
+                onChangeText={(value) => apply(index, enterOtp(digits, index, value))}
                 keyboardType="number-pad"
                 secureTextEntry
-                maxLength={1}
+                // iOS offers the code from Messages; Android's SMS-code
+                // autofill and the web build's autocomplete need their own
+                // hint (SC 3.3.8, and 1.3.5 input purpose).
                 textContentType="oneTimeCode"
+                autoComplete={Platform.OS === "web" ? "one-time-code" : "sms-otp"}
                 autoFocus={index === 0}
                 style={[
                   styles.register,

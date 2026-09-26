@@ -29,7 +29,10 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { MIN_TAP } from "../src/lib/a11y/target";
+import { OTP_LENGTH } from "../src/lib/auth/phone";
 import { CTA_MIN_HEIGHT } from "../src/lib/prefs/appearance";
+import { buildEnvelopeBody } from "../src/lib/telemetry/envelope";
+import { buildCrashReport, type TelemetryIdentity } from "../src/lib/telemetry/scrub";
 import { motion } from "../src/lib/theme";
 import { code, literalDurations, loops } from "./motionSource";
 
@@ -984,6 +987,169 @@ describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces 
         !/\blive=|<Announced(?:Text|Region)\b|accessibilityLabel/.test(f.source),
     ).map((f) => f.name);
     expect(amberOnly).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* SC 3.3.8 Accessible Authentication (Minimum) — INT-361              */
+/* ------------------------------------------------------------------ */
+
+describe("SC 3.3.8 — a delivered code fills the boxes without transcription", () => {
+  const OTP_SCREEN = "src/app/(auth)/otp.tsx";
+  const otp = TSX.find((f) => f.name === OTP_SCREEN)!;
+  const registers = TEXT_INPUTS.filter((o) => o.file === OTP_SCREEN);
+
+  it("the six boxes are one TextInput rendered once per register", () => {
+    // One opening tag inside the digits map is what makes each assertion
+    // below hold for EVERY box, not just the first.
+    expect(otp, OTP_SCREEN).toBeDefined();
+    expect(registers).toHaveLength(1);
+    const mapped = otp.source.indexOf("digits.map(");
+    expect(mapped).toBeGreaterThan(-1);
+    expect(otp.source.indexOf("<TextInput")).toBeGreaterThan(mapped);
+    expect(otp.source).toMatch(/Array\.from\(\{ length: OTP_LENGTH \}/);
+    expect(OTP_LENGTH).toBe(6);
+  });
+
+  it("every box asks the OS for the one-time code on each platform", () => {
+    const [box] = registers;
+    // iOS: the "From Messages" suggestion above the keyboard.
+    expect(propValue(box.props, "textContentType")).toBe('"oneTimeCode"');
+    // Android: the SMS-code autofill hint; web: the HTML autocomplete token.
+    const hints = stringLiterals(propValue(box.props, "autoComplete") ?? "");
+    expect(hints).toContain("sms-otp");
+    expect(hints).toContain("one-time-code");
+  });
+
+  it("no field cap cuts a pasted or autofilled code down to its first digit", () => {
+    // The platform applies maxLength BEFORE onChangeText sees the text, so a
+    // cap of one silently kept only the first digit of a paste or of the OS
+    // autofill. One digit per register is now kept by the entry state.
+    expect(propValue(registers[0].props, "maxLength")).toBeNull();
+  });
+
+  it("every box hands its whole new text to the shared distributor", () => {
+    expect(propValue(registers[0].props, "onChangeText")).toMatch(/enterOtp\(digits, index, /);
+    expect(otp.source).toMatch(/import \{[^}]*\benterOtp\b[^}]*\} from "@\/lib\/auth\/phone";/);
+  });
+
+  it("each box keeps its catalog name: which digit of the code it holds", () => {
+    expect(propValue(registers[0].props, "accessibilityLabel")).toBe(
+      '{labelled(t("a11y.otp.digit"), `${index + 1}`)}',
+    );
+  });
+
+  it("the code stays masked while it is on screen", () => {
+    expect(hasProp(registers[0].props, "secureTextEntry")).toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Invariant 6 — the code never reaches a log, analytics or a report   */
+/* ------------------------------------------------------------------ */
+
+describe("invariant 6 — the one-time code reaches no log line, analytics event or error report", () => {
+  const AUTH_LIB = join(SRC, "lib", "auth");
+  const onPath = [
+    TSX.find((f) => f.name === "src/app/(auth)/otp.tsx")!,
+    ...readdirSync(AUTH_LIB)
+      .filter((n) => n.endsWith(".ts") && !n.endsWith(".test.ts"))
+      .map((n) => ({
+        name: `src/lib/auth/${n}`,
+        source: readFileSync(join(AUTH_LIB, n), "utf8"),
+      })),
+  ];
+
+  it("the scan covers the screen, the distributor and the verify client", () => {
+    const names = onPath.map((f) => f.name);
+    expect(names).toContain("src/app/(auth)/otp.tsx");
+    expect(names).toContain("src/lib/auth/phone.ts");
+    expect(names).toContain("src/lib/auth/api.ts");
+  });
+
+  it.each(["src/app/(auth)/otp.tsx", "src/lib/auth/phone.ts", "src/lib/auth/api.ts"])(
+    "%s writes nothing to the console",
+    (name) => {
+      const file = onPath.find((f) => f.name === name)!;
+      expect(file.source).not.toMatch(/\bconsole\s*\./);
+    },
+  );
+
+  it("nothing on the entry path imports a telemetry, metrics or analytics sink", () => {
+    const sinks = onPath.flatMap((f) =>
+      [...f.source.matchAll(/from\s+"([^"]+)"|import\(\s*"([^"]+)"\s*\)/g)]
+        .map((m) => m[1] ?? m[2])
+        .filter((spec) => /telemetry|metrics|analytics|sentry|glitchtip|logger/i.test(spec))
+        .map((spec) => `${f.name} → ${spec}`),
+    );
+    expect(sinks).toEqual([]);
+  });
+
+  it("a crash event that carries the code reports none of it", () => {
+    // If the SafeError boundary were ever missed on the verify path, the
+    // crash scrubber is the last wall: plant the code in every limb a
+    // reporter fills and read the bytes the transport would send.
+    const CODE = "730418";
+    const identity: TelemetryIdentity = {
+      appVersion: "0.1.0",
+      buildId: "eas-1841",
+      sbomDigest: `sha256:${"ab".repeat(32)}`,
+      platform: "android",
+      osVersion: "15",
+      deviceModel: "Pixel8",
+      environment: "dev",
+      releaseChannel: "preview",
+      tenantId: "acibadem-maslak",
+    };
+    const report = buildCrashReport(identity, {
+      message: `verify failed for code ${CODE}`,
+      errorCode: "otp_verify_failed",
+      exception: {
+        values: [
+          {
+            type: "AuthApiError",
+            value: `code ${CODE} rejected`,
+            stacktrace: {
+              frames: [
+                {
+                  module: "src/app/(auth)/otp.tsx",
+                  function: "submit",
+                  lineno: 111,
+                  colno: 7,
+                  vars: { code: CODE, digits: CODE.split("") },
+                  context_line: `const patientId = await verifyOtp(phone, "${CODE}");`,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      breadcrumbs: {
+        values: [
+          {
+            category: "network",
+            event: "request_failed",
+            status: 401,
+            url: `https://api.example.test/v1/auth/otp/verify?code=${CODE}`,
+            data: { body: JSON.stringify({ code: CODE }) },
+          },
+          { category: "user_input", event: "pasted", message: CODE },
+        ],
+      },
+      tags: { screen_id: "auth_otp", otp: CODE, prompt_version: CODE },
+      extra: { code: CODE },
+      request: { data: { code: CODE } },
+    });
+    const body = buildEnvelopeBody(
+      { publicKey: "f00d", projectId: "1", envelopeUrl: "http://127.0.0.1:8010/api/1/envelope/" },
+      report,
+    );
+    expect(body).not.toContain(CODE);
+    // NEAR-MISS CONTROL: the report is not simply empty — the legitimate,
+    // allow-listed values of the same event do come through.
+    expect(report.errorCode).toBe("otp_verify_failed");
+    expect(report.tags.screen_id).toBe("auth_otp");
+    expect(report.exceptionType).toBe("AuthApiError");
   });
 });
 
