@@ -508,8 +508,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §10 — evidence accumulates automatically from the console; §8 —
   DPIA delta check when vendors or consent texts change; CLAUDE.md invariant 18 — every new
   data field carries its inventory annotation.
-- **Signals:** access-review age and drill status (§7) land with INT-189.
+- **Signals:** access-review age and drill status (§7) land with INT-189. INT-215 binds each
+  KVKK 2018/10 measure to a catalogued metric or a registered probe, and a control with no
+  live signal must own that absence as a gap rather than read as done.
 - **Tests:** schema-annotation completeness lands with INT-211; module tests with INT-189.
+  `tests/legal/test_2018_10_mapping.py` (INT-215) answers [R] for the Board's adequate
+  measures: every measure quoted verbatim from a committed snapshot of RG 30353, every cited
+  path, test id and signal resolving, every gap naming an owner, and the auditor packet
+  (`make evidence-2018-10`) exported through the invariant-47 guard.
 
 ---
 

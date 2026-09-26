@@ -2869,7 +2869,13 @@
   title: "Special-category adequate measures (Board 2018/10) mapping + evidence export"
   depends_on: [INT-019, INT-023]
   labels: [area:legal, risk:legal]
-  status: todo
+  # The mapping, the source snapshot and the export ship; every measure is
+  # mapped to a control with its signal or to a gap with a named owner.
+  # Organisational measures (policy, training, confidentiality undertakings,
+  # premises, transfer rules) and counsel's readings stay open with their
+  # owners, so no measure is "implemented" yet - see docs/evidence/INT-215.md.
+  status: awaiting-human
+  evidence: docs/evidence/INT-215.md
   acceptance:
     - "each 2018/10 measure mapped to a control and a live signal; export produces the auditor packet"
   tests: [tests/legal/test_2018_10_mapping.py]
