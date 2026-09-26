@@ -170,8 +170,19 @@ interface AppTextProps {
    * that a sighted user notices by their position and colour. `assertive`
    * interrupts (a validation error the patient must fix before continuing);
    * `polite` waits for a gap (a background status).
+   *
+   * This is the ANDROID half only. Set it through `AnnouncedText`
+   * (src/components/Announced.tsx), which also posts the iOS announcement;
+   * e2e/a11y.spec.ts fails on a `live` set anywhere else (INT-362).
    */
   live?: "polite" | "assertive";
+  /**
+   * What a screen reader says for this line when it differs from the visible
+   * words — an error line is spoken with "Hata" first (SC 3.3.1). Set only by
+   * `AnnouncedText`, so the live region, the VoiceOver announcement and the
+   * element's own name all say the same thing.
+   */
+  spokenAs?: string;
   children: ReactNode;
 }
 
@@ -181,6 +192,7 @@ export function AppText({
   style,
   heading = false,
   live,
+  spokenAs,
   children,
 }: AppTextProps) {
   const theme = useTheme();
@@ -206,6 +218,7 @@ export function AppText({
       allowFontScaling={false}
       accessibilityRole={heading ? "header" : live !== undefined ? "alert" : undefined}
       accessibilityLiveRegion={live}
+      accessibilityLabel={spokenAs}
       accessibilityLanguage={SPEECH_LANGUAGE[getLocale()]}
       style={flat}
     >

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**293 issues.** By phase: P0 156 · P1 83 · P2 47 · P3 7. By status: awaiting-human 25 · doing 15 · done 155 · todo 97 · withdrawn 1.
+**293 issues.** By phase: P0 156 · P1 83 · P2 47 · P3 7. By status: awaiting-human 25 · doing 15 · done 157 · todo 95 · withdrawn 1.
 
 ## P0
 
@@ -246,8 +246,8 @@
 | INT-353 | Land the specialty review queue, generator and verification trail on main | E03-protocols | INT-327 | area:protocols | todo |
 | INT-359 | Accessibility device audit (DA-01..DA-08) and the statement published in-app and web | E14-legal | INT-226 | area:legal, risk:legal | awaiting-human |
 | INT-360 | WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
-| INT-361 | WCAG 3.3.8: the OTP field accepts a pasted or autofilled code | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
-| INT-362 | WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
+| INT-361 | WCAG 3.3.8: the OTP field accepts a pasted or autofilled code | E08-mobile | INT-226 | area:mobile, risk:legal | done |
+| INT-362 | WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack | E08-mobile | INT-226 | area:mobile, risk:legal | done |
 | INT-363 | WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
 | INT-364 | Board 2018/10 organisational measures: the owner's evidence and counsel's four readings | E14-legal | INT-215 | area:legal, risk:legal | awaiting-human |
 | INT-365 | Staff second factor and session bounds: the console refuses a token issued without a second factor | E12-admin | INT-215 | area:admin, risk:security | todo |
