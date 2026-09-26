@@ -131,7 +131,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   mechanism; §2 — RLS per tenant with the GUC from the OIDC claim and a per-request DB role.
 - **Signals:** key-rotation countdowns (§7) land with INT-192.
 - **Tests:** tests/security/test_envelope_encryption.py;
-  tests/security/test_envelope_transit_unit.py; RLS exercise lands with INT-030.
+  tests/security/test_envelope_transit_unit.py; RLS exercise lands with INT-030;
+  tests/data/test_sensitive_slot_categories.py (INT-349: an answer in any protocol data
+  category but `general_health` is an envelope bound to its session and slot, never
+  plaintext at rest).
 
 ## `api` — API security baseline
 
