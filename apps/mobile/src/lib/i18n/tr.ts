@@ -1210,11 +1210,10 @@ export const tr = {
   "a11y.measure.increaseMore": "Daha çok artır",
   "intake.measure.untouched": "Değeri ayarladığınızda kaydedilir.",
   // --- INT-286 · open-ended asking ------------------------------------------
-  // What an OPEN question is asked with instead of its option list. The agent
-  // speaks the scripted question verbatim and adds this; the typed screen
-  // puts the same invitation over the answer field and keeps the options
-  // under it as the fallback.
-  "dialogue.openInvite": "Acele etmeden, kendi sözlerinizle anlatabilirsiniz.",
+  // The typed screen puts this invitation over an OPEN question's answer
+  // field and keeps the options under it as the fallback. The agent speaks
+  // the scripted question verbatim with no aside (INT-318 retired the spoken
+  // per-turn invitation, and its key with it).
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 

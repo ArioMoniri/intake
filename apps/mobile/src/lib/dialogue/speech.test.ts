@@ -103,14 +103,6 @@ describe("an open question is asked, never enumerated (INT-286)", () => {
     expect(speech).toContain(tr["intake.opt.exertion"]);
     expect(speech).toContain(tr["dialogue.confirmAsk"]);
   });
-
-  it("the invitation is one sentence and adds no second question", () => {
-    // files/03 §4.2: ≤ 2 sentences and ONE question per turn. The aside
-    // replaces an aside, so the turn's shape is exactly what it was.
-    expect(tr["dialogue.openInvite"]).not.toContain("?");
-    expect(en["dialogue.openInvite"]).not.toContain("?");
-    expect(tr["dialogue.openInvite"].split(".").filter((s) => s.trim().length > 0)).toHaveLength(1);
-  });
 });
 
 // INT-261 — the second half of the field report. On screen, in the voice
@@ -229,8 +221,6 @@ describe("dialogue copy (tr source of truth + en mirror, invariant 5)", () => {
     "dialogue.confirmIntro",
     "dialogue.confirmAsk",
     "dialogue.confirmTextGeneric",
-    // INT-286 — what an OPEN question is asked with instead of its list.
-    "dialogue.openInvite",
     "dialogue.confirm",
     "dialogue.speakCorrection",
     "dialogue.typeThisStep",

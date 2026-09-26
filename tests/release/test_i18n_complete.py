@@ -187,7 +187,6 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "companion.speaker.footer",
         "consent.entry.sub",
         "consent.stale.body",
-        "dialogue.entryBody",
         "dialogue.listeningHint",
         "dialogue.speakingHint",
         "records.needVisit.body",
@@ -206,6 +205,15 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "kiosk.lock.body",
         "kiosk.pin.hint",
         "shares.issue.recipient.hint",
+        # INT-354 (int-demo consolidation): the visits-calendar day hint and
+        # the dialogue finish hint came from int-demo, written before this
+        # gate existed, in the same "…için iki kez dokunun." form as every
+        # sibling a11y hint above. Recorded, not rewritten, for the same
+        # reason. `dialogue.entryBody` left the set in the same merge: the
+        # warm opener ("Ben Önvizit; … anlatabilirsiniz") carries no short
+        # imperative. Awaiting clinical-reviewer register decision.
+        "a11y.dialogue.finishHint",
+        "a11y.visits.dayHint",
     }
 )
 

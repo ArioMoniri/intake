@@ -30,10 +30,12 @@ import { describe, expect, it } from "vitest";
 import { en } from "../i18n/en";
 import { tr, type MessageKey } from "../i18n/tr";
 
-/** The keys this pass warmed. Each is checked in tr and in the en mirror. */
+/** The keys this pass warmed. Each is checked in tr and in the en mirror.
+ * `dialogue.openInvite` was warmed too, then retired when INT-318 stopped
+ * speaking the open-question aside on every turn (b2301f8e); the catalogue no
+ * longer carries it. */
 const WARMED_KEYS = [
   "dialogue.entryBody",
-  "dialogue.openInvite",
   "intake.progress.grows",
   "intake.q.complaint",
   "intake.q.onset",
@@ -99,14 +101,6 @@ describe("the previsit opens like a helper, not an interrogation", () => {
     expect(body).toContain("listen");
     expect(body).toContain("no rush");
     expect(body).toContain("typing");
-  });
-
-  it("the open invitation says take your time, in one gentle sentence", () => {
-    expect(tr["dialogue.openInvite"].toLocaleLowerCase("tr-TR")).toContain("acele");
-    // One sentence, no question — the same shape speech.test.ts pins, because
-    // this line is spoken to open an open-ended turn.
-    expect(tr["dialogue.openInvite"]).not.toContain("?");
-    expect(en["dialogue.openInvite"]).not.toContain("?");
   });
 
   it("the clipped HPI questions carry their subject now, not a bare command", () => {

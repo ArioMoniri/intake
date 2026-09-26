@@ -18,8 +18,8 @@
  * patient's chosen option ids). Those depend on the answer, are combinatorial,
  * and are synthesised on demand by the live dev TTS lane; a demo with no live
  * lane simply plays them silently-degraded exactly as it does today. The demo
- * openers (`dialogue.entryBody` / `dialogue.openInvite`) are DISPLAYED on the
- * entry gate, never voiced as a clip, so they are not synthesised either.
+ * opener (`dialogue.entryBody`) is DISPLAYED on the entry gate, never voiced
+ * as a clip, so it is not synthesised either.
  *
  * Invariant 22 mirror: every string is run through `assertSpeakableTr` here, so
  * a numeral can never reach the manifest and therefore never reach ElevenLabs —
