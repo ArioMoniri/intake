@@ -377,6 +377,24 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `services/api/src/intake_api/auth_store.py` (`otp_request_gate`), constant work per request
   over a key set of one sorted set per (dimension, identifier) holding at most that
   dimension's limit.
+- **The device-attestation bound, stated (INT-344):** on iOS the OTP request and the
+  session start each carry an Apple App Attest **assertion** from a Secure Enclave key the
+  server registered once from an **attestation** (`POST /v1/auth/attest/key`). The
+  attestation must chain to the Apple App Attestation Root CA committed at
+  `services/api/src/intake_api/trust/` and pinned by SHA-256 in code and in a test; commit
+  to SHA256(authData ‖ SHA256(clientData)) in credCert's extension
+  1.2.840.113635.100.8.2; carry this app's rpIdHash (team id from
+  `INTAKE_APP_ATTEST_TEAM_ID`, never a literal), counter 0 and the production aaguid
+  (`appattestdevelop` only when development is configured explicitly); and name its own
+  key. Each assertion must verify under the stored key, carry the rpIdHash, and move the
+  counter strictly forward (an atomic compare-and-set). clientData binds the call's purpose
+  and a single-use server challenge, which the service spends **before** any verifier runs —
+  so a proof is good for one call, and a refused one still burns its challenge. Absent
+  Apple config the verifier fails closed with `app_attest_not_configured`. **Android fails
+  closed** (`play_integrity_not_configured`): the Play Integrity verdict policy exists, but
+  no decoder can exist until the Play Console organisation account does (HB-A3). The
+  stored record is a public key, a counter and an environment — the same class of datum as
+  the DPoP thumbprint — kept 30 days rolling.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
@@ -385,7 +403,12 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/security/test_otp_abuse.py`); the carrier/geo asymmetry (a failing lookup admits,
   a positive signal refuses before any SMS), its near-miss controls (an allocated prefix
   under the same table still gets its SMS; a partial list has no opinion) and the
-  no-new-storage assertion with INT-308 (same file); schemathesis with INT-019.
+  no-new-storage assertion with INT-308 (same file); schemathesis with INT-019. App Attest
+  with INT-344: every attestation and assertion check refusing on its own, Apple's
+  published example verifying against the pinned root, the pin itself, the replayed and
+  misbound challenge end to end, and the Play Integrity verdict policy
+  (`tests/api/test_attestation_verifier.py`, `tests/api/test_attestation_otp_flow.py`,
+  `apps/mobile/src/lib/auth/attestation.test.ts`).
 
 ## `consent` — layered consent and scope enforcement
 

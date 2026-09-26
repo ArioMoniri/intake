@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Patient/clinician JSON API — dev-tier slice (INT-197): dev-bearer auth over two synthetic accounts, visits, notes, documents on the INT-030 schema; real OIDC auth is INT-131"
 requires-python = ">=3.12"
 dependencies = [
+    "cbor2>=6.1.4",
     "fastapi>=0.115",
     "intake-clinical-schemas",
     "intake-connectors",

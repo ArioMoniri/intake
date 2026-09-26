@@ -16,6 +16,7 @@
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/newsreader": "^0.4.1",
+    "@expo/app-integrity": "~57.0.2",
     "@expo/ui": "~57.0.14",
     "@kingstinct/react-native-healthkit": "^14.1.0",
     "@livekit/react-native": "2.12.0",

@@ -78,6 +78,10 @@ from intake_api.state import ApiState
 
 if TYPE_CHECKING:
     from intake_connectors.acibadem import AcibademAppointmentsClient
+    from redis import Redis
+
+    from intake_api.app_attest import AppAttestVerifier
+    from intake_api.attestation import FailClosedAttestationVerifier
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
@@ -180,36 +184,71 @@ def _documents_from_env() -> DocumentsConfig:
     )
 
 
+def _app_attest_from_settings(
+    settings: ApiSettings, redis_client: Redis
+) -> AppAttestVerifier | FailClosedAttestationVerifier:
+    """INT-344. No team id → fail closed, typed. A malformed team id, bundle id
+    or environment word — or a trust anchor that is not the pinned Apple root —
+    also fails closed, with its own reason and one log line naming no value."""
+    from intake_api.app_attest import AppAttestConfig, AppAttestConfigError, AppAttestVerifier
+    from intake_api.app_attest_store import RedisAppAttestKeyStore
+    from intake_api.attestation import AttestationReason, FailClosedAttestationVerifier
+
+    if settings.app_attest_team_id is None:
+        return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_NOT_CONFIGURED)
+    try:
+        config = AppAttestConfig.parse(
+            settings.app_attest_team_id,
+            settings.app_attest_bundle_id,
+            settings.app_attest_environment,
+        )
+        return AppAttestVerifier(config, RedisAppAttestKeyStore(redis_client))
+    except AppAttestConfigError:
+        logger.warning("app attest configuration refused; iOS attestation fails closed")
+        return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_CONFIG_INVALID)
+
+
 def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
     """INT-131 wiring. No tokenization key → None → the OTP tier answers
-    503 (fail closed) and the dev-bearer tier stays load-bearing. The
-    attestation verifier is fail-closed unless the dev phrase is set, and
-    the delivery adapter is the dev event logger — the SMS vendor contract
-    is awaiting-human (docs/evidence/INT-131.md)."""
+    503 (fail closed) and the dev-bearer tier stays load-bearing. Attestation
+    routes by mode (INT-344): App Attest when the Apple team id is configured,
+    Play Integrity never until HB-A3 supplies a decoder, the dev tier only
+    under the dev phrase — every unconfigured piece fails closed with a typed
+    reason. The delivery adapter is the dev event logger — the SMS vendor
+    contract is awaiting-human (docs/evidence/INT-131.md)."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
 
     from intake_api.attestation import (
+        AttestationReason,
         DevStructuralAttestationVerifier,
         FailClosedAttestationVerifier,
+        PlatformAttestationVerifier,
     )
     from intake_api.carrier_geo import carrier_geo_from_path
     from intake_api.otp import DevLogDeliveryAdapter
 
+    redis_client = Redis.from_url(settings.redis_url)
+    app_attest = _app_attest_from_settings(settings, redis_client)
     return AuthWiring(
-        redis_client=Redis.from_url(settings.redis_url),
+        redis_client=redis_client,
         tokenizer=Tokenizer(
             keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
             active_key_id=settings.tokenization_key_id,
         ),
         delivery=DevLogDeliveryAdapter(),
-        attestation=(
-            DevStructuralAttestationVerifier()
-            if settings.dev_allow_unattested
-            else FailClosedAttestationVerifier()
+        attestation=PlatformAttestationVerifier(
+            app_attest=app_attest,
+            # HB-A3: no decoder exists until the Play Console organisation account
+            # and its service account do (intake_api.play_integrity)
+            play_integrity=FailClosedAttestationVerifier(
+                AttestationReason.PLAY_INTEGRITY_NOT_CONFIGURED
+            ),
+            dev=DevStructuralAttestationVerifier() if settings.dev_allow_unattested else None,
         ),
+        key_attestation=app_attest,
         dev_otp_peek=settings.dev_otp_peek,
         # INT-308: files/10 §2's carrier/geo check. The committed table
         # declares no prefixes, so this admits every request and says so in

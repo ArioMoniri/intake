@@ -16,7 +16,11 @@ Honest tiering:
   code is reachable solely through the peek endpoint behind
   ``INTAKE_DEV_OTP_PEEK=explicit-yes``. A vendor lands by implementing
   :class:`OtpDeliveryAdapter` against the contract.
-- Attestation: the verifier seam fails closed (attestation.py).
+- Attestation (INT-344): iOS registers an App Attest key once
+  (``/attest/key``) and signs every OTP call with an assertion from it; the
+  verifier is real when the Apple team id is configured and fails closed with
+  a typed reason when it is not. Android fails closed until HB-A3
+  (attestation.py, app_attest.py, play_integrity.py).
 """
 
 from __future__ import annotations
@@ -39,7 +43,16 @@ from intake_platform.tokenization import Tokenizer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from intake_api.attestation import AttestationPayload, AttestationVerifier, parse_attestation
+from intake_api.attestation import (
+    AttestationPayload,
+    AttestationReason,
+    AttestationVerifier,
+    AttestPurpose,
+    FailClosedAttestationVerifier,
+    KeyAttestationRegistrar,
+    attestation_client_data,
+    parse_attestation,
+)
 from intake_api.audit import AuditWriter
 from intake_api.auth_store import (
     ACCESS_TTL_S,
@@ -149,6 +162,12 @@ class AuthWiring:
     # authority and therefore admits everything, which is the correct state for
     # a wiring nobody gave one to; the env path builds the file-backed one.
     carrier_geo: CarrierGeoCheck = field(default_factory=CarrierGeoCheck)
+    # INT-344: who registers App Attest keys. The default registers nobody.
+    key_attestation: KeyAttestationRegistrar = field(
+        default_factory=lambda: FailClosedAttestationVerifier(
+            AttestationReason.APP_ATTEST_NOT_CONFIGURED
+        )
+    )
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -204,21 +223,51 @@ class OtpAuthService:
         challenge = await asyncio.to_thread(self._store.issue_challenge)
         return {"challenge": challenge, "expires_in": CHALLENGE_TTL_S}
 
-    async def _require_attested(self, request: Request) -> AttestationPayload:
+    async def _consume(self, challenge: str) -> None:
+        """Spend the challenge BEFORE any verifier runs: single-use whatever the
+        outcome, so nobody retries verification against one challenge, and the
+        App Attest counter only ever moves under a live challenge (INT-344)."""
+        if not await asyncio.to_thread(self._store.consume_challenge, challenge):
+            raise challenge_invalid()
+
+    async def _require_attested(
+        self, request: Request, purpose: AttestPurpose
+    ) -> AttestationPayload:
         raw = request.headers.get(ATTESTATION_HEADER)
         if raw is None:
             raise attestation_required()
         payload = parse_attestation(raw)
         if payload is None:
             raise attestation_invalid()
-        result = self._wiring.attestation.verify(payload)
+        await self._consume(payload.nonce)
+        result = await asyncio.to_thread(
+            self._wiring.attestation.verify,
+            payload,
+            client_data=attestation_client_data(purpose, payload.nonce),
+        )
         if not result.ok:
             # ids-only breadcrumb; the reason code carries no device data
             logger.info("attestation refused reason=%s", result.reason)
             raise attestation_unverified()
-        if not await asyncio.to_thread(self._store.consume_challenge, payload.nonce):
-            raise challenge_invalid()
         return payload
+
+    async def register_attested_key(
+        self, key_id: str, attestation: str, challenge: str
+    ) -> dict[str, str]:
+        """App Attest key registration (INT-344): the attestation, bound to a
+        server challenge, proves a genuine instance of this app holds the key;
+        from then on its OTP calls carry assertions from that key."""
+        await self._consume(challenge)
+        result = await asyncio.to_thread(
+            self._wiring.key_attestation.register,
+            key_id,
+            attestation,
+            client_data=attestation_client_data("attest.key", challenge),
+        )
+        if not result.ok:
+            logger.info("app attest key registration refused reason=%s", result.reason)
+            raise attestation_unverified()
+        return {"key_id": key_id}
 
     def _require_phone(self, raw: str) -> tuple[str, str]:
         phone = normalise_tr_phone(raw)
@@ -260,7 +309,7 @@ class OtpAuthService:
     # --- the OTP flow -----------------------------------------------------------------
 
     async def request_code(self, request: Request, phone_raw: str) -> dict[str, object]:
-        payload = await self._require_attested(request)
+        payload = await self._require_attested(request, "otp.request")
         phone, pseudonym = self._require_phone(phone_raw)
         ip = request.client.host if request.client is not None else "unknown"
         retry_after = await asyncio.to_thread(
@@ -358,7 +407,7 @@ class OtpAuthService:
         )
 
     async def verify_code(self, request: Request, phone_raw: str, code: str) -> TokenBundle:
-        await self._require_attested(request)
+        await self._require_attested(request, "otp.verify")
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
         verdict = await asyncio.to_thread(
