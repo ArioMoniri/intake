@@ -1,0 +1,13 @@
+# INT-345: the ASGI server for the staging API image, hash-pinned.
+#
+# uvicorn is not a dependency of any workspace package (the tests drive the app
+# through the ASGI transport), so uv.lock does not carry it. It is installed
+# into the image's locked venv with --require-hashes --no-deps. Its third
+# requirement, h11, already comes from the lock through httpx.
+#
+# Licences, read from PyPI metadata on 26 Sep 2026: uvicorn BSD-3-Clause and
+# click BSD-3-Clause. Both are on the allow-list.
+uvicorn==0.54.0 \
+    --hash=sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf
+click==8.5.0 \
+    --hash=sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360
