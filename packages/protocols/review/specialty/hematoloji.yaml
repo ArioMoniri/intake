@@ -1,0 +1,127 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/hematoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.hematoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Hematoloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün hematoloji polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/hematoloji.md'
+  sorular:
+    slots:
+      halsizlik_yorgunluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda kendinizi alışılmadık şekilde halsiz ya da yorgun hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      eforla_nefes_darligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yürürken ya da merdiven çıkarken nefesinizin daraldığı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      kolay_morarma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Vücudunuzda nedensiz ya da kolayca morarmalar oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      burun_dis_eti_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Burnunuzdan ya da diş etlerinizden sık sık kanama oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      islem_sonrasi_uzun_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Diş çekimi ya da ameliyat sonrasında uzun süren bir kanamanız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      yogun_uzun_adet_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adet görüyorsanız, adet kanamanız çok fazla ya da uzun süreli oluyor mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      diskida_kan_siyah_renk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dışkınızda kan ya da katran gibi siyah renk fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      boyun_koltuk_kasik_sisligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Boynunuzda, koltuk altınızda ya da kasığınızda geçmeyen bir şişlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      gece_terlemesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Geceleri uykunuzda aşırı terleme oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      istemsiz_kilo_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son aylarda istemeden kilo kaybettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      ailede_kan_hastaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde kansızlık ya da kan hastalığı olan biri var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hematoloji.md'
+red_flags:
+- id: rf.hematoloji_l0_taslak
+  label_tr: Hematoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: hematoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/hematoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

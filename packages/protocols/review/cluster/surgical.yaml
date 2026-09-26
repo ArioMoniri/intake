@@ -1,0 +1,177 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cluster_surgical.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: cluster.surgical
+layer: cluster
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Cerrahi Bilimler
+extends: base.intake
+visit_types:
+- first
+- followup
+- report
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_surgical.md'
+  sorular:
+    slots:
+      travma_sonrasi_basladi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şikâyetiniz bir düşme, darbe ya da yaralanmadan sonra mı başladı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      bolgede_sislik_sertlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şikâyet olan bölgede elle fark ettiğiniz bir şişlik ya da sertlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      sislik_buyuyor:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu şişlik zamanla büyüyor mu?
+        ask_if: bolgede_sislik_sertlik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      onceki_ameliyat:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce herhangi bir ameliyat oldunuz mu?
+        follow_up_tr:
+          tr: Küçük bir işlem ya da diş ameliyatı olduysa o da sayılır. Ameliyat oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      onceki_anestezi_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Önceki ameliyatlarınızda narkozla ilgili bir sorun yaşadınız mı?
+        follow_up_tr:
+          tr: Uyanmakta güçlük, alerji ya da nefes sorunu gibi bir şey oldu mu?
+        ask_if: onceki_ameliyat == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      ailede_anestezi_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde narkoz sırasında ciddi bir sorun yaşayan biri oldu mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      horlama_nefes_durmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uykuda yüksek sesle horladığınız ya da nefesinizin durduğu size söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      suregelen_rahatsizlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kalp, akciğer, böbrek ya da şeker hastalığı gibi süregelen bir rahatsızlığınız var mı?
+        follow_up_tr:
+          tr: Doktorunuzun söylediği, uzun süredir devam eden bir sağlık sorununuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      uzamis_kanama_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önceki bir ameliyat, diş çekimi ya da yaralanmadan sonra kanamanız uzun sürdü mü?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      ailede_kanama_bozuklugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde kanaması zor duran ya da kanama hastalığı olan biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      iltihap_giderici_kullanimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde iltihap giderici bir ağrı kesici kullandınız mı?
+        follow_up_tr:
+          tr: İbuprofen, naproksen ya da diklofenak gibi bir ağrı kesici kullandınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      ameliyat_sonrasi_kontrol:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu randevu yakın zamanda olduğunuz bir ameliyatın kontrolü için mi?
+        ask_if: onceki_ameliyat == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      yara_akintisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ameliyat yaranızdan akıntı geliyor mu?
+        follow_up_tr:
+          tr: Ameliyat yaranızdan sıvı ya da irin gibi bir şey sızıyor mu?
+        ask_if: ameliyat_sonrasi_kontrol == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      yara_kizariklik_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ameliyat yaranızın çevresinde kızarıklık, sıcaklık ya da şişlik var mı?
+        ask_if: ameliyat_sonrasi_kontrol == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      ameliyat_sonrasi_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ameliyattan sonra ateşiniz oldu mu?
+        follow_up_tr:
+          tr: Üşüme, titreme ya da ateş basması hissettiniz mi?
+        ask_if: ameliyat_sonrasi_kontrol == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      dren_var:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ameliyattan sonra vücudunuzda bırakılan bir dren, yani ince bir tüp var mı?
+        ask_if: ameliyat_sonrasi_kontrol == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+      dren_sivi_degisimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Drenden gelen sıvının rengi ya da miktarı değişti mi?
+        ask_if: dren_var == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_surgical.md'
+red_flags:
+- id: rf.cluster_surgical_l0_taslak
+  label_tr: Cerrahi Bilimler — kümeye özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cluster_surgical branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cluster_surgical.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -1,0 +1,114 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cematem.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.cematem
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: ÇEMATEM ön görüşme protokolü
+extends: cluster.mental_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün çocuğunuz için hangi konuda destek almak istersiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cematem.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cematem.md'
+  sorular:
+    slots:
+      ebeveyn_anlatimi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Fark ettiklerinizi kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cematem.md'
+      konusulacak_madde:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bugün çocuğunuzla ilgili hangi madde ya da alışkanlık konusunda konuşmak istersiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cematem.md'
+      ev_okul_arkadas_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda çocuğunuzun evdeki, okuldaki ya da arkadaşlarıyla ilişkilerindeki bir değişikliği fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cematem.md'
+      siklik:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bildiğiniz kadarıyla, son zamanlarda bu ne sıklıkla oluyor?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cematem.md'
+      gunluk_yasam_etkisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu durum çocuğunuzun günlük yaşamını ya da sağlığını etkiliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cematem.md'
+      cevre_endisesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Okuldan ya da çevrenizden biri bu konuda size endişesini dile getirdi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cematem.md'
+      onceki_destek:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce bu konuda bir destek aldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cematem.md'
+      diger_saglik_durumu:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bilmemizi istediğiniz başka bir sağlık durumu var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cematem.md'
+      destek_cevresi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu süreçte size ve çocuğunuza destek olan kişiler var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cematem.md'
+red_flags:
+- id: rf.cematem_l0_taslak
+  label_tr: ÇEMATEM ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cematem branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cematem.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'
