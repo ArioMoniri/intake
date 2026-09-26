@@ -2628,7 +2628,21 @@
   title: "Cost module"
   depends_on: [INT-101, INT-180]
   labels: [area:admin]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-190.md
+  # MECHANISM SHIPPED, THE MONEY AWAITING THE OWNER (26 Sep 2026). A cost is a
+  # catalogued usage series times a price from ONE owner-filled file,
+  # infra/costs/unit-prices.yaml, where every price and every budget limit ships
+  # empty and a value is refused without a source and an as_of date (HB-O8 (b)).
+  # intake_platform.cost computes per-session cost by component/vendor/profile
+  # (usage in a 1d/30d window over voice_sessions_metered_total, the new live
+  # divisor the INT-101 meter emits), per-vendor and all-vendor day/month
+  # budgets, and generates infra/observability/cost-rules.yaml (drift-gated,
+  # catalogued series only). Nothing unknown is a zero: an unpriced component
+  # renders "price not configured", a partial total is withheld, and a budget is
+  # "within" only over a complete spend. What waits on the owner is content, not
+  # mechanism: the rates and the limits (HB-O8), plus usage series that do not
+  # exist on main for extraction tokens, clip synthesis and host hours.
   acceptance:
     - "per-session cost by component/vendor/profile; budgets + alerts"
   tests: [apps/admin-web/e2e/cost.spec.ts]

@@ -201,7 +201,7 @@
 | INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
-| INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | todo |
+| INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | awaiting-human |
 | INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | done |
 | INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
 | INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security, blocked:runtime | awaiting-human |
