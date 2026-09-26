@@ -89,8 +89,17 @@ export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 20 } as c
  */
 export const radius = { card: 24, control: 999, hero: 32, chip: 999, group: 16 } as const;
 
-/** Motion budget (02 §5.2a): fades only, and only this long. */
-export const motion = { fadeMs: 120 } as const;
+/**
+ * Motion budget (02 §5.2a): fades only, and only this long.
+ *
+ * `duration` is the navigators' vocabulary (INT-330, MOTION-1): `fade` for
+ * every stack and tab transition, `instant` for the ones that must not move
+ * at all (legal text). `fadeMs` predates it and stays as its alias, so the
+ * budget is one number however it is spelled.
+ */
+const duration = { instant: 0, fade: 120 } as const;
+
+export const motion = { fadeMs: duration.fade, duration } as const;
 
 /**
  * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app
