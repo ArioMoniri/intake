@@ -50,10 +50,14 @@ function runGeneral(state: DialogueStreamState, ...actions: DialogueStreamAction
 function state(overrides: Partial<DialogueStreamState>): DialogueStreamState {
   return {
     turn: { phase: "speaking", step: 0, intent: "question" },
+    audio: "pending",
+    turnSeq: 1,
     pending: {},
     answers: {},
     asked: [],
     inflight: [],
+    retries: {},
+    work: {},
     seq: {},
     stream: [],
     ...overrides,
@@ -111,11 +115,15 @@ describe("dialogueStreamReducer — ask-ahead: the next question never waits", (
     ]);
   });
 
-  it("an empty transcript removes the pending bubble; the question is never re-asked", () => {
+  // INT-259 R10: an empty transcript used to produce no screen change at all —
+  // the reproduced defect class. It now re-arms the question ONCE; the second
+  // empty keeps INT-235's original posture and lets the end hand it over.
+  it("an empty transcript removes the pending bubble and re-arms the question once", () => {
     const before = state({
       turn: { phase: "speaking", step: 1, intent: "question" },
       asked: ["complaint"],
       inflight: [1],
+      work: { 1: "complaint" },
       stream: [
         { kind: "agent_question", questionId: "complaint" },
         { kind: "patient", workId: 1, status: "transcribing", text: "" },
@@ -127,15 +135,24 @@ describe("dialogueStreamReducer — ask-ahead: the next question never waits", (
       { kind: "agent_question", questionId: "complaint" },
       { kind: "agent_question", questionId: "duration" },
     ]);
-    expect(s.asked).toEqual(["complaint"]);
+    expect(s.asked).toEqual([]);
     s = runGeneral(
       s,
       { type: "extract_settled", workId: 1, candidates: {} },
       { type: "speech_done" },
       { type: "utterance", workId: 2 },
     );
-    // complaint stays skipped (asked, no answer) — extra is next, not a re-ask
-    expect(s.turn).toEqual({ phase: "speaking", step: 2, intent: "question" });
+    // the one re-ask: complaint comes back before the flow moves on
+    expect(s.turn).toEqual({ phase: "speaking", step: 0, intent: "question" });
+    // and the re-ask's own empty transcript does NOT re-arm it a second time
+    s = runGeneral(
+      s,
+      { type: "speech_done" },
+      { type: "utterance", workId: 3 },
+      { type: "transcript_ready", workId: 3, text: "" },
+    );
+    expect(s.retries.complaint).toBe(1);
+    expect(s.asked).toContain("complaint");
   });
 });
 
@@ -613,7 +630,11 @@ describe("dialogueStreamReducer — late work cannot re-block a live turn (INT-2
 
   it("keeps the very same turn object when a transcript lands behind", () => {
     const before = live();
-    const after = runCardio(before, { type: "transcript_ready", workId: 1, text: "göğsüm ağrıyor" });
+    const after = runCardio(before, {
+      type: "transcript_ready",
+      workId: 1,
+      text: "göğsüm ağrıyor",
+    });
     expect(after.turn).toBe(before.turn);
   });
 
@@ -635,5 +656,155 @@ describe("dialogueStreamReducer — late work cannot re-block a live turn (INT-2
       { type: "extract_settled", workId: 1, candidates: { complaint: painCandidate } },
     );
     expect(after.turn).toBe(before.turn);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-259 — audio, retries and the preempt door                       */
+/* ------------------------------------------------------------------ */
+
+describe("the spoken turn's audio is reducer state, not a render flag", () => {
+  it("a fresh turn starts pending — committed to speaking, nothing heard yet", () => {
+    const fresh = initialDialogueStreamState(general);
+    expect(fresh.audio).toBe("pending");
+    expect(fresh.turnSeq).toBe(1);
+  });
+
+  it("the first playback status update starts it, and only while speaking", () => {
+    const started = runGeneral(initialDialogueStreamState(general), { type: "audio_started" });
+    expect(started.audio).toBe("started");
+    const listening = runGeneral(started, { type: "speech_done" });
+    expect(listening.audio).toBe("idle");
+    expect(runGeneral(listening, { type: "audio_started" }).audio).toBe("idle");
+  });
+
+  it("T-4 — the deadline's expiry is a lawful transition, not a failure", () => {
+    const silent = runGeneral(initialDialogueStreamState(general), { type: "audio_missing" });
+    expect(silent.audio).toBe("silent");
+    // the turn did not move and the mic did not open
+    expect(silent.turn).toEqual({ phase: "speaking", step: 0, intent: "question" });
+  });
+
+  it("a late audio_started cannot un-silence a turn the patient is already reading", () => {
+    const silent = runGeneral(initialDialogueStreamState(general), { type: "audio_missing" });
+    expect(runGeneral(silent, { type: "audio_started" }).audio).toBe("started");
+  });
+
+  it("audio_missing only fires on a pending turn — a playing clip is never cut", () => {
+    const playing = runGeneral(initialDialogueStreamState(general), { type: "audio_started" });
+    expect(runGeneral(playing, { type: "audio_missing" }).audio).toBe("started");
+  });
+
+  it("every new spoken turn gets its own identity, so the clock restarts with it", () => {
+    const first = initialDialogueStreamState(general);
+    const next = runGeneral(
+      first,
+      { type: "audio_started" },
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+    );
+    expect(next.turn.phase).toBe("speaking");
+    expect(next.audio).toBe("pending");
+    expect(next.turnSeq).toBeGreaterThan(first.turnSeq);
+  });
+});
+
+describe("T-9 — an empty transcript re-arms its question exactly once", () => {
+  /** complaint asked and answered by an utterance that produced no words. */
+  function emptyFirstAnswer() {
+    return runGeneral(
+      initialDialogueStreamState(general),
+      { type: "audio_started" },
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+      { type: "transcript_ready", workId: 1, text: "   " },
+    );
+  }
+
+  it("un-marks the question so the next advance asks it again", () => {
+    const after = emptyFirstAnswer();
+    expect(after.asked).not.toContain("complaint");
+    expect(after.retries).toEqual({ complaint: 1 });
+    // the bubble goes; the copy never claims the mic is broken
+    expect(after.stream.some((entry) => entry.kind === "patient")).toBe(false);
+  });
+
+  it("and the re-ask really happens, in the same conversation", () => {
+    const after = runGeneral(
+      emptyFirstAnswer(),
+      { type: "extract_settled", workId: 1, candidates: {} },
+      { type: "audio_started" },
+      { type: "speech_done" },
+      { type: "utterance", workId: 2 },
+      { type: "transcript_ready", workId: 2, text: "başım ağrıyor" },
+    );
+    const asks = after.stream.filter(
+      (entry) => entry.kind === "agent_question" && entry.questionId === "complaint",
+    );
+    expect(asks).toHaveLength(2);
+  });
+
+  it("a second empty leaves it asked, so the end hands it over rather than looping", () => {
+    const twice = runGeneral(
+      emptyFirstAnswer(),
+      { type: "extract_settled", workId: 1, candidates: {} },
+      { type: "utterance", workId: 2 },
+      { type: "transcript_ready", workId: 2, text: "" },
+    );
+    expect(twice.retries).toEqual({ complaint: 1 });
+    expect(twice.asked).toContain("complaint");
+  });
+
+  it("an empty transcript for a question that has since been answered re-arms nothing", () => {
+    const answered = runGeneral(
+      initialDialogueStreamState(general),
+      { type: "audio_started" },
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+      { type: "extract_settled", workId: 1, candidates: { complaint: painCandidate } },
+    );
+    const withAnswer = { ...answered, answers: { complaint: { values: ["pain"], quote: "x" } } };
+    const after = runGeneral(withAnswer, { type: "transcript_ready", workId: 1, text: "" });
+    expect(after.retries).toEqual({});
+  });
+});
+
+describe("T-10 — a transcribing bubble that outlives the work deadline says so", () => {
+  function transcribing() {
+    return runGeneral(
+      initialDialogueStreamState(general),
+      { type: "audio_started" },
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+    );
+  }
+
+  it("marks that bubble, and only that bubble", () => {
+    const slow = runGeneral(transcribing(), { type: "work_slow", workId: 1 });
+    expect(slow.stream).toContainEqual({
+      kind: "patient",
+      workId: 1,
+      status: "not_heard",
+      text: "",
+    });
+  });
+
+  it("the ASR is not aborted — text that lands late still replaces the row in place", () => {
+    const landed = runGeneral(
+      transcribing(),
+      { type: "work_slow", workId: 1 },
+      { type: "transcript_ready", workId: 1, text: "göğsüm ağrıyor" },
+    );
+    expect(landed.stream).toContainEqual({
+      kind: "patient",
+      workId: 1,
+      status: "text",
+      text: "göğsüm ağrıyor",
+    });
+  });
+
+  it("a work id with no bubble left changes nothing", () => {
+    const before = transcribing();
+    expect(runGeneral(before, { type: "work_slow", workId: 99 }).stream).toEqual(before.stream);
   });
 });
