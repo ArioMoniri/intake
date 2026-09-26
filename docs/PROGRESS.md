@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-26T17:00:00Z · INT-331 · delivered
+- Goal: acceptance verbatim — *"one OS read and one listener serve every consumer; an unknown answer or a rejected read means reduced; a failed re-read keeps the last known answer · a live change reaches every consumer and Reanimated through ReducedMotionConfig driven by the app policy; nothing imports useReducedMotion from react-native-reanimated and no ReduceMotion.System appears · the appearance suite stays green unchanged"*.
+- Plan:
+  - A pure, dependency-injected `apps/mobile/src/lib/motion/policyStore.ts` (`createReduceMotionStore`, `deferredReduceMotionSource`).
+  - A thin `native/reduceMotionSource.ts` over AccessibilityInfo and AppState, reached only through a lazy `import()`.
+  - `reducedMotion(app, os: boolean | null)`, where null means reduced.
+  - `useReducedMotion` on `useSyncExternalStore`, with the same name and path, so no call site changes.
+  - `<ReducedMotionConfig mode={reduce ? Always : Never} />` mounted first under `AppearanceProvider`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `policyStore.test.ts`: the 7 MOTION-2 tests, plus 4 for stale-read ordering and the lazy loader.
+  - `appearance.test.ts`: 2 tests.
+  - `e2e/motion.spec.ts`: the 3 spec guards, plus one pinning a single store and a single OS asker.
+  - Near-miss: four mutations were checked and each was restored from a backup: the store starting at motion, the bridge inverted, the bridge outside the provider, and the answer kept after release.
+  - RED: 4 failed | 90 passed, plus the policyStore suite failing to load. GREEN: 105/105 targeted; whole mobile suite 102 files / 1980 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck`, expo lint and prettier are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **17** (no stub source, no pretend answer), **8** (17 tests added, none loosened; `appearance.spec` unchanged), **6** (nothing is logged).
+- Decisions / ADRs / `00_STATE.md` rows: none. This implements the spec's settled MOTION-2. One choice goes beyond the spec: the store forgets its answer when the last consumer unsubscribes (fail closed), recorded in `docs/evidence/INT-331.md`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. No device run is recorded; the owner's reference devices are still unnamed (as in INT-330).
+- Next: PR review. MOTION-6 (the Reanimated hygiene gates) can now build on the bridge.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T16:10:00Z · INT-349 · awaiting-human (engineering half delivered)
 - Goal: acceptance verbatim (backlog row on `chore-backlog-int-349-354`): *"the protocol Slot model carries a closed data_category tag (the compiler rejects an unknown value), and every specialty candidate slot that collects one of the owner-approved categories … declares it"*; *"answers to a tagged slot are written with field-level envelope encryption: slots.sensitivity is never SlotSensitivity.PLAIN for them … and a test reads the stored row back and proves no plaintext answer is at rest"*; *"each category has a data-register/VERBİS row whose legal basis, retention, recipients and consent scope are counsel-supplied; while any of those fields is awaiting-human the row is incomplete and a slot carrying that tag is not servable (fails closed, invariant 18)"*.
 - Plan: closed `protocols.types.DataCategory` (general_health + the eight D3 categories) and `Slot.data_category` (default general_health); `docs/legal/data-categories.yaml`, one row per non-general category, `purpose` from D3 and every counsel field null; `protocols.data_register` loader (fail closed) and `protocols.compile.data_categories` gates wired into `resolve_protocol` (`DATA_CATEGORY_UNKNOWN`, `DATA_CATEGORY_REGISTER_INCOMPLETE`, `DATA_CATEGORY_RELAXED`); `intake_api.store.write_slot_answer`/`read_slot_answer` choosing PLAIN vs the existing EnvelopeCipher envelope by category, AAD-bound to session and slot.

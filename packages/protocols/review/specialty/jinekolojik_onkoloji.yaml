@@ -1,0 +1,156 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/jinekolojik_onkoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.jinekolojik_onkoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Jinekolojik Onkoloji ön görüşme protokolü
+extends: cluster.womens_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün jinekolojik onkoloji polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+  sorular:
+    slots:
+      adet_kesildi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adet kanamalarınız tamamen kesildi mi?
+        follow_up_tr:
+          tr: Menopoza girdiniz mi?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      menopoz_sonrasi_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adetleriniz kesildikten sonra hiç lekelenme ya da kanama oldu mu?
+        follow_up_tr:
+          tr: Menopozdan sonra az da olsa kan gördünüz mü?
+        ask_if: adet_kesildi == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      iliski_sonrasi_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cinsel ilişki sırasında ya da sonrasında kanamanız oluyor mu?
+        follow_up_tr:
+          tr: İlişkiden sonra lekelenme fark ettiğiniz oldu mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      anormal_akinti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Genital bölgenizden kötü kokulu, sulu ya da kanlı akıntı geliyor mu?
+        follow_up_tr:
+          tr: Akıntınızın renginde ya da kokusunda bir değişiklik var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      karin_siskinligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Karnınızda sık sık ya da sürekli bir şişkinlik hissediyor musunuz?
+        follow_up_tr:
+          tr: Karnınız son zamanlarda şişmiş gibi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      cabuk_doyma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Birkaç lokmada çabucak doyduğunuzu hissediyor musunuz?
+        follow_up_tr:
+          tr: Az yemekle bile tok hissettiğiniz oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      kasik_alt_karin_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kasığınızda ya da karnınızın alt kısmında ağrı oluyor mu?
+        follow_up_tr:
+          tr: Göbeğinizin altında ağrı ya da baskı hissi var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      idrar_sikisma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sık sık ya da aniden idrara çıkma ihtiyacı duyuyor musunuz?
+        follow_up_tr:
+          tr: Tuvalete yetişmekte zorlandığınız oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      dis_genital_bulgu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dış genital bölgenizde geçmeyen kaşıntı, yara ya da şişlik var mı?
+        follow_up_tr:
+          tr: Genital bölgenin dış kısmında uzun süredir geçmeyen kaşıntı, yara ya da şişlik var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      rahim_agzi_tarama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce rahim ağzı tarama testi, yani smear ya da HPV testi yaptırdınız mı?
+        follow_up_tr:
+          tr: Rahim ağzından hücre alınan bir tarama testi yaptırdınız mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+      ailede_jinekolojik_kanser:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde meme, yumurtalık, rahim ya da kalın bağırsak kanseri olan var mı?
+        follow_up_tr:
+          tr: Anne ya da baba tarafınızdan kanser geçiren bir yakınınız var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
+red_flags:
+- id: rf.jinekolojik_onkoloji_l0_taslak
+  label_tr: Jinekolojik Onkoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: jinekolojik_onkoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/jinekolojik_onkoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

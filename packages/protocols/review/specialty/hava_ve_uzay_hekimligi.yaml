@@ -1,0 +1,141 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/hava_ve_uzay_hekimligi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.hava_ve_uzay_hekimligi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Hava ve Uzay Hekimliği ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün hava ve uzay hekimliği polikliniğine gelme nedeniniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+  sorular:
+    slots:
+      onceki_havacilik_muayenesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce bir havacılık sağlık muayenesi oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      ucusta_kulak_sinus_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uçuş sırasında, özellikle inişte, kulaklarınızda ya da sinüslerinizde ağrı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      guncel_ust_solunum_sikayeti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda nezle, burun tıkanıklığı ya da sinüs şikâyetiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      cinlama_isitme_azalmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kulaklarınızda çınlama ya da işitmenizde azalma fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      ucusta_bulanti_bas_donmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uçuş sırasında bulantı, baş dönmesi ya da yönünüzü şaşırma hissi yaşıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      uyku_duzeni_bozulmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Vardiyalı çalışma ya da saat farkı yüzünden uyku düzeniniz bozuluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      gecmeyen_yorgunluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dinlenmekle geçmeyen bir yorgunluk hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      oturmaya_bagli_sirt_bel_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uzun süre oturmaya bağlı sırt ya da bel ağrınız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      son_muayeneden_beri_ameliyat:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son havacılık muayenenizden bu yana ameliyat ya da benzeri bir tıbbi işlem geçirdiniz mi?
+        ask_if: onceki_havacilik_muayenesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      son_muayeneden_beri_yaralanma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son havacılık muayenenizden bu yana önemli bir yaralanma geçirdiniz mi?
+        ask_if: onceki_havacilik_muayenesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      ilk_kez_gozluk_lens:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son havacılık muayenenizden bu yana ilk kez gözlük ya da lens kullanmaya başladınız mı?
+        ask_if: onceki_havacilik_muayenesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      bayilma_bilinc_kaybi_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce hiç bayıldığınız ya da kısa süreli bilinç kaybı yaşadığınız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+      tekrarlayan_zonklayan_bas_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Tekrarlayan, zonklayan tarzda baş ağrılarınız oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md'
+red_flags:
+- id: rf.hava_ve_uzay_hekimligi_l0_taslak
+  label_tr: Hava ve Uzay Hekimliği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: hava_ve_uzay_hekimligi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/hava_ve_uzay_hekimligi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

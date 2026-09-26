@@ -5,42 +5,54 @@
  * React Native runtime: this file is the thin adapter that reads the
  * platform, ./motion is what the app does with the answer.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { AccessibilityInfo } from "react-native";
 
+import { createReduceMotionStore, deferredReduceMotionSource } from "@/lib/motion/policyStore";
 import { reducedMotion } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 
 import { nextAnnouncement } from "./announce";
 
 /**
+ * The app's one reduce-motion store (INT-331, MOTION-2): one OS read and one
+ * OS listener, whatever the number of call sites. The device adapter is
+ * loaded lazily, on the first subscription.
+ */
+const reduceMotionStore = createReduceMotionStore(
+  deferredReduceMotionSource(() =>
+    import("@/lib/motion/native/reduceMotionSource").then(
+      (native) => native.nativeReduceMotionSource,
+    ),
+  ),
+);
+
+/**
  * Whether motion should be reduced: the OS signal (iOS "Hareketi Azalt",
- * Android "Remove animations") OR the app's own switch (INT-260). Re-reads on
- * the OS event, so a change made in Settings while the app is backgrounded
- * takes effect on return without a restart.
+ * Android "Remove animations") OR the app's own switch (INT-260). The store
+ * follows the OS change event and re-reads on return to the foreground, so a
+ * change made in Settings while the app is backgrounded takes effect on
+ * return without a restart.
+ *
+ * Fail-closed (INT-331, motion S-2): until the OS has answered, or when its
+ * read fails, the answer is reduced. The hook used to start every call site
+ * at "motion" and animate until its own read came back.
  *
  * OR, deliberately, and in one direction only: the in-app switch can ADD
  * reduced motion for a patient the OS setting never reached, and can never
- * take it away from a patient who asked the OS for it. The five call sites are
- * untouched — the policy moved, not the callers.
+ * take it away from a patient who asked the OS for it. The call sites are
+ * untouched — the policy moved, not the callers. Reanimated takes the same
+ * answer through the root's ReducedMotionConfig (src/app/_layout.tsx).
  */
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
   const { prefs } = useAppearance();
-  useEffect(() => {
-    let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((value) => {
-      if (live) {
-        setReduced(value);
-      }
-    });
-    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduced);
-    return () => {
-      live = false;
-      subscription.remove();
-    };
-  }, []);
-  return reducedMotion(prefs.reduceMotion, reduced);
+  const os = useSyncExternalStore(
+    reduceMotionStore.subscribe,
+    reduceMotionStore.getSnapshot,
+    // Static web rendering has no OS to ask: unknown, so reduced.
+    reduceMotionStore.getSnapshot,
+  );
+  return reducedMotion(prefs.reduceMotion, os);
 }
 
 /**

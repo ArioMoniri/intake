@@ -1,0 +1,124 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.deri_ve_zuhrevi_hastaliklari
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Deri ve Zührevi Hastalıkları ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzda sizi en çok rahatsız eden cilt sorununu kısaca anlatabilir misiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+  sorular:
+    slots:
+      endiselendiren_ben_leke:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cildinizde sizi endişelendiren bir ben ya da leke var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      ben_degisimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bir beniniz ya da lekeniz son zamanlarda boyut, şekil veya renk olarak değişti mi?
+        ask_if: endiselendiren_ben_leke == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      ben_kanama_sizinti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ben ya da lekeden kanama, sıvı sızması ya da kabuklanma oldu mu?
+        ask_if: endiselendiren_ben_leke == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      ben_kasinti_his:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ben ya da lekede kaşıntı, kızarıklık ya da his değişikliği fark ettiniz mi?
+        ask_if: endiselendiren_ben_leke == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      iyilesmeyen_yara:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cildinizde uzun süredir iyileşmeyen bir yara ya da kabuk var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      yeni_buyuyen_kabarti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cildinizde yeni çıkan ya da büyüyen bir kabartı veya leke fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      genital_sikayet:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Genital bölgenizde yara, döküntü ya da olağandışı bir akıntı gibi bir şikâyetiniz var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      cilt_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce size bir cilt hastalığı tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      yeni_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda yeni başladığınız bir ilaç oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      ilac_urun_alerjisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Herhangi bir ilaca ya da cildinize sürdüğünüz bir ürüne karşı alerjiniz olduğunu fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+red_flags:
+- id: rf.deri_ve_zuhrevi_hastaliklari_l0_taslak
+  label_tr: Deri ve Zührevi Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: deri_ve_zuhrevi_hastaliklari branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'
