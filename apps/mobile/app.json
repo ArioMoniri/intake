@@ -14,6 +14,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ariomoniri.intakemobile",
+      "entitlements": {
+        "com.apple.developer.devicecheck.appattest-environment": "production"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "Önvizit, şikâyetlerinizi sesli olarak paylaşabilmeniz için mikrofonu yalnızca siz konuşurken kullanır.",
@@ -62,7 +65,7 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Vizite; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
+          "NSHealthShareUsageDescription": "Önvizit; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
           "NSHealthUpdateUsageDescription": false,
           "background": false
         }

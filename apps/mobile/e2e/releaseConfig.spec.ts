@@ -27,6 +27,18 @@ function appJson(): ExpoConfig {
   return (JSON.parse(readFileSync(join(ROOT, "app.json"), "utf8")) as { expo: ExpoConfig }).expo;
 }
 
+type EasBuildProfile = { environment?: unknown; env?: Record<string, unknown> };
+
+function easJson(): { build: Record<string, EasBuildProfile> } {
+  return JSON.parse(readFileSync(join(ROOT, "eas.json"), "utf8")) as {
+    build: Record<string, EasBuildProfile>;
+  };
+}
+
+/** The bundle id INT-344's server verifier derives the App Attest rpId from. */
+const BUNDLE_ID = "com.ariomoniri.intakemobile";
+const APP_ATTEST_ENTITLEMENT = "com.apple.developer.devicecheck.appattest-environment";
+
 const PRODUCTION = { EAS_BUILD_PROFILE: "production" };
 const LOCAL_NETWORK_PLIST = {
   NSLocalNetworkUsageDescription: "yerel ağ",
@@ -101,6 +113,48 @@ describe("F17 · the production profile raises no local-network prompt", () => {
       expect(resolveAppConfig(declared, env).ios?.infoPlist).toEqual(LOCAL_NETWORK_PLIST);
     },
   );
+});
+
+describe("INT-354 · the store build attests with App Attest as the bundle the server expects", () => {
+  it("the production profile keeps the bundle id the verifier's rpId is built from", () => {
+    expect(resolveAppConfig(appJson(), PRODUCTION).ios?.bundleIdentifier).toBe(BUNDLE_ID);
+  });
+
+  it("the production profile carries the App Attest production entitlement", () => {
+    const entitlements = resolveAppConfig(appJson(), PRODUCTION).ios?.entitlements ?? {};
+    expect(entitlements).toHaveProperty([APP_ATTEST_ENTITLEMENT], "production");
+  });
+
+  it("the entitlement lives in app.json, the static source, not only in the resolver", () => {
+    expect(appJson().ios?.entitlements).toHaveProperty([APP_ATTEST_ENTITLEMENT], "production");
+  });
+});
+
+describe("F31 · the HealthKit prompt names the app the patient installed", () => {
+  it("the HealthKit plugin's read purpose opens with the app name", () => {
+    const plugin = (appJson().plugins ?? []).find(
+      (entry) => Array.isArray(entry) && entry[0] === "@kingstinct/react-native-healthkit",
+    ) as [string, { NSHealthShareUsageDescription?: unknown }] | undefined;
+    const purpose = String(plugin?.[1].NSHealthShareUsageDescription ?? "");
+    expect(appJson().name).toBe("Önvizit");
+    expect(purpose.startsWith(`${appJson().name};`)).toBe(true);
+  });
+});
+
+describe("INT-354 · the production EAS build takes its API base from the EAS environment", () => {
+  it("the production build profile binds the EAS production environment", () => {
+    expect(easJson().build.production?.environment).toBe("production");
+  });
+
+  it("no build profile hardcodes the API base variable", () => {
+    for (const profile of Object.values(easJson().build)) {
+      expect(profile.env ?? {}).not.toHaveProperty(API_BASE_ENV);
+    }
+  });
+
+  it("no build profile carries a URL: the host arrives only through the environment", () => {
+    expect(JSON.stringify(easJson().build)).not.toMatch(/https?:\/\//);
+  });
 });
 
 describe("F29 · the dev host and TTS lane lists hold each entry once", () => {
