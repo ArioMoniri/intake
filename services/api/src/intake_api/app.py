@@ -19,6 +19,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -60,6 +61,7 @@ from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
 from intake_api.dev_voice import GeorgeWiring, george_wiring_from_env
+from intake_api.dev_voice_guard import intake_env_is_prod
 from intake_api.doctor_link.common import NOINDEX
 from intake_api.doctor_link.service import (
     DoctorLinkService,
@@ -69,8 +71,14 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ApiSettings
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
+
+if TYPE_CHECKING:
+    from redis import Redis
+
+    from intake_api.app_attest import AppAttestVerifier
+    from intake_api.attestation import FailClosedAttestationVerifier
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
@@ -156,10 +164,12 @@ def _documents_from_env() -> DocumentsConfig:
             scanner = DevNullScanner()
         except DevScannerForbiddenError:
             scanner = None
+    # the dev defaults below never apply outside dev: ApiSettings.from_env
+    # has already refused a non-dev boot with either variable absent (INT-325)
     client = Minio(
         os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
-        access_key=os.environ.get("MINIO_ROOT_USER", "intake-dev"),
-        secret_key=os.environ.get("MINIO_ROOT_PASSWORD", "intake-dev-only"),
+        access_key=os.environ.get(ENV_MINIO_USER, "intake-dev"),
+        secret_key=os.environ.get(ENV_MINIO_PASSWORD, "intake-dev-only"),
         secure=os.environ.get("INTAKE_MINIO_SECURE", "") == "true",
     )
     return DocumentsConfig(
@@ -170,36 +180,79 @@ def _documents_from_env() -> DocumentsConfig:
     )
 
 
+def _app_attest_from_settings(
+    settings: ApiSettings, redis_client: Redis
+) -> AppAttestVerifier | FailClosedAttestationVerifier:
+    """INT-344. No team id → fail closed, typed. A malformed team id, bundle id
+    or environment word — or a trust anchor that is not the pinned Apple root —
+    also fails closed, with its own reason and one log line naming no value."""
+    from intake_api.app_attest import AppAttestConfig, AppAttestConfigError, AppAttestVerifier
+    from intake_api.app_attest_store import RedisAppAttestKeyStore
+    from intake_api.attestation import AttestationReason, FailClosedAttestationVerifier
+
+    if settings.app_attest_team_id is None:
+        return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_NOT_CONFIGURED)
+    try:
+        config = AppAttestConfig.parse(
+            settings.app_attest_team_id,
+            settings.app_attest_bundle_id,
+            settings.app_attest_environment,
+        )
+        return AppAttestVerifier(config, RedisAppAttestKeyStore(redis_client))
+    except AppAttestConfigError:
+        logger.warning("app attest configuration refused; iOS attestation fails closed")
+        return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_CONFIG_INVALID)
+
+
 def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
     """INT-131 wiring. No tokenization key → None → the OTP tier answers
-    503 (fail closed) and the dev-bearer tier stays load-bearing. The
-    attestation verifier is fail-closed unless the dev phrase is set, and
-    the delivery adapter is the dev event logger — the SMS vendor contract
-    is awaiting-human (docs/evidence/INT-131.md)."""
+    503 (fail closed) and the dev-bearer tier stays load-bearing. Attestation
+    routes by mode (INT-344): App Attest when the Apple team id is configured,
+    Play Integrity never until HB-A3 supplies a decoder, the dev tier only
+    under the dev phrase — every unconfigured piece fails closed with a typed
+    reason. The delivery adapter is the dev event logger — the SMS vendor
+    contract is awaiting-human (docs/evidence/INT-131.md).
+
+    INT-325 (audit F13): outside dev the dev logger is never wired. It
+    records an event and sends nothing, so the tier would answer "sent" for a
+    code that never arrives. With no contracted SMS adapter the tier stays
+    unconfigured (every /v1/auth route answers 503)."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
+        return None
+    if not settings.dev_tier_expected:
+        logger.warning("otp tier unconfigured outside dev: no SMS delivery adapter is wired")
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
 
     from intake_api.attestation import (
+        AttestationReason,
         DevStructuralAttestationVerifier,
         FailClosedAttestationVerifier,
+        PlatformAttestationVerifier,
     )
     from intake_api.carrier_geo import carrier_geo_from_path
     from intake_api.otp import DevLogDeliveryAdapter
 
+    redis_client = Redis.from_url(settings.redis_url)
+    app_attest = _app_attest_from_settings(settings, redis_client)
     return AuthWiring(
-        redis_client=Redis.from_url(settings.redis_url),
+        redis_client=redis_client,
         tokenizer=Tokenizer(
             keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
             active_key_id=settings.tokenization_key_id,
         ),
         delivery=DevLogDeliveryAdapter(),
-        attestation=(
-            DevStructuralAttestationVerifier()
-            if settings.dev_allow_unattested
-            else FailClosedAttestationVerifier()
+        attestation=PlatformAttestationVerifier(
+            app_attest=app_attest,
+            # HB-A3: no decoder exists until the Play Console organisation account
+            # and its service account do (intake_api.play_integrity)
+            play_integrity=FailClosedAttestationVerifier(
+                AttestationReason.PLAY_INTEGRITY_NOT_CONFIGURED
+            ),
+            dev=DevStructuralAttestationVerifier() if settings.dev_allow_unattested else None,
         ),
+        key_attestation=app_attest,
         dev_otp_peek=settings.dev_otp_peek,
         # INT-308: files/10 §2's carrier/geo check. The committed table
         # declares no prefixes, so this admits every request and says so in
@@ -315,7 +368,7 @@ def wiring_from_env() -> ApiWiring:
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
-        george=george_wiring_from_env(),
+        george=george_wiring_from_env(redis_url=settings.redis_url),
     )
 
 
@@ -415,14 +468,17 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     async def _dev_auth_ready() -> bool:
         return w.settings.dev_auth_configured
 
-    mount_health(
-        app,
-        readiness=[
-            ReadinessCheck("db", _db_ready),
-            ReadinessCheck("audit_store", state.audit.healthy),
-            ReadinessCheck("dev_auth", _dev_auth_ready),
-        ],
-    )
+    readiness = [
+        ReadinessCheck("db", _db_ready),
+        ReadinessCheck("audit_store", state.audit.healthy),
+    ]
+    if w.settings.dev_tier_expected:
+        # INT-197 dev tier: not ready until both dev bearers are set. Only the
+        # dev environment expects them (INT-325): every other environment,
+        # staging included, refuses them at boot, so anywhere else this check
+        # would hold the API not-ready forever.
+        readiness.append(ReadinessCheck("dev_auth", _dev_auth_ready))
+    mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
     app.include_router(notes.router)
@@ -440,5 +496,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(learned.router)
     app.include_router(admin.router)
     app.include_router(embed.router)
-    app.include_router(dev_voice.router)
+    # INT-326: the dev George route reaches a paid US vendor, so in production
+    # it is not mounted at all (404) — whatever the dev flags or wiring say.
+    if not intake_env_is_prod():
+        app.include_router(dev_voice.router)
     return app

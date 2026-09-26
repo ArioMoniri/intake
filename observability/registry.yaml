@@ -48,12 +48,39 @@ components:
   - component: minio
     self_hostable: true
     self_hosted_now: true
-    host: "dev compose 127.0.0.1:9000 — minio/minio:RELEASE.2024-01-16T16-07-38Z"
+    host: "dev compose 127.0.0.1:9000 — pgsty/minio RELEASE.2026-08-04T00-00-00Z (digest-pinned, see `image`)"
+    # INT-347: the ONE source of truth for the object-store image. Every
+    # compose service that runs the server or its `mc` client uses exactly
+    # this reference (tests/infra/test_object_store_image.py). The digest
+    # lives here, not in `host`: the console serves `host`, and no admin
+    # response may carry a 64-hex string.
+    image: "pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
     license: "AGPL-3.0-only"
     probe: minio_ready
     budget_ms: 1000
     fallback: "component:backups"
     phi_path: true
+    licence_verified_at: "2026-09-26"
+    licence_blob_url: "https://raw.githubusercontent.com/pgsty/silo/d88f46ccee345a9c2fabe2d221d9a9e56bc11aec/LICENSE"
+    licence_blob_sha256: "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0"
+    licence_note: >-
+      The owner chose the image (quoted in docs/evidence/INT-347.md): "owner
+      chose pgsty/minio (chat, 2026-09-26)". Upstream MinIO, Inc. withdrew
+      its community images, so the previous pin no longer pulls. The image is
+      the maintained AGPL community fork published by Pigsty. Its source repo
+      is github.com/pgsty/silo, a GitHub fork of upstream MinIO that was
+      renamed from pgsty/minio; the old name still redirects. The index
+      digest (amd64 + arm64) was read from registry-1.docker.io on
+      2026-09-26 for tag RELEASE.2026-08-04T00-00-00Z. The image's
+      org.opencontainers.image.revision label is d88f46cc, the revision the
+      blob above was read at. That blob is 34 523 bytes of the verbatim GNU
+      Affero GPL v3 text, git blob be3f7b28. It is byte-identical (same
+      sha256) to upstream MinIO's LICENSE at master and at the previously
+      pinned RELEASE.2024-01-16T16-07-38Z tag, and to /licenses/LICENSE
+      inside the pinned image's amd64 layer. The image also ships the mc
+      client (Pigsty's AGPL fork of upstream mc), which the backup toolbox
+      uses, so one pin covers both. The licence class is unchanged:
+      AGPL-3.0-only is what this row carried before INT-347.
 
   - component: hapi
     self_hostable: true

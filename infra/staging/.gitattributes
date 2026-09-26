@@ -1,0 +1,3 @@
+# `git archive` replaces REVISION's format string with the commit sha, so a
+# host that receives an archive and no .git still stamps /version truthfully.
+REVISION export-subst

@@ -1,0 +1,24 @@
+# INT-345 staging edge. This is the only published service: 80 for the ACME
+# HTTP-01 challenge and the HTTPS redirect, 443 for the API.
+#
+# The certificate is automatic (Let's Encrypt) for STAGING_HOSTNAME, which is
+# <EIP-dashed>.sslip.io on the AWS host. No ACME account mailbox is set:
+# naming one is HB-I14, a human fact, and Let's Encrypt issues without it.
+# No access log is configured, so URLs (Doctor Link paths included) are never
+# written to disk (invariant 6).
+{
+	admin off
+	servers {
+		# HTTP/3 would need 443/udp, which is not published
+		protocols h1 h2
+	}
+}
+
+{$STAGING_HOSTNAME} {
+	header {
+		# Every response states what this host may hold (HB-I5, HB-L11)
+		X-Intake-Environment "staging-synthetic-only"
+		-Server
+	}
+	reverse_proxy api:8000
+}

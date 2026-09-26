@@ -1,16 +1,30 @@
 /**
  * Auth API client (INT-131): challenge → attested OTP request → attested
  * verify with a DPoP proof → DPoP-bound session; refresh with rotation.
+ * INT-344: in release iOS builds "attested" means Apple App Attest — a key
+ * registered once through /v1/auth/attest/key, then an assertion per call.
  *
  * Every error surfaces as a typed, GENERIC kind (02 §8.2: generic errors;
  * the UI maps kinds to tr copy) — no server narrative is ever rendered.
  * Tokens go through tokens.ts (SecureStore); nothing here logs a phone, a
  * code or a token.
+ *
+ * INT-328: the base comes from the one resolver (apiBase.ts via
+ * expoApiBase.ts). A release build uses only its configured https base and
+ * throws `ApiBaseUnconfigured` (kind `unconfigured`) without one; a dev build
+ * walks the LAN exactly as before.
  */
-import { configuredServiceCandidates } from "@/lib/dev/expoHosts";
-
-import { buildAttestation } from "./attestation";
+import { attestationPorts, forgetAttestKey } from "./attestation";
+import {
+  AttestationFailureError,
+  type KeyRegistration,
+  buildAttestationHeader,
+  isAttestationRefusal,
+  shouldReattest,
+} from "./attestationPlan";
 import { dpopProof } from "./dpop";
+import { AuthApiError } from "./errors";
+import { buildApiBase } from "./expoApiBase";
 import {
   clearSession,
   getAccessToken,
@@ -20,48 +34,21 @@ import {
   setAccessToken,
 } from "./tokens";
 
-const API_PORT = 8000;
-
-export type AuthErrorKind =
-  "limited" | "phone" | "code" | "attestation" | "network" | "session" | "generic";
-
-export class AuthApiError extends Error {
-  readonly kind: AuthErrorKind;
-  readonly retryAfterS: number | null;
-
-  constructor(kind: AuthErrorKind, retryAfterS: number | null = null) {
-    super(kind); // the kind IS the message — codes, never narrative
-    this.kind = kind;
-    this.retryAfterS = retryAfterS;
-  }
-}
+export { ApiBaseUnconfigured } from "./apiBase";
+export { AuthApiError, type AuthErrorKind } from "./errors";
 
 let cachedBase: string | null = null;
-
-async function probeHealthz(base: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1500);
-  try {
-    const response = await fetch(`${base}/healthz`, { signal: controller.signal });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export async function apiBase(): Promise<string> {
   if (cachedBase !== null) {
     return cachedBase;
   }
-  for (const base of configuredServiceCandidates(API_PORT)) {
-    if (await probeHealthz(base)) {
-      cachedBase = base;
-      return base;
-    }
+  const base = await buildApiBase();
+  if (base === null) {
+    throw new AuthApiError("network"); // dev: no LAN host answered
   }
-  throw new AuthApiError("network");
+  cachedBase = base;
+  return base;
 }
 
 interface ErrorBody {
@@ -109,13 +96,73 @@ async function fetchChallenge(base: string): Promise<string> {
   return body.challenge;
 }
 
-async function attestationHeader(base: string): Promise<Record<string, string>> {
-  const nonce = await fetchChallenge(base);
-  const payload = await buildAttestation(nonce);
-  if (payload === null) {
-    throw new AuthApiError("attestation");
+/** App Attest key registration (INT-344): a refusal is typed for the key
+ * lifecycle, which forgets the key so the next attempt starts clean. */
+async function registerAttestKey(base: string, registration: KeyRegistration): Promise<void> {
+  const response = await fetch(`${base}/v1/auth/attest/key`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(registration),
+  });
+  if (response.ok) {
+    return;
   }
-  return { "X-Intake-Attestation": payload };
+  const body = (await parseBody(response)) as ErrorBody;
+  if (isAttestationRefusal(response.status, body.error)) {
+    throw new AttestationFailureError("rejected");
+  }
+  throw mapError(response.status, body);
+}
+
+interface AttestedResponse {
+  response: Response;
+  body: Record<string, unknown>;
+}
+
+/** POST with a fresh X-Intake-Attestation (files/10 §2: attestation on OTP
+ * request AND session start). ``perAttempt`` supplies headers that must be
+ * minted per request (the DPoP proof's jti). A refused App Attest assertion
+ * is retried once with a newly attested key — the server's record of the old
+ * one may have aged out. */
+async function attestedPost(
+  base: string,
+  path: string,
+  purpose: "otp.request" | "otp.verify",
+  payload: unknown,
+  perAttempt: (url: string) => Promise<Record<string, string>> = async () => ({}),
+): Promise<AttestedResponse> {
+  const url = `${base}${path}`;
+  for (let attempt = 0; ; attempt += 1) {
+    const ports = await attestationPorts({
+      challenge: () => fetchChallenge(base),
+      registerKey: (registration) => registerAttestKey(base, registration),
+    });
+    let header: string;
+    try {
+      header = await buildAttestationHeader(purpose, ports);
+    } catch (error) {
+      if (error instanceof AttestationFailureError) {
+        throw new AuthApiError("attestation", null, error.failure);
+      }
+      throw error;
+    }
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Intake-Attestation": header,
+        ...(await perAttempt(url)),
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await parseBody(response);
+    const errorCode = typeof body.error === "string" ? body.error : undefined;
+    if (shouldReattest({ status: response.status, errorCode, attempt, mode: ports.mode.kind })) {
+      await forgetAttestKey();
+      continue;
+    }
+    return { response, body };
+  }
 }
 
 export interface OtpRequestResult {
@@ -124,12 +171,9 @@ export interface OtpRequestResult {
 
 export async function requestOtp(phoneE164: string): Promise<OtpRequestResult> {
   const base = await apiBase();
-  const response = await fetch(`${base}/v1/auth/otp/request`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(await attestationHeader(base)) },
-    body: JSON.stringify({ phone: phoneE164 }),
+  const { response, body } = await attestedPost(base, "/v1/auth/otp/request", "otp.request", {
+    phone: phoneE164,
   });
-  const body = await parseBody(response);
   if (!response.ok) {
     throw mapError(response.status, body as ErrorBody);
   }
@@ -161,17 +205,13 @@ async function storeBundle(body: TokenBundleBody): Promise<string> {
  * is returned (the server created the account when it did not exist). */
 export async function verifyOtp(phoneE164: string, code: string): Promise<string> {
   const base = await apiBase();
-  const url = `${base}/v1/auth/otp/verify`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(await attestationHeader(base)),
-      DPoP: await dpopProof({ method: "POST", url }),
-    },
-    body: JSON.stringify({ phone: phoneE164, code }),
-  });
-  const body = await parseBody(response);
+  const { response, body } = await attestedPost(
+    base,
+    "/v1/auth/otp/verify",
+    "otp.verify",
+    { phone: phoneE164, code },
+    async (url) => ({ DPoP: await dpopProof({ method: "POST", url }) }),
+  );
   if (!response.ok) {
     throw mapError(response.status, body as ErrorBody);
   }

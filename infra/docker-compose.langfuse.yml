@@ -186,10 +186,10 @@ services:
       retries: 12
 
   langfuse-minio:
-    # The same pinned image the dev tier uses (AGPL-3.0-only, already in the
-    # self-hosting registry) rather than upstream's untagged Chainguard one —
-    # an unpinned image is not auditable.
-    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    # The same digest-pinned image the dev tier uses (AGPL-3.0-only, recorded
+    # in the self-hosting registry's `minio` row, INT-347) rather than
+    # upstream's untagged Chainguard one — an unpinned image is not auditable.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
     profiles: ["langfuse"]
     entrypoint: ["sh"]
     command: ["-c", "mkdir -p /data/langfuse && minio server --address ':9000' /data"]

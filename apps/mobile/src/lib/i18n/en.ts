@@ -47,8 +47,16 @@ export const en: Record<MessageKey, string> = {
   "auth.error.limited": "Too many attempts. Please wait a little and try again.",
   "auth.error.code": "The code could not be verified. Check it or request a new one.",
   "auth.error.network": "The server could not be reached. Check your connection.",
+  "auth.error.unconfigured":
+    "This version of the app is not connected to the service yet. Please update the app and try again.",
   "auth.error.attestation":
     "This device could not be verified. Please update the app and try again.",
+  "auth.error.attestationUnsupported":
+    "This device does not support secure sign-in. Please try from another phone.",
+  "auth.error.attestationPending":
+    "Secure sign-in is not available on this device yet. Please try again later.",
+  "auth.error.attestationService":
+    "The device check service cannot be reached right now. Please try again shortly.",
   "auth.biometric.prompt": "Verify your identity to continue.",
   "auth.biometric.locked": "Screen locked",
   "auth.biometric.retry": "Try again",

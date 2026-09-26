@@ -512,7 +512,9 @@ def test_a_gate_naming_an_unknown_slot_is_refused(
     life_threat: LifeThreatSet, template: OperationalTemplate
 ) -> None:
     """A gate on a slot the resolved protocol does not declare would produce
-    a Questionnaire whose enableWhen points at nothing."""
+    a Questionnaire whose enableWhen points at nothing — and an engine whose
+    gate reads Unknown forever. Since INT-355 the resolver refuses it with its
+    own code, before any emitter runs."""
     pack = _pack(sections={"ziyaret": Section(slots={"birinci": _slot(ask_if="yok.slot == 'x'")})})
     with pytest.raises(CompileError) as excinfo:
         compile_bundle(
@@ -522,7 +524,9 @@ def test_a_gate_naming_an_unknown_slot_is_refused(
             template=template,
             voice=VOICE,
         )
-    assert RefusalCode.GATE_NOT_PROJECTABLE in tuple(r.code for r in excinfo.value.refusals)
+    assert [(r.code, r.subject) for r in excinfo.value.refusals] == [
+        (RefusalCode.GATE_REF_UNKNOWN, "ziyaret.birinci")
+    ]
 
 
 def test_ask_if_and_skip_if_with_different_behaviours_are_refused(
