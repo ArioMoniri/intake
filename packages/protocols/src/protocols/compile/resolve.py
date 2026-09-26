@@ -34,6 +34,7 @@ from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
+from protocols.gates import GateRefProblem, SlotNamespace, qualify_gate
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE, LocaleCode, safe_code
@@ -51,6 +52,7 @@ from protocols.ops import (
 )
 from protocols.pack import LIFE_THREAT_SET_ID, ProtocolPack
 from protocols.pack_locale import selectable_locales
+from protocols.triage.expr import WhenGrammarError, parse_when
 from protocols.types import CrisisNumber, Delivery, Maturity, PackLayer, RuleStatus
 from protocols.validator import FindingCode, resolve_red_flags, validate_packs
 
@@ -71,6 +73,10 @@ _LAYER_RANK: Mapping[PackLayer, int] = {layer: rank for rank, layer in enumerate
 _MONOTONICITY_FINDINGS = MONOTONICITY_FINDINGS
 _PARAPHRASE_FINDINGS = frozenset({FindingCode.INSTRUMENT_PARAPHRASE})
 _SERVABLE_MATURITY = frozenset({Maturity.L1, Maturity.L2, Maturity.L3})
+_GATE_REF_CODES: Mapping[GateRefProblem, RefusalCode] = {
+    GateRefProblem.AMBIGUOUS: RefusalCode.GATE_REF_AMBIGUOUS,
+    GateRefProblem.UNKNOWN: RefusalCode.GATE_REF_UNKNOWN,
+}
 
 # One text-carrying field per slot that override_text may address. All three
 # are locale maps: ``ask_tr`` and ``follow_up_tr`` since INT-297, ``confirm_tr``
@@ -425,6 +431,45 @@ def _is_interrogative(fragment: str) -> bool:
         return False
     last = words[-1].casefold()
     return any(last.startswith(suffix) for suffix in _INTERROGATIVE_SUFFIXES)
+
+
+def _gate_ref_refusals(sections: Sequence[ResolvedSection]) -> list[Refusal]:
+    """INT-355: every gate reference names exactly one slot of the resolved chain.
+
+    A bare name is read against every section the chain resolved to, because
+    that is where a specialty gate's slot usually lives — in the base or the
+    cluster pack it extends. Two holders is an authoring error the compiler
+    will not pick a winner for; no holder is a gate that can never open, and a
+    question behind a gate that never opens is silently never asked (files/13
+    §9.5). A gate outside the ``when`` grammar is not judged here: the emitter
+    refuses it as GATE_NOT_PROJECTABLE and the engine at plan build.
+    """
+    namespace = SlotNamespace(
+        (section.id, slot.key) for section in sections for slot in section.slots
+    )
+    refusals: list[Refusal] = []
+    for section in sections:
+        for slot in section.slots:
+            for field_name, text in (("ask_if", slot.slot.ask_if), ("skip_if", slot.slot.skip_if)):
+                if text is None:
+                    continue
+                try:
+                    node = parse_when(text)
+                except WhenGrammarError:
+                    continue
+                _, issues = qualify_gate(node, namespace)
+                refusals.extend(
+                    _refusal(
+                        _GATE_REF_CODES[issue.problem],
+                        slot.fhir_link_id,
+                        f"{field_name} {text!r}: {issue.describe()}. A gate that does "
+                        "not resolve to exactly one slot can never open, so the "
+                        "question it guards would be silently dropped (files/03 §6; "
+                        "files/13 §9.5)",
+                    )
+                    for issue in issues
+                )
+    return refusals
 
 
 # --- chain and ops -----------------------------------------------------------
@@ -857,6 +902,7 @@ def resolve_protocol(
                 slots=tuple(resolved_slots),
             )
         )
+    refusals.extend(_gate_ref_refusals(sections))
 
     if refusals:
         raise _refused(refusals)
