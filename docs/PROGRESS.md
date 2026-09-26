@@ -1,5 +1,44 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
+- Goal: acceptance verbatim (GitHub #528):
+  - *"the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"*
+  - *"delivery uses an async HTTP client so the OTP route never blocks the event loop"*
+  - *"under prod the adapter is Twilio when configured and nothing otherwise (INT-325); credentials resolve through the secrets path (invariant 14), never an in-code default"*
+  - *"api.twilio.com is added to infra/security/egress-allowlist.yaml with its EgressPurpose member and rendered proxy config, and the phone-number field carries the data-inventory annotation (invariant 18), only after the owner records the DPA and cross-border decision"*
+  - Audit F13: the off-main adapter blocked the loop, had no tests, read env credentials, sat off the allow-list and fell back silently.
+- Plan:
+  - `intake_platform.egress`: add `guarded_async_transport` / `guarded_async_client`. They are the same admission step (`_admit`) as the sync guard, now shared by both, with an awaited send and DNS resolution in a worker thread. Add `EgressPurpose.SMS_OTP_DELIVERY`.
+  - New `intake_api.otp_twilio`: an `httpx.AsyncClient` over that guard, declaring the SMS purpose and `DataClass.PHI`, with credentials from OpenBao `secret/api/twilio` only.
+  - Make the OTP seam async, with a typed `OtpDeliveryError` and a generic `503 otp_delivery_unavailable`.
+  - Wiring outside dev: Twilio when the egress policy admits it **and** the vault holds all three values; otherwise the tier stays unconfigured. The dev logger is never wired outside dev.
+  - Evidence in `docs/evidence/INT-329.md`.
+- Tests added:
+  - `tests/api/test_otp_twilio.py` + `tests/api/test_otp_twilio_wiring.py` (81): 11 vendor-failure scenarios plus success, each mapped to one reason; a log-capture test over every scenario covering the error chain and the transfer log; an event-loop ticker test; credential shape checks named by field; the prod/staging matrix (any vault value missing, vault absent or unreachable, env-only credentials, the shipped allow-list, the PHI runtime gate unset, an unreadable allow-list, no tokenization key); dev unchanged; the route's 202 and 503.
+  - `tests/security/test_egress_async.py` (17): the INT-018 negatives through the async path, resolution off the loop thread, and sync/async decision parity.
+  - Near-miss negative: the SMS purpose is refused on every tier of the shipped allow-list, for every data class.
+  - RED: 106 failed, 114 passed, 1 collection error. GREEN: 271 passed. Mutation check: 5/5 killed.
+- Result: `tests/api` 467 passed (was 386). The adjacent suites passed 2360; 4 deid-NER tests failed only because the model cache is absent from a fresh worktree, and they pass with the shared cache. mypy strict is clean on 425 files; ruff is clean; `make safety` exits 0; `no_placeholders` is OK. `make check` was not run in full, because check-integration needs a container runtime and none is available here.
+- Invariants touched and still passing:
+  - **6**: no phone, code, token or vendor body in logs or errors; errors are unchained.
+  - **14**: vendor secret from OpenBao only; the call goes through the egress guard with purpose and data class.
+  - **17**: no fake adapter; the missing row fails closed and the content is left empty.
+  - **18**: nothing new is persisted.
+  - **19**: the PHI-path tier stays empty.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. The async guard is ADR-025's single enforcer: one admission function, two send paths.
+  - One bounded exemption added to the allow-list vocabulary test (`PURPOSES_AWAITING_THE_OWNER`). It can only shrink: a row declaring the purpose fails the companion test.
+  - No HB, ADR or alembic id minted.
+- Blocked on: **the owner, with counsel**. *May the patient's phone number and a one-time code go to Twilio, a US processor, for OTP delivery, and under which DPA and which KVKK Art. 9 cross-border transfer mechanism?* The decision id becomes the row's `phi_exception_approval`. No HUMAN_BLOCKERS id exists yet; the owner allocates one.
+- Next:
+  - PR (Sec-Row `onboarding`, Refs #528).
+  - After the decision:
+    - the `phi_path` row, re-rendered into the squid config;
+    - the pending-set removal;
+    - the recipient annotation;
+    - the ADR-025 topology change;
+    - staging: a kv-v2 mount, a policy grant on `secret/data/api/twilio`, the runbook step, and pointing the #573 guard at the vault.
+
 ### 2026-09-26T20:30:00Z · INT-058 · delivered (production key awaits INT-019)
 - Goal: acceptance verbatim — *"compiler emits bundle.tar.gz signed; runtime refuses unsigned/tampered; note meta shows protocol hash"* (files/04 §7).
 - Plan:
