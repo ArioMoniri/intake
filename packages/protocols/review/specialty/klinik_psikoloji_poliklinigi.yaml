@@ -101,6 +101,13 @@ sections:
         ask_tr:
           tr: Son zamanlarda uyku düzeninizde bir değişiklik oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      zorlanmada_madde_kullanimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Zorlandığınızda alkol ya da başka bir maddeye başvurduğunuz oluyor mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
       kisisel_kulturel_tercih:
         type: boolean
         required: false

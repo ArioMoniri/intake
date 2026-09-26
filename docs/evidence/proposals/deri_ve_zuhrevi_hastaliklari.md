@@ -206,7 +206,7 @@ CANDIDATE — clinician to approve wording.
 `OBSERVATION.symptom_sign.v1` · source: **general intake (venereology symptom capture)** — no
 STI-specific guideline threshold retrieved (§4); sensitive category (see §2 note)
 > "Genital bölgenizde yara, döküntü ya da olağandışı bir akıntı gibi bir şikâyetiniz var mı?"
-gen: hold=invariant 18 — new sensitive data category; owner decision required
+gen: slot=genital_sikayet; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. **HOLD (verification finding 22).** Sensitive data: capture
 only under an explicit consent scope + inventory annotation (invariant 18); clinician/DPO sign-off
 required before this question is enabled.

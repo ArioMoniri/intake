@@ -108,6 +108,13 @@ sections:
         ask_tr:
           tr: Uykuya pek ihtiyaç duymadan kendinizi aşırı enerjik hissettiğiniz dönemler oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ruh_sagligi_ve_hastaliklari.md'
+      diger_madde_kullanimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Alkol ve sigara dışında keyif verici bir madde kullanıyor musunuz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ruh_sagligi_ve_hastaliklari.md'
 red_flags:
 - id: rf.ruh_sagligi_ve_hastaliklari_l0_taslak
   label_tr: Ruh Sağlığı ve Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

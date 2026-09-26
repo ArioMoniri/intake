@@ -44,6 +44,20 @@ sections:
         ask_tr:
           tr: İsterseniz bu soruyu geçebilirsiniz. Doktorun önceden bilmesini istediğiniz bir şey var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/adli_tip.md'
+      su_an_guvende:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda kendinizi güvende hissediyor musunuz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/adli_tip.md'
+      boyun_baski_sonrasi_belirti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Boynunuza baskı uygulanan bir olaydan sonra ses kısıklığı ya da yutkunmada zorlanma fark ettiniz mi?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/adli_tip.md'
       suregelen_hastalik:
         type: boolean
         required: false

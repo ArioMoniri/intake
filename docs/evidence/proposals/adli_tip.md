@@ -192,7 +192,7 @@ works in voice; "boş bırakabilirsiniz" was typed-only (finding 28).
 
 **Q3 — Feeling safe now** · archetype: `OBSERVATION.story.v1` (provisional) · source: S1 (Rec 1 first-line support; Rec 3 inquiry)
 > "Şu anda kendinizi güvende hissediyor musunuz?"
-gen: hold=invariant 18 — new sensitive data category; owner decision required
+gen: slot=su_an_guvende; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. HOLD (finding 21). Also open: S1's non-universal-screening
 caveat is not captured verbatim (§4 gap 3). If the hold is lifted, a "no" answer may at most feed a
 candidate_flag **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT
@@ -200,14 +200,14 @@ authoritative)**.
 
 **Q4 — A trusted support person** · archetype: `OBSERVATION.story.v1` (provisional) · source: S1 (Rec 1 first-line support)
 > "Randevuya sizinle birlikte gelmesini istediğiniz, güvendiğiniz biri var mı?"
-gen: hold=invariant 18 — new sensitive data category; owner decision required
+gen: hold=clinician and legal decision — companion invitation conflicts with S2 Box A (see alone)
 CANDIDATE — clinician to approve wording. HOLD (finding 21). Also open: inviting a companion
 conflicts with S2 Box A, which asks for the patient to be seen alone when the history is taken. That
 conflict is a clinician + legal decision.
 
 **Q5 — Neck-injury / strangulation symptom safety-net** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (IFAS Box B — airway red flags)
 > "Boynunuza baskı uygulanan bir olaydan sonra ses kısıklığı ya da yutkunmada zorlanma fark ettiniz mi?"
-gen: hold=invariant 18 — new sensitive data category; owner decision required
+gen: slot=boyun_baski_sonrasi_belirti; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. The reviewer passes the text (IFAS Box B supports voice
 change + dysphagia) but keeps it under finding 21's data decision, so it is held with Q3–Q4. If the
 hold is lifted: candidate_flag **YELLOW_REVIEW (candidate, pending clinician + rules-engine

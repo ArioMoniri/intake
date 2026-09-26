@@ -86,6 +86,13 @@ sections:
         ask_tr:
           tr: Cildinizde yeni çıkan ya da büyüyen bir kabartı veya leke fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
+      genital_sikayet:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Genital bölgenizde yara, döküntü ya da olağandışı bir akıntı gibi bir şikâyetiniz var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/deri_ve_zuhrevi_hastaliklari.md'
       cilt_tanisi:
         type: boolean
         required: false
