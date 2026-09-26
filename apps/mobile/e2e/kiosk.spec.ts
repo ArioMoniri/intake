@@ -110,8 +110,10 @@ describe("INT-143 the kiosk gate (source-slice)", () => {
   it("surfaces a tamper alert and never silently degrades", () => {
     expect(gate).toContain("tamperDetected");
     expect(gate).toMatch(/tampered/);
-    // the alert is announced, not carried by layout alone (SC 4.1.3/1.4.1)
-    expect(gate).toMatch(/live=/);
+    // the alert is announced, not carried by layout alone (SC 4.1.3/1.4.1),
+    // on both platforms: the announcer sets the live region AND posts the
+    // iOS announcement (INT-362)
+    expect(gate).toMatch(/<AnnouncedText\b[^>]*\btone="error"/);
   });
 
   it("renders the large-type privacy layout and blocks screen capture", () => {

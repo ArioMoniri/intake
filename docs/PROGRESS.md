@@ -1,6 +1,6 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
-### 2026-09-26T23:40:00Z · INT-375 · done (PR open, not merged)
+### 2026-09-26T23:35:00Z · INT-375 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #609):
   - *"`protocols compile` refuses a pack chain in which a gate reads a slot that comes later in the merged ask order, with a typed refusal code, for served and review packs alike"*
   - *"golden tests carry a near-miss negative control; `make safety` stays green"*
@@ -92,6 +92,35 @@
   - PR (Sec-Row `onboarding`, Closes #587).
   - After PR #590 lands, flip the backlog row to done.
   - After PR #583 lands, the SC 3.3.8 row can cite the new tests.
+
+### 2026-09-26T21:58:00Z · INT-362 · review (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #588):
+  - *"every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"*
+  - *"the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"*
+- Plan:
+  - One announcer, `src/components/Announced.tsx`. `AnnouncedText` and `AnnouncedRegion` set the Android live region and post the iOS announcement from a single `tone`.
+  - The rules are pure and node-tested in `lib/a11y/announce.ts`: error is assertive and spoken "Hata: …", status is polite, iOS posts and Android does not, and a line is announced once per change.
+  - Every error and status line is routed through the announcer.
+  - The BK28 test finds the lines by walking `src`.
+- Tests added:
+  - `announce.test.ts`: 15 tests.
+  - `a11y.spec.ts` BK28 rewrite: discovery over the tree, the per-file each over 15 discovered files, the near-miss control, a shrink-only exception list, no hand-made live region, tone literals, both halves in the announcer, only the announcer calls the iOS hook, and invariant 6.
+  - `kiosk.spec.ts` now expects the announcer.
+  - RED: 36 failed / 73 passed. GREEN: 110 / 110. Whole mobile suite: 2048 passed (main: 2012). Mutation checks: 4 of 4 killed.
+- Result:
+  - `make check-ts` green; `make check-i18n` 30 passed; `pnpm -r typecheck` green; expo lint clean; prettier clean; `no_placeholders`, `phi_scan` and `claims_scan` OK.
+  - `check-py` was not run, because no Python changed. `make safety` and `make security` were not run, because the change touches no protocol, triage or security surface.
+- Invariants touched and still passing:
+  - **2:** only on-screen words are announced.
+  - **5:** no new copy.
+  - **6:** announcements reach no log, and a test pins it.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Findings not fixed here:
+  - `notifications.pending` doubles as the in-flight state, so it cannot be announced as an error without a store change.
+  - `review.sentInfo` and `consent.queue.note` show persisted state on every arrival.
+  - A repeated identical error is announced once (the INT-144 rule, on both platforms).
+- Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
+- Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)

@@ -5450,7 +5450,8 @@
   title: "WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack"
   depends_on: [INT-226]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-362.md
   acceptance:
     - "every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"
     - "the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"
