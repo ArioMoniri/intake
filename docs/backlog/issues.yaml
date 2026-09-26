@@ -5464,7 +5464,8 @@
   title: "WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend"
   depends_on: [INT-226]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-363.md
   acceptance:
     - "before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"
     - "the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"

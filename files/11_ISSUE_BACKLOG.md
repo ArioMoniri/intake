@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**287 issues.** By phase: P0 156 · P1 77 · P2 47 · P3 7. By status: awaiting-human 24 · doing 15 · done 156 · todo 91 · withdrawn 1.
+**287 issues.** By phase: P0 156 · P1 77 · P2 47 · P3 7. By status: awaiting-human 24 · doing 15 · done 157 · todo 90 · withdrawn 1.
 
 ## P0
 
@@ -248,7 +248,7 @@
 | INT-360 | WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
 | INT-361 | WCAG 3.3.8: the OTP field accepts a pasted or autofilled code | E08-mobile | INT-226 | area:mobile, risk:legal | done |
 | INT-362 | WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack | E08-mobile | INT-226 | area:mobile, risk:legal | done |
-| INT-363 | WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
+| INT-363 | WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend | E08-mobile | INT-226 | area:mobile, risk:legal | done |
 
 ## P2
 
