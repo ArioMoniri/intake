@@ -55,6 +55,7 @@ from intake_api import (
     satisfaction,
     taxonomy_routes,
     visits,
+    visits_acibadem,
 )
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
@@ -75,6 +76,7 @@ from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
 if TYPE_CHECKING:
+    from intake_connectors.acibadem import AcibademAppointmentsClient
     from redis import Redis
 
     from intake_api.app_attest import AppAttestVerifier
@@ -125,6 +127,11 @@ class ApiWiring:
     # unconfigured (no dev flag / no key), so /dev/voice/george-clip answers
     # 503 and the mobile falls back to the self-hosted TTS (fail closed).
     george: GeorgeWiring | None = None
+    # INT-318: the Acıbadem appointments read client, built from the one row
+    # infra/connectors/sources.yaml registers for it and from nothing else.
+    # None = no row (the shipped state), so /v1/visits/sync answers
+    # "unavailable" (fail closed).
+    acibadem: AcibademAppointmentsClient | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -368,6 +375,7 @@ def wiring_from_env() -> ApiWiring:
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
         george=george_wiring_from_env(redis_url=settings.redis_url),
+        acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
     )
 
 
@@ -384,6 +392,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
+        acibadem=w.acibadem,
     )
 
     @asynccontextmanager
@@ -480,6 +489,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
+    app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)

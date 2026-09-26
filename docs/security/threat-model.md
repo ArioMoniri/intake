@@ -1243,6 +1243,41 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   pack fails closed while the SBSGM list is uncommitted, and the processor-role DPA clause set
   anchors to real repo documents.
 
+### INT-318 — the read direction: an on-premises appointments source and `/v1/visits/sync`
+
+- **Assets:** the clinical read-source registry (`infra/connectors/sources.yaml`), the
+  upstream directory of upcoming patients (names, mobile numbers, TC Kimlik — PHI), one
+  patient's appointments, the verified phone the app submits.
+- **Trust boundaries:** our server ↔ a hospital LAN host reached by a private IPv4 literal,
+  possibly over plaintext; the signed-in patient ↔ another patient's record.
+- **Threats (STRIDE/LINDDUN):** [E/I] a source row built in code so the read goes live on
+  environment variables alone (audit 2026-09-26 F06); [I] patient A reading B's visits by
+  submitting B's number; [I] a shared handset showing one patient's visits to the other; [I]
+  a service consent standing in for a hospital-record read; [Dd] SSRF through the read
+  guard; [D] an upstream blip breaking sign-in.
+- **Controls (files/10):** the row is read from the registry and never built — the file
+  ships with zero rows, so nothing is wired and the route answers `unavailable`; a row must
+  name a signed DPA, a tier-3 approval, a purpose from the closed INT-038 registry and, for
+  `http`, a separate recorded plaintext decision; `LanSourcePolicy` accepts only the
+  registered RFC 1918 literal (the exact complement of the vendor allow-list), performs no
+  DNS, disables redirects and needs `INTAKE_ALLOW_LAN_SOURCE=explicit-yes` at runtime; the
+  credential is read from OpenBao by the row's reference; the row serves only its own
+  tenant; the submitted phone must tokenize to the caller's own pseudonym before the feed is
+  touched; identity is `resolve_identity` with a terminal ambiguous refusal; the read clears
+  `core` at the door and the row's own purpose inside, and is audited (hash chain, ids
+  only); an upstream failure is `upstream_unavailable`, 200, no visits.
+- **Signals:** the egress decision lands in the KVKK transfer register, and a denial counts
+  on `sec_egress_denied_total` — the same series and the same `EgressDenied` as the vendor guard.
+  No new metric.
+- **Tests:** `tests/connectors/test_acibadem.py` — the guard in both directions, the schema's
+  refusals, identity resolution. `tests/api/test_visits_acibadem_sync.py` — the route's
+  behaviour (own visits only, A-cannot-read-B with an untouched feed, the shared handset,
+  consent at the door, the audit, upstream failures). `tests/api/test_visits_acibadem_registry.py`
+  — zero rows wire nothing even with the int-demo environment set, no `intake_api` module
+  builds a row or names a binding ref (derived from the schema), core alone does not unlock a
+  row registered for another purpose, another tenant's row serves no one, the runtime gate,
+  and an invalid, ambiguous or plaintext-without-decision registry wiring nothing.
+
 ## `embed` — the partner white-label launch handshake
 
 - **Assets:** the tenant embed registry (branding + recorded human facts), per-tenant
