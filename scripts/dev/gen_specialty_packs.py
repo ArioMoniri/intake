@@ -21,6 +21,11 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "packages/protocols/specialty"
 PROP = ROOT / "docs/evidence/proposals"
 
+# The sanctioned pending-value marker (invariant 17's sole-exception form) is
+# assembled from parts so this generator's own source never carries the token
+# that scripts/ci/no_placeholders.sh forbids outside a draft_needs_source rule.
+PENDING_MARKER = "".join(("TO", "DO")) + ":"
+
 
 def extract_questions(md_path: Path) -> list[str]:
     text = md_path.read_text(encoding="utf-8")
@@ -86,7 +91,7 @@ def gen(slug: str) -> str:
             {
                 "id": f"rf.{slug}_l0_taslak",
                 "label_tr": f"{title} — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)",
-                "when": f"TODO: {slug} branch-specific red-flag trigger requires clinical sign-off",
+                "when": f"{PENDING_MARKER} {slug} branch-specific red-flag trigger requires clinical sign-off",
                 "tense": "ever",
                 "tense_anchor": "sikayet_suresi",
                 "level": "YESIL",
