@@ -4,12 +4,13 @@ INT-131. In DEV, database URLs default to the compose dev tier's
 least-privilege roles (the same values migrations/0001 creates and
 tests/data/test_rls.py connects with).
 
-In PROD (INT-325; audit 2026-09-26 F04/F14) ``ApiSettings.from_env`` refuses
-to build at all when any ``INTAKE_DEV_*`` flag is set, when the KEK mode is
-``file-dev``, or when any DB/MinIO credential variable is missing — a dev
-default is never used in prod. Prod is detected like the platform's other
-prod gates (``intake_platform.documents``, ``room_tokens``): ``INTAKE_ENV``
-lower-cased starts with ``prod``, a superset of ``secrets.py``'s exact match."""
+OUTSIDE DEV (INT-325; audit 2026-09-26 F04/F14) ``ApiSettings.from_env``
+refuses to build at all when any ``INTAKE_DEV_*`` flag is set, when the KEK
+mode is ``file-dev``, or when any DB/MinIO credential variable is missing — a
+dev default is never used outside dev. A public staging host is as strict as
+prod. Dev is defined once, by :func:`is_dev_env`: ``INTAKE_ENV`` unset, empty
+or ``dev`` (stripped, lower-cased) — the only non-prod value any test, CI job
+or compose file in this repository sets; everything else is strict."""
 
 from __future__ import annotations
 
@@ -21,10 +22,10 @@ from typing import Literal
 
 __all__ = [
     "ApiSettings",
-    "ProdConfigRefusedError",
+    "DevConfigRefusedError",
     "environment_name",
-    "is_prod_env",
-    "refuse_dev_config_in_prod",
+    "is_dev_env",
+    "refuse_dev_config_outside_dev",
 ]
 
 # Environment KEY NAMES, not credentials: the values live only in the
@@ -40,8 +41,8 @@ ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
 # INT-308: where the carrier/geo allocation table lives.
 ENV_MSISDN_ALLOCATION = "INTAKE_MSISDN_ALLOCATION"
 EXPLICIT_YES = "explicit-yes"
-# INT-325: every dev gate lives under this prefix; in prod ANY of them set is
-# refused, so a gate added later is covered without being listed here.
+# INT-325: every dev gate lives under this prefix; outside dev ANY of them set
+# is refused, so a gate added later is covered without being listed here.
 DEV_FLAG_PREFIX = "INTAKE_DEV_"
 ENV_KEK_MODE = "INTAKE_API_KEK_MODE"
 ENV_APP_DB_URL = "INTAKE_API_DB_URL"
@@ -50,8 +51,8 @@ ENV_BOOTSTRAP_DB_URL = "INTAKE_API_BOOTSTRAP_DB_URL"
 ENV_MINIO_USER = "MINIO_ROOT_USER"
 ENV_MINIO_PASSWORD = "MINIO_ROOT_PASSWORD"  # noqa: S105 — env var name
 # Each of these falls back to an in-code dev credential when absent in dev;
-# in prod an absent (or empty) one refuses the boot instead.
-PROD_REQUIRED_CREDENTIALS = (
+# outside dev an absent (or empty) one refuses the boot instead.
+NON_DEV_REQUIRED_CREDENTIALS = (
     ENV_APP_DB_URL,
     ENV_AUDIT_DB_URL,
     ENV_BOOTSTRAP_DB_URL,
@@ -62,8 +63,8 @@ PROD_REQUIRED_CREDENTIALS = (
 KekMode = Literal["transit", "file-dev"]
 
 
-class ProdConfigRefusedError(RuntimeError):
-    """Raised at boot when a prod environment carries a dev bypass, the
+class DevConfigRefusedError(RuntimeError):
+    """Raised at boot when a non-dev environment carries a dev bypass, the
     process-local KEK mode, or relies on an in-code dev credential. The
     message names the variables and never their values (invariant 6)."""
 
@@ -76,17 +77,19 @@ def environment_name(environ: Mapping[str, str]) -> str:
     return environ.get("INTAKE_ENV", "").strip().lower() or DEV_ENVIRONMENT
 
 
-def _is_prod_name(environment: str) -> bool:
-    return environment.startswith("prod")
+def _is_dev_name(environment: str) -> bool:
+    return environment == DEV_ENVIRONMENT
 
 
-def is_prod_env(environ: Mapping[str, str]) -> bool:
-    return _is_prod_name(environment_name(environ))
+def is_dev_env(environ: Mapping[str, str]) -> bool:
+    """The one definition of dev (INT-325): ``INTAKE_ENV`` unset, empty or
+    ``dev``. Every other value, staging included, is held to prod's rules."""
+    return _is_dev_name(environment_name(environ))
 
 
-def refuse_dev_config_in_prod(environ: Mapping[str, str]) -> None:
-    """Fail closed at boot (INT-325). A no-op outside prod, so dev is unchanged."""
-    if not is_prod_env(environ):
+def refuse_dev_config_outside_dev(environ: Mapping[str, str]) -> None:
+    """Fail closed at boot (INT-325). A no-op in dev, so dev is unchanged."""
+    if is_dev_env(environ):
         return
     offences: list[str] = []
     dev_flags = sorted(
@@ -96,13 +99,13 @@ def refuse_dev_config_in_prod(environ: Mapping[str, str]) -> None:
         offences.append("dev flag(s) set: " + ", ".join(dev_flags))
     if environ.get(ENV_KEK_MODE) == "file-dev":
         offences.append(f"{ENV_KEK_MODE} is file-dev (process-local KEKs)")
-    missing = [name for name in PROD_REQUIRED_CREDENTIALS if not environ.get(name)]
+    missing = [name for name in NON_DEV_REQUIRED_CREDENTIALS if not environ.get(name)]
     if missing:
         offences.append("credential variable(s) missing: " + ", ".join(missing))
     if offences:
-        raise ProdConfigRefusedError(
-            "INTAKE_ENV is prod and the API refuses to boot with dev configuration "
-            "(no dev default is used in prod): " + "; ".join(offences)
+        raise DevConfigRefusedError(
+            f"INTAKE_ENV={environment_name(environ)} is not dev and the API refuses to boot "
+            "with dev configuration (no dev default is used outside dev): " + "; ".join(offences)
         )
 
 
@@ -164,19 +167,15 @@ class ApiSettings:
         default_factory=lambda: Path("infra/security/msisdn_allocation.yaml")
     )
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
-    # for `production` (refuse dev-only collaborators such as the OTP dev
-    # delivery logger) and `dev_tier_expected` (the dev-bearer readiness check).
+    # for `dev_tier_expected`, which gates every dev-only collaborator (the
+    # dev-bearer readiness check, the OTP dev delivery logger).
     environment: str = DEV_ENVIRONMENT
 
     @property
-    def production(self) -> bool:
-        return _is_prod_name(self.environment)
-
-    @property
     def dev_tier_expected(self) -> bool:
-        """Dev bearers belong to the dev environment only. Prod refuses them
-        at boot and staging never sets them, so only dev waits on them."""
-        return self.environment == DEV_ENVIRONMENT
+        """Dev bearers and dev collaborators belong to the dev environment
+        only; every other environment refuses them at boot (INT-325)."""
+        return _is_dev_name(self.environment)
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -190,8 +189,8 @@ class ApiSettings:
 
     @classmethod
     def from_env(cls) -> ApiSettings:
-        # INT-325: in prod, refuse before any dev default below can apply
-        refuse_dev_config_in_prod(os.environ)
+        # INT-325: outside dev, refuse before any dev default below can apply
+        refuse_dev_config_outside_dev(os.environ)
         kek_mode: KekMode = "file-dev" if os.environ.get(ENV_KEK_MODE) == "file-dev" else "transit"
         return cls(
             token_patient=os.environ.get(ENV_TOKEN_PATIENT) or None,

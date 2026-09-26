@@ -1,4 +1,4 @@
-"""INT-325 — production refuses dev bypasses and dev default credentials.
+"""INT-325 — outside dev, the API refuses dev bypasses and dev default credentials.
 
 Production audit 2026-09-26, findings F04, F14 and the F13 silent fallback.
 Before this issue nothing refused any of the following under ``INTAKE_ENV=prod``:
@@ -14,11 +14,11 @@ Before this issue nothing refused any of the following under ``INTAKE_ENV=prod``
 - the OTP tier wired to the dev event logger, which answers "sent" and
   sends nothing.
 
-Prod is detected the way the other prod gates in the platform detect it
-(``intake_platform.documents`` DevNullScanner, ``room_tokens``): ``INTAKE_ENV``
-lower-cased starts with ``prod``. That is a superset of ``secrets.py``'s exact
-``prod`` match, so every environment the OpenBao gate treats as prod is
-refused here too.
+A public staging host must be exactly as strict as prod, so the refusal
+applies to every environment that is not dev. Dev is ``INTAKE_ENV`` unset,
+empty or ``dev`` (stripped, lower-cased), which is the only non-prod value any
+test, CI job or compose file in this repository sets; ``staging`` (PR #549's
+infra/staging) and anything else are strict.
 
 Every refusal names the offending variable and never echoes its value
 (invariant 6: a dev bearer token in an error report is still a credential).
@@ -43,6 +43,9 @@ from intake_platform.audit import AuditEntry, AuditStore
 
 DEV_FLAG_PREFIX = "INTAKE_DEV_"
 
+# the environments this repository actually deploys outside dev
+STRICT_ENVIRONMENTS = ("prod", "staging")
+
 # flag -> a value that turns the dev behaviour on. The bearer tokens carry a
 # credential-shaped value so the "never echo the value" assertion bites.
 DEV_FLAGS: dict[str, str] = {
@@ -65,9 +68,8 @@ CREDENTIAL_VARS: dict[str, str] = {
 }
 
 
-@pytest.fixture()
-def prod_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
-    """A COMPLETE production environment: no dev flag, durable KEK mode, every
+def _complete_env(monkeypatch: pytest.MonkeyPatch, environment: str) -> pytest.MonkeyPatch:
+    """A COMPLETE non-dev environment: no dev flag, durable KEK mode, every
     credential supplied. Each refusal test breaks exactly one thing in it."""
     for name in list(os.environ):
         if name.startswith(DEV_FLAG_PREFIX):
@@ -75,13 +77,20 @@ def prod_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
     monkeypatch.delenv("INTAKE_API_KEK_MODE", raising=False)
     for name, value in CREDENTIAL_VARS.items():
         monkeypatch.setenv(name, value)
-    monkeypatch.setenv("INTAKE_ENV", "prod")
+    monkeypatch.setenv("INTAKE_ENV", environment)
     return monkeypatch
+
+
+@pytest.fixture(params=STRICT_ENVIRONMENTS)
+def strict_env(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> pytest.MonkeyPatch:
+    return _complete_env(monkeypatch, str(request.param))
 
 
 def _refused_error() -> type[Exception]:
     # resolved at call time so a missing class fails each case, not collection
-    error: type[Exception] = api_settings.ProdConfigRefusedError
+    error: type[Exception] = api_settings.DevConfigRefusedError
     return error
 
 
@@ -98,13 +107,13 @@ def _settings(*, environment: str) -> ApiSettings:
     )
 
 
-# --- the positive control: a complete prod config boots -----------------------------
+# --- the positive control: a complete non-dev config boots ---------------------------
 
 
-def test_complete_prod_config_is_accepted(prod_env: pytest.MonkeyPatch) -> None:
-    """Without this the refusals below could all pass by refusing prod outright."""
+def test_complete_non_dev_config_is_accepted(strict_env: pytest.MonkeyPatch) -> None:
+    """Without this the refusals below could all pass by refusing outright."""
     settings = ApiSettings.from_env()
-    assert settings.production is True
+    assert settings.dev_tier_expected is False
     assert settings.kek_mode == "transit"
     assert settings.token_patient is None and settings.token_admin is None
     assert settings.dev_otp_peek is False and settings.dev_allow_unattested is False
@@ -117,9 +126,9 @@ def test_complete_prod_config_is_accepted(prod_env: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize("flag", sorted(DEV_FLAGS))
-def test_prod_refuses_each_dev_flag(prod_env: pytest.MonkeyPatch, flag: str) -> None:
+def test_refuses_each_dev_flag(strict_env: pytest.MonkeyPatch, flag: str) -> None:
     value = DEV_FLAGS[flag]
-    prod_env.setenv(flag, value)
+    strict_env.setenv(flag, value)
     with pytest.raises(_refused_error()) as refused:
         ApiSettings.from_env()
     message = str(refused.value)
@@ -127,55 +136,55 @@ def test_prod_refuses_each_dev_flag(prod_env: pytest.MonkeyPatch, flag: str) -> 
     assert value not in message  # invariant 6: names only, never values
 
 
-def test_prod_refuses_a_dev_flag_that_is_not_the_opt_in_phrase(
-    prod_env: pytest.MonkeyPatch,
+def test_refuses_a_dev_flag_that_is_not_the_opt_in_phrase(
+    strict_env: pytest.MonkeyPatch,
 ) -> None:
-    """In dev only the exact phrase turns a gate on; in prod the flag being
-    present at all is the misconfiguration, whatever it says."""
-    prod_env.setenv("INTAKE_DEV_OTP_PEEK", "yes")
+    """In dev only the exact phrase turns a gate on; outside dev the flag
+    being present at all is the misconfiguration, whatever it says."""
+    strict_env.setenv("INTAKE_DEV_OTP_PEEK", "yes")
     with pytest.raises(_refused_error()):
         ApiSettings.from_env()
 
 
-def test_prod_refuses_any_future_dev_flag_by_prefix(prod_env: pytest.MonkeyPatch) -> None:
-    """The refusal is by the ``INTAKE_DEV_`` prefix, so a dev gate added
-    after this issue is refused in prod without anyone remembering to list it."""
+def test_refuses_any_future_dev_flag_by_prefix(strict_env: pytest.MonkeyPatch) -> None:
+    """The refusal is by the ``INTAKE_DEV_`` prefix, so a dev gate added after
+    this issue is refused outside dev without anyone remembering to list it."""
     future_flag = DEV_FLAG_PREFIX + "INT325_NOT_YET_INVENTED"
-    prod_env.setenv(future_flag, "explicit-yes")
+    strict_env.setenv(future_flag, "explicit-yes")
     with pytest.raises(_refused_error()) as refused:
         ApiSettings.from_env()
     assert future_flag in str(refused.value)
 
 
-def test_prod_refuses_file_dev_kek(prod_env: pytest.MonkeyPatch) -> None:
-    prod_env.setenv("INTAKE_API_KEK_MODE", "file-dev")
+def test_refuses_file_dev_kek(strict_env: pytest.MonkeyPatch) -> None:
+    strict_env.setenv("INTAKE_API_KEK_MODE", "file-dev")
     with pytest.raises(_refused_error()) as refused:
         ApiSettings.from_env()
     assert "INTAKE_API_KEK_MODE" in str(refused.value)
 
 
-# --- F14: no in-code dev credential is ever used in prod ------------------------------
+# --- F14: no in-code dev credential is ever used outside dev -------------------------
 
 
 @pytest.mark.parametrize("state", ["unset", "empty"])
 @pytest.mark.parametrize("variable", sorted(CREDENTIAL_VARS))
-def test_prod_refuses_each_missing_credential(
-    prod_env: pytest.MonkeyPatch, variable: str, state: str
+def test_refuses_each_missing_credential(
+    strict_env: pytest.MonkeyPatch, variable: str, state: str
 ) -> None:
     if state == "unset":
-        prod_env.delenv(variable)
+        strict_env.delenv(variable)
     else:
-        prod_env.setenv(variable, "")
+        strict_env.setenv(variable, "")
     with pytest.raises(_refused_error()) as refused:
         ApiSettings.from_env()
     assert variable in str(refused.value)
 
 
-def test_prod_refusal_names_every_offence_at_once(prod_env: pytest.MonkeyPatch) -> None:
+def test_refusal_names_every_offence_at_once(strict_env: pytest.MonkeyPatch) -> None:
     """One boot, one list: an operator fixes the deployment in one pass."""
-    prod_env.setenv("INTAKE_DEV_OTP_PEEK", "explicit-yes")
-    prod_env.setenv("INTAKE_API_KEK_MODE", "file-dev")
-    prod_env.delenv("MINIO_ROOT_PASSWORD")
+    strict_env.setenv("INTAKE_DEV_OTP_PEEK", "explicit-yes")
+    strict_env.setenv("INTAKE_API_KEK_MODE", "file-dev")
+    strict_env.delenv("MINIO_ROOT_PASSWORD")
     with pytest.raises(_refused_error()) as refused:
         ApiSettings.from_env()
     message = str(refused.value)
@@ -183,20 +192,22 @@ def test_prod_refusal_names_every_offence_at_once(prod_env: pytest.MonkeyPatch) 
         assert name in message
 
 
-@pytest.mark.parametrize("env_value", ["PROD", "production", "prod-tr"])
-def test_prod_detection_is_case_insensitive_and_by_prefix(
-    prod_env: pytest.MonkeyPatch, env_value: str
-) -> None:
-    prod_env.setenv("INTAKE_ENV", env_value)
-    prod_env.setenv("INTAKE_DEV_OTP_PEEK", "explicit-yes")
+@pytest.mark.parametrize(
+    "env_value", ["PROD", "production", "prod-tr", "STAGING", " staging ", "test"]
+)
+def test_every_non_dev_spelling_is_strict(monkeypatch: pytest.MonkeyPatch, env_value: str) -> None:
+    """Strict is everything that is not dev. ``test`` is listed on purpose:
+    nothing in this repository sets it, so it gets no dev exemption."""
+    _complete_env(monkeypatch, env_value)
+    monkeypatch.setenv("INTAKE_DEV_OTP_PEEK", "explicit-yes")
     with pytest.raises(_refused_error()):
         ApiSettings.from_env()
 
 
-def test_the_boot_path_refuses_before_wiring_anything(prod_env: pytest.MonkeyPatch) -> None:
+def test_the_boot_path_refuses_before_wiring_anything(strict_env: pytest.MonkeyPatch) -> None:
     """``create_app()`` with no wiring is how the service boots; the refusal
     must reach it, not only a direct ``from_env`` call."""
-    prod_env.setenv("INTAKE_DEV_TOKEN_ADMIN", DEV_FLAGS["INTAKE_DEV_TOKEN_ADMIN"])
+    strict_env.setenv("INTAKE_DEV_TOKEN_ADMIN", DEV_FLAGS["INTAKE_DEV_TOKEN_ADMIN"])
     with pytest.raises(_refused_error()):
         create_app()
 
@@ -204,11 +215,12 @@ def test_the_boot_path_refuses_before_wiring_anything(prod_env: pytest.MonkeyPat
 # --- F13: the OTP tier never claims a delivery it did not make -------------------------
 
 
-def test_prod_never_wires_the_dev_log_delivery_adapter() -> None:
-    """With no contracted SMS vendor wired, prod leaves the OTP tier
+@pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
+def test_non_dev_never_wires_the_dev_log_delivery_adapter(environment: str) -> None:
+    """With no contracted SMS vendor wired, a non-dev API leaves the OTP tier
     unconfigured (every /v1/auth route answers 503 otp_auth_unconfigured)
     rather than answering 202 for a code that never leaves the building."""
-    assert _auth_from_settings(_settings(environment="prod")) is None
+    assert _auth_from_settings(_settings(environment=environment)) is None
 
 
 # --- the dev control: dev behaviour is unchanged ---------------------------------------
@@ -220,7 +232,7 @@ def test_dev_tier_still_wires_the_dev_log_delivery_adapter() -> None:
     assert isinstance(wiring.delivery, DevLogDeliveryAdapter)
 
 
-@pytest.mark.parametrize("env_value", [None, "dev"])
+@pytest.mark.parametrize("env_value", [None, "", "dev", "DEV", " dev "])
 def test_dev_tier_still_boots_with_every_dev_flag_and_no_credentials(
     monkeypatch: pytest.MonkeyPatch, env_value: str | None
 ) -> None:
@@ -235,7 +247,7 @@ def test_dev_tier_still_boots_with_every_dev_flag_and_no_credentials(
         monkeypatch.delenv(name, raising=False)
 
     settings = ApiSettings.from_env()
-    assert settings.production is False
+    assert settings.dev_tier_expected is True
     assert settings.kek_mode == "file-dev"
     assert settings.dev_otp_peek is True and settings.dev_allow_unattested is True
     assert settings.dev_auth_configured
@@ -294,9 +306,9 @@ def _app_for_environment(
 def test_non_dev_environment_is_ready_with_every_real_dependency_healthy(
     harness: ApiHarness, monkeypatch: pytest.MonkeyPatch, environment: str
 ) -> None:
-    """Dev bearers are expected only in dev. Prod refuses them at boot and
-    staging (infra/staging) never sets them, so a readiness check that
-    requires them would hold either API not-ready forever."""
+    """Dev bearers are expected only in dev. Prod and staging (infra/staging)
+    refuse them at boot, so a readiness check that requires them would hold
+    either API not-ready forever."""
     app = _app_for_environment(harness, monkeypatch, environment)
     with TestClient(app, raise_server_exceptions=False) as client:
         ready = client.get("/readyz")

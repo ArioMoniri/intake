@@ -156,8 +156,8 @@ def _documents_from_env() -> DocumentsConfig:
             scanner = DevNullScanner()
         except DevScannerForbiddenError:
             scanner = None
-    # the dev defaults below never apply in prod: ApiSettings.from_env has
-    # already refused a prod boot with either variable absent (INT-325)
+    # the dev defaults below never apply outside dev: ApiSettings.from_env
+    # has already refused a non-dev boot with either variable absent (INT-325)
     client = Minio(
         os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
         access_key=os.environ.get(ENV_MINIO_USER, "intake-dev"),
@@ -179,14 +179,14 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
     the delivery adapter is the dev event logger — the SMS vendor contract
     is awaiting-human (docs/evidence/INT-131.md).
 
-    INT-325 (audit F13): in prod the dev logger is never wired. It records an
-    event and sends nothing, so the tier would answer "sent" for a code that
-    never arrives. With no contracted SMS adapter the tier stays unconfigured
-    (every /v1/auth route answers 503)."""
+    INT-325 (audit F13): outside dev the dev logger is never wired. It
+    records an event and sends nothing, so the tier would answer "sent" for a
+    code that never arrives. With no contracted SMS adapter the tier stays
+    unconfigured (every /v1/auth route answers 503)."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
         return None
-    if settings.production:
-        logger.warning("otp tier unconfigured in prod: no SMS delivery adapter is wired")
+    if not settings.dev_tier_expected:
+        logger.warning("otp tier unconfigured outside dev: no SMS delivery adapter is wired")
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
@@ -431,9 +431,9 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     ]
     if w.settings.dev_tier_expected:
         # INT-197 dev tier: not ready until both dev bearers are set. Only the
-        # dev environment expects them (INT-325): prod refuses them at boot and
-        # staging never sets them, so anywhere else this check would hold the
-        # API not-ready forever.
+        # dev environment expects them (INT-325): every other environment,
+        # staging included, refuses them at boot, so anywhere else this check
+        # would hold the API not-ready forever.
         readiness.append(ReadinessCheck("dev_auth", _dev_auth_ready))
     mount_health(app, readiness=readiness)
 
