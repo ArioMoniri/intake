@@ -30,7 +30,7 @@
  * (02 §34) — into the partial-note review.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
@@ -58,6 +58,7 @@ import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
+import { openHintAnchor, showsOpenHint } from "@/lib/intake/openHint";
 import {
   intakeProgress,
   isOpenAsk,
@@ -348,6 +349,15 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     applicable.findIndex((x) => x.id === question.id),
     0,
   );
+  // INT-371: the "kendi sözlerinizle" invitation is pinned to the first open
+  // question this session meets, and shown there only (lib/intake/openHint).
+  const [openHintAt, setOpenHintAt] = useState<string | null>(null);
+  const nextOpenHintAt = openHintAnchor(openHintAt, question.id, isOpenAsk(question));
+  useEffect(() => {
+    if (nextOpenHintAt !== openHintAt) {
+      setOpenHintAt(nextOpenHintAt);
+    }
+  }, [nextOpenHintAt, openHintAt]);
   // The suggestion for THIS question (saved answers always win over it).
   const suggestion = answers.some((a) => a.questionId === question.id)
     ? undefined
@@ -600,11 +610,17 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             here: "Birden fazla seçebilirsiniz" describes the chips grid, and
             the grid is now below the answer field, so the hint travels down
             with the control it describes (the same rule INT-261 applied to
-            the spoken turn). */}
+            the spoken turn). The invitation belongs to the flow, not to every
+            turn (INT-371): shown once per session, at the first open question,
+            it stops reading as noise repeated under each one. A later open
+            step keeps it as its answer field's accessibility hint, and
+            `intake.open.orChoose` below. */}
             {instrumentStep ? null : openAsk ? (
-              <AppText role="body" color="inkSoft">
-                {t("intake.open.hint")}
-              </AppText>
+              showsOpenHint(openHintAt, question.id, openAsk) ? (
+                <AppText role="body" color="inkSoft">
+                  {t("intake.open.hint")}
+                </AppText>
+              ) : null
             ) : question.hintKey ? (
               <AppText role="body" color="inkSoft">
                 {t(question.hintKey)}

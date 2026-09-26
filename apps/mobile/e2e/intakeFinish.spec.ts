@@ -42,19 +42,23 @@ describe("Bitirdim ends the dialogue and lands on review", () => {
   });
 
   it("Bitirdim leaves the conversation and replaces the screen with the review", () => {
-    const finish = DIALOGUE.slice(DIALOGUE.indexOf("const finishToReview = async () => {"));
-    expect(finish.length, "finishToReview is missing").toBeLessThan(DIALOGUE.length);
+    // Synchronous: INT-339's MOTION-10 guard (transients.test.ts) requires
+    // every review navigation in the dialogue to sit in a non-async handler,
+    // in the tick that finishes.
+    const at = DIALOGUE.indexOf("const finishToReview = () => {");
+    expect(at, "finishToReview is missing, or it waits before navigating").toBeGreaterThan(-1);
+    const finish = DIALOGUE.slice(at);
     const body = finish.slice(0, finish.indexOf("};"));
     // Leave first, so no mic, playback or pending turn outlives the screen;
     // answers are already committed at each confirm, so nothing is lost.
-    expect(body).toContain("await session.leave();");
+    expect(body).toContain("void session.leave();");
     expect(body).toContain("router.replace(`/(tabs)/visits/${visitId}/review`)");
     expect(body.indexOf("session.leave")).toBeLessThan(body.indexOf("router.replace"));
   });
 
   it("the button calls finishToReview, not the per-turn stop, and says so to a screen reader", () => {
     const { element } = stopButton(DIALOGUE);
-    expect(element).toContain("finishToReview()");
+    expect(element).toContain("onPress={finishToReview}");
     expect(element).not.toContain("finishListening");
     expect(element).toContain('hint={t("a11y.dialogue.finishHint")}');
   });
@@ -76,13 +80,15 @@ describe("the open-question invitation shows once per session", () => {
   it("the typed step renders intake.open.hint only where showsOpenHint says so", () => {
     expect(INTAKE).toContain("showsOpenHint(");
     expect(INTAKE).toContain("openHintAnchor(");
-    const hint = INTAKE.indexOf('{t("intake.open.hint")}');
-    expect(hint, "the visible invitation is gone").toBeGreaterThan(-1);
-    // The guard sits directly above the one visible rendering.
+    // A visible rendering is the key as a JSX child; the attribute form
+    // (`accessibilityHint={t(…)}`) is the spoken hint, not a line on screen.
+    const visible = [...INTAKE.matchAll(/(?<!=)\{t\("intake\.open\.hint"\)\}/g)];
+    expect(visible.length, "exactly one line on screen carries the invitation").toBe(1);
+    const hint = visible[0].index;
+    // The guard sits directly above that one rendering.
     expect(INTAKE.slice(Math.max(0, hint - 300), hint)).toContain("showsOpenHint(");
-    // Exactly one visible rendering; the answer field keeps the same text as
-    // its accessibility hint, so a later open step is not left unexplained.
-    expect(INTAKE.split('{t("intake.open.hint")}').length - 1).toBe(1);
+    // The answer field keeps the same text as its accessibility hint, so a
+    // later open step is not left unexplained.
     expect(INTAKE).toContain('accessibilityHint={t("intake.open.hint")}');
   });
 });
