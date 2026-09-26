@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { APP_STEPS } from "./prefs/appearance";
-import { lineHeight, palette, scaledControl, scaledSize, typeScale } from "./theme";
+import { lineHeight, motion, palette, scaledControl, scaledSize, typeScale } from "./theme";
 
 // WCAG 2.x relative luminance + contrast ratio, computed here so the
 // accessibility floor (02 §8.2: body text AA) is a test, not a hope.
@@ -71,6 +71,24 @@ describe("palette", () => {
       expect(contrast(c.success, c.successSoft)).toBeGreaterThanOrEqual(4.3);
     },
   );
+});
+
+// INT-330 (MOTION-1): the navigators read `motion.duration`; the older
+// `fadeMs` stays as its alias so no consumer carries a second 120.
+describe("motion budget (02 §5.2a)", () => {
+  it("fadeMs remains the alias of duration.fade", () => {
+    expect(motion.fadeMs).toBe(motion.duration.fade);
+    expect(motion.duration.instant).toBe(0);
+  });
+
+  it("no motion duration exceeds fadeMs", () => {
+    const durations = Object.entries(motion.duration);
+    expect(durations.length).toBeGreaterThan(1);
+    for (const [name, ms] of durations) {
+      expect(ms, name).toBeGreaterThanOrEqual(0);
+      expect(ms, name).toBeLessThanOrEqual(motion.fadeMs);
+    }
+  });
 });
 
 describe("dynamic type", () => {

@@ -18,9 +18,59 @@
  */
 import * as FileSystem from "expo-file-system/legacy";
 
+import { buildApiBase } from "../auth/expoApiBase";
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
+import {
+  fetchGeorgeClip,
+  georgePreferringSynth,
+  type GeorgeGenerator,
+  type ScriptedTr,
+} from "./georgeClip";
 import { createClipStore, synthesizeClipWith, type ClipFs, type ClipStore } from "./tts";
 import { createTtsLaneSelector, synthesizeWithFallback, type TtsLaneSelector } from "./ttsLane";
+
+/** The dev API host the George clip route lives on: the same resolver, and so
+ * the same LAN walk, as the auth/records clients (INT-328). Null when no dev
+ * host answers. */
+function firstReachableApiBase(): Promise<string | null> {
+  return buildApiBase().catch(() => null);
+}
+
+/**
+ * The DEV-ONLY George clip source (ADR-028 on-demand variant), or null.
+ *
+ * `null` in production — invariant 19 stays intact, the PHI path is
+ * self-hosted, and the store uses only the self-hosted lane exactly as before.
+ * `null` too when no dev API host answers, so a demo with the API down still
+ * speaks in the self-hosted voice. When present it POSTs SCRIPTED question text
+ * to the dev server route; the DEVICE never holds the vendor key (the server
+ * reads it from its env), and a `ScriptedTr` is the only thing it can be handed.
+ */
+function createGeorgeSource(): GeorgeGenerator | null {
+  if (!__DEV__) {
+    return null;
+  }
+  let baseP: Promise<string | null> | null = null;
+  const resolveBase = (): Promise<string | null> => {
+    if (baseP === null) {
+      baseP = firstReachableApiBase();
+    }
+    return baseP;
+  };
+  return async (text: ScriptedTr): Promise<Uint8Array> => {
+    const base = await resolveBase();
+    if (base === null) {
+      baseP = null; // a later turn re-probes rather than staying muted
+      throw new Error("george_unavailable");
+    }
+    try {
+      return await fetchGeorgeClip(base, text);
+    } catch (error) {
+      baseP = null; // degrade this turn to the self-hosted lane, re-probe next
+      throw error;
+    }
+  };
+}
 
 /**
  * The session's lane picker: probes the ladder once, keeps the answer, and
@@ -73,9 +123,23 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // INT-237 shaping is unchanged: one request per SENTENCE, trimmed, faded
   // and joined with a real sentence gap. INT-249 only changes where each of
   // those requests lands.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) =>
-    synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text),
-  );
+  const selfHosted = (text: string): Promise<Uint8Array> =>
+    synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text);
+  // ADR-028 (on-demand variant): in dev, prefer George's cloud voice for a
+  // scripted question with no cached clip, and degrade to the self-hosted lane
+  // on any failure. Null in prod, so this is the SAME store as before there.
+  const george = createGeorgeSource();
+  if (george === null) {
+    return createClipStore(dialogueClipDir(), expoClipFs, selfHosted);
+  }
+  const prefer = georgePreferringSynth(george, selfHosted);
+  // The store is only ever fed catalog-composed SCRIPTED text
+  // (useDialogueSession → speech.ts questionSpeechTr/confirmSpeechTr); patient
+  // words are DISPLAYED, never synthesized (invariant 2/10). This is the single
+  // point where that architectural fact is asserted as a ScriptedTr — every
+  // OTHER path to the George vendor requires a ScriptedTr minted from an
+  // IntakeQuestion (georgeClip.ts), so patient words cannot reach the vendor.
+  return createClipStore(dialogueClipDir(), expoClipFs, (text) => prefer(text as ScriptedTr));
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */
