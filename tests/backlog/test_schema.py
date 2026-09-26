@@ -58,9 +58,15 @@ def test_ids_unique_and_well_formed() -> None:
     # pack chain, so gated questions were never asked)
     # + INT-356 (counsel-supplied values for the data-category register that
     # INT-349's fail-closed gate reads; split out because no agent may author
-    # them).
+    # them)
+    # + INT-357 (staging passes App Attest and SMS configuration to the API
+    # and fails closed when unset; the work of PR #573, filed so it closes its
+    # own issue instead of INT-352's)
+    # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
+    # cross-border mechanism, egress allow-list row — split out of INT-329
+    # because no agent may make it).
     # Grow this count only with a stated reason.
-    assert len(ids) == 280
+    assert len(ids) == 282
     import re
 
     for i in ids:
