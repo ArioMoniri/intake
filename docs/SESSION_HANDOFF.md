@@ -1,63 +1,65 @@
-# Önvizit — Session Handoff (updated 2026-09-20)
+# Önvizit — Session Handoff (updated 2026-09-26)
 
-> For the NEXT agent/session. Branch **`merge-305`** (`ArioMoniri/intake`) carries this work.
-> Read `CLAUDE.md`, `files/00_STATE.md`, `files/HUMAN_BLOCKERS.md` first — they win over this doc.
+> For the NEXT agent/session. Read `CLAUDE.md`, `files/00_STATE.md`, `files/HUMAN_BLOCKERS.md` first — they win over this doc.
+> The full production audit is `docs/audit/2026-09-26-production-audit.md` (12 P0 / 14 P1 / 8 P2, ordered action plan with DoD).
 
 ## TL;DR
-- Mobile app **Önvizit** on TestFlight (ASC app **6814005465**, bundle **com.ariomoniri.intakemobile**). Backend runs ONLY on the dev laptop (file-dev) → installed app shows **"sunucuya ulaşılamadı"**. **#1 task: DEPLOY the backend; then SMS works.**
-- **32 / 88 specialty clinic packs authored** (L1, questions-only, triage deferred). Protocols suite green.
-- Clinical triage acuities are HARD-gated: **EK-4 Turkish law + physician sign-off (HB-C1)** — NEVER fabricate. Only QUESTIONS are authored; RED stays in `base.life_threat`.
+- App **Önvizit** is on TestFlight (ASC app 6814005465, bundle `com.ariomoniri.intakemobile`). A store build cannot log in yet. It needs:
+  - a public API (#549 + an AWS deploy);
+  - the release API base (#546, EAS env `EXPO_PUBLIC_API_BASE_URL`);
+  - App Attest (#551, env `INTAKE_APP_ATTEST_TEAM_ID`);
+  - Twilio credentials.
+- Specialty question packs live in the **review queue** `packages/protocols/review/specialty/` (52 candidates). They are never served until the physician of record signs (HB-C1). The owner has said he will sign them all at the end. The served tree `packages/protocols/specialty/` stays byte-identical to `protocols generate-l0` output (L0 guard).
+- CI runs again. Billing was fixed on 2026-09-26. Main is red on pre-existing failures that #520 and #548 fix, apart from the MinIO image (INT-347, owner decision).
 
-## CURRENTLY IN PROGRESS (as of this handoff)
-- **Wave 4 research (9 specialties in flight):** diyabet_poliklinigi, endokrinoloji_ve_metabolizma, enfeksiyon_hastaliklari, gastroenteroloji_cerrahisi, el_cerrahisi, fiziksel_tip_ve_rehabilitasyon, fizyoterapi, evde_saglik, endodonti. When done → run the generator (below) to author them.
-- **Twilio SMS adapter WIRED** (`services/api/.../otp.py` `TwilioDeliveryAdapter` + `twilio_delivery_from_env`, wired in `app.py`; fail-closed). AWAITING: user's `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_FROM` + `INTAKE_TOKENIZATION_KEY` in `~/.intake-secrets.env`. A Twilio MCP connector (search/retrieve, docs-only) appeared — does NOT provide send/creds.
-- **Deploy: awaiting go.** Target = GPU pod `/data` (file-dev) or AWS pod. Needs a public HTTPS endpoint.
-- **iOS build 4** (`2071b2af`, Önvizit + V-logo + purpose strings) auto-submitting to TestFlight.
+## Open PRs (merge order; the classifier forbids the assistant from merging: the owner merges)
+| # | PR | issue | note |
+|---|---|---|---|
+| 1 | #545 | backlog rows INT-324..348 | merge first: the sec_row gate of every PR below reads these rows |
+| 2 | #520 | INT-324 audio guard | makes `make safety` green |
+| 3 | #548 | INT-346 main CI green | ruff, vitest GHSA, fixtures, i18n; MinIO left to INT-347 |
+| 4 | #521 | INT-325 non-dev envs refuse dev flags / file-dev KEK / default creds / fake SMS | readyz dev check only in dev |
+| 5 | #522 | INT-326 George route: auth + catalogue-only + rate limit, absent in prod | mobile follow-up INT-343 |
+| 6 | #546 | INT-328 release API base (https only, no LAN probing) | owner sets `EXPO_PUBLIC_API_BASE_URL` |
+| 7 | #551 | INT-344 App Attest server + iOS client | Android is INT-348 (HB-A3) |
+| 8 | #549 | INT-345 staging artefact (compose, OpenBao server mode, Caddy TLS) | depends on INT-347 (MinIO) |
 
-## The pack-authoring loop (repeat until all 88)
-1. Spawn ~5 research agents/wave (2 specialties each) → each writes `docs/evidence/proposals/<slug>.md` (sourced international/Turkish guidelines, B1 `siz`, ONE concern, PolicyGuard-clean, **NO bare digits**, openEHR root tags, NO triage level).
-2. **Run the generator** (the Claude auto-mode classifier blocks the ASSISTANT from running it — a human runs it, or add settings `permissions.allow: ["Bash(uv run python scripts/dev/gen_specialty_packs.py)"]`):
-   ```bash
-   cd .../intake-repo-prompt-setup-99834b && uv run python scripts/dev/gen_specialty_packs.py
-   ```
-   → authors proposals into L1 packs (block-style YAML, questions-only) + regens the INT-297 tr baseline. Idempotent (skips L1).
-3. Validate: `uv run pytest -q tests/protocols` (must be 100%), then commit + push to `merge-305`.
-- **beyin_ve_sinir_cerrahisi**: has a proposal but the generator parsed 0 questions (its §3 format differs) — hand-author it (mirror `noroloji.yaml`) or fix `extract_questions()` in the generator.
+## Specialty packs: the loop (repeat until every branch has a verified candidate)
+1. **Research agent** writes `docs/evidence/proposals/<slug>.md`, in the format documented in `scripts/dev/gen_specialty_packs.py`:
+   - questions go in the section whose heading contains "Candidate";
+   - each item is `**Q<n>`, then `> "…"`, then an optional `gen:` line;
+   - one question per item, no digits, a valid Q1.
+2. **Verifier agent** writes `docs/evidence/verification/<wave>.md`, with a replacement text and a `gen:` line for every item it flags.
+3. **Solver agent** applies that verification to the proposals.
+4. **Coordinator** runs `uv run python scripts/dev/gen_specialty_packs.py <slugs…>`, then `uv run pytest -q tests/protocols`, then commits.
 
-## 59 REMAINING specialties (58 need a research wave; beyin needs a hand-fix)
-beyin_ve_sinir_cerrahisi, diyabet_poliklinigi, el_cerrahisi, endodonti, endokrinoloji_ve_metabolizma, enfeksiyon_hastaliklari, evde_saglik, fiziksel_tip_ve_rehabilitasyon, fizyoterapi, gastroenteroloji_cerrahisi, gebe_poliklinigi, gelisimsel_pediatri, genel_cerrahi, geriatri, getat, gogus_cerrahisi, gogus_hastaliklari, goz_hastaliklari, halk_sagligi, hava_ve_uzay_hekimligi, hematoloji, hemsirelik_egitim_poliklinikleri, ic_hastaliklari, immunoloji_ve_alerji, is_ve_meslek_hastaliklari, jinekolojik_onkoloji, kadin_hastaliklari_ve_dogum, kalp_ve_damar_cerrahisi, klinik_norofizyoloji, klinik_psikoloji_poliklinigi, kulak_burun_bogaz_hastaliklari, nefroloji, neonatoloji, nukleer_tip, obezite_poliklinigi, odyoloji, ortodonti, ortopedi_ve_travmatoloji, pedodonti, perinatoloji, periodontoloji, plastik_rekonstruktif_ve_estetik_cerrahi, protetik, radyasyon_onkolojisi, restoratif, romatoloji, ruh_sagligi_ve_hastaliklari, saglik_kurulu, sigara_birakma_poliklinigi, sosyal_pediatri, spor_hekimligi, sualti_ve_hiperbarik_tip, tibbi_ekoloji_ve_hidroklimatoloji, tibbi_genetik, tibbi_onkoloji, ureme_endokrinolojisi_ve_infertilite, uroloji, uyku_poliklinigi, yasli_sagligi_poliklinigi
-> Regenerate the live list any time: `for f in packages/protocols/specialty/*.yaml; do grep -L 'maturity: L1' "$f"; done`
-> High-value common ones to prioritise: ic_hastaliklari, kadin_hastaliklari_ve_dogum, goz_hastaliklari, kulak_burun_bogaz_hastaliklari, ortopedi_ve_travmatoloji, uroloji, gogus_hastaliklari, romatoloji, nefroloji, endokrinoloji_ve_metabolizma, ruh_sagligi_ve_hastaliklari.
+- **Done and verified:** waves 1–5 plus the surgery wave.
+- **In flight:**
+  - The internal/mental wave is at the solver stage.
+  - The oncology, women's health/newborn and paediatrics/genetics waves are at the verifier stage.
+  - Geriatric/sleep/neurophysiology, dental, occupational/special and public-health/admin are at the research stage.
+- **Hand-authored candidates:** kardiyoloji, gastroenteroloji and noroloji (the generator never overwrites these).
+- **Held items (need an owner decision under invariant 18, new data categories):**
+  - forensic safety (adli_tip Q3–Q5);
+  - genital symptoms (deri Q8);
+  - non-alcohol substance use (ruh Q12, klinik psikoloji Q11);
+  - household basic needs (sosyal pediatri);
+  - relatives' family history (tıbbi genetik);
+  - partner data (infertility Q12);
+  - employer/exposure details.
 
-## Done (32 L1 packs)
-kardiyoloji, gastroenteroloji, noroloji, algoloji, amatem, aile_hekimligi, adli_tip, agiz_dis_cene_radyolojisi, agiz_dis_ve_cene_cerrahisi, anesteziyoloji, asi, beslenme_ve_diyet, cematem, cerrahi_onkoloji, cocuk_{cerrahisi, endokrinolojisi, enfeksiyon_hastaliklari, gastroenterolojisi, genetik_hastaliklari, gogus_hastaliklari, hematolojisi_ve_onkolojisi, immunolojisi_ve_alerjisi, kardiyolojisi, metabolizma_hastaliklari, nefrolojisi, norolojisi, romatolojisi, sagligi_ve_hastaliklari, urolojisi, ve_ergen_ruh_sagligi}, deri_ve_zuhrevi_hastaliklari, dis_hekimligi. (All questions-only; RED via base.life_threat.)
-- Also: generator `scripts/dev/gen_specialty_packs.py`; INT-257 openEHR OPT fix; admin panel `apps/admin-web` + `docs/backlog/proposals/admin-panel.md`; ElevenLabs George TTS dev route + on-prem STT; Twilio OTP adapter.
+## Human decisions outstanding
+- **AWS deploy:** add the permission rules `Bash(aws ec2:*)`, `Bash(aws ssm:*)`, `Bash(aws s3:*)` and `Bash(aws s3api:*)`, or run `docs/runbooks/staging.md` (on #549). us-east-1 is **synthetic patients only** (HB-I5).
+- **INT-347:** replace the withdrawn `minio/minio` image. The options are the `pgsty/minio` fork, a source build, or SeaweedFS.
+- **Twilio:** SID, auth token and FROM, with the Turkey geo-permission, in `~/.intake-secrets.env`. Plus the DPA and cross-border decision (INT-329).
+- **App Attest:** set `INTAKE_APP_ATTEST_TEAM_ID` and add the App Attest entitlement. Android needs HB-A3.
+- **Copy owner:** the 4 kiosk/shares register findings recorded in #548.
+- **TTD/TRD permission:** the göğüs and romatoloji wording has been rewritten into our own words.
+- **Rotate** `EXPO_TOKEN` and the ElevenLabs key (both were pasted in chat).
+- **Physician-of-record sign-off:** needed for every review candidate (HB-C1). The repo currently names Dr Efe Onganer; the owner intends to sign.
 
-## NEXT — Backend deploy (blocker for TestFlight)
-- **Target:** GPU pod `10.6.110.10` (`ssh -p 30405 root@`), under `/data`, in a venv, WITHOUT maxing resources (memory `team-gpu-server`). Fallback: AWS pod `i-026e14d0676011da0` (us-east-1, STOPPED) via SSM.
-- **Docker-free boot:** `INTAKE_API_KEK_MODE=file-dev` + `uv run --with uvicorn ...` (memory `api-file-dev-boot`). Needs Postgres + Redis on host + a **public HTTPS reverse proxy** (caddy/nginx). Point the app's API base (`apps/mobile/src/lib/dev/expoHosts.ts` `configuredServiceCandidates`) at it.
-- **Reachability caveat:** `10.6.110.10` is private via `:30405` — CONFIRM a public HTTPS ingress before relying on it; else start the AWS pod or use a VPS.
-
-## SMS (OTP)
-- Chosen: **Twilio Verify/Messages** (easiest to launch, no TR sender-header wait). Adapter done. Need: Twilio SID + Auth Token + a From number / Messaging Service SID, and `INTAKE_TOKENIZATION_KEY` (OTP tier). Cheaper TR alt if desired: İleti Merkezi / Netgsm (need approved sender header — slower).
-- **Production-only (flagged, not done):** add `api.twilio.com` to the hook-protected `infra/security/egress-allowlist.yaml` (+ its `EgressPurpose` enum + rendered proxy conf + CI) and a KVKK DPA / data-inventory annotation (Twilio = phone-number processor, invariant 18). Dev works without these.
-
-## HARD GATES — do NOT cross
-- Clinical triage acuity = EK-4 law (RG 13/9/2022 sayı 31952, NOT in repo) + physician of record (HB-C1/C2/C7). NEVER fabricate a trigger/level/citation. Specialty packs = QUESTIONS-ONLY, YELLOW-capped; RED/life-threat in `base.life_threat` (inv 7). Whole pack layer (base incl.) is L0 by design.
-- No PHI to ElevenLabs: only scripted `text_tr`; patient STT on-prem. Vendor keys server-side only, never in chat/logs.
-- Classifier blocks bulk clinical-pack authoring (subagents + scripts) — per-pack Write tool, or human/permission runs the generator.
-- `no_placeholders` gate green; `make safety` RED only on the pre-existing dev_voice audio-guard issue (`task_75d037ff`).
-- **ROTATE** the ElevenLabs key + EXPO_TOKEN (pasted in chat this session).
-
-## Prior state (issues / PRs / merges / flags)
-- Backlog (main): 150 done / 73 todo / 18 awaiting-human / 5 doing (`docs/backlog/issues.yaml`).
-- Stranded branch `claude/github-actions-billing-34om2r` (40 commits) = FULLY SUPERSEDED — abandon.
-- No ungated PRs/merges remain. Ready set was INT-257 (done-local), INT-146 (store/legal-gated), INT-121 (deliberately open).
-
-## Immediate next steps (ordered)
-1. **Deploy backend** to GPU pod `/data` behind public TLS → fixes "sunucuya ulaşılamadı".
-2. **Twilio creds** → restart API → real SMS OTP.
-3. Install **build 4** (Önvizit); verify name + logo.
-4. **Finish specialty packs:** run generator on wave-4 output; keep spawning waves for the 49 still needing research; hand-fix beyin_ve_sinir_cerrahisi.
-5. Land **task_75d037ff** (dev_voice audio guard) → `make safety` green.
-6. Sync mobile i18n body copy (still "Vizite" in some strings) to the build checkout if the user wants.
+## Hard gates — do NOT cross
+- **Triage acuity** follows EK-4 law plus the physician of record. Never fabricate a trigger, level or citation. RED stays in `base.life_threat` (invariant 7).
+- **No PHI to ElevenLabs.** Only catalogue `text_tr` is sent (#522). Patient STT stays on-prem.
+- **Nothing on the laptop:** no local Docker; containers run only on the AWS host.
+- **Worktrees:** spawn code agents with `isolation: "worktree"`. Never call `EnterWorktree` while agents are editing, because it re-pins every agent.
