@@ -1,17 +1,25 @@
 """Dev-tier settings (INT-197). Tokens have NO in-code default — with either
 one unset the API refuses every /v1 request (fail closed); real OIDC auth is
-INT-131. Database URLs default to the compose dev tier's least-privilege
-roles (the same values migrations/0001 creates and tests/data/test_rls.py
-connects with)."""
+INT-131. In DEV, database URLs default to the compose dev tier's
+least-privilege roles (the same values migrations/0001 creates and
+tests/data/test_rls.py connects with).
+
+In PROD (INT-325; audit 2026-09-26 F04/F14) ``ApiSettings.from_env`` refuses
+to build at all when any ``INTAKE_DEV_*`` flag is set, when the KEK mode is
+``file-dev``, or when any DB/MinIO credential variable is missing — a dev
+default is never used in prod. Prod is detected like the platform's other
+prod gates (``intake_platform.documents``, ``room_tokens``): ``INTAKE_ENV``
+lower-cased starts with ``prod``, a superset of ``secrets.py``'s exact match."""
 
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-__all__ = ["ApiSettings"]
+__all__ = ["ApiSettings", "ProdConfigRefusedError", "is_prod_env", "refuse_dev_config_in_prod"]
 
 # Environment KEY NAMES, not credentials: the values live only in the
 # runtime environment and have no in-code default (fail closed when unset).
@@ -26,8 +34,58 @@ ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
 # INT-308: where the carrier/geo allocation table lives.
 ENV_MSISDN_ALLOCATION = "INTAKE_MSISDN_ALLOCATION"
 EXPLICIT_YES = "explicit-yes"
+# INT-325: every dev gate lives under this prefix; in prod ANY of them set is
+# refused, so a gate added later is covered without being listed here.
+DEV_FLAG_PREFIX = "INTAKE_DEV_"
+ENV_KEK_MODE = "INTAKE_API_KEK_MODE"
+ENV_APP_DB_URL = "INTAKE_API_DB_URL"
+ENV_AUDIT_DB_URL = "INTAKE_API_AUDIT_DB_URL"
+ENV_BOOTSTRAP_DB_URL = "INTAKE_API_BOOTSTRAP_DB_URL"
+ENV_MINIO_USER = "MINIO_ROOT_USER"
+ENV_MINIO_PASSWORD = "MINIO_ROOT_PASSWORD"  # noqa: S105 — env var name
+# Each of these falls back to an in-code dev credential when absent in dev;
+# in prod an absent (or empty) one refuses the boot instead.
+PROD_REQUIRED_CREDENTIALS = (
+    ENV_APP_DB_URL,
+    ENV_AUDIT_DB_URL,
+    ENV_BOOTSTRAP_DB_URL,
+    ENV_MINIO_USER,
+    ENV_MINIO_PASSWORD,
+)
 
 KekMode = Literal["transit", "file-dev"]
+
+
+class ProdConfigRefusedError(RuntimeError):
+    """Raised at boot when a prod environment carries a dev bypass, the
+    process-local KEK mode, or relies on an in-code dev credential. The
+    message names the variables and never their values (invariant 6)."""
+
+
+def is_prod_env(environ: Mapping[str, str]) -> bool:
+    return environ.get("INTAKE_ENV", "dev").strip().lower().startswith("prod")
+
+
+def refuse_dev_config_in_prod(environ: Mapping[str, str]) -> None:
+    """Fail closed at boot (INT-325). A no-op outside prod, so dev is unchanged."""
+    if not is_prod_env(environ):
+        return
+    offences: list[str] = []
+    dev_flags = sorted(
+        name for name, value in environ.items() if name.startswith(DEV_FLAG_PREFIX) and value
+    )
+    if dev_flags:
+        offences.append("dev flag(s) set: " + ", ".join(dev_flags))
+    if environ.get(ENV_KEK_MODE) == "file-dev":
+        offences.append(f"{ENV_KEK_MODE} is file-dev (process-local KEKs)")
+    missing = [name for name in PROD_REQUIRED_CREDENTIALS if not environ.get(name)]
+    if missing:
+        offences.append("credential variable(s) missing: " + ", ".join(missing))
+    if offences:
+        raise ProdConfigRefusedError(
+            "INTAKE_ENV is prod and the API refuses to boot with dev configuration "
+            "(no dev default is used in prod): " + "; ".join(offences)
+        )
 
 
 def _dev_db_url(user: str, password: str) -> str:
@@ -87,6 +145,9 @@ class ApiSettings:
     msisdn_allocation_path: Path = field(
         default_factory=lambda: Path("infra/security/msisdn_allocation.yaml")
     )
+    # INT-325: set by from_env when INTAKE_ENV is prod. Wiring reads it to
+    # refuse dev-only collaborators (the OTP dev delivery logger) in prod.
+    production: bool = False
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -100,17 +161,16 @@ class ApiSettings:
 
     @classmethod
     def from_env(cls) -> ApiSettings:
-        kek_mode: KekMode = (
-            "file-dev" if os.environ.get("INTAKE_API_KEK_MODE") == "file-dev" else "transit"
-        )
+        # INT-325: in prod, refuse before any dev default below can apply
+        refuse_dev_config_in_prod(os.environ)
+        kek_mode: KekMode = "file-dev" if os.environ.get(ENV_KEK_MODE) == "file-dev" else "transit"
         return cls(
             token_patient=os.environ.get(ENV_TOKEN_PATIENT) or None,
             token_admin=os.environ.get(ENV_TOKEN_ADMIN) or None,
-            app_db_url=os.environ.get("INTAKE_API_DB_URL")
-            or _dev_db_url("app_rw", "app-rw-dev-only"),
-            audit_db_url=os.environ.get("INTAKE_API_AUDIT_DB_URL")
+            app_db_url=os.environ.get(ENV_APP_DB_URL) or _dev_db_url("app_rw", "app-rw-dev-only"),
+            audit_db_url=os.environ.get(ENV_AUDIT_DB_URL)
             or _dev_db_url("svc_audit_writer", "svc-audit-writer-dev-only"),
-            bootstrap_db_url=os.environ.get("INTAKE_API_BOOTSTRAP_DB_URL")
+            bootstrap_db_url=os.environ.get(ENV_BOOTSTRAP_DB_URL)
             or _dev_db_url(
                 os.environ.get("POSTGRES_USER", "intake"),
                 os.environ.get("POSTGRES_PASSWORD", "intake-dev-only"),
@@ -132,4 +192,5 @@ class ApiSettings:
             msisdn_allocation_path=Path(
                 os.environ.get(ENV_MSISDN_ALLOCATION) or "infra/security/msisdn_allocation.yaml"
             ),
+            production=is_prod_env(os.environ),
         )

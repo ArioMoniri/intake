@@ -69,7 +69,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ApiSettings
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
@@ -156,10 +156,12 @@ def _documents_from_env() -> DocumentsConfig:
             scanner = DevNullScanner()
         except DevScannerForbiddenError:
             scanner = None
+    # the dev defaults below never apply in prod: ApiSettings.from_env has
+    # already refused a prod boot with either variable absent (INT-325)
     client = Minio(
         os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
-        access_key=os.environ.get("MINIO_ROOT_USER", "intake-dev"),
-        secret_key=os.environ.get("MINIO_ROOT_PASSWORD", "intake-dev-only"),
+        access_key=os.environ.get(ENV_MINIO_USER, "intake-dev"),
+        secret_key=os.environ.get(ENV_MINIO_PASSWORD, "intake-dev-only"),
         secure=os.environ.get("INTAKE_MINIO_SECURE", "") == "true",
     )
     return DocumentsConfig(
@@ -175,8 +177,16 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
     503 (fail closed) and the dev-bearer tier stays load-bearing. The
     attestation verifier is fail-closed unless the dev phrase is set, and
     the delivery adapter is the dev event logger — the SMS vendor contract
-    is awaiting-human (docs/evidence/INT-131.md)."""
+    is awaiting-human (docs/evidence/INT-131.md).
+
+    INT-325 (audit F13): in prod the dev logger is never wired. It records an
+    event and sends nothing, so the tier would answer "sent" for a code that
+    never arrives. With no contracted SMS adapter the tier stays unconfigured
+    (every /v1/auth route answers 503)."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
+        return None
+    if settings.production:
+        logger.warning("otp tier unconfigured in prod: no SMS delivery adapter is wired")
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
