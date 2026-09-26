@@ -51,6 +51,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -162,13 +163,29 @@ export default function ShareCentre() {
               return rows;
             })}
           </ListGroup>
+          {unreachable ? (
+            // In the footer's place and style, but announced (SC 4.1.3): a
+            // list that could not be read must not pass for an empty one.
+            <AnnouncedText
+              tone="status"
+              role="caption"
+              color="inkFaint"
+              style={styles.footerLine}
+              message={t("shares.unreachable")}
+            />
+          ) : null}
           <AppText role="caption" color="inkSoft">
             {t("shares.revoke.effect")}
           </AppText>
           {unsent ? (
-            <AppText role="caption" color="inkSoft">
-              {t("shares.revoke.unsent")}
-            </AppText>
+            // SC 3.3.1: the stop the patient asked for did not arrive, and the
+            // share may still be open — announced as an error (INT-362).
+            <AnnouncedText
+              tone="error"
+              role="caption"
+              color="inkSoft"
+              message={t("shares.revoke.unsent")}
+            />
           ) : null}
         </View>
         <View style={styles.section}>
@@ -199,12 +216,13 @@ export default function ShareCentre() {
 /**
  * The footer under the grants. "Nobody has access" and "we could not ask" are
  * different sentences, and only one of them is safe to print when it is not
- * true — so an unreachable read says so rather than showing an empty list
- * with a reassuring line under it.
+ * true — so an unreachable read prints no reassuring line at all. What it
+ * does say is rendered below the group as an announced status (INT-362),
+ * because a footer is a quiet caption that no screen reader is told about.
  */
 function emptyFooter(loaded: boolean, unreachable: boolean, count: number): string | undefined {
   if (unreachable) {
-    return t("shares.unreachable");
+    return undefined;
   }
   return loaded && count === 0 ? t("shares.empty") : undefined;
 }
@@ -213,4 +231,6 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md },
   heroLine: { marginTop: spacing.xl, marginBottom: spacing.sm },
   section: { gap: spacing.sm, marginTop: spacing.sm },
+  // The ListGroup footer's own inset, so the line sits where the footer did.
+  footerLine: { paddingHorizontal: spacing.md },
 });

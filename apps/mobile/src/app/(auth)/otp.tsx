@@ -10,6 +10,7 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import {
   AppText,
   Card,
@@ -25,7 +26,6 @@ import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
 import { OTP_LENGTH, isCompleteOtp, maskPhone } from "@/lib/auth/phone";
 import { labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, scaledSize, spacing } from "@/lib/theme";
@@ -84,10 +84,6 @@ export default function OtpEntry() {
     const timer = setTimeout(() => setResendWait((s) => s - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendWait]);
-
-  // Before the early return: hooks may not be conditional. Android gets the
-  // live region on the line itself; this is the half iOS hears.
-  useLiveAnnouncement(problem === null ? null : labelled(t("a11y.error"), t(problem)));
 
   if (phone === null) {
     return <Screen>{null}</Screen>;
@@ -199,10 +195,8 @@ export default function OtpEntry() {
           // SC 3.3.1: a wrong code also clears every box and moves focus, so
           // the reason must be announced or the patient only perceives the
           // form emptying itself. Visible copy unchanged; the spoken form
-          // carries the "Hata" prefix (useLiveAnnouncement above).
-          <AppText role="body" color="amber" live="assertive">
-            {t(problem)}
-          </AppText>
+          // carries the "Hata" prefix, on both platforms (INT-362).
+          <AnnouncedText tone="error" role="body" color="amber" message={t(problem)} />
         ) : null}
         <PrimaryButton
           label={t("auth.otp.verifyCta")}
