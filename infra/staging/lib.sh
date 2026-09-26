@@ -45,6 +45,16 @@ ROLE_PASSWORD_KEYS=(
   "svc_learning_reader:PG_LEARNING_READER_PASSWORD"
 )
 
+# INT-352: the .env keys the operator sets by hand. init.sh generates none of
+# them and writes each one empty, once, for the operator to fill. Each may stay
+# empty: compose passes it to the API with no default, and the API reads empty
+# as unset and fails closed (no Apple team id: every iOS attestation is
+# refused). require_sms_with_app_attest refuses the one unsafe mix.
+APP_ATTEST_KEYS=(INTAKE_APP_ATTEST_TEAM_ID INTAKE_APP_ATTEST_BUNDLE_ID INTAKE_APP_ATTEST_ENVIRONMENT)
+SMS_KEYS=(TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM)
+OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}")
+ATTEST_SMS_RUNBOOK='docs/runbooks/staging.md, section "App Attest and SMS"'
+
 log() { printf '[intake-staging] %s\n' "$*" >&2; }
 die() {
   printf '[intake-staging] ERROR: %s\n' "$*" >&2
@@ -117,16 +127,35 @@ env_set() {
   mv -f "$tmp" "$file"
 }
 
+env_has() {
+  # the key is in the file, empty or not
+  local file=$1 key=$2
+  [[ -f $file ]] && grep -q "^${key}=" "$file"
+}
+
 template_keys() {
   sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*$/\1/p' "$ENV_TEMPLATE"
 }
 
+is_operator_key() {
+  local key=$1 operator_key
+  for operator_key in "${OPERATOR_KEYS[@]}"; do
+    [[ $key == "$operator_key" ]] && return 0
+  done
+  return 1
+}
+
 generate_missing_secrets() {
-  # Every template key but the owner-supplied hostname gets a generated value,
-  # once: a key that already has one keeps it, so a re-run re-keys nothing.
+  # Every template key but the owner-supplied hostname and the operator's keys
+  # gets a generated value, once: a key that already has one keeps it, so a
+  # re-run re-keys nothing. An operator key is only written empty, if absent.
   local key
   while IFS= read -r key; do
     [[ $key == STAGING_HOSTNAME ]] && continue
+    if is_operator_key "$key"; then
+      env_has "$ENV_FILE" "$key" || env_set "$ENV_FILE" "$key" ""
+      continue
+    fi
     if [[ -z $(env_get "$ENV_FILE" "$key") ]]; then
       env_set "$ENV_FILE" "$key" "$(gen_secret)"
       log "generated $key"
@@ -141,6 +170,22 @@ require_object_store_image() {
     die "no object-store image is set: OBJECT_STORE_IMAGE in lib.sh must be the owner-approved, digest-pinned image that ${OBJECT_STORE_ISSUE} records (docs/runbooks/staging.md)"
   [[ $image =~ ^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$ ]] ||
     die "the object-store image is not pinned by digest (name:tag@sha256:<64 hex>): see ${OBJECT_STORE_ISSUE}"
+}
+
+require_sms_with_app_attest() {
+  # With an Apple team id, a genuine iOS app passes attestation and the API
+  # goes on to deliver the code. Without all three SMS keys it has no vendor
+  # to deliver with, and would answer "sent" having sent nothing. Without a
+  # team id no request passes attestation, so the SMS keys may be anything.
+  # Names only: no value reaches the message.
+  local key missing=()
+  [[ -n $(env_get "$ENV_FILE" INTAKE_APP_ATTEST_TEAM_ID) ]] || return 0
+  for key in "${SMS_KEYS[@]}"; do
+    [[ -n $(env_get "$ENV_FILE" "$key") ]] || missing+=("$key")
+  done
+  if ((${#missing[@]} > 0)); then
+    die "INTAKE_APP_ATTEST_TEAM_ID is set, but $ENV_FILE has no value for ${missing[*]}: a verified device would be told a code was sent that nobody sent. Set all three SMS keys, or empty the team id (${ATTEST_SMS_RUNBOOK})"
+  fi
 }
 
 # --- host memory -------------------------------------------------------------------------
@@ -192,11 +237,13 @@ prepare_state_dir() {
 }
 
 load_env() {
-  # Validate that every template key has a value. Shell variables are set
-  # only for the values the scripts read; secrets are never exported.
+  # Validate that every template key but the operator's has a value. Shell
+  # variables are set only for the values the scripts read; secrets are never
+  # exported.
   [[ -f $ENV_FILE ]] || die "$ENV_FILE is missing: run ./init.sh first"
   local key
   while IFS= read -r key; do
+    is_operator_key "$key" && continue
     [[ -n $(env_get "$ENV_FILE" "$key") ]] || die "$key is empty in $ENV_FILE: run ./init.sh"
   done < <(template_keys)
   STAGING_HOSTNAME=$(env_get "$ENV_FILE" STAGING_HOSTNAME)

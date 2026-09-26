@@ -153,9 +153,10 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
   - It first refuses a host whose active swap is not encrypted (see "Host
     memory" above).
   - It generates every secret into `/etc/intake-staging/.env` (0600, in a
-    0700 dir): the Postgres and Redis passwords, the object store's root pair
-    and the API's OpenBao token. A re-run keeps every existing value and
-    fills only a missing one.
+    0700 dir): the Postgres and Redis passwords, the object store's root
+    pair, the API's OpenBao token and the OTP tier's tokenization key. It
+    writes the App Attest and SMS keys empty (see "App Attest and SMS"). A
+    re-run keeps every existing value and fills only a missing one.
   - It initialises OpenBao with 3 key shares (threshold 2). The shares and
     the root token go to `/etc/intake-staging/openbao-init.json` (0600).
   - It unseals OpenBao, enables Transit, and writes the `intake-api` policy,
@@ -182,6 +183,42 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
 Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
 `/etc/intake-staging` and in the project's named volumes, not in `/opt/intake`.
 
+## App Attest and SMS
+
+Phone sign-in (the API's OTP tier) needs device attestation and an SMS
+vendor (INT-352). `./init.sh` generates the tokenization key. The operator
+sets the other keys by hand, as root, in `/etc/intake-staging/.env`:
+
+| key | set by | value |
+|---|---|---|
+| `INTAKE_TOKENIZATION_KEY` | `./init.sh`, once | the HMAC key for phone pseudonyms. Never edit it: a new key forks every existing pseudonym |
+| `INTAKE_APP_ATTEST_TEAM_ID` | operator | the signed iOS app's Apple App ID prefix, 10 characters (INT-344, HB-A3) |
+| `INTAKE_APP_ATTEST_BUNDLE_ID` | operator, optional | leave empty for the app's committed bundle id |
+| `INTAKE_APP_ATTEST_ENVIRONMENT` | operator, optional | leave empty for production. `development` is for dev-signed builds only, never on a public host like this one |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` | operator | the SMS vendor. `TWILIO_FROM` is a Twilio number in E.164 or a Messaging Service SID |
+
+```bash
+sudo -i
+cd /opt/intake/infra/staging
+"${EDITOR:-vi}" /etc/intake-staging/.env   # fill the keys; the file stays 0600 root
+./deploy.sh
+```
+
+- `./deploy.sh` picks the keys up. Compose passes each one to the api
+  container with no default and recreates the container when a value
+  changes.
+- An empty key reaches the API empty, and the API treats it as unset and
+  fails closed. With no team id, every iOS attestation is refused, and
+  Android's is refused until HB-A3, so no code is ever sent.
+- `./deploy.sh` refuses a team id without all three SMS keys, because a
+  verified device would then be told a code was sent that nobody sent.
+- A host initialised before INT-352 has no tokenization key, so
+  `./deploy.sh` stops with `INTAKE_TOKENIZATION_KEY is empty`. Re-run
+  `./init.sh` once: it fills in only what is missing.
+- **Setting the SMS keys sends a real phone number through this host to the
+  vendor.** The host is synthetic-only (HB-I5, HB-L11), so setting them is the
+  owner's decision, and the vendor needs a signed DPA first (invariant 18).
+
 ## Known gaps, stated rather than hidden
 
 - **`/readyz` answers 503 on main as of 730e9288.** The response is
@@ -193,8 +230,9 @@ Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
   `/readyz`, by design and with the reason printed.
 - **The restart test runs through the API's cipher, not an HTTP route.** A
   staging API with no dev gate has no authentication tier that can write a
-  note. The dev bearers are dev gates, and the OTP tier needs an SMS vendor
-  and attestation, both awaiting-human. `infra/staging/staging_probe.py`
+  note. The dev bearers are dev gates, and the OTP tier needs the
+  operator's App Attest and SMS keys (see "App Attest and SMS").
+  `infra/staging/staging_probe.py`
   drives the same `wiring_from_env()` cipher inside the api container.
 - `/version`'s `sbom_digest` stays `dev`: this artefact produces no SBOM.
 - Document upload has no ClamAV here, so it fails closed
