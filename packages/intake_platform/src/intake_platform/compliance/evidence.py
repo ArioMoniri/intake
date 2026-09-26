@@ -40,6 +40,7 @@ __all__ = [
     "EvidenceBundle",
     "EvidenceSection",
     "build_evidence_bundle",
+    "seal_bundle",
 ]
 
 #: The obligations this bundle is evidence for (INT-189 issue `legal:` field).
@@ -176,6 +177,22 @@ def _digest(
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
 
+def seal_bundle(
+    *, generated_at: str, legal_refs: tuple[str, ...], sections: tuple[EvidenceSection, ...]
+) -> EvidenceBundle:
+    """Bind already-sanitised sections into a bundle with its content digest.
+
+    The one sealing step every auditor export shares (INT-189's bundle and
+    INT-215's 2018/10 packet), so the digest rule has a single copy.
+    """
+    return EvidenceBundle(
+        generated_at=generated_at,
+        legal_refs=legal_refs,
+        sections=sections,
+        digest=_digest(generated_at, legal_refs, sections),
+    )
+
+
 def build_evidence_bundle(
     *,
     generated_at: str,
@@ -191,9 +208,4 @@ def build_evidence_bundle(
         _dsar_section(dsar_sla),
         _audit_section(audit_chain),
     )
-    return EvidenceBundle(
-        generated_at=generated_at,
-        legal_refs=LEGAL_REFS,
-        sections=sections,
-        digest=_digest(generated_at, LEGAL_REFS, sections),
-    )
+    return seal_bundle(generated_at=generated_at, legal_refs=LEGAL_REFS, sections=sections)
