@@ -22,6 +22,15 @@ API_IMAGE_REPO="intake-staging/api"
 # The restart probe's Transit key. TransitKekProvider names keys tenant-<id>,
 # and staging_probe.PROBE_TENANT is "staging-restart-probe".
 PROBE_KEK="tenant-staging-restart-probe"
+# The S3-compatible object store the API's documents need. The upstream
+# minio/minio image is withdrawn, and its replacement is the owner's choice:
+# INT-347 (#550) records it with a licence verified from the raw LICENSE blob
+# and a sha256 digest pin. Empty until then, and deploy.sh refuses while it
+# is. The API's MINIO_ROOT_USER/MINIO_ROOT_PASSWORD are generated into the env
+# file regardless, so the store INT-347 adds is keyed from the same file.
+# shellcheck disable=SC2034 # deploy.sh reads it
+OBJECT_STORE_IMAGE=""
+OBJECT_STORE_ISSUE="INT-347 (#550)"
 
 # Every LOGIN role that a migration creates with a committed dev password,
 # with the .env key that holds its host-generated replacement. The test
@@ -108,6 +117,28 @@ env_set() {
 
 template_keys() {
   sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*$/\1/p' "$ENV_TEMPLATE"
+}
+
+generate_missing_secrets() {
+  # Every template key but the owner-supplied hostname gets a generated value,
+  # once: a key that already has one keeps it, so a re-run re-keys nothing.
+  local key
+  while IFS= read -r key; do
+    [[ $key == STAGING_HOSTNAME ]] && continue
+    if [[ -z $(env_get "$ENV_FILE" "$key") ]]; then
+      env_set "$ENV_FILE" "$key" "$(gen_secret)"
+      log "generated $key"
+    fi
+  done < <(template_keys)
+}
+
+require_object_store_image() {
+  # name:tag@sha256:<64 hex>, the same pin every other image here carries
+  local image=${1:-}
+  [[ -n $image ]] ||
+    die "no object-store image is approved: ${OBJECT_STORE_ISSUE} must record the owner's licence-verified, digest-pinned S3-compatible image that replaces the withdrawn minio/minio. deploy.sh refuses until it lands (docs/runbooks/staging.md)"
+  [[ $image =~ ^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$ ]] ||
+    die "the object-store image is not pinned by digest (name:tag@sha256:<64 hex>): see ${OBJECT_STORE_ISSUE}"
 }
 
 # --- host state --------------------------------------------------------------------------

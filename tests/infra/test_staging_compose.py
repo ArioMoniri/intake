@@ -131,6 +131,38 @@ INTERPOLATION = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)(?::?[-?][^}]*)?\}")
 
 MIGRATION_ROLE = re.compile(r"CREATE ROLE (\w+) LOGIN PASSWORD '[^']*'")
 
+#: `${NAME:?message}` anywhere inside a value (a DB URL embeds one).
+REQUIRED_INTERPOLATION_IN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*):\?[^}]+\}")
+
+#: Any brace interpolation, whatever its operator.
+ANY_BRACE_INTERPOLATION = re.compile(r"\$\{[^}]*\}")
+
+#: A bare `$NAME`, which compose also interpolates (`$$` is a literal dollar).
+BARE_INTERPOLATION = re.compile(r"(?<!\$)\$(?=[A-Za-z_])")
+
+#: INT-325 (PR #521): outside dev the API refuses to boot with any of these
+#: missing or empty, because each one would otherwise fall back to an in-code
+#: dev credential. Read from the API once its base carries #521; until then
+#: these same names, each proven below to be a variable the API reads.
+INT325_REQUIRED_CREDENTIALS = (
+    "INTAKE_API_DB_URL",
+    "INTAKE_API_AUDIT_DB_URL",
+    "INTAKE_API_BOOTSTRAP_DB_URL",
+    "MINIO_ROOT_USER",
+    "MINIO_ROOT_PASSWORD",
+)
+API_SOURCES = (
+    REPO / "services" / "api" / "src" / "intake_api" / "settings.py",
+    REPO / "services" / "api" / "src" / "intake_api" / "app.py",
+)
+
+#: The one template key the owner supplies; every other one is a generated secret.
+OWNER_SUPPLIED = {"STAGING_HOSTNAME"}
+
+#: The issue that owns the object-store image: the upstream minio/minio image
+#: is withdrawn, and no replacement image is approved in this repository.
+OBJECT_STORE_ISSUE = "INT-347"
+
 
 # --- helpers ---------------------------------------------------------------------------
 
@@ -222,6 +254,52 @@ def _bash(script: str, *args: str, cwd: Path | None = None) -> subprocess.Comple
         text=True,
         cwd=cwd,
         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(cwd or REPO)},
+        check=False,
+    )
+
+
+def _required_credentials() -> tuple[str, ...]:
+    required = getattr(api_settings, "NON_DEV_REQUIRED_CREDENTIALS", INT325_REQUIRED_CREDENTIALS)
+    return tuple(str(name) for name in required)
+
+
+def _read_env_file(path: Path) -> dict[str, str]:
+    pairs: dict[str, str] = {}
+    for line in _text(path).splitlines():
+        key, sep, value = line.partition("=")
+        assert sep == "=", f"env file line is not KEY=VALUE: {line!r}"
+        pairs[key] = value
+    return pairs
+
+
+def _generate_env_file(env_file: Path) -> subprocess.CompletedProcess[str]:
+    """init.sh's secret generation, pointed at a scratch env file."""
+    return _bash('ENV_FILE="$1"; generate_missing_secrets', str(env_file), cwd=env_file.parent)
+
+
+def _render(value: str, env: dict[str, str]) -> str:
+    """Compose's `${NAME:?message}` substitution from an env file's values."""
+
+    def substitute(match: re.Match[str]) -> str:
+        name = match.group(1)
+        assert env.get(name), f"compose would stop: {name} is empty"
+        return env[name]
+
+    return REQUIRED_INTERPOLATION_IN.sub(substitute, value)
+
+
+def _run_deploy(tmp_path: Path) -> subprocess.CompletedProcess[str]:
+    """deploy.sh itself, with a scratch state dir so nothing reaches /etc."""
+    return subprocess.run(
+        ["bash", str(DEPLOY)],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "HOME": str(tmp_path),
+            "INTAKE_STAGING_STATE_DIR": str(tmp_path / "state"),
+        },
         check=False,
     )
 
@@ -747,6 +825,135 @@ class TestStagingProbe:
         assert code == 1
         assert err.getvalue().strip() == "restart-probe: encrypt failed (ConnectionError)"
         assert out.getvalue() == ""
+
+
+# --- INT-325: every credential the API requires outside dev ----------------------------
+
+
+class TestNonDevCredentials:
+    """Outside dev the API refuses to boot when a DB or object-store credential
+    variable is missing or empty (INT-325, PR #521). Each one must be a
+    host-generated secret in the root-only env file and reach the api with no
+    default, or the staging API never starts."""
+
+    def test_the_required_credentials_are_variables_the_api_reads(self) -> None:
+        source = "".join(_text(path) for path in API_SOURCES)
+        required = _required_credentials()
+        assert required
+        for name in required:
+            assert f'"{name}"' in source, f"the API reads no {name}"
+
+    @pytest.mark.parametrize("variable", _required_credentials())
+    def test_compose_passes_each_credential_to_the_api_with_no_default(self, variable: str) -> None:
+        env = _environment(_service("api"))
+        assert variable in env, f"the api would refuse to boot: {variable} is not passed"
+        value = env[variable]
+        interpolations = ANY_BRACE_INTERPOLATION.findall(value)
+        assert interpolations, f"{variable} is a literal, not a host-generated secret"
+        for whole in interpolations:
+            assert REQUIRED_INTERPOLATION.match(whole), f"{variable}: {whole} is not required"
+        assert not BARE_INTERPOLATION.search(value.replace("$$", "")), variable
+        keys = set(REQUIRED_INTERPOLATION_IN.findall(value))
+        assert keys <= set(_env_template()) - OWNER_SUPPLIED - DEPLOY_STAMPED, (variable, keys)
+
+    def test_init_generates_every_secret_root_only_and_once(self, tmp_path: Path) -> None:
+        env_file = tmp_path / ".env"
+        first = _generate_env_file(env_file)
+        assert first.returncode == 0, first.stderr
+        generated = _read_env_file(env_file)
+        assert set(generated) == set(_env_template()) - OWNER_SUPPLIED
+        for key, value in generated.items():
+            assert re.fullmatch(r"[0-9a-f]{64}", value), key
+        assert len(set(generated.values())) == len(generated), "each secret is its own"
+        assert stat.S_IMODE(env_file.stat().st_mode) == 0o600
+        second = _generate_env_file(env_file)
+        assert second.returncode == 0, second.stderr
+        assert _read_env_file(env_file) == generated, "a re-run must re-key nothing"
+
+    def test_init_generates_through_the_tested_function(self) -> None:
+        code = "\n".join(
+            line for line in _text(INIT).splitlines() if not line.lstrip().startswith("#")
+        )
+        assert "generate_missing_secrets" in code
+        assert code.index("prepare_state_dir") < code.index("generate_missing_secrets")
+        assert code.index("generate_missing_secrets") < code.index("load_env")
+
+    def test_every_credential_renders_non_empty_from_a_generated_env_file(
+        self, tmp_path: Path
+    ) -> None:
+        env_file = tmp_path / ".env"
+        assert _generate_env_file(env_file).returncode == 0
+        values = {**_read_env_file(env_file), "STAGING_HOSTNAME": "3-91-12-7.sslip.io"}
+        api_env = _environment(_service("api"))
+        for variable in _required_credentials():
+            rendered = _render(api_env[variable], values)
+            assert rendered, variable
+            assert "$" not in rendered, variable
+        user = _render(api_env["MINIO_ROOT_USER"], values)
+        password = _render(api_env["MINIO_ROOT_PASSWORD"], values)
+        assert user != password
+
+
+# --- INT-347: no object-store image is approved here, so deploy fails closed ---------
+
+
+class TestObjectStoreGate:
+    """The upstream minio/minio image is withdrawn, and no replacement image is
+    approved in this repository (INT-347, #550). Until an approved,
+    digest-pinned image is committed, deploy.sh refuses: it names INT-347 and
+    touches nothing."""
+
+    def test_no_object_store_image_is_approved_yet(self) -> None:
+        result = _bash('printf "%s" "$OBJECT_STORE_IMAGE"')
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == ""
+        assert "minio" not in " ".join(
+            str(service.get("image", "")) for service in _compose()["services"].values()
+        )
+
+    def test_deploy_refuses_while_the_object_store_image_is_unset(self, tmp_path: Path) -> None:
+        result = _run_deploy(tmp_path)
+        assert result.returncode != 0
+        assert OBJECT_STORE_ISSUE in result.stderr
+        assert "object-store image" in result.stderr
+        # its own refusal, before the root check: the verdict does not depend on
+        # who runs it, and no host state was created
+        assert "run as root" not in result.stderr
+        assert not (tmp_path / "state").exists()
+
+    def test_the_gate_runs_before_anything_touches_the_host(self) -> None:
+        code = "\n".join(
+            line for line in _text(DEPLOY).splitlines() if not line.lstrip().startswith("#")
+        )
+        gate = code.index('require_object_store_image "$OBJECT_STORE_IMAGE"')
+        assert gate < code.index("require_root") < code.index("compose ")
+
+    @pytest.mark.parametrize(
+        "image",
+        [
+            "",
+            "minio/minio:RELEASE.2024-01-16T16-07-38Z",
+            "registry.invalid/object-store@sha256:" + "0" * 64,
+            "registry.invalid/object-store:1.0@sha256:" + "0" * 63,
+        ],
+        ids=["unset", "tag-only", "no-tag", "short-digest"],
+    )
+    def test_the_gate_refuses_an_unset_or_unpinned_image(self, image: str) -> None:
+        result = _bash('require_object_store_image "$1"', image)
+        assert result.returncode != 0
+        assert OBJECT_STORE_ISSUE in result.stderr
+
+    def test_the_gate_admits_a_digest_pinned_image(self) -> None:
+        """Positive control: the gate is a pin check, not a constant refusal."""
+        image = "registry.invalid/object-store:1.0@sha256:" + "0" * 64
+        assert PINNED.match(image)
+        result = _bash('require_object_store_image "$1"', image)
+        assert result.returncode == 0, result.stderr
+
+    def test_the_runbook_states_the_dependency(self) -> None:
+        text = _text(RUNBOOK)
+        assert "depends on INT-347" in text
+        assert "#550" in text
 
 
 # --- the runbook -----------------------------------------------------------------------

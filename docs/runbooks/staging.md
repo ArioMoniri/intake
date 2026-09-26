@@ -16,6 +16,26 @@ only 80 and 443. The llama.cpp model server on the same box stays bound to
 loopback (`docs/runbooks/model-server-aws.md`). The new security group opens
 80/443 to Caddy and to nothing else.
 
+## This deploy depends on INT-347 (object store)
+
+`./deploy.sh` **refuses** until an object-store image is approved. The
+upstream `minio/minio` image is withdrawn, and choosing its replacement is the
+owner's call: **INT-347 (#550)** records the image, with its licence verified
+from the raw LICENSE blob and a sha256 digest pin. Until that lands,
+`OBJECT_STORE_IMAGE` in `infra/staging/lib.sh` is empty. deploy.sh then stops
+before it touches the host and prints:
+
+```
+[intake-staging] ERROR: no object-store image is approved: INT-347 (#550) must record the owner's ...
+```
+
+The deploy does not boot the API without an object store. Outside dev the API
+also refuses to boot without the store's credentials (INT-325, PR #521).
+`./init.sh` still runs: it generates `MINIO_ROOT_USER` and
+`MINIO_ROOT_PASSWORD` into the root-only env file with every other secret, and
+compose passes them to the api with no default. The store that INT-347 adds
+is keyed from the same file.
+
 ## Prerequisites (owner, one-time)
 
 - On the laptop: `awscli`, `session-manager-plugin`, and `aws sso login`
@@ -97,14 +117,17 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
 
 - `./init.sh` is run once and is idempotent.
   - It generates every secret into `/etc/intake-staging/.env` (0600, in a
-    0700 dir).
+    0700 dir): the Postgres and Redis passwords, the object store's root pair
+    and the API's OpenBao token. A re-run keeps every existing value and
+    fills only a missing one.
   - It initialises OpenBao with 3 key shares (threshold 2). The shares and
     the root token go to `/etc/intake-staging/openbao-init.json` (0600).
   - It unseals OpenBao, enables Transit, and writes the `intake-api` policy,
     the restart-probe KEK and the API's periodic token.
   - It runs the alembic migrations and re-keys every migration role away
     from its committed dev password.
-- `./deploy.sh` runs on every deploy **and after every host reboot**. OpenBao
+- `./deploy.sh` runs on every deploy **and after every host reboot**. It
+  depends on INT-347 and refuses until INT-347 lands (see above). OpenBao
   restarts sealed, and this script unseals it. It then renews the API token,
   builds, migrates, runs `docker compose -p intake-staging up -d --build`,
   and probes `/healthz` and `/readyz` over HTTPS.
@@ -124,12 +147,14 @@ Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
 
 ## Known gaps, stated rather than hidden
 
+- **The deploy depends on INT-347.** deploy.sh refuses until an approved,
+  digest-pinned object-store image lands (see the section above).
 - **`/readyz` answers 503 on main as of 730e9288.** The response is
-  `{"checks": {..., "dev_auth": "error"}}`. The INT-197 `dev_auth` readiness
-  check is mounted in every environment that is not prod. INT-325 (PR #521)
-  drops it only when `INTAKE_ENV` starts with `prod`, so staging still carries
-  it. The API needs to drop that check for `staging` too. That change belongs
-  to the API code, not this artefact. Until it lands, smoke check 1 fails on
+  `{"checks": {..., "dev_auth": "error"}}`, because the INT-197 `dev_auth`
+  readiness check is mounted outside dev. INT-325 (PR #521, at be74a9d1)
+  keeps that check to dev only. The same PR makes every non-dev environment,
+  staging included, refuse the DB and object-store credentials' absence; this
+  artefact supplies all five. Until #521 merges, smoke check 1 fails on
   `/readyz`, by design and with the reason printed.
 - **The restart test runs through the API's cipher, not an HTTP route.** A
   staging API with no dev gate has no authentication tier that can write a
@@ -137,7 +162,8 @@ Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
   and attestation, both awaiting-human. `infra/staging/staging_probe.py`
   drives the same `wiring_from_env()` cipher inside the api container.
 - `/version`'s `sbom_digest` stays `dev`: this artefact produces no SBOM.
-- Document upload has no MinIO or ClamAV here, so it fails closed.
+- Document upload has no object store (INT-347) and no ClamAV here, so it
+  fails closed.
 - The synthetic probe registration and the staging banner/tenant belong to
   the API and app, not to this artefact.
 - **Key custody is a staging posture only.** The unseal shares sit on the

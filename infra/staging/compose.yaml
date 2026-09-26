@@ -12,6 +12,13 @@
 #   - No tokenization key is set, so the OTP tier stays unconfigured (503).
 #     Wiring it would wire the dev delivery logger, and the SMS vendor and
 #     device attestation are both awaiting-human.
+#   - Every credential the API requires outside dev (INT-325: the three DB
+#     URLs and the object store's root pair) is a required interpolation of
+#     a host-generated secret. None has a default.
+#
+# No object store runs in this project yet. The upstream minio/minio image is
+# withdrawn and no replacement image is approved in this repository (INT-347,
+# #550), so deploy.sh refuses until an approved, digest-pinned image lands.
 #
 # Secrets come only from the root-only env file that init.sh generates on the
 # host (/etc/intake-staging/.env, mode 0600). Every compose call goes through
@@ -51,6 +58,11 @@ services:
       INTAKE_API_AUDIT_DB_URL: postgresql+psycopg://svc_audit_writer:${PG_AUDIT_WRITER_PASSWORD:?run init.sh}@postgres:5432/intake
       INTAKE_API_BOOTSTRAP_DB_URL: postgresql+psycopg://intake:${POSTGRES_PASSWORD:?run init.sh}@postgres:5432/intake
       INTAKE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # The object store's root pair. Outside dev the API refuses to boot
+      # without it (INT-325), and it has no default here. The store itself
+      # arrives with INT-347 (#550); deploy.sh refuses until then.
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?run init.sh}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?run init.sh}
     depends_on:
       postgres:
         condition: service_healthy

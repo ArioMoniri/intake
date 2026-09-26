@@ -9,7 +9,8 @@
 #
 # What it does:
 #   1. Creates the root-only state dir and env file, and generates every
-#      secret in it here, once.
+#      secret in it here, once: the database and Redis passwords, the
+#      object store's root pair and the API's OpenBao token.
 #   2. Starts OpenBao in server mode, initialises it with 3 key shares
 #      (threshold 2), and unseals it. The shares and the root token go to a
 #      separate root-only file.
@@ -31,14 +32,7 @@ host=${STAGING_HOSTNAME:-$(env_get "$ENV_FILE" STAGING_HOSTNAME)}
 [[ -n $host ]] || die "set STAGING_HOSTNAME=<EIP-dashed>.sslip.io (docs/runbooks/staging.md)"
 validate_hostname "$host"
 env_set "$ENV_FILE" STAGING_HOSTNAME "$host"
-
-while IFS= read -r key; do
-  [[ $key == STAGING_HOSTNAME ]] && continue
-  if [[ -z $(env_get "$ENV_FILE" "$key") ]]; then
-    env_set "$ENV_FILE" "$key" "$(gen_secret)"
-    log "generated $key"
-  fi
-done < <(template_keys)
+generate_missing_secrets
 
 load_env
 stamp_revision

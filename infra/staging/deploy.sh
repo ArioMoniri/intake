@@ -7,6 +7,10 @@
 # Run as root on the staging host, from infra/staging, after ./init.sh. Run it
 # again after every host reboot: OpenBao restarts sealed, and this unseals it.
 #
+# It refuses first, before touching the host, while no object-store image is
+# approved: the upstream minio/minio image is withdrawn and its replacement is
+# the owner's choice (INT-347, #550). This deploy depends on INT-347.
+#
 # What it does:
 #   1. Stamps the commit sha and build time, which /version reports.
 #   2. Unseals OpenBao and renews the API's periodic token.
@@ -17,6 +21,7 @@ set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+require_object_store_image "$OBJECT_STORE_IMAGE"
 require_root
 require_tools
 load_env
