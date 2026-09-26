@@ -66,6 +66,34 @@
 - Next: PR review. After INT-351 (#562) merges, serve `GET /admin/cost` through its Prometheus reader, and attach `ops_gpu_host_up` to the host rows.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-09-26T19:20:00Z · INT-335 · delivered
+- Goal: acceptance verbatim — *"every loop, core or Reanimated (withRepeat included), is gated on the app's reduce-motion hook and takes its period from motion.loop with every half-period above 167 ms · animated styles touch only opacity and transform; no LinearTransition, Layout animation, withSpring or runOnJS in src; Reanimated CSS durations come only from cssFade · a planted ungated loop and a planted literal duration each fail the suite (mutation-proven, file backed up with cp, never restored with git checkout)"*.
+- Plan:
+  - Add `motion.easing.out`, `motion.easing.breath` and `motion.loop.pulsePeriodMs` (a full period, 1400) to `theme.ts`, each with its first consumer.
+  - Add a pure `apps/mobile/src/lib/motion/fade.ts` (`fadeSpec`, `enterFor`, `cssFade`, `cubicBezierCss`).
+  - `PulseDot` reads its period and curve from the tokens.
+  - BK14 counts `Animated.loop`, `withRepeat` and CSS iteration counts across all of `src`, and requires the app's hook from `@/lib/a11y/prefs`.
+  - BK15 is re-pointed to `motion.loop`.
+  - Four new scans in `e2e/motion.spec.ts`, sharing loop detection with `a11y.spec` through `e2e/motionSource.ts`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `fade.test.ts`: the 4 MOTION-6 tests.
+  - `theme.test.ts`: 1 test.
+  - `a11y.spec.ts`: BK14 and BK15 rewritten under the spec's titles.
+  - `motion.spec.ts`: 4 tests.
+  - Every scan proves its detector on caught and accepted samples.
+  - Mutations, each restored with `cp` from a backup:
+    - an ungated `withRepeat` in a component, and again in `src/lib`, both fail BK14;
+    - a literal `700`, and a `const HALF_MS = 700`, both fail BK15 and the literal-duration scan;
+    - a 300 ms period fails theme.test and BK15;
+    - a spring plus a height style plus a CSS literal fail the other three scans.
+  - RED: 4 failed | 72 passed, plus fade.test failing to load. GREEN: 80/80 targeted; whole mobile suite 104 files / 2009 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck`, expo lint and prettier are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **17** (every token has a live consumer), **8** (9 tests added; BK14 and BK15 replaced by strictly stronger versions; BK13 unchanged), **6** (nothing logged).
+- Decisions / ADRs / `00_STATE.md` rows: none. This implements the spec's settled MOTION-6. The choices that go beyond the spec's text are recorded in `docs/evidence/INT-335.md`: CSS iteration count counted as a loop, `src/lib` in BK14's scope, spring and JS-hop aliases, no `kind` parameter, and the curve carried in the CSS shorthand.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. No device run is recorded; the only felt change is PulseDot's curve (core ease-in-out → breath token), and the owner's reference devices are still unnamed.
+- Next: PR review. MOTION-7 (presence orb) can now land on these gates.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T19:00:00Z · INT-351 · done (PR open, not merged)
 - Goal: a RENDERED admin-web ops page (audit F26 — admin-web was headless view-models + fixture specs) with tiles for API health, model hosts/GPU, model usage, the scripted-clip cache, check-in→seen wait, CSAT/NPS and CI/CD, each backed by a real source and failing closed to "unknown"; admin OIDC role required, nobody admitted without configuration (HB-A16); no PHI on any tile.
 - Plan: minimal Next.js App Router shell in `apps/admin-web` (`/ops` server component + `proxy.ts` nonce CSP + `/healthz`) that forwards the caller's bearer to a new audited `GET /admin/ops` (`ADMIN_ROUTES`, platform-scope roles) and then reads the API's `/healthz`/`/readyz`/`/version`. The composite (`intake_api.admin.ops_console`) reads the registry (INT-183 loader) and Prometheus through a fixed catalogued query table (`ops_prom.py`). GPU and CI facts come from a new ops collector in `services/probes` (nvidia-smi beside the host; GitHub Actions with a read-only token from OpenBao through the egress guard); the ADR-028 clip build counts hits/misses/syntheses and per-pack manifest coverage (`voice_clips.metrics`) into a textfile the collector re-exports. Eleven families catalogued. The GitHub issue (#557, filed in parallel) asks for the clip *manifest* and one fail-closed test per tile — both added as a second red→green increment.
