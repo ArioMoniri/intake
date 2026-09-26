@@ -82,7 +82,7 @@ describe("the chooser is reachable, and reads the registry", () => {
 
   it("first run reaches the same chooser", () => {
     const welcome = file("src/app/(auth)/welcome.tsx");
-    expect(welcome).toMatch(/from "@\/lib\/i18n\/chooser"/);
+    expect(welcome).toMatch(/from "@\/lib\/locale\/chooser"/);
     expect(welcome).toMatch(/\.endonym\b/);
   });
 });
@@ -126,7 +126,7 @@ describe("switching keeps the session", () => {
 describe("right-to-left is a layout property, not a per-screen fix", () => {
   it("the shared anatomy derives direction from the locale, in ONE place", () => {
     const themed = file("src/components/Themed.tsx");
-    expect(themed).toMatch(/from "@\/lib\/i18n\/direction"/);
+    expect(themed).toMatch(/from "@\/lib\/locale\/direction"/);
     // The screen container flips; text writes in the locale's direction.
     expect(themed).toMatch(/direction:/);
     expect(themed).toMatch(/writingDirection:/);
@@ -134,7 +134,7 @@ describe("right-to-left is a layout property, not a per-screen fix", () => {
 
   it("no other screen or component sets a layout direction — it is inherited", () => {
     // The render tree is screens (src/app) and components (src/components); the
-    // i18n lib is where direction is DEFINED and carried as data, not applied
+    // locale lib is where direction is DEFINED and carried as data, not applied
     // as a style, so it is not in scope here.
     const setters = TREE.filter((f) => {
       const isRenderTree = f.name.startsWith("src/app/") || f.name.startsWith("src/components/");

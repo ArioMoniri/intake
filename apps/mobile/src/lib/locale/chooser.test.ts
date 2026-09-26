@@ -27,7 +27,7 @@ import {
   toChoices,
 } from "./chooser";
 import { localeDirection } from "./direction";
-import { LocaleNotOffered, RedScriptInFlight, type LocaleRegistration } from "./locale";
+import { LocaleNotOffered, RedScriptInFlight, type LocaleRegistration } from "../i18n/locale";
 
 const HERE = __dirname;
 const CHOOSER_SOURCE = readFileSync(join(HERE, "chooser.ts"), "utf8");

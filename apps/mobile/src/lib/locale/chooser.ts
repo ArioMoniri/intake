@@ -29,7 +29,7 @@ import {
   RedScriptInFlight,
   type LocaleRegistration,
   type SessionLocale,
-} from "./locale";
+} from "../i18n/locale";
 
 /** One row a chooser draws: the code it selects, the language's own name, and
  * the direction its script is written in. Nothing here is patient input. */

@@ -24,7 +24,7 @@ import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { getLocale } from "@/lib/i18n";
-import { localeDirection } from "@/lib/i18n/direction";
+import { localeDirection } from "@/lib/locale/direction";
 import {
   CTA_MIN_HEIGHT,
   effectiveFontScale,
