@@ -1,0 +1,115 @@
+# L0 — QUESTIONS authored; NOT servable until physician-of-record sign-off (HB-C1).
+# TRIAGE deferred. Provenance (honest):
+# Pre-visit QUESTIONS below are AI-assembled from guidelines (NICE NG12 alarm
+# symptoms; ACG/CAG dyspepsia 2017; Türk Gastroenteroloji Vakfı — Güncel
+# Gastroenteroloji 16/2; Ankara Üniv. Aile Hekimliği "Dispepsi" — verbatim
+# citations in docs/evidence/proposals/gastroenteroloji.md), clinician-DIRECTED
+# by the product owner (A. Moniri) under explicit in-session
+# instruction, to be double-verified. Symptom-capture prompts only (invariant
+# 2/10) — not diagnosis, not triage.
+#
+# TRIAGE IS NOT AUTHORED HERE and is NOT fabricated. Red-flag acuity is bound by
+# EK-4 (RG 13/9/2022 sayı 31952) — binding Turkish LAW, no verbatim snapshot in
+# packages/protocols/sources/ — and every trigger is owned by the physician of
+# record (HB-C1/C2/C7). The red_flags stub stays draft_needs_source (excluded
+# from the served pack, invariant 17); RED/life-threat stays in base.life_threat,
+# untouched (invariant 7). This pack only asks GI questions and feeds base gates.
+kind: pack
+id: specialty.gastroenteroloji
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Gastroenteroloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün, hafta ya da ay olarak söyleyebilir misiniz?
+  sindirim_belirtileri:
+    slots:
+      disfaji:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yiyecekleri veya sıvıları yutarken takılma ya da güçlük yaşıyor musunuz?
+      kilo_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda, özellikle çabalamadığınız hâlde kilo verdiğinizi fark ettiniz mi?
+      hematemez_melena:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hiç kan kustuğunuz ya da dışkınızın siyah, katran gibi olduğunu fark ettiğiniz oldu mu?
+      rektal_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dışkınızda ya da tuvalet kâğıdında kırmızı renkte kan gördünüz mü?
+      bagirsak_degisiklik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda tuvalete çıkma düzeninizde (örneğin ishal ya da kabızlık yönünde) bir değişiklik oldu mu?
+      sarilik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cildinizde ya da gözlerinizin akında sararma fark ettiniz mi?
+      inatci_kusma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Geçmeyen ya da sık sık tekrarlayan kusmanız oluyor mu?
+  ilac_ve_gecmis:
+    slots:
+      kullanilan_ilaclar:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli kullandığınız ilaçlar var mı? Özellikle ağrı kesici ya da kan sulandırıcı kullanıyor musunuz?
+      sindirim_tanisi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Daha önce mideniz, bağırsağınız veya karaciğerinizle ilgili size konulmuş bir hastalık tanısı var mı?
+      aile_gis_kanser:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde mide, bağırsak ya da sindirim sistemi kanseri tanısı almış yakınınız var mı?
+red_flags:
+- id: rf.gastroenteroloji_l0_taslak
+  label_tr: Gastroenteroloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: gastroenteroloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Rule set not yet authored: trigger, EK-4 level and route await clinical sign-off. The `when` field carries the sole permitted pending-value literal (CLAUDE.md invariant 17); level YESIL and route EXPEDITE assert nothing clinically; never compiled into a served pack. Guideline-sourced candidate alarm features (disfaji, istemsiz kilo kaybı, hematemez/melena, rektal kanama, sarılık — NICE NG12; Ankara AH "Alarm faktörler") are recorded in docs/evidence/proposals/gastroenteroloji.md for the physician of record, but the acuity level is bound by EK-4 law (RG 13/9/2022 sayı 31952) whose verbatim snapshot is absent, so no level is asserted here. Owner: physician of record (HB-C1, HB-C2, HB-C7).'

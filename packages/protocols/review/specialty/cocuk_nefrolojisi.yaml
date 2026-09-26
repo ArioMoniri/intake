@@ -1,0 +1,102 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/cocuk_nefrolojisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_nefrolojisi
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Çocuk Nefrolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun göz çevresinde, yüzünde, bacaklarında ya da karnında şişlik fark ettiniz mi?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun idrarının rengi koyulaştı, kırmızı-kahverengi bir renk aldı ya da içinde kan gördünüz mü?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz idrar yaparken yanma, ağrı ya da rahatsızlık hissettiğini söylüyor mu?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz her zamankinden daha sık idrara çıkıyor, yeniden altını ıslatmaya başladı ya da idrarını tutmakta zorlanıyor mu?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzda ateşle birlikte karın ya da yan (bel) ağrısı da var mı?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun idrar miktarı belirgin şekilde azaldı ya da neredeyse hiç idrar yapmıyor mu?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun daha önce böbrek ya da idrar yolu ile ilgili bir tanısı oldu mu? Örneğin idrar kaçağı (reflü), böbrekte genişleme ya da tekrarlayan idrar yolu enfeksiyonu.
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun düzenli kullandığı ilaçlar var mı?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?
+red_flags:
+- id: rf.cocuk_nefrolojisi_l0_taslak
+  label_tr: Çocuk Nefrolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_nefrolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_nefrolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

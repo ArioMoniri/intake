@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_ve_ergen_ruh_sagligi
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Çocuk ve Ergen Ruh Sağlığı ön görüşme protokolü
+extends: cluster.mental_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün çocuğunuz için sizi buraya getiren konu nedir? Hangi konuda destek almak istersiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Fark ettiklerinizi kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son zamanlarda çocuğunuzun keyfinde ya da eskiden sevdiği şeylere ilgisinde bir değişiklik fark ettiniz mi?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz sık sık endişeli, kaygılı ya da korkulu göründüğü zamanlar oluyor mu?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun dikkatini toplamakta ya da hareketliliğinde zorlandığını hem evde hem de okulda fark ediyor musunuz?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun uyku düzeninde bir değişiklik var mı? Örneğin uykuya dalmakta güçlük ya da sık uyanma.
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu durumun çocuğunuzun okuldaki ya da günlük yaşamındaki işlerini etkilediğini düşünüyor musunuz?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun arkadaşlarıyla ya da ailesiyle ilişkilerinde son zamanlarda bir değişiklik oldu mu?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu değişiklikleri ilk ne zaman fark ettiniz ve o günden bu yana nasıl bir seyir izledi?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce bu konuda bir destek aldı mı, ya da bilmemizi istediğiniz başka bir sağlık ya da gelişim durumu var mı?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun şu anda düzenli olarak kullandığı herhangi bir ilaç var mı?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun herhangi bir ilaca karşı alerjisi ya da daha önce yaşadığı ciddi bir yan etki oldu mu?
+red_flags:
+- id: rf.cocuk_ve_ergen_ruh_sagligi_l0_taslak
+  label_tr: Çocuk ve Ergen Ruh Sağlığı ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_ve_ergen_ruh_sagligi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_ve_ergen_ruh_sagligi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

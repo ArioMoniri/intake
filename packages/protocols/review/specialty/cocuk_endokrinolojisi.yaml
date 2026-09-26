@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/cocuk_endokrinolojisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_endokrinolojisi
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Çocuk Endokrinolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda her zamankinden daha sık ve daha bol idrara çıkıyor ya da yeniden altını ıslatmaya başladı mı?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz alışılmadık şekilde çok su içiyor ya da sürekli susuyor mu?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz iyi beslenmesine rağmen son zamanlarda kilo kaybetti ya da zayıfladı mı?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu belirtilere bulantı, kusma ya da karın ağrısı da eşlik ediyor mu?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun böbrek üstü bezi yetmezliği gibi bir tanısı ya da düzenli kullandığı bir kortizon (hidrokortizon) tedavisi var mı?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Böyle bir tanısı varsa; şu anda kusuyor, ilacını alamıyor ya da belirgin şekilde halsiz mi?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun boyu, büyümesi ya da ergenlik gelişimi yaşıtlarına göre sizi endişelendiriyor mu?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun düzenli kullandığı ilaçlar (örneğin insülin ya da kortizon) var mı?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?
+red_flags:
+- id: rf.cocuk_endokrinolojisi_l0_taslak
+  label_tr: Çocuk Endokrinolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_endokrinolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_endokrinolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/endodonti.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.endodonti
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Endodonti ön görüşme protokolü
+extends: cluster.dental
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zaman ve nasıl başladı, o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Sıcak ya da soğuk bir şey aldığınızda dişinizde ağrı oluyor mu; oluyorsa bu ağrı, sıcak ya da soğuk geçtikten sonra bir süre (örneğin yarım dakika ya da daha uzun) devam ediyor mu?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Dişinizde, hiçbir şey yapmadığınız hâlde kendiliğinden başlayan ya da geceleri sizi rahatsız eden bir ağrı oluyor mu?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu dişinizle ısırdığınızda, çiğnediğinizde ya da üzerine bastırdığınızda ağrı hissediyor musunuz?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Dişinizin yanındaki diş etinde şişlik, sivilce benzeri bir kabarcık ya da ağzınıza gelen kötü tatlı bir akıntı fark ettiniz mi?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Yüzünüzde ya da çenenizde şişlik var mı; varsa buna ateş de eşlik ediyor mu?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ağız tabanınızda ya da boynunuzda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ağzınızı açmakta son zamanlarda zorlanıyor musunuz ya da eskisi kadar açamıyor musunuz?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu dişinize daha önce kanal tedavisi ya da başka bir diş tedavisi yapıldı mı?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli kullandığınız ilaçlar var mı; bu dişiniz için son günlerde başlanan bir antibiyotik kullanıyor musunuz?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı alerjiniz var mı?
+red_flags:
+- id: rf.endodonti_l0_taslak
+  label_tr: Endodonti ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: endodonti branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/endodonti.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

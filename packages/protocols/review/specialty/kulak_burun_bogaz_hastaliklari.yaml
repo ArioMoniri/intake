@@ -1,0 +1,102 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.kulak_burun_bogaz_hastaliklari
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Kulak Burun Boğaz Hastalıkları ön görüşme protokolü
+extends: cluster.sensory
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün kulak burun boğaz polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bir ya da iki kulağınızda aniden başlayan bir işitme azalması oldu mu?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Kulağınızda yeni başlayan bir tıkanıklık ya da dolgunluk hissi var mı?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Kulağınızda çınlama ya da uğultu duyuyor musunuz?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Başınızın ya da etrafın döndüğünü hissettiğiniz oldu mu?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Kulağınızdan akıntı geliyor mu?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Boynunuzda kendiliğinden kaybolmayan bir şişlik ya da kitle fark ettiniz mi?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Sesinizde düzelmeyen bir kısıklık ya da değişiklik var mı?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Boğazınızda geçmeyen bir ağrı ya da yutkunurken ağrı var mı?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Nefes alırken boğazınızdan ıslığa benzer tiz bir ses geldiğini fark ettiniz mi?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Burnunuzdan nefes almakta zorlanıyor musunuz?
+red_flags:
+- id: rf.kulak_burun_bogaz_hastaliklari_l0_taslak
+  label_tr: Kulak Burun Boğaz Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: kulak_burun_bogaz_hastaliklari branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/kulak_burun_bogaz_hastaliklari.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

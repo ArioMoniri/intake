@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/cocuk_urolojisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_urolojisi
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Çocuk Ürolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün getiren temel şikâyet nedir? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu şikâyet ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz idrar yaparken yanma, ağrı ya da rahatsızlık hissediyor mu?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: İdrar şikâyetleriyle birlikte çocuğunuzun ateşi de oluyor mu?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Gündüz vakti çocuğunuzda idrar kaçırma, ani sıkışma hissi ya da çok sık tuvalete gitme oluyor mu?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz gece uykusunda altını ıslatıyor mu?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bağırsak alışkanlıklarında, örneğin kabızlık, bir sorun var mı?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun testis ya da kasık bölgesinde, bulantı veya kusmanın eşlik ettiği, aniden başlayan şiddetli bir ağrı oldu mu?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun testis torbasında şişlik ya da kızarıklık, veya torbada elle hissedemediğiniz bir testis fark ettiniz mi?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun idrarında kan ya da olağandışı bir renk fark ettiniz mi?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun düzenli olarak kullandığı ilaçlar var mı?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?
+red_flags:
+- id: rf.cocuk_urolojisi_l0_taslak
+  label_tr: Çocuk Ürolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_urolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_urolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

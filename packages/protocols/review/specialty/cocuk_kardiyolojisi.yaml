@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/cocuk_kardiyolojisi.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_kardiyolojisi
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Çocuk Kardiyolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun dudaklarında, dilinde ya da tırnaklarında morarma fark ettiniz mi?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz beslenirken (emerken ya da mama alırken) çabuk yoruluyor, terliyor ya da sık sık ara vermek zorunda kalıyor mu?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bebeğinizin kilo alımı ya da büyümesi size yavaş mı geliyor?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz her zamankinden daha çabuk yoruluyor, nefesi sıklaşıyor ya da göz kapaklarında şişlik oluyor mu?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz kalbinin hızlı, düzensiz ya da çok güçlü çarptığını söylüyor ya da siz fark ediyor musunuz?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu çarpıntı ya da baygınlık hissi koşarken, oyun oynarken veya eforlanınca mı ortaya çıkıyor?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz hiç bayıldı ya da bayılacak gibi olduğunu hissetti mi?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ailenizde genç yaşta açıklanamayan ani ölüm ya da kalıtsal bir kalp ritmi hastalığı öyküsü var mı?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuz daha önce bir kalp hastalığı tanısı aldı mı ya da kalp ameliyatı geçirdi mi?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun kalbi ya da başka bir durumu için düzenli kullandığı ilaçlar var mı?
+red_flags:
+- id: rf.cocuk_kardiyolojisi_l0_taslak
+  label_tr: Çocuk Kardiyolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_kardiyolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_kardiyolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

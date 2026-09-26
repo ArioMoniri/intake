@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Generate specialty question packs from sourced proposals (INT clinical scale-out).
 
-For every docs/evidence/proposals/<slug>.md that has a matching pack
-packages/protocols/specialty/<slug>.yaml, emit a QUESTIONS-authored pack: the
-reason question, a standard duration slot and the proposal's candidate
+For every docs/evidence/proposals/<slug>.md whose branch has its generated L0
+draft at packages/protocols/specialty/<slug>.yaml, emit a QUESTIONS-authored
+candidate into the review queue, packages/protocols/review/specialty/<slug>.yaml:
+the reason question, a standard duration slot and the proposal's candidate
 questions, with the branch red-flag left as the draft_needs_source stub (triage
 deferred to base.life_threat + HB-C1; NEVER fabricated). Then regenerate the
 INT-297 tr baseline.
 
-Packs stay maturity L0 — authored but not servable — until the physician of
-record signs them (HB-C1): a pack carrying a `clinical_signoff` block is never
-touched again, and a hand-authored pack (no generator marker) is never touched.
+The served tree is never written: specialty/<slug>.yaml stays the byte-exact
+`protocols generate-l0` draft (files/09 §2, invariant 13) until the physician of
+record signs a candidate and it is promoted to L1 (HB-C1). A candidate carrying
+a `clinical_signoff` block, or one without the generator marker (hand-authored),
+is never overwritten.
 
 Proposal format (section titled "Candidate …", or `## 3.` when it holds Q items):
     **Q<n> — <label>** · archetype: `<ARCHETYPE>` · source: <ref>
@@ -36,6 +39,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "packages/protocols/specialty"
+REVIEW = ROOT / "packages/protocols/review/specialty"
 PROP = ROOT / "docs/evidence/proposals"
 
 # The sanctioned pending-value marker (invariant 17's sole-exception form) is
@@ -226,7 +230,8 @@ def build_pack(draft: dict[str, Any], slug: str, questions: list[Question]) -> d
 
 def header(slug: str) -> str:
     return (
-        "# L0 — QUESTIONS authored; NOT servable until physician-of-record sign-off (HB-C1).\n"
+        "# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the\n"
+        "# physician of record's sign-off (HB-C1).\n"
         f"{GEN_MARKER} from docs/evidence/proposals/{slug}.md\n"
         "# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture\n"
         "# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +\n"
@@ -235,36 +240,36 @@ def header(slug: str) -> str:
     )
 
 
-def eligible(pack_text: str, draft: dict[str, Any]) -> str | None:
-    """None when the pack may be (re)generated, else the reason it may not."""
-    if "clinical_signoff" in draft:
+def eligible(candidate_text: str, candidate: dict[str, Any]) -> str | None:
+    """None when an existing review candidate may be regenerated, else why not."""
+    if "clinical_signoff" in candidate:
         return "signed (clinical_signoff present)"
-    generated = GEN_MARKER in pack_text or LEGACY_GEN_MARKER in pack_text
-    if draft.get("maturity") == "L0" and not str(draft.get("status", "")).startswith(
-        "questions-authored"
-    ):
-        return None
-    if generated:
+    if GEN_MARKER in candidate_text or LEGACY_GEN_MARKER in candidate_text:
         return None
     return "hand-authored"
 
 
 def gen(slug: str) -> tuple[str, bool]:
     draft_p = SPEC / f"{slug}.yaml"
+    out_p = REVIEW / f"{slug}.yaml"
     prop_p = PROP / f"{slug}.md"
     if not draft_p.exists():
-        return f"skip {slug}: no draft pack", True
-    pack_text = draft_p.read_text(encoding="utf-8")
-    draft = yaml.safe_load(pack_text)
-    why = eligible(pack_text, draft)
-    if why:
-        return f"skip {slug}: {why}", True
+        return f"skip {slug}: no L0 draft for this branch", True
+    draft = yaml.safe_load(draft_p.read_text(encoding="utf-8"))
+    if draft.get("maturity") != "L0":
+        return f"skip {slug}: served pack is past L0", True
+    if out_p.exists():
+        out_text = out_p.read_text(encoding="utf-8")
+        why = eligible(out_text, yaml.safe_load(out_text))
+        if why:
+            return f"skip {slug}: {why}", True
     qs, warnings = extract_questions(prop_p.read_text(encoding="utf-8"))
     notes = "".join(f"\n    {w}" for w in warnings)
     if len(qs) < 3:
         return f"SKIP {slug}: only {len(qs)} questions parsed — fix the proposal{notes}", False
     pack = build_pack(draft, slug, qs)
-    draft_p.write_text(
+    out_p.parent.mkdir(parents=True, exist_ok=True)
+    out_p.write_text(
         header(slug) + yaml.safe_dump(pack, allow_unicode=True, sort_keys=False, width=1000),
         encoding="utf-8",
     )

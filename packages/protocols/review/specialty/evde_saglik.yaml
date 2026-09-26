@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/evde_saglik.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.evde_saglik
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Evde Sağlık ön görüşme protokolü
+extends: cluster.allied_and_reports
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü evde sağlık görüşmesinde en çok hangi konuda desteğe ihtiyacınız var? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu görüşmeyi hastanın kendisi mi yoksa bir yakını mı yanıtlıyor? Durumu kısaca anlatır mısınız?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son günlerde hastanın genel durumunda kötüleşme oldu mu? Örneğin aşırı uykuya eğilim ya da uyandırmakta zorlanma.
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hastada yeni başlayan ya da giderek artan bir nefes darlığı fark ettiniz mi?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hastanın uzun süre yattığı ya da oturduğu bölgelerdeki ciltte renk değişikliği ya da kızarıklık fark ettiniz mi?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Topuk, kalça ya da kuyruk sokumu gibi kemikli bölgelerde açık yara ya da cilt bütünlüğünde bozulma var mı?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hasta, uzun süre baskı altında kalan bölgelerde ağrı ya da rahatsızlık ifade ediyor mu?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hasta son bir yıl içinde düştü mü? Düştüyse ne sıklıkta ve hangi durumlarda olduğunu anlatabilir misiniz?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hastanın dengesinde ya da yürümesinde zorluk fark ettiniz mi?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Evde takip edilen bir yara ya da yanık bakımınız var mı?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hasta şu anda düzenli olarak hangi ilaçları kullanıyor?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hastanın daha önce tanı aldığı süregelen (kronik) hastalıkları var mı?
+red_flags:
+- id: rf.evde_saglik_l0_taslak
+  label_tr: Evde Sağlık ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: evde_saglik branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/evde_saglik.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

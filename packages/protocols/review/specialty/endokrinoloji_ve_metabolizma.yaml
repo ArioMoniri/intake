@@ -1,0 +1,107 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/endokrinoloji_ve_metabolizma.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.endokrinoloji_ve_metabolizma
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Endokrinoloji ve Metabolizma ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Beslenmenizde belirgin bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz ya da kilo aldınız mı?
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son zamanlarda sıcağa ya da soğuğa karşı alışılmadık şekilde duyarlı hâle geldiniz mi?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Kalbinizin hızlı ya da düzensiz çarptığını fark ettiniz mi?
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ellerinizde ince bir titreme ya da alışılmadık bir gerginlik, huzursuzluk hissediyor musunuz?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi hissediyorsunuz?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Boynunuzda bir şişlik ya da yutkunurken zorlanma, ses kısıklığı fark ettiniz mi?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Böbrek üstü bezi yetmezliği tanınız ya da düzenli kullandığınız bir kortizon (hidrokortizon) tedaviniz var mı; varsa şu anda kusuyor ya da belirgin şekilde halsiz misiniz?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Açlık hâlinde ya da öğün atladığınızda titreme, soğuk terleme, çarpıntı ya da zihinsel bulanıklık yaşıyor musunuz?
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli kullandığınız ilaçlar (örneğin tiroid ilacı, kortizon ya da insülin) var mı?
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?
+red_flags:
+- id: rf.endokrinoloji_ve_metabolizma_l0_taslak
+  label_tr: Endokrinoloji ve Metabolizma ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: endokrinoloji_ve_metabolizma branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/endokrinoloji_ve_metabolizma.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

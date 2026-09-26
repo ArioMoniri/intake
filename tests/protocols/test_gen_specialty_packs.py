@@ -147,3 +147,27 @@ def test_duplicate_slot_ids_are_refused() -> None:
     q = GEN.Question(text="Bir şey var mı?", slot="aynisi")
     with pytest.raises(ValueError):
         GEN.build_pack(DRAFT, "ornek", [q, q, q])
+
+
+def test_generator_writes_only_the_review_queue_never_the_served_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec, review, prop = tmp_path / "specialty", tmp_path / "review", tmp_path / "proposals"
+    spec.mkdir()
+    prop.mkdir()
+    served = spec / "ornek.yaml"
+    served.write_text(
+        "kind: pack\nid: specialty.ornek\nmaturity: L0\ntitle_tr: Örnek (L0 taslak)\n",
+        encoding="utf-8",
+    )
+    before = served.read_bytes()
+    (prop / "ornek.md").write_text(PROPOSAL, encoding="utf-8")
+    monkeypatch.setattr(GEN, "SPEC", spec)
+    monkeypatch.setattr(GEN, "REVIEW", review)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("ornek")
+    assert ok, line
+    assert served.read_bytes() == before
+    candidate = (review / "ornek.yaml").read_text(encoding="utf-8")
+    assert GEN.GEN_MARKER in candidate
+    assert "maturity: L0" in candidate

@@ -1,0 +1,88 @@
+# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
+# docs/evidence/proposals/anesteziyoloji.md, clinician-DIRECTED (Dr. A. Moniri), to be
+# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
+# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
+# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+kind: pack
+id: specialty.anesteziyoloji
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L1
+status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+language: tr
+title_tr: Anesteziyoloji ön görüşme protokolü
+extends: cluster.surgical
+visit_types:
+- preop
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Yaklaşan bir ameliyat için mi görüşüyoruz? Hangi ameliyatı olacağınızı kısaca yazabilir misiniz?
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Anestezi hazırlığıyla ilgili bize önceden iletmek istediğiniz bir konu var mı?
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Doktorunuzun takip ettiği süregelen bir rahatsızlığınız var mı? Örneğin şeker hastalığı, tansiyon ya da astım.
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı? Varsa isimlerini yazabilir misiniz?
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Kanı sulandıran bir ilaç kullanıyor musunuz? Örneğin pıhtı önleyici ya da aspirin gibi bir ilaç.
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Herhangi bir ilaca, lateks eldivene ya da başka bir maddeye karşı alerjiniz olduğu size söylendi mi?
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Daha önce anestezi aldıysanız, o sırada beklenmedik bir sorun yaşandığı size söylendi mi?
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Önceki bir ameliyatta soluk borunuza tüp yerleştirilirken zorluk yaşandığı size iletildi mi?
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ameliyat gününüzde en son ne zaman katı bir şey yediğinizi ve en son ne zaman sıvı içtiğinizi belirtebilir misiniz?
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ailenizde anestezi aldıktan sonra ciddi bir sorun yaşayan biri olduğunu biliyor musunuz?
+red_flags:
+- id: rf.anesteziyoloji_l0_taslak
+  label_tr: Anesteziyoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: anesteziyoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/anesteziyoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'
