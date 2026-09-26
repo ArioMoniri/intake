@@ -16,7 +16,9 @@ review-queue-only L0 drafts via :mod:`protocols.authoring` — deterministic,
 refusing excluded branches and never overwriting a pack promoted past L0.
 
 ``protocols compile --pack <id> --voice <voice_id>`` emits the five files/03
-§6 artefacts into ``packages/protocols/dist`` (INT-041). It writes nothing
+§6 artefacts into ``packages/protocols/dist`` (INT-041), plus the resolved
+document and the signable ``bundle.tar.gz`` with its digest (INT-058; signed
+by ``make sign``, never by this process). It writes nothing
 unless every gate passes, and prints every refusal rather than the first —
 today the real pack tree is all L0, so on that tree it refuses, which is the
 honest state and not a failure of the command.
@@ -46,6 +48,7 @@ from protocols.compile import (
     load_life_threat_set,
     write_bundle,
 )
+from protocols.compile.archive import archive_sha256, bundle_archive
 from protocols.data_register import DATA_REGISTER_PATH, DataRegisterError, load_data_register
 from protocols.loader import PackRegistry, PackSchemaError, load_pack
 from protocols.locale_text import DEFAULT_LOCALE
@@ -262,6 +265,8 @@ def _compile_command(args: argparse.Namespace) -> int:
     for path in write_bundle(bundle, args.out):
         print(path)
     print(f"resolved_protocol_hash: {bundle.resolved_protocol_hash}")
+    # INT-058: the digest `make sign` signs over and a deploy record pins.
+    print(f"bundle_sha256: {archive_sha256(bundle_archive(bundle))}")
     return 0
 
 

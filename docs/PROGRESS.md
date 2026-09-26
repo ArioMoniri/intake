@@ -38,6 +38,33 @@
     - the recipient annotation;
     - the ADR-025 topology change;
     - staging: a kv-v2 mount, a policy grant on `secret/data/api/twilio`, the runbook step, and pointing the #573 guard at the vault.
+
+### 2026-09-26T20:30:00Z · INT-058 · delivered (production key awaits INT-019)
+- Goal: acceptance verbatim — *"compiler emits bundle.tar.gz signed; runtime refuses unsigned/tampered; note meta shows protocol hash"* (files/04 §7).
+- Plan:
+  - The compiler adds `resolved_protocol.json` and writes a deterministic `bundle.tar.gz` plus a `.sha256` sidecar.
+  - `make sign SIGN_KEY=<cosign key ref>` runs `cosign sign-blob --bundle`. It has no default key.
+  - `protocols.serving.trust` verifies the ECDSA P-256 signature before parsing a byte, then re-derives the resolved hash from the verified document.
+  - `protocols.serving.pins.ServedBundles` pins each session to the bundle it started on. It never falls forward, and a published version is byte-immutable.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_bundle_signature.py`, 69 tests with ephemeral in-memory keys. It covers unsigned, tampered, forged, wrong-key, keyless-identity and malformed-container bundles, signed-but-inconsistent archives, path traversal, bomb/truncation/trailing bytes, the trust root, the pins, and the rendered note meta per session.
+  - Near-miss: the same archive under a different key and under the right key; the same resolved hash with different bytes.
+  - Mutation check: 8/8 detected.
+  - RED: collection error (`protocols.compile.archive` missing), and the CLI file-list test failing.
+  - GREEN: 69/69; `tests/protocols tests/api` 1094 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0: triage 100 %, mutations 18/18, voice-runtime 98.46 %.
+  - Protocols coverage lane 97.96 %. mypy strict is clean on 430 files, and ruff is clean.
+  - `no_placeholders`, gitleaks (staged) and phi-scan are OK.
+  - `make security` was not run in full (its [6/12] fails on purpose, see INT-019).
+- Invariants touched and still passing:
+  - **14**: signed protocol packs; no key in the tree; fail closed without a trust root.
+  - **13**: the L0 import guard is widened for `serving/trust.py` only.
+  - **8**: coverage only rose.
+  - **17**: no bypass, no placeholder key.
+- Decisions / ADRs / `00_STATE.md` rows: none. This implements files/04 §7 and files/10 §8. Keyless certificate identities are refused until an identity policy exists.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner, under INT-019 / HB-O6 — *which key signs protocol bundles, and where does its public half live?* That answer supplies `SIGN_KEY` and `INTAKE_PROTOCOL_TRUST_ROOT`. The owner also needs to run one real-cosign interop check (the evidence §9).
+- Next: PR review (CODEOWNER, since the change touches `packages/protocols`).
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)

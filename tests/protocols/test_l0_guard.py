@@ -329,6 +329,14 @@ def test_committed_l0_drafts_exist_for_every_intake_branch(
 # (shared enums/models only — the package carries no I/O and no data).
 ALLOWED_THIRD_PARTY_ROOTS = {"protocols", "yaml", "pydantic", "clinical_schemas"}
 
+# Per-module, never package-wide. INT-058's bundle verifier needs one ECDSA
+# primitive to check cosign's signature; `cryptography` holds no patient data
+# and opens no connection, and it is admitted for that one module alone, so no
+# other module — the authoring surface included — may import it.
+MODULE_THIRD_PARTY_ALLOWANCES: dict[str, frozenset[str]] = {
+    "serving/trust.py": frozenset({"cryptography"}),
+}
+
 # Named for the acceptance: the patient-data surfaces the authoring agent
 # must never reach — services, connectors, apps, and network/DB clients.
 FORBIDDEN_ROOTS = {
@@ -375,8 +383,18 @@ def test_import_boundary_no_patient_data_access() -> None:
         third_party = {
             root for root in roots if root not in sys.stdlib_module_names and root != "__future__"
         }
-        unexpected = third_party - ALLOWED_THIRD_PARTY_ROOTS
+        allowance = MODULE_THIRD_PARTY_ALLOWANCES.get(path.relative_to(SRC_ROOT).as_posix(), set())
+        unexpected = third_party - ALLOWED_THIRD_PARTY_ROOTS - allowance
         assert not unexpected, f"{path}: imports outside the allow-list {sorted(unexpected)}"
+
+
+def test_every_per_module_allowance_names_a_real_module_and_no_forbidden_root() -> None:
+    """An allowance for a module that no longer exists is a silent widening
+    waiting for the next file to take that name."""
+    for relative, roots in MODULE_THIRD_PARTY_ALLOWANCES.items():
+        assert (SRC_ROOT / relative).is_file(), relative
+        assert not roots & FORBIDDEN_ROOTS, relative
+        assert roots <= import_roots(SRC_ROOT / relative), f"{relative}: unused allowance"
 
 
 # ---------------------------------------------------------------------------

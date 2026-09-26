@@ -66,6 +66,7 @@ __all__ = [
     "ResolvedProtocol",
     "ResolvedSection",
     "ResolvedSlot",
+    "protocol_hash_of",
     "resolve_protocol",
     "unknown_question_refusals",
 ]
@@ -178,6 +179,19 @@ def _refused(refusals: Sequence[Refusal]) -> CompileError:
 
 def _canonical(payload: object) -> str:
     return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def protocol_hash_of(document: ResolvedProtocol) -> str:
+    """sha256 of the canonical document with its own hash field left out.
+
+    One construction for both ends: the compiler stamps it here, and the
+    runtime re-derives it from the ``resolved_protocol.json`` inside a signed
+    bundle before a session may pin it (INT-058; files/04 §7). A hash the
+    loader merely *read* would be a claim; a hash it re-derived is a fact.
+    """
+    payload: dict[str, Any] = document.model_dump(mode="json")
+    payload.pop("resolved_protocol_hash")
+    return hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
 
 
 def _pointer_of(op: Op) -> str | None:
@@ -938,10 +952,7 @@ def resolve_protocol(
         instruments=instruments,
         resolved_protocol_hash="0" * 64,
     )
-    payload: dict[str, Any] = document.model_dump(mode="json")
-    payload.pop("resolved_protocol_hash")
-    digest = hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
-    return document.model_copy(update={"resolved_protocol_hash": digest})
+    return document.model_copy(update={"resolved_protocol_hash": protocol_hash_of(document)})
 
 
 def _first_paraphrase(packs: Sequence[ProtocolPack], locale: str) -> bool:

@@ -1093,6 +1093,7 @@ name = "intake-protocols"
 version = "0.1.0"
 source = { editable = "packages/protocols" }
 dependencies = [
+    { name = "cryptography" },
     { name = "intake-clinical-schemas" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -1100,6 +1101,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=43.0" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "pyyaml", specifier = ">=6.0" },

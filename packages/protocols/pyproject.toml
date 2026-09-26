@@ -9,6 +9,9 @@ dependencies = [
     # RedRegister/RedLocation are shared with the INT-031 clinical schemas so
     # the DSL and TriageResult can never disagree about the RED axes.
     "intake-clinical-schemas",
+    # INT-058: the runtime verifies cosign's ECDSA P-256 bundle signatures.
+    # Already in the tree (intake-platform, probes); no new package, no new licence.
+    "cryptography>=43.0",
 ]
 
 [project.scripts]
