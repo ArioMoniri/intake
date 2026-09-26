@@ -65,6 +65,7 @@ class Question:
     ask_if: str | None = None
     follow_up: str | None = None
     archetype: str | None = None
+    number: int | None = None
 
 
 def _question_region(text: str) -> str:
@@ -122,6 +123,7 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
             warnings.append(f"refused Q{label}: follow-up must be one question, no digit")
             continue
         am = re.search(r"archetype:\s*`([^`]+)`", seg.split("\n", 1)[0])
+        nm = re.match(r"(\d+)", seg)
         questions.append(
             Question(
                 text=q,
@@ -130,6 +132,7 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
                 ask_if=gen.get("ask_if"),
                 follow_up=follow_up,
                 archetype=am.group(1) if am else None,
+                number=int(nm.group(1)) if nm else None,
             )
         )
     return questions, warnings
@@ -267,6 +270,9 @@ def gen(slug: str) -> tuple[str, bool]:
     notes = "".join(f"\n    {w}" for w in warnings)
     if len(qs) < 3:
         return f"SKIP {slug}: only {len(qs)} questions parsed — fix the proposal{notes}", False
+    if qs[0].number != 1:
+        # Never let a later question silently become the visit-reason slot.
+        return f"SKIP {slug}: Q1 (reason for visit) was refused or held{notes}", False
     pack = build_pack(draft, slug, qs)
     out_p.parent.mkdir(parents=True, exist_ok=True)
     out_p.write_text(

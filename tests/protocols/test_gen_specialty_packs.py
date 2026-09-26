@@ -171,3 +171,27 @@ def test_generator_writes_only_the_review_queue_never_the_served_tree(
     candidate = (review / "ornek.yaml").read_text(encoding="utf-8")
     assert GEN.GEN_MARKER in candidate
     assert "maturity: L0" in candidate
+
+
+def test_a_refused_q1_skips_the_pack_instead_of_promoting_q2_to_the_reason_slot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec, review, prop = tmp_path / "specialty", tmp_path / "review", tmp_path / "proposals"
+    spec.mkdir()
+    prop.mkdir()
+    (spec / "ornek.yaml").write_text(
+        "kind: pack\nid: specialty.ornek\nmaturity: L0\ntitle_tr: Örnek (L0 taslak)\n",
+        encoding="utf-8",
+    )
+    broken = PROPOSAL.replace(
+        '> "Bugün sizi buraya getiren nedeni kısaca anlatır mısınız?"',
+        '> "Neden geldiniz? Ne zamandır var?"',
+    )
+    (prop / "ornek.md").write_text(broken, encoding="utf-8")
+    monkeypatch.setattr(GEN, "SPEC", spec)
+    monkeypatch.setattr(GEN, "REVIEW", review)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("ornek")
+    assert not ok
+    assert "Q1" in line
+    assert not (review / "ornek.yaml").exists()
