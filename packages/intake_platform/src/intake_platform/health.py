@@ -22,10 +22,11 @@ tests/platform/test_health_contract.py.
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import os
 import tomllib
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Container
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -33,12 +34,15 @@ from fastapi import FastAPI, Response
 from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 
 __all__ = [
+    "ContractFindings",
     "ReadinessCheck",
     "ServiceContractError",
     "ServiceDeclaration",
     "VersionInfo",
     "discover_services",
     "mount_health",
+    "scan_service_sources",
+    "verify_service_contract",
     "verify_service_declarations",
 ]
 
@@ -167,4 +171,177 @@ def verify_service_declarations(service: ServiceDeclaration) -> None:
             f"[tool.intake] declaration(s): {', '.join(missing)} — every service "
             "must mount the four health endpoints via intake_platform.health."
             "mount_health and register a synthetic probe (files/10 §6)"
+        )
+
+
+# --- invariant 15, all four requirements in one place -----------------------------
+
+#: The shared modules invariant 15 names. A service that re-implements any of
+#: these has left the shared setup and, with it, the redaction and the label
+#: hygiene the setup carries.
+_HEALTH_MODULE = "intake_platform.health"
+_OTEL_MODULE = "intake_platform.otel"
+_METRICS_MODULE = "intake_platform.metrics"
+
+
+@dataclass(frozen=True)
+class ContractFindings:
+    """What a static read of one service's sources found.
+
+    Static rather than live on purpose: several services refuse to construct
+    without their secrets backend, and a gate that a new service can pass by
+    being unimportable is not a gate.
+    """
+
+    mounts_health: bool
+    calls_setup_otel: bool
+    http_metric_service_labels: frozenset[str]
+
+
+def _imported_from(tree: ast.Module, module: str) -> set[str]:
+    """Names imported out of ``module`` in one parsed file."""
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == module:
+            names.update(alias.asname or alias.name for alias in node.names)
+    return names
+
+
+def _called_names(tree: ast.Module) -> set[str]:
+    called: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            called.add(node.func.id)
+        elif isinstance(node.func, ast.Attribute):
+            called.add(node.func.attr)
+    return called
+
+
+def _module_string_constants(tree: ast.Module) -> dict[str, str]:
+    """Module-level ``NAME = "literal"`` bindings, so a named constant resolves.
+
+    services/voice-runtime passes ``SERVICE_NAME`` rather than the string, and a
+    gate that only understood literals would have called it non-conformant.
+    """
+    constants: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets = [node.target]
+            value = node.value
+        else:
+            continue
+        if not (isinstance(value, ast.Constant) and isinstance(value.value, str)):
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name):
+                constants[target.id] = value.value
+    return constants
+
+
+def _http_metric_labels(tree: ast.Module) -> set[str]:
+    """The service labels passed to ``mount_http_metrics(app, "...")``."""
+    constants = _module_string_constants(tree)
+    labels: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = (
+            node.func.id
+            if isinstance(node.func, ast.Name)
+            else node.func.attr
+            if isinstance(node.func, ast.Attribute)
+            else None
+        )
+        if name != "mount_http_metrics" or len(node.args) < 2:
+            continue
+        label = node.args[1]
+        if isinstance(label, ast.Constant) and isinstance(label.value, str):
+            labels.add(label.value)
+        elif isinstance(label, ast.Name) and label.id in constants:
+            labels.add(constants[label.id])
+    return labels
+
+
+def scan_service_sources(service: ServiceDeclaration) -> ContractFindings:
+    """Read a service's Python sources for its use of the shared platform modules."""
+    root = service.path / "src"
+    if not root.is_dir():
+        root = service.path
+    mounts_health = False
+    calls_setup_otel = False
+    labels: set[str] = set()
+    for path in sorted(root.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        called = _called_names(tree)
+        if "mount_health" in _imported_from(tree, _HEALTH_MODULE) and "mount_health" in called:
+            mounts_health = True
+        if "setup_otel" in _imported_from(tree, _OTEL_MODULE) and "setup_otel" in called:
+            calls_setup_otel = True
+        if "mount_http_metrics" in _imported_from(tree, _METRICS_MODULE):
+            labels |= _http_metric_labels(tree)
+    return ContractFindings(
+        mounts_health=mounts_health,
+        calls_setup_otel=calls_setup_otel,
+        http_metric_service_labels=frozenset(labels),
+    )
+
+
+def verify_service_contract(
+    service: ServiceDeclaration,
+    *,
+    slo_dir: Path,
+    probe_components: Container[str],
+) -> None:
+    """CLAUDE.md invariant 15 for one service, all four requirements at once.
+
+    Raises :class:`ServiceContractError` listing **every** requirement the
+    service fails — an operator adding a service should learn all four gaps in
+    one run, not one per re-run. The four:
+
+    1. the endpoints come from :func:`mount_health` (and the ``[tool.intake]``
+       declaration names the app factory and the probe id);
+    2. spans and logs go through :func:`intake_platform.otel.setup_otel`;
+    3. ``docs/slo/<service>.yaml`` exists;
+    4. a component of the same name has a row in the probe registry, so
+       something actually calls the service every 60 s.
+
+    ``probe_components`` is the registry's component names — passed in rather
+    than read here, because intake_platform must not import services/probes.
+    """
+    failures: list[str] = []
+    try:
+        verify_service_declarations(service)
+    except ServiceContractError as err:
+        failures.append(str(err))
+
+    findings = scan_service_sources(service)
+    if not findings.mounts_health:
+        failures.append(
+            f"no call to {_HEALTH_MODULE}.mount_health — /healthz, /readyz, /metrics and "
+            "/version must come from the shared module"
+        )
+    if not findings.calls_setup_otel:
+        failures.append(
+            f"no call to {_OTEL_MODULE}.setup_otel — telemetry that skips the shared setup "
+            "skips its redaction (inv. 6)"
+        )
+    if not (slo_dir / f"{service.name}.yaml").is_file():
+        failures.append(
+            f"no {slo_dir.name}/{service.name}.yaml — a service without a declared error "
+            "budget cannot be on call for anything (docs/slo)"
+        )
+    if service.name not in probe_components:
+        failures.append(
+            f"no {service.name!r} row in the probe registry — declaring a probe id in "
+            "pyproject.toml is not the same as having a synthetic probe"
+        )
+    if failures:
+        joined = "\n  - ".join(failures)
+        raise ServiceContractError(
+            f"service {service.name!r} ({service.path}) fails CLAUDE.md invariant 15:\n  - {joined}"
         )

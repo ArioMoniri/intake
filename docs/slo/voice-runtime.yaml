@@ -18,7 +18,11 @@
 # surface this service already exposes, which is what availability covers.
 #
 # files/08 §4 A names slo.voice_session_success at 99.5 %; that is a session
-# objective, not an HTTP one, and it arrives with the session metrics.
+# objective, not an HTTP one, and it arrives with the session metrics. This
+# file used to borrow that 99.5 for HTTP availability anyway — the header said
+# so and the objective did it. Borrowing a number stated for a different SLI is
+# inventing one, so the objective is awaiting-human under HB-O5; the SLI and
+# its recording rules stay.
 service: voice-runtime
 owner: voice-runtime
 slos:
@@ -27,7 +31,14 @@ slos:
       sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[5m]))
       /
       sum(rate(http_requests_total{service="voice-runtime"}[5m]))
-    objective: 99.5
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: >-
+        files/10 §6's 99.5 % is voice SESSION success, a different SLI over a
+        series no service emits yet — so what share of voice-runtime HTTP
+        requests, over 28 days, must succeed?
     window: 28d
     burn_rate_alerts:
       fast:

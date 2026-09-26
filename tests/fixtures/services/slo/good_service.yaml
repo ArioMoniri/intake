@@ -1,0 +1,31 @@
+# A fixture SLO file for tests/fixtures/services/good_service — the file whose
+# presence invariant 15's third requirement checks. Its objective is
+# awaiting-human because a fixture has no blueprint sentence to quote, which is
+# exactly the state the schema is designed to represent honestly.
+service: good-service
+owner: platform
+slos:
+  - name: availability
+    sli: >-
+      sum(rate(http_requests_total{service="good_service",status=~"5.."}[5m]))
+      /
+      sum(rate(http_requests_total{service="good_service"}[5m]))
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: "What share of good events over 28 days is this fixture's commitment?"
+    window: 28d
+    burn_rate_alerts:
+      fast:
+        factor: 14.4
+        long_window: 1h
+        short_window: 5m
+        for_duration: 2m
+        severity: page
+      slow:
+        factor: 6.0
+        long_window: 6h
+        short_window: 30m
+        for_duration: 15m
+        severity: page

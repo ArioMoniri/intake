@@ -4,6 +4,12 @@
 # Schema: intake_platform.slo.SLOFile, same conventions as docs/slo/api.yaml
 # and docs/slo/probes.yaml (which likewise declares a single objective).
 #
+# The objective was 99.9, carried over from the api's availability figure. No
+# file states a refusal-rate budget for this boundary, so INT-021's provenance
+# gate moves it to awaiting-human under HB-O5. What the SLI measures is
+# unchanged and still recorded; what is withdrawn is the claim that somebody
+# committed to a number.
+#
 # One SLO, deliberately, and it is not the one a vendor dashboard would
 # suggest. Langfuse itself is a third-party container whose liveness is a
 # probe, not an error budget — `http_health` against /api/public/health, the
@@ -44,7 +50,13 @@ slos:
       /
       (sum(rate(llm_trace_spans_emitted_total[5m]))
        + sum(rate(llm_trace_fields_refused_total[5m])))
-    objective: 99.9
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: >-
+        What share of LLM-trace spans, over 28 days, must cross the emission
+        boundary without a refused field?
     window: 28d
     burn_rate_alerts:
       fast:

@@ -30,15 +30,22 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __all__ = [
+    "AWAITING_HUMAN",
+    "GOLDEN_SIGNALS",
     "PHI_RISK_LABEL_NAMES",
     "SLO",
+    "AwaitingHumanSource",
     "BurnRateAlert",
     "BurnRateAlerts",
     "MetricDef",
     "MetricsCatalog",
     "SLOFile",
+    "SpecSource",
     "alert_rule_name",
+    "dashboard_filename",
+    "dashboard_uid",
     "error_budget",
+    "grafana_dashboard",
     "load_metrics_catalog",
     "load_slo_file",
     "metric_references",
@@ -46,8 +53,16 @@ __all__ = [
     "recording_rule_name",
     "render_prometheus_rules",
     "runbook_anchor",
+    "sli_service_labels",
     "window_seconds",
 ]
+
+#: The objective of an SLO no human has set. An error budget is a commitment,
+#: so the schema takes either a quoted blueprint sentence or this literal —
+#: never a plausible number chosen by whoever wrote the file. An SLO carrying
+#: it generates recording rules and no alert: nothing pages against a budget
+#: nobody set (CLAUDE.md, "never invent a value to unblock yourself").
+AWAITING_HUMAN = "awaiting-human"
 
 #: Label names that could carry patient data. Metric labels hold enumerable
 #: identifiers (route template, status class, tenant id); a label that names a
@@ -89,6 +104,11 @@ _WINDOW_UNIT_S = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 #: A metric reference is an identifier immediately followed by a label
 #: selector or a range selector — the only two forms our expressions use.
 _REFERENCE_RE = re.compile(r"\b([a-z_][a-z0-9_]*)(?=[{\[])")
+#: ``service="voice-runtime"`` inside a label selector — the pin that says which
+#: service is supposed to be emitting the series an SLI reads.
+_SERVICE_LABEL_RE = re.compile(r'\bservice\s*=\s*"([a-z][a-z0-9-]*)"')
+#: A files/HUMAN_BLOCKERS.md row id (HB-C1, HB-L17, HB-O5…).
+_BLOCKER_RE = re.compile(r"^HB-[A-Z]+[0-9]+[a-z]?$")
 _HISTOGRAM_SUFFIXES = ("_bucket", "_count", "_sum")
 #: Every SLI is written over this base rate window; rules re-range it.
 BASE_RANGE = "[5m]"
@@ -110,6 +130,18 @@ def error_budget(objective: float) -> float:
 def metric_references(expr: str) -> frozenset[str]:
     """Series names a PromQL expression selects (identifier before ``{`` or ``[``)."""
     return frozenset(_REFERENCE_RE.findall(expr))
+
+
+def sli_service_labels(expr: str) -> frozenset[str]:
+    """The ``service="..."`` label values an SLI pins.
+
+    The catalogue check proves the series FAMILY exists; this is what lets a
+    caller prove the LABEL VALUE is emitted. docs/slo/probes.yaml declared an
+    availability budget over ``http_requests_total{service="probes"}`` while
+    services/probes never mounted the HTTP middleware — a catalogued family, a
+    label value nobody wrote, and an error budget that could never burn.
+    """
+    return frozenset(_SERVICE_LABEL_RE.findall(expr))
 
 
 class MetricDef(BaseModel):
@@ -283,16 +315,78 @@ class BurnRateAlerts(BaseModel):
         return out
 
 
+class SpecSource(BaseModel):
+    """Where a numeric objective comes from: a blueprint sentence, quoted.
+
+    ``quote`` is checked **verbatim** against ``file`` by
+    tests/observability/test_slo_provenance.py, and the objective's own digits
+    must appear inside the quote. That is the whole mechanism: an objective
+    cannot be written unless the sentence stating it already exists in the
+    spec.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    cite: str
+    file: str
+    quote: str
+
+    @field_validator("cite", "file", "quote")
+    @classmethod
+    def _nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("cite, file and quote must all be non-blank")
+        return value
+
+
+class AwaitingHumanSource(BaseModel):
+    """No objective yet: the blocker row, the named human, the one question."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    blocker: str
+    human: str
+    ask: str
+
+    @field_validator("blocker")
+    @classmethod
+    def _blocker_shape(cls, value: str) -> str:
+        if _BLOCKER_RE.match(value) is None:
+            raise ValueError(f"not a HUMAN_BLOCKERS.md row id: {value!r}")
+        return value
+
+    @field_validator("human", "ask")
+    @classmethod
+    def _nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("an awaiting-human source names a human and an ask")
+        return value
+
+
 class SLO(BaseModel):
-    """One objective: an error-ratio SLI over a rolling window."""
+    """One objective: an error-ratio SLI over a rolling window.
+
+    ``objective`` is a percentage **or** the literal :data:`AWAITING_HUMAN`.
+    Either way ``source`` says where it came from, and the two must agree: a
+    number needs a :class:`SpecSource`, an absent objective needs an
+    :class:`AwaitingHumanSource`.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     name: str
     sli: str
-    objective: float = Field(gt=0, lt=100)
+    objective: float | Literal["awaiting-human"]
+    source: SpecSource | AwaitingHumanSource
     window: str
     burn_rate_alerts: BurnRateAlerts
+
+    @property
+    def error_budget(self) -> float | None:
+        """The budget ratio, or ``None`` when no human has set the objective."""
+        if isinstance(self.objective, str):
+            return None
+        return error_budget(self.objective)
 
     @field_validator("name")
     @classmethod
@@ -308,11 +402,35 @@ class SLO(BaseModel):
             raise ValueError(f"SLI must be written over the {BASE_RANGE} base rate window")
         return value
 
+    @field_validator("objective")
+    @classmethod
+    def _objective_bounds(cls, value: float | str) -> float | str:
+        if isinstance(value, str):
+            return value
+        if not 0.0 < value < 100.0:
+            raise ValueError(f"objective must be a percentage strictly inside (0, 100): {value}")
+        return value
+
     @field_validator("window")
     @classmethod
     def _window_shape(cls, value: str) -> str:
         window_seconds(value)
         return value
+
+    @model_validator(mode="after")
+    def _objective_matches_its_source(self) -> SLO:
+        if isinstance(self.objective, str):
+            if not isinstance(self.source, AwaitingHumanSource):
+                raise ValueError(
+                    f"objective {AWAITING_HUMAN!r} needs a source naming a blocker, a human "
+                    "and the one sentence they must answer — not a spec citation"
+                )
+        elif not isinstance(self.source, SpecSource):
+            raise ValueError(
+                f"objective {self.objective} is a commitment and must quote the blueprint "
+                f"sentence that states it; use {AWAITING_HUMAN!r} when no sentence does"
+            )
+        return self
 
 
 class SLOFile(BaseModel):
@@ -378,11 +496,17 @@ def prometheus_rule_groups(
 
     The committed infra/observability/prometheus-rules.yaml is held equal to
     this derivation by tests/observability/test_slo_generator.py.
+
+    Fails closed on an unset objective: an SLO whose ``objective`` is
+    :data:`AWAITING_HUMAN` still gets its recording rules — measuring an SLI is
+    how the number eventually gets chosen from data rather than from an
+    agent's intuition — and gets **no alerting rule**, because a burn-rate
+    threshold is ``factor x budget`` and there is no budget to multiply.
     """
     recording: list[dict[str, object]] = []
     alerting: list[dict[str, object]] = []
     for slo in slo_file.slos:
-        budget = error_budget(slo.objective)
+        budget = slo.error_budget
         windows = sorted(
             {
                 window
@@ -399,6 +523,8 @@ def prometheus_rule_groups(
                     "labels": {"service": slo_file.service, "slo": slo.name},
                 }
             )
+        if budget is None:
+            continue
         for kind, alert in slo.burn_rate_alerts.named_alerts():
             long_rule = recording_rule_name(slo_file.service, slo.name, alert.long_window)
             short_rule = recording_rule_name(slo_file.service, slo.name, alert.short_window)
@@ -436,9 +562,239 @@ def prometheus_rule_groups(
 def render_prometheus_rules(
     slo_files: list[SLOFile], runbook_path: str = "docs/runbooks/slo-burn.md"
 ) -> str:
-    """Serialise the derived rule groups for every given SLO file as YAML."""
+    """Serialise the derived rule groups for every given SLO file as YAML.
+
+    A group with no rules is dropped: every SLO whose objective is
+    :data:`AWAITING_HUMAN` produces an empty alerting group, and a rules file
+    is configuration for Prometheus rather than a place to document absence —
+    the header and files/HUMAN_BLOCKERS.md carry that.
+    """
     groups: list[dict[str, object]] = []
     for slo_file in slo_files:
-        groups.extend(prometheus_rule_groups(slo_file, runbook_path)["groups"])
+        groups.extend(
+            group
+            for group in prometheus_rule_groups(slo_file, runbook_path)["groups"]
+            if group["rules"]
+        )
     rendered: str = yaml.safe_dump({"groups": groups}, sort_keys=False, width=4096)
     return rendered
+
+
+# --- dashboards as code -----------------------------------------------------------
+
+_DATASOURCE = {"type": "prometheus", "uid": "prometheus"}
+#: files/10 §6 wants the four golden signals per service. Three of them are
+#: emitted per service by intake_platform.metrics; saturation is not, because
+#: the prometheus_client process collector carries no ``service`` label, and the
+#: panel says so rather than pretending otherwise.
+GOLDEN_SIGNALS = ("traffic", "errors", "latency", "saturation")
+
+
+def dashboard_uid(service: str) -> str:
+    return f"intake-{service}-slo"
+
+
+def dashboard_filename(service: str) -> str:
+    return f"{service}-slo-dashboard.json"
+
+
+def _stat_panel(
+    panel_id: int, title: str, description: str, expr: str, x: int, y: int
+) -> dict[str, object]:
+    return {
+        "id": panel_id,
+        "type": "stat",
+        "title": title,
+        "description": description,
+        "datasource": _DATASOURCE,
+        "gridPos": {"h": 6, "w": 6, "x": x, "y": y},
+        "fieldConfig": {
+            "defaults": {
+                "unit": "none",
+                "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                        {"color": "green", "value": None},
+                        {"color": "yellow", "value": 1},
+                        {"color": "orange", "value": 6},
+                        {"color": "red", "value": 14.4},
+                    ],
+                },
+            },
+            "overrides": [],
+        },
+        "targets": [{"refId": "A", "expr": expr}],
+    }
+
+
+def _timeseries_panel(
+    panel_id: int,
+    title: str,
+    description: str,
+    expr: str,
+    unit: str,
+    x: int,
+    y: int,
+) -> dict[str, object]:
+    return {
+        "id": panel_id,
+        "type": "timeseries",
+        "title": title,
+        "description": description,
+        "datasource": _DATASOURCE,
+        "gridPos": {"h": 8, "w": 12, "x": x, "y": y},
+        "fieldConfig": {"defaults": {"unit": unit}, "overrides": []},
+        "targets": [{"refId": "A", "expr": expr}],
+    }
+
+
+def grafana_dashboard(slo_file: SLOFile) -> dict[str, object]:
+    """Derive one service's SLO + golden-signal dashboard from its SLO file.
+
+    Every panel reads either a ``slo:`` recording rule this module also
+    generates or a series in observability/metrics_catalog.yaml;
+    tests/observability/test_slo_generator.py holds both true and holds the
+    committed JSON equal to this derivation.
+
+    An SLO whose objective is :data:`AWAITING_HUMAN` gets its error-ratio
+    timeseries and **no burn-rate stat**: a burn rate is the ratio divided by
+    the budget, and dividing by a number nobody set would put an invented
+    figure on a wall where it reads as measured.
+    """
+    service = slo_file.service
+    panels: list[dict[str, object]] = []
+    panel_id = 0
+    row_y = 0
+
+    for index, slo in enumerate(slo_file.slos):
+        budget = slo.error_budget
+        hour_rule = recording_rule_name(service, slo.name, "1h")
+        panel_id += 1
+        if budget is None:
+            source = slo.source
+            blocker = source.blocker if isinstance(source, AwaitingHumanSource) else "unset"
+            panels.append(
+                _stat_panel(
+                    panel_id,
+                    f"{slo.name} error ratio (1h)",
+                    (
+                        f"{hour_rule}. No burn rate is shown: the objective is "
+                        f"{AWAITING_HUMAN} ({blocker}), so there is no budget to divide by "
+                        "and a number here would read as measured."
+                    ),
+                    hour_rule,
+                    x=(index % 4) * 6,
+                    y=row_y,
+                )
+            )
+        else:
+            panels.append(
+                _stat_panel(
+                    panel_id,
+                    f"{slo.name} burn rate (1h, multiples of budget)",
+                    (
+                        f"{hour_rule} divided by the {slo.objective:g} % budget ({budget:g}). "
+                        "Pages at 14.4, tickets at 1 — see docs/runbooks/slo-burn.md."
+                    ),
+                    f"{hour_rule} / {budget!r}",
+                    x=(index % 4) * 6,
+                    y=row_y,
+                )
+            )
+    row_y += 6
+
+    for slo in slo_file.slos:
+        panel_id += 1
+        window_rule = recording_rule_name(service, slo.name, slo.burn_rate_alerts.fast.long_window)
+        panels.append(
+            _timeseries_panel(
+                panel_id,
+                f"{slo.name} error ratio over {slo.burn_rate_alerts.fast.long_window}",
+                f"{window_rule} — the SLI itself, whether or not an objective is set.",
+                window_rule,
+                unit="percentunit",
+                x=0,
+                y=row_y,
+            )
+        )
+        row_y += 8
+
+    selector = f'{{service="{service}"}}'
+    error_selector = f'{{service="{service}",status=~"5.."}}'
+    panel_id += 1
+    panels.append(
+        _timeseries_panel(
+            panel_id,
+            "Traffic — requests per second",
+            "Golden signal 1 of 4 (files/10 §6).",
+            f"sum(rate(http_requests_total{selector}[5m]))",
+            unit="reqps",
+            x=0,
+            y=row_y,
+        )
+    )
+    panel_id += 1
+    panels.append(
+        _timeseries_panel(
+            panel_id,
+            "Errors — 5xx share of requests",
+            "Golden signal 2 of 4 (files/10 §6).",
+            f"sum(rate(http_requests_total{error_selector}[5m])) "
+            f"/ sum(rate(http_requests_total{selector}[5m]))",
+            unit="percentunit",
+            x=12,
+            y=row_y,
+        )
+    )
+    row_y += 8
+    panel_id += 1
+    panels.append(
+        _timeseries_panel(
+            panel_id,
+            "Latency — p95 request duration",
+            "Golden signal 3 of 4 (files/10 §6).",
+            "histogram_quantile(0.95, sum by (le) "
+            f"(rate(http_request_duration_seconds_bucket{selector}[5m])))",
+            unit="s",
+            x=0,
+            y=row_y,
+        )
+    )
+    panel_id += 1
+    panels.append(
+        _timeseries_panel(
+            panel_id,
+            "Saturation — open file descriptors against the process limit",
+            (
+                "Golden signal 4 of 4 (files/10 §6). PROCESS-WIDE, not per service: the "
+                "prometheus_client process collector emits no service label, so this panel "
+                "cannot be scoped the way the three above are. Scoping it needs a collector "
+                "-side label (INT-023); until then the panel says what it is."
+            ),
+            "process_open_fds / process_max_fds",
+            unit="percentunit",
+            x=12,
+            y=row_y,
+        )
+    )
+
+    return {
+        "__comment": (
+            f"infra/observability/grafana/dashboards/{dashboard_filename(service)} — GENERATED "
+            f"docs/slo/{service}.yaml by intake_platform.slo.grafana_dashboard (INT-021). "
+            "Do not hand-edit: tests/observability/test_slo_generator.py fails on drift. "
+            "Re-emit with `uv run python scripts/observability/slo_report.py "
+            "--emit-dashboards infra/observability/grafana/dashboards`."
+        ),
+        "uid": dashboard_uid(service),
+        "title": f"{service} — SLOs, burn rate and golden signals",
+        "tags": ["slo", service, "intake"],
+        "timezone": "utc",
+        "schemaVersion": 39,
+        "version": 1,
+        "editable": False,
+        "time": {"from": "now-24h", "to": "now"},
+        "templating": {"list": []},
+        "annotations": {"list": []},
+        "panels": panels,
+    }

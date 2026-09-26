@@ -1,10 +1,17 @@
 # docs/slo/probes.yaml — SLOs for services/probes (INT-022; invariant 15).
 #
 # Same conventions as docs/slo/api.yaml (schema: intake_platform.slo.SLOFile).
-# The probes service exposes the shared http middleware, so its SLI rides the
-# catalogued http_requests_total family. Burn-rate rules for this file join
-# infra/observability/prometheus-rules.yaml when the live stack lands
-# (INT-023) — the generator is pinned to api.yaml today and grows there.
+# Two corrections landed with INT-021's invariant-15 gate.
+#
+# (1) This header claimed the service 'exposes the shared http middleware'. It
+# did not: services/probes never called mount_http_metrics, so
+# http_requests_total{service="probes"} was a catalogued family with a label
+# value nobody emitted, and this budget could never burn. The middleware and
+# the shared OTel setup are now wired, and
+# tests/observability/test_invariant_15.py holds every SLI's service label to a
+# service that actually emits it.
+#
+# (2) The 99.5 objective was nobody's commitment. Awaiting-human under HB-O5.
 service: probes
 owner: platform
 slos:
@@ -13,7 +20,13 @@ slos:
       sum(rate(http_requests_total{service="probes",status=~"5.."}[5m]))
       /
       sum(rate(http_requests_total{service="probes"}[5m]))
-    objective: 99.5
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: >-
+        What share of probes-service HTTP requests, over 28 days, must
+        succeed?
     window: 28d
     burn_rate_alerts:
       fast:

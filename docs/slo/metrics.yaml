@@ -6,9 +6,11 @@
 # infra/observability/prometheus-rules.yaml when the live stack lands
 # (INT-023) — the generator is pinned to api.yaml today and grows there.
 #
-# The objective is the probes-tier 99.5, not the api's 99.9: a rollup that
-# arrives late is a stale dashboard, not a patient waiting. Raising it later is
-# always permitted; claiming 99.9 for an undeployed service would not be.
+# The objective was 99.5, reasoned from the probes tier: a rollup that arrives
+# late is a stale dashboard, not a patient waiting. The reasoning is sound and
+# the number is still nobody's commitment — files/10 §6 states one availability
+# figure and it is the api's. Awaiting-human under HB-O5; the SLI and its
+# recording rules stay, so the number can be chosen from data.
 service: metrics
 owner: experience
 slos:
@@ -17,7 +19,13 @@ slos:
       sum(rate(http_requests_total{service="metrics",status=~"5.."}[5m]))
       /
       sum(rate(http_requests_total{service="metrics"}[5m]))
-    objective: 99.5
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: >-
+        What share of metrics-service HTTP requests, over 28 days, must
+        succeed?
     window: 28d
     burn_rate_alerts:
       fast:

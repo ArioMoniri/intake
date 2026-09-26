@@ -97,7 +97,11 @@ services:
     volumes:
       - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./observability/grafana/api-slo-dashboard.json:/var/lib/grafana/dashboards/api-slo-dashboard.json:ro
+      # INT-021: the whole generated dashboard directory, not one file at a
+      # time. Mounting them individually meant a service whose SLO file landed
+      # later was silently invisible in Grafana — which is how five services
+      # ended up with declared objectives and no dashboard.
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "127.0.0.1:3005:3000"

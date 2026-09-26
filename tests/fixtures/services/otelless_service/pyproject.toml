@@ -1,0 +1,11 @@
+[project]
+name = "otelless-service"
+version = "0.0.1"
+
+# Declares both [tool.intake] keys and mounts the four endpoints, so the old
+# health-contract check passes it. It never calls intake_platform.otel.setup_otel,
+# which is the requirement that had no gate before INT-021 closed it.
+[tool.intake]
+kind = "service"
+health = "otelless_service.app:create_app"
+probe = "otelless_service.http"

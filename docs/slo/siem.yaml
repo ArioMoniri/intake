@@ -5,6 +5,11 @@
 # and docs/slo/langfuse.yaml (which likewise declares a single objective over
 # a boundary rather than over a vendor container).
 #
+# The objective was 99.9, carried over from the api's availability figure. A
+# detection-gap budget is exactly the kind of number that later gets quoted at
+# an auditor, and no file states one, so INT-021's provenance gate moves it to
+# awaiting-human under HB-O5. The refusal ratio is still recorded.
+#
 # One SLO, and it is not the one a SIEM vendor's dashboard would suggest.
 # Whether the manager, the indexer and the Falco agent are up is a probe, not
 # an error budget — three rows in observability/registry.yaml carry that, with
@@ -47,7 +52,13 @@ slos:
       /
       (sum(rate(siem_alerts_ingested_total[5m]))
        + sum(rate(siem_alerts_refused_total[5m])))
-    objective: 99.9
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: >-
+        What share of detector alerts, over 28 days, must reach the console
+        feed rather than be refused by the scrub boundary?
     window: 28d
     burn_rate_alerts:
       fast:

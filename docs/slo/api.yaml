@@ -7,11 +7,19 @@
 #   tests/observability/test_slo_generator.py.
 # - Burn-rate policy is pinned by files/10 §6: page at 14.4x/1h and 6x/6h,
 #   ticket at 1x/3d (Google SRE workbook multiwindow multi-burn-rate).
-# - Availability objective 99.9 comes from files/10 §6 / files/08 §4 A
-#   (slo.api_availability). The latency SLO — 99 % of requests inside 500 ms
-#   over 28 d — is the platform team's engineering bound for the JSON API
-#   behind mobile/clinician screens; the spec pins no api-latency figure, and
-#   this one may tighten, never silently loosen.
+# - Every objective carries a `source`. A number quotes the blueprint sentence
+#   that states it, verbatim, and tests/observability/test_slo_provenance.py
+#   greps the cited file for that quote. Where no sentence states one, the
+#   objective is the literal `awaiting-human` with a HUMAN_BLOCKERS.md row —
+#   and the generator then emits recording rules and NO alert, because a
+#   burn-rate threshold is `factor x budget` and there is no budget.
+#
+# The latency SLO used to read "99 % of requests inside 500 ms", justified in
+# this header as "the platform team's engineering bound". No platform team had
+# said it; the number was chosen while the file was being written. It is now
+# awaiting-human under HB-O5 — the SLI, the recording rules and the dashboard
+# panel all stay, so the moment a human names the percentage the alerts arm
+# against data we already have.
 service: api
 owner: platform
 slos:
@@ -21,6 +29,10 @@ slos:
       /
       sum(rate(http_requests_total{service="api"}[5m]))
     objective: 99.9
+    source:
+      cite: "files/10 §6 (SLOs and error budgets); echoed by files/08 §4 A slo.api_availability"
+      file: files/10_SECURITY_AND_TECHNICAL_MONITORING.md
+      quote: "API availability 99.9 %"
     window: 28d
     burn_rate_alerts:
       fast:
@@ -46,7 +58,13 @@ slos:
       1 - (sum(rate(http_request_duration_seconds_bucket{service="api",le="0.5"}[5m]))
       /
       sum(rate(http_request_duration_seconds_count{service="api"}[5m])))
-    objective: 99.0
+    objective: awaiting-human
+    source:
+      blocker: HB-O5
+      human: owner
+      ask: >-
+        What share of JSON API requests, over 28 days, must complete inside
+        500 ms?
     window: 28d
     burn_rate_alerts:
       fast:

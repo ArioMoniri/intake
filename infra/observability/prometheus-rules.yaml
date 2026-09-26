@@ -2,11 +2,15 @@
 # rules for the SLOs in docs/slo/ (INT-021; files/10 §6, files/08 §5).
 #
 # GENERATED-CONSISTENT: this file equals
-# intake_platform.slo.prometheus_rule_groups(docs/slo/api.yaml) and
+# intake_platform.slo.render_prometheus_rules(every docs/slo/*.yaml) and
 # tests/observability/test_slo_generator.py fails on any drift. To change a
 # rule, change the SLO file and re-emit:
 #   uv run python scripts/observability/slo_report.py --emit-rules \
 #     infra/observability/prometheus-rules.yaml
+#
+# An SLO whose objective is awaiting-human appears here with its recording
+# rules and NO alert: a burn-rate threshold is `factor x budget`, and there is
+# no budget until a human sets one (files/HUMAN_BLOCKERS.md HB-O5).
 groups:
 - name: slo-api-recording
   rules:
@@ -92,33 +96,138 @@ groups:
     annotations:
       summary: 'api availability: error budget burning at >= 1x over 3d and 6h'
       runbook: docs/runbooks/slo-burn.md#api-availability-ticket-burn
-  - alert: ApiLatencyFastBurn
-    expr: slo:api_latency:error_ratio_rate1h > (14.4 * 0.01) and slo:api_latency:error_ratio_rate5m > (14.4 * 0.01)
-    for: 2m
+- name: slo-langfuse-recording
+  rules:
+  - record: slo:langfuse_trace_emission:error_ratio_rate5m
+    expr: sum(rate(llm_trace_spans_emitted_total[5m])) / (sum(rate(llm_trace_spans_emitted_total[5m])) + sum(rate(llm_trace_fields_refused_total[5m])))
     labels:
-      severity: page
-      service: api
-      slo: latency
-    annotations:
-      summary: 'api latency: error budget burning at >= 14.4x over 1h and 5m'
-      runbook: docs/runbooks/slo-burn.md#api-latency-fast-burn
-  - alert: ApiLatencySlowBurn
-    expr: slo:api_latency:error_ratio_rate6h > (6.0 * 0.01) and slo:api_latency:error_ratio_rate30m > (6.0 * 0.01)
-    for: 15m
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate30m
+    expr: sum(rate(llm_trace_spans_emitted_total[30m])) / (sum(rate(llm_trace_spans_emitted_total[30m])) + sum(rate(llm_trace_fields_refused_total[30m])))
     labels:
-      severity: page
-      service: api
-      slo: latency
-    annotations:
-      summary: 'api latency: error budget burning at >= 6x over 6h and 30m'
-      runbook: docs/runbooks/slo-burn.md#api-latency-slow-burn
-  - alert: ApiLatencyTicketBurn
-    expr: slo:api_latency:error_ratio_rate3d > (1.0 * 0.01) and slo:api_latency:error_ratio_rate6h > (1.0 * 0.01)
-    for: 1h
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate1h
+    expr: sum(rate(llm_trace_spans_emitted_total[1h])) / (sum(rate(llm_trace_spans_emitted_total[1h])) + sum(rate(llm_trace_fields_refused_total[1h])))
     labels:
-      severity: ticket
-      service: api
-      slo: latency
-    annotations:
-      summary: 'api latency: error budget burning at >= 1x over 3d and 6h'
-      runbook: docs/runbooks/slo-burn.md#api-latency-ticket-burn
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate6h
+    expr: sum(rate(llm_trace_spans_emitted_total[6h])) / (sum(rate(llm_trace_spans_emitted_total[6h])) + sum(rate(llm_trace_fields_refused_total[6h])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate3d
+    expr: sum(rate(llm_trace_spans_emitted_total[3d])) / (sum(rate(llm_trace_spans_emitted_total[3d])) + sum(rate(llm_trace_fields_refused_total[3d])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+- name: slo-metrics-recording
+  rules:
+  - record: slo:metrics_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="metrics"}[5m]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="metrics"}[30m]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="metrics"}[1h]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="metrics"}[6h]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="metrics"}[3d]))
+    labels:
+      service: metrics
+      slo: availability
+- name: slo-probes-recording
+  rules:
+  - record: slo:probes_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="probes"}[5m]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="probes"}[30m]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="probes"}[1h]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="probes"}[6h]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="probes"}[3d]))
+    labels:
+      service: probes
+      slo: availability
+- name: slo-siem-recording
+  rules:
+  - record: slo:siem_alert_scrub:error_ratio_rate5m
+    expr: sum(rate(siem_alerts_ingested_total[5m])) / (sum(rate(siem_alerts_ingested_total[5m])) + sum(rate(siem_alerts_refused_total[5m])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate30m
+    expr: sum(rate(siem_alerts_ingested_total[30m])) / (sum(rate(siem_alerts_ingested_total[30m])) + sum(rate(siem_alerts_refused_total[30m])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate1h
+    expr: sum(rate(siem_alerts_ingested_total[1h])) / (sum(rate(siem_alerts_ingested_total[1h])) + sum(rate(siem_alerts_refused_total[1h])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate6h
+    expr: sum(rate(siem_alerts_ingested_total[6h])) / (sum(rate(siem_alerts_ingested_total[6h])) + sum(rate(siem_alerts_refused_total[6h])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate3d
+    expr: sum(rate(siem_alerts_ingested_total[3d])) / (sum(rate(siem_alerts_ingested_total[3d])) + sum(rate(siem_alerts_refused_total[3d])))
+    labels:
+      service: siem
+      slo: alert_scrub
+- name: slo-voice-runtime-recording
+  rules:
+  - record: slo:voice_runtime_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="voice-runtime"}[5m]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="voice-runtime"}[30m]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="voice-runtime"}[1h]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="voice-runtime"}[6h]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="voice-runtime"}[3d]))
+    labels:
+      service: voice-runtime
+      slo: availability
