@@ -42,6 +42,15 @@ ENV_DEV_OTP_PEEK = "INTAKE_DEV_OTP_PEEK"
 ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
 # INT-308: where the carrier/geo allocation table lives.
 ENV_MSISDN_ALLOCATION = "INTAKE_MSISDN_ALLOCATION"
+# INT-344 Apple App Attest. The team id is the App ID prefix from the Apple
+# Developer account (HB-A3): not secret — every signed build carries it — but it
+# has no default, so without it iOS attestation fails closed. The bundle id is
+# the app's committed identity. The environment is production unless it says
+# exactly "development" (dev-signed builds only; never on a public host).
+ENV_APP_ATTEST_TEAM_ID = "INTAKE_APP_ATTEST_TEAM_ID"
+ENV_APP_ATTEST_BUNDLE_ID = "INTAKE_APP_ATTEST_BUNDLE_ID"
+ENV_APP_ATTEST_ENVIRONMENT = "INTAKE_APP_ATTEST_ENVIRONMENT"
+IOS_BUNDLE_ID = "com.ariomoniri.intakemobile"
 EXPLICIT_YES = "explicit-yes"
 # INT-325: every dev gate lives under this prefix; outside dev ANY of them set
 # is refused, so a gate added later is covered without being listed here.
@@ -168,6 +177,11 @@ class ApiSettings:
     msisdn_allocation_path: Path = field(
         default_factory=lambda: Path("infra/security/msisdn_allocation.yaml")
     )
+    # INT-344: Apple App Attest. No team id → iOS attestation fails closed
+    # (app_attest_not_configured); a malformed one fails closed too.
+    app_attest_team_id: str | None = None
+    app_attest_bundle_id: str = IOS_BUNDLE_ID
+    app_attest_environment: str | None = None
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
@@ -222,5 +236,8 @@ class ApiSettings:
             msisdn_allocation_path=Path(
                 os.environ.get(ENV_MSISDN_ALLOCATION) or "infra/security/msisdn_allocation.yaml"
             ),
+            app_attest_team_id=os.environ.get(ENV_APP_ATTEST_TEAM_ID) or None,
+            app_attest_bundle_id=os.environ.get(ENV_APP_ATTEST_BUNDLE_ID) or IOS_BUNDLE_ID,
+            app_attest_environment=os.environ.get(ENV_APP_ATTEST_ENVIRONMENT) or None,
             environment=environment_name(os.environ),
         )

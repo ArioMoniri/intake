@@ -27,6 +27,16 @@ whitelist (``age_years``, ``any``, ``days_since`` …, files/13 §9.5) is not
 implemented: a gate that reaches for it is **refused at build** rather than
 guessed at, which fails closed — an unreadable gate stops the pack, it never
 silently opens.
+
+**Gate atoms are resolved to step ids at build** (INT-355). The frontier and
+the lookup key every step ``<section>.<slot>``; a pack may name a gate slot
+bare (``base.intake``'s ``subject_role != 'kendim'``, the specialty
+candidates' ``<slot> == true``). :mod:`protocols.gates` — the rule the
+compiler and the FHIR emitter apply — rewrites each atom to the one step of
+that name across the resolved chain, and a name two sections hold, or none
+does, is refused here like any other unreadable gate: read as written it
+would evaluate Unknown for the whole session, and the question behind it
+would silently never be asked.
 """
 
 from __future__ import annotations
@@ -37,6 +47,7 @@ from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
 from protocols.compile.resolve import ResolvedProtocol
+from protocols.gates import SlotNamespace, qualify_gate
 from protocols.locale_text import entry_for
 from protocols.triage.expr import (
     Lookup,
@@ -153,15 +164,24 @@ class IntakePlan:
         return node is not None and evaluate_node(node, lookup) is Truth.TRUE
 
 
-def _parse_gate(step_id: str, field_name: str, text: str) -> WhenNode:
+def _parse_gate(step_id: str, field_name: str, text: str, namespace: SlotNamespace) -> WhenNode:
     try:
-        return parse_when(text)
+        node = parse_when(text)
     except WhenGrammarError as exc:
         raise PlanError(
             f"{step_id}: {field_name} {text!r} is not in the closed when grammar of "
             f"files/03 §6 ({exc}) — a gate the engine cannot read is refused rather "
             "than guessed at, so it can never silently open"
         ) from exc
+    qualified, issues = qualify_gate(node, namespace)
+    if issues:
+        raise PlanError(
+            f"{step_id}: {field_name} {text!r} — "
+            + "; ".join(issue.describe() for issue in issues)
+            + " — a gate that does not resolve to exactly one step can never open, "
+            "so the question behind it would silently never be asked (INT-355)"
+        )
+    return qualified
 
 
 def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
@@ -174,6 +194,9 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
     ask_gates: dict[str, WhenNode] = {}
     skip_gates: dict[str, WhenNode] = {}
     seen: set[str] = set()
+    namespace = SlotNamespace(
+        (section.id, resolved.key) for section in protocol.sections for resolved in section.slots
+    )
 
     for section in protocol.sections:
         for resolved in section.slots:
@@ -195,9 +218,9 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                     "clarification re-entry has nothing verbatim to say"
                 )
             if slot.ask_if is not None:
-                ask_gates[step_id] = _parse_gate(step_id, "ask_if", slot.ask_if)
+                ask_gates[step_id] = _parse_gate(step_id, "ask_if", slot.ask_if, namespace)
             if slot.skip_if is not None:
-                skip_gates[step_id] = _parse_gate(step_id, "skip_if", slot.skip_if)
+                skip_gates[step_id] = _parse_gate(step_id, "skip_if", slot.skip_if, namespace)
             # INT-297/INT-314: the DSL carries these per locale; the engine step carries
             # one language, the one the document was resolved for. Projected
             # through entry_for, which raises rather than falling back — a plan

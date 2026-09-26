@@ -73,6 +73,10 @@ class RefusalCode(enum.StrEnum):
     OPENEHR_PATH_UNRESOLVED = "OPENEHR_PATH_UNRESOLVED"
     GATE_NOT_PROJECTABLE = "GATE_NOT_PROJECTABLE"
 
+    # --- gate references (INT-355; files/03 §5-6; files/13 §9.5 "opens only on TRUE")
+    GATE_REF_AMBIGUOUS = "GATE_REF_AMBIGUOUS"
+    GATE_REF_UNKNOWN = "GATE_REF_UNKNOWN"
+
 
 class Refusal(FrozenModel):
     """One reason the compiler will not emit."""
