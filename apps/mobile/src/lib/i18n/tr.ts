@@ -46,6 +46,10 @@ export const tr = {
   "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",
   "auth.error.code": "Kod doğrulanamadı. Kodu kontrol edin ya da yeni kod isteyin.",
   "auth.error.network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
+  // INT-328: a release build with no configured server — not the patient's
+  // connection, so it must not read like auth.error.network.
+  "auth.error.unconfigured":
+    "Uygulamanın bu sürümü henüz hizmete bağlı değil. Lütfen uygulamayı güncelleyip yeniden deneyin.",
   "auth.error.attestation":
     "Bu cihaz doğrulanamadı. Lütfen uygulamayı güncelleyip yeniden deneyin.",
   "auth.biometric.prompt": "Devam etmek için kimliğinizi doğrulayın.",
