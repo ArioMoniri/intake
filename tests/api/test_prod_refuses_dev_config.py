@@ -28,7 +28,6 @@ boot, unchanged.
 
 from __future__ import annotations
 
-import dataclasses
 import os
 from collections.abc import Sequence
 
@@ -86,7 +85,7 @@ def _refused_error() -> type[Exception]:
     return error
 
 
-def _settings(*, production: bool) -> ApiSettings:
+def _settings(*, environment: str) -> ApiSettings:
     return ApiSettings(
         token_patient=None,
         token_admin=None,
@@ -95,7 +94,7 @@ def _settings(*, production: bool) -> ApiSettings:
         bootstrap_db_url=CREDENTIAL_VARS["INTAKE_API_BOOTSTRAP_DB_URL"],
         kek_mode="transit",
         tokenization_key="int325-tokenization-key",
-        production=production,
+        environment=environment,
     )
 
 
@@ -209,14 +208,14 @@ def test_prod_never_wires_the_dev_log_delivery_adapter() -> None:
     """With no contracted SMS vendor wired, prod leaves the OTP tier
     unconfigured (every /v1/auth route answers 503 otp_auth_unconfigured)
     rather than answering 202 for a code that never leaves the building."""
-    assert _auth_from_settings(_settings(production=True)) is None
+    assert _auth_from_settings(_settings(environment="prod")) is None
 
 
 # --- the dev control: dev behaviour is unchanged ---------------------------------------
 
 
 def test_dev_tier_still_wires_the_dev_log_delivery_adapter() -> None:
-    wiring = _auth_from_settings(_settings(production=False))
+    wiring = _auth_from_settings(_settings(environment="dev"))
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, DevLogDeliveryAdapter)
 
@@ -245,11 +244,11 @@ def test_dev_tier_still_boots_with_every_dev_flag_and_no_credentials(
     assert settings.audit_db_url.startswith("postgresql+psycopg://svc_audit_writer:")
 
 
-# --- readiness: prod does not wait on the dev bearers it refuses -----------------------
+# --- readiness: only the dev environment waits on the dev bearers ---------------------
 
 
 class _BrokenAuditStore:
-    """An audit backend that is gone: readiness must report it in prod too."""
+    """An audit backend that is gone: readiness must report it outside dev too."""
 
     def append(self, entry: AuditEntry) -> None:
         raise ConnectionError("audit backend unavailable")
@@ -261,17 +260,28 @@ class _BrokenAuditStore:
         raise ConnectionError("audit backend unavailable")
 
 
-def _app_without_dev_bearers(
-    harness: ApiHarness, *, production: bool, audit_store: AuditStore | None = None
+def _app_for_environment(
+    harness: ApiHarness,
+    monkeypatch: pytest.MonkeyPatch,
+    environment: str | None,
+    audit_store: AuditStore | None = None,
 ) -> FastAPI:
-    """The harness's healthy sqlite db and audit store, with neither dev
-    bearer set: exactly what a prod boot looks like once INT-325 refuses them."""
-    settings = dataclasses.replace(
-        harness.settings, production=production, token_patient=None, token_admin=None
-    )
+    """Settings built the way the service builds them (``ApiSettings.from_env``)
+    for one ``INTAKE_ENV``, with no ``INTAKE_DEV_*`` variable at all, over the
+    harness's healthy sqlite db and audit store."""
+    for name in list(os.environ):
+        if name.startswith(DEV_FLAG_PREFIX):
+            monkeypatch.delenv(name)
+    monkeypatch.delenv("INTAKE_API_KEK_MODE", raising=False)
+    for name, value in CREDENTIAL_VARS.items():
+        monkeypatch.setenv(name, value)
+    if environment is None:
+        monkeypatch.delenv("INTAKE_ENV", raising=False)
+    else:
+        monkeypatch.setenv("INTAKE_ENV", environment)
     return create_app(
         ApiWiring(
-            settings=settings,
+            settings=ApiSettings.from_env(),
             engine=harness.engine,
             audit_store=audit_store if audit_store is not None else harness.audit_store,
             cipher=harness.cipher,
@@ -280,29 +290,40 @@ def _app_without_dev_bearers(
     )
 
 
-def test_prod_is_ready_with_every_real_dependency_healthy(harness: ApiHarness) -> None:
-    """Prod refuses INTAKE_DEV_TOKEN_* at boot, so a readiness check that
-    requires them would hold every prod API not-ready forever."""
-    app = _app_without_dev_bearers(harness, production=True)
+@pytest.mark.parametrize("environment", ["prod", "staging"])
+def test_non_dev_environment_is_ready_with_every_real_dependency_healthy(
+    harness: ApiHarness, monkeypatch: pytest.MonkeyPatch, environment: str
+) -> None:
+    """Dev bearers are expected only in dev. Prod refuses them at boot and
+    staging (infra/staging) never sets them, so a readiness check that
+    requires them would hold either API not-ready forever."""
+    app = _app_for_environment(harness, monkeypatch, environment)
     with TestClient(app, raise_server_exceptions=False) as client:
         ready = client.get("/readyz")
     assert ready.status_code == 200, ready.text
     assert ready.json()["checks"] == {"db": "ok", "audit_store": "ok"}
 
 
-def test_prod_readiness_still_fails_on_a_real_dependency(harness: ApiHarness) -> None:
-    """Near-miss control: dropping the dev-bearer check must not make prod
-    readiness vacuous. A dead audit store still holds it not-ready."""
-    app = _app_without_dev_bearers(harness, production=True, audit_store=_BrokenAuditStore())
+@pytest.mark.parametrize("environment", ["prod", "staging"])
+def test_non_dev_readiness_still_fails_on_a_real_dependency(
+    harness: ApiHarness, monkeypatch: pytest.MonkeyPatch, environment: str
+) -> None:
+    """Near-miss control: dropping the dev-bearer check must not make
+    readiness vacuous. A dead audit store still holds the API not-ready."""
+    app = _app_for_environment(harness, monkeypatch, environment, _BrokenAuditStore())
     with TestClient(app, raise_server_exceptions=False) as client:
         ready = client.get("/readyz")
     assert ready.status_code == 503
     assert ready.json()["checks"]["audit_store"] == "error"
 
 
-def test_dev_readiness_still_requires_the_dev_bearers(harness: ApiHarness) -> None:
-    """Dev is unchanged (INT-197): without both bearers the dev tier is not ready."""
-    app = _app_without_dev_bearers(harness, production=False)
+@pytest.mark.parametrize("environment", [None, "dev"])
+def test_dev_readiness_still_requires_the_dev_bearers(
+    harness: ApiHarness, monkeypatch: pytest.MonkeyPatch, environment: str | None
+) -> None:
+    """Dev is unchanged (INT-197): without both bearers the dev tier is not
+    ready, whether INTAKE_ENV says dev or is unset (dev is the default)."""
+    app = _app_for_environment(harness, monkeypatch, environment)
     with TestClient(app, raise_server_exceptions=False) as client:
         ready = client.get("/readyz")
     assert ready.status_code == 503

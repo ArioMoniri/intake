@@ -429,10 +429,11 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         ReadinessCheck("db", _db_ready),
         ReadinessCheck("audit_store", state.audit.healthy),
     ]
-    if not w.settings.production:
-        # INT-197 dev tier: not ready until both dev bearers are set. Prod
-        # refuses those bearers at boot (INT-325), so in prod this check would
-        # hold the API not-ready forever; it is mounted in dev only.
+    if w.settings.dev_tier_expected:
+        # INT-197 dev tier: not ready until both dev bearers are set. Only the
+        # dev environment expects them (INT-325): prod refuses them at boot and
+        # staging never sets them, so anywhere else this check would hold the
+        # API not-ready forever.
         readiness.append(ReadinessCheck("dev_auth", _dev_auth_ready))
     mount_health(app, readiness=readiness)
 

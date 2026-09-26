@@ -19,7 +19,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-__all__ = ["ApiSettings", "ProdConfigRefusedError", "is_prod_env", "refuse_dev_config_in_prod"]
+__all__ = [
+    "ApiSettings",
+    "ProdConfigRefusedError",
+    "environment_name",
+    "is_prod_env",
+    "refuse_dev_config_in_prod",
+]
 
 # Environment KEY NAMES, not credentials: the values live only in the
 # runtime environment and have no in-code default (fail closed when unset).
@@ -62,8 +68,20 @@ class ProdConfigRefusedError(RuntimeError):
     message names the variables and never their values (invariant 6)."""
 
 
+DEV_ENVIRONMENT = "dev"
+
+
+def environment_name(environ: Mapping[str, str]) -> str:
+    """``INTAKE_ENV`` normalised; unset or empty means dev, as in secrets.py."""
+    return environ.get("INTAKE_ENV", "").strip().lower() or DEV_ENVIRONMENT
+
+
+def _is_prod_name(environment: str) -> bool:
+    return environment.startswith("prod")
+
+
 def is_prod_env(environ: Mapping[str, str]) -> bool:
-    return environ.get("INTAKE_ENV", "dev").strip().lower().startswith("prod")
+    return _is_prod_name(environment_name(environ))
 
 
 def refuse_dev_config_in_prod(environ: Mapping[str, str]) -> None:
@@ -145,9 +163,20 @@ class ApiSettings:
     msisdn_allocation_path: Path = field(
         default_factory=lambda: Path("infra/security/msisdn_allocation.yaml")
     )
-    # INT-325: set by from_env when INTAKE_ENV is prod. Wiring reads it to
-    # refuse dev-only collaborators (the OTP dev delivery logger) in prod.
-    production: bool = False
+    # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
+    # for `production` (refuse dev-only collaborators such as the OTP dev
+    # delivery logger) and `dev_tier_expected` (the dev-bearer readiness check).
+    environment: str = DEV_ENVIRONMENT
+
+    @property
+    def production(self) -> bool:
+        return _is_prod_name(self.environment)
+
+    @property
+    def dev_tier_expected(self) -> bool:
+        """Dev bearers belong to the dev environment only. Prod refuses them
+        at boot and staging never sets them, so only dev waits on them."""
+        return self.environment == DEV_ENVIRONMENT
 
     @property
     def dev_auth_configured(self) -> bool:
@@ -192,5 +221,5 @@ class ApiSettings:
             msisdn_allocation_path=Path(
                 os.environ.get(ENV_MSISDN_ALLOCATION) or "infra/security/msisdn_allocation.yaml"
             ),
-            production=is_prod_env(os.environ),
+            environment=environment_name(os.environ),
         )
