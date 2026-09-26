@@ -36,7 +36,7 @@
 | C7 | A RED has three axes: route × register × location. Its script is pre-positioned on the device and triggered over the data channel. **RED preemption ≤ 300 ms from rule evaluation.** Under ON_SITE the 112 affordance is absent. | CLAUDE.md invariant 21; 02 §5.3, §8.1 |
 | C8 | Reduced motion = the OS setting OR the in-app switch. The switch can add reduced motion but never take it away. | INT-260: `lib/prefs/appearance.ts reducedMotion()`, `e2e/appearance.spec.ts` |
 | C9 | CI guards that already exist: no app-authored gestures (`PanResponder`, `GestureDetector`, `Swipeable`, `onGestureEvent`); no `onLongPress`; **the only timer is the OTP resend cooldown**; every `Animated.loop` is gated; loop half-cycle > 167 ms; navigators set `animation: screenAnimation(`; no literal Modal `animationType="…"`. | `e2e/a11y.spec.ts` (SC 2.5.7, BK13, BK14, BK15, BK18) |
-| C10 | A token ships only when something consumes it. No placeholder values. | CLAUDE.md invariant 17 |
+| C10 | A token ships only when something consumes it. No stand-in values. | CLAUDE.md invariant 17 |
 | C11 | Every new label or announcement is added to `tr` first. | invariant 5 |
 | C12 | Motion emits no telemetry. Any metric would need a `metrics_catalog.yaml` entry, and no PHI may appear in one. | invariants 6, 13 |
 | C13 | Consent must be freely given (KVKK m.3/1-a, *özgür iradeyle*). No dark patterns. | 06 §1 row 6502-MSY |
@@ -106,7 +106,7 @@ export const motion = {
 | `easing.breath` | `[0.37, 0, 0.63, 1]` | ease-in-out-sine. It is symmetric, so there is no visible corner where the loop turns. | `PulseDot` (it uses RN core `Easing.bezier`) |
 | `sequence.stepMs` | 120 | Equal to `duration.fade`, so slot n+1 starts exactly when slot n ends. A sequence is two animations **in turn, never at once** (C2). | `revealPlan` |
 | `sequence.maxSlots` | 2 | 2 × 120 = 240 ms end to end, under the 300 ms mobile ceiling. A third slot would push the last content past it. | `revealPlan` |
-| `reveal.skeletonDelayMs` | 300 | A load that finishes within 300 ms never shows a placeholder, so fast loads cannot flicker. This is not motion, so it still applies under reduce-motion. It runs on the UI thread (`withDelay`), not as a JS timer (C9). | `revealPlan` |
+| `reveal.skeletonDelayMs` | 300 | A load that finishes within 300 ms never shows a skeleton, so fast loads cannot flicker. This is not motion, so it still applies under reduce-motion. It runs on the UI thread (`withDelay`), not as a JS timer (C9). | `revealPlan` |
 | `loop.breathHalfMs` | 700 | The existing pulse: a 1.4 s cycle, about 0.7 Hz, far above the SC 2.3.1 floor of 167 ms per half-cycle. | `PulseDot` |
 | `press.opacity` | 0.85 | The existing value on filled controls. | Primary and Secondary buttons, `Segmented`, tab rail |
 | `press.rowOpacity` | 0.7 | The existing value on rows. A large tonal surface on the ground needs a deeper dip to read as pressed. | `ListRow`, `SwitchRow` |

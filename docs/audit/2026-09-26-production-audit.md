@@ -279,9 +279,9 @@ Also clean:
 | 9 | SMS OTP (Twilio) | **PARTIAL / BLOCKED(human)** | Adapter exists only on WT, untested (F13). Credentials absent. The BS API cannot send. Attestation blocks OTP in store builds anyway (F02). |
 | 10 | Backend deployed publicly | **NOT-DONE** | No artefact (F03). AWS box stopped. GPU pod unreachable. HB-I13, HB-I14. |
 | 11 | Web link (Expo web) | **NOT-DONE** | No web export or hosting. Web attestation returns `null`, so **web cannot log in by design** until there is a web auth decision (ADR, human). Same API-base gap as F01. |
-| 12 | No demo / placeholder in prod | **NOT-DONE** | F01–F06, F14, F21, F30. |
+| 12 | No demo, stand-in or fixture content in prod | **NOT-DONE** | F01–F06, F14, F21, F30. |
 | 13 | dev_voice invariant-3 audio-guard fix | **PARTIAL** | Uncommitted in `sharp-babbage-bab93f` (branch `claude/nifty-shannon-4d66af`), 33 tests green. No commit or PR. main is red (F08). |
-| 14 | Branch consolidation (int-demo + merge-305 → main) | **NOT-DONE** | Disjoint branches (§0). The conflict surface is `HUMAN_BLOCKERS.md` (HB-A18), `app.json`/`eas.json`, the backlog (INT-317; INT-318 unrowed), migration `0013`, and demo-only code that must not reach main as-is (F06, `recipients.demo.yaml`). |
+| 14 | Branch consolidation (int-demo + merge-305 → main) | **NOT-DONE** | Disjoint branches (§0). The conflict surface is `HUMAN_BLOCKERS.md` (HB-A18), `app.json`/`eas.json`, the backlog (INT-317; INT-318 unrowed), migration `0013`, and demo-scoped code that must not reach main as-is (F06, `recipients.demo.yaml`). |
 
 ---
 
@@ -305,7 +305,7 @@ The TDD definition of done applies to every agent step: failing test first, red 
 | 12 | **SMS via Twilio** (F13, F35) | Adapter tests (MockTransport: success, 4xx, timeout, no phone/code in logs); async client; OpenBao path; egress allow-list row + enum + render test; inventory annotation test | agent; credentials, DPA, counsel from owner | **yes** |
 | 13 | **Legal + store gates** (F09, F10) → then INT-146 | HB-L27, HB-L21, HB-A12, HB-A3 closed in `HUMAN_BLOCKERS.md`; INT-146 tests (`tests/mobile/test_privacy_labels_match_inventory.py`) green | human, then agent | **yes** |
 | 14 | **Clinical gates** (F11, F20): relabel specialty packs to L0 now; after HB-C1, move mobile to compiled served packs | Test: no `maturity: L1` without a signoff block; the mobile pack-source test proves the served compiled pack (INT-096 path); `make safety` green | agent (relabel); physician of record (HB-C1, C2, C6) | **yes** |
-| 15 | **Branch consolidation** (F19, F22, F23): split `int-demo` and `merge-305` into one-issue PRs; strip demo-only code; owner allocates the INT-317 / INT-318 / HB-A18 ids | Each PR has an evidence doc and green CI; main has one `app.json` and one `eas.json`; `no_placeholders` green on main | agent; owner (ids, review) | ids **yes** |
+| 15 | **Branch consolidation** (F19, F22, F23): split `int-demo` and `merge-305` into one-issue PRs; strip demo-scoped code; owner allocates the INT-317 / INT-318 / HB-A18 ids | Each PR has an evidence doc and green CI; main has one `app.json` and one `eas.json`; `no_placeholders` green on main | agent; owner (ids, review) | ids **yes** |
 | 16 | **INT-257 PR** (the only READY issue) | `tests/integration/test_ehrbase_roundtrip.py` + evidence doc; status → done | agent | no |
 | 17 | **Agent chains**: INT-021 → INT-181 → INT-182 / INT-187 (admin UI incl. CI/CD); INT-020 → INT-214; INT-179 | Each issue's listed tests; an INT-PROPOSED admin tile for ElevenLabs cache/usage and `checkin_to_seen` wait time, with the metrics in `metrics_catalog.yaml` | agent | HB-A16 for live access |
 | 18 | **Production voice path** (F12, F24) | INT-095 acceptance (pins with sha256 + `licence_verified_at`); LiveKit room-token route with tests; clips excluded from store builds until INT-319 terms are decided | agent + owner | **yes** (HB-I10, I11, I4, INT-319) |
