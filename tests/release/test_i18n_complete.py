@@ -197,6 +197,15 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "visits.new.hint",
         "visits.new.smsHint",
         "wellbeing.intro",
+        # INT-143 (kiosk mode) and INT-311 (Doctor Link issue sheet): the same
+        # short-imperative class as the entries above ("girin", "yazın"),
+        # merged while CI was billing-blocked and recorded by INT-346 rather
+        # than rewritten — a lone `-iniz` would trip the opposite gate and split
+        # the register mid-screen. Awaiting clinical-reviewer register decision.
+        "kiosk.exit.body",
+        "kiosk.lock.body",
+        "kiosk.pin.hint",
+        "shares.issue.recipient.hint",
     }
 )
 
