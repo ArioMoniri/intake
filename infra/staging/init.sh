@@ -14,7 +14,9 @@
 # What it does:
 #   1. Creates the root-only state dir and env file, and generates every
 #      secret in it here, once: the database and Redis passwords, the
-#      object store's root pair and the API's OpenBao token.
+#      object store's root pair, the API's OpenBao token and the OTP tier's
+#      tokenization key. It writes the operator's App Attest and SMS keys
+#      empty, for the operator to fill (INT-352).
 #   2. Starts OpenBao in server mode, initialises it with 3 key shares
 #      (threshold 2), and unseals it. The shares and the root token go to a
 #      separate root-only file.

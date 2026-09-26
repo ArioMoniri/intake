@@ -70,10 +70,15 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=7d
+      # files/06 §3: telemetry is kept 30 d hot. The INT-190 month budgets are
+      # evaluated over a rolling 30 d window, so a shorter retention would
+      # silently compare a partial month against a monthly limit
+      # (tests/observability/test_cost_rules.py holds the two together).
+      - --storage.tsdb.retention.time=30d
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./observability/prometheus-rules.yaml:/etc/prometheus/rules/prometheus-rules.yaml:ro
+      - ./observability/cost-rules.yaml:/etc/prometheus/rules/cost-rules.yaml:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"

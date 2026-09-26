@@ -26,7 +26,11 @@ container. What IS decidable without booting anything:
   decision D1, INT-347), publishes no port, and takes its root pair from the
   host-generated env file with no default;
 - the restart probe refuses a process-local KEK, and the negative control
-  shows why: a file-dev KEK does not survive a process restart.
+  shows why: a file-dev KEK does not survive a process restart;
+- INT-352: the API gets the App Attest and SMS keys the operator sets, each
+  with no default, and a host-generated tokenization key; deploy.sh refuses
+  an Apple team id without all three SMS keys, so a verified device is never
+  told a code was sent that nobody sent.
 
 The host-side run (init.sh, deploy.sh, smoke.sh) belongs to the owner and is
 recorded in docs/evidence/INT-345.md when it happens. Nothing here claims it
@@ -166,8 +170,42 @@ API_SOURCES = (
     REPO / "services" / "api" / "src" / "intake_api" / "app.py",
 )
 
-#: The one template key the owner supplies; every other one is a generated secret.
+#: The one template key the owner must supply; init.sh refuses to run without it.
 OWNER_SUPPLIED = {"STAGING_HOSTNAME"}
+
+#: INT-352: Apple App Attest (INT-344), read from the API once its base carries
+#: INT-344; until then these same names.
+APP_ATTEST_KEYS = tuple(
+    str(getattr(api_settings, constant, name))
+    for constant, name in (
+        ("ENV_APP_ATTEST_TEAM_ID", "INTAKE_APP_ATTEST_TEAM_ID"),
+        ("ENV_APP_ATTEST_BUNDLE_ID", "INTAKE_APP_ATTEST_BUNDLE_ID"),
+        ("ENV_APP_ATTEST_ENVIRONMENT", "INTAKE_APP_ATTEST_ENVIRONMENT"),
+    )
+)
+APP_ATTEST_TEAM_ID = APP_ATTEST_KEYS[0]
+
+#: INT-352: the SMS vendor's three keys, the names the API's Twilio adapter reads.
+SMS_KEYS = ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM")
+
+#: Template keys the operator sets by hand in the root-only env file. None is
+#: generated, and each may stay empty: the API reads empty as unset and fails
+#: closed on it.
+OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS, *SMS_KEYS}
+
+#: The phone-tokenization key: without it the OTP tier answers 503.
+TOKENIZATION_KEY = api_settings.ENV_TOKENIZATION_KEY
+
+#: lib.sh's deploy check: an Apple team id needs all three SMS keys.
+SMS_GUARD = "require_sms_with_app_attest"
+
+#: The runbook section that tells the operator which keys to set.
+ATTEST_SMS_SECTION = "App Attest and SMS"
+
+#: Values an operator might type, for the guard tests. Neither is a real team
+#: id or credential; the refusals must echo neither.
+TEAM_ID_VALUE = "ABCDE12345"
+OPERATOR_VALUE = "operator-typed-value"
 
 #: The issue that records the object-store image and its licence.
 OBJECT_STORE_ISSUE = "INT-347"
@@ -522,11 +560,6 @@ class TestNonDevBoot:
             assert "@postgres:5432/" in env[key], key
             assert not URL_CREDENTIAL_LITERAL.search(env[key]), key
 
-    def test_the_otp_tier_is_left_unconfigured(self) -> None:
-        """No tokenization key → no OTP tier (503). Wiring it here would wire the
-        dev delivery logger, which answers 'sent' and sends nothing."""
-        assert api_settings.ENV_TOKENIZATION_KEY not in _environment(_service("api"))
-
 
 # --- OpenBao: server mode, file storage, transit, least-privilege policy ----------------
 
@@ -651,10 +684,16 @@ class TestSupplyChainAndExposure:
             assert not URL_CREDENTIAL_LITERAL.search(line), f"{path.name}:{lineno}: {line!r}"
 
     def test_secret_environment_values_are_interpolated(self) -> None:
+        """A generated secret is a required interpolation. An operator key may
+        stay empty, so it is its own plain interpolation, never a literal."""
         secretish = re.compile(r"PASSWORD|TOKEN|SECRET|_AUTH$|_KEY$")
         for name, service in _compose()["services"].items():
             for key, value in _environment(service).items():
-                if secretish.search(key):
+                if not secretish.search(key):
+                    continue
+                if key in OPERATOR_SUPPLIED:
+                    assert value == f"${{{key}}}", f"{name}.{key}"
+                else:
                     assert REQUIRED_INTERPOLATION.match(value), f"{name}.{key}"
 
     def test_the_env_template_holds_keys_only(self) -> None:
@@ -1117,9 +1156,10 @@ class TestNonDevCredentials:
         assert first.returncode == 0, first.stderr
         generated = _read_env_file(env_file)
         assert set(generated) == set(_env_template()) - OWNER_SUPPLIED
-        for key, value in generated.items():
+        secrets = {k: v for k, v in generated.items() if k not in OPERATOR_SUPPLIED}
+        for key, value in secrets.items():
             assert re.fullmatch(r"[0-9a-f]{64}", value), key
-        assert len(set(generated.values())) == len(generated), "each secret is its own"
+        assert len(set(secrets.values())) == len(secrets), "each secret is its own"
         assert stat.S_IMODE(env_file.stat().st_mode) == 0o600
         second = _generate_env_file(env_file)
         assert second.returncode == 0, second.stderr
@@ -1278,6 +1318,139 @@ class TestObjectStore:
         assert "owner decision D1" in text
         assert OBJECT_STORE_ISSUE in text
         assert "depends on INT-347" not in text, "the deploy no longer waits on INT-347"
+
+
+# --- INT-352: App Attest and SMS reach the API, and fail closed when unset -------------
+
+
+def _operator_env(tmp_path: Path, values: dict[str, str]) -> Path:
+    """A generated env file, plus the owner's hostname and the given values."""
+    env_file = tmp_path / ".env"
+    result = _generate_env_file(env_file)
+    assert result.returncode == 0, result.stderr
+    pairs = {**_read_env_file(env_file), "STAGING_HOSTNAME": "3-91-12-7.sslip.io", **values}
+    env_file.write_text("".join(f"{k}={v}\n" for k, v in pairs.items()), encoding="utf-8")
+    return env_file
+
+
+def _run_on_env(env_file: Path, function: str) -> subprocess.CompletedProcess[str]:
+    """One lib.sh function against a scratch env file."""
+    return _bash(f'ENV_FILE="$1"; {function}', str(env_file), cwd=env_file.parent)
+
+
+class TestAttestAndSms:
+    """INT-352. The deployed API gets the Apple App Attest keys (INT-344), the
+    SMS vendor's keys and the phone-tokenization key that turns the OTP tier
+    on. The operator sets the first two groups by hand, and either may stay
+    empty. init.sh generates the tokenization key like every other secret.
+
+    What keeps this fail-closed:
+    - an empty operator key reaches the API as empty, which the API reads as
+      unset. With no Apple team id every iOS attestation is refused, and
+      Android's is refused until HB-A3, so no request reaches SMS delivery;
+    - an Apple team id without all three SMS keys would let a genuine device
+      through to a delivery adapter that answers "sent" and sends nothing, so
+      deploy.sh refuses that pairing before it touches docker."""
+
+    def test_the_template_lists_every_key_with_no_value(self) -> None:
+        template = _env_template()
+        for key in (*sorted(OPERATOR_SUPPLIED), TOKENIZATION_KEY):
+            assert key in template, key
+            assert template[key] == "", key
+
+    @pytest.mark.parametrize("key", sorted(OPERATOR_SUPPLIED))
+    def test_compose_passes_each_operator_key_with_no_default(self, key: str) -> None:
+        """Exactly `${KEY}`: no default, and not required either, so an empty
+        key neither stops compose nor becomes a value the API would trust."""
+        assert _environment(_service("api")).get(key) == f"${{{key}}}", key
+        for name in SERVICES - {"api"}:
+            assert key not in _environment(_service(name)), (name, key)
+
+    def test_compose_passes_the_tokenization_key_as_a_required_secret(self) -> None:
+        match = REQUIRED_INTERPOLATION.match(
+            _environment(_service("api")).get(TOKENIZATION_KEY, "")
+        )
+        assert match and match.group(1) == TOKENIZATION_KEY
+        generated = set(_env_template()) - OWNER_SUPPLIED - OPERATOR_SUPPLIED
+        assert TOKENIZATION_KEY in generated, "generated on the host, never templated"
+        for name in SERVICES - {"api"}:
+            assert TOKENIZATION_KEY not in _environment(_service(name)), name
+
+    def test_init_generates_the_tokenization_key_and_leaves_operator_keys_empty(
+        self, tmp_path: Path
+    ) -> None:
+        env_file = tmp_path / ".env"
+        result = _generate_env_file(env_file)
+        assert result.returncode == 0, result.stderr
+        generated = _read_env_file(env_file)
+        assert re.fullmatch(r"[0-9a-f]{64}", generated[TOKENIZATION_KEY])
+        for key in OPERATOR_SUPPLIED:
+            assert generated[key] == "", f"{key} must be the operator's, never generated"
+
+    def test_a_rerun_of_init_keeps_what_the_operator_set(self, tmp_path: Path) -> None:
+        env_file = _operator_env(
+            tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE, SMS_KEYS[2]: OPERATOR_VALUE}
+        )
+        before = _read_env_file(env_file)
+        result = _generate_env_file(env_file)
+        assert result.returncode == 0, result.stderr
+        assert _read_env_file(env_file) == before
+
+    def test_load_env_admits_empty_operator_keys(self, tmp_path: Path) -> None:
+        result = _run_on_env(_operator_env(tmp_path, {}), "load_env")
+        assert result.returncode == 0, result.stderr
+
+    def test_load_env_still_refuses_an_empty_tokenization_key(self, tmp_path: Path) -> None:
+        """Negative control: the operator keys are exempt, the secrets are not.
+        A host initialised before INT-352 lacks the key and is told to re-run
+        init.sh, which fills in only what is missing."""
+        result = _run_on_env(_operator_env(tmp_path, {TOKENIZATION_KEY: ""}), "load_env")
+        assert result.returncode != 0
+        assert f"{TOKENIZATION_KEY} is empty" in result.stderr, result.stderr
+        assert "./init.sh" in result.stderr
+
+    def test_deploy_runs_the_sms_guard_after_load_env_and_before_compose(self) -> None:
+        assert re.search(rf"^{SMS_GUARD}\(\) \{{", _code(LIB), re.M)
+        code = _code(DEPLOY)
+        assert re.search(rf"^{SMS_GUARD}$", code, re.M), "deploy.sh never calls the guard"
+        assert code.index("load_env") < code.index(SMS_GUARD) < code.index("compose ")
+
+    @pytest.mark.parametrize("sms", [False, True], ids=["no-sms", "sms"])
+    def test_no_team_id_is_admitted_either_way(self, tmp_path: Path, sms: bool) -> None:
+        values = {key: OPERATOR_VALUE for key in SMS_KEYS} if sms else {}
+        result = _run_on_env(_operator_env(tmp_path, values), SMS_GUARD)
+        assert result.returncode == 0, result.stderr
+
+    def test_a_team_id_with_all_three_sms_keys_is_admitted(self, tmp_path: Path) -> None:
+        """Positive control: the guard is a pairing check, not a refusal of
+        App Attest."""
+        values = {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE, **{key: OPERATOR_VALUE for key in SMS_KEYS}}
+        result = _run_on_env(_operator_env(tmp_path, values), SMS_GUARD)
+        assert result.returncode == 0, result.stderr
+
+    @pytest.mark.parametrize(
+        "missing", [*((key,) for key in SMS_KEYS), SMS_KEYS], ids=[*SMS_KEYS, "all"]
+    )
+    def test_a_team_id_without_every_sms_key_is_refused(
+        self, tmp_path: Path, missing: tuple[str, ...]
+    ) -> None:
+        values = {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE}
+        values.update({key: OPERATOR_VALUE for key in SMS_KEYS if key not in missing})
+        result = _run_on_env(_operator_env(tmp_path, values), SMS_GUARD)
+        assert result.returncode != 0
+        for key in missing:
+            assert key in result.stderr, (key, result.stderr)
+        assert ATTEST_SMS_SECTION in result.stderr
+        assert TEAM_ID_VALUE not in result.stderr, "the refusal echoes no value"
+        assert OPERATOR_VALUE not in result.stderr, "the refusal echoes no value"
+
+    def test_the_runbook_tells_the_operator_what_to_set(self) -> None:
+        runbook = _text(RUNBOOK)
+        assert re.search(rf"^## {ATTEST_SMS_SECTION}$", runbook, re.M)
+        section = runbook.split(f"## {ATTEST_SMS_SECTION}", 1)[1].split("\n## ", 1)[0]
+        needles = (*sorted(OPERATOR_SUPPLIED), TOKENIZATION_KEY, "/etc/intake-staging/.env")
+        for needle in (*needles, "./deploy.sh", "./init.sh", "synthetic"):
+            assert needle in section, needle
 
 
 # --- the runbook -----------------------------------------------------------------------

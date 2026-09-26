@@ -643,11 +643,15 @@ class TestKillSwitch:
     switch moves a live session to, and the refusal to move it back.
     """
 
-    def test_the_reasons_are_the_three_the_blueprint_names(self) -> None:
+    def test_the_reasons_are_the_four_the_blueprint_names(self) -> None:
+        """files/08 §375 (operator), files/03 §4.5b T3 and T9, and — INT-100 —
+        files/03 §4.9.4 rows 7 and 11: *"repeated failure routes to `typed`"*,
+        *"then to row 12 for the rest of the session, then to `typed`"*."""
         assert {reason.value for reason in LaneSwitchReason} == {
             "operator_kill_switch",
             "unreliable_audio",
             "abort_voice",
+            "speech_lanes_exhausted",
         }
 
     def test_a_live_voice_session_moves_to_typed_mid_intake(self) -> None:

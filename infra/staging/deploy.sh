@@ -15,6 +15,10 @@
 # OpenBao starts. A reboot can bring swap back, and this is the script that
 # unseals OpenBao after one (docs/runbooks/staging.md, "Host memory").
 #
+# It passes the API whatever App Attest and SMS keys the operator set in the
+# env file, and refuses an Apple team id without all three SMS keys (INT-352,
+# docs/runbooks/staging.md, "App Attest and SMS").
+#
 # What it does:
 #   1. Stamps the commit sha and build time, which /version reports.
 #   2. Unseals OpenBao and renews the API's periodic token.
@@ -30,6 +34,7 @@ require_root
 require_tools
 require_no_unencrypted_swap
 load_env
+require_sms_with_app_attest
 stamp_revision
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}) to https://${STAGING_HOSTNAME}"
 

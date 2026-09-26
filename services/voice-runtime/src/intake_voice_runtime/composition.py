@@ -318,6 +318,10 @@ def _compose(
     # spends no characters, so half of this budget is structurally zero for
     # half the sessions.
     if meter is not None:
+        # INT-190: the session is counted where it is composed, by the meter
+        # whose labels its usage series carry, so the per-session divisor and
+        # the quantities it divides describe the same sessions.
+        meter.count_session()
         gateway = MeteredExtractionGateway(inner=gateway, meter=meter)
         if synthesizer is not None:
             synthesizer = MeteredSpeechSynthesizer(inner=synthesizer, meter=meter)
