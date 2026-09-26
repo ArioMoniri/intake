@@ -148,72 +148,89 @@ compiler must expand every digit before TTS; these drafts already do so — e.g.
 > from `packages/protocols/triage` with a committed `source` snapshot and all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.trajectory`; C2 fallback only if that base slot is not
+served: "Cilt şikâyetiniz başladığından bu yana nasıl değişti?") · Q3 removed (duplicates the fixed
+`sikayet_suresi` slot) · new Q2 (mole/spot gate) · Q4 → Q3 · Q5 → Q4 · Q6 → Q5 (Q3–Q5 asked only if
+Q2 yes) · Q7 → Q6 · Q8 → Q7 · Q9 → Q8 (on hold, invariant 18) · Q10 → Q9 · Q11 → current medications
+removed (duplicates base `meds_confirmed`) + Q10 (new medication) · Q12 → Q11.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugünkü randevunuzda sizi en çok rahatsız eden cilt sorununu kısaca anlatabilir misiniz?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Complaint narrative (story)** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyetiniz nasıl başladı ve o zamandan bu yana nasıl değişti? Biraz anlatır mısınız?"
+**Q2 — Mole / spot of concern (gate)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (gate
+for the S1 pigmented-lesion items Q3–Q5; added per verification §B because "Bu ben ya da leke" had no
+antecedent)
+> "Cildinizde sizi endişelendiren bir ben ya da leke var mı?"
+gen: slot=endiselendiren_ben_leke; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Complaint duration** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
-> "Bu cilt şikâyetiniz ne zamandır var? Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
-CANDIDATE — clinician to approve wording.
-
-**Q4 — Mole/spot changed in size, shape or colour** · archetype: `OBSERVATION.symptom_sign.v1` · source:
-S1 (NICE NG12 major features: "change in size, irregular shape, irregular colour"); S3 corroborates in TR
-("boyut, şekil, renk değiştirmiş benler")
+**Q3 — Mole/spot changed in size, shape or colour (if Q2 yes)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12 major features: "change in size, irregular
+shape, irregular colour"); S3 corroborates in TR ("boyut, şekil, renk değiştirmiş benler")
 > "Bir beniniz ya da lekeniz son zamanlarda boyut, şekil veya renk olarak değişti mi?"
+gen: slot=ben_degisimi; type=boolean; ask_if=endiselendiren_ben_leke == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** if a pigmented lesion is changing, per S1 major features.
 
-**Q5 — Mole/spot bleeding, oozing or crusting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-(minor feature "oozing"); S3 ("sıvı sızması, kanama")
+**Q4 — Mole/spot bleeding, oozing or crusting (if Q2 yes)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S1 (minor feature "oozing"); S3 ("sıvı sızması, kanama")
 > "Bu ben ya da lekeden kanama, sıvı sızması ya da kabuklanma oldu mu?"
+gen: slot=ben_kanama_sizinti; type=boolean; ask_if=endiselendiren_ben_leke == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative** (contributes
 to the S1 checklist; a single minor feature is not sufficient on its own per S1's score-of-3 rule).
 
-**Q6 — Mole/spot itching, inflamed or altered sensation** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S1 (minor features "inflammation", "change in sensation")
+**Q5 — Mole/spot itching, inflamed or altered sensation (if Q2 yes)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S1 (minor features "inflammation", "change in sensation")
 > "Bu ben ya da lekede kaşıntı, kızarıklık ya da his değişikliği fark ettiniz mi?"
+gen: slot=ben_kasinti_his; type=boolean; ask_if=endiselendiren_ben_leke == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative** (S1 minor
 features).
 
-**Q7 — Non-healing skin sore / lesion** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE
+**Q6 — Non-healing skin sore / lesion** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (NICE
 NG12 SCC — "a skin lesion that raises the suspicion of squamous cell carcinoma")
 > "Cildinizde uzun süredir iyileşmeyen bir yara ya da kabuk var mı?"
+gen: slot=iyilesmeyen_yara; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative**; the "how
 long" threshold for a skin lesion is **NO SOURCE FOUND** (§4) — NICE NG12 gives no explicit skin-lesion
 duration cut-off (unlike the oral-cavity ">3 weeks"), so no numeric threshold is asserted.
 
-**Q8 — New or growing skin lump / patch** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+**Q7 — New or growing skin lump / patch** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
 > "Cildinizde yeni çıkan ya da büyüyen bir kabartı veya leke fark ettiniz mi?"
+gen: slot=yeni_buyuyen_kabarti; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Genital / anogenital sore, rash or discharge (venereology)** · archetype:
+**Q8 — Genital / anogenital sore, rash or discharge (venereology)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: **general intake (venereology symptom capture)** — no
 STI-specific guideline threshold retrieved (§4); sensitive category (see §2 note)
 > "Genital bölgenizde yara, döküntü ya da olağandışı bir akıntı gibi bir şikâyetiniz var mı?"
-CANDIDATE — clinician to approve wording. Sensitive data: capture only under an explicit consent scope +
-inventory annotation (invariant 18); clinician/DPO sign-off required before this question is enabled.
+gen: hold=invariant 18 — new sensitive data category; owner decision required
+CANDIDATE — clinician to approve wording. **HOLD (verification finding 22).** Sensitive data: capture
+only under an explicit consent scope + inventory annotation (invariant 18); clinician/DPO sign-off
+required before this question is enabled.
 
-**Q10 — Known skin diagnoses / prior skin cancer** · archetype: `EVALUATION.problem_diagnosis.v1` ·
-source: general history
-> "Daha önce cildinizle ilgili bir tanı aldınız mı ya da bir cilt hastalığı için tedavi gördünüz mü?"
+**Q9 — Known skin diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general history
+> "Daha önce size bir cilt hastalığı tanısı konuldu mu?"
+gen: slot=cilt_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general history (a new drug
-before a rash is history the clinician needs; no dose/decision asserted)
-> "Şu anda düzenli kullandığınız ilaçlar var mı? Yakın zamanda yeni başladığınız bir ilaç oldu mu?"
-CANDIDATE — clinician to approve wording.
+**Q10 — Newly started medication** · archetype: `ACTION.medication.v1` · source: general history (a new
+drug before a rash is history the clinician needs; no dose/decision asserted)
+> "Son zamanlarda yeni başladığınız bir ilaç oldu mu?"
+gen: slot=yeni_ilac; type=boolean
+CANDIDATE — clinician to approve wording. Regular medications come from base `meds_confirmed` /
+`meds_new_or_stopped`.
 
-**Q12 — Drug / topical / contact allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
+**Q11 — Drug / topical / contact allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
 general intake
 > "Herhangi bir ilaca ya da cildinize sürdüğünüz bir ürüne karşı alerjiniz olduğunu fark ettiniz mi?"
+gen: slot=ilac_urun_alerjisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions: Q4–Q8 source-derived skin-lesion context (S1/S2); Q9 venereology symptom
-capture (unsourced threshold, sensitive); Q1–Q3, Q10–Q12 general intake / history.)*
+*(11 candidate questions: Q2–Q7 source-derived skin-lesion context (S1/S2); Q8 venereology symptom
+capture (unsourced threshold, sensitive, on hold); Q1, Q9–Q11 general intake / history.)*
 
 ---
 

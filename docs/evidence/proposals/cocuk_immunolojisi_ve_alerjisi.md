@@ -23,8 +23,8 @@ RED/YELLOW/GREEN level and pins **no** clinical value.
   own wording is quoted verbatim; no level is asserted.
 - **Emergencies stay in `base.life_threat` (invariant 7):** **anaphylaxis** is a life-threatening
   presentation owned by `packages/protocols/base/intake.yaml` (`rf.anaphylaxis`, currently
-  `TODO: … requires clinical sign-off` — a `draft_needs_source` clinical value, not a fabricated
-  one). This specialty pack does **not** author, extend, relax or duplicate that rule. The questions
+  the invariant-17 pending-value literal that "requires clinical sign-off" — a `draft_needs_source`
+  clinical value, not a fabricated one). This specialty pack does **not** author, extend, relax or duplicate that rule. The questions
   below only **feed** it (history of a prior severe reaction, known trigger, whether an adrenaline
   auto-injector has been prescribed/is carried); they never carry the RED.
 - **Verification caveat (applies to EVERY quote in §1):** quotes were captured on 2026-09-20 via
@@ -174,78 +174,107 @@ values out — e.g. "dört", "iki", "bir yıl"). **All marked "CANDIDATE — cli
 > register × location, invariant 21), none supplied here. **Anaphylaxis** is owned by
 > `base.life_threat`, not by this pack.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 · Q4 → Q3
+(pneumonia) + Q4 (sinusitis) · Q5 → Q5 (prolonged antibiotics) + Q6 (intravenous antibiotics) · Q6 →
+Q7 (growth) + Q8 (thrush / fungal skin) + Q9 (deep boils) · Q7 → Q10 · Q8 → Q11 · Q9 → Q12 · Q10 →
+Q13 · Q11 → Q14 (pen prescribed) + Q15 (pen carried, if Q14 yes) · Q12 removed (duplicates base
+`meds_confirmed`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü görüşmede çocuğunuzla ilgili sizi en çok düşündüren konu nedir? Kısaca anlatabilir
-> misiniz?"
+> "Bugün çocuğunuzla ilgili sizi en çok düşündüren konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Story of the complaint** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyet ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Recurrent ear infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JMF sign 1,
+**Q2 — Recurrent ear infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JMF sign 1,
 "Four or more new ear infections within 1 year")
 > "Çocuğunuz son bir yıl içinde dört ya da daha fazla kez kulak enfeksiyonu geçirdi mi?"
+gen: slot=tekrarlayan_kulak_enfeksiyonu; type=boolean
+CANDIDATE — clinician to approve wording. The JMF count is sourced and kept as a boolean threshold.
+
+**Q3 — Recurrent pneumonia** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JMF sign 4, "Two
+or more pneumonias within 1 year")
+> "Çocuğunuz son bir yıl içinde iki ya da daha fazla kez zatürre geçirdi mi?"
+gen: slot=tekrarlayan_zaturre; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q4 — Recurrent pneumonia / sinus infections** · archetype: `OBSERVATION.symptom_sign.v1` · source:
-S1 (JMF signs 2 & 4, "Two or more serious sinus infections"/"Two or more pneumonias within 1 year")
-> "Çocuğunuz son bir yıl içinde iki ya da daha fazla kez zatürre (akciğer enfeksiyonu) ya da ağır
-> sinüzit geçirdi mi?"
+**Q4 — Recurrent serious sinus infections** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+(JMF sign 2, "Two or more serious sinus infections")
+> "Çocuğunuz son bir yıl içinde iki ya da daha fazla kez ağır sinüzit geçirdi mi?"
+gen: slot=tekrarlayan_sinuzit; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q5 — Infections needing prolonged / IV antibiotics** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S1 (JMF signs 3 & 8, "Two or more months on antibiotics with little effect"/"Need for
-intravenous antibiotics to clear infections")
-> "Çocuğunuzun enfeksiyonları, uzun süreli ya da damardan verilen antibiyotiklere rağmen zor mu
-> geçiyor?"
+**Q5 — Infections despite prolonged antibiotics** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+S1 (JMF sign 3, "Two or more months on antibiotics with little effect")
+> "Çocuğunuz uzun süre antibiyotik kullanmasına rağmen enfeksiyonları geçmekte zorlandı mı?"
+gen: slot=uzun_antibiyotik_etkisiz; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q6 — Growth / thrush / abscesses** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JMF
-signs 5, 6, 7 — "Failure of an infant to gain weight or grow normally"; "Recurrent, deep skin or organ
-abscesses"; "Persistent thrush in mouth or fungal infection on skin")
-> "Çocuğunuzda kilo alamama ya da beklenen şekilde büyüyememe, ya da ağızda geçmeyen pamukçuk veya
-> tekrarlayan cilt apseleri fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. Note: this bundles three related JMF signs into one
-parent-observable concern; the clinician may prefer to split it.
+**Q6 — Infections needing intravenous antibiotics** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 (JMF sign 8, "Need for intravenous antibiotics to clear infections")
+> "Çocuğunuzun enfeksiyonları için damardan antibiyotik vermek gerekti mi?"
+gen: slot=damardan_antibiyotik; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q7 — Food-triggered reaction** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (NICE CG116,
+**Q7 — Faltering growth** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JMF sign 5,
+"Failure of an infant to gain weight or grow normally")
+> "Çocuğunuzun kilo alması ya da büyümesi yaşıtlarından geri mi?"
+gen: slot=buyume_geriligi; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q8 — Persistent thrush / fungal skin infection** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 (JMF sign 7, "Persistent thrush in mouth or fungal infection on skin")
+> "Çocuğunuzun ağzında geçmeyen pamukçuk ya da ciltte mantar oldu mu?"
+gen: slot=pamukcuk_mantar; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q9 — Recurrent deep boils** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JMF sign 6,
+"Recurrent, deep skin or organ abscesses")
+> "Çocuğunuzda tekrar eden, derin iltihaplı çıbanlar oldu mu?"
+gen: slot=derin_ciban; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q10 — Food-triggered reaction** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (NICE CG116,
 food-allergy signs) + S3 (AİD, common triggers inek sütü/yumurta)
-> "Çocuğunuzda belirli bir yiyeceği yedikten kısa süre sonra döküntü, kaşıntı ya da dudak-yüz
-> şişmesi gibi tepkiler oldu mu?"
+> "Çocuğunuzda bir yiyecekten kısa süre sonra döküntü, kaşıntı ya da şişlik oldu mu?"
+gen: slot=yiyecek_tepkisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Prior severe allergic reaction (feeds `base.life_threat`)** · archetype:
+**Q11 — Prior severe allergic reaction (feeds `base.life_threat`)** · archetype:
 `EVALUATION.adverse_reaction_risk.v1` · source: S2 (EAACI 2021) + S3 (AİD, ANAFİLAKSİ)
-> "Çocuğunuzda daha önce nefes darlığı, yaygın döküntü ya da baygınlıkla giden ağır bir alerjik tepki
-> oldu mu?"
+> "Çocuğunuz daha önce ağır bir alerjik tepki geçirdi mi?"
+gen: slot=agir_alerjik_tepki; type=boolean; follow_up=Bu tepkide nefes darlığı ya da bayılma oldu mu?
 CANDIDATE — clinician to approve wording. This history feeds the existing `base.life_threat`
 anaphylaxis rule; it does not itself carry any triage level, and the question does not name a
 diagnosis.
 
-**Q9 — Known triggers** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: S2 (EAACI 2021,
+**Q12 — Known triggers** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: S2 (EAACI 2021,
 triggers) + S3 (AİD)
 > "Çocuğunuzun uzak durması gereken, bilinen bir besin, ilaç ya da arı sokması alerjisi var mı?"
+gen: slot=bilinen_tetikleyici; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q10 — Family history (immunodeficiency)** · archetype: **no root — export blocked (INT-041 posture)**
+**Q13 — Family history (immunodeficiency)** · archetype: **no root — export blocked (INT-041 posture)**
 · source: S1 (JMF sign 10, "A family history of Primary Immunodeficiency")
 > "Ailenizde bağışıklık sistemiyle ilgili kalıtsal bir hastalık tanısı alan biri oldu mu?"
+gen: slot=ailede_bagisiklik_hastaligi; type=boolean
 CANDIDATE — clinician to approve wording. **Export limitation:** no family-history archetype root
 exists in the committed `.opt`, so this answer has nowhere to bind for openEHR export today (item 14);
 do not invent an at-code path.
 
-**Q11 — Adrenaline auto-injector** · archetype: `ACTION.medication.v1` · source: S2 (EAACI 2021,
+**Q14 — Adrenaline pen prescribed** · archetype: `ACTION.medication.v1` · source: S2 (EAACI 2021,
 autoinjector availability) + S3 (AİD verbatim, "adrenalin oto-enjektör taşımaları gerekmektedir")
-> "Çocuğunuza daha önce bir adrenalin oto-enjektör (örneğin kalem şeklinde acil iğne) reçete edildi mi
-> ve yanında bulunduruyor mu?"
+> "Çocuğunuza daha önce kalem şeklinde bir adrenalin iğnesi yazıldı mı?"
+gen: slot=adrenalin_kalemi_yazildi; type=boolean
 CANDIDATE — clinician to approve wording. History capture only (does not advise treatment).
 
-**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun şu anda düzenli olarak kullandığı ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
+**Q15 — Adrenaline pen carried (if Q14 yes)** · archetype: `ACTION.medication.v1` · source: S3 (AİD
+verbatim, "adrenalin oto-enjektör taşımaları gerekmektedir")
+> "Çocuğunuz bu kalemi yanında taşıyor mu?"
+gen: slot=adrenalin_kalemi_tasiyor; type=boolean; ask_if=adrenalin_kalemi_yazildi == true
+CANDIDATE — clinician to approve wording. History capture only (does not advise treatment).
 
-*(12 candidate questions.)*
+*(15 candidate questions.)*
 
 ---
 

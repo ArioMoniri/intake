@@ -210,10 +210,12 @@ CANDIDATE — clinician to approve wording. History item; product/provider follo
 
 **Q5 — Breast implant present** · archetype: `OBSERVATION.story.v1` (narrative only) · source: PRC-S3, PRC-S4 ("breast implants with textured surfaces")
 > "Memelerinizde protez, yani silikon var mı?"
+gen: slot=meme_protezi; type=boolean
 CANDIDATE — clinician to approve wording. Implant surface type is a clinician/record item (§4 gap 5).
 
 **Q6 — Implant-side swelling or hardness (ALARM)** · archetype: `OBSERVATION.symptom_sign.v1` · source: PRC-S3 ("persistent swelling, presence of a mass or pain in the area of the breast implant"), PRC-S4 ("hardening of the breast")
 > "Protezinizin olduğu tarafta geçmeyen bir şişlik ya da yeni bir sertlik fark ettiniz mi?"
+gen: slot=protez_tarafi_sislik; type=boolean; ask_if=meme_protezi == true
 CANDIDATE — clinician to approve wording. Ask only if Q5 is yes. Source urgency quoted only; no level.
 
 **Q7 — New or changing mole** · archetype: `OBSERVATION.symptom_sign.v1` · source: PRC-S9 ("Yeni oluşmuş veya boyut, şekil, renk değiştirmiş benler, lekeler"), PRC-S10 (secondary)
@@ -233,8 +235,11 @@ CANDIDATE — clinician to approve wording. Describes the sign without the term 
 CANDIDATE — clinician to approve wording.
 
 **Q11 — Weight stability** · archetype: `OBSERVATION.story.v1` (narrative only) · source: PRC-S7 ("maintain a steady weight long-term"; "Significant weight fluctuations")
-> "Son aylarda kilonuz sabit mi, yoksa hâlâ değişiyor mu?"
-CANDIDATE — clinician to approve wording. Single either/or. No stability period pinned (§4 gap 7).
+> "Son aylarda kilonuzda belirgin bir değişiklik oldu mu?"
+gen: type=boolean
+CANDIDATE — clinician to approve wording. Revised 2026-09-26 per
+docs/evidence/verification/specialty-wave1-3.md §C: the earlier either/or ask left "evet" ambiguous in
+voice. No stability period pinned (§4 gap 7).
 
 **Q12 — Previous radiotherapy to the area** · archetype: `OBSERVATION.story.v1` (narrative only) · source: PRC-S1 ("ışın tedavisi uygulanacak hastalara … onarım uygulanması daha doğru bir yaklaşımdır")
 > "Bu bölgeye daha önce ışın tedavisi, yani radyoterapi uygulandı mı?"

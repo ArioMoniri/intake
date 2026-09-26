@@ -161,52 +161,67 @@ action scripts belong to `base.life_threat` / triage, never to an intake questio
 > authoritative RED for DKA / adrenal crisis comes from `base.life_threat` with all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 (frequent,
+large volumes) + Q3 (new bed-wetting) · Q4 → Q4 · Q5 → Q5 · Q6 → Q6 · Q7 → Q7 (if any of Q2–Q5 yes) ·
+Q8 → Q8 · Q9 → Q9 (if Q8 yes) · Q10 → Q10 · Q11 → Q11 · Q12 removed (duplicates base `allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Polyuria** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Poliüri … Sık ve bol
+**Q2 — Polyuria** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Poliüri … Sık ve bol
 miktarda idrara çıkma") + S3 ("polyuria")
-> "Çocuğunuz son zamanlarda her zamankinden daha sık ve daha bol idrara çıkıyor ya da yeniden altını
-> ıslatmaya başladı mı?"
+> "Çocuğunuz son zamanlarda her zamankinden sık ve bol idrara çıkıyor mu?"
+gen: slot=sik_bol_idrar; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** when combined with Q4/Q5, per S1/S3.
 
+**Q3 — New bed-wetting (polyuria)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Poliüri
+… Sık ve bol miktarda idrara çıkma") + S3 ("polyuria")
+> "Çocuğunuz yeniden altını ya da yatağını ıslatmaya başladı mı?"
+gen: slot=yeniden_altini_islatma; type=boolean
+CANDIDATE — clinician to approve wording.
+
 **Q4 — Polydipsia** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("polidipsi … aşırı su
 içme") + S3 ("polydipsia")
-> "Çocuğunuz alışılmadık şekilde çok su içiyor ya da sürekli susuyor mu?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1/S3.
+> "Çocuğunuz son zamanlarda alışılmadık şekilde çok su içiyor mu?"
+gen: slot=cok_su_icme; type=boolean
+CANDIDATE — clinician to approve wording. The earlier "susuyor" wording was dropped (homograph:
+susmak / susamak, verification finding 11). Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per
+S1/S3.
 
 **Q5 — Weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Kilo kaybı") + S3
 ("weight loss")
 > "Çocuğunuz iyi beslenmesine rağmen son zamanlarda kilo kaybetti ya da zayıfladı mı?"
+gen: slot=kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1/S3.
 
 **Q6 — Excessive tiredness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("excessive
 tiredness") + S1 ("halsizlik, zayıflık")
 > "Çocuğunuz son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi?"
+gen: slot=yorgunluk_halsizlik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q7 — Nausea / vomiting / abdominal pain (DKA warning)** · archetype: `OBSERVATION.symptom_sign.v1`
-· source: S1 ("Kandaki keton cisimleri kritik bir eşiği geçtiğinde kusma ve şiddetli karın ağrısı
-ortaya çıkar")
+**Q7 — Nausea / vomiting / abdominal pain (DKA warning) (if any of Q2–Q5 yes)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S1 ("Kandaki keton cisimleri kritik bir eşiği geçtiğinde
+kusma ve şiddetli karın ağrısı ortaya çıkar")
 > "Bu belirtilere bulantı, kusma ya da karın ağrısı da eşlik ediyor mu?"
+gen: slot=bulanti_kusma_karin_agrisi; type=boolean; ask_if=sik_bol_idrar == true || yeniden_altini_islatma == true || cok_su_icme == true || kilo_kaybi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S1
 these mark progression toward DKA — the emergency is owned by `base.life_threat`.
 
 **Q8 — Known adrenal insufficiency / steroid treatment** · archetype:
 `EVALUATION.problem_diagnosis.v1` · source: S2 (history)
-> "Çocuğunuzun böbrek üstü bezi yetmezliği gibi bir tanısı ya da düzenli kullandığı bir kortizon
-> (hidrokortizon) tedavisi var mı?"
+> "Çocuğunuz böbrek üstü bezi sorunu ya da başka bir nedenle düzenli kortizon ilacı kullanıyor mu?"
+gen: slot=duzenli_kortizon; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Vomiting / unable to take medicine when unwell (adrenal-crisis risk)** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S2 ("kusma … adrenal kriz")
-> "Böyle bir tanısı varsa; şu anda kusuyor, ilacını alamıyor ya da belirgin şekilde halsiz mi?"
+**Q9 — Vomiting / unable to take medicine when unwell (adrenal-crisis risk) (if Q8 yes)** ·
+archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("kusma … adrenal kriz")
+> "Çocuğunuzun şu anda kusması, belirgin halsizliği ya da ilacını alamama durumu var mı?"
+gen: slot=adrenal_kriz_riski; type=boolean; ask_if=duzenli_kortizon == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S2
 vomiting/non-adherence can precipitate adrenal crisis — the emergency is owned by `base.life_threat`.
 
@@ -214,17 +229,17 @@ vomiting/non-adherence can precipitate adrenal crisis — the emergency is owned
 itself export-blocked, §2 item 14) · source: general intake (ÇEDD 2026 §8 "Boy kısalığı ve büyüme
 geriliği" and §9 "Puberte" name these topics; no alarm threshold cited → general)
 > "Çocuğunuzun boyu, büyümesi ya da ergenlik gelişimi yaşıtlarına göre sizi endişelendiriyor mu?"
+gen: slot=buyume_ergenlik_endisesi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun düzenli kullandığı ilaçlar (örneğin insülin ya da kortizon) var mı?"
-CANDIDATE — clinician to approve wording.
+**Q11 — Current medications (insulin / cortisone)** · archetype: `ACTION.medication.v1` · source:
+general intake (history)
+> "Çocuğunuzun insülin ya da kortizon gibi düzenli kullandığı bir ilaç var mı?"
+gen: slot=duzenli_ilac; type=boolean
+CANDIDATE — clinician to approve wording. Kept as a specialty-specific (insulin/cortisone) medication
+ask (verification finding 5).
 
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions; 5 red-flag-derived — Q3, Q4, Q5, Q7, Q9 — plus general intake.)*
+*(11 candidate questions; red-flag-derived — Q2, Q3, Q4, Q5, Q7, Q9 — plus general intake.)*
 
 ---
 

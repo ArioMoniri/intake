@@ -157,74 +157,96 @@ diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to
 Per invariant 22, none of the drafts below contains a numeral; the protocol compiler must still expand
 any future digit to Turkish orthography before TTS.
 
-> Triage note for every alarm-derived item (Q6–Q9): the level is a **`candidate_flag` (max
+> Triage note for every alarm-derived item (Q6–Q10, new numbering): the level is a **`candidate_flag` (max
 > `YELLOW_REVIEW`), pending clinician + rules-engine confirmation — NOT authoritative**. The
 > authoritative RED for septic arthritis, sepsis and MSK-presenting malignancy stays in
 > `base.life_threat` (invariant 7) with a committed `source` snapshot and all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1–Q6
+unchanged (Q3 now asked only if Q2 yes) · Q7 → Q7 (night waking) + Q8 (pain despite analgesia) · Q8 →
+Q9 · Q9 → Q10 · Q10 → Q11 · Q11 → Q12 · Q12 → Q13.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün hekime getiren en önemli konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün hekime getiren en önemli konu nedir?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Joint swelling (presence)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (JIA definition — "arthritis")
 > "Çocuğunuzun bir ya da birden fazla ekleminde şişlik fark ettiniz mi?"
+gen: slot=eklem_sisligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Joint swelling persistence / duration** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("lasting 6 weeks or longer")
-> "Bu eklem şişliği ne zamandır sürüyor? Birkaç gün mü, yoksa uzun süredir mi devam ediyor?"
+**Q3 — Joint swelling persistence / duration (if Q2 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("lasting 6 weeks or longer")
+> "Bu eklem şişliği ne zamandır sürüyor?"
+gen: slot=eklem_sisligi_suresi; type=duration; ask_if=eklem_sisligi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)** if the swelling is persistent (weeks), per S1; the
-"six weeks" boundary is a classification criterion for the clinician, not a triage threshold here.
+"six weeks" boundary stays in the rule (a classification criterion for the clinician), never in the
+patient text.
 
 **Q4 — Joint pain and morning stiffness** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake (symptom characterisation; specific stiffness threshold NO SOURCE FOUND — §4)
 > "Çocuğunuz sabahları ya da uzun süre hareketsiz kaldıktan sonra eklemlerinde tutukluk veya ağrı
 > yaşıyor mu?"
+gen: slot=sabah_tutuklugu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Reduced function of a joint** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake (functional impact)
 > "Çocuğunuz günlük hareketlerinde, örneğin yürürken, giyinirken ya da oyun oynarken zorlanıyor mu?"
+gen: slot=gunluk_hareket_guclugu; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q6 — Limp / refusal to bear weight** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Non-weight bearing limb/not using an extremity") — **feeds `base.life_threat`**
 > "Çocuğunuz aksıyor, ayağına basmaktan kaçınıyor ya da bir kolunu veya bacağını kullanmak istemiyor mu?"
+gen: slot=aksama_kullanmama; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; the authoritative RED is owned by `base.life_threat` (invariant 7), not this pack.
 
-**Q7 — Night pain / bone pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Night pains ... persistent ... more worrying"; "Bone pain") — **feeds `base.life_threat`**
-> "Çocuğunuzun ağrısı geceleri onu uyandırıyor mu ya da ağrı kesiciye rağmen geçmiyor mu?"
+**Q7 — Night pain waking the child** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Night pains ... persistent ... more worrying") — **feeds `base.life_threat`**
+> "Çocuğunuzun ağrısı onu geceleri uykudan uyandırıyor mu?"
+gen: slot=gece_uyandiran_agri; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; persistent night/bone pain can signal infection or malignancy (S2) — RED owned by
 `base.life_threat`.
 
-**Q8 — Persistent / recurrent fever with joint symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (systemic upset — "fever"); S3 ("Fever for >5 days") — **feeds `base.life_threat`**
+**Q8 — Pain persisting despite analgesia** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (night pain not responsive to simple analgesia; "Bone pain") — **feeds `base.life_threat`**
+> "Çocuğunuzun ağrısı ağrı kesiciye rağmen devam ediyor mu?"
+gen: slot=agri_kesiciye_ragmen_agri; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
+authoritative)**, per S2 — RED owned by `base.life_threat`.
+
+**Q9 — Persistent / recurrent fever with joint symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (systemic upset — "fever"); S3 ("Fever for >5 days") — **feeds `base.life_threat`**
 > "Çocuğunuzun eklem şikâyetleriyle birlikte uzun süredir devam eden ya da tekrarlayan ateşi oldu mu?"
+gen: slot=eklemle_ates; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; the systemic-JIA quotidian-fever threshold is a §4 gap; acute febrile emergencies
 (sepsis) are owned by `base.life_threat`.
 
-**Q9 — Acutely hot, red, immobile joint** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Acute joint pain ... can be a feature of infection") — **feeds `base.life_threat`**
-> "Şu sıralarda çocuğunuzun bir eklemi aniden çok ağrılı, sıcak ve kızarık hâle gelip hareket
-> ettiremediğiniz bir durum oldu mu?"
+**Q10 — Acutely hot, red, painful joint** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Acute joint pain ... can be a feature of infection") — **feeds `base.life_threat`**
+> "Şu sıralarda çocuğunuzun bir eklemi aniden sıcak, kızarık ve çok ağrılı hâle geldi mi?"
+gen: slot=ani_sicak_kizarik_eklem; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)**; an acutely hot immobile joint with fever (septic arthritis) is a life-threat owned by
+authoritative)**; an acutely hot joint with fever (septic arthritis) is a life-threat owned by
 `base.life_threat` (invariant 7), not a RED authored here.
 
-**Q10 — Systemic upset (weight loss / appetite / pallor)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Malaise and / or systemic upset")
+**Q11 — Systemic upset (weight loss / appetite / pallor)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Malaise and / or systemic upset")
 > "Çocuğunuzda son zamanlarda kilo kaybı, iştahsızlık, solukluk ya da alışılmadık bir hâlsizlik fark
 > ettiniz mi?"
+gen: slot=genel_durum_bozuklugu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Rash with joint symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake (symptom characterisation)
+**Q12 — Rash with joint symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake (symptom characterisation)
 > "Çocuğunuzun eklem şikâyetleriyle birlikte ciltte döküntü ortaya çıktı mı?"
+gen: slot=eklemle_dokuntu; type=boolean
 CANDIDATE — clinician to approve wording. Note: a specific rash red-flag threshold for this specialty
 is **NO SOURCE FOUND** (§4); a non-blanching rash with fever is owned by `base.life_threat`.
 
-**Q12 — Known rheumatologic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
+**Q13 — Known rheumatologic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
 > "Çocuğunuza daha önce romatizmal ya da bağışıklık sistemiyle ilgili bir hastalık tanısı kondu mu?"
+gen: slot=romatizmal_tani; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions. Family history of autoimmune/rheumatic disease and JIA-associated uveitis
+*(13 candidate questions. Family history of autoimmune/rheumatic disease and JIA-associated uveitis
 screening — openEHR items 19 and 12 — are clinically relevant but the former has no export target
 [export blocked, INT-041 posture] and the latter lacks a retrieved source [§4]; neither is advanced
 beyond the binding table without a clinician decision.)*

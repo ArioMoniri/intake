@@ -180,68 +180,81 @@ action scripts belong to `base.life_threat` / triage, never to an intake questio
 > authoritative RED for status epilepticus / meningitis comes from `base.life_threat` with all three
 > RED axes (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 · Q4 → Q3
+(if Q2 yes) · Q5 → Q4 · Q6 → Q5 (if Q4 yes) · Q7 → Q6 (delay) + Q7 (regression) · Q8 → Q8 · Q9 →
+Q9 · Q10 removed (duplicates base `allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Seizure / convulsion episode** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1a
+**Q2 — Seizure / convulsion episode** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1a
 (febril konvülziyon tanımı) + S2 (NG217 first suspected seizure)
-> "Çocuğunuz bilincini kaybettiği ya da vücudunda istemsiz kasılma-titreme olan bir atak (nöbet)
-> geçirdi mi?"
+> "Çocuğunuz bilincini kaybettiği ya da vücudunun istemsiz kasılıp titrediği bir nöbet geçirdi mi?"
+gen: slot=nobet_gecirdi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** — per S2 a first suspected seizure
 warrants urgent (within-two-weeks) specialist assessment; a prolonged/active seizure remains
 `base.life_threat` (status epilepticus, S1d) territory.
 
-**Q4 — Fever with the seizure (febrile-convulsion pattern)** · archetype:
+**Q3 — Fever with the seizure (febrile-convulsion pattern) (if Q2 yes)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S1a ("ateşle birlikte ortaya çıkan nöbetlerdir")
 > "Bu nöbet sırasında çocuğunuzun ateşi de var mıydı?"
+gen: slot=nobette_ates; type=boolean; ask_if=nobet_gecirdi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S1a
 distinguishes febrile convulsion — the prolonged/complex form and status epilepticus are owned by
 `base.life_threat`.
 
-**Q5 — Headache, recent onset / worsening** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1b
+**Q4 — Headache, recent onset / worsening** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1b
 ("akut ve ilerleyici başağrılarında"; "Çocuğun yaşı ne kadar küçükse … ciddi bir nedeni olma
 olasılığı o kadar yüksektir")
 > "Çocuğunuzun son zamanlarda yeni başlayan ya da giderek kötüleşen bir baş ağrısı oldu mu?"
+gen: slot=yeni_bas_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** for an
 acute/progressive pattern, per S1b (which points such headaches to imaging).
 
-**Q6 — Headache with fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1b (fizik
-muayenede "ateş … meningeal irritasyon işaretleri"; ikincil neden: "intrakraniyal enfeksiyonlar")
+**Q5 — Headache with fever (if Q4 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1b
+(fizik muayenede "ateş … meningeal irritasyon işaretleri"; ikincil neden: "intrakraniyal
+enfeksiyonlar")
 > "Çocuğunuzun baş ağrısına ateş de eşlik ediyor mu?"
+gen: slot=bas_agrisi_ates; type=boolean; ask_if=yeni_bas_agrisi == true
 CANDIDATE — clinician to approve wording. **Overlap: `base.life_threat` meningitis pattern (§2.1).**
 A companion neck-stiffness item ("ensesini öne eğerken zorlanıyor mu?") is *flagged, not drafted*, to
 keep one concern per turn. Candidate_flag only; acute decision deferred to `base.life_threat`.
 
-**Q7 — Developmental concern (not reaching / losing milestones)** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S1c (developmental-delay work-up) — *delay* is sourced;
-*regression* (loss of acquired skills) is **NO SOURCE FOUND (verbatim)**, see §4
-> "Çocuğunuzun yürüme, konuşma ya da diğer gelişim basamaklarında yaşıtlarına göre geriden geldiğini
-> ya da önceden kazandığı bir beceriyi kaybettiğini fark ettiniz mi?"
+**Q6 — Developmental delay (not reaching milestones)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1c (developmental-delay work-up)
+> "Çocuğunuz yürüme ya da konuşma gibi becerilerde yaşıtlarından geride mi?"
+gen: slot=gelisim_geriligi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **not assigned** — S1c covers developmental
-*delay* assessment; a regression-specific red-flag threshold is not sourced (§4).
+*delay* assessment.
+
+**Q7 — Developmental regression (losing acquired skills)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: cross-cited from `cocuk_genetik_hastaliklari.md` S1 (NHS
+GeNotes: "developmental regression (loss of previously gained skills) are red flags that require
+urgent further assessment") — verification finding 16
+> "Çocuğunuz daha önce yapabildiği bir beceriyi sonradan kaybetti mi?"
+gen: slot=beceri_kaybi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: **not assigned** here; the cross-cited
+source is a UK educational resource (MED confidence) and must be re-verified before sign-off (§4).
 
 **Q8 — Known neurological diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general
 intake (history; S1 chapters name epilepsy/febrile convulsion)
-> "Çocuğunuzun daha önce konmuş nörolojik bir tanısı var mı? Örneğin epilepsi (sara) ya da serebral
-> palsi."
+> "Çocuğunuza daha önce epilepsi gibi bir sinir sistemi hastalığı tanısı kondu mu?"
+gen: slot=noroloji_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun düzenli kullandığı ilaçlar (örneğin nöbet ilacı) var mı?"
-CANDIDATE — clinician to approve wording.
+**Q9 — Current medications (incl. antiseizure)** · archetype: `ACTION.medication.v1` · source:
+general intake (history)
+> "Çocuğunuzun nöbet ilacı gibi düzenli kullandığı bir ilaç var mı?"
+gen: slot=duzenli_ilac; type=boolean
+CANDIDATE — clinician to approve wording. Kept as a specialty-specific (anti-seizure) medication ask
+(verification finding 5).
 
-**Q10 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(10 candidate questions; 4 red-flag-derived — Q3, Q4, Q5, Q6 — plus Q7 concern-capture with no
-sourced flag, and general intake.)*
+*(9 candidate questions; 4 red-flag-derived — Q2, Q3, Q4, Q5 — plus Q6/Q7 concern-capture with no
+assigned flag, and general intake.)*
 
 ---
 
@@ -251,6 +264,8 @@ sourced flag, and general intake.)*
    supplies verbatim text on developmental *delay* (gelişim geriliği), **not** a regression-specific
    red flag. **NO SOURCE FOUND (verbatim, regression) — clinician must supply** (candidate: a Türkiye
    Çocuk Nörolojisi Derneği nörodejeneratif / regresyon bölümü, or an international source).
+   Verification finding 16: `cocuk_genetik_hastaliklari.md` S1 (NHS GeNotes) carries a regression
+   quote, now cross-cited by §3 Q7 (new numbering); a Türkiye-first source is still wanted.
 2. **Enumerated headache "red-flag" list** — S1b gives a general "uyarıcı belirti ve bulgular" +
    secondary-cause statement + a physical-exam alarm sentence, but not a single enumerated
    patient-answerable red-flag list (e.g. night waking, morning vomiting, worse on straining). **The

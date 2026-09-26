@@ -156,28 +156,41 @@ prognosis language. **All marked "CANDIDATE — clinician to approve wording".**
 > metabolic decompensation / hyperammonaemic encephalopathy comes from `base.life_threat` with all three
 > RED axes (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 · Q4 → Q3
+(family history) + Q4 (consanguinity) · Q5 → Q5 · Q6 → Q6 · Q7 → Q7 (if Q5 or Q6 yes) · Q8 → Q8
+(loss of skills) + Q9 (slowed development) · Q9 → Q10 · Q10 → Q11 · Q11 → Q12 · Q12 removed
+(duplicates base `allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Newborn-screening (topuk kanı) result** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
+**Q2 — Newborn-screening (topuk kanı) result** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 S1 ("tarama sonucu şüpheli çıkan bebekler ilgili kliniklere yönlendirilmektedir")
-> "Bebeğinizin doğduğunda yapılan topuk kanı taramasında herhangi bir hastalık şüphesi bildirildi mi?"
+> "Çocuğunuzun doğumdan sonra yapılan topuk kanı taramasında bir sorun bildirildi mi?"
+gen: slot=topuk_kani_sorunu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q4 — Family history of metabolic disease / consanguinity** · archetype:
-`EVALUATION.reason_for_encounter.v1` (family-history/consanguinity fact export-blocked, §2 item 13) ·
-source: S3 ("Akraba evliliğinin sık görüldüğü ülkemizde … görülme sıklığı çok daha fazladır")
-> "Ailenizde kalıtsal bir metabolizma hastalığı öyküsü ya da anne-baba arasında akrabalık var mı?"
+**Q3 — Family history of metabolic disease** · archetype: `EVALUATION.reason_for_encounter.v1`
+(family-history fact export-blocked, §2 item 13) · source: S3 ("Akraba evliliğinin sık görüldüğü
+ülkemizde … görülme sıklığı çok daha fazladır")
+> "Ailenizde kalıtsal bir metabolizma hastalığı olan biri var mı?"
+gen: slot=ailede_metabolizma_hastaligi; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q4 — Parental consanguinity** · archetype: `EVALUATION.reason_for_encounter.v1` (consanguinity fact
+export-blocked, §2 item 13) · source: S3 ("Akraba evliliğinin sık görüldüğü ülkemizde … görülme
+sıklığı çok daha fazladır")
+> "Bu soruyu yalnızca sağlık değerlendirmesi için soruyoruz: anne ile baba arasında akrabalık var mı?"
+gen: slot=ebeveyn_akrabaligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q5 — Vomiting / refusal to feed** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("vomiting
 and anorexia") + S3 ("kusma, iştahsızlık")
 > "Çocuğunuz son zamanlarda sık sık kusuyor ya da beslenmeyi reddediyor mu?"
+gen: slot=kusma_beslenme_reddi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)** per S2; when part of a decompensation the emergency is
 owned by `base.life_threat`.
@@ -185,40 +198,49 @@ owned by `base.life_threat`.
 **Q6 — Unusual drowsiness / lethargy** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
 ("episodes of encephalopathy")
 > "Çocuğunuz alışılmadık şekilde uykulu, halsiz ya da zor uyandırılır hâle geldi mi?"
+gen: slot=uykulu_halsiz; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S2;
 altered consciousness / encephalopathy is owned by `base.life_threat`.
 
-**Q7 — Symptoms triggered by illness / fever / fasting** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S2 (decompensation with intercurrent illness) + S3 ("enfeksiyon gibi stresli olaylarda hastalık
-belirtileri ortaya çıkabilir")
-> "Bu belirtiler çocuğunuz hastalandığında, ateşlendiğinde ya da uzun süre aç kaldığında ortaya çıkıyor
-> veya artıyor mu?"
+**Q7 — Symptoms triggered by illness / fasting (if Q5 or Q6 yes)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S2 (decompensation with intercurrent illness) + S3 ("enfeksiyon
+gibi stresli olaylarda hastalık belirtileri ortaya çıkabilir")
+> "Bu belirtiler çocuğunuz hastalandığında ya da uzun süre aç kaldığında artıyor mu?"
+gen: slot=hastalik_aclikla_artis; type=boolean; ask_if=kusma_beslenme_reddi == true || uykulu_halsiz == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S2/S3;
 metabolic stress can precipitate decompensation — the emergency is owned by `base.life_threat`.
 
-**Q8 — Developmental regression / slow progress** · archetype: `OBSERVATION.symptom_sign.v1` · source:
-S2 ("slow developmental progress")
-> "Çocuğunuz daha önce yapabildiği şeyleri (oturma, yürüme, konuşma gibi) yapmakta zorlanmaya başladı ya
-> da gelişimi yavaşladı mı?"
+**Q8 — Developmental regression (loss of skills)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: cross-cited from `cocuk_genetik_hastaliklari.md` S1 (NHS GeNotes: "developmental regression
+(loss of previously gained skills) are red flags that require urgent further assessment") —
+verification finding 16
+> "Çocuğunuz daha önce yapabildiği oturma, yürüme ya da konuşma gibi becerileri kaybetti mi?"
+gen: slot=beceri_kaybi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Known metabolic diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2 (history)
+**Q9 — Slowed developmental progress** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("slow
+developmental progress")
+> "Çocuğunuzun gelişimi son zamanlarda yavaşladı mı?"
+gen: slot=gelisim_yavaslamasi; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q10 — Known metabolic diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2 (history)
 > "Çocuğunuzun daha önce konmuş bir metabolizma hastalığı tanısı var mı?"
+gen: slot=metabolizma_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q10 — Special diet / metabolic formula** · archetype: `ACTION.medication.v1` · source: general intake
+**Q11 — Special diet / special formula** · archetype: `ACTION.medication.v1` · source: general intake
 (S3 context)
-> "Çocuğunuz özel bir diyet ya da özel bir mama (metabolik formül) kullanıyor mu?"
+> "Çocuğunuz özel bir diyet ya da özel bir mama kullanıyor mu?"
+gen: slot=ozel_diyet_mama; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications / supplements** · archetype: `ACTION.medication.v1` · source: general intake
+**Q12 — Current medications / supplements** · archetype: `ACTION.medication.v1` · source: general intake
 (history)
-> "Çocuğunuzun düzenli kullandığı ilaç ya da takviye (örneğin vitamin veya karnitin) var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?"
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuzun düzenli kullandığı bir ilaç, vitamin ya da takviye var mı?"
+gen: slot=ilac_vitamin_takviye; type=boolean
+CANDIDATE — clinician to approve wording. Kept as a specialty-specific (supplement / special formula)
+ask (verification finding 5).
 
 *(12 candidate questions; 3 red-flag-derived — Q5, Q6, Q7 — plus screening, family history, and general
 intake.)*

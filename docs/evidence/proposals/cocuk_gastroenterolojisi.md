@@ -188,55 +188,78 @@ no free numeric entry on the clinical critical path (yes/no + optional narrative
 > clinician + rules-engine confirmation — NOT authoritative**. Items marked **→ base.life_threat** are
 > life-threatening families that already live in `base.intake` (inv. 7) and are **not** leveled here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates the fixed `sikayet_suresi` slot; had two question marks) · Q3 → Q2 ·
+Q4 → Q3 · Q5 → Q4 · Q6 → Q5 · Q7 → Q6 · Q8 → Q7 (dry mouth / sunken eyes) + Q8 (less urine) · Q9 →
+Q9 · Q10 → Q10 · Q11 → Q11 (constipation since early infancy) + Q12 (delayed first stool) · Q12 → Q13
+(known diagnosis); its medication half removed (duplicates base `meds_confirmed`).
+
 **Q1 — Başvuru nedeni** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
 > "Bugün çocuğunuzu kliniğe getiren en önemli sindirim şikâyetini kendi cümlelerinizle kısaca anlatır mısınız?"
 > _CANDIDATE — clinician to approve._
 
-**Q2 — Şikâyet süresi** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Çocuğunuzun bu şikâyeti ne zaman başladı? Yaklaşık olarak gün, hafta ya da ay olarak söyleyebilir misiniz?"
-> _CANDIDATE — clinician to approve. (No free numeric entry on the critical path — narrative only; inv. 22.)_
-
-**Q3 — Yeşil (safralı) kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.4 "bile-stained (green or yellow-green) vomiting") · **→ base.life_threat (inv. 7); not leveled here**
+**Q2 — Yeşil (safralı) kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.4 "bile-stained (green or yellow-green) vomiting") · **→ base.life_threat (inv. 7); not leveled here**
 > "Çocuğunuzun kusmuğunda yeşil ya da sarı-yeşil renk fark ettiniz mi?"
+gen: slot=yesil_kusma; type=boolean
 > _CANDIDATE — clinician to approve. Bile-stained vomiting can signal a bowel-obstruction emergency; the routing belongs to base.life_threat, not this proposal._
 
-**Q4 — Kanlı kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.4/1.1.20 "haematemesis (blood in vomit)")
-> "Çocuğunuzun kustuğunda içinde kan ya da kahve telvesi gibi koyu bir madde gördünüz mü?"
+**Q3 — Kanlı kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.4/1.1.20 "haematemesis (blood in vomit)")
+> "Çocuğunuzun kusmuğunda kan ya da kahve telvesi gibi koyu bir şey gördünüz mü?"
+gen: slot=kanli_kusma; type=boolean
 > _CANDIDATE — clinician to approve. NICE urgency wording is "assessment to take place on the same day if clinically indicated" (S1); acute/active bleeding is an emergency the intake layer cannot level — see G4._
 
-**Q5 — Bebekte fışkırır tarzda kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.19 "infants younger than 2 months with progressively worsening or forceful vomiting")
-> "Çocuğunuz iki aylıktan küçükse, beslendikten sonra giderek artan ya da fışkırır tarzda kuvvetli kusması oluyor mu?"
-> _CANDIDATE — clinician to approve. The infant age cut-off is a clinician-set value (G3), surfaced qualitatively._
+**Q4 — Bebekte fışkırır tarzda kusma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.19 "infants younger than 2 months with progressively worsening or forceful vomiting")
+> "Çocuğunuz beslendikten sonra giderek artan ya da fışkırır gibi kusuyor mu?"
+gen: slot=fiskirir_kusma; type=boolean
+> _CANDIDATE — clinician to approve. The infant age cut-off is a clinical value (G3): it is taken out of the patient text and belongs in an infant-age `ask_if` — clinician decision pending; no age is proposed here._
 
-**Q6 — Dışkıda kan / siyah dışkı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM "Dışkıda gözle görülür kanama"); S3 "melaena"
-> "Çocuğunuzun dışkısında ya da bezinde kırmızı kan veya siyah, katran gibi bir renk fark ettiniz mi?"
+**Q5 — Dışkıda kan / siyah dışkı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM "Dışkıda gözle görülür kanama"); S3 "melaena"
+> "Çocuğunuzun dışkısında kan ya da katran gibi siyah bir renk gördünüz mü?"
+gen: slot=diskida_kan_siyah; type=boolean
 > _CANDIDATE — clinician to approve._
 
-**Q7 — Sık sulu ishal** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM "Sık, bol miktarda sulu dışkılama")
+**Q6 — Sık sulu ishal** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM "Sık, bol miktarda sulu dışkılama")
 > "Çocuğunuzun sık sık ve bol miktarda sulu ishali oluyor mu?"
+gen: slot=sulu_ishal; type=boolean
 > _CANDIDATE — clinician to approve._
 
-**Q8 — Susuz kalma (dehidratasyon) belirtileri** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM Tablo 9 "Göz küresi: Belirgin çökük; Göz yaşı: Yok; İdrar çıkışı: Minimal"); S2 §4.1 "decreased urine output" · **→ base.life_threat if severe (inv. 7); not leveled here**
-> "Çocuğunuzun ağzı kuru, gözleri çökük, ağladığında gözyaşı az ya da bezini her zamankinden daha az mı ıslatıyor?"
+**Q7 — Susuz kalma belirtileri: ağız kuruluğu / çökük göz** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM Tablo 9 "Göz küresi: Belirgin çökük") · **→ base.life_threat if severe (inv. 7); not leveled here**
+> "Çocuğunuzun ağzı kuru ya da gözleri çökük görünüyor mu?"
+gen: slot=agiz_kuru_goz_cokuk; type=boolean
 > _CANDIDATE — clinician to approve. Severe dehydration/shock is a life-threatening family owned by base.intake; this question surfaces the signs only._
+
+**Q8 — Susuz kalma belirtileri: idrar azalması** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM Tablo 9 "İdrar çıkışı: Minimal"); S2 §4.1 "decreased urine output" · **→ base.life_threat if severe (inv. 7); not leveled here**
+> "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+gen: slot=az_cis; type=boolean
+> _CANDIDATE — clinician to approve._
 
 **Q9 — Durmayan kusma / sıvıyı tutamama** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (HSGM "Persistan kusma"; "Oral rehidratasyon tedavisine yanıtsızlık")
 > "Çocuğunuz sık sık kusuyor ve ağızdan verdiğiniz sıvıları içinde tutamıyor mu?"
+gen: slot=sivi_tutamama; type=boolean
 > _CANDIDATE — clinician to approve._
 
 **Q10 — Kilo alamama / kilo kaybı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG1 rec 1.1.4 "faltering growth"); S3 (NICE CG99 "faltering growth")
 > "Çocuğunuz son zamanlarda beklendiği gibi kilo alamadı ya da kilo kaybetti mi?"
+gen: slot=kilo_alamama; type=boolean
 > _CANDIDATE — clinician to approve. Qualitative only; any amount/percentile is for the clinician (inv. 22)._
 
-**Q11 — Kabızlıkta erken dönem uyarı belirtileri** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CG99 rec 1.3.6 "delayed passage of meconium (more than 48 hours after birth in term babies)", "constipation since first few weeks of life")
-> "Çocuğunuz yenidoğan döneminde ilk kakasını (mekonyum) doğumdan sonraki ilk iki gün içinde çıkardı mı, yoksa gecikti mi? Kabızlığı yaşamının ilk haftalarında mı başladı?"
-> _CANDIDATE — clinician to approve. (Clinician may split delayed-meconium and early-onset constipation into two turns; both are CG99 red flags directing away from routine constipation care.)_
+**Q11 — Bebeklikten beri kabızlık** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CG99 rec 1.3.6 "constipation since first few weeks of life")
+> "Çocuğunuzun kabızlığı bebekliğinin ilk haftalarında başladı mı?"
+gen: slot=erken_baslayan_kabizlik; type=boolean
+> _CANDIDATE — clinician to approve._
 
-**Q12 — Bilinen sindirim tanısı / kullanılan ilaçlar** · archetype: `EVALUATION.problem_diagnosis.v1` + `ACTION.medication.v1` · source: general intake / history
-> "Çocuğunuza daha önce mide, bağırsak ya da karaciğerle ilgili bir hastalık tanısı konuldu mu? Şu anda düzenli kullandığı bir ilaç var mı?"
-> _CANDIDATE — clinician to approve. Two concerns — clinician to split into diagnosis vs medication turns, each binding its own root._
+**Q12 — Gecikmiş ilk dışkı** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CG99 rec 1.3.6 "delayed passage of meconium (more than 48 hours after birth in term babies)")
+> "Doğumdan sonra çocuğunuzun ilk kakasının geciktiği size söylendi mi?"
+gen: slot=ilk_kaka_gecikmesi; type=boolean
+> _CANDIDATE — clinician to approve. The CG99 forty-eight-hour boundary stays in the rule, never in the patient text; the jargon term for the first stool is no longer spoken._
 
-*(12 candidate questions, Q1–Q12. All tagged CANDIDATE; none served.)*
+**Q13 — Bilinen sindirim tanısı** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake / history
+> "Çocuğunuza daha önce mide, bağırsak ya da karaciğerle ilgili bir tanı kondu mu?"
+gen: slot=sindirim_tanisi; type=boolean
+> _CANDIDATE — clinician to approve. Current medications come from base `meds_confirmed`._
+
+*(13 candidate questions, Q1–Q13. All tagged CANDIDATE; none served.)*
 
 ---
 

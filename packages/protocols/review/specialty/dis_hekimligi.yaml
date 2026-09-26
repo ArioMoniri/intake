@@ -1,15 +1,17 @@
-# L1 — QUESTIONS authored; TRIAGE deferred. AI-assembled from guidelines in
-# docs/evidence/proposals/dis_hekimligi.md, clinician-DIRECTED (Dr. A. Moniri), to be
-# double-verified. Symptom-capture prompts only (inv 2/10) — not diagnosis, not
-# triage. Acuity is EK-4 LAW (RG 13/9/2022) + physician of record (HB-C1); NOT
-# fabricated. RED/life-threat stays in base.life_threat (inv 7).
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/dis_hekimligi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
 kind: pack
 id: specialty.dis_hekimligi
 layer: specialty
-version: 0.2.0
+version: 0.3.0
 schema_version: 2
-maturity: L1
-status: questions-authored-guideline-sourced-clinician-directed; triage-deferred-HB-C1
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
 language: tr
 title_tr: Diş Hekimliği ön görüşme protokolü
 extends: cluster.dental
@@ -31,69 +33,101 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü randevunuzda sizi diş hekimine getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?
+          tr: Bugünkü randevunuzda sizi diş hekimine getiren asıl şikâyetiniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
       sikayet_suresi:
         type: duration
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/dis_hekimligi.md'
   sorular:
     slots:
-      soru_1:
-        type: string
+      yuz_cene_sisligi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Bu şikâyetiniz nasıl başladı ve o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?
-      soru_2:
-        type: string
+          tr: Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      nefes_yutkunma_guclugu:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yüzünüzde ya da ağız tabanınızda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?
-      soru_3:
-        type: string
+          tr: Nefes almakta ya da yutkunmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      sislik_ile_ates:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yüzünüzdeki ya da çenenizdeki şişliğe ateş de eşlik ediyor mu?
-      soru_4:
-        type: string
+          tr: Bu şişlikle birlikte ateşiniz de var mı?
+        ask_if: yuz_cene_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      iyilesmeyen_agiz_yarasi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Ağzınızda ya da dudağınızda üç haftadan uzun süredir iyileşmeyen bir yara var mı?
-      soru_5:
-        type: string
+          tr: Ağzınızda ya da dudağınızda iyileşmeyen bir yara var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      agiz_yarasi_suresi:
+        type: duration
         required: false
         ask_tr:
-          tr: Ağzınızda, dudağınızda ya da boynunuzda geçmeyen bir şişlik veya kitle fark ettiniz mi?
-      soru_6:
-        type: string
+          tr: Bu yara ne zamandır var?
+        ask_if: iyilesmeyen_agiz_yarasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      agiz_boyun_sertlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağzınızda, dudağınızda ya da boynunuzda geçmeyen bir şişlik ya da sertlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      agizda_kirmizi_leke:
+        type: boolean
         required: false
         ask_tr:
           tr: Ağzınızın içinde geçmeyen kırmızı ya da kırmızı-beyaz bir leke fark ettiniz mi?
-      soru_7:
-        type: string
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      kalici_dis_cikti:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yakın zamanda bir darbe sonucu kalıcı (sürekli) dişlerinizden biri tamamen yerinden çıktı mı?
-      soru_8:
-        type: string
+          tr: Yakın zamanda bir darbeyle kalıcı dişlerinizden biri tamamen yerinden çıktı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      dis_agrisi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Dişinizde ya da diş etinizde ağrı var mı? Varsa ne zamandır sürüyor?
-      soru_9:
-        type: string
+          tr: Dişinizde ya da diş etinizde ağrı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      dis_agrisi_suresi:
+        type: duration
         required: false
         ask_tr:
-          tr: Diş etlerinizde kanama ya da bir diş işlemi sonrasında olağandan uzun süren kanamanız oldu mu?
-      soru_10:
-        type: string
+          tr: Bu ağrı ne zamandır sürüyor?
+        ask_if: dis_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      dis_eti_kanamasi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Şu anda düzenli kullandığınız ilaçlar var mı? Örneğin kanı sulandıran bir ilaç kullanıyor musunuz?
-      soru_11:
-        type: string
+          tr: Diş etleriniz kanıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      islem_sonrasi_uzun_kanama:
+        type: boolean
         required: false
         ask_tr:
-          tr: Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı alerjiniz var mı?
+          tr: Daha önce bir diş işleminden sonra olağandan uzun süre kanamanız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
+      ilac_alerjisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Herhangi bir ilaca, diş uyuşturma iğnesine ya da lateks eldivene alerjiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/dis_hekimligi.md'
 red_flags:
 - id: rf.dis_hekimligi_l0_taslak
   label_tr: Diş Hekimliği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

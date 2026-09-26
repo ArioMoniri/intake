@@ -163,70 +163,81 @@ action scripts belong to `base.life_threat` / triage, never to an intake questio
 > authoritative RED for AKI / hypertensive emergency comes from `base.life_threat` with all three RED
 > axes (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 · Q4 → Q3 (on
+hold, no source) · Q5 → Q4 · Q6 → Q5 (frequency) + Q6 (new wetting) + Q7 (holding urine) · Q7 → Q8 ·
+Q8 → Q9 · Q9 → Q10 · Q10 removed (duplicates base `meds_confirmed`) · Q11 removed (duplicates base
+`allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Oedema / swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("concomitant
+**Q2 — Oedema / swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("concomitant
 edema" — defining feature of nephrotic syndrome)
 > "Çocuğunuzun göz çevresinde, yüzünde, bacaklarında ya da karnında şişlik fark ettiniz mi?"
+gen: slot=odem_sislik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**, per S2 (oedema with proteinuria =
 nephrotic syndrome).
 
-**Q4 — Urine colour change / visible blood (haematuria)** · archetype: `OBSERVATION.symptom_sign.v1`
+**Q3 — Urine colour change / visible blood (haematuria)** · archetype: `OBSERVATION.symptom_sign.v1`
 · source: **NO SOURCE FOUND (verbatim red flag) — clinician must supply** (see §4; candidate: KDIGO
 glomerülonefrit / Çocuk Nefroloji Derneği akut nefritik sendrom bölümü — not retrieved verbatim)
-> "Çocuğunuzun idrarının rengi koyulaştı, kırmızı-kahverengi bir renk aldı ya da içinde kan
-> gördünüz mü?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **not assigned** — no sourced threshold;
-the concern is captured for the clinician, who must supply the acute-nephritic / macroscopic-
-haematuria source before any flag.
+> "Çocuğunuzun idrarında kan ya da kola rengine benzer bir koyulaşma gördünüz mü?"
+gen: hold=no source found for the haematuria red flag; clinician must supply before serving
+CANDIDATE — clinician to approve wording. **HOLD (verification §B).** The wording is the verifier's
+"if sourced" form, replacing a three-concern ask. Candidate_flag: **not assigned** — no sourced
+threshold; the clinician must supply the acute-nephritic / macroscopic-haematuria source first.
 
-**Q5 — Dysuria** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Dizüri … suprapubik ağrı")
+**Q4 — Dysuria** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Dizüri … suprapubik ağrı")
 > "Çocuğunuz idrar yaparken yanma, ağrı ya da rahatsızlık hissettiğini söylüyor mu?"
+gen: slot=idrarda_yanma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** with
-Q6/Q7, per S1.
+Q5–Q8, per S1.
 
-**Q6 — Urinary frequency / new wetting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-("sıkışma … idrar inkontinansı") + S3 (frequency, bedwetting)
-> "Çocuğunuz her zamankinden daha sık idrara çıkıyor, yeniden altını ıslatmaya başladı ya da idrarını
-> tutmakta zorlanıyor mu?"
+**Q5 — Urinary frequency** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("sıkışma") + S3
+(frequency)
+> "Çocuğunuz her zamankinden daha sık idrara çıkıyor mu?"
+gen: slot=sik_idrara_cikma; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q7 — Fever with flank / abdominal pain (pyelonephritis pattern)** · archetype:
+**Q6 — New wetting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (bedwetting)
+> "Çocuğunuz yeniden altını ya da yatağını ıslatmaya başladı mı?"
+gen: slot=yeniden_altini_islatma; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q7 — Difficulty holding urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("idrar
+inkontinansı")
+> "Çocuğunuz idrarını tutmakta zorlanıyor mu?"
+gen: slot=idrar_tutma_guclugu; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q8 — Fever with flank / abdominal pain (pyelonephritis pattern)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S1 ("Pyelonefrit düşündüren bulgular karın ağrısı, yan ağrısı,
 ateş …")
-> "Çocuğunuzda ateşle birlikte karın ya da yan (bel) ağrısı da var mı?"
+> "Çocuğunuzda ateşle birlikte karın ağrısı ya da belinin yan tarafında ağrı var mı?"
+gen: slot=ates_yan_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**; per S1
 these suggest pyelonephritis (upper-tract infection).
 
-**Q8 — Reduced urine output** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
+**Q9 — Reduced urine output** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
 (feeds the AKI gate — owned by `base.life_threat`; no threshold asserted here)
 > "Çocuğunuzun idrar miktarı belirgin şekilde azaldı ya da neredeyse hiç idrar yapmıyor mu?"
+gen: slot=idrar_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **not assigned** — reduced/absent urine
 output feeds the acute-kidney-injury determination, which is owned by `base.life_threat` (invariant 7).
 
-**Q9 — Known renal / urinary-tract diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` ·
+**Q10 — Known renal / urinary-tract diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` ·
 source: S1 (VUR / underlying urinary-tract pathology; hydronephrosis chapter)
-> "Çocuğunuzun daha önce böbrek ya da idrar yolu ile ilgili bir tanısı oldu mu? Örneğin idrar
-> kaçağı (reflü), böbrekte genişleme ya da tekrarlayan idrar yolu enfeksiyonu."
-CANDIDATE — clinician to approve wording.
+> "Çocuğunuza daha önce böbrek ya da idrar yollarıyla ilgili bir tanı kondu mu?"
+gen: slot=bobrek_idrar_yolu_tanisi; type=boolean
+CANDIDATE — clinician to approve wording. The earlier example list was dropped: it rendered VUR as
+"idrar kaçağı (reflü)", which means urinary incontinence (verification finding 9).
 
-**Q10 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun düzenli kullandığı ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q11 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(11 candidate questions; 4 red-flag-derived — Q3, Q5, Q6, Q7 — plus Q4/Q8 concern-capture with no
-sourced flag, and general intake.)*
+*(10 candidate questions; red-flag-derived — Q2, Q4, Q5, Q6, Q7, Q8 — plus Q3 (on hold) and Q9
+concern-capture with no sourced flag, and general intake.)*
 
 ---
 

@@ -149,72 +149,118 @@ prognosis language. **All marked "CANDIDATE — clinician to approve wording".**
 > `base.life_threat` with all three RED axes (route × register × location, invariant 21), none of which
 > are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 · Q4 → Q3
+(feeding fatigue) + Q4 (sweating with feeds) · Q5 → Q5 · Q6 → Q6 (fatigue) + Q7 (breathing) + Q8
+(eyelid swelling) · Q7 → Q9 · Q9 → Q10 · Q8 → Q11 (moved after syncope; if Q9 or Q10 yes) · Q10 →
+Q12 (sudden death) + Q13 (inherited rhythm disease) · Q11 → Q14 (diagnosis) + Q15 (surgery) · Q12 →
+Q16.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Central cyanosis** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("santral siyanoz …
+**Q2 — Central cyanosis** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("santral siyanoz …
 hayatı tehdit eden bir hastalığın varlığına işaret edebilir")
 > "Çocuğunuzun dudaklarında, dilinde ya da tırnaklarında morarma fark ettiniz mi?"
+gen: slot=morarma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)** per S1; a duct-dependent life-threatening cyanosis /
 cyanotic spell is owned by `base.life_threat`.
 
-**Q4 — Feeding fatigue / sweating with feeds (infant heart failure)** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S2 ("Kötü ve zayıf beslenme … soğuk terleme özellikle
-infantlarda sıktır")
-> "Çocuğunuz beslenirken (emerken ya da mama alırken) çabuk yoruluyor, terliyor ya da sık sık ara vermek
-> zorunda kalıyor mu?"
-CANDIDATE — clinician to approve wording.
+**Q3 — Feeding fatigue (infant heart failure)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+S2 ("Kötü ve zayıf beslenme … soğuk terleme özellikle infantlarda sıktır")
+> "Çocuğunuz emerken ya da mama alırken çabuk yoruluyor mu?"
+gen: slot=beslenirken_yorulma; type=boolean
+CANDIDATE — clinician to approve wording. The reviewer asks for an infant-age `ask_if` on Q3/Q4; the
+age cut-off is a clinical value, so the gate is a clinician decision pending and no age is proposed
+here.
+
+**Q4 — Sweating with feeds (infant heart failure)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S2 ("soğuk terleme özellikle infantlarda sıktır")
+> "Çocuğunuz beslenirken terliyor mu?"
+gen: slot=beslenirken_terleme; type=boolean
+CANDIDATE — clinician to approve wording. Infant-age gate: clinician decision pending (as Q3).
 
 **Q5 — Poor weight gain / slow growth** · archetype: `OBSERVATION.symptom_sign.v1` (measured value
 export-blocked, §2 item 5) · source: S2 ("kilo almada azlık")
-> "Bebeğinizin kilo alımı ya da büyümesi size yavaş mı geliyor?"
+> "Çocuğunuzun kilo alması ya da büyümesi size yavaş mı geliyor?"
+gen: slot=yavas_kilo_alma; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q6 — Breathlessness / easy fatigue / eyelid swelling** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S2 ("Daha büyük çocuklarda solunum sıkıntısı, kolay yorulma ve gözkapaklarında şişlik")
-> "Çocuğunuz her zamankinden daha çabuk yoruluyor, nefesi sıklaşıyor ya da göz kapaklarında şişlik
-> oluyor mu?"
+**Q6 — Easy fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Daha büyük çocuklarda
+solunum sıkıntısı, kolay yorulma ve gözkapaklarında şişlik")
+> "Çocuğunuz son zamanlarda her zamankinden çabuk yoruluyor mu?"
+gen: slot=cabuk_yorulma; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q7 — Palpitations** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (çarpıntı değerlendirmesi)
-> "Çocuğunuz kalbinin hızlı, düzensiz ya da çok güçlü çarptığını söylüyor ya da siz fark ediyor musunuz?"
+**Q7 — Breathlessness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("solunum sıkıntısı")
+> "Çocuğunuz son zamanlarda nefes almakta zorlanıyor mu?"
+gen: slot=nefes_darligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Palpitation / faint on exertion** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("efor
-sırasında ortaya çıkan çarpıntıya senkop da eşlik ediyor ise … genetik aritmi sendromları")
-> "Bu çarpıntı ya da baygınlık hissi koşarken, oyun oynarken veya eforlanınca mı ortaya çıkıyor?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S3;
-exertional palpitation with syncope points to a genetic arrhythmia — the emergency is owned by
-`base.life_threat`.
+**Q8 — Eyelid swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("gözkapaklarında
+şişlik")
+> "Çocuğunuzun göz kapaklarında şişlik oluyor mu?"
+gen: slot=goz_kapagi_sislik; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q9 — Syncope / near-syncope** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Senkop veya
+**Q9 — Palpitations** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (çarpıntı değerlendirmesi)
+> "Çocuğunuzun kalbinin hızlı, düzensiz ya da çok güçlü çarptığı oldu mu?"
+gen: slot=carpinti; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q10 — Syncope / near-syncope** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("Senkop veya
 presenkopun eşlik ettiği çarpıntı … ciddi aritmi yönünden dikkatli incelenmelidir")
 > "Çocuğunuz hiç bayıldı ya da bayılacak gibi olduğunu hissetti mi?"
+gen: slot=bayilma; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** when
 accompanying palpitation/exertion, per S3.
 
-**Q10 — Family history of sudden death at young age** · archetype: `EVALUATION.reason_for_encounter.v1`
-(family-history fact export-blocked, §2 item 13) · source: S3 ("geri döndürülmüş ani ölüm hikayesi";
-"genetik aritmi sendromları")
-> "Ailenizde genç yaşta açıklanamayan ani ölüm ya da kalıtsal bir kalp ritmi hastalığı öyküsü var mı?"
+**Q11 — Palpitation / faint on exertion (if Q9 or Q10 yes)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S3 ("efor sırasında ortaya çıkan çarpıntıya senkop da eşlik
+ediyor ise … genetik aritmi sendromları")
+> "Bu çarpıntı ya da baygınlık koşarken ya da oyun oynarken oluyor mu?"
+gen: slot=eforla_carpinti_bayilma; type=boolean; ask_if=carpinti == true || bayilma == true
+CANDIDATE — clinician to approve wording. Moved after the syncope item because it refers to fainting.
+Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S3; exertional palpitation with syncope points to
+a genetic arrhythmia — the emergency is owned by `base.life_threat`.
+
+**Q12 — Family history of sudden death at young age** · archetype:
+`EVALUATION.reason_for_encounter.v1` (family-history fact export-blocked, §2 item 13) · source: S3
+("geri döndürülmüş ani ölüm hikayesi")
+> "Ailenizde genç yaşta nedeni bilinmeyen ani ölüm yaşandı mı?"
+gen: slot=ailede_ani_olum; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S3.
 
-**Q11 — Known cardiac diagnosis / prior surgery** · archetype: `EVALUATION.problem_diagnosis.v1` ·
-source: S3 (referral: "yapısal kalp hastalığı … kardiyak cerrahi geçirmiş")
-> "Çocuğunuz daha önce bir kalp hastalığı tanısı aldı mı ya da kalp ameliyatı geçirdi mi?"
+**Q13 — Family history of inherited rhythm disease** · archetype:
+`EVALUATION.reason_for_encounter.v1` (family-history fact export-blocked, §2 item 13) · source: S3
+("genetik aritmi sendromları")
+> "Ailenizde kalıtsal bir kalp ritmi hastalığı olan biri var mı?"
+gen: slot=ailede_ritim_hastaligi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S3.
+
+**Q14 — Known cardiac diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3
+(referral: "yapısal kalp hastalığı")
+> "Çocuğunuza daha önce bir kalp hastalığı tanısı kondu mu?"
+gen: slot=kalp_tanisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
+**Q15 — Prior cardiac surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (referral:
+"kardiyak cerrahi geçirmiş")
+> "Çocuğunuz daha önce kalp ameliyatı oldu mu?"
+gen: slot=kalp_ameliyati; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q16 — Current medications (cardiac)** · archetype: `ACTION.medication.v1` · source: general intake
+(history)
 > "Çocuğunuzun kalbi ya da başka bir durumu için düzenli kullandığı ilaçlar var mı?"
+gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions; 4 red-flag-derived — Q3, Q8, Q9, Q10 — plus general intake and history.)*
+*(16 candidate questions; red-flag-derived — Q2, Q10, Q11, Q12, Q13 — plus general intake and
+history.)*
 
 ---
 

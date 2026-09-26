@@ -128,70 +128,121 @@ diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to
 Per invariant 22, none of the drafts below contains a numeral; the protocol compiler must still expand
 any future digit to Turkish orthography before TTS.
 
-> Triage note for every alarm-derived item (Q3–Q7): the level is a **`candidate_flag` (max
+> Triage note for every alarm-derived item (Q4–Q12, new numbering): the level is a **`candidate_flag` (max
 > `YELLOW_REVIEW`), pending clinician + rules-engine confirmation — NOT authoritative**. The
 > authoritative RED for the NG143 RED-column picture (sepsis / meningococcal disease / severe
 > respiratory distress) stays in `base.life_threat` (invariant 7) with a committed `source` snapshot
 > and all three RED axes (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 → Q2 (fever) + Q3 (how long, if Q2 yes) · Q3 → Q4 · Q4 → Q5 (fast breathing) + Q6
+(chest indrawing) + Q7 (grunting) — the three items of `cocuk_gogus_hastaliklari` Q6 · Q5 → Q8 · Q6 →
+Q9 · Q7 → Q10 (neck) + Q11 (fontanelle) + Q12 (seizure) · Q8 → Q13 (feeding / drinking) + Q14 (urine) ·
+Q9 → Q15 (limb swelling) + Q16 (not using a limb) · Q10 → Q17 · Q11 removed (duplicates base
+`meds_confirmed`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün hekime getiren en önemli konu nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün hekime getiren en önemli konu nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Fever presence / duration** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Fever for >5 days")
-> "Çocuğunuzun ateşi var mı? Varsa yaklaşık ne zamandır sürüyor?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
-+ rules-engine confirmation — NOT authoritative)** if the fever is prolonged (S1 AMBER "Fever for >5
-days"); the exact day threshold and any age scaling are for the clinician + rules engine.
+**Q2 — Fever presence** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Fever for >5 days")
+> "Çocuğunuzun ateşi var mı?"
+gen: slot=ates_var_mi; type=boolean
+CANDIDATE — clinician to approve wording.
 
-**Q3 — Activity / alertness change** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED activity ("Does not wake or if roused does not stay awake" / "Appears ill") — **feeds `base.life_threat`**
+**Q3 — Fever duration (if Q2 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Fever
+for >5 days")
+> "Çocuğunuzun ateşi ne zamandır sürüyor?"
+gen: slot=ates_suresi; type=duration; ask_if=ates_var_mi == true
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
++ rules-engine confirmation — NOT authoritative)** if the fever is prolonged (S1 AMBER); the NG143
+boundary stays in the rule, never in the patient text, and any age scaling is for the clinician +
+rules engine.
+
+**Q4 — Activity / alertness change** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED activity ("Does not wake or if roused does not stay awake" / "Appears ill") — **feeds `base.life_threat`**
 > "Çocuğunuz her zamankinden daha uykulu, güç uyandırılan ya da size karşı tepkisiz mi görünüyor?"
+gen: slot=uykulu_tepkisiz; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; the "appears ill / does not wake" picture is owned by `base.life_threat`.
 
-**Q4 — Breathing difficulty** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED respiratory ("Grunting" / "Moderate or severe chest indrawing" / tachypnoea) — **feeds `base.life_threat`**
-> "Çocuğunuzun nefesi çok hızlandı mı ya da nefes alırken göğsü içeri çekiliyor veya inler gibi bir ses
-> çıkarıyor mu?"
+**Q5 — Fast breathing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED respiratory (tachypnoea) — **feeds `base.life_threat`**
+> "Çocuğunuz şu sıralarda her zamankinden hızlı nefes alıyor mu?"
+gen: slot=hizli_nefes; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; severe respiratory distress is owned by `base.life_threat`.
 
-**Q5 — Colour change** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED colour ("Pale/mottled/ashen/blue") — **feeds `base.life_threat`**
-> "Çocuğunuzun cildinde, dudaklarında ya da dilinde solukluk, benekli bir görünüm veya morarma fark
-> ettiniz mi?"
+**Q6 — Chest indrawing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED respiratory ("Moderate or severe chest indrawing") — **feeds `base.life_threat`**
+> "Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?"
+gen: slot=gogus_icine_cekilme; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; RED owned by `base.life_threat`.
 
-**Q6 — Non-blanching rash** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED "Other" ("Non-blanching rash") — **feeds `base.life_threat`**
+**Q7 — Grunting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED respiratory ("Grunting") — **feeds `base.life_threat`**
+> "Çocuğunuz nefes verirken inler gibi bir ses çıkarıyor mu?"
+gen: slot=inleme; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
+authoritative)**; RED owned by `base.life_threat`.
+
+**Q8 — Colour change** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED colour ("Pale/mottled/ashen/blue") — **feeds `base.life_threat`**
+> "Çocuğunuzun cildinde, dudaklarında ya da dilinde solukluk, benekli bir görünüm veya morarma fark
+> ettiniz mi?"
+gen: slot=renk_degisikligi; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
+authoritative)**; RED owned by `base.life_threat`.
+
+**Q9 — Non-blanching rash** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED "Other" ("Non-blanching rash") — **feeds `base.life_threat`**
 > "Çocuğunuzun cildinde, üzerine bastırınca solmayan kırmızı ya da mor renkli döküntüler oldu mu?"
+gen: slot=solmayan_dokuntu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; a non-blanching rash with fever (meningococcal concern) is owned by
 `base.life_threat`.
 
-**Q7 — Neck stiffness / seizure / bulging fontanelle** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED "Other" ("Neck stiffness" / "Bulging fontanelle" / "Focal seizures") — **feeds `base.life_threat`**
-> "Çocuğunuzun boynunu öne eğmekte zorlanması, bıngıldağının kabarması ya da havale geçirmesi gibi bir
-> durum oldu mu?"
+**Q10 — Neck stiffness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED "Other" ("Neck stiffness") — **feeds `base.life_threat`**
+> "Çocuğunuz boynunu öne eğmekte zorlanıyor mu?"
+gen: slot=boyun_sertligi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)**; these signs are owned by `base.life_threat`.
+authoritative)**; owned by `base.life_threat`.
 
-**Q8 — Feeding / fluid intake and urine output** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER hydration ("Poor feeding in infants" / "Reduced urine output" / "Dry mucous membranes")
-> "Çocuğunuz normalde olduğu kadar beslenip sıvı alıyor mu, bezini/tuvaletini her zamanki gibi
-> ıslatıyor mu?"
+**Q11 — Bulging fontanelle** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED "Other" ("Bulging fontanelle") — **feeds `base.life_threat`**
+> "Çocuğunuzun bıngıldağı kabarık ya da gergin görünüyor mu?"
+gen: slot=bingildak_kabarik; type=boolean
+CANDIDATE — clinician to approve wording. The verifier asks for an infant-age `ask_if` here; the age
+cut-off is a clinical value, so the gate is a clinician decision pending and no age is proposed.
+Candidate_flag: **YELLOW_REVIEW (candidate — NOT authoritative)**; owned by `base.life_threat`.
+
+**Q12 — Seizure during this illness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED "Other" ("Focal seizures") — **feeds `base.life_threat`**
+> "Çocuğunuz bu hastalık sırasında havale geçirdi mi?"
+gen: slot=havale; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
+authoritative)**; owned by `base.life_threat`.
+
+**Q13 — Feeding / fluid intake** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER hydration ("Poor feeding in infants" / "Dry mucous membranes")
+> "Çocuğunuz her zamanki kadar beslenip bir şeyler içebiliyor mu?"
+gen: slot=beslenme_sivi_alimi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q9 — Limb/joint swelling or not using a limb** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER "Other" ("Swelling of a limb or joint" / "Non-weight bearing limb/not using an extremity")
-> "Çocuğunuzun bir kol ya da bacağında şişlik var mı, ya da bir uzvunu kullanmaktan/ona basmaktan
-> kaçınıyor mu?"
+**Q14 — Urine output** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER hydration ("Reduced urine output")
+> "Çocuğunuz her zamanki kadar çiş yapıyor mu?"
+gen: slot=cis_miktari; type=boolean
+CANDIDATE — clinician to approve wording. The earlier "bezini" wording was dropped.
+
+**Q15 — Limb / joint swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER "Other" ("Swelling of a limb or joint")
+> "Çocuğunuzun bir kolunda ya da bacağında şişlik var mı?"
+gen: slot=kol_bacak_sislik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q10 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
+**Q16 — Not using a limb** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER "Other" ("Non-weight bearing limb/not using an extremity")
+> "Çocuğunuz bir kolunu ya da bacağını kullanmaktan kaçınıyor mu?"
+gen: slot=kol_bacak_kullanmama; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q17 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (history)
 > "Çocuğunuzun bilinen süregelen bir hastalığı ya da daha önce konmuş önemli bir tanısı var mı?"
+gen: slot=suregen_tani; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuz şu anda düzenli olarak kullandığı bir ilaç var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(11 candidate questions. Immunisation status and growth/feeding history — openEHR items 17–18 — are
+*(17 candidate questions. Immunisation status and growth/feeding history — openEHR items 17–18 — are
 core to a general-paediatrics intake but are deliberately NOT drafted as questions here because they
 have no export target; export blocked, INT-041 posture, pending an archetype decision.)*
 

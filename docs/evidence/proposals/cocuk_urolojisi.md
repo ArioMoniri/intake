@@ -170,72 +170,90 @@ action scripts belong to `base.life_threat` / triage, never to an intake questio
 > authoritative RED for testicular torsion comes from `base.life_threat` with all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q3 → Q2 · Q5 → Q3 ·
+Q4 → Q4 (moved after daytime wetting so that its gate, Q2 or Q3, is already answered) · Q6 → Q5 ·
+Q7 → Q6 · Q8 → Q7 (sudden severe pain) + Q8 (nausea / vomiting, if Q7 yes) · Q9 → Q9 (swelling /
+redness) + Q10 (testis not felt) · Q10 → Q11 (on hold, no source) · Q11 removed (duplicates base
+`meds_confirmed`) · Q12 removed (duplicates base `allergies`).
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Çocuğunuzu bugün getiren temel şikâyet nedir? Kısaca anlatabilir misiniz?"
+> "Çocuğunuzu bugün getiren temel şikâyet nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Onset / course** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyet ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q3 — Painful / burning urination** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (UTI
+**Q2 — Painful / burning urination** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (UTI
 presenting symptoms)
 > "Çocuğunuz idrar yaparken yanma, ağrı ya da rahatsızlık hissediyor mu?"
+gen: slot=idrarda_yanma; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q4 — Fever with urinary symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (febrile
-UTI usually involves the upper tract)
+**Q3 — Daytime wetting / frequency** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+(daytime bladder function; LUTS)
+> "Çocuğunuz gündüzleri idrar kaçırıyor ya da çok sık tuvalete gidiyor mu?"
+gen: slot=gunduz_idrar_kacirma; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q4 — Fever with urinary symptoms (if Q2 or Q3 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S3 (febrile UTI usually involves the upper tract)
 > "İdrar şikâyetleriyle birlikte çocuğunuzun ateşi de oluyor mu?"
+gen: slot=idrar_sikayetiyle_ates; type=boolean; ask_if=idrarda_yanma == true || gunduz_idrar_kacirma == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)**; per S3 a febrile UTI "usually involve[s]
-the upper tract" and carries "the risk of developing renal damage" (fragment — re-verify).
+the upper tract" and carries "the risk of developing renal damage" (fragment — still needs
+re-verification).
 
-**Q5 — Daytime wetting / urgency / frequency** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
-(daytime bladder function; LUTS)
-> "Gündüz vakti çocuğunuzda idrar kaçırma, ani sıkışma hissi ya da çok sık tuvalete gitme oluyor mu?"
-CANDIDATE — clinician to approve wording.
-
-**Q6 — Night-time bedwetting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (monosymptomatic
+**Q5 — Night-time bedwetting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (monosymptomatic
 nocturnal enuresis; "less than five years … spontaneous cure is likely")
 > "Çocuğunuz gece uykusunda altını ıslatıyor mu?"
+gen: slot=gece_altini_islatma; type=boolean
 CANDIDATE — clinician to approve wording. Note: per S2, below the age of five spontaneous resolution
 is likely — the *age* threshold is a clinician judgement, not asserted here.
 
-**Q7 — Bowel habits / constipation** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Specific
+**Q6 — Bowel habits / constipation** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("Specific
 attention should be paid regarding bowel movements")
 > "Çocuğunuzun bağırsak alışkanlıklarında, örneğin kabızlık, bir sorun var mı?"
+gen: slot=bagirsak_sorunu; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Sudden severe testicular / groin pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-> "Çocuğunuzun testis ya da kasık bölgesinde, bulantı veya kusmanın eşlik ettiği, aniden başlayan
-> şiddetli bir ağrı oldu mu?"
+**Q7 — Sudden severe testicular / groin pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+> "Çocuğunuzun testis ya da kasık bölgesinde aniden başlayan şiddetli bir ağrı oldu mu?"
+gen: slot=ani_siddetli_testis_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician
 + rules-engine confirmation — NOT authoritative)**; per S1, sudden severe pain with a vagal reaction is
 typical for torsion, which "is a paediatric urological emergency" — the emergency is owned by
 `base.life_threat`.
 
-**Q9 — Scrotal swelling / undescended testicle** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+**Q8 — Nausea / vomiting with the pain (if Q7 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S1 (vagal reaction with sudden severe pain)
+> "Bu ağrıyla birlikte bulantı ya da kusma oldu mu?"
+gen: slot=agriyla_bulanti_kusma; type=boolean; ask_if=ani_siddetli_testis_agrisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q9 — Scrotal swelling / redness** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 (acute-scrotum presentation)
-> "Çocuğunuzun testis torbasında şişlik ya da kızarıklık, veya torbada elle hissedemediğiniz bir
-> testis fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. Note: undescended-testis *referral timing* has **NO SOURCE
-FOUND** (§4); this captures the parent's observation only.
+> "Çocuğunuzun testis torbasında şişlik ya da kızarıklık fark ettiniz mi?"
+gen: slot=testis_torbasi_sislik; type=boolean
+CANDIDATE — clinician to approve wording. The sex gate the verifier asks for on Q9/Q10 is a clinical
+value: clinician decision pending; no gate is authored here.
 
-**Q10 — Blood in the urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: **NO SOURCE FOUND**
+**Q10 — Testis not felt in the scrotum** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
+(acute-scrotum presentation)
+> "Çocuğunuzun testislerinden birini torbada elle bulamadığınız oldu mu?"
+gen: slot=testis_ele_gelmiyor; type=boolean
+CANDIDATE — clinician to approve wording. Sex gate: clinician decision pending (as Q9).
+Undescended-testis *referral timing* has **NO SOURCE FOUND** (§4); this captures the parent's
+observation only.
+
+**Q11 — Blood in the urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: **NO SOURCE FOUND**
 > "Çocuğunuzun idrarında kan ya da olağandışı bir renk fark ettiniz mi?"
-CANDIDATE — clinician to approve wording. **NO SOURCE FOUND** for a paediatric haematuria red-flag
-threshold — clinician must supply before any flag is derived; captured here as history only.
+gen: hold=no source found for a paediatric haematuria red flag; clinician must supply before serving
+CANDIDATE — clinician to approve wording. **HOLD (verification §B); the text passes.** **NO SOURCE
+FOUND** for a paediatric haematuria red-flag threshold — clinician must supply before any flag is
+derived.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun düzenli olarak kullandığı ilaçlar var mı?"
-CANDIDATE — clinician to approve wording.
-
-**Q12 — Drug allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: general intake
-> "Çocuğunuzun bilinen bir ilaç alerjisi ya da ilaca karşı gelişmiş bir tepkisi var mı?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions; 2 red-flag-derived — Q4 (S3), Q8 (S1) — five further EAU-grounded
-functional items (Q3, Q5, Q6, Q7, Q9), one NO-SOURCE item (Q10), plus general intake.)*
+*(11 candidate questions; 2 red-flag-derived — Q4 (S3), Q7 (S1) — further EAU-grounded functional
+items (Q2, Q3, Q5, Q6, Q8, Q9, Q10), one NO-SOURCE item on hold (Q11), plus general intake.)*
 
 ---
 

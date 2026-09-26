@@ -144,7 +144,8 @@ Notes:
 Register: formal **`siz`** throughout; **one concern per question** (invariant 2: one question per
 turn); empathetic; **no diagnosis/treatment/prognosis** language (PolicyGuard-clean — no "kanser" or any
 diagnostic label in patient copy). Numerals are **spelled out** (invariant 22: the compiler must expand
-every digit before TTS; these drafts already do so — e.g. "üç hafta"). **All marked "CANDIDATE —
+every digit before TTS; after the 2026-09-26 revision no time threshold stays in patient text — the
+NG12 three-week boundary moved to the rule). **All marked "CANDIDATE —
 clinician to approve wording".**
 
 > Triage note for every red-flag-derived item: any level is a **`candidate_flag` (max `YELLOW_REVIEW`),
@@ -152,82 +153,120 @@ clinician to approve wording".**
 > from `packages/protocols/triage` with a committed `source` snapshot and all three RED axes
 > (route × register × location, invariant 21), none of which are supplied here.
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1
+unchanged · Q2 removed (duplicates base `hpi.trajectory`) · Q3 → Q2 (swelling) + Q3 (breathing /
+swallowing, not gated) · Q4 → Q4 (if Q2 yes) · Q5 → Q5 (non-healing sore) + Q6 (how long, if Q5 yes) ·
+Q6 → Q7 · Q7 → Q8 · Q8 → Q9 · Q9 → Q10 (pain) + Q11 (how long, if Q10 yes) · Q10 → Q12 (bleeding gums)
++ Q13 (prolonged bleeding after a procedure) · Q11 removed (duplicates base `meds_confirmed` +
+`anticoagulant_use`) · Q12 → Q14.
+
+Airway posture (verification finding 26): this pack now uses the wave 4–5 endodonti form — an
+ungated breathing/swallowing symptom-capture ask (Q3) plus a swelling ask (Q2). The pack captures the
+symptom only; the airway RED, its script and its three axes stay in `base.life_threat` (invariant 7),
+which nothing here extends.
+
 **Q1 — Reason for visit** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake
-> "Bugünkü randevunuzda sizi diş hekimine getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?"
+> "Bugünkü randevunuzda sizi diş hekimine getiren asıl şikâyetiniz nedir?"
 CANDIDATE — clinician to approve wording.
 
-**Q2 — Complaint narrative (story)** · archetype: `OBSERVATION.story.v1` · source: general intake
-> "Bu şikâyetiniz nasıl başladı ve o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?"
-CANDIDATE — clinician to approve wording.
+**Q2 — Facial / jaw / under-tongue swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+(Ludwig — "The infected area swells quickly")
+> "Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?"
+gen: slot=yuz_cene_sisligi; type=boolean
+CANDIDATE — clinician to approve wording. Source is patient-education (S2, LOW–MEDIUM).
 
-**Q3 — Facial/mouth-floor swelling with breathing or swallowing difficulty** · archetype:
-`OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig — "Breathing difficulty is an emergency situation";
-"This may block the airway or prevent you from swallowing saliva")
-> "Yüzünüzde ya da ağız tabanınızda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor
-> musunuz?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **candidate acute-airway concern, pending
-clinician + rules-engine confirmation — NOT authoritative**. This is an **airway life-threat** and
-belongs to `base.life_threat` (`rf.dyspnoea_rest`/`rf.anaphylaxis`, invariant 7); the dental pack does
-not carry it. Source is patient-education (S2, LOW–MEDIUM); RED script/axes NOT supplied (§4).
+**Q3 — Difficulty breathing or swallowing (AIRWAY)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S2 (Ludwig — "Breathing difficulty is an emergency situation"; "This may block the airway or
+prevent you from swallowing saliva")
+> "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?"
+gen: slot=nefes_yutkunma_guclugu; type=boolean
+CANDIDATE — clinician to approve wording. Not gated on Q2, as in endodonti. Candidate_flag:
+**candidate acute-airway concern, pending clinician + rules-engine confirmation — NOT
+authoritative**. The pack carries this capture ask only; the airway RED belongs to `base.life_threat`
+(`rf.dyspnoea_rest`/`rf.anaphylaxis`, invariant 7). Source is patient-education (S2, LOW–MEDIUM);
+RED script/axes NOT supplied (§4).
 
-**Q4 — Fever with facial/jaw swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig —
-spreading infection with swelling)
-> "Yüzünüzdeki ya da çenenizdeki şişliğe ateş de eşlik ediyor mu?"
+**Q4 — Fever with facial/jaw swelling (if Q2 yes)** · archetype: `OBSERVATION.symptom_sign.v1` ·
+source: S2 (Ludwig — spreading infection with swelling)
+> "Bu şişlikle birlikte ateşiniz de var mı?"
+gen: slot=sislik_ile_ates; type=boolean; ask_if=yuz_cene_sisligi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative** (systemic
 sign of spreading infection); source S2 (LOW–MEDIUM).
 
-**Q5 — Non-healing mouth/lip sore > 3 weeks** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
-(NICE NG12 1.8.2 — "unexplained ulceration in the oral cavity lasting for more than 3 weeks")
-> "Ağzınızda ya da dudağınızda üç haftadan uzun süredir iyileşmeyen bir yara var mı?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)** if "üç haftadan uzun", per S1 verbatim.
+**Q5 — Non-healing mouth/lip sore** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12
+1.8.2 — "unexplained ulceration in the oral cavity lasting for more than 3 weeks")
+> "Ağzınızda ya da dudağınızda iyileşmeyen bir yara var mı?"
+gen: slot=iyilesmeyen_agiz_yarasi; type=boolean
+CANDIDATE — clinician to approve wording. The NG12 three-week threshold moved out of the patient text
+into the rule (verification §B, oral-ulcer split); it is not deleted.
 
-**Q6 — Lump in mouth, lip or neck** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12
+**Q6 — Duration of the sore (if Q5 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE
+NG12 1.8.2)
+> "Bu yara ne zamandır var?"
+gen: slot=agiz_yarasi_suresi; type=duration; ask_if=iyilesmeyen_agiz_yarasi == true
+CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
+authoritative)** when the rule's S1 threshold is met.
+
+**Q7 — Lump in mouth, lip or neck** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG12
 1.8.2/1.8.3 — "a lump on the lip or in the oral cavity", "persistent and unexplained lump in the neck")
-> "Ağzınızda, dudağınızda ya da boynunuzda geçmeyen bir şişlik veya kitle fark ettiniz mi?"
+> "Ağzınızda, dudağınızda ya da boynunuzda geçmeyen bir şişlik ya da sertlik var mı?"
+gen: slot=agiz_boyun_sertlik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** per S1.
 
-**Q7 — Red / red-white patch in mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE
+**Q8 — Red / red-white patch in mouth** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE
 NG12 1.8.3 — "a red or red and white patch in the oral cavity consistent with erythroplakia or
 erythroleukoplakia")
 > "Ağzınızın içinde geçmeyen kırmızı ya da kırmızı-beyaz bir leke fark ettiniz mi?"
+gen: slot=agizda_kirmizi_leke; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)** per S1.
 
-**Q8 — Recent knocked-out (avulsed) permanent tooth** · archetype: `OBSERVATION.symptom_sign.v1` ·
+**Q9 — Recent knocked-out (avulsed) permanent tooth** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S3 (IADT 2020 — "Avulsion of permanent teeth is one of the most serious dental injuries. Prompt
 and correct emergency management is essential")
-> "Yakın zamanda bir darbe sonucu kalıcı (sürekli) dişlerinizden biri tamamen yerinden çıktı mı?"
-CANDIDATE — clinician to approve wording. Candidate_flag: **candidate time-critical dental emergency,
-pending clinician + rules-engine confirmation — NOT authoritative**; a **dental** emergency, not an
-airway life-threat. The patient-facing first-aid script (replant / storage medium) is **NO SOURCE FOUND
-as a delivered script** (§4) — no action script is written here.
+> "Yakın zamanda bir darbeyle kalıcı dişlerinizden biri tamamen yerinden çıktı mı?"
+gen: slot=kalici_dis_cikti; type=boolean
+CANDIDATE — clinician to approve wording. Verification finding 27: avulsion is time-critical and a
+pre-visit capture has no sourced action path — whether a pre-visit ask helps at all is a clinician
+decision pending. Candidate_flag: **candidate time-critical dental emergency, pending clinician +
+rules-engine confirmation — NOT authoritative**; a **dental** emergency, not an airway life-threat.
+The patient-facing first-aid script (replant / storage medium) is **NO SOURCE FOUND as a delivered
+script** (§4) — no action script is written here.
 
-**Q9 — Toothache / dental pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
-> "Dişinizde ya da diş etinizde ağrı var mı? Varsa ne zamandır sürüyor?"
-CANDIDATE — clinician to approve wording. (Two clauses share one concern — pain and its duration; split
-into two turns if the reviewer prefers strict one-question-per-turn.)
-
-**Q10 — Bleeding gums / prolonged bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: general
-intake
-> "Diş etlerinizde kanama ya da bir diş işlemi sonrasında olağandan uzun süren kanamanız oldu mu?"
+**Q10 — Toothache / dental pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
+> "Dişinizde ya da diş etinizde ağrı var mı?"
+gen: slot=dis_agrisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q11 — Current medications (incl. blood thinners)** · archetype: `ACTION.medication.v1` · source:
-general history
-> "Şu anda düzenli kullandığınız ilaçlar var mı? Örneğin kanı sulandıran bir ilaç kullanıyor musunuz?"
-CANDIDATE — clinician to approve wording. Medication history only; the patient is **not** told to stop
-any medication here (that is a clinician decision).
+**Q11 — Duration of the pain (if Q10 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source:
+general intake
+> "Bu ağrı ne zamandır sürüyor?"
+gen: slot=dis_agrisi_suresi; type=duration; ask_if=dis_agrisi == true
+CANDIDATE — clinician to approve wording.
 
-**Q12 — Drug / local-anaesthetic / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
+**Q12 — Bleeding gums** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
+> "Diş etleriniz kanıyor mu?"
+gen: slot=dis_eti_kanamasi; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q13 — Prolonged bleeding after a dental procedure** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: general intake
-> "Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı
-> alerjiniz var mı?"
+> "Daha önce bir diş işleminden sonra olağandan uzun süre kanamanız oldu mu?"
+gen: slot=islem_sonrasi_uzun_kanama; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions: Q3–Q4 airway/spreading-infection screen (S2 — routes to base.life_threat);
-Q5–Q7 oral-cancer red-flag context (S1); Q8 dental-trauma (S3); Q1–Q2, Q9–Q12 general intake / history.)*
+**Q14 — Drug / local-anaesthetic / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
+source: general intake
+> "Herhangi bir ilaca, diş uyuşturma iğnesine ya da lateks eldivene alerjiniz var mı?"
+gen: slot=ilac_alerjisi; type=boolean
+CANDIDATE — clinician to approve wording. The earlier local-anaesthetic wording read as "narcotic"
+(verification finding 13) and was replaced.
+
+*(14 candidate questions: Q2–Q4 airway/spreading-infection screen (S2 — routes to base.life_threat);
+Q5–Q8 oral-cancer red-flag context (S1); Q9 dental-trauma (S3); Q1, Q10–Q14 general intake /
+history.)*
 
 ---
 

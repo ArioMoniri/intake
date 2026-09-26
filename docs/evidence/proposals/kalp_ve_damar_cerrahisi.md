@@ -210,11 +210,15 @@ CANDIDATE — clinician to approve wording.
 
 **Q7 — Ankle or leg swelling (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: KVC-S1 F ("Ödem, genellikle ayak bileği etrafında görülüp"), KVC-S1 G, KVC-S3, KVC-S8
 > "Ayak bileklerinizde ya da bacaklarınızda şişlik oluyor mu?"
+gen: slot=bacak_sislik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — One leg or both (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: KVC-S4 ("swelling in 1 leg (rarely both legs)"), KVC-S1 G
-> "Bu şişlik tek bacağınızda mı, yoksa iki bacağınızda da mı var?"
-CANDIDATE — clinician to approve wording. Ask only if Q7 is yes. **Overlap: DVT / PE (§2.2).**
+**Q8 — One leg only (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: KVC-S4 ("swelling in 1 leg (rarely both legs)"), KVC-S1 G
+> "Bu şişlik yalnızca tek bacağınızda mı?"
+gen: slot=tek_bacak_sislik; type=boolean; ask_if=bacak_sislik == true
+CANDIDATE — clinician to approve wording. Ask only if Q7 is yes. Revised 2026-09-26 per
+docs/evidence/verification/specialty-wave1-3.md §C: the earlier either/or ask left "evet" ambiguous in
+voice, and there is no enum slot type. **Overlap: DVT / PE (§2.2).**
 
 **Q9 — Pulsing feeling in the abdomen (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: KVC-S1 D ("pulsatil abdomen kitlesi"), KVC-S5 ("a pulsing feeling in your tummy")
 > "Karnınızda nabız gibi atan bir his fark ettiniz mi?"
@@ -231,8 +235,10 @@ CANDIDATE — clinician to approve wording. History item; no flag.
 
 **Q12 — Worsening surgical-wound redness or discharge (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: KVC-S7 ("pain or redness around your wound that's getting worse"; "bleeding or pus from your wound")
 > "Ameliyat yaranızda giderek artan kızarıklık ya da akıntı var mı?"
-CANDIDATE — clinician to approve wording. Intended for `post_discharge` / `followup` visits only;
-clinician to gate by visit type. **Overlap: `rf.sepsis_like` with fever (§2.2).**
+gen: hold=belongs to the post_discharge/followup visit-type layer, not the specialty pack (no visit-type variable in ask_if)
+CANDIDATE — clinician to approve wording. Intended for `post_discharge` / `followup` visits only.
+**HOLD (verification §C):** the committed packs show no visit-type variable in `ask_if`, so this item
+is kept out of the specialty pack and belongs in the `post_discharge`/`followup` visit-type layer. **Overlap: `rf.sepsis_like` with fever (§2.2).**
 
 *(12 candidate questions.)*
 
@@ -265,7 +271,7 @@ clinician to gate by visit type. **Overlap: `rf.sepsis_like` with fever (§2.2).
 
 - **Inv. 1** — no RED/YELLOW asserted; candidates max `YELLOW_REVIEW`, pending the rules engine.
 - **Inv. 2 / patient copy** — `siz`, B1, one question mark per turn, no diagnosis/treatment/prognosis
-  wording; Q8 is a single either/or; each draft marked CANDIDATE.
+  wording; Q8 is a single yes/no (formerly either/or); each draft marked CANDIDATE.
 - **Inv. 7** — limb ischaemia, ruptured AAA, PE, TIA, bleeding varix and dissection left to base (§2.2).
 - **Inv. 10** — scripted wording still needs verbatim `text_tr` approval; not finalised here.
 - **Inv. 21** — RED axes intentionally unspecified (gap 8).

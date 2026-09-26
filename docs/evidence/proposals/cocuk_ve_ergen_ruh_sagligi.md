@@ -179,71 +179,87 @@ diagnosis/treatment/prognosis language, no alarming wording, no blame. **All mar
 clinician to approve wording".** No bare digits (invariant 22). **No crisis/self-harm/suicide item
 appears — by design (see §0).**
 
+Revised 2026-09-26 per docs/evidence/verification/specialty-wave1-3.md §B (reviewer's replacement
+texts used verbatim). Renumbering, old → new — sections outside §3 still use the old numbers: Q1, Q2
+unchanged · Q3 → Q3 · Q4 → Q4 · Q5 → Q5 (attention / activity) + Q6 (both settings, if Q5 yes) · Q6 →
+Q7 · Q7 → Q8 · Q8 → Q9 · Q9 removed (duplicates base `hpi.onset_date` + `hpi.trajectory`) · Q10 → Q10
+(prior support) + Q11 (other health / development) · Q11 removed (duplicates base `meds_confirmed`) ·
+Q12 removed (duplicates base `allergies`).
+
+Proxy addressing is kept as the verifier directs. The verifier supplies **no** adolescent self-report
+variant: finding 25 routes proxy-vs-self addressing (base `subject_role`) and confidentiality to the
+legal-reviewer (minors), and §4 gap 5 stays open. No variant is invented here. Q3/Q4 were reworded to
+non-item observations (finding 23) so they no longer track any validated-instrument item; no
+instrument item is reproduced or paraphrased, and no suicide or self-harm screening item appears —
+crisis stays with `base.life_threat`.
+
 **Q1 — Reason for visit / support wanted** · archetype: `EVALUATION.reason_for_encounter.v1` · source:
 general intake
-> "Bugün çocuğunuz için sizi buraya getiren konu nedir? Hangi konuda destek almak istersiniz?"
+> "Bugün çocuğunuz için hangi konuda destek almak istersiniz?"
 CANDIDATE — clinician to approve wording.
 
 **Q2 — Parent's own-words narrative** · archetype: `OBSERVATION.story.v1` · source: general intake
 > "Fark ettiklerinizi kendi sözlerinizle, rahat hissettiğiniz kadar anlatabilir misiniz?"
+gen: slot=ebeveyn_anlatimi
 CANDIDATE — clinician to approve wording.
 
-**Q3 — Change in mood / interest** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (mood in its
+**Q3 — Change in mood** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (mood in its
 social/educational/family context)
-> "Son zamanlarda çocuğunuzun keyfinde ya da eskiden sevdiği şeylere ilgisinde bir değişiklik fark
-> ettiniz mi?"
+> "Çocuğunuzun son zamanlardaki ruh hâlinde sizi düşündüren bir değişiklik oldu mu?"
+gen: slot=ruh_hali_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording. Non-stigmatizing; describes an observation, not a diagnosis.
 
-**Q4 — Worries / fears / anxiety** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (AACAP
-anxiety topic; LOW/topic-only)
-> "Çocuğunuz sık sık endişeli, kaygılı ya da korkulu göründüğü zamanlar oluyor mu?"
+**Q4 — Worries / fears** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (AACAP anxiety topic;
+LOW/topic-only)
+> "Çocuğunuzun sizi düşündüren korkuları ya da endişeleri var mı?"
+gen: slot=korku_endise; type=boolean
+CANDIDATE — clinician to approve wording. The earlier frequency framing was dropped (finding 23).
+
+**Q5 — Attention / activity** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 ("pervasive,
+occurring in 2 or more important settings")
+> "Çocuğunuz dikkatini toplamakta ya da yerinde durmakta zorlanıyor mu?"
+gen: slot=dikkat_hareketlilik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q5 — Attention / activity across settings** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
+**Q6 — Across settings (if Q5 yes)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
 ("pervasive, occurring in 2 or more important settings")
-> "Çocuğunuzun dikkatini toplamakta ya da hareketliliğinde zorlandığını hem evde hem de okulda fark
-> ediyor musunuz?"
+> "Bu durum hem evde hem de okulda oluyor mu?"
+gen: slot=evde_ve_okulda; type=boolean; ask_if=dikkat_hareketlilik == true
 CANDIDATE — clinician to approve wording. "hem evde hem de okulda" reflects the more-than-one-setting
 framing without asserting any diagnosis.
 
-**Q6 — Sleep changes** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
-> "Çocuğunuzun uyku düzeninde bir değişiklik var mı? Örneğin uykuya dalmakta güçlük ya da sık
-> uyanma."
+**Q7 — Sleep changes** · archetype: `OBSERVATION.symptom_sign.v1` · source: general intake
+> "Çocuğunuzun uykuya dalmasında ya da uykusunda bir değişiklik oldu mu?"
+gen: slot=uyku_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q7 — Effect on school / daily functioning** · archetype: `OBSERVATION.story.v1` · source: S2
+**Q8 — Effect on school / daily functioning** · archetype: `OBSERVATION.story.v1` · source: S2
 (impairment "in multiple settings") + S1 (educational context)
 > "Bu durumun çocuğunuzun okuldaki ya da günlük yaşamındaki işlerini etkilediğini düşünüyor musunuz?"
+gen: slot=okul_gunluk_etkisi; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q8 — Relationships with friends / family** · archetype: `OBSERVATION.story.v1` · source: S1 (social &
+**Q9 — Relationships with friends / family** · archetype: `OBSERVATION.story.v1` · source: S1 (social &
 family context)
 > "Çocuğunuzun arkadaşlarıyla ya da ailesiyle ilişkilerinde son zamanlarda bir değişiklik oldu mu?"
+gen: slot=iliski_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording. Gentle, no blame.
 
-**Q9 — When first noticed / course** · archetype: `OBSERVATION.story.v1` · source: S2 (developmental
-history; "evident in early life")
-> "Bu değişiklikleri ilk ne zaman fark ettiniz ve o günden bu yana nasıl bir seyir izledi?"
-CANDIDATE — clinician to approve wording.
-
-**Q10 — Prior support / known conditions** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
-general intake (history); S2 (coexisting conditions)
-> "Çocuğunuz daha önce bu konuda bir destek aldı mı, ya da bilmemizi istediğiniz başka bir sağlık ya
-> da gelişim durumu var mı?"
+**Q10 — Prior support** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake
+(history)
+> "Çocuğunuz daha önce bu konuda bir destek aldı mı?"
+gen: slot=onceki_destek; type=boolean
 CANDIDATE — clinician to approve wording. "destek" (support), not "tedavi", to stay PolicyGuard-clean
 and supportive.
 
-**Q11 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake (history)
-> "Çocuğunuzun şu anda düzenli olarak kullandığı herhangi bir ilaç var mı?"
+**Q11 — Other health / developmental conditions** · archetype: `EVALUATION.problem_diagnosis.v1` ·
+source: general intake (history); S2 (coexisting conditions)
+> "Bilmemizi istediğiniz başka bir sağlık ya da gelişim durumu var mı?"
+gen: slot=diger_saglik_gelisim_durumu
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Drug allergy / adverse reaction** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source:
-general intake
-> "Çocuğunuzun herhangi bir ilaca karşı alerjisi ya da daha önce yaşadığı ciddi bir yan etki oldu mu?"
-CANDIDATE — clinician to approve wording.
-
-*(12 candidate questions — all supportive proxy intake; none is a crisis/red-flag item and none
-raises a `candidate_flag`. Q3, Q5, Q7, Q8, Q9 are grounded in NICE NG134 / NG87 topic domains; Q4 in
+*(11 candidate questions — all supportive proxy intake; none is a crisis/red-flag item and none
+raises a `candidate_flag`. Q3, Q5, Q6, Q8, Q9 are grounded in NICE NG134 / NG87 topic domains; Q4 in
 the AACAP anxiety CPG (topic-only, LOW); the rest are general intake.)*
 
 ---
