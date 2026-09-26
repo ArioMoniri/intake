@@ -50,6 +50,11 @@ PENDING_MARKER = "".join(("TO", "DO")) + ":"
 GEN_MARKER = "# generated-by: scripts/dev/gen_specialty_packs.py"
 LEGACY_GEN_MARKER = "AI-assembled from guidelines in"
 SLOT_TYPES = {"boolean", "date", "duration", "string"}
+DELIVERIES = {"voice", "text_first", "text_only"}
+GEN_KEYS = {"slot", "type", "ask_if", "follow_up", "hold", "delivery"}
+PACK_KEYS = {"duration_ask", "duration_follow_up"}
+GATE_NAME = re.compile(r"\b([a-z][a-z0-9_]*)\s*(?:==|!=|>=|<=|>|<)")
+FIXED_SLOTS = frozenset({"basvuru_nedeni", "sikayet_suresi"})
 DURATION_ASK = "Bu şikâyetiniz ne zamandır var?"
 DURATION_FOLLOW_UP = "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
 REASON_FOLLOW_UP_WHEN_NEDIR = "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
@@ -66,6 +71,11 @@ class Question:
     follow_up: str | None = None
     archetype: str | None = None
     number: int | None = None
+    delivery: str | None = None
+
+
+def _one_question(text: str) -> bool:
+    return text.count("?") == 1 and not re.search(r"\d", text)
 
 
 def _question_region(text: str) -> str:
@@ -104,6 +114,14 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
         if "hold" in gen:
             warnings.append(f"hold Q{label}: {gen['hold']}")
             continue
+        unknown = sorted(set(gen) - GEN_KEYS)
+        if unknown:
+            warnings.append(f"refused Q{label}: unknown gen key(s) {unknown}")
+            continue
+        delivery = gen.get("delivery")
+        if delivery is not None and delivery not in DELIVERIES:
+            warnings.append(f"refused Q{label}: unknown delivery {delivery!r}")
+            continue
         if re.search(r"\d", q):
             warnings.append(f"refused Q{label}: digit in patient text (invariant 22)")
             continue
@@ -119,7 +137,7 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
             warnings.append(f"refused Q{label}: bad slot id {slot!r}")
             continue
         follow_up = gen.get("follow_up")
-        if follow_up is not None and (follow_up.count("?") != 1 or re.search(r"\d", follow_up)):
+        if follow_up is not None and not _one_question(follow_up):
             warnings.append(f"refused Q{label}: follow-up must be one question, no digit")
             continue
         am = re.search(r"archetype:\s*`([^`]+)`", seg.split("\n", 1)[0])
@@ -133,9 +151,35 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
                 follow_up=follow_up,
                 archetype=am.group(1) if am else None,
                 number=int(nm.group(1)) if nm else None,
+                delivery=delivery,
             )
         )
     return questions, warnings
+
+
+def extract_pack_options(md_text: str) -> dict[str, str]:
+    """Read an optional `pack:` line (e.g. a branch-appropriate duration ask).
+
+    Raises ValueError on an unknown key or an ask that is not one question.
+    """
+    pm = re.search(r"^pack:\s*(.+)$", _question_region(md_text), re.M)
+    options = _parse_gen(pm.group(1)) if pm else {}
+    unknown = sorted(set(options) - PACK_KEYS)
+    if unknown:
+        raise ValueError(f"unknown pack key(s) {unknown}")
+    for key, text in options.items():
+        if not _one_question(text):
+            raise ValueError(f"pack {key} must be one question without a digit")
+    return options
+
+
+def base_slot_names() -> frozenset[str]:
+    """Slot names declared by base.intake, which a specialty gate may read."""
+    base = yaml.safe_load((ROOT / "packages/protocols/base/intake.yaml").read_text("utf-8"))
+    names: set[str] = set()
+    for section in (base.get("sections") or {}).values():
+        names.update((section or {}).get("slots") or {})
+    return frozenset(names)
 
 
 def _deferred_reason(slug: str, archetype: str | None) -> str:
@@ -152,12 +196,27 @@ def _slot(q: Question, slug: str) -> dict[str, Any]:
         slot["follow_up_tr"] = {"tr": q.follow_up}
     if q.ask_if:
         slot["ask_if"] = q.ask_if
+    if q.delivery:
+        slot["delivery"] = q.delivery
     slot["openehr_deferred_reason"] = _deferred_reason(slug, q.archetype)
     return slot
 
 
-def build_pack(draft: dict[str, Any], slug: str, questions: list[Question]) -> dict[str, Any]:
-    """Pure: the pack document for `slug` (maturity L0 until signed)."""
+def build_pack(
+    draft: dict[str, Any],
+    slug: str,
+    questions: list[Question],
+    *,
+    base_slots: frozenset[str] = frozenset(),
+    options: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Pure: the pack document for `slug` (maturity L0 until signed).
+
+    Raises ValueError on a duplicate slot id or an ask_if that reads a slot
+    neither declared earlier in this pack nor by base.intake — such a gate
+    never opens, so the question would silently never be asked.
+    """
+    options = options or {}
     reason = questions[0]
     reason_follow_up = (
         REASON_FOLLOW_UP_WHEN_NEDIR
@@ -168,8 +227,13 @@ def build_pack(draft: dict[str, Any], slug: str, questions: list[Question]) -> d
     sorular: dict[str, Any] = {}
     for i, q in enumerate(questions[1:], 1):
         sid = q.slot or f"soru_{i}"
-        if sid in sorular or sid in {"basvuru_nedeni", "sikayet_suresi"}:
+        if sid in sorular or sid in FIXED_SLOTS:
             raise ValueError(f"{slug}: duplicate slot id {sid}")
+        if q.ask_if:
+            readable = FIXED_SLOTS | base_slots | set(sorular)
+            missing = sorted(set(GATE_NAME.findall(q.ask_if)) - readable)
+            if missing:
+                raise ValueError(f"{slug}: {sid} ask_if reads undeclared slot(s) {missing}")
         sorular[sid] = _slot(q, slug)
     return {
         "kind": "pack",
@@ -196,8 +260,10 @@ def build_pack(draft: dict[str, Any], slug: str, questions: list[Question]) -> d
                     "sikayet_suresi": {
                         "type": "duration",
                         "required": False,
-                        "ask_tr": {"tr": DURATION_ASK},
-                        "follow_up_tr": {"tr": DURATION_FOLLOW_UP},
+                        "ask_tr": {"tr": options.get("duration_ask", DURATION_ASK)},
+                        "follow_up_tr": {
+                            "tr": options.get("duration_follow_up", DURATION_FOLLOW_UP)
+                        },
                         "openehr_deferred_reason": _deferred_reason(slug, None),
                     },
                 }
@@ -266,14 +332,22 @@ def gen(slug: str) -> tuple[str, bool]:
         why = eligible(out_text, yaml.safe_load(out_text))
         if why:
             return f"skip {slug}: {why}", True
-    qs, warnings = extract_questions(prop_p.read_text(encoding="utf-8"))
+    prop_text = prop_p.read_text(encoding="utf-8")
+    qs, warnings = extract_questions(prop_text)
     notes = "".join(f"\n    {w}" for w in warnings)
+    try:
+        options = extract_pack_options(prop_text)
+    except ValueError as exc:
+        return f"SKIP {slug}: {exc}{notes}", False
     if len(qs) < 3:
         return f"SKIP {slug}: only {len(qs)} questions parsed — fix the proposal{notes}", False
     if qs[0].number != 1:
         # Never let a later question silently become the visit-reason slot.
         return f"SKIP {slug}: Q1 (reason for visit) was refused or held{notes}", False
-    pack = build_pack(draft, slug, qs)
+    try:
+        pack = build_pack(draft, slug, qs, base_slots=base_slot_names(), options=options)
+    except ValueError as exc:
+        return f"SKIP {slug}: {exc}{notes}", False
     out_p.parent.mkdir(parents=True, exist_ok=True)
     out_p.write_text(
         header(slug) + yaml.safe_dump(pack, allow_unicode=True, sort_keys=False, width=1000),

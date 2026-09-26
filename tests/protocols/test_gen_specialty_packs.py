@@ -195,3 +195,48 @@ def test_a_refused_q1_skips_the_pack_instead_of_promoting_q2_to_the_reason_slot(
     assert not ok
     assert "Q1" in line
     assert not (review / "ornek.yaml").exists()
+
+
+def test_delivery_is_emitted_and_unknown_gen_keys_are_refused() -> None:
+    text = PROPOSAL.replace(
+        "gen: slot=bayginlik; type=boolean",
+        "gen: slot=bayginlik; type=boolean; delivery=text_first",
+    ).replace(
+        "gen: slot=son_adet_tarihi; type=date",
+        "gen: slot=son_adet_tarihi; type=date; askif=bayginlik == true",
+    )
+    qs, warnings = GEN.extract_questions(text)
+    pack = GEN.build_pack(DRAFT, "ornek", qs)
+    assert pack["sections"]["sorular"]["slots"]["bayginlik"]["delivery"] == "text_first"
+    assert "son_adet_tarihi" not in pack["sections"]["sorular"]["slots"]
+    assert any("unknown gen key" in w for w in warnings)
+
+
+def test_a_gate_on_an_undeclared_slot_is_refused_but_base_slots_are_readable() -> None:
+    q1 = GEN.Question(text="Neden geldiniz?", number=1)
+    gated = GEN.Question(text="Ne oldu?", slot="devam", ask_if="olmayan_slot == true")
+    with pytest.raises(ValueError, match="undeclared"):
+        GEN.build_pack(DRAFT, "ornek", [q1, gated, gated])
+    base_gated = GEN.Question(text="Ne oldu?", slot="devam", ask_if="subject_role != 'kendim'")
+    other = GEN.Question(text="Başka?", slot="baska")
+    pack = GEN.build_pack(DRAFT, "ornek", [q1, base_gated, other], base_slots=GEN.base_slot_names())
+    assert pack["sections"]["sorular"]["slots"]["devam"]["ask_if"] == "subject_role != 'kendim'"
+
+
+def test_a_pack_line_overrides_the_duration_ask_with_one_question_only() -> None:
+    text = PROPOSAL.replace(
+        "## 5. Gaps",
+        "pack: duration_ask=Sigarayı ne zamandır içiyorsunuz?\n\n## 5. Gaps",
+    )
+    text = text.replace(
+        "## 4. Candidate B1 Turkish pre-visit questions (5)\n",
+        "## 4. Candidate B1 Turkish pre-visit questions (5)\n\n"
+        "pack: duration_ask=Sigarayı ne zamandır içiyorsunuz?\n",
+    )
+    options = GEN.extract_pack_options(text)
+    qs, _ = GEN.extract_questions(text)
+    pack = GEN.build_pack(DRAFT, "ornek", qs, options=options)
+    ask = pack["sections"]["ziyaret_baglami"]["slots"]["sikayet_suresi"]["ask_tr"]["tr"]
+    assert ask == "Sigarayı ne zamandır içiyorsunuz?"
+    with pytest.raises(ValueError):
+        GEN.extract_pack_options(text.replace("içiyorsunuz?", "içiyorsunuz? Kaç yıl?"))
