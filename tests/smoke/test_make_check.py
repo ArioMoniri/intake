@@ -230,8 +230,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # latency harness) + INT-320 (embeddable white-label integration, ADR-029)
     # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
-    # previsit routing); grows only with a stated reason.
-    assert len(ids) == 287, f"expected 175 blueprint + 112 added issues, got {len(ids)}"
+    # previsit routing) + INT-375 (the compiler refuses a gate that reads a later
+    # slot, files/13 §9.5); grows only with a stated reason.
+    assert len(ids) == 288, f"expected 175 blueprint + 113 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

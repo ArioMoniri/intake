@@ -5470,3 +5470,16 @@
   tests: [apps/mobile/src/lib/kiosk/kioskState.test.ts, apps/mobile/e2e/a11y.spec.ts]
   legal: "5378,EN301549"
   sec_row: "mobile"
+- id: INT-375
+  epic: E03-protocols
+  phase: P1
+  title: "The protocol compiler enforces the files/13 §9.5 ask-order rule: no gate reads a later slot"
+  depends_on: [INT-355]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-375.md
+  acceptance:
+    - "protocols compile refuses a pack chain in which a gate reads a slot that comes later in the merged ask order, with a typed refusal code, for served and review packs alike"
+    - "golden tests carry a near-miss negative control; make safety stays green"
+  tests: [tests/protocols/test_gate_ask_order.py, tests/protocols/test_gate_ask_order_packs.py, tests/engine/test_gate_ask_order_engine.py]
+  sec_row: "protocol-registry"

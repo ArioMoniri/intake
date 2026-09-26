@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-26T23:40:00Z · INT-375 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #609):
+  - *"`protocols compile` refuses a pack chain in which a gate reads a slot that comes later in the merged ask order, with a typed refusal code, for served and review packs alike"*
+  - *"golden tests carry a near-miss negative control; `make safety` stays green"*
+- Plan: implement files/13 §9.5 stratified acyclicity in the compiler. `protocols.gates` gains `ask_ranks`, which gives each slot the engine's `(5 must_ask | 7 detail, merged position)` rank, and `gates_reading_later_slots`. `resolve_protocol` runs the check after the chain is merged and every op is applied. It refuses with `GATE_READS_LATER_SLOT`, naming the pack that wrote the gate, the gated slot and the slot it reads, ids and ranks only. It never reorders and never touches `must_ask` or a rule.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_gate_ask_order.py`: the pure check and the resolver goldens. A forward gate is refused. A `reorder` op admits it. A gate on a base slot is admitted. The PR #582 re-declared-slot shape is refused. Attribution goes to the parent, the child or the `add_slot` op's pack. A `must_ask` tightening is refused, and tightening both slots is the control. An order the ops did not produce is not judged. **Near-miss:** a gate reading the immediately preceding slot passes, and with its slot one position later it is refused.
+  - `tests/protocols/test_gate_ask_order_packs.py`: every pack on main, with a spy proving the check ran for each.
+  - `tests/engine/test_gate_ask_order_engine.py`: the compiler's rank equals `build_plan`'s `(priority, order)`, and a refused document is asked out of plan order through a real `IntakeEngine`.
+  - RED 1: 3 collection errors. RED 2 (resolver not wired): 197 failed, 20 passed. GREEN: 217 passed. Six mutations were each killed and restored with `cp`, with `cmp` clean.
+- Result: see docs/evidence/INT-375.md §4.
+  - `tests/protocols tests/engine`: 1106 passed. Protocols coverage 97.18 %, `gates.py` 100 %.
+  - `make safety` rc 0.
+  - Chain validation: 100 packs, 0 findings. `no_placeholders`, `phi_scan`, `claims_scan` and `assert_no_vendor_calls` are OK after staging.
+  - Served tree: 0 forward gates. Review queue on main: 6 in 3 chains (kadın 4, endodonti 1, çocuk enfeksiyon 1). All six are removed by PR #582 (0 on its tree) and pinned as a subset until it lands.
+- Invariants touched and still passing: **1** (no triage module changed), **7** (the check only refuses), **8** (coverage floors), **10** (no text changed), **17** (no placeholder, no skip).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. CODEOWNER review of `packages/protocols/**` is required before merge.
+- Next: PR `INT-375: protocol compiler refuses a gate that reads a later slot (files/13 §9.5)` (Closes #609, Sec-Row protocol-registry), left unmerged. When #582 lands it should empty `KNOWN_REVIEW_FORWARD_GATES` and import `gates_reading_later_slots`.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
 - Goal: acceptance verbatim (GitHub #538):
   - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*

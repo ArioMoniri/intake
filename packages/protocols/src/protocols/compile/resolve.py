@@ -40,7 +40,12 @@ from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
 from protocols.data_register import NO_REGISTER, DataCategoryRegister
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
-from protocols.gates import GateRefProblem, SlotNamespace, qualify_gate
+from protocols.gates import (
+    GateRefProblem,
+    SlotNamespace,
+    gates_reading_later_slots,
+    qualify_gate,
+)
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE, LocaleCode, safe_code
@@ -478,6 +483,57 @@ def _gate_ref_refusals(sections: Sequence[ResolvedSection]) -> list[Refusal]:
     return refusals
 
 
+def _gate_order_refusals(
+    sections: Sequence[ResolvedSection], owners: Mapping[str, str]
+) -> list[Refusal]:
+    """INT-375: no gate reads a slot the merged ask order puts at or after it.
+
+    files/13 §9.5 stratified acyclicity, over the order the engine asks in —
+    ``(priority_class, order)`` after the chain is merged and every op applied,
+    so a ``reorder`` or a ``must_ask`` tightening counts. The subject names the
+    pack whose declaration carries the gate and the gated slot; the message the
+    slot it reads. Ids and ranks only, never the gate text. The check refuses;
+    the order stays the author's to fix (CLAUDE.md invariant 7: nothing here
+    touches ``must_ask`` or a rule).
+    """
+    return [
+        _refusal(
+            RefusalCode.GATE_READS_LATER_SLOT,
+            f"{owners[late.reader]}:{late.reader}",
+            f"{late.describe()}. The engine re-reads every gate each turn and an "
+            "unasked slot reads Unknown, so this question would be passed over at its "
+            "place and asked out of the frozen plan order once the slot it reads is "
+            "answered — a gate may read only slots of strictly lower (priority, "
+            "order) (files/13 §9.5 stratified acyclicity; §9.1 sort key)",
+        )
+        for late in gates_reading_later_slots(
+            (section.id, slot.key, slot.slot) for section in sections for slot in section.slots
+        )
+    ]
+
+
+def _slot_owners(
+    packs: Sequence[ProtocolPack], entries: Sequence[tuple[ProtocolPack, int, Op]]
+) -> dict[str, str]:
+    """The pack whose declaration of each slot the merge kept.
+
+    ``_merge_chain`` replaces a re-declared slot whole, so the last declarer's
+    gate is the one served; an ``add_slot`` op can only add a key nothing
+    declared. Read once the ops applied cleanly, so every pointer is a slot.
+    """
+    owners = {
+        fhir_link_id(section_id, key): pack.id
+        for pack in packs
+        for section_id, section in pack.sections.items()
+        for key in section.slots
+    }
+    for pack, _, op in entries:
+        if isinstance(op, AddSlotOp):
+            parts = op.pointer.lstrip("/").split("/")
+            owners[fhir_link_id(parts[1], parts[3])] = pack.id
+    return owners
+
+
 # --- chain and ops -----------------------------------------------------------
 
 
@@ -858,10 +914,12 @@ def resolve_protocol(
     superseded = frozenset(superseded_id for pack in applied for superseded_id in pack.supersedes)
     conflicts = _conflict_refusals(entries, superseded)
     refusals.extend(conflicts)
-    if not conflicts:
-        refusals.extend(
-            _apply_ops(sections_state, [e for e in entries if e[0].id not in superseded], locale)
-        )
+    live_entries = [e for e in entries if e[0].id not in superseded]
+    op_refusals = [] if conflicts else _apply_ops(sections_state, live_entries, locale)
+    refusals.extend(op_refusals)
+    # The ask order exists only once every op applied: an order the ops did not
+    # produce is not the one the author wrote, so it is not judged (INT-375).
+    ordered = not conflicts and not op_refusals
 
     pack_paraphrase = _first_paraphrase(applied, locale)
     sections: list[ResolvedSection] = []
@@ -916,6 +974,8 @@ def resolve_protocol(
             )
         )
     refusals.extend(_gate_ref_refusals(sections))
+    if ordered:
+        refusals.extend(_gate_order_refusals(sections, _slot_owners(applied, live_entries)))
 
     if refusals:
         raise _refused(refusals)
