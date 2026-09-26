@@ -1964,21 +1964,57 @@
     }
   },
   "packages/protocols/specialty/diyabet_poliklinigi.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?",
+      "expanded": "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Şu anda şekeriniz için düzenli kullandığınız ilaçlar (örneğin insülin ya da ağızdan alınan haplar) var mı?",
+      "expanded": "Şu anda şekeriniz için düzenli kullandığınız ilaçlar (örneğin insülin ya da ağızdan alınan haplar) var mı?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?",
+      "expanded": "Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Son zamanlarda her zamankinden daha sık idrara çıkıyor ya da gece idrara kalkıyor musunuz?",
+      "expanded": "Son zamanlarda her zamankinden daha sık idrara çıkıyor ya da gece idrara kalkıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Alışılmadık şekilde çok su içiyor ya da ağzınızda kuruluk hissediyor musunuz?",
+      "expanded": "Alışılmadık şekilde çok su içiyor ya da ağzınızda kuruluk hissediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Beslenmenizde bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz mi?",
+      "expanded": "Beslenmenizde bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz mi?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Son zamanlarda alışılmadık şekilde halsiz ya da çabuk yoruluyor musunuz?",
+      "expanded": "Son zamanlarda alışılmadık şekilde halsiz ya da çabuk yoruluyor musunuz?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Gözlerinizde son zamanlarda bulanık görme fark ettiniz mi?",
+      "expanded": "Gözlerinizde son zamanlarda bulanık görme fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Kan şekeriniz düştüğünde titreme, soğuk terleme, çarpıntı ya da ani açlık gibi belirtiler yaşıyor musunuz?",
+      "expanded": "Kan şekeriniz düştüğünde titreme, soğuk terleme, çarpıntı ya da ani açlık gibi belirtiler yaşıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Bu belirtilere bulantı, kusma, karın ağrısı ya da derin ve hızlı nefes alma eşlik ediyor mu?",
+      "expanded": "Bu belirtilere bulantı, kusma, karın ağrısı ya da derin ve hızlı nefes alma eşlik ediyor mu?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Daha önce şeker hastalığı (diyabet) tanısı aldınız mı? Aldıysanız ne zamandır takip ediliyorsunuz?",
+      "expanded": "Daha önce şeker hastalığı (diyabet) tanısı aldınız mı? Aldıysanız ne zamandır takip ediliyorsunuz?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?",
+      "expanded": "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/el_cerrahisi.yaml": {
@@ -2000,75 +2036,219 @@
     }
   },
   "packages/protocols/specialty/endodonti.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zaman ve nasıl başladı, o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?",
+      "expanded": "Bu şikâyetiniz ne zaman ve nasıl başladı, o zamandan bu yana nasıl seyretti? Biraz anlatır mısınız?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Şu anda düzenli kullandığınız ilaçlar var mı; bu dişiniz için son günlerde başlanan bir antibiyotik kullanıyor musunuz?",
+      "expanded": "Şu anda düzenli kullandığınız ilaçlar var mı; bu dişiniz için son günlerde başlanan bir antibiyotik kullanıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı alerjiniz var mı?",
+      "expanded": "Herhangi bir ilaca, uyuşturucu (lokal anestezi) iğnesine ya da lateks gibi bir maddeye karşı alerjiniz var mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Sıcak ya da soğuk bir şey aldığınızda dişinizde ağrı oluyor mu; oluyorsa bu ağrı, sıcak ya da soğuk geçtikten sonra bir süre (örneğin yarım dakika ya da daha uzun) devam ediyor mu?",
+      "expanded": "Sıcak ya da soğuk bir şey aldığınızda dişinizde ağrı oluyor mu; oluyorsa bu ağrı, sıcak ya da soğuk geçtikten sonra bir süre (örneğin yarım dakika ya da daha uzun) devam ediyor mu?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Dişinizde, hiçbir şey yapmadığınız hâlde kendiliğinden başlayan ya da geceleri sizi rahatsız eden bir ağrı oluyor mu?",
+      "expanded": "Dişinizde, hiçbir şey yapmadığınız hâlde kendiliğinden başlayan ya da geceleri sizi rahatsız eden bir ağrı oluyor mu?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Bu dişinizle ısırdığınızda, çiğnediğinizde ya da üzerine bastırdığınızda ağrı hissediyor musunuz?",
+      "expanded": "Bu dişinizle ısırdığınızda, çiğnediğinizde ya da üzerine bastırdığınızda ağrı hissediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Dişinizin yanındaki diş etinde şişlik, sivilce benzeri bir kabarcık ya da ağzınıza gelen kötü tatlı bir akıntı fark ettiniz mi?",
+      "expanded": "Dişinizin yanındaki diş etinde şişlik, sivilce benzeri bir kabarcık ya da ağzınıza gelen kötü tatlı bir akıntı fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Yüzünüzde ya da çenenizde şişlik var mı; varsa buna ateş de eşlik ediyor mu?",
+      "expanded": "Yüzünüzde ya da çenenizde şişlik var mı; varsa buna ateş de eşlik ediyor mu?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Ağız tabanınızda ya da boynunuzda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?",
+      "expanded": "Ağız tabanınızda ya da boynunuzda şişlikle birlikte nefes almakta veya yutkunmakta zorlanıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Ağzınızı açmakta son zamanlarda zorlanıyor musunuz ya da eskisi kadar açamıyor musunuz?",
+      "expanded": "Ağzınızı açmakta son zamanlarda zorlanıyor musunuz ya da eskisi kadar açamıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Bu dişinize daha önce kanal tedavisi ya da başka bir diş tedavisi yapıldı mı?",
+      "expanded": "Bu dişinize daha önce kanal tedavisi ya da başka bir diş tedavisi yapıldı mı?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?",
+      "expanded": "Bugünkü randevunuzda sizi hekime getiren asıl şikâyetiniz nedir? Kısaca anlatabilir misiniz?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/endokrinoloji_ve_metabolizma.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?",
+      "expanded": "Bu durum ne zaman başladı ve o günden bu yana nasıl bir seyir izledi?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Şu anda düzenli kullandığınız ilaçlar (örneğin tiroid ilacı, kortizon ya da insülin) var mı?",
+      "expanded": "Şu anda düzenli kullandığınız ilaçlar (örneğin tiroid ilacı, kortizon ya da insülin) var mı?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?",
+      "expanded": "Bilinen bir ilaç alerjiniz ya da bir ilaca karşı gelişmiş bir tepkiniz var mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Beslenmenizde belirgin bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz ya da kilo aldınız mı?",
+      "expanded": "Beslenmenizde belirgin bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz ya da kilo aldınız mı?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Son zamanlarda sıcağa ya da soğuğa karşı alışılmadık şekilde duyarlı hâle geldiniz mi?",
+      "expanded": "Son zamanlarda sıcağa ya da soğuğa karşı alışılmadık şekilde duyarlı hâle geldiniz mi?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Kalbinizin hızlı ya da düzensiz çarptığını fark ettiniz mi?",
+      "expanded": "Kalbinizin hızlı ya da düzensiz çarptığını fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Ellerinizde ince bir titreme ya da alışılmadık bir gerginlik, huzursuzluk hissediyor musunuz?",
+      "expanded": "Ellerinizde ince bir titreme ya da alışılmadık bir gerginlik, huzursuzluk hissediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi hissediyorsunuz?",
+      "expanded": "Son zamanlarda alışılmadık şekilde yorgun ya da halsiz mi hissediyorsunuz?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Boynunuzda bir şişlik ya da yutkunurken zorlanma, ses kısıklığı fark ettiniz mi?",
+      "expanded": "Boynunuzda bir şişlik ya da yutkunurken zorlanma, ses kısıklığı fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Böbrek üstü bezi yetmezliği tanınız ya da düzenli kullandığınız bir kortizon (hidrokortizon) tedaviniz var mı; varsa şu anda kusuyor ya da belirgin şekilde halsiz misiniz?",
+      "expanded": "Böbrek üstü bezi yetmezliği tanınız ya da düzenli kullandığınız bir kortizon (hidrokortizon) tedaviniz var mı; varsa şu anda kusuyor ya da belirgin şekilde halsiz misiniz?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Açlık hâlinde ya da öğün atladığınızda titreme, soğuk terleme, çarpıntı ya da zihinsel bulanıklık yaşıyor musunuz?",
+      "expanded": "Açlık hâlinde ya da öğün atladığınızda titreme, soğuk terleme, çarpıntı ya da zihinsel bulanıklık yaşıyor musunuz?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?",
+      "expanded": "Bugünkü görüşmede sizi en çok rahatsız eden konu nedir? Kısaca anlatabilir misiniz?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/enfeksiyon_hastaliklari.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Bağışıklık sisteminizi etkileyen bir durumunuz ya da daha önce konulmuş süregen bir hastalık tanınız var mı?",
+      "expanded": "Bağışıklık sisteminizi etkileyen bir durumunuz ya da daha önce konulmuş süregen bir hastalık tanınız var mı?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Şu anda düzenli kullandığınız ilaçlar var mı? Son bir ay içinde antibiyotik kullandınız mı?",
+      "expanded": "Şu anda düzenli kullandığınız ilaçlar var mı? Son bir ay içinde antibiyotik kullandınız mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Ateşiniz oldu mu? Olduysa kaç gündür sürdüğünü ve çok yüksek hissedip hissetmediğinizi söyleyebilir misiniz?",
+      "expanded": "Ateşiniz oldu mu? Olduysa kaç gündür sürdüğünü ve çok yüksek hissedip hissetmediğinizi söyleyebilir misiniz?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Ateşle birlikte titreme, üşüme ya da kendinizi çok kötü, güçten düşmüş hissetme oldu mu?",
+      "expanded": "Ateşle birlikte titreme, üşüme ya da kendinizi çok kötü, güçten düşmüş hissetme oldu mu?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Son zamanlarda kendinizde ya da yakınlarınızın fark ettiği bir bilinç bulanıklığı, aşırı uyku hali veya kafa karışıklığı oldu mu?",
+      "expanded": "Son zamanlarda kendinizde ya da yakınlarınızın fark ettiği bir bilinç bulanıklığı, aşırı uyku hali veya kafa karışıklığı oldu mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Şiddetli baş ağrınızla birlikte boynunuzu öne eğmekte zorlanma ya da ense sertliği fark ettiniz mi?",
+      "expanded": "Şiddetli baş ağrınızla birlikte boynunuzu öne eğmekte zorlanma ya da ense sertliği fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Cildinizde, üzerine bardakla ya da parmakla bastırdığınızda solmayan (kaybolmayan) kırmızı veya mor döküntü fark ettiniz mi?",
+      "expanded": "Cildinizde, üzerine bardakla ya da parmakla bastırdığınızda solmayan (kaybolmayan) kırmızı veya mor döküntü fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "İshaliniz var mı? Varsa dışkınızda gözle görülür kan fark ettiniz mi?",
+      "expanded": "İshaliniz var mı? Varsa dışkınızda gözle görülür kan fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Geçmeyen ya da sık sık tekrarlayan kusmanız oluyor mu?",
+      "expanded": "Geçmeyen ya da sık sık tekrarlayan kusmanız oluyor mu?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Son zamanlarda yurt dışına ya da başka bir şehre seyahat ettiniz mi, veya benzer şikâyeti olan biriyle yakın temasınız oldu mu?",
+      "expanded": "Son zamanlarda yurt dışına ya da başka bir şehre seyahat ettiniz mi, veya benzer şikâyeti olan biriyle yakın temasınız oldu mu?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?",
+      "expanded": "Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/evde_saglik.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu görüşmeyi hastanın kendisi mi yoksa bir yakını mı yanıtlıyor? Durumu kısaca anlatır mısınız?",
+      "expanded": "Bu görüşmeyi hastanın kendisi mi yoksa bir yakını mı yanıtlıyor? Durumu kısaca anlatır mısınız?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Hasta şu anda düzenli olarak hangi ilaçları kullanıyor?",
+      "expanded": "Hasta şu anda düzenli olarak hangi ilaçları kullanıyor?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Hastanın daha önce tanı aldığı süregelen (kronik) hastalıkları var mı?",
+      "expanded": "Hastanın daha önce tanı aldığı süregelen (kronik) hastalıkları var mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Son günlerde hastanın genel durumunda kötüleşme oldu mu? Örneğin aşırı uykuya eğilim ya da uyandırmakta zorlanma.",
+      "expanded": "Son günlerde hastanın genel durumunda kötüleşme oldu mu? Örneğin aşırı uykuya eğilim ya da uyandırmakta zorlanma."
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Hastada yeni başlayan ya da giderek artan bir nefes darlığı fark ettiniz mi?",
+      "expanded": "Hastada yeni başlayan ya da giderek artan bir nefes darlığı fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Hastanın uzun süre yattığı ya da oturduğu bölgelerdeki ciltte renk değişikliği ya da kızarıklık fark ettiniz mi?",
+      "expanded": "Hastanın uzun süre yattığı ya da oturduğu bölgelerdeki ciltte renk değişikliği ya da kızarıklık fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Topuk, kalça ya da kuyruk sokumu gibi kemikli bölgelerde açık yara ya da cilt bütünlüğünde bozulma var mı?",
+      "expanded": "Topuk, kalça ya da kuyruk sokumu gibi kemikli bölgelerde açık yara ya da cilt bütünlüğünde bozulma var mı?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Hasta, uzun süre baskı altında kalan bölgelerde ağrı ya da rahatsızlık ifade ediyor mu?",
+      "expanded": "Hasta, uzun süre baskı altında kalan bölgelerde ağrı ya da rahatsızlık ifade ediyor mu?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Hasta son bir yıl içinde düştü mü? Düştüyse ne sıklıkta ve hangi durumlarda olduğunu anlatabilir misiniz?",
+      "expanded": "Hasta son bir yıl içinde düştü mü? Düştüyse ne sıklıkta ve hangi durumlarda olduğunu anlatabilir misiniz?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Hastanın dengesinde ya da yürümesinde zorluk fark ettiniz mi?",
+      "expanded": "Hastanın dengesinde ya da yürümesinde zorluk fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Evde takip edilen bir yara ya da yanık bakımınız var mı?",
+      "expanded": "Evde takip edilen bir yara ya da yanık bakımınız var mı?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü evde sağlık görüşmesinde en çok hangi konuda desteğe ihtiyacınız var? Kısaca anlatabilir misiniz?",
+      "expanded": "Bugünkü evde sağlık görüşmesinde en çok hangi konuda desteğe ihtiyacınız var? Kısaca anlatabilir misiniz?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/fiziksel_tip_ve_rehabilitasyon.yaml": {
@@ -2090,21 +2270,57 @@
     }
   },
   "packages/protocols/specialty/fizyoterapi.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Ağrınız ya da rahatsızlığınız vücudunuzun en çok hangi bölgesinde ve ne zaman başladı?",
+      "expanded": "Ağrınız ya da rahatsızlığınız vücudunuzun en çok hangi bölgesinde ve ne zaman başladı?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Daha önce kas–iskelet sisteminizle ilgili bir tanı aldınız mı ya da ameliyat oldunuz mu?",
+      "expanded": "Daha önce kas–iskelet sisteminizle ilgili bir tanı aldınız mı ya da ameliyat oldunuz mu?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Şu anda düzenli olarak kullandığınız ilaçlar var mı? Örneğin kan sulandırıcı ya da kortizon içeren ilaçlar.",
+      "expanded": "Şu anda düzenli olarak kullandığınız ilaçlar var mı? Örneğin kan sulandırıcı ya da kortizon içeren ilaçlar."
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Bu ağrı günlük hareketlerinizi (yürümek, oturmak, eğilmek gibi) etkiliyor mu?",
+      "expanded": "Bu ağrı günlük hareketlerinizi (yürümek, oturmak, eğilmek gibi) etkiliyor mu?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Şikâyetiniz son zamanlarda değişti mi ya da daha önce olmayan yeni belirtiler eklendi mi?",
+      "expanded": "Şikâyetiniz son zamanlarda değişti mi ya da daha önce olmayan yeni belirtiler eklendi mi?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Sırt ya da bel ağrınız geceleri sizi uykudan uyandırıyor mu veya dinlenince hiç geçmiyor mu?",
+      "expanded": "Sırt ya da bel ağrınız geceleri sizi uykudan uyandırıyor mu veya dinlenince hiç geçmiyor mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Bu ağrı bir düşme, çarpma ya da kaza sonrasında mı başladı?",
+      "expanded": "Bu ağrı bir düşme, çarpma ya da kaza sonrasında mı başladı?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Son zamanlarda bacaklarınızda ya da kollarınızda yeni bir güçsüzlük veya yürümekte zorlanma fark ettiniz mi?",
+      "expanded": "Son zamanlarda bacaklarınızda ya da kollarınızda yeni bir güçsüzlük veya yürümekte zorlanma fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "İdrarınızı yapmakta yeni bir zorluk, tutamama ya da makat–kalça bölgesinde uyuşma yaşadınız mı?",
+      "expanded": "İdrarınızı yapmakta yeni bir zorluk, tutamama ya da makat–kalça bölgesinde uyuşma yaşadınız mı?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Sırt ya da bel ağrınızla birlikte ateşiniz de oluyor mu?",
+      "expanded": "Sırt ya da bel ağrınızla birlikte ateşiniz de oluyor mu?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Sebebini bilmediğiniz kilo kaybı ya da kendinizi genel olarak halsiz hissetme durumunuz var mı?",
+      "expanded": "Sebebini bilmediğiniz kilo kaybı ya da kendinizi genel olarak halsiz hissetme durumunuz var mı?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü görüşmede sizi fizik tedaviye getiren en önemli şikâyetiniz nedir? Kısaca anlatabilir misiniz?",
+      "expanded": "Bugünkü görüşmede sizi fizik tedaviye getiren en önemli şikâyetiniz nedir? Kısaca anlatabilir misiniz?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/gastroenteroloji.yaml": {
@@ -2158,21 +2374,57 @@
     }
   },
   "packages/protocols/specialty/gastroenteroloji_cerrahisi.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zaman başladı? Yaklaşık olarak gün ya da hafta olarak söyleyebilir misiniz?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Daha önce mideniz, bağırsağınız veya karaciğerinizle ilgili bir tanı aldınız mı ya da karın bölgenizden ameliyat oldunuz mu?",
+      "expanded": "Daha önce mideniz, bağırsağınız veya karaciğerinizle ilgili bir tanı aldınız mı ya da karın bölgenizden ameliyat oldunuz mu?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Şu anda düzenli kullandığınız ilaçlar var mı? Özellikle ağrı kesici (romatizma ilacı) veya kan sulandırıcı kullanıyor musunuz?",
+      "expanded": "Şu anda düzenli kullandığınız ilaçlar var mı? Özellikle ağrı kesici (romatizma ilacı) veya kan sulandırıcı kullanıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Karnınızda şiddetli ya da geçmeyen bir ağrı var mı? Varsa dokunmakla arttığını fark ediyor musunuz?",
+      "expanded": "Karnınızda şiddetli ya da geçmeyen bir ağrı var mı? Varsa dokunmakla arttığını fark ediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Hiç kan kustuğunuz ya da dışkınızın siyah, katran gibi olduğunu fark ettiğiniz oldu mu?",
+      "expanded": "Hiç kan kustuğunuz ya da dışkınızın siyah, katran gibi olduğunu fark ettiğiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Dışkınızda ya da tuvalet kâğıdında kırmızı renkte kan gördünüz mü?",
+      "expanded": "Dışkınızda ya da tuvalet kâğıdında kırmızı renkte kan gördünüz mü?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Yiyecekleri veya sıvıları yutarken takılma ya da güçlük yaşıyor musunuz?",
+      "expanded": "Yiyecekleri veya sıvıları yutarken takılma ya da güçlük yaşıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Son zamanlarda, özellikle çabalamadığınız hâlde kilo verdiğinizi fark ettiniz mi?",
+      "expanded": "Son zamanlarda, özellikle çabalamadığınız hâlde kilo verdiğinizi fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Cildinizde ya da gözlerinizin akında sararma fark ettiniz mi?",
+      "expanded": "Cildinizde ya da gözlerinizin akında sararma fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Son zamanlarda tuvalete çıkma düzeninizde (örneğin ishal ya da kabızlık yönünde) bir değişiklik oldu mu?",
+      "expanded": "Son zamanlarda tuvalete çıkma düzeninizde (örneğin ishal ya da kabızlık yönünde) bir değişiklik oldu mu?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Geçmeyen kusmayla birlikte gaz ve dışkı çıkışınızın durduğunu ya da karnınızda şişkinlik olduğunu fark ettiniz mi?",
+      "expanded": "Geçmeyen kusmayla birlikte gaz ve dışkı çıkışınızın durduğunu ya da karnınızda şişkinlik olduğunu fark ettiniz mi?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?",
+      "expanded": "Bugün sizi kliniğe getiren en önemli şikâyetinizi kendi cümlelerinizle kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/gebe_poliklinigi.yaml": {
@@ -2302,21 +2554,57 @@
     }
   },
   "packages/protocols/specialty/goz_hastaliklari.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Görmenizde son zamanlarda bir azalma ya da bulanıklık fark ettiniz mi?",
+      "expanded": "Görmenizde son zamanlarda bir azalma ya da bulanıklık fark ettiniz mi?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Kontakt lens kullanıyor musunuz?",
+      "expanded": "Kontakt lens kullanıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Size daha önce şeker hastalığı tanısı konuldu mu?",
+      "expanded": "Size daha önce şeker hastalığı tanısı konuldu mu?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Kısa sürüp geçse bile gözünüzde ani bir görme kaybı ya da kararma oldu mu?",
+      "expanded": "Kısa sürüp geçse bile gözünüzde ani bir görme kaybı ya da kararma oldu mu?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Gözünüzün önünde uçuşan noktalar ya da benekler görüyor musunuz?",
+      "expanded": "Gözünüzün önünde uçuşan noktalar ya da benekler görüyor musunuz?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Gerçekte ışık yokken gözünüzde ışık çakması ya da şimşek gibi parlamalar görüyor musunuz?",
+      "expanded": "Gerçekte ışık yokken gözünüzde ışık çakması ya da şimşek gibi parlamalar görüyor musunuz?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Görüşünüzün bir kısmını perde ya da gölge kapatıyormuş gibi bir his oldu mu?",
+      "expanded": "Görüşünüzün bir kısmını perde ya da gölge kapatıyormuş gibi bir his oldu mu?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Gözünüzde ya da göz çevresinde ağrı var mı?",
+      "expanded": "Gözünüzde ya da göz çevresinde ağrı var mı?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Gözünüzde ya da göz çevresindeki deride kızarıklık var mı?",
+      "expanded": "Gözünüzde ya da göz çevresindeki deride kızarıklık var mı?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Işıkların çevresinde renkli halkalar görüyor musunuz?",
+      "expanded": "Işıkların çevresinde renkli halkalar görüyor musunuz?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Nesneleri çift görüyor musunuz?",
+      "expanded": "Nesneleri çift görüyor musunuz?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün göz polikliniğine gelme nedeninizi kısaca anlatır mısınız?",
+      "expanded": "Bugün göz polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/halk_sagligi.yaml": {
@@ -2392,21 +2680,57 @@
     }
   },
   "packages/protocols/specialty/ic_hastaliklari.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bu şikâyetiniz başladığından beri zamanla nasıl bir değişim gösterdi?",
+      "expanded": "Bu şikâyetiniz başladığından beri zamanla nasıl bir değişim gösterdi?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Şu anda düzenli olarak kullandığınız ilaçlar var mı?",
+      "expanded": "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Herhangi bir ilaca karşı alerjiniz ya da kötü bir tepkiniz oldu mu?",
+      "expanded": "Herhangi bir ilaca karşı alerjiniz ya da kötü bir tepkiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Son aylarda diyet yapmadan kilo verdiğinizi fark ettiniz mi?",
+      "expanded": "Son aylarda diyet yapmadan kilo verdiğinizi fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Son zamanlarda nedenini bilmediğiniz bir ateşiniz oldu mu?",
+      "expanded": "Son zamanlarda nedenini bilmediğiniz bir ateşiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Geceleri sizi uyandıracak kadar çok terlediğiniz oldu mu?",
+      "expanded": "Geceleri sizi uyandıracak kadar çok terlediğiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Uzun süredir devam eden bir yorgunluk ya da halsizlik hissediyor musunuz?",
+      "expanded": "Uzun süredir devam eden bir yorgunluk ya da halsizlik hissediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Dışkınızda kan ya da dışkılamadan sonra kan geldiğini fark ettiniz mi?",
+      "expanded": "Dışkınızda kan ya da dışkılamadan sonra kan geldiğini fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Yemek yerken lokmanın boğazınızda ya da göğsünüzde takıldığını hissediyor musunuz?",
+      "expanded": "Yemek yerken lokmanın boğazınızda ya da göğsünüzde takıldığını hissediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Son zamanlarda aşırı susama ya da çok sık idrara çıkma fark ettiniz mi?",
+      "expanded": "Son zamanlarda aşırı susama ya da çok sık idrara çıkma fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Doktorunuzun daha önce söylediği uzun süreli bir rahatsızlığınız var mı? Örneğin şeker hastalığı, yüksek tansiyon ya da böbrek rahatsızlığı.",
+      "expanded": "Doktorunuzun daha önce söylediği uzun süreli bir rahatsızlığınız var mı? Örneğin şeker hastalığı, yüksek tansiyon ya da böbrek rahatsızlığı."
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün sizi doktora getiren en önemli şikâyetiniz nedir?",
+      "expanded": "Bugün sizi doktora getiren en önemli şikâyetiniz nedir?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/immunoloji_ve_alerji.yaml": {
@@ -2464,21 +2788,57 @@
     }
   },
   "packages/protocols/specialty/kadin_hastaliklari_ve_dogum.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Son adetinizin ilk günü hangi tarihteydi?",
+      "expanded": "Son adetinizin ilk günü hangi tarihteydi?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Son günlerde ateşiniz oldu mu?",
+      "expanded": "Son günlerde ateşiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Şu anda düzenli olarak kullandığınız ilaçlar var mı?",
+      "expanded": "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Şu anda hamile olma ihtimaliniz var mı?",
+      "expanded": "Şu anda hamile olma ihtimaliniz var mı?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Adet döneminiz dışında ya da hamileyken vajinal kanamanız oldu mu?",
+      "expanded": "Adet döneminiz dışında ya da hamileyken vajinal kanamanız oldu mu?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Adetleriniz tamamen kesildiyse, sonrasında hiç vajinal kanamanız oldu mu?",
+      "expanded": "Adetleriniz tamamen kesildiyse, sonrasında hiç vajinal kanamanız oldu mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Karnınızın alt kısmında ya da kasıklarınızda ağrınız var mı?",
+      "expanded": "Karnınızın alt kısmında ya da kasıklarınızda ağrınız var mı?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Hamileyseniz, son günlerde şiddetli bir baş ağrınız oldu mu?",
+      "expanded": "Hamileyseniz, son günlerde şiddetli bir baş ağrınız oldu mu?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Hamileyseniz, görmenizde bulanıklık ya da gözünüzün önünde ışık çakması oldu mu?",
+      "expanded": "Hamileyseniz, görmenizde bulanıklık ya da gözünüzün önünde ışık çakması oldu mu?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Hamileyseniz, bebeğinizin hareketlerinde azalma fark ettiniz mi?",
+      "expanded": "Hamileyseniz, bebeğinizin hareketlerinde azalma fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Hamileyseniz, iç çamaşırınızı ıslatan su gibi bir akıntı fark ettiniz mi?",
+      "expanded": "Hamileyseniz, iç çamaşırınızı ıslatan su gibi bir akıntı fark ettiniz mi?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?",
+      "expanded": "Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/kalp_ve_damar_cerrahisi.yaml": {
@@ -2594,21 +2954,53 @@
     }
   },
   "packages/protocols/specialty/kulak_burun_bogaz_hastaliklari.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Bir ya da iki kulağınızda aniden başlayan bir işitme azalması oldu mu?",
+      "expanded": "Bir ya da iki kulağınızda aniden başlayan bir işitme azalması oldu mu?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Burnunuzdan nefes almakta zorlanıyor musunuz?",
+      "expanded": "Burnunuzdan nefes almakta zorlanıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Kulağınızda yeni başlayan bir tıkanıklık ya da dolgunluk hissi var mı?",
+      "expanded": "Kulağınızda yeni başlayan bir tıkanıklık ya da dolgunluk hissi var mı?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Kulağınızda çınlama ya da uğultu duyuyor musunuz?",
+      "expanded": "Kulağınızda çınlama ya da uğultu duyuyor musunuz?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Başınızın ya da etrafın döndüğünü hissettiğiniz oldu mu?",
+      "expanded": "Başınızın ya da etrafın döndüğünü hissettiğiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Kulağınızdan akıntı geliyor mu?",
+      "expanded": "Kulağınızdan akıntı geliyor mu?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Boynunuzda kendiliğinden kaybolmayan bir şişlik ya da kitle fark ettiniz mi?",
+      "expanded": "Boynunuzda kendiliğinden kaybolmayan bir şişlik ya da kitle fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Sesinizde düzelmeyen bir kısıklık ya da değişiklik var mı?",
+      "expanded": "Sesinizde düzelmeyen bir kısıklık ya da değişiklik var mı?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Boğazınızda geçmeyen bir ağrı ya da yutkunurken ağrı var mı?",
+      "expanded": "Boğazınızda geçmeyen bir ağrı ya da yutkunurken ağrı var mı?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Nefes alırken boğazınızdan ıslığa benzer tiz bir ses geldiğini fark ettiniz mi?",
+      "expanded": "Nefes alırken boğazınızdan ıslığa benzer tiz bir ses geldiğini fark ettiniz mi?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün kulak burun boğaz polikliniğine gelme nedeninizi kısaca anlatır mısınız?",
+      "expanded": "Bugün kulak burun boğaz polikliniğine gelme nedeninizi kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/nefroloji.yaml": {
@@ -2766,21 +3158,57 @@
     }
   },
   "packages/protocols/specialty/ortopedi_ve_travmatoloji.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "Şikâyetiniz bir düşme, çarpma ya da kaza sonrasında mı başladı?",
+      "expanded": "Şikâyetiniz bir düşme, çarpma ya da kaza sonrasında mı başladı?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Bel ya da bacak ağrınız başladıktan sonra idrar yapmakta yeni bir zorluk var mı?",
+      "expanded": "Bel ya da bacak ağrınız başladıktan sonra idrar yapmakta yeni bir zorluk var mı?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?",
+      "expanded": "Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "Yaralanan bölgede gözle görülür bir şekil bozukluğu fark ettiniz mi?",
+      "expanded": "Yaralanan bölgede gözle görülür bir şekil bozukluğu fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "Yaralanan bölgeyi hareket ettirmekte ya da üzerine basmakta zorlanıyor musunuz?",
+      "expanded": "Yaralanan bölgeyi hareket ettirmekte ya da üzerine basmakta zorlanıyor musunuz?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "Yaralanan bölgede şişlik ya da morarma oldu mu?",
+      "expanded": "Yaralanan bölgede şişlik ya da morarma oldu mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "Kolunuzdaki ya da bacağınızdaki ağrı, yaralanmaya göre beklediğinizden çok daha şiddetli mi?",
+      "expanded": "Kolunuzdaki ya da bacağınızdaki ağrı, yaralanmaya göre beklediğinizden çok daha şiddetli mi?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Kolunuzda, bacağınızda ya da parmaklarınızda yeni uyuşma, solukluk veya soğukluk var mı?",
+      "expanded": "Kolunuzda, bacağınızda ya da parmaklarınızda yeni uyuşma, solukluk veya soğukluk var mı?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Eklemlerinizden birinde aniden başlayan şişlik, kızarıklık ve sıcaklık oldu mu?",
+      "expanded": "Eklemlerinizden birinde aniden başlayan şişlik, kızarıklık ve sıcaklık oldu mu?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Eklem şikâyetinizle birlikte ateş ya da belirgin halsizlik oldu mu?",
+      "expanded": "Eklem şikâyetinizle birlikte ateş ya da belirgin halsizlik oldu mu?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "İç uyluklarınızda, genital bölgenizde ya da makat çevrenizde yeni uyuşma var mı?",
+      "expanded": "İç uyluklarınızda, genital bölgenizde ya da makat çevrenizde yeni uyuşma var mı?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün ortopedi bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?",
+      "expanded": "Bugün ortopedi bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/pedodonti.yaml": {
@@ -3108,21 +3536,57 @@
     }
   },
   "packages/protocols/specialty/uroloji.yaml": {
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+    "sections/sorular/slots/soru_1/ask_tr": {
+      "authored": "İdrarınızda gözle görülen kan ya da pembe-kırmızı bir renk fark ettiniz mi?",
+      "expanded": "İdrarınızda gözle görülen kan ya da pembe-kırmızı bir renk fark ettiniz mi?"
     },
-    "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
-      "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
-      "expanded": "Sizi hekime getiren en önemli şikâyetiniz nedir?"
+    "sections/sorular/slots/soru_10/ask_tr": {
+      "authored": "Belinizin yan tarafında, kaburgalarınızın altında keskin bir ağrı oldu mu?",
+      "expanded": "Belinizin yan tarafında, kaburgalarınızın altında keskin bir ağrı oldu mu?"
+    },
+    "sections/sorular/slots/soru_11/ask_tr": {
+      "authored": "İdrar şikâyetlerinizle birlikte ateşiniz oldu mu?",
+      "expanded": "İdrar şikâyetlerinizle birlikte ateşiniz oldu mu?"
+    },
+    "sections/sorular/slots/soru_2/ask_tr": {
+      "authored": "İdrar yolu enfeksiyonu tedavisinden sonra idrarınızda kan yeniden görüldü mü?",
+      "expanded": "İdrar yolu enfeksiyonu tedavisinden sonra idrarınızda kan yeniden görüldü mü?"
+    },
+    "sections/sorular/slots/soru_3/ask_tr": {
+      "authored": "İdrar yaparken yanma ya da ağrı hissediyor musunuz?",
+      "expanded": "İdrar yaparken yanma ya da ağrı hissediyor musunuz?"
+    },
+    "sections/sorular/slots/soru_4/ask_tr": {
+      "authored": "İdrarınızı yapmak istediğiniz hâlde hiç yapamadığınız bir durum oldu mu?",
+      "expanded": "İdrarınızı yapmak istediğiniz hâlde hiç yapamadığınız bir durum oldu mu?"
+    },
+    "sections/sorular/slots/soru_5/ask_tr": {
+      "authored": "İdrar akışınızın zayıfladığını ya da kesik kesik geldiğini fark ettiniz mi?",
+      "expanded": "İdrar akışınızın zayıfladığını ya da kesik kesik geldiğini fark ettiniz mi?"
+    },
+    "sections/sorular/slots/soru_6/ask_tr": {
+      "authored": "Gece idrar yapmak için uykunuzdan uyanmanız gerekiyor mu?",
+      "expanded": "Gece idrar yapmak için uykunuzdan uyanmanız gerekiyor mu?"
+    },
+    "sections/sorular/slots/soru_7/ask_tr": {
+      "authored": "Aniden gelen ve bekletemediğiniz bir idrar yapma isteği oluyor mu?",
+      "expanded": "Aniden gelen ve bekletemediğiniz bir idrar yapma isteği oluyor mu?"
+    },
+    "sections/sorular/slots/soru_8/ask_tr": {
+      "authored": "Testislerinizde aniden başlayan şiddetli bir ağrı oldu mu?",
+      "expanded": "Testislerinizde aniden başlayan şiddetli bir ağrı oldu mu?"
+    },
+    "sections/sorular/slots/soru_9/ask_tr": {
+      "authored": "Bu ağrıyla birlikte bulantı ya da kusma oldu mu?",
+      "expanded": "Bu ağrıyla birlikte bulantı ya da kusma oldu mu?"
+    },
+    "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
+      "authored": "Bugün üroloji bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?",
+      "expanded": "Bugün üroloji bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/sikayet_suresi/ask_tr": {
-      "authored": "Bu şikâyetiniz ne zamandır var?",
-      "expanded": "Bu şikâyetiniz ne zamandır var?"
-    },
-    "sections/ziyaret_baglami/slots/sikayet_suresi/follow_up_tr": {
-      "authored": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?",
-      "expanded": "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
+      "authored": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?",
+      "expanded": "Bu şikâyetiniz ne zamandır var? Yaklaşık olarak söyleyebilir misiniz?"
     }
   },
   "packages/protocols/specialty/uyku_poliklinigi.yaml": {
