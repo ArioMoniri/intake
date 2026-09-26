@@ -46,6 +46,7 @@ from protocols.compile import (
     load_life_threat_set,
     write_bundle,
 )
+from protocols.data_register import DATA_REGISTER_PATH, DataRegisterError, load_data_register
 from protocols.loader import PackRegistry, PackSchemaError, load_pack
 from protocols.locale_text import DEFAULT_LOCALE
 from protocols.taxonomy import (
@@ -166,6 +167,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     com.add_argument("--opt", type=Path, default=OPT_PATH, help="the pinned .opt")
     com.add_argument(
+        "--data-register",
+        type=Path,
+        default=DATA_REGISTER_PATH,
+        help="the per-category data register (INT-349); a slot whose category row "
+        "is incomplete is refused",
+    )
+    com.add_argument(
         "--locale",
         default=DEFAULT_LOCALE,
         help="locale the bundle speaks (default: %(default)s). The clip manifest "
@@ -208,7 +216,8 @@ def _compile_command(args: argparse.Namespace) -> int:
         life_threat = load_life_threat_set(args.life_threat)
         template = load_opt(args.opt)
         registry = load_registry(args.packs)
-    except (LifeThreatSetError, OptError, PackSchemaError) as exc:
+        data_register = load_data_register(args.data_register)
+    except (LifeThreatSetError, OptError, PackSchemaError, DataRegisterError) as exc:
         print(f"compile: {exc}")
         return 1
     try:
@@ -220,6 +229,7 @@ def _compile_command(args: argparse.Namespace) -> int:
             voice=args.voice,
             locale=args.locale,
             overlays=tuple(args.overlays),
+            data_register=data_register,
         )
     except CompileError as exc:
         print(f"compile: refused to emit {args.pack} ({len(exc.refusals)} reasons)")

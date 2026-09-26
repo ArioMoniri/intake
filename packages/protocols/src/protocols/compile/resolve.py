@@ -16,7 +16,8 @@ What this module owes the rest of the compiler:
 - **Every serve interlock, before anything is emitted.** The sign-off block
   (HB-C1), the maturity ladder (files/09 §2), rule provenance (files/04 §8.1
   rule 3), RED's three axes (invariant 21), monotonicity (invariant 7) and
-  the openEHR annotation (ADR-002).
+  the openEHR annotation (ADR-002), and the data-category register row
+  (INT-349).
 """
 
 from __future__ import annotations
@@ -30,9 +31,14 @@ from clinical_schemas.common import FrozenModel, Sha256
 from pydantic import Field
 
 from protocols.bindings import OperationalTemplate, fhir_link_id
+from protocols.compile.data_categories import (
+    category_relaxation_refusals,
+    slot_category_refusals,
+)
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
+from protocols.data_register import NO_REGISTER, DataCategoryRegister
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
@@ -677,6 +683,7 @@ def resolve_protocol(
     overlays: Sequence[str] = (),
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
+    data_register: DataCategoryRegister | None = None,
 ) -> ResolvedProtocol:
     """Resolve one pack into the document the emitters project from.
 
@@ -685,8 +692,12 @@ def resolve_protocol(
     cannot speak in every scripted field is refused here rather than served with
     the missing sentences in Turkish (CLAUDE.md invariant 10; INT-297).
 
+    ``data_register`` is the per-category register (INT-349). Omitted, it has
+    no rows, so a slot tagged with anything but ``general_health`` refuses.
+
     Raises :class:`CompileError` carrying **every** reason it refused.
     """
+    register = NO_REGISTER if data_register is None else data_register
     refusals: list[Refusal] = list(_signoff_refusals(life_threat))
     refusals.extend(_rule_refusals([r.rule for r in life_threat.rules]))
     target = registry.maybe(pack_id)
@@ -796,6 +807,7 @@ def resolve_protocol(
     rules: dict[str, RedFlagRule] = composition.by_id
     refusals.extend(_rule_refusals(composition.rules))
 
+    refusals.extend(category_relaxation_refusals(applied))
     sections_state = _merge_chain(applied)
     entries = _ordered_ops(applied)
     superseded = frozenset(superseded_id for pack in applied for superseded_id in pack.supersedes)
@@ -835,6 +847,7 @@ def resolve_protocol(
                 )
             path, rm_type, binding_refusals = _binding_refusals(section_id, key, slot, template)
             refusals.extend(binding_refusals)
+            refusals.extend(slot_category_refusals(fhir_link_id(section_id, key), slot, register))
             resolved_slots.append(
                 ResolvedSlot(
                     section_id=section_id,

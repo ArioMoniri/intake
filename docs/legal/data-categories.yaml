@@ -1,0 +1,141 @@
+# docs/legal/data-categories.yaml — the per-category data register (INT-349).
+#
+# Owner decision D3 (2026-09-26) approved eight categories of personal data for
+# the specialty review queue: questions a specialty intake may ask that collect
+# more than the patient's own general health. The approval decided the
+# questions. It did not decide their legal footing, and that is what this file
+# records, one row per category (protocols.types.DataCategory, a closed set).
+#
+# WHO FILLS WHAT
+#   purpose                         engineering, from D3's own wording. Nothing
+#                                   else in a row is engineering's to write.
+#   basis                           counsel: the KVKK m.6 ground for the patient.
+#   retention                       counsel: the retention and destruction clock.
+#   recipients                      counsel: who may receive the answers.
+#   consent_scope                   counsel: the files/06 §2 consent purpose the
+#                                   answers ride (or a new one, with its own text).
+#   other_subject_basis_and_notice  counsel, for household, relatives_health and
+#                                   partner_fertility only: another person is the
+#                                   data subject there, so D3 asks for a separate
+#                                   basis and notice for that person.
+#   counsel_reviewed_at             counsel: the date the row was signed off.
+#
+# Every counsel field below is null ON PURPOSE. That is the honest state of a
+# decision nobody has taken yet. A plausible basis typed in here would read
+# exactly like counsel's own and would open the gate below (CLAUDE.md
+# invariants 17 and 18; HUMAN_BLOCKERS Rule 2). The ask, with the named human
+# and the one sentence they must answer, is in docs/backlog/blockers.md under
+# INT-349. The VERBİS entry (INT-211) is built from the same answers.
+#
+# WHAT READS IT
+#   protocols.data_register.load_data_register refuses a missing row, a second
+#   row, a row for general_health, an unknown category or key, and a row with
+#   a key left out. The compiler (protocols.compile.data_categories) refuses to
+#   serve any slot whose category row still misses a counsel field, and names
+#   INT-349, the category and the missing fields in the refusal.
+#
+# WHAT IT DOES NOT CHANGE
+#   general_health has no row. Its answers are governed by the slots.value
+#   column inventory in packages/intake_platform/src/intake_platform/db/models.py.
+#   Answers in every category below are written with field-level envelope
+#   encryption whatever this file says (services/api/src/intake_api/store.py),
+#   so completing a row opens serving and never changes how an answer is kept.
+
+register_version: "v0-awaiting-counsel"
+
+categories:
+  - category: personal_safety
+    purpose: >-
+      Forensic and personal-safety questions in the adli tıp pre-visit intake,
+      approved by the owner on 2026-09-26 (D3).
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: sexual_health
+    purpose: >-
+      Genital and sexual-health symptom questions in the deri pre-visit intake,
+      approved by the owner on 2026-09-26 (D3).
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: substance_use
+    purpose: >-
+      Questions on the use of substances other than alcohol in the ruh sağlığı
+      and klinik psikoloji pre-visit intakes, approved by the owner on
+      2026-09-26 (D3).
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: household
+    purpose: >-
+      Questions on household basic needs and household contacts in the sosyal
+      pediatri, halk sağlığı and nükleer tıp pre-visit intakes, approved by the
+      owner on 2026-09-26 (D3). Other members of the household are data
+      subjects too.
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: relatives_health
+    purpose: >-
+      Questions on relatives' family health history and consanguinity in the
+      tıbbi genetik, onkoloji, pediatri, immünoloji, nefroloji, hematoloji,
+      metabolizma and gastroenteroloji pre-visit intakes, approved by the owner
+      on 2026-09-26 (D3). The relatives are data subjects too.
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: partner_fertility
+    purpose: >-
+      Questions on the partner's fertility in the üreme endokrinolojisi and
+      tıbbi genetik pre-visit intakes, approved by the owner on 2026-09-26 (D3).
+      The partner is a data subject too.
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: occupational
+    purpose: >-
+      Questions on the employer, occupational exposure and the purpose of a
+      report in the iş ve meslek hastalıkları and sağlık kurulu pre-visit
+      intakes, approved by the owner on 2026-09-26 (D3).
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
+
+  - category: literacy
+    purpose: >-
+      Questions on reading and learning difficulty in the hemşirelik eğitim and
+      sosyal pediatri pre-visit intakes, approved by the owner on 2026-09-26
+      (D3).
+    basis: null
+    retention: null
+    recipients: null
+    consent_scope: null
+    other_subject_basis_and_notice: null
+    counsel_reviewed_at: null
