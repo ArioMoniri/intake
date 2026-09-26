@@ -48,9 +48,10 @@ def test_ids_unique_and_well_formed() -> None:
     # audio guard, prod refusal of dev config, George route, generator marker,
     # mobile API base, Twilio, George client, attestation, staging artefact) +
     # INT-330..342 (motion system MOTION-1..13 from
-    # docs/design/motion/motion-verification.md).
+    # docs/design/motion/motion-verification.md) + INT-346 (CI restoration
+    # after the billing outage) + INT-347 (withdrawn MinIO image).
     # Grow this count only with a stated reason.
-    assert len(ids) == 269
+    assert len(ids) == 271
     import re
 
     for i in ids:

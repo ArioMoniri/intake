@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**269 issues.** By phase: P0 145 · P1 70 · P2 47 · P3 7. By status: awaiting-human 18 · doing 10 · done 150 · todo 90 · withdrawn 1.
+**271 issues.** By phase: P0 147 · P1 70 · P2 47 · P3 7. By status: awaiting-human 19 · doing 11 · done 150 · todo 90 · withdrawn 1.
 
 ## P0
 
@@ -156,6 +156,8 @@
 | INT-328 | Release builds use a configured https API base and never probe the LAN | E08-mobile | — | area:mobile, risk:security | doing |
 | INT-344 | Real device attestation: App Attest and Play Integrity on OTP and session, verified server-side | E08-mobile | INT-325 | area:mobile, area:api, risk:security | todo |
 | INT-345 | Staging backend artefact: API + Postgres + Redis + OpenBao + TLS proxy on the AWS host, synthetic patients only | E13-infra | INT-325 | area:infra, risk:security, risk:legal | todo |
+| INT-346 | Restore main CI to green after the billing outage | E13-infra | — | area:ci | doing |
+| INT-347 | Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store | E13-infra | INT-346 | area:infra, risk:security | awaiting-human |
 
 ## P1
 

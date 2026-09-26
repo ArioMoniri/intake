@@ -5202,3 +5202,27 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-346
+  epic: E13-infra
+  phase: P0
+  title: "Restore main CI to green after the billing outage"
+  depends_on: []
+  labels: [area:ci]
+  status: doing
+  acceptance:
+    - "the ci and security workflows run green on main HEAD with no test skipped, no gate loosened, no coverage threshold lowered and no allow-list grown except recorded register findings that carry a named reviewer"
+    - "every failure that accrued while Actions billing was down (2026-09-08 → 2026-09-26) is traced to its commit and fixed at the cause, with the log excerpt, cause and red/green recorded in docs/evidence/INT-346.md"
+  tests: [tests/release/test_i18n_complete.py]
+  sec_row: "cicd"
+- id: INT-347
+  epic: E13-infra
+  phase: P0
+  title: "Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store"
+  depends_on: [INT-346]
+  labels: [area:infra, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner records which image replaces minio/minio (maintained fork, source build, or another S3-compatible store) with its licence verified from the raw LICENSE blob (invariant 19) and a sha256 digest pin (invariant 14)"
+    - "check-integration pulls only that pinned image and passes; docker-compose, infra/staging and the object-store adapter tests agree on it"
+  tests: [tests/infra/test_staging_compose.py]
+  sec_row: "data-at-rest"
