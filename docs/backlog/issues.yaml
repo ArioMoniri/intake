@@ -5129,7 +5129,8 @@
   title: "Motion: typed lane, fallback and completion"
   depends_on: [INT-330, INT-335]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-339.md
   acceptance:
     - "the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"
     - "no navigation waits on an animation; the review screen renders every section in one commit with no stagger"
