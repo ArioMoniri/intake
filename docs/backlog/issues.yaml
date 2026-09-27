@@ -6283,4 +6283,17 @@
     - "the seed accounts and their fixtures live behind a dev-only module that the release bundle excludes (a lazy import in a `__DEV__` branch the bundler strips, or a dev-only entry); a bundle test over the production export proves no seed identifier, name or fixture string is present, with a near-miss control where a planted seed string in a release path fails"
     - "invariant 17: no demo data outside tests or fixtures reaches a release build"
   tests: [tests/release/test_release_bundle_has_no_fixtures.py, apps/mobile/e2e/releaseBundle.spec.ts]
+- id: INT-412
+  epic: E08-mobile
+  phase: P1
+  title: "Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal"
+  depends_on: [INT-360]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-412.md
+  acceptance:
+    - "every icon resolves through one symbol registry with an SF Symbol for iOS and a Material fallback for Android and web; no blank icons on Android"
+    - "rail, CTA bar and welcome card use system Liquid Glass on iOS 26, blur or solid otherwise, following the app theme; Reduce Transparency forces solid and fails closed while unknown"
+    - "a layered icon proposal ready for Icon Composer; shipped app.json and assets unchanged (rebrand is owner-held)"
+  tests: [apps/mobile/src/lib/symbols.test.ts, apps/mobile/src/lib/glass.test.ts, apps/mobile/e2e/nativeChrome.spec.ts]
   sec_row: "mobile"
