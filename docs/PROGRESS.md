@@ -1,5 +1,37 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T14:00:00+03:00 · INT-387 · done (PR open)
+- Goal: acceptance verbatim (GitHub #640):
+  - *"each of those rows is re-rated from the tests CI now runs, and cites them; device-only aspects stay with their DA item; the report is re-rendered and `render_a11y_report.py --check` is clean"*
+  - *"`tests/legal/test_a11y_report.py` fails if a row rated below Supports cites an issue whose row is `done` without a recorded reason (so the report cannot fall stale again)"*
+  - *"the legal statement (`docs/legal/accessibility-statement.md`) is not edited here; its refresh is INT-359 with counsel"*
+- Plan:
+  - A row below Supports is linked to the INT ids its prose names, and to every backlog issue titled `WCAG <sc>:` for its criterion. The stale rows named only INT-144, so the title link is the one that finds them.
+  - If a linked issue is done, the row is refused unless it records `still_open_because:`. The report prints that reason in the row.
+  - Re-rate the stale rows from the tests CI runs.
+- Tests added: `tests/legal/test_a11y_report.py` +9 (30 → 39).
+  - An oracle for the link convention.
+  - The 3.3.8 regression.
+  - A near-miss control: 1.4.3 passes while INT-144 is open, is refused once it is done, and is accepted with a reason.
+  - A reason is refused where nothing is open.
+  - An unknown id is refused.
+  - The reason is rendered.
+  - RED: 8 errors and 1 failure. The guard on `main`'s YAML refuses 3.3.1, 3.3.8 and 4.1.3. GREEN: 39 passed. Mutations: 6 of 6 caught.
+- Result:
+  - 3.3.1 moves to Supports (INT-362) and 3.3.8 to Supports (INT-361).
+  - 4.1.3 stays Partially Supports with a new finding: three status lines that INT-362 left out on purpose (MC-26), with `still_open_because` recorded.
+  - The 3.2.2 remark is corrected, and DA-08's steps are refreshed.
+  - WCAG counts: Supports 27 · Partially 5 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `--check` clean. `tests/legal` 504, `tests/backlog` 10, `tests/legal+backlog+smoke` 532 passed. ruff and mypy clean.
+  - `make check` was not run whole: no TypeScript changed, and check-integration is CI-only.
+- Invariants touched and still passing: 20 (no figure; ratings are test-backed statements), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next:
+  - File an issue for the three silent status lines under 4.1.3 (`notifications.pending`, `review.sentInfo`, `consent.queue.note`).
+  - INT-359 refreshes the statement's items 6 and 7.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
   - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*

@@ -16,7 +16,12 @@
 #     device audit item decides cannot carry any other status;
 #   - a contrast pair listed under `contrast` is measured from
 #     apps/mobile/src/lib/theme.ts at render time, and the row's status must
-#     agree with the measurement.
+#     agree with the measurement;
+#   - a Partially Supports or Does Not Support row cannot lean on an issue
+#     that docs/backlog/issues.yaml marks `done` (an INT id its finding or
+#     remarks name, or an issue whose title opens `WCAG <sc>:`). Re-assess the
+#     row, or record `still_open_because:` with what the fix left open; the
+#     report prints that reason in the row (INT-387).
 #
 # Status vocabulary: Supports · Partially Supports · Does Not Support ·
 # Not Applicable · Not Evaluated. The first four are the ITI VPAT terms.
@@ -29,11 +34,16 @@ report:
   platforms: >-
     iOS and Android from one Expo / React Native code base, phone form factor
     (`supportsTablet: false`)
-  assessed_on: 2026-09-26
-  tree: "`origin/main` at `066fb8a5`, re-assessed on branch `int-226-a11y-conformance`"
+  assessed_on: 2026-09-27
+  tree: >-
+    `origin/main` at `066fb8a5`, re-assessed on branch `int-226-a11y-conformance`.
+    INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against
+    `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`
   assessed_by: >-
     INT-226 engineering pass: automated source assertions, code inspection and
-    palette arithmetic
+    palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and
+    1.4.10 (INT-360), 2.2.1 (INT-363), and 3.3.1, 3.3.8, 4.1.3 and the 3.2.2
+    remark (INT-387)
   standards: >-
     WCAG 2.2 (W3C Recommendation, 5 October 2023), Level A and AA. EN 301 549
     V3.2.1 (2021-03), clauses 5, 11 and 12 as they apply to a mobile application.
@@ -89,15 +99,20 @@ report:
       sections. Where the two differ, this report is the status of record.
       Re-assessment changed these rows: 1.3.4 (unverified, then Does Not
       Support because the app config locked portrait, and Supports since INT-360
-      removed the lock); 3.3.1 (supported, now Partially
-      Supports, because error lines added since are silent under VoiceOver); 3.3.8
-      and 4.1.3 (not assessed before); 3.1.2 (unverified, now Partially
-      Supports); 1.3.5 (partial, now Supports, on a recorded field inventory);
-      1.4.12 and 2.4.5 (supported by inspection, now Not Applicable, with the
-      reason in each row). Two of INT-144's supporting statements do not hold:
-      the OTP autofill mitigation named under BK26 (MC-16), and "exactly one
-      timer in the whole app" under BK13, which is true of screens and
-      components only (MC-08).
+      removed the lock); 3.3.1 (supported, then Partially Supports because
+      error lines added since were silent under VoiceOver, and Supports since
+      INT-362 routed every error line through one announcer); 3.3.8 (not
+      assessed before, then Does Not Support, and Supports since INT-361 let a
+      delivered code fill the boxes); 4.1.3 (not assessed before, and Partially
+      Supports: INT-362 closed the three lines INT-226 named, and three others
+      are still silent); 3.1.2 (unverified, now Partially Supports); 1.3.5
+      (partial, now Supports, on a recorded field inventory); 1.4.12 and 2.4.5
+      (supported by inspection, now Not Applicable, with the reason in each
+      row). Two of INT-144's supporting statements did not hold on 26
+      September: the OTP autofill mitigation named under BK26 (MC-16), which
+      the source carries since INT-361 and DA-07 confirms on a device, and
+      "exactly one timer in the whole app" under BK13,
+      which is true of screens and components only (MC-08).
   status_meanings:
     Supports: >-
       Met as far as the cited evidence reaches, with no known failure. Not yet
@@ -454,14 +469,19 @@ wcag:
     level: A
     bk: BK26
     status: Not Evaluated
+    tests:
+      - "apps/mobile/src/lib/auth/phone.test.ts::typing one digit is unchanged: this box only, then the next box"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into the first box fills all six"
     manual: [MC-16]
     remarks: >-
-      The OTP screen moves focus to the next box after each digit and does not
-      tell the patient. Whether a screen-reader user meets that as an unexpected
-      change of context is for DA-04 to decide. INT-144 named
-      `textContentType="oneTimeCode"` as the mitigation, but a delivered code
-      cannot fill the six boxes (MC-16, and 3.3.8), so the mitigation does not
-      hold.
+      The OTP screen moves focus to the next box after each typed digit and
+      does not tell the patient. Whether a screen-reader user meets that as an
+      unexpected change of context is for DA-04 to decide. INT-144 named
+      `textContentType="oneTimeCode"` as the mitigation. On 26 September it did
+      not hold, because a delivered code could not fill the six boxes (MC-16).
+      Since INT-361 a pasted or suggested code fills all six at once (3.3.8), so
+      a patient who takes the code that way meets no box-by-box focus move. A
+      patient who types it still does.
 
   - sc: "3.2.6"
     name: Consistent Help
@@ -478,23 +498,29 @@ wcag:
     name: Error Identification
     level: A
     bk: BK28
-    status: Partially Supports
+    status: Supports
     tests:
       - "apps/mobile/e2e/a11y.spec.ts::%s announces its error on BOTH platforms"
+      - "apps/mobile/e2e/a11y.spec.ts::the discovery walks the tree and reaches every line the INT-226 report named"
+      - "apps/mobile/e2e/a11y.spec.ts::a newly added unannounced error line is caught — the near-miss control"
+      - "apps/mobile/e2e/a11y.spec.ts::the announcer puts both halves on every line: Android's live region and iOS's announcement"
       - "apps/mobile/e2e/a11y.spec.ts::AppText maps `live` onto the platform's own announcement props"
       - "apps/mobile/e2e/a11y.spec.ts::an error is never carried by colour alone"
-    manual: [MC-17]
-    finding: >-
-      Two reachable error surfaces added after INT-144 carry only the Android
-      half. They are the Doctor Link error line (`visits/[visitId]/issue-link.tsx`)
-      and the record card's "not saved" notice (`components/ConfirmCard.tsx`).
-      Each sets the Android live region but never calls `useLiveAnnouncement`,
-      so VoiceOver does not announce it. The automated check lists its four
-      screens by hand, which is why it missed them. The kiosk PIN lines
-      (`components/KioskGate.tsx`) have the same gap and are not reachable today.
+      - "apps/mobile/src/lib/a11y/announce.test.ts::an error is spoken with the error word first; the visible copy is not touched"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::iOS gets the words, and an error interrupts what is being read"
     remarks: >-
-      The phone, OTP, new-visit and records screens announce their errors on
-      both platforms, with "Hata" spoken before the message.
+      Every error is described in text on screen, and since INT-362 every
+      error line goes through one announcer (`components/Announced.tsx`). It
+      sets the Android live region and posts the iOS announcement, and speaks
+      "Hata" before the message without changing the visible words. That
+      covers the phone, OTP, new-visit and records screens, the Doctor Link
+      error and the record card's "not saved" notice that INT-226 found silent
+      under VoiceOver, the kiosk PIN lines, and the data, learned-fact and
+      share write failures. The automated check no longer lists screens by
+      hand. It walks every `.tsx` under `src` and fails on a line in the error
+      colour, with failure copy or with a hand-made live region that sits
+      outside the announcer. DA-08 confirms that each error is spoken once, on
+      both platforms.
 
   - sc: "3.3.2"
     name: Labels or Instructions
@@ -818,22 +844,28 @@ wcag:
     name: Accessible Authentication (Minimum)
     level: AA
     wcag22_new: true
-    status: Does Not Support
+    status: Supports
     tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the six boxes are one TextInput rendered once per register"
+      - "apps/mobile/e2e/a11y.spec.ts::every box asks the OS for the one-time code on each platform"
+      - "apps/mobile/e2e/a11y.spec.ts::no field cap cuts a pasted or autofilled code down to its first digit"
+      - "apps/mobile/e2e/a11y.spec.ts::every box hands its whole new text to the shared distributor"
       - "apps/mobile/e2e/auth.spec.ts::the OTP entry is one masked field per register, six registers"
-    manual: [MC-16]
-    finding: >-
-      Sign-in requires transcribing a six-digit SMS code, which is a cognitive
-      function test, and no mechanism completes it for the patient. Each of the
-      six boxes holds one character (`maxLength={1}`, and the handler keeps only
-      the last character it receives), so neither a paste nor the iOS "From
-      Messages" suggestion can fill the code. Android declares no SMS-code
-      autofill.
+      - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into the first box fills all six"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into box %i still fills all six from the first"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a code pasted beside the digit a box already shows fills all six"
+      - "apps/mobile/src/lib/auth/phone.test.ts::more than six digits keeps the first six"
     remarks: >-
-      INT-144 did not assess this criterion. The fix is one field that takes the
-      whole code, or distributes a pasted one, with `textContentType="oneTimeCode"`
-      and Android's `autoComplete="sms-otp"`. DA-07 confirms the current behaviour
-      on hardware.
+      Sign-in asks for a six-digit SMS code, a cognitive function test, and
+      since INT-361 a mechanism completes it: the patient does not have to
+      transcribe the code. A code pasted into any box, or handed over by the
+      OS, fills all six boxes (`enterOtp`), with the rest of a copied message
+      dropped. Every box declares `textContentType="oneTimeCode"` for the iOS
+      "From Messages" suggestion, and `autoComplete` `sms-otp` for Android's
+      SMS-code autofill and `one-time-code` for the web. No field cap cuts a
+      code short. Whether each platform offers its suggestion is for DA-07 to
+      confirm on hardware. INT-144 did not assess this criterion. INT-226
+      rated it Does Not Support (MC-16) before INT-361.
 
   - sc: "4.1.3"
     name: Status Messages
@@ -844,14 +876,38 @@ wcag:
       - "apps/mobile/e2e/a11y.spec.ts::the turn state is announced ONCE — not by a hook and a live region both"
       - "apps/mobile/src/lib/a11y/announce.test.ts::says the same message once, not on every re-render"
       - "apps/mobile/e2e/a11y.spec.ts::%s announces its error on BOTH platforms"
-    manual: [MC-17]
+      - "apps/mobile/e2e/a11y.spec.ts::no live region is declared anywhere but the announcer"
+      - "apps/mobile/e2e/a11y.spec.ts::every announced line states its tone, and the announcer — not the call site — picks the politeness"
+      - "apps/mobile/e2e/a11y.spec.ts::the announcer puts both halves on every line: Android's live region and iOS's announcement"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::iOS queues a status behind current speech"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::announces once per change — never for an unchanged or an empty message"
+    manual: [MC-17, MC-26]
     finding: >-
-      The Doctor Link error, the record card's "not saved" notice and the
-      record-reading progress line (`components/RecordReading.tsx`) set only the
-      Android live region, so VoiceOver does not announce them.
+      Three status lines that appear after an action are announced on neither
+      platform. They are the notification settings' "not saved yet" line
+      (`me/notifications.tsx`, `notifications.pending`), the review screen's
+      "your note was sent" line (`visits/[visitId]/review.tsx`,
+      `review.sentInfo`) and the consent screens' queued-change note
+      (`me/consents/index.tsx` and `me/consents/[purpose].tsx`,
+      `consent.queue.note`). The automated check does not flag them, because
+      none uses failure copy, wait copy, the error colour or a live region
+      (MC-26).
+    still_open_because: >-
+      INT-362 routed every line its discovery finds through the announcer,
+      which closed the three lines this row named on 26 September: the Doctor
+      Link error, the record card's "not saved" notice and the record-reading
+      line. It left these three out on purpose. `notifications.pending` is also
+      shown while every save is in flight, so announcing it needs a store
+      change that tells in-flight from failed. The other two show saved state
+      on every arrival at the screen, so announcing them needs a way to tell
+      "just happened" from "already so". Neither change has been made (MC-26).
     remarks: >-
-      The dialogue's turn state, the records upload and scan notices and four
-      screens' errors are announced on both platforms without moving focus.
+      The dialogue's turn state and every line the automated check discovers
+      are announced on both platforms without moving focus: errors
+      assertively, statuses politely and once per change. That includes the
+      records screen's notices, the record-reading line, the voice check, the
+      health section's lines and the kiosk warning. MC-17 is the manual pass
+      that found the original gap. DA-08 confirms each line on a device.
       INT-144 did not assess this criterion.
 
 # ----------------------------------------------------------------- EN 301 549
@@ -1209,9 +1265,12 @@ device_audit:
       confirms: ["2.2.1", "3.1.1", "3.3.1", "4.1.2", "4.1.3"]
       steps: >-
         Trigger every error and status line on both platforms, and record whether
-        each is spoken once: the four screens' errors, the Doctor Link error, the
-        record card's not-saved notice, the dialogue's listening, speaking and
-        transcribing states, and the records upload, scan and reading lines. Once
+        each is spoken once, errors with "Hata" first: every line in the table in
+        `docs/evidence/INT-362.md` (the four screens' errors, the Doctor Link
+        error, the record card's notices, the kiosk PIN lines and the write
+        failures among them), the dialogue's listening, speaking and transcribing
+        states, and the records upload, scan and reading lines. Record whether
+        the three lines SC 4.1.3's finding names are spoken at all. Once
         kiosk mode can be armed (the dev build, HB-A3), leave an armed session
         untouched for 40 seconds. Record whether the idle warning is spoken in
         full, whether focus lands on its "Devam edin" button, and whether one
@@ -1461,3 +1520,22 @@ manual_checks:
       (`styles.sendButton`). The tab items are at least 54 wide, and
       `minWidth: MIN_TAP` (44) when collapsed. Every other Pressable carries
       visible text at row or chip width.
+  MC-26:
+    date: 2026-09-27
+    by: INT-387 re-assessment
+    method: >-
+      The three lines INT-362 left unrouted (`docs/evidence/INT-362.md`, "Deliberately
+      not routed"): `grep -rn 'notifications.pending\|review.sentInfo\|consent.queue.note'
+      apps/mobile/src`, test files excluded, each hit read in context; read
+      `saveNotificationPrefs` in `apps/mobile/src/lib/notifications/store.ts`
+    result: >-
+      Five hits, each a plain `AppText` with no live region and outside
+      `AnnouncedText` and `AnnouncedRegion`: `me/notifications.tsx`
+      (`notifications.pending`, shown while `pending`),
+      `visits/[visitId]/review.tsx` and `visits/[visitId]/index.tsx`
+      (`review.sentInfo`, shown once the note's status is sent), and
+      `me/consents/index.tsx` and `me/consents/[purpose].tsx`
+      (`consent.queue.note`, shown while a consent change waits in the queue).
+      The store sets `pending: true` before every save and keeps it when the
+      server does not confirm, so the one flag means both "in flight" and
+      "failed".

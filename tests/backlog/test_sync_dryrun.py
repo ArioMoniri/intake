@@ -65,7 +65,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-318, the INT-354 slice S2 row)
     # + INT-380 and INT-381, split out of INT-121 and INT-124 by INT-124's PR
     # + INT-385 (record quantities in the locale's decimal separator, GitHub #635)
-    assert len(actions) == 303
+    # + INT-387 (the a11y conformance report re-rated after INT-361..363, GitHub #640)
+    assert len(actions) == 304
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
