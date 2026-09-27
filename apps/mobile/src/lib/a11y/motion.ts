@@ -55,7 +55,13 @@ export function scrollAnimated(reduceMotion: boolean): boolean {
   return !reduceMotion;
 }
 
-/** Modal presentation: RN's `animationType` values. */
+/**
+ * Modal presentation: RN's `animationType` values. A modal the app owns
+ * (INT-338, lib/motion/transitions.ts `modalTransition`) always asks for the
+ * still answer, and the overload lets it keep the literal type.
+ */
+export function modalAnimation(reduceMotion: true): "none";
+export function modalAnimation(reduceMotion: boolean): "fade" | "none";
 export function modalAnimation(reduceMotion: boolean): "fade" | "none" {
   return reduceMotion ? "none" : "fade";
 }

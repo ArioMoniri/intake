@@ -15,21 +15,28 @@
  * Register: Oura grouped-table anatomy (ListGroup radii, hairlines
  * between rows only, quiet footer), fade-only motion (02 §5.2a); state is
  * always labelled, never colour alone (02 §8.2).
+ *
+ * Motion (INT-338, MOTION-9): the platform never animates the sheet, and
+ * its content enters with the one fade and leaves at once, for any reason
+ * it closes (lib/motion/transitions.ts `modalTransition`).
  */
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useRef, type Ref, type RefObject } from "react";
+import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { SymbolView } from "expo-symbols";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ListGroup } from "@/components/ListRow";
 import { AppText, useScheme, useTheme } from "@/components/Themed";
 import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
-import { modalAnimation } from "@/lib/a11y/motion";
 import { ALL_ORIENTATIONS } from "@/lib/a11y/orientation";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import type { SectionPanelModel, SectionRow } from "@/lib/dialogue/sectionPanel";
 import { t } from "@/lib/i18n";
 import { optionLabelKey } from "@/lib/intake/questions";
+import { enteringFor } from "@/lib/motion/native/reanimated";
+import { modalTransition } from "@/lib/motion/transitions";
 import { motion, radius, spacing } from "@/lib/theme";
 
 /** Option ids → catalog labels; free text and meds lines pass through. */
@@ -46,14 +53,20 @@ interface SectionStripProps {
   filled: number;
   total: number;
   onPress: () => void;
+  /**
+   * The strip's host view: the sheet it opens hands the screen reader's
+   * focus back to it on close (INT-338, SC 2.4.3).
+   */
+  ref?: Ref<View>;
 }
 
 /** The collapsed strip: quiet chrome on the dialogue's glass bar. */
-export function SectionStrip({ filled, total, onPress }: SectionStripProps) {
+export function SectionStrip({ filled, total, onPress, ref }: SectionStripProps) {
   const theme = useTheme();
   const count = `${filled} / ${total}`;
   return (
     <Pressable
+      ref={ref}
       accessibilityRole="button"
       accessibilityLabel={joinParts(
         t("dialogue.noteForming"),
@@ -180,29 +193,55 @@ interface SectionSheetProps {
   model: SectionPanelModel;
   onClose: () => void;
   onConfirmRow: (questionId: string) => void;
+  /** The control that opened the sheet: focus returns to it on close. */
+  opener: RefObject<View | null>;
 }
 
 /** The expanded sheet: every section as a grouped-table row. */
-export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionSheetProps) {
+export function SectionSheet({ visible, model, onClose, onConfirmRow, opener }: SectionSheetProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
+  const transition = modalTransition({ reduce: reduceMotion });
   // INT-360: a Modal is its own window, so the Screen's safe edges do not
   // reach the sheet. In landscape the notch and the rounded corners are at
   // the SIDES, so the sheet takes the side insets itself, and the bottom one
   // for the home indicator.
   const insets = useSafeAreaInsets();
+  // SC 2.4.3 (INT-338): a sheet that closes hands the screen reader's focus
+  // back to the strip that opened it, in the first effect after the close
+  // and with no delay. iOS's modal host restores VoiceOver's last focus on
+  // dismissal by itself; Android's does not, so the app names the target on
+  // both. Only a close moves it: the first mount opened nothing.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (visible) {
+      wasOpen.current = true;
+      return;
+    }
+    const target = opener.current;
+    if (wasOpen.current && target !== null) {
+      AccessibilityInfo.sendAccessibilityEvent(target, "focus");
+    }
+    wasOpen.current = false;
+  }, [visible, opener]);
   return (
     <Modal
       visible={visible}
       transparent
-      animationType={modalAnimation(reduceMotion)}
+      // INT-338: the platform never animates the sheet ("none" at every
+      // setting), so every close, the privacy hide and a RED's included, is
+      // gone in the commit that makes it.
+      animationType={transition.animationType}
       // SC 1.3.4 (INT-360): without this list React Native presents the Modal
       // portrait-only on an iPhone, and opening the sheet in landscape would
       // turn the screen under the patient.
       supportedOrientations={ALL_ORIENTATIONS}
       onRequestClose={onClose}
     >
-      <View style={styles.backdropWrap}>
+      {/* The dismiss backdrop and the panel are ONE animated element: they
+          enter together with the one fade (none under reduce-motion) and
+          carry no exit, so nothing of the sheet outlives its close. */}
+      <Animated.View entering={enteringFor(transition.enter)} style={styles.backdropWrap}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("dialogue.close")}
@@ -253,7 +292,7 @@ export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionS
             </ListGroup>
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

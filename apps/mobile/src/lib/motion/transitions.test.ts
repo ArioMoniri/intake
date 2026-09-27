@@ -15,13 +15,49 @@
  *
  * What only a device can show — the measured push/pop timing on iOS and
  * Android — is recorded in docs/evidence/INT-330.md, never asserted here.
+ *
+ * INT-338 (MOTION-9; motion-verification.md §1.1 C12, §1.2 P15, §2.1 #3 and
+ * #16, §3 S-6 and C-6) adds the section sheet, the app's one RN `Modal`:
+ *
+ * - the platform never animates it. Its own fade is a UIKit cross-dissolve
+ *   on iOS and `config_shortAnimTime` on Android, and neither is the app's to
+ *   bound, so the app owns the entrance (the one 120 ms fade) and every exit
+ *   is instant;
+ * - a privacy close and a RED close are therefore 0 ms at every setting,
+ *   with no switch of `animationType` needed before `visible` turns false;
+ * - a RED closes the sheet only when the patient is shown it: the decision is
+ *   keyed on the presentation mode, so DEFERRED_CLINICIAN closes nothing.
+ *
+ * The close timing on a device is recorded in docs/evidence/INT-338.md.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
+import { modalAnimation } from "../a11y/motion";
+import {
+  resolveRed,
+  type RedLocation,
+  type RedPresentation,
+  type RedRegister,
+  type RedScriptCatalog,
+} from "../livekit/red";
+import { reducedMotion } from "../prefs/appearance";
 import { motion } from "../theme";
-import { ROUTE_CLASSES, routeClassOf, tabTransition, transitionFor } from "./transitions";
+import { enterFor } from "./fade";
+import { RED_LOCATIONS, RED_REGISTERS, redPresentationMode } from "./red";
+import { closesSheetOnRed } from "./sheetOnRed";
+import {
+  ROUTE_CLASSES,
+  SHEET_CLOSE_REASONS,
+  modalTransition,
+  routeClassOf,
+  sheetClose,
+  tabTransition,
+  transitionFor,
+  type ModalTransition,
+  type SheetClose,
+} from "./transitions";
 
 const SRC = join(__dirname, "..", "..");
 const APP = join(SRC, "app");
@@ -193,6 +229,248 @@ describe("native-stack transition policy (MOTION-1)", () => {
         expect(tab.transitionSpec.config.duration).toBeGreaterThanOrEqual(0);
         expect(tab.transitionSpec.config.duration).toBeLessThanOrEqual(motion.fadeMs);
       }
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* MOTION-9 — the section sheet (INT-338)                              */
+/* ------------------------------------------------------------------ */
+
+const MOBILE = join(SRC, "..");
+const RN = join(MOBILE, "node_modules", "react-native");
+
+/** Every reduce-motion setting: the app switch × the OS answer (null: none yet). */
+const SETTINGS = [false, true].flatMap((app) =>
+  [false, true, null].map((os) => ({ app, os, reduce: reducedMotion(app, os) })),
+);
+
+const CATALOG: RedScriptCatalog = {
+  authorised: {
+    primary: "CALL_112",
+    show112: true,
+    actionTr: "Hemen 112'yi arayın.",
+    doNotsTr: [],
+    whyTr: null,
+  },
+  withheld: {
+    primary: "GO_TO_IN_HOUSE_ACIL",
+    show112: false,
+    actionTr: "En yakın görevliye hemen haber verin.",
+    doNotsTr: [],
+    whyTr: null,
+  },
+};
+
+type ScriptId = "authorised" | "withheld";
+
+/** A presentation through the only real constructor, `resolveRed`. */
+function presented(register: RedRegister, location: RedLocation, scriptId: ScriptId) {
+  const p: RedPresentation | null = resolveRed(
+    { kind: "red_trigger", ruleId: "life_threat.chest_pain", register, location, scriptId },
+    CATALOG,
+  );
+  if (p === null) {
+    throw new Error(`no presentation for ${scriptId}`);
+  }
+  return p;
+}
+
+/** Every RED the sheet could meet: register × location × script × setting. */
+const RED_ROWS = RED_REGISTERS.flatMap((register) =>
+  RED_LOCATIONS.flatMap((location) =>
+    (["authorised", "withheld"] as const).flatMap((scriptId) =>
+      SETTINGS.map((setting) => ({ register, location, scriptId, ...setting })),
+    ),
+  ),
+);
+
+function label(row: (typeof RED_ROWS)[number]): string {
+  return `${row.register}/${row.location}/${row.scriptId}, app ${row.app}, os ${row.os}`;
+}
+
+/** What `animationType` a sheet can carry, whoever built it. */
+interface Presented {
+  readonly animationType: ModalTransition["animationType"] | ReturnType<typeof modalAnimation>;
+}
+
+/**
+ * How long a closed sheet stays on screen after the commit that hides it, as
+ * far as the app can bound it. React Native dismisses with the
+ * `animationType` the Modal carries, so a type other than `"none"` runs the
+ * platform's own fade, whose length no prop sets: unbounded here. Otherwise
+ * what remains is the content's own exit.
+ */
+function closeMs(open: Presented, close: SheetClose): number {
+  const platform = open.animationType === "none" ? 0 : Number.POSITIVE_INFINITY;
+  return Math.max(platform, close.exitMs);
+}
+
+describe("section sheet transition policy (MOTION-9)", () => {
+  it("a privacy close is instant at every reduce-motion setting", () => {
+    expect(SETTINGS).toHaveLength(6);
+    for (const { app, os, reduce } of SETTINGS) {
+      const setting = `app ${app}, os ${os}`;
+      const close = sheetClose("privacy", { reduce });
+      expect(close, setting).toEqual({ reason: "privacy", animationType: "none", exitMs: 0 });
+      // C12: the type the platform dismisses with must already be "none" in
+      // the commit BEFORE the one that sets visible=false. The sheet carries
+      // "none" from the moment it opens, so there is nothing to switch, and a
+      // third-party flag has nothing to hold on.
+      expect(modalTransition({ reduce }).animationType, setting).toBe("none");
+      expect(closeMs(modalTransition({ reduce }), close), setting).toBe(0);
+    }
+    // Near miss: the sheet as it stood before INT-338 took its type from the
+    // reduce-motion answer, so with motion on, a privacy close ran the
+    // platform's fade and the medication names stayed readable through it.
+    const before: Presented = { animationType: modalAnimation(false) };
+    expect(closeMs(before, sheetClose("privacy", { reduce: false }))).toBe(
+      Number.POSITIVE_INFINITY,
+    );
+  });
+
+  it("a modal closes without a transition when a RED is presented", () => {
+    const shown = RED_ROWS.filter((row) => redPresentationMode(row.register) !== "none");
+    // ALERT, CALM and SILENT × 3 locations × 2 scripts × 6 settings.
+    expect(shown).toHaveLength(3 * 3 * 2 * 6);
+    for (const row of shown) {
+      const p = presented(row.register, row.location, row.scriptId);
+      expect(closesSheetOnRed(p, { reduce: row.reduce }), label(row)).toBe(true);
+      const close = sheetClose("red", { reduce: row.reduce });
+      expect(close, label(row)).toEqual({ reason: "red", animationType: "none", exitMs: 0 });
+      expect(closeMs(modalTransition({ reduce: row.reduce }), close), label(row)).toBe(0);
+    }
+    // S-6: the decision is keyed on what the patient is shown, never on "a
+    // RED event arrived" — for every register, location, script and setting.
+    for (const row of RED_ROWS) {
+      const p = presented(row.register, row.location, row.scriptId);
+      expect(closesSheetOnRed(p, { reduce: row.reduce }), label(row)).toBe(
+        redPresentationMode(row.register) !== "none",
+      );
+    }
+  });
+
+  it("DEFERRED_CLINICIAN never closes a modal", () => {
+    const deferred = RED_ROWS.filter((row) => row.register === "DEFERRED_CLINICIAN");
+    expect(deferred).toHaveLength(3 * 2 * 6);
+    for (const row of deferred) {
+      const p = presented(row.register, row.location, row.scriptId);
+      expect(closesSheetOnRed(p, { reduce: row.reduce }), label(row)).toBe(false);
+      // Near miss: at the same location, script and setting, every register
+      // the patient does see closes it, so the "no" is the register's doing.
+      for (const register of RED_REGISTERS.filter((r) => r !== "DEFERRED_CLINICIAN")) {
+        const seen = presented(register, row.location, row.scriptId);
+        expect(closesSheetOnRed(seen, { reduce: row.reduce }), register).toBe(true);
+      }
+    }
+  });
+
+  it("reduce-motion presents modals without a transition", () => {
+    for (const { app, os, reduce } of SETTINGS.filter((s) => s.reduce)) {
+      // Nothing is registered: the sheet is simply there on its first frame,
+      // and gone on the frame after it closes.
+      expect(modalTransition({ reduce }), `app ${app}, os ${os}`).toEqual({
+        animationType: "none",
+        enter: undefined,
+        exitMs: 0,
+      });
+    }
+    // An unknown OS answer is reduced (INT-331), so it too presents still.
+    expect(SETTINGS.filter((s) => s.reduce)).toHaveLength(5);
+    // C-7: built on the kept primitive, which gives the same answer.
+    expect(modalTransition({ reduce: true }).animationType).toBe(modalAnimation(true));
+  });
+
+  it("an owned sheet enters within fadeMs and exits instantly", () => {
+    const owned = modalTransition({ reduce: false });
+    // The one fade (02 §5.2a): opacity only, no delay, out-eased, the token.
+    expect(owned).toEqual({
+      animationType: "none",
+      enter: enterFor({ reduce: false }),
+      exitMs: motion.duration.instant,
+    });
+    expect(owned.enter).toEqual({
+      property: "opacity",
+      durationMs: motion.duration.fade,
+      delayMs: 0,
+      easing: motion.easing.out,
+    });
+    expect(owned.enter!.durationMs).toBeLessThanOrEqual(motion.fadeMs);
+    // Owned in both directions, at every setting: the platform's fade never
+    // runs, so the only motion is the app's own 120 ms entrance.
+    for (const { reduce } of SETTINGS) {
+      expect(modalTransition({ reduce }).animationType).toBe("none");
+    }
+    // Every close is instant, whatever closed it, at every setting.
+    expect(SHEET_CLOSE_REASONS).toEqual(["user", "privacy", "red"]);
+    for (const reason of SHEET_CLOSE_REASONS) {
+      for (const { app, os, reduce } of SETTINGS) {
+        const close = sheetClose(reason, { reduce });
+        expect(close.reason).toBe(reason);
+        expect(closeMs(modalTransition({ reduce }), close), `${reason}, app ${app}, os ${os}`).toBe(
+          0,
+        );
+      }
+    }
+    // The types say it too: an owned modal that moves does not compile.
+    expectTypeOf<ModalTransition["animationType"]>().toEqualTypeOf<"none">();
+    expectTypeOf<ModalTransition["exitMs"]>().toEqualTypeOf<0>();
+    expectTypeOf<SheetClose["animationType"]>().toEqualTypeOf<"none">();
+    expectTypeOf<SheetClose["exitMs"]>().toEqualTypeOf<0>();
+    expectTypeOf<SheetClose["reason"]>().toEqualTypeOf<"user" | "privacy" | "red">();
+  });
+
+  // The premise for owning the fade, read from the library that ships: the
+  // platform's own modal fade has a length the app cannot set, and "none"
+  // presents and dismisses with no animation at all. A React Native upgrade
+  // that changes either fails here and sends the sheet back to be measured.
+  it("the platform's modal fade is not the app's to bound, and none presents and dismisses unanimated", () => {
+    const ios = readFileSync(
+      join(
+        RN,
+        "React",
+        "Fabric",
+        "Mounting",
+        "ComponentViews",
+        "Modal",
+        "RCTModalHostViewComponentView.mm",
+      ),
+      "utf8",
+    );
+    // "fade" is a UIKit cross-dissolve; "none" is presented unanimated…
+    expect(ios).toMatch(
+      /ModalHostViewAnimationType::Fade:\s*return std::make_tuple\(YES, UIModalTransitionStyleCrossDissolve\)/,
+    );
+    expect(ios).toMatch(/ModalHostViewAnimationType::None:\s*return std::make_tuple\(NO,/);
+    // …both ways, from that one flag…
+    expect(ios).toMatch(
+      /presentViewController:self\.viewController\s+animated:_shouldAnimatePresentation/,
+    );
+    expect(ios).toMatch(
+      /dismissViewController:self\.viewController\s+animated:_shouldAnimatePresentation/,
+    );
+    // …and nothing sets the cross-dissolve's length: UIKit owns it.
+    expect(ios).not.toMatch(/duration/i);
+
+    const modal = join(RN, "ReactAndroid", "src", "main");
+    const host = readFileSync(
+      join(modal, "java", "com", "facebook", "react", "views", "modal", "ReactModalHostView.kt"),
+      "utf8",
+    );
+    expect(host).toMatch(/"fade" -> R\.style\.Theme_FullScreenDialogAnimatedFade/);
+    expect(host).toMatch(/else -> R\.style\.Theme_FullScreenDialog\b/);
+    const res = join(modal, "res", "views", "modal");
+    const themes = readFileSync(join(res, "values", "themes.xml"), "utf8");
+    // The theme "none" takes carries no window animation at all…
+    const plain = /<style name="Theme\.FullScreenDialog">([\s\S]*?)<\/style>/.exec(themes);
+    expect(plain).not.toBeNull();
+    expect(plain![1]).not.toMatch(/windowAnimationStyle/);
+    // …while "fade" runs the platform's short animation time in both
+    // directions (200 ms in AOSP; the device's own resource decides).
+    for (const anim of ["catalyst_fade_in.xml", "catalyst_fade_out.xml"]) {
+      expect(readFileSync(join(res, "anim", anim), "utf8"), anim).toMatch(
+        /android:duration="@android:integer\/config_shortAnimTime"/,
+      );
     }
   });
 });

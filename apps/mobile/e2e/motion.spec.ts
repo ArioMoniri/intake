@@ -51,6 +51,7 @@ import {
   isRedSurface,
   specifiers,
 } from "./redSurface";
+import { modalTypeFindings, sheetFindings } from "./sheetSource";
 
 const MOBILE = join(__dirname, "..");
 
@@ -602,6 +603,8 @@ const RED_SURFACE_FILES: readonly string[] = [
   "src/lib/livekit/session.ts",
   "src/lib/livekit/types.ts",
   "src/lib/motion/red.ts",
+  // INT-338: whether a presented RED closes the section sheet.
+  "src/lib/motion/sheetOnRed.ts",
 ];
 
 describe("MOTION-4 — the RED path paints first, with no motion", () => {
@@ -686,5 +689,158 @@ describe("MOTION-4 — the RED path paints first, with no motion", () => {
     // The motion contract that sizes the first paint imports nothing that
     // could make it wait: only the RED types.
     expect(specifiers(file("src/lib/motion/red.ts"))).toEqual(["../livekit/red"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-9 — the section sheet
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-338 (docs/design/motion/motion-verification.md §4 MOTION-9, C12, P15,
+ * §2.1 #16, CI note C-6). The pure policy is src/lib/motion/transitions.ts
+ * and its suite. What this adds is the source half: every RN Modal takes its
+ * presentation from `modalTransition` (so the platform never animates it);
+ * the sheet's content, backdrop and panel together, is ONE element that
+ * enters with the policy's fade and leaves with nothing; and a closed sheet
+ * hands the screen reader's focus back to the strip that opened it, at once.
+ */
+
+const PANEL = "src/components/SectionPanel.tsx";
+const DIALOGUE = "src/components/DialogueIntake.tsx";
+
+describe("MOTION-9 — the section sheet", () => {
+  it("SectionSheet takes its transition from modalTransition and restores focus to its opener", () => {
+    const hook = `${["useReduced", "Motion"].join("")}()`;
+    const strip = (params: string, pressable: string) =>
+      `export function SectionStrip({ ${params} }: P) {\n  return <Pressable ${pressable} />;\n}`;
+    const effect = [
+      "  const wasOpen = useRef(false);",
+      "  useEffect(() => {",
+      "    if (visible) { wasOpen.current = true; return; }",
+      "    const target = opener.current;",
+      '    if (wasOpen.current && target !== null) AccessibilityInfo.sendAccessibilityEvent(target, "focus");',
+      "    wasOpen.current = false;",
+      "  }, [visible, opener]);",
+    ].join("\n");
+    const sheet = (opts: {
+      readonly params?: string;
+      readonly type?: string;
+      readonly wrapper?: string;
+      readonly close?: string;
+      readonly effect?: string;
+    }) =>
+      [
+        `export function SectionSheet({ ${opts.params ?? "visible, onClose, opener"} }: Q) {`,
+        `  const reduceMotion = ${hook};`,
+        "  const transition = modalTransition({ reduce: reduceMotion });",
+        opts.effect ?? effect,
+        "  return (",
+        `    <Modal visible={visible} transparent animationType=${opts.type ?? "{transition.animationType}"} onRequestClose={onClose}>`,
+        "      {/* the dismiss backdrop and the panel fade as one */}",
+        `      <${opts.wrapper ?? "Animated.View entering={enteringFor(transition.enter)}"} style={s.wrap}>`,
+        '        <Pressable accessibilityRole="button" onPress={onClose} style={s.backdrop} />',
+        "        <View accessibilityViewIsModal style={[s.sheet, { paddingBottom: b }]} />",
+        `      </${(opts.wrapper ?? "Animated.View").split(" ")[0]}>`,
+        opts.close ?? "",
+        "    </Modal>",
+        "  );",
+        "}",
+      ].join("\n");
+    const panel = (
+      sheetSource: string,
+      stripSource = strip("filled, onPress, ref", "ref={ref} onPress={onPress}"),
+    ) => `${stripSource}\n${sheetSource}`;
+    const dialogue = (sheetRef = "stripRef") =>
+      [
+        "const stripRef = useRef<View>(null);",
+        "<SectionStrip ref={stripRef} filled={model.filled} onPress={() => setSheetOpen(true)} />",
+        `<SectionSheet visible={sheetOpen} opener={${sheetRef}} onClose={() => setSheetOpen(false)} />`,
+      ].join("\n");
+
+    // Non-vacuity: the whole wiring passes…
+    expect(sheetFindings(panel(sheet({})), dialogue())).toEqual([]);
+    // …and the sheet as it stood before INT-338 fails on every half of it.
+    const before = panel(
+      sheet({
+        params: "visible, onClose",
+        type: "{modalAnimation(reduceMotion)}",
+        wrapper: "View",
+        effect: "",
+      }).replace(/\n\s*const transition = modalTransition\([^)]*\);/, ""),
+      strip("filled, onPress", "onPress={onPress}"),
+    );
+    expect(
+      sheetFindings(before, dialogue().replace(/ ref=\{stripRef\}| opener=\{stripRef\}/g, "")),
+    ).toEqual([
+      "animationType is not modalTransition's",
+      "the content is not one element entering with modalTransition's fade",
+      "focus is not returned to the opener",
+      "the strip does not hand over its view",
+      "the dialogue does not give the sheet the strip as its opener",
+    ]);
+    // Each near miss is caught on its own, by name.
+    const one = (source: string, dialogueSource = dialogue()) =>
+      sheetFindings(source, dialogueSource);
+    expect(one(panel(sheet({ type: '"none"' })))).toEqual([
+      "animationType is not modalTransition's",
+    ]);
+    expect(one(panel(sheet({ type: "{modalAnimation(reduceMotion)}" })))).toEqual([
+      "animationType is not modalTransition's",
+    ]);
+    expect(
+      one(
+        panel(
+          sheet({
+            wrapper: "Animated.View entering={enteringFor(transition.enter)} exiting={fadeOut}",
+          }),
+        ),
+      ),
+    ).toEqual(["an exit animation"]);
+    expect(
+      one(
+        panel(sheet({ close: "      <Animated.View entering={enteringFor(transition.enter)} />" })),
+      ),
+    ).toEqual([
+      "the content is not one element entering with modalTransition's fade",
+      "a second entrance",
+    ]);
+    expect(one(panel(sheet({ wrapper: "Animated.View entering={enteringFor(fade)}" })))).toEqual([
+      "the content is not one element entering with modalTransition's fade",
+    ]);
+    expect(
+      one(
+        panel(
+          sheet({
+            effect: effect
+              .replace(
+                "AccessibilityInfo.send",
+                "requestAnimationFrame(() => AccessibilityInfo.send",
+              )
+              .replace('"focus");', '"focus"));'),
+          }),
+        ),
+      ),
+    ).toEqual(["the focus return waits"]);
+    expect(one(panel(sheet({ effect: effect.replace("[visible, opener]", "[opener]") })))).toEqual([
+      "focus is not returned to the opener",
+    ]);
+    expect(one(panel(sheet({})), dialogue("otherRef"))).toEqual([
+      "the dialogue does not give the sheet the strip as its opener",
+    ]);
+    // A Modal elsewhere that names its own type is caught; a comment is not.
+    expect(modalTypeFindings('<Modal visible={v} animationType="fade" />')).toEqual([
+      "animationType is not modalTransition's",
+    ]);
+    expect(modalTypeFindings("// <Modal animationType={x} />\nconst y = 1;")).toEqual([]);
+
+    // Every RN Modal in the app takes its presentation from the policy, and
+    // the scan finds the section sheet among them.
+    const modals = APP_SOURCE.filter((f) => /<Modal\b/.test(code(f.source)));
+    expect(modals.map((f) => f.name)).toContain(PANEL);
+    expect(
+      modals.flatMap((f) => modalTypeFindings(f.source).map((why) => `${f.name}: ${why}`)),
+    ).toEqual([]);
+    expect(sheetFindings(file(PANEL), file(DIALOGUE))).toEqual([]);
   });
 });

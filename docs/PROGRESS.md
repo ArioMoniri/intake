@@ -1,5 +1,29 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T14:45:00+03:00 · INT-338 · partial — device step pending (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #537):
+  - *"the modal fade is measured on both platforms and owned at ≤ 120 ms if the platform exceeds it; privacy and RED closes are 0 ms, verified on device; DEFERRED_CLINICIAN never closes a modal"*
+  - *"focus returns to the opener; BK18 stays green"*
+- Plan:
+  - The fade was measured from the react-native 0.86.3 source. iOS `"fade"` is a UIKit cross-dissolve whose length nothing sets. Android runs `config_shortAnimTime` (200 ms in AOSP) and rebuilds the dialog if the type changes while it shows. Neither fits 120 ms, so the app owns the sheet.
+  - Pure `modalTransition({ reduce })`: `animationType` is always `"none"` (built on the kept `modalAnimation`), the enter is `enterFor`'s one fade, and `exitMs` is 0. `sheetClose(reason)` is instant for user, privacy and RED, at every setting.
+  - A separate pure `closesSheetOnRed` keyed on INT-333's `yields.closeModals`, which is pinned as a RED surface file.
+  - `SectionSheet`: the backdrop and the panel are ONE Reanimated wrapper with `entering` and no exit. Focus goes back to the `SectionStrip` opener in an effect keyed on `visible`.
+  - Stacked on #696.
+- Tests added (with the near-miss negative for the safety rule):
+  - `transitions.test.ts`: the 5 MOTION-9 titles, plus a premise test that reads the react-native sources.
+    - Near misses: the pre-INT-338 `"fade"` type has an unbounded privacy close; every register the patient sees closes the sheet where DEFERRED_CLINICIAN does not (all 144 RED rows, settings included).
+  - `e2e/motion.spec.ts` › "SectionSheet takes its transition from modalTransition and restores focus to its opener": detectors proven on samples (the old shape fails on all five findings; 8 single near misses), then every `<Modal>` in src and the real wiring.
+  - RED: the transitions suite fails to load on the missing module, plus 2 failed | 11 passed. GREEN: 26/26; whole mobile suite 113 files / 2282 tests. Mutants: 12 of 12 killed.
+- Result: `make check-ts` exit 0 (mobile lint 0 errors), `make check-i18n` exit 0, `tests/backlog` + `tests/smoke` 63 passed, prettier clean, and `no_placeholders` after staging OK. `make check` was not run whole (check-integration is CI-only; no Python change). `make safety` and `make security` were not run (no protocol, rule or security surface).
+- Invariants touched and still passing: 9 (a RED close waits on nothing), 17, 8 (the `a11y/motion.test.ts` primitives kept), 5 (no copy), 21 (untouched).
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 is still Proposed; its "configured, never rebuilt" line is met by configuring the Modal to `"none"`, and the evidence notes the Modal case for ratification.
+- Blocked on: the owner must name the two reference devices and record, on release builds, the enter (≤ 120 ms), the 0 ms close via the close control, the backdrop and Android back, and focus landing on the strip. This is the pending device section in `docs/evidence/INT-338.md`. No HB id is minted. The row stays `todo` until then (the INT-330 precedent).
+- Next:
+  - Open the PR `INT-338: Motion: section sheet — measured fade budget, instant privacy and RED closes` (Closes #537, Sec-Row mobile, base `int-333-red-motion-contract`).
+  - Found: the "gizle" control and the third-party auto-hide (02 §5.2a rule 6) have no backlog row. Reported to the coordinator; no id minted.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T14:00:00+03:00 · INT-333 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #532):
   - *"every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"*
