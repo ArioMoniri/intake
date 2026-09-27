@@ -286,7 +286,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # finding, GitHub #673); grows only with a stated reason.
     # ... + INT-382 (a suppress_slot in any layer that removes a slot a
     # red-flag rule reads is refused; H-1 of the PR #628 verification).
-    assert len(ids) == 325, f"expected 175 blueprint + 150 added issues, got {len(ids)}"
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
+    # stated reason.
+    assert len(ids) == 326, f"expected 175 blueprint + 151 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

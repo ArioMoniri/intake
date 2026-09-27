@@ -2924,3 +2924,36 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): the coordinator must file the GitHub issue for INT-257 (none exists) before the PR can say `Closes #n`. No HB row.
 - Next: file the issue, then open the PR `INT-257: the openEHR OPT carries occurrences and validates against the OPT 1.4 schema` (Sec-Row clinical-core) and watch `check-integration` for the 201.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T16:30:00Z · INT-415 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-415): a typed, versioned delivery-profile table maps each delivery context to ElevenLabs voice_settings plus the pinned model id, server-side only, with the profile id in the clip cache key and RED/instrument the most stable with no style; only scripted catalogue text is sent (INT-326 guards unchanged), the normaliser-off request and invariant 22 stay enforced; docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr controls; unit tests cover the table and prove the request body carries voice_settings.
+- Plan:
+  - `voice_clips.delivery` holds the table beside the gateway.
+  - `TtsGateway.synthesise` takes a required profile, and the ElevenLabs body carries `voice_settings`.
+  - The offline build reads each row's context from its subject, with the profile key in the object key.
+  - The dev route gains `delivery_context`, refuses red, pins RED and instrument rows, and keys its cache by profile.
+  - The mobile client sends `delivery_context`, sharing `deliveryContext.ts` with INT-414.
+  - The guide is written.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_delivery_profiles.py`.
+  - Extended: `test_elevenlabs_clipgen.py`, `test_clip_cache_builder.py`, `test_clip_manifest.py`, `tests/api/test_dev_voice_george.py`, `georgeClip.test.ts`.
+  - Near misses:
+    - labels close to a context (`Red`, `routine `) are refused;
+    - the vendor-range edges are admitted;
+    - `rfx.foo` and `rf` stay routine;
+    - an unpinned text is served in any context but red.
+  - RED run: collection errors (module absent) and 4 mobile failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9153 passed; every coverage floor met; voice-clips 99.73 %).
+  - `make check-ts` exit 0 (mobile 2264 passed).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, prettier.
+  - `check-integration` is CI-only.
+  - `make safety` and `make security` are in the evidence file.
+- Invariants touched and still passing: 3, 6 (the text is never echoed), 10, 13, 14 (the key stays env-only), 17, 19, 20 (no claims), 21 (RED never on demand), 22.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-028 amendment note (no decision changed).
+  - The `cloud-clipgen` threat row is updated.
+  - No new metric.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
+- Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE

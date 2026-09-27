@@ -20,6 +20,7 @@ import * as FileSystem from "expo-file-system/legacy";
 
 import { buildApiBase } from "../auth/expoApiBase";
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
+import type { DeliveryContext } from "./deliveryContext";
 import {
   fetchGeorgeClip,
   georgePreferringSynth,
@@ -57,14 +58,16 @@ function createGeorgeSource(): GeorgeGenerator | null {
     }
     return baseP;
   };
-  return async (text: ScriptedTr): Promise<Uint8Array> => {
+  return async (text: ScriptedTr, context?: DeliveryContext): Promise<Uint8Array> => {
     const base = await resolveBase();
     if (base === null) {
       baseP = null; // a later turn re-probes rather than staying muted
       throw new Error("george_unavailable");
     }
     try {
-      return await fetchGeorgeClip(base, text);
+      // INT-415: the utterance's delivery context rides along; the server maps
+      // it to its own profile (the device holds no voice setting)
+      return await fetchGeorgeClip(base, text, { context });
     } catch (error) {
       baseP = null; // degrade this turn to the self-hosted lane, re-probe next
       throw error;

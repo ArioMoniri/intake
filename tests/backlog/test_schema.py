@@ -136,7 +136,9 @@ def test_ids_unique_and_well_formed() -> None:
     # locale; INT-386's finding, GitHub #673).
     # + INT-382 (the compiler refuses a suppress_slot in any layer that removes
     # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
-    assert len(ids) == 325
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide; owner request, GitHub #706).
+    assert len(ids) == 326
     import re
 
     for i in ids:
