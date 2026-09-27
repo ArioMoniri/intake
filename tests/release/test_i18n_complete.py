@@ -206,6 +206,12 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "kiosk.lock.body",
         "kiosk.pin.hint",
         "shares.issue.recipient.hint",
+        # INT-370 (INT-354 slice S3, int-demo 148a7dbd): the visits-calendar
+        # day hint, written before this gate existed, in the same "…için iki
+        # kez dokunun." form as every sibling a11y hint above. Recorded, not
+        # rewritten, for the same reason (build-source dea9bb8a recorded it
+        # first). Awaiting clinical-reviewer register decision.
+        "a11y.visits.dayHint",
     }
 )
 

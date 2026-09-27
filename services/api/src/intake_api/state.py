@@ -13,6 +13,8 @@ from intake_platform.egress import TransferRecord
 from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
+from intake_platform.previsit_output import RecipientRegistry, load_recipients
+from intake_platform.tokenization import Tokenizer
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.age_context import AgeContextSource, NoAgeRecordSource
@@ -31,6 +33,18 @@ __all__ = ["ApiState", "State", "get_state"]
 
 def _catalog_from_settings(settings: ApiSettings) -> ConsentTextCatalog:
     return ConsentTextCatalog(settings.legal_root)
+
+
+def _tokenizer_from_settings(settings: ApiSettings) -> Tokenizer | None:
+    """The Tokenizer the previsit-output read-back resolves a hospital patient
+    number with. ``None`` when no key is configured, which makes that route
+    answer 503 rather than fall back to anything (invariant 14)."""
+    if settings.tokenization_key is None:
+        return None
+    return Tokenizer(
+        keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
+        active_key_id=settings.tokenization_key_id,
+    )
 
 
 @dataclass
@@ -75,14 +89,33 @@ class ApiState:
     # INT-037: the files/06 §7 fixed strings the DSAR export document renders
     # from. An absent file is a fail-closed export, never a default string.
     legal_strings: LegalStringsCatalog = field(init=False)
+    # INT-317: the Tokenizer the previsit-output read-back turns a hospital
+    # patient number into a pseudonym with. Built from settings so it is
+    # present whether or not the OTP tier is wired — they share the key but
+    # not the lifecycle. None = that route answers 503 (fail closed).
+    tokenizer: Tokenizer | None = field(init=False, default=None)
     # INT-134: the loaded branch taxonomy, lazy so the load failure surfaces
     # as a per-request 503 (taxonomy_unconfigured), never a startup crash.
     _taxonomy: LoadedTaxonomy | None = field(init=False, default=None)
     _taxonomy_loaded: bool = field(init=False, default=False)
+    # The approved previsit-output readers, lazy for the same reason the
+    # taxonomy is: a broken or absent registry must surface as a per-request
+    # 503, never as a startup crash that takes the whole API down with it.
+    _recipients: RecipientRegistry | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         self.consent_catalog = _catalog_from_settings(self.settings)
         self.legal_strings = LegalStringsCatalog(self.settings.legal_strings_path)
+        self.tokenizer = _tokenizer_from_settings(self.settings)
+
+    def previsit_output_recipients(self) -> RecipientRegistry:
+        """The approved readers, loaded once. Raises
+        ``RecipientRegistryError`` on an absent or malformed file — the route
+        turns that into the same 503 as "no row for this tenant", because
+        serving on an unread registry is the thing this must not do."""
+        if self._recipients is None:
+            self._recipients = load_recipients(self.settings.previsit_output_recipients_path)
+        return self._recipients
 
     def taxonomy(self) -> LoadedTaxonomy | None:
         """The validated taxonomy + version, loaded once from

@@ -79,8 +79,47 @@ body {
   border-top-color: var(--unknown);
 }
 
-.tile[data-tile="models"] {
+.tile[data-tile="models"],
+.tile[data-tile="probe_matrix"],
+.tile[data-tile="dep_components"] {
   grid-column: 1 / -1;
+}
+
+/* INT-181 — the overview's bands and the link between console pages. */
+.console-nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.console-nav a {
+  color: var(--muted);
+}
+
+.console-nav [aria-current="page"] {
+  font-weight: 650;
+}
+
+.band {
+  margin-top: 24px;
+}
+
+.band-head {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.stale,
+[data-stale="true"] td {
+  color: var(--muted);
+}
+
+[data-condition="met"],
+[data-overspent="true"] {
+  color: var(--bad);
+  font-weight: 600;
 }
 
 .tile-head {
@@ -182,6 +221,7 @@ code {
 }
 
 [data-state="attention"],
+[data-state="degraded"],
 [data-state="no_result"],
 [data-state="skipped"],
 [data-state="cancelled"] {

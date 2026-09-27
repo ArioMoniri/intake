@@ -68,6 +68,7 @@ from intake_api.admin.models_source import (
     run_benchmark,
 )
 from intake_api.admin.ops_console import load_ops_console
+from intake_api.admin.reliability_console import load_reliability_console
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
 from intake_api.errors import (
@@ -229,6 +230,15 @@ async def _ops(
     return await run_in_threadpool(load_ops_console, datetime.now(UTC))
 
 
+async def _reliability(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    # INT-181. The SLO files, Prometheus, the registry and the probe sweep,
+    # server-side; every query derives from committed files and nothing in the
+    # request reaches one (files/08 §0b F1). Synchronous httpx, off the loop.
+    return await run_in_threadpool(load_reliability_console, datetime.now(UTC))
+
+
 #: The closed body shape of a benchmark trigger. Anything else is refused
 #: rather than ignored: invariant 6 says no patient data reaches this surface,
 #: and a field the server silently drops is a field nobody notices carrying
@@ -372,6 +382,7 @@ _HANDLERS: dict[str, Handler] = {
     "admin.actions.read": _actions,
     "admin.models.read": _models,
     "admin.ops.read": _ops,
+    "admin.reliability.read": _reliability,
     "admin.models.benchmark": _models_benchmark,
     "admin.break_glass.open": _break_glass_open,
     "admin.break_glass.brief.read": _break_glass_brief,
