@@ -2808,3 +2808,20 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — where does continuous delivery run (a cluster with Argo CD and Rollouts), or is `deploy.sh` the release path, in which case rollback becomes a gated redeploy? Nearest row HB-I13; a CD-tier row is the coordinator's to allocate (blockers.md "INT-187").
 - Next: PR `INT-187: admin CI/CD & releases module — runs, gates, releases, deploy state and change freeze` (Closes #138, Sec-Row cicd), unmerged for review.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T12:40:00+03:00 · INT-179 · done (PR open, not merged)
+- Goal: close out the row. Acceptance verbatim: *"one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"*. PR #200 merged on 27 Aug and closed #201, the only copy of the issue, but the row stayed `doing`. INT-396 (PR #661, merged at `2f75900f` while this ran) flipped it to `done` on closure alone. This close-out supplies the behavioural audit.
+- Plan: audit each clause against main `0880cc88`, with a file and a test for each. Read "fixture data" per invariant 17: the shipped app must not run on fixtures.
+- Tests added: none, since the close-out adds no code. Five mutants (send, scope filter, resume, progress, a seed import into review) were each killed by the clause's own tests.
+- Result: 11 of 11 clauses met; nothing built, nothing held.
+  - `make check-ts` green (mobile 2260/2260). tests/backlog, tests/mobile and tests/release: 105 passed.
+  - no_placeholders passed after staging; evidence_check passed.
+  - `make check` was not run whole (no Python change; check-integration runs in CI only).
+- Invariants touched and still passing: 2, 5 and 17 were read only; nothing changed.
+- Decisions / ADRs / `00_STATE.md` rows: none. The row's `done` + `evidence:` came from INT-396. After rebasing onto `2f75900f`, this PR's copy of that flip was identical, so issues.yaml and files/11 carry no diff.
+- Blocked on: nothing blocks the issue. Recorded outside the acceptance in docs/evidence/INT-179.md:
+  - audit F11: the typed intake asks unsigned neutral packs until HB-C1;
+  - audit F30: the seed module is still bundled;
+  - `TODAY_FIXTURE` pins Vizitlerim's "today" to 2026-08-27 in release builds, and no row owns it.
+- Next: PR `INT-179: mobile flow shells — close-out` (Closes #201, Sec-Row intake-typed), left unmerged.
+- LOOP_STATUS: CONTINUE
