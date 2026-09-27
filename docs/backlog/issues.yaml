@@ -1466,9 +1466,12 @@
   # and no embedding exists anywhere, and "embeddings scoped by patient" is
   # not met as written. The ask is in docs/backlog/blockers.md; the HB id is
   # the coordinator's to allocate. See docs/evidence/INT-123.md.
-  status: todo
+  # RESCOPED 27 Sep 2026 (PR #670): the mechanism closes INT-123; the model
+  # choice is INT-402 (owner) and consent-withdrawal handling is INT-403.
+  status: done
+  evidence: docs/evidence/INT-123.md
   acceptance:
-    - "embeddings scoped by patient+consent; retrieval cited into notes with provenance"
+    - "the record index is scoped by patient and consent (a RESTRICTIVE patient RLS policy, FORCE, confirmed-only indexing, the documents consent refusal, erasure on every deletion path) and retrieval cites into notes with provenance; with no embedding model registered it fails closed (EmbeddingModelUnregistered) — the model is INT-402"
   tests: [tests/records/test_vector_rls.py]
   sec_row: "records"
 - id: INT-124
@@ -5901,3 +5904,25 @@
   tests: [tests/legal/test_dsar_flows.py, tests/integration/test_session_erasure.py, tests/data/test_session_delete_contract.py]
   legal: "KVKK-7,KVKK-11,DEST-2017"
   sec_row: "data-at-rest"
+- id: INT-402
+  epic: E07-records
+  phase: P1
+  title: "Record-embedding model for the patient record index (files/03 §4.9.1)"
+  depends_on: [INT-123]
+  labels: [area:records, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner adds an open-weights, commercially usable, in-country self-hostable record-embedding model row to files/03 §4.9.1; it is pinned model_id@revision + sha256 with licence_verified_at and a probe; an adapter binds records/embedding.py with a recorded-vector contract test; indexing starts, and an audited backfill covers already-confirmed items"
+  tests: [tests/records/test_record_index.py]
+  sec_row: "records"
+- id: INT-403
+  epic: E02-data
+  phase: P1
+  title: "What withdrawing documents consent does to the patient's record vectors"
+  depends_on: [INT-123]
+  labels: [area:data, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "the owner (with counsel if needed) records whether withdrawal deletes the vectors or keeps them under the record's retention class (files/06); deletion is then done in the withdrawal transaction, audited by id and tested, or the inventory annotation and consent text state the retention"
+  tests: [tests/records/test_record_index.py]
+  sec_row: "consent"

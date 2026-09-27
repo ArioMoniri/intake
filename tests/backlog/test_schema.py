@@ -75,6 +75,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-402..403 (split out of INT-123: the embedding-model choice and
+    # the consent-withdrawal handling of record vectors; both the owner's).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -102,7 +104,7 @@ def test_ids_unique_and_well_formed() -> None:
     # on main's check-integration, fixed and closed in the same PR).
     # + INT-393 (a patient who issued a Doctor Link could not be erased; found
     # by INT-392, fixed and closed in the same PR).
-    assert len(ids) == 305
+    assert len(ids) == 307
     import re
 
     for i in ids:

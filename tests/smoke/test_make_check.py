@@ -255,7 +255,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # deleted again, found on check-integration); grows only with a stated reason.
     # deleted again, found on check-integration) + INT-393 (a patient who issued
     # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
-    assert len(ids) == 305, f"expected 175 blueprint + 130 added issues, got {len(ids)}"
+    assert len(ids) == 307, f"expected 175 blueprint + 132 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
