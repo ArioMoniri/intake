@@ -71,6 +71,7 @@ from intake_api.admin.reliability_console import load_reliability_console
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
 from intake_api.errors import (
+    InsufficientUserAuthentication,
     admin_refused,
     benchmark_refused,
     break_glass_refused,
@@ -414,9 +415,16 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
             caller = resolve_caller(request, wiring)
         except HTTPException as refusal:
             # a request refused before the caller is known is still an admin
-            # action, and is exactly the one an investigator wants to see
+            # action, and is exactly the one an investigator wants to see.
+            # A second-factor refusal (INT-365) comes from a token whose
+            # signature verified, so its id-shaped subject is known and the
+            # row names it. An OTP login to a patient-content account, which
+            # is what a phished TOTP produces, is then attributed, not anonymous.
+            actor = _UNRESOLVED_ACTOR
+            if isinstance(refusal, InsufficientUserAuthentication) and refusal.subject:
+                actor = refusal.subject
             async with AdminActionRecord(
-                sink, actor=_UNRESOLVED_ACTOR, action=route.audit_action, detail=base
+                sink, actor=actor, action=route.audit_action, detail=base
             ) as record:
                 record.mark_failed()
             raise refusal

@@ -1,0 +1,55 @@
+# Clinical READ sources — the on-premises hospital systems this deployment may
+# pull a patient's own record back out of. The push side is destinations.yaml;
+# this file is its mirror, and it ships in the same state and for the same
+# reason: zero rows is the fail-closed state, not a gap.
+#
+# The schema and the guard are intake_connectors.sources. A row here is
+# reachable only through LanSourcePolicy, which accepts a private IPv4 literal
+# from this file and refuses every hostname — the opposite of the vendor
+# allow-list, which accepts hostnames and refuses every literal. The two reach
+# disjoint sets of destinations on purpose; neither is a way around the other.
+#
+# WHAT REGISTERING THE ACIBADEM SOURCE STILL NEEDS. The adapter, the guard,
+# the identity resolution and the login are built and tested against the
+# measured upstream schema. Three values are missing, and each is a decision a
+# named human takes rather than a blank an agent may fill:
+#
+#   1. `consent_scope` — reading a patient's record out of a hospital system
+#      is a processing purpose, and the INT-038 registry is closed (files/06
+#      §2). No member of it describes this read. Registering a new purpose
+#      needs its Turkish açık rıza text in docs/legal/ and a counsel
+#      signature, which is HUMAN_BLOCKERS HB-L27 — while that is open, NO new
+#      consent can be granted at all, so this field cannot honestly be filled.
+#      The schema validates it against the closed registry, so a row naming an
+#      invented purpose does not load.
+#   2. `approval_ref` — the recorded tier-3 approval that registers the
+#      endpoint (files/10 §8), as destinations.yaml requires for a push.
+#   3. `plaintext_approval` — the measured upstream serves TC Kimlik numbers,
+#      mobile numbers and patient names over unencrypted HTTP. The schema
+#      refuses `protocol: http` without a recorded human decision, because
+#      that is a risk someone accepts by name and not a schema default.
+#
+# `dpa_ref` is the fourth, and it is the same signed-agreement requirement the
+# push registry carries.
+#
+# The row, once those exist, is:
+#
+#   - source_id: acibadem-appointments-lan
+#     tenant_id: <the tenant this hospital is registered as>
+#     adapter_id: acibadem-appointments
+#     address: 10.150.0.42
+#     port: 8091
+#     protocol: http
+#     base_path: ""
+#     consent_scope: <a registered INT-038 purpose>
+#     credential_ref: connectors/<tenant>/acibadem-appointments-lan/api-key
+#     dpa_ref: <the signed agreement>
+#     approval_ref: <the recorded tier-3 approval>
+#     plaintext_approval: <the recorded plaintext decision>
+#
+# The credential itself is never here. `credential_ref` is an OpenBao path;
+# the deployment that reads it from the environment instead injects
+# EnvCredentialResolver({ref: {"api_key": "ACIBADEM_API_KEY"}}), which has no
+# in-code default and treats an empty variable as a missing credential.
+version: 1
+sources: []
