@@ -5798,4 +5798,24 @@
   acceptance:
     - "the row-9 model is served self-hosted on the target GPU with the pinned `model_id@revision + sha256`; a live smoke extracts a synthetic lab report end to end, with per-stage latency recorded in docs/evidence/INT-381.md, on the extraction path and off the spoken-loop critical path"
   tests: [tests/records/test_lab_extraction_live.py]
+- id: INT-385
+  epic: E07-records
+  phase: P1
+  title: "Record quantities render with the Turkish decimal comma as one number+unit atom"
+  # GitHub #635. Found by INT-124 (PR #634): INT-121's render_quantity wrote a
+  # full stop for every reader, and a Turkish reader takes 12.500 as 12500.
+  # Delivered on the records render path and the app's quantity helper. The
+  # voice-runtime note, patient summary and typed rail, and the clinical-schemas
+  # document mapper, keep their own private measure renderers (INT-096's recorded
+  # defect); they are not record quantities and are left for the issue that
+  # unifies them (docs/evidence/INT-385.md, "Not in scope").
+  depends_on: [INT-121]
+  labels: [area:records, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-385.md
+  acceptance:
+    - "every clinical quantity shown to a patient or clinician renders with the locale's decimal separator (tr: comma), `useGrouping:false`, and number + unit as one non-breaking atom; the mobile confirm cards (INT-138) and the server renderer agree"
+    - "a round-trip test: extract -> render -> re-parse returns the same value for 12.5, 12500, 0.05 and 1,5 in tr and en; a near-miss that renders `12.500` for 12.5 fails"
+    - "no numeral reaches TTS (the compiler expansion path is untouched)"
+  tests: [tests/records/test_quantity_render.py, apps/mobile/src/lib/records/extraction.test.ts]
   sec_row: "records"

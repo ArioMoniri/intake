@@ -93,7 +93,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-380 (INT-121 clause 3, the LOINC+unit score on a named corpus,
     # awaiting-human) + INT-381 (INT-124's on-hardware latency and live smoke,
     # gpu), both split out by INT-124's PR so each delivered row can close.
-    assert len(ids) == 301
+    # + INT-385 (record quantities render with the locale's decimal separator;
+    # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
+    assert len(ids) == 302
     import re
 
     for i in ids:

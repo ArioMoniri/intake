@@ -247,7 +247,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
     # (INT-124's on-hardware latency and live smoke, gpu), both split out by
     # INT-124's PR; grows only with a stated reason.
-    assert len(ids) == 301, f"expected 175 blueprint + 126 added issues, got {len(ids)}"
+    # + INT-385 (record quantities render with the locale's decimal separator,
+    # found by INT-124's PR as GitHub #635); grows only with a stated reason.
+    assert len(ids) == 302, f"expected 175 blueprint + 127 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

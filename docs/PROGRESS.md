@@ -61,6 +61,31 @@
 - Next: merge promptly (this PR moves the three pins, now 299 after merging main twice: INT-370/317, then INT-352's INT-376); INT-381 once a GPU host exists.
 - LOOP_STATUS: CONTINUE
 
+### 2026-09-27T05:00:00Z · INT-385 · delivered (PR open)
+- Goal: acceptance verbatim (GitHub #635):
+  - *"every clinical quantity shown to a patient or clinician renders with the locale's decimal separator (tr: comma), `useGrouping:false`, and number + unit as one non-breaking atom; the mobile confirm cards (INT-138) and the server renderer agree"*
+  - *"a round-trip test: extract -> render -> re-parse returns the same value for 12.5, 12500, 0.05 and 1,5 in tr and en; a near-miss that renders `12.500` for 12.5 fails"*
+  - *"no numeral reaches TTS (the compiler expansion path is untouched)"*
+- Plan:
+  - `render_quantity`/`quantity_atom` take a keyword-only `locale` with no default. They write through the closed `DECIMAL_SEPARATORS` table (tr `,`, en `.`), and an unknown locale is refused, not guessed.
+  - The stored summary is written for `SUMMARY_LOCALE` (`tr`), because its two readers are the confirm card and the note's `imported_objective`.
+  - The app's `formatQuantity` writes the value's own digits instead of capping at one, which had written 0.05 as `0,1`.
+  - One fixture table, `tests/fixtures/records/quantity_render.json`, is read by both sides.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (52): round trips for 7 printed forms × tr/en through both the resolver and a locale reader; near misses `12.500` and INT-121's `12.5` in tr, each with a passing control; no grouping; U+00A0; refusal without echo; the shared table; two import-boundary tests off the speech path.
+  - Mobile `extraction.test.ts` (+29) and `format.test.ts` (+1).
+  - RED: Python ImportError at collection plus 1 TypeError in `test_extraction_eval.py`; vitest 4 failed (`0,1` for 0.05). An INT-121-behaviour mutant is killed by 25 tests.
+- Result:
+  - `make check-py`: ruff and format clean, `mypy --strict` clean (451 files), 7555 passed and 0 failed at 95.84 %. The 4 `test_deid_ner` tests passed once the de-id model cache was linked into the fresh worktree.
+  - `pnpm -r lint/typecheck/test` green (mobile 2173).
+  - `make check-i18n`: 30 passed.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check` and the sec-row gate: OK.
+  - `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 6 (the refusal does not echo), 8 (tests only added), 22 (the display half, for record quantities and the app helper; the TTS half is untouched).
+- Decisions: none new. Recorded, not fixed: four private measure renderers still write a full stop (the typed rail, note measures, patient-summary measures and the document mapper). This is INT-096's finding, and it needs its own issue id. Pins 297 → 298.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #635). Merge after #634.
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:
