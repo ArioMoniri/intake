@@ -30,6 +30,7 @@ import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/compon
 import { formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { deviceClock, todayIso } from "@/lib/clock";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
 import {
   ALLOWED_DOCUMENT_TYPES,
@@ -139,8 +140,8 @@ type Phase = "loading" | "ready" | "offline";
 function OtpRecords() {
   const router = useRouter();
   const { visits } = useSession();
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const pick = pickUploadVisit(visits, todayIso);
+  // the day Vizitlerim splits on: Istanbul's, not UTC's (INT-409)
+  const pick = pickUploadVisit(visits, todayIso(deviceClock));
 
   const [chosen, setChosen] = useState<VisitFixture | null>(null);
   const selected = chosen ?? (pick.kind === "one" ? pick.visit : null);
