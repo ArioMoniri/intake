@@ -267,7 +267,12 @@ def test_backlog_parses_and_is_complete() -> None:
     # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
     # + INT-390 (Keycloak upgrade and realm import, found by INT-378); grows
     # only with a stated reason.
-    assert len(ids) == 314, f"expected 175 blueprint + 139 added issues, got {len(ids)}"
+    # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
+    # grows only with a stated reason.
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
+    # in step with rows, found by INT-396, GitHub #675); grows only with a
+    # stated reason.
+    assert len(ids) == 315, f"expected 175 blueprint + 140 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

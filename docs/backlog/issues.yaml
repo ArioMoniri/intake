@@ -6154,3 +6154,19 @@
     - "the owner (with counsel if needed) records whether withdrawal deletes the vectors or keeps them under the record's retention class (files/06); deletion is then done in the withdrawal transaction, audited by id and tested, or the inventory annotation and consent text state the retention"
   tests: [tests/records/test_record_index.py]
   sec_row: "consent"
+- id: INT-405
+  epic: E00-governance
+  phase: P1
+  title: "The backlog sync pages past 500 issues and keeps issue state in step with rows"
+  # GitHub #675. Found by INT-396 (docs/evidence/INT-396.md, "For the
+  # coordinator" 4 and the 66 done rows whose owned issue was open):
+  # fetch_existing listed at most 500 issues, and apply_plan never set state.
+  depends_on: [INT-004, INT-396]
+  labels: [area:platform]
+  status: done
+  evidence: docs/evidence/INT-405.md
+  acceptance:
+    - "fetch_existing pages until exhausted (a test with a fake paginated client over 1,200 issues, and a near-miss where page 3 is dropped)"
+    - "the sync closes the owned issue of a done row (state_reason completed) and reopens it for a row moved back from done; dry-run lists these actions; the live run is the operator's (make backlog-sync or the documented command)"
+    - "duplicates are never touched, only the owned issue per id (owned_issue_numbers())"
+  tests: [tests/backlog/test_sync_dryrun.py]

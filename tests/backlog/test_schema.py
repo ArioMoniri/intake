@@ -117,7 +117,11 @@ def test_ids_unique_and_well_formed() -> None:
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
     # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
     # main never imported; found by INT-378, fixed and closed in the same PR).
-    assert len(ids) == 314
+    # + INT-396 (backlog rows reconciled with what merged, and the status
+    # consistency guard; GitHub #655, carried by its own PR).
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
+    # step with rows; found by INT-396, GitHub #675).
+    assert len(ids) == 315
     import re
 
     for i in ids:
