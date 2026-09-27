@@ -255,7 +255,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # deleted again, found on check-integration); grows only with a stated reason.
     # deleted again, found on check-integration) + INT-393 (a patient who issued
     # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
-    assert len(ids) == 305, f"expected 175 blueprint + 130 added issues, got {len(ids)}"
+    # + INT-391 (the console accepts every valid WebAuthn credential id, found
+    # by INT-378's PR as GitHub #646); grows only with a stated reason.
+    assert len(ids) == 306, f"expected 175 blueprint + 131 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

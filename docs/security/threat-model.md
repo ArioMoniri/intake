@@ -1635,6 +1635,18 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     console is read-only for `platform_owner`/`tenant_admin` until the owner acts; Grafana,
     Langfuse and Unleash stay manual steps; access tokens already issued live until their
     expiry (INT-365's session bounds).
+  - **Controls added by INT-391 (the credential id is WebAuthn's, not a generic id):**
+    `principal_from_claims` decodes `credential_id` instead of matching the 128-character id
+    shape. It admits exactly the ids WebAuthn Level 3 lets an authenticator mint: unpadded
+    base64url (§3), 16 to 1023 bytes once decoded (§4). The old shape refused a valid staff key
+    at random (an id starting with `-` or `_`, about 2 in 64, or longer than 96 bytes). It also
+    admitted strings that are no credential id (`/`, `.`, `:` or `@` inside, fewer than 16
+    bytes). A padded id, the standard alphabet, a dangling character and a second spelling of
+    the same bytes (pad bits set) are refused. Each credential therefore has one spelling, and
+    four-eyes' distinct-credential check, which compares strings, compares credentials. The
+    refusal is the generic 403 every malformed claim gets, audited as `admin:unresolved`; it
+    names the claim and never its value (inv 6). `aaguid` keeps its shape: the provider writes
+    UUID text, which that shape always admits.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1642,7 +1654,8 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `sec.break_glass_total` with alerts actually attached — land with INT-180…INT-192.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365).
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
+  the same file, with property tests over generated ids (INT-391).
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 

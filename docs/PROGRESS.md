@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #646):
+  - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
+  - *"property tests over generated ids, with near-misses (padding, a non-base64url character, 0 bytes, 1024 bytes)"*
+  - Found by INT-378 (PR #643): the generic 128-character id shape refused ids starting with `-` or `_` and ids over 96 bytes.
+- Plan:
+  - `principal_from_claims` decodes `credential_id`. It must be 16–1023 bytes (WebAuthn L3 §4), unpadded base64url (§3), and re-encode to the same string (RFC 4648 §3.5), so each credential has one spelling for four-eyes' string comparison.
+  - The refusal names the claim, never the value.
+  - `aaguid` is unchanged: the provider writes UUID text, which the old shape always admits.
+  - The fixture's credential ids become valid ids.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` §5/§5b: hypothesis property tests, the boundaries × `A`/`-`/`_`, and the API harness. Near misses: padding, 16 characters outside the alphabet, the standard alphabet, 0–15 and 1024+ bytes, a second spelling, a dangling character, non-strings, an absent claim.
+  - `tests/admin/test_oidc_verifier.py`: a signed 1023-byte id end to end.
+  - RED: 34 failed against `main`'s principal. GREEN: 60 passed. Mutants: 7 of 8 killed; the survivor is equivalent.
+- Result: `make check-py` exit 0. That covers ruff and format clean, `mypy --strict` over 472 files, and the whole tree at 8374 passed and 96.04 %, with every package lane at its floor. `tests/security`: 412 passed, with the 11 integration tests deselected. `no_placeholders` (after staging), `phi_scan`, `claims_scan`, `evidence_check` and sec-row linkage: OK. gitleaks 8.24.3: no leaks. `make check` was not run whole (check-integration is CI-only), and there was no TS change.
+- Invariants touched and still passing: 6 (the refusal carries no value; the logs, audit rows and responses are checked), 8 (tests only added), 14 (the security baseline: a valid staff key is no longer refused at random, and non-ids are no longer admitted), 17 (fixture values are valid ids, not placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none. docs/security/threat-model.md `admin-console` gains "Controls added by INT-391". Pins 302 → 303, and files/11 is regenerated.
+- Blocked on: nothing.
+- Next: PR `INT-391: the console accepts every valid WebAuthn credential id` (Closes #646, Sec-Row admin-console). #643's recorder loop and runbook §3 describe the old rule once both merge.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
   - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*
