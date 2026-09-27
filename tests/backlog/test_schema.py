@@ -78,10 +78,15 @@ def test_ids_unique_and_well_formed() -> None:
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
+    # + INT-370 (slice S3 of INT-354: the int-demo visits calendar and Geçmiş
+    # list, ported to main as its own one-issue PR).
+    # + INT-317 (previsit output store + hospital read-back: filed on int-demo
+    # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
+    # id is held by no other row on main or any remote branch).
     # + INT-380 (INT-121 clause 3, the LOINC+unit score on a named corpus,
     # awaiting-human) + INT-381 (INT-124's on-hardware latency and live smoke,
     # gpu), both split out by INT-124's PR so each delivered row can close.
-    assert len(ids) == 296
+    assert len(ids) == 298
     import re
 
     for i in ids:

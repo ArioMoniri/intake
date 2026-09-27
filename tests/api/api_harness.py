@@ -217,6 +217,12 @@ def build_harness(
     admin: Any = None,
     embed: Any = None,
     client_addr: tuple[str, int] | None = None,
+    # The previsit-output read-back (owner directive). Both default to the
+    # SHIPPED fail-closed state: no tokenization key means a patient number
+    # cannot be turned into the pseudonym that addresses a patient, and the
+    # committed registry has zero rows, so the route refuses every caller.
+    tokenization_key: str | None = None,
+    previsit_output_recipients: Path | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -242,6 +248,15 @@ def build_harness(
         # default: the pre-INT-210 state for the files/06 §7 fixed strings
         # too — everything that renders them fails closed (INT-037)
         dev_otp_peek=dev_otp_peek,
+        tokenization_key=tokenization_key,
+        previsit_output_recipients_path=(
+            previsit_output_recipients
+            if previsit_output_recipients is not None
+            else Path(__file__).resolve().parents[2]
+            / "infra"
+            / "previsit_output"
+            / "recipients.yaml"
+        ),
         legal_strings_path=(
             legal_strings
             if legal_strings is not None

@@ -232,10 +232,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
     # previsit routing); grows only with a stated reason.
     # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
+    # grows only with a stated reason.
+    # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
+    # previsit routing) + INT-317 (previsit output store + hospital read-back,
+    # filed on int-demo and carried to main by INT-354); grows only with a
+    # stated reason.
     # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
     # (INT-124's on-hardware latency and live smoke, gpu), both split out by
     # INT-124's PR; grows only with a stated reason.
-    assert len(ids) == 296, f"expected 175 blueprint + 121 added issues, got {len(ids)}"
+    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
