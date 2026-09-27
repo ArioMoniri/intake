@@ -44,7 +44,13 @@ describe("onboarding flow (02 §4: welcome → phone → otp)", () => {
     const lib = read(SRC, "lib", "auth", "phone.ts");
     expect(lib).toContain("OTP_LENGTH = 6");
     expect(otp).toContain("secureTextEntry");
-    expect(otp).toMatch(/maxLength=\{1\}/);
+    // INT-361 (SC 3.3.8): one digit per register is kept by the entry state,
+    // not by a field cap. The platform applies maxLength before onChangeText
+    // sees the text, so a cap of one cut every paste and the OS code autofill
+    // down to its first digit.
+    expect(otp).not.toMatch(/maxLength=/);
+    expect(otp).toContain("value={digit}");
+    expect(otp).toContain("enterOtp(digits, index, ");
   });
 
   it("phone entry states why the number is asked (02 §8.2) from tr keys", () => {

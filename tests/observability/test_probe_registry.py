@@ -27,6 +27,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 from intake_probes.app import create_app
+from intake_probes.gate import ProbeResultRecord
 from intake_probes.probes import (
     Failed,
     Ok,
@@ -45,6 +46,7 @@ from intake_probes.probes import (
 )
 from intake_probes.registry import ProbeId, Registry, load_registry
 from intake_probes.runner import (
+    SWEEP_INTERVAL_S,
     DevProbeConfig,
     ProbeStatus,
     build_dev_clients,
@@ -629,8 +631,51 @@ def test_run_probes_once_survives_a_raising_client() -> None:
 def test_probe_result_serialises_to_the_gate_wire_shape() -> None:
     registry = _registry(_entry(component="up", probe="redis_ping"))
     record = run_probes_once(registry, {"up": lambda: Ok("pong")})[0].to_json()
-    assert set(record) == {"component", "probe", "status", "latency_ms", "detail"}
+    assert set(record) == {"component", "probe", "status", "latency_ms", "detail", "checked_at"}
     assert record["status"] == "healthy"
+
+
+# --- INT-181: every result says WHEN it was taken ------------------------------------
+
+
+def test_every_result_is_stamped_with_the_instant_its_probe_started() -> None:
+    """The reliability console shows each probe's last result AND its age; an
+    age needs an instant the runner itself recorded, not the file's mtime."""
+    registry = _registry(
+        _entry(component="up", probe="redis_ping"),
+        _entry(component="unwired", probe="http_health"),
+    )
+    instants = iter(
+        [datetime(2026, 9, 27, 9, 0, 0, tzinfo=UTC), datetime(2026, 9, 27, 9, 0, 1, tzinfo=UTC)]
+    )
+    results = run_probes_once(registry, {"up": lambda: Ok("pong")}, now=lambda: next(instants))
+    wire = [result.to_json() for result in results]
+    assert [row["checked_at"] for row in wire] == ["2026-09-27T09:00:00Z", "2026-09-27T09:00:01Z"]
+
+
+def test_the_stamp_round_trips_through_the_gate_record() -> None:
+    registry = _registry(_entry(component="up", probe="redis_ping"))
+    at = datetime(2026, 9, 27, 9, 0, 0, tzinfo=UTC)
+    wire = run_probes_once(registry, {"up": lambda: Ok("pong")}, now=lambda: at)[0].to_json()
+    assert ProbeResultRecord.model_validate(wire).checked_at == at
+
+
+def test_a_results_file_written_before_the_stamp_still_parses_without_one() -> None:
+    # near-miss: the field is new, so an older sweep must read as "instant
+    # unknown" rather than fail the release gate that reads the same file
+    legacy = {
+        "component": "up",
+        "probe": "redis_ping",
+        "status": "healthy",
+        "latency_ms": 1.0,
+        "detail": "pong",
+    }
+    assert ProbeResultRecord.model_validate(legacy).checked_at is None
+
+
+def test_the_sweep_interval_is_one_named_constant() -> None:
+    # files/10 §6: "every 60 s" — the console derives staleness from this
+    assert SWEEP_INTERVAL_S == 60
 
 
 # --- dev client composition ---------------------------------------------------------
@@ -792,8 +837,17 @@ def test_runner_main_once_writes_the_wire_shape(tmp_path: Path) -> None:
     records = json.loads(out.read_text(encoding="utf-8"))
     assert {r["component"] for r in records} == {e.component for e in load_registry(REGISTRY_PATH)}
     for record in records:
-        assert set(record) == {"component", "probe", "status", "latency_ms", "detail"}
+        assert set(record) == {
+            "component",
+            "probe",
+            "status",
+            "latency_ms",
+            "detail",
+            "checked_at",
+        }
         assert record["status"] in {"healthy", "unhealthy", "skipped"}
+        # INT-181: every row of a real sweep says when it was taken
+        assert datetime.strptime(record["checked_at"], "%Y-%m-%dT%H:%M:%SZ")
 
 
 def test_runner_main_once_prints_to_stdout_without_out(capsys: pytest.CaptureFixture[str]) -> None:

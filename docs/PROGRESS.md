@@ -1,5 +1,163 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T02:00:00Z · INT-181 · done
+- Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
+- Plan:
+  - `GET /admin/reliability` (`intake.admin.reliability.v1`, platform scope, audited): one tile per SLO in `docs/slo`, each SLI re-ranged over every window its file declares (5m/30m/1h/6h/3d lanes, 28d objective window) for SLI, budget remaining, burn per window and the alert condition; the probe matrix from the registry × the runner's results file; dependency health from the sweep (self-hosted components + fallback edges), Prometheus as the API sees it, `ops_gpu_host_up` and INT-100's `vendor_breaker_state`.
+  - The runner stamps each result with `checked_at` and names `SWEEP_INTERVAL_S`; stale = three missed sweeps.
+  - `/overview` on the INT-351 pattern; the INT-351 session, guards, tile primitives and admission step become shared modules instead of copies. `/` lands on `/overview`.
+  - `scripts/dev/record_reliability_fixture.py` records a real runner sweep and the live dev API's `/readyz` + `/version`, and builds the e2e payloads with the shipped composite.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_reliability_console.py` (78): query table catalogued and derived from the files; `or vector(0)` only beside traffic (no traffic is no SLI); one tile per SLO; burn condition (near-miss: long over, short under = not met); overspent budget negative; one fail-closed test per tile/section; stale at 181 s not 180 s; `detail` never leaves; ids only; drift gate on the e2e fixtures; route RBAC.
+  - `apps/admin-web/e2e/overview.spec.ts` (51): admission (a refused caller never reaches `/readyz`); every tile rendered and each failing closed; `OverviewBurnInconsistent`, `OverviewBudgetInconsistent`, `OverviewStaleRenderedFresh` each with its near-miss.
+  - `tests/observability/test_probe_registry.py` (+4), RBAC matrix and audit drive rows.
+  - RED: pytest collection rc=2 (2 import errors) + 6 RBAC/audit failures; vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); its lanes run individually — ruff/format clean (1157 files), `mypy --strict` clean (445 files), whole-tree pytest at the 85 % floor **7312 passed**, 0 failed, 95.95 %; `tests/admin tests/observability` + siem 902 passed; admin-web vitest 233 passed; `pnpm -r lint` and `pnpm -r typecheck` green; `next build` clean. `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged), sec-row linkage: OK. `make safety` exits 0 (nothing under packages/protocols, PolicyGuard or the runtime changed). `make security`'s container/SBOM scanners are CI-only here; no dependency was added.
+- Invariants touched and still passing: 6 (ids only; `detail` dropped), 13 (catalogued series only; registry projection), 15, 16 (Sec-Row admin-console; threat-model controls), 17 (per-tile unknown; stale never current), 20 (no target key; no verdict copy), 22 (atoms, no grouping).
+- Decisions / ADRs / `00_STATE.md` rows: none new. Fixed a defect found on the way: `docs/slo/langfuse.yaml` and `siem.yaml` declared GOOD ratios under the error-ratio convention (would burn ~1000× on a healthy boundary once the rule generator grows past api.yaml). Reported, not fixed: `/admin/models` and `/admin/ops` raise on a malformed `INTAKE_PROBE_RESULTS_PATH` file (`models_source._results` is unguarded).
+- Blocked on: nothing new. Admission remains HB-A16 (already open).
+- Next: PR (Sec-Row `admin-console`, Closes #132); the owner sets `INTAKE_PROBE_RESULTS_PATH` once the runner's 60 s loop is deployed.
+
+### 2026-09-27T01:45:00Z · INT-372 · delivered (PR open, device screenshots pending)
+- Goal: acceptance verbatim (GitHub #606): *"the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"*. Slice S5 of INT-354, int-demo `01e224a2`.
+- Plan: cherry-pick `01e224a2`, then adapt. Its 24 pt inset breaks "Hastalıkları" (245.2 pt in Newsreader 500 at 48 pt) mid-word on a 320 pt card that has 246 pt. So the chevron is laid out, not painted: a flex column below the large-text scale, and the end of the date line from it up (`lib/visitCardLayout.ts`, the Card's own `isLargeText` threshold).
+- Tests added: `src/lib/visitCardLayout.test.ts` (4) and `e2e/visitCard.spec.ts` (7: wiring, Themed geometry, measured fits over every branch word). RED: module missing; then the wiring test on main's and the as-ported `VisitCard.tsx`. GREEN: 11/11. Mutation (always beside) is killed by 3 tests.
+- Result: mobile vitest 106 files / 2023 tests; `pnpm -r typecheck`, expo lint and prettier clean; `make check-i18n` 30 passed; backlog + smoke 28 passed; `no_placeholders` OK after staging. `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (no copy changed), 8 (tests only added), 17 (the residual is a recorded measurement, not a skip).
+- Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
+- Blocked on: nothing. Device screenshots are an owner step.
+- Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-27T02:10:00Z · INT-370 · delivered (PR open; clinical-reviewer and device screenshots pending)
+- Goal: acceptance verbatim (GitHub #604):
+  - *"Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"*
+  - *"the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"*
+  - *"INT-341's calendar press tokens apply"*
+
+  This is slice S3 of INT-354, int-demo `148a7dbd`.
+- Plan:
+  - Cherry-pick `148a7dbd`. It auto-merged, and git's conflict list was empty.
+  - Point the calendar's three Pressables at `motion.press`: the days and arrows 0.6 → `rowOpacity` 0.7, and the agenda row `opacity`.
+  - Record the day hint as a register finding instead of rewriting it.
+- Tests added:
+  - `src/lib/calendar.test.ts` (16, ported) and `e2e/visits.spec.ts` (+6: toggle, one visits list, the Geçmiş group always shown with an empty state, a pure date-only model, MIN_TAP targets, tr keys).
+  - `tests/release` records `a11y.visits.dayHint`.
+  - RED: 6 failed plus a missing module; the i18n gate is red on the unrecorded key; `motion.spec` is red on the 3 literals after the cherry-pick. GREEN: 42/42 targeted.
+- Result:
+  - mobile vitest 105 files / 2034 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - `make check-i18n` 30 passed;
+  - the Python suites that read `apps/mobile` 526 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (tr source of truth, en mirror), 18 (no new field, nothing persisted), 17, 8.
+- Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
+- Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
+- Goal: acceptance verbatim (GitHub #538):
+  - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*
+  - *"no navigation waits on an animation; the review screen renders every section in one commit with no stagger"*
+- Plan (MOTION-10; motion-verification.md §4, and C14–C16):
+  - Pure `lib/motion/transients.ts`: `typedFallback` and `typedStep`. Each is enter-only (`enterFor` from `fade.ts`), `exitMs` is the literal 0, and a step plan is keyed by its question.
+  - `lib/motion/native/reanimated.ts`: `enteringFor(spec)` returns a `FadeIn` built from the spec, or nothing. It has no exit builder.
+  - `intake.tsx`:
+    - the lane switch sits under `LayoutAnimationConfig skipEntering`, so only a lane that replaces another fades in;
+    - `StepFlow` sits in an entering `Animated.View`;
+    - the question's body is one keyed, entering `Animated.View` under its own `skipEntering`;
+    - the progress row and the CTA stay outside the body.
+  - Completion and review needed no product change, only guards.
+- Tests added: `apps/mobile/src/lib/motion/transients.test.ts`, with the 5 MOTION-10 DoD titles verbatim:
+  - the plans at every app × OS reduce-motion setting (6);
+  - a per-millisecond frame model over every consecutive pair in the Detaylı pack;
+  - an app-wide ban on exit animations;
+  - an app-wide detector for navigation behind an animation callback, frame, timer, transition event or awaited wait (11 samples caught, 3 accepted);
+  - the review's one index-free section map, and no delay, timer, deferred render, partial slice or virtualised list in the screen or the 7 components it draws.
+  - RED 1: module missing. RED 2: the two wiring tests failed and three passed. The three are the budget test, which needs only the pure module, and two regression guards over a tree that already complied.
+  - Mutations M1–M8 were each killed, restored with `cp` and checked with `cmp`.
+- Result: `make check-ts` green (mobile 105 files / 2017 tests, 5 new; the other packages unchanged) and `make check-i18n` green (30 passed). Prettier is clean. A Metro iOS dev export succeeds. `no_placeholders` is OK after staging. `tests/backlog`, `tests/smoke/test_make_check.py` and the threat-model test pass. `make check` was not run whole (check-integration is CI-only), and neither were `make safety` or `make security`: no protocol, Python or security surface changed.
+- Invariants touched and still passing:
+  - **17**: no new token; the adapter lands with its consumer.
+  - **8**: +5 tests, and the INT-335 hygiene gates are unchanged and green.
+  - **22**: progress numerals swap instantly.
+  - **2 / 10**: no copy changed; the instrument item is still verbatim.
+- Decisions / ADRs / `00_STATE.md` rows: none. MOTION-10 depends on MOTION-1 and MOTION-6 only, so nothing here waits on ADR-033 (PR #571, Proposed).
+- Blocked on: nothing. Device timing is not recorded (the owner's reference devices are unnamed, INT-330). The evidence file lists what to watch on a device: blur under the 120 ms fallback fade, and the keyboard between two free-text steps.
+- Next: PR `INT-339: Motion — typed lane, fallback and completion` (Closes #538, Sec-Row intake-typed), left unmerged for review.
+
+### 2026-09-27T00:20:00Z · INT-361 · in-review
+- Goal: acceptance verbatim (GitHub #587):
+  - *"pasting a six-digit code into any OTP box fills all six boxes, and the platform one-time-code autofill (iOS oneTimeCode, Android sms-otp) fills them"*
+  - *"the code never reaches a log line, analytics event or error report (invariant 6)"*
+  - Found by the INT-226 conformance report (PR #583), row SC 3.3.8 "Does Not Support".
+- Plan:
+  - Add a pure `enterOtp(digits, index, text)` in `lib/auth/phone.ts`:
+    - only digits count;
+    - a whole code fills all six boxes from the first, and anything past six is dropped;
+    - a short run fills forward;
+    - typing one digit is unchanged.
+  - `(auth)/otp.tsx`:
+    - drop `maxLength={1}`, which cut every paste and autofill to its first digit;
+    - route `onChangeText` through `enterOtp`;
+    - add `autoComplete` (`sms-otp` on Android, `one-time-code` on web) next to the existing `textContentType="oneTimeCode"`.
+- Tests added:
+  - `phone.test.ts`, 18 tests:
+    - distribution cases (box 0/1/3/5, spaces and dashes, more than six digits, letters, a short run, a digit already in the box, clearing a box);
+    - a console-spy test for invariant 6.
+  - `a11y.spec.ts`, 12 tests:
+    - SC 3.3.8 source facts on the single mapped `TextInput`;
+    - invariant 6: no console, no telemetry/metrics/analytics import on the entry path, and a crash event planted with the code emits none of it.
+    - Near-miss control: the legitimate error code, screen id and exception type do survive.
+  - The `auth.spec.ts` pin on `maxLength={1}` is inverted; the test name is unchanged because INT-226 cites it.
+  - RED: 22 failed, 98 passed. GREEN: 120 passed. Mutation check: 2/2 killed.
+- Result:
+  - mobile vitest: 2033 passed (103 files).
+  - `pnpm -r typecheck` and `expo lint` clean.
+  - `pytest tests/release tests/mobile`: 95 passed.
+  - `no_placeholders` is OK after staging.
+  - Full `make check` not run: check-integration is CI-only.
+- Invariants touched and still passing:
+  - **2 and 5**: no new copy and no catalog change.
+  - **6**: the code reaches no console, sink or crash report.
+- Decisions / ADRs / `00_STATE.md` rows: none. No HB, ADR or alembic id minted.
+- Blocked on: nothing. Device confirmation is DA-07 / MC-16 of the INT-226 audit.
+- Next:
+  - PR (Sec-Row `onboarding`, Closes #587).
+  - After PR #590 lands, flip the backlog row to done.
+  - After PR #583 lands, the SC 3.3.8 row can cite the new tests.
+
+### 2026-09-26T21:58:00Z · INT-362 · review (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #588):
+  - *"every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"*
+  - *"the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"*
+- Plan:
+  - One announcer, `src/components/Announced.tsx`. `AnnouncedText` and `AnnouncedRegion` set the Android live region and post the iOS announcement from a single `tone`.
+  - The rules are pure and node-tested in `lib/a11y/announce.ts`: error is assertive and spoken "Hata: …", status is polite, iOS posts and Android does not, and a line is announced once per change.
+  - Every error and status line is routed through the announcer.
+  - The BK28 test finds the lines by walking `src`.
+- Tests added:
+  - `announce.test.ts`: 15 tests.
+  - `a11y.spec.ts` BK28 rewrite: discovery over the tree, the per-file each over 15 discovered files, the near-miss control, a shrink-only exception list, no hand-made live region, tone literals, both halves in the announcer, only the announcer calls the iOS hook, and invariant 6.
+  - `kiosk.spec.ts` now expects the announcer.
+  - RED: 36 failed / 73 passed. GREEN: 110 / 110. Whole mobile suite: 2048 passed (main: 2012). Mutation checks: 4 of 4 killed.
+- Result:
+  - `make check-ts` green; `make check-i18n` 30 passed; `pnpm -r typecheck` green; expo lint clean; prettier clean; `no_placeholders`, `phi_scan` and `claims_scan` OK.
+  - `check-py` was not run, because no Python changed. `make safety` and `make security` were not run, because the change touches no protocol, triage or security surface.
+- Invariants touched and still passing:
+  - **2:** only on-screen words are announced.
+  - **5:** no new copy.
+  - **6:** announcements reach no log, and a test pins it.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Findings not fixed here:
+  - `notifications.pending` doubles as the in-flight state, so it cannot be announced as an error without a store change.
+  - `review.sentInfo` and `consent.queue.note` show persisted state on every arrival.
+  - A repeated identical error is announced once (the INT-144 rule, on both platforms).
+- Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
+- Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T12:00:00Z · INT-317 (INT-354 slice 1) · delivered (PR open; the read-back stays shut on HB-A18 and HB-L27)
 - Goal: INT-354 acceptance 1, one slice at a time. INT-317 is the first slice: previsit
   output store and hospital read-back. Its acceptance is verbatim in its backlog row.
@@ -161,6 +319,38 @@
 - Blocked on: nothing for the acceptance. Owner config for live use: `INTAKE_ADMIN_API_BASE` + an OIDC ingress; `INTAKE_ADMIN_OIDC_*` and `INTAKE_ADMIN_IP_ALLOWLIST` (HB-A16 — must include the admin-web host); `INTAKE_OPS_PROMETHEUS_URL`; collector `INTAKE_OPS_GPU_HOST_ID`, `INTAKE_OPS_GITHUB_REPO` + `INTAKE_OPS_GITHUB_TOKEN_PATH`, `INTAKE_OPS_CLIP_METRICS_TEXTFILE`.
 - Next: coordinator reviews/merges the PR (Sec-Row `admin-console`). Main filed the INT-351 row (todo, #557) while this branch was open; the merge keeps main's row and count (280) and flips the row to done with this evidence.
 - LOOP_STATUS: DONE
+
+### 2026-09-26T21:45:00Z · INT-226 · awaiting-human (delivered=partial: report yes, publication no)
+- Goal: acceptance verbatim — *"report generated from a11y CI results; statement published in-app and web"*.
+- Plan:
+  - The source of record is `docs/compliance/accessibility-conformance.yaml`: all 55 WCAG 2.2 A and AA criteria (with BK1–BK31 on the Level A rows), 27 EN 301 549 V3.2.1 clauses beyond 11.1–11.4, 25 dated manual checks, 8 device-audit items and the contrast pairs.
+  - `scripts/compliance/render_a11y_report.py` renders it to `docs/compliance/accessibility-conformance-report.md`. It resolves every citation against the vitest source CI runs, computes contrast from `theme.ts`, and derives EN 11.1–11.4.
+  - The statement source gets factual status only. The INT-144 report gets a banner saying the status of record has moved.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_a11y_report.py` (26), including negatives for a renamed citation, a Supports row with no evidence, a citation to a non-suite file, an undated manual check, a device-decided row set to Supports, and a fixed palette.
+  - RED 1: collection error, because the renderer was missing (rc=2). RED 2: 2 failed, 23 passed (report unrendered; statement unaware).
+  - GREEN: 26/26. The wider suites (legal, backlog, ci, docs, smoke) pass 557/557. Mobile vitest passes 2003/2003, and all 80 cited tests passed in a JSON run.
+  - Mutations, each restored from a backup: skipping a cited test turns the gate red; the recommended `border` fix forces 1.4.11 to be re-assessed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Targeted lanes only (listed in docs/evidence/INT-226.md). ruff, format and bandit are clean. `no_placeholders` and `claims_scan` exit 0 after staging.
+  - `make check` end to end, `make safety` and `make security` were not run and are not claimed. This change adds no service, endpoint, dependency, metric, model or PHI path.
+- Invariants touched and still passing: **20** (tested results with date and method, no blanket-conformance phrasing, test-enforced), **18** (no legal text authored, no loader points at the statement), **17**, **8**.
+- Decisions / ADRs / `00_STATE.md` rows: none. Posture choices are stated per row, not taken as decisions:
+  - Not Evaluated is used at A/AA, where a VPAT would reserve it for AAA;
+  - 1.4.12 is N/A, because the criterion is scoped to markup;
+  - 2.4.5 and 2.4.1 are N/A under WCAG2ICT.
+- Findings (reported, not fixed; they are mobile changes for their own issues):
+  - SC 1.3.4: `app.json` locks portrait.
+  - SC 3.3.8: the six one-character OTP boxes cannot take a pasted or autofilled code.
+  - SC 3.3.1 / 4.1.3: `issue-link.tsx`, `ConfirmCard.tsx` and `RecordReading.tsx` are Android-only announcements, missed because the BK28 test's list is hand-maintained.
+  - SC 2.2.1: the BK13 test scans `.tsx` only, and kiosk's 60 s wipe sits in `lib/`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: run DA-01 to DA-08 (report §5) on a release build (HB-L9).
+  - Owner: name the feedback channel.
+  - Counsel: the enforcement route and the Turkish statement text (HB-L9), signed under HB-L27.
+  - Two rows added to blockers.md. No HB id minted.
+- Next: PR review. The OTP single-field fix and the announcement-list fix are the obvious follow-ups for the mobile lane.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)
 - Goal: acceptance verbatim — *"every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default · disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"*.
@@ -2012,3 +2202,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. GitHub issue #83 had been closed by INT-083's PR #392 (an issue-number collision). It was reopened so this PR closes it.
 - Next: PR review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-26T20:50:00Z · INT-215 · awaiting-human (delivered=partial)
+- Goal: KVKK Board decision 2018/10 (special-category adequate measures) mapped to controls and evidence. Acceptance verbatim: *"each 2018/10 measure mapped to a control and a live signal; export produces the auditor packet"*. The mapping and the export ship; every measure is mapped to controls with their signals or to gaps with named owners, and no measure is reported implemented, so the issue stays open.
+- Plan: fetch and snapshot the decision (Resmî Gazete 07.03.2018 sayı 30353 PDF, image-only; the Kurum's text of the same decision), bind both by sha256; `docs/legal/special-category-measures.yaml` quotes each measure verbatim and names controls (paths, pytest ids, catalogued metric or registered probe) or gaps (kind, owner, one question, HB row or issue); `intake_platform.compliance.{measures_model,measures_loader,adequate_measures}` parse the measure ids out of the snapshot, refuse any drift, derive status, and export the auditor packet through the invariant-47 guard (`make evidence-2018-10`); `seal_bundle` extracted from INT-189's evidence module so both exports share one digest rule.
+- Tests added (with near-miss negatives): `tests/legal/test_2018_10_mapping.py` (41) and `tests/compliance/test_measures_loader.py` (26) — paraphrased quote, dropped or invented measure, drifted digests, unresolvable or wrong-class test id, path escaping the repo, planned metric declared live, uncatalogued metric, unregistered probe, ownerless or undeclared-owner gap, invented HB id, declared status, removed signal gap, formula payload in an ask, nineteen malformed shapes. RED 20:23 UTC: ModuleNotFoundError at collection, rc=2. GREEN 20:43 UTC: 67 passed, rc=0.
+- Result (`make check` / `make safety` / `make security` summary): `make check` not run in full from a clean clone and not claimed; targeted lanes: ruff + format clean repo-wide, mypy --strict packages/intake_platform/src clean, legal/compliance/admin/ci/backlog/metrics-catalog suites 830 passed; `make safety`/`make security` not run (no container runtime; no protocol, service, dependency or egress change).
+- Invariants touched and still passing: 4, 6, 14, 17 (no id minted; every human value is an owned gap), 18 (legal text under docs/legal with hash binding), 20 (mapping in the claims-scanned tree, scanned by a test), 47.
+- Decisions / ADRs / `00_STATE.md` rows: none. files/06 §1 row KVKK-12 + 2018-10 corrected (it named "test-data masking", absent from the decision, and omitted items 4, 5 and 6). docs/security/threat-model.md `compliance-evidence` row updated. files/11 regenerated (INT-215 todo → awaiting-human).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — the seventeen organisational gaps (policy, training, undertakings, grant register and reviews, offboarding, unseal-key custody, premises, transfer rules, pen test), of which three are HB-I12, HB-I9, HB-I8; counsel — mTLS vs "VPN or sFTP" (5c), plaintext LAN feeds (5c), whether patient OTP + device-bound key is two-factor (3e), the undertaking text (2b). No HB row minted; blockers.md carries both asks.
+- Next: the coordinator allocates issues for the ten `security_owner` gaps (staff second factor, session lifetime, access-review generator, offboarding, key-rotation schedule, encryption and auth signals, dependency updates, API fuzzing, the Kurum's security guide).
+- LOOP_STATUS: WAITING_HUMAN

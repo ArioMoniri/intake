@@ -65,11 +65,25 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
     # cross-border mechanism, egress allow-list row — split out of INT-329
     # because no agent may make it)
+    # + INT-359 (accessibility device audit and statement publication, split
+    # out of INT-226 because they are owner and counsel work)
+    # + INT-360..363 (the four WCAG defects the INT-226 report found:
+    # orientation lock, OTP paste/autofill, iOS error/status announcements,
+    # kiosk idle warning)
+    # + INT-364 (the owner's organisational evidence and counsel's readings
+    # for Board decision 2018/10, split out of INT-215)
+    # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
+    # second factor and session bounds, access review and offboarding, key
+    # rotation schedule, dependency updates, API fuzzing in CI).
+    # Grow this count only with a stated reason.
+    # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
+    # ported to main as its own one-issue PR).
+    # + INT-370 (slice S3 of INT-354: the int-demo visits calendar and Geçmiş
+    # list, ported to main as its own one-issue PR).
     # + INT-317 (previsit output store + hospital read-back: filed on int-demo
     # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
     # id is held by no other row on main or any remote branch).
-    # Grow this count only with a stated reason.
-    assert len(ids) == 283
+    assert len(ids) == 296
     import re
 
     for i in ids:

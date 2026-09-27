@@ -29,7 +29,10 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { MIN_TAP } from "../src/lib/a11y/target";
+import { OTP_LENGTH } from "../src/lib/auth/phone";
 import { CTA_MIN_HEIGHT } from "../src/lib/prefs/appearance";
+import { buildEnvelopeBody } from "../src/lib/telemetry/envelope";
+import { buildCrashReport, type TelemetryIdentity } from "../src/lib/telemetry/scrub";
 import { motion } from "../src/lib/theme";
 import { code, literalDurations, loops } from "./motionSource";
 
@@ -654,35 +657,323 @@ describe(`SC 2.5.8 — every target reaches ${MIN_TAP} pt, by box or by slop`, (
 });
 
 /* ------------------------------------------------------------------ */
-/* BK28 · SC 3.3.1 Error Identification                                */
+/* BK28 · SC 3.3.1 Error Identification · SC 4.1.3 Status Messages     */
 /* ------------------------------------------------------------------ */
 
-describe("BK28 / SC 3.3.1 — an error announces itself", () => {
-  const withErrors = [
-    "src/app/(auth)/phone.tsx",
-    "src/app/(auth)/otp.tsx",
-    "src/app/(tabs)/visits/new.tsx",
-    "src/app/(tabs)/records.tsx",
-  ];
+/*
+ * INT-362. React Native gives the two screen readers different channels.
+ * `accessibilityLiveRegion` is @platform android; iOS has no live regions and
+ * no alert trait, so VoiceOver hears a line only when the app posts it with
+ * `announceForAccessibility`. A line that sets one half is silent on the
+ * other phone. The INT-226 report found three such lines, and the check that
+ * should have caught them listed its four screens by hand.
+ *
+ * So both halves now come from one module, src/components/Announced.tsx, and
+ * this section FINDS the lines in the source tree instead of being told where
+ * they are. A line is an error or status line when it
+ *   - declares a live region itself (one platform's half, on its own),
+ *   - is drawn in the error colour, `amber`, or
+ *   - renders catalogue copy the catalogue marks as a failure (an `error` /
+ *     `err` key segment, or a key ending failed, notSaved, unsaved, unsent,
+ *     unreachable) or as a wait (a Turkish value ending in "…").
+ * Every such line must sit inside an AnnouncedText or an AnnouncedRegion, or
+ * be listed in ANNOUNCED_ELSEWHERE with the reason it needs neither.
+ */
 
-  it.each(withErrors)("%s announces its error on BOTH platforms", (name) => {
-    const file = TSX.find((f) => f.name === name);
-    expect(file, name).toBeDefined();
-    // `accessibilityLiveRegion` is @platform android in React Native and
-    // `accessibilityRole="alert"` does not substitute on iOS — there is no
-    // alert trait and RN posts no announcement for it. A screen that relies
-    // on the live region alone is silent under VoiceOver, so both halves
-    // are required.
-    // Either the literal prop or the conditional form records.tsx needs,
-    // because one of its notices is progress rather than an error.
-    expect(file!.source, `${name}: android half`).toMatch(/live=(\{[^}]*)?"assertive"/);
-    expect(file!.source, `${name}: ios half`).toContain("useLiveAnnouncement(");
+/** The catalogue is read for its values: the ellipsis is the catalogue's own mark for a wait. */
+const { tr } = await import("../src/lib/i18n/tr");
+
+const ANNOUNCER = "src/components/Announced.tsx";
+const ANNOUNCED_TAGS = ["AnnouncedText", "AnnouncedRegion"] as const;
+
+/** Every .tsx the app ships, wherever it lives — a new screen is walked, never listed. */
+const LINE_SOURCES: { name: string; source: string }[] = walk(SRC)
+  .filter((p) => p.endsWith(".tsx") && !/\.(test|spec)\.tsx$/.test(p))
+  .map((path) => ({
+    name: relative(MOBILE, path).split(sep).join("/"),
+    source: readFileSync(path, "utf8"),
+  }))
+  // The mechanism itself: AppText maps `live` onto the platform props, and
+  // the announcer is the one place both halves are put together.
+  .filter((f) => f.name !== ANNOUNCER && f.name !== "src/components/Themed.tsx")
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const FAILURE_KEY =
+  /(?:^|\.)(?:error|err)(?:\.|$)|(?:failed|Failed|notSaved|unsaved|unsent|unreachable)$/;
+
+function waitCopy(key: string): boolean {
+  const value: string | undefined = (tr as Record<string, string>)[key];
+  return value !== undefined && value.trimEnd().endsWith("…");
+}
+
+type Why = "live region by hand" | "error colour" | "failure copy" | "wait copy";
+
+interface LineFinding {
+  readonly file: string;
+  readonly line: number;
+  readonly why: Why;
+  /** The catalogue key the line renders, or the element that declares the region. */
+  readonly subject: string;
+}
+
+/** [start, end) of every `<Tag … />` and `<Tag …>…</Tag>` in a comment-free source. */
+function elementSpans(text: string, tag: string): [number, number][] {
+  const spans: [number, number][] = [];
+  const edge = new RegExp(`<${tag}(?=[\\s/>])|</${tag}>`, "g");
+  const selfClosing = (at: number): boolean => {
+    const end = endOfOpening(text, at + tag.length + 1);
+    return end > 0 && text[end - 1] === "/";
+  };
+  for (const open of text.matchAll(new RegExp(`<${tag}(?=[\\s/>])`, "g"))) {
+    if (selfClosing(open.index)) {
+      spans.push([open.index, endOfOpening(text, open.index + tag.length + 1) + 1]);
+      continue;
+    }
+    let depth = 0;
+    let close = text.length;
+    edge.lastIndex = open.index;
+    for (let m = edge.exec(text); m !== null; m = edge.exec(text)) {
+      if (m[0].startsWith("</")) {
+        depth -= 1;
+      } else if (!selfClosing(m.index)) {
+        depth += 1;
+      }
+      if (depth === 0) {
+        close = m.index + m[0].length;
+        break;
+      }
+    }
+    spans.push([open.index, close]);
+  }
+  return spans;
+}
+
+/** Every error or status line in one source that is NOT inside the announcer's elements. */
+function unannouncedLines(source: string, file: string): LineFinding[] {
+  const text = code(source);
+  const lineAt = (at: number) => text.slice(0, at).split("\n").length;
+  const announced = ANNOUNCED_TAGS.flatMap((tag) => elementSpans(text, tag));
+  const inside = (at: number) => announced.some(([start, end]) => at >= start && at < end);
+  const found: LineFinding[] = [];
+
+  // One platform's half, declared by hand: the defect INT-226 found.
+  for (const m of text.matchAll(
+    /(?<![\w.])(?:live|accessibilityLiveRegion)=|accessibilityRole="alert"/g,
+  )) {
+    const tag = /<([A-Za-z.]+)[^<]*$/.exec(text.slice(0, m.index))?.[1] ?? "?";
+    found.push({ file, line: lineAt(m.index), why: "live region by hand", subject: `<${tag}>` });
+  }
+  // The error colour, on a line nothing announces.
+  for (const [start, end] of elementSpans(text, "AppText")) {
+    const props = text.slice(
+      start + "<AppText".length,
+      endOfOpening(text, start + "<AppText".length),
+    );
+    const colour = propValue(props, "color") ?? "";
+    const amber = stringLiterals(colour).includes("amber") || /\btheme\.amber\b/.test(props);
+    if (amber && !inside(start)) {
+      const key =
+        /\bt\(\s*"([A-Za-z0-9_.]+)"/.exec(text.slice(start, end))?.[1] ?? "(runtime copy)";
+      found.push({ file, line: lineAt(start), why: "error colour", subject: key });
+    }
+  }
+  // Failure and wait copy, wherever it is rendered from — a prop, a helper, a line.
+  for (const m of text.matchAll(/\bt\(\s*"([A-Za-z0-9_.]+)"/g)) {
+    const key = m[1];
+    const why: Why | null = FAILURE_KEY.test(key)
+      ? "failure copy"
+      : waitCopy(key)
+        ? "wait copy"
+        : null;
+    if (why !== null && !inside(m.index)) {
+      found.push({ file, line: lineAt(m.index), why, subject: key });
+    }
+  }
+  return found;
+}
+
+const findingId = (f: LineFinding): string => `${f.file} › ${f.subject}`;
+
+/**
+ * Lines the discovery reaches that are announced another way, or that are
+ * not a status at all — each with its reason. Every entry must still match a
+ * finding (tested below), so this list can only shrink.
+ */
+const ANNOUNCED_ELSEWHERE: Record<string, string> = {
+  "src/components/DialogueIntake.tsx › dialogue.preparing":
+    "the dialogue's turn state, announced once on both platforms by its own useLiveAnnouncement " +
+    "(a11y.dialogue.preparing); a live region on the bubble would say it twice",
+  "src/components/DialogueIntake.tsx › dialogue.transcribing":
+    "the dialogue's turn state, announced by its own useLiveAnnouncement (a11y.dialogue.transcribing)",
+  "src/components/DialogueIntake.tsx › voiceFirst.preparing":
+    "the dialogue's settling state, announced by its own useLiveAnnouncement (a11y.dialogue.settling)",
+  "src/components/ConfirmCard.tsx › records.card.unitConflict":
+    "part of the card from the moment the card exists, not a change; its words say what the colour shows",
+  "src/app/(tabs)/records.tsx › records.uploading":
+    "the upload button's own label while it works; the outcome is the records notice, which is announced",
+  "src/components/VoiceNote.tsx › voice.processing":
+    "the label of the dev-only voice-note button (INT-194), rendered under __DEV__ only",
+  "src/components/VoiceNote.tsx › voice.unreachable":
+    "the label of the dev-only voice-note button (INT-194), rendered under __DEV__ only",
+};
+
+const LINE_FINDINGS: LineFinding[] = LINE_SOURCES.flatMap((f) =>
+  unannouncedLines(f.source, f.name),
+);
+
+/** Every file that renders an error or status line, announced or not — found by walking. */
+const LINE_FILES: string[] = LINE_SOURCES.filter(
+  (f) =>
+    ANNOUNCED_TAGS.some((tag) => new RegExp(`<${tag}[\\s/>]`).test(code(f.source))) ||
+    LINE_FINDINGS.some((finding) => finding.file === f.name),
+).map((f) => f.name);
+
+describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces itself on both platforms", () => {
+  it("the discovery walks the tree and reaches every line the INT-226 report named", () => {
+    // Non-vacuity. None of these is listed to the scan; each is FOUND.
+    for (const named of [
+      "src/app/(tabs)/visits/[visitId]/issue-link.tsx",
+      "src/components/ConfirmCard.tsx",
+      "src/components/RecordReading.tsx",
+      "src/components/KioskGate.tsx",
+      "src/app/(auth)/phone.tsx",
+      "src/app/(auth)/otp.tsx",
+      "src/app/(tabs)/visits/new.tsx",
+      "src/app/(tabs)/records.tsx",
+    ]) {
+      expect(LINE_FILES, named).toContain(named);
+    }
+    expect(LINE_FILES.length).toBeGreaterThan(15);
+  });
+
+  it.each(LINE_FILES)("%s announces its error on BOTH platforms", (name) => {
+    // Every error or status line in the file goes through the announcer,
+    // which sets the Android live region AND posts the iOS announcement.
+    const open = LINE_FINDINGS.filter(
+      (f) => f.file === name && !(findingId(f) in ANNOUNCED_ELSEWHERE),
+    ).map((f) => `${f.file}:${f.line} ${f.why} (${f.subject})`);
+    expect(open).toEqual([]);
+  });
+
+  it("a newly added unannounced error line is caught — the near-miss control", () => {
+    const screen = (line: string) =>
+      [
+        'import { AppText, Screen } from "@/components/Themed";',
+        "export default function Fresh() {",
+        "  return (",
+        "    <Screen>",
+        '      <AppText role="body" color="inkSoft">{t("auth.phone.why")}</AppText>',
+        `      {problem !== null ? ${line} : null}`,
+        "    </Screen>",
+        "  );",
+        "}",
+      ].join("\n");
+    const whys = (line: string) =>
+      unannouncedLines(screen(line), "src/app/fresh.tsx").map((f) => f.why);
+    // The fixed line, and an ordinary one beside it, are silent to the scan.
+    expect(
+      whys('<AnnouncedText tone="error" role="body" color="amber" message={t(problem)} />'),
+    ).toEqual([]);
+    // Each way a line can be missed is found, and named.
+    expect(whys('<AppText role="body" color="amber">{t(problem)}</AppText>')).toEqual([
+      "error colour",
+    ]);
+    expect(whys('<AppText role="body" live="assertive">{t(problem)}</AppText>')).toEqual([
+      "live region by hand",
+    ]);
+    expect(
+      whys('<View accessibilityLiveRegion="polite"><AppText>{t(problem)}</AppText></View>'),
+    ).toEqual(["live region by hand"]);
+    expect(
+      whys('<AppText role="caption" color="inkSoft">{t("health.readFailed")}</AppText>'),
+    ).toEqual(["failure copy"]);
+    expect(whys('<AppText role="caption">{t("health.loading")}</AppText>')).toEqual(["wait copy"]);
+    // A region's children are inside it, and so announced by it.
+    expect(
+      whys(
+        '<AnnouncedRegion tone="status" message={t("voiceFirst.checking")}><AppText>{t("voiceFirst.checking")}</AppText></AnnouncedRegion>',
+      ),
+    ).toEqual([]);
+  });
+
+  it("the exceptions are still real — the list can only shrink", () => {
+    const ids = new Set(LINE_FINDINGS.map(findingId));
+    const stale = Object.keys(ANNOUNCED_ELSEWHERE).filter((id) => !ids.has(id));
+    expect(stale).toEqual([]);
+  });
+
+  it("no live region is declared anywhere but the announcer", () => {
+    const byHand = LINE_FINDINGS.filter((f) => f.why === "live region by hand").map(
+      (f) => `${f.file}:${f.line} ${f.subject}`,
+    );
+    expect(byHand).toEqual([]);
+  });
+
+  it("every announced line states its tone, and the announcer — not the call site — picks the politeness", () => {
+    const openings = LINE_SOURCES.flatMap((f) =>
+      readOpenings(code(f.source), f.name, [...ANNOUNCED_TAGS]),
+    );
+    expect(openings.length).toBeGreaterThan(20);
+    // The literal itself, or the two branches of a conditional — never a
+    // literal the condition merely compares against.
+    const tonesOf = (expr: string): string[] =>
+      /^"[^"]*"$/.test(expr)
+        ? stringLiterals(expr)
+        : [...expr.matchAll(/[?:]\s*"([^"]*)"/g)].map((m) => m[1]);
+    expect(tonesOf('{cond === "filled" ? "status" : "error"}')).toEqual(["status", "error"]);
+    const toneless = openings
+      .filter((o) => {
+        const tones = tonesOf(propValue(o.props, "tone") ?? "");
+        return tones.length === 0 || tones.some((tone) => tone !== "error" && tone !== "status");
+      })
+      .map(where);
+    expect(toneless).toEqual([]);
+    const overridden = openings
+      .filter((o) => /\b(?:live|politeness|accessibilityLiveRegion)=/.test(o.props))
+      .map(where);
+    expect(overridden).toEqual([]);
+  });
+
+  it("the announcer puts both halves on every line: Android's live region and iOS's announcement", () => {
+    const announcer = readFileSync(join(MOBILE, ANNOUNCER), "utf8");
+    // Politeness comes from the tone, in one place: error → assertive, status → polite.
+    expect(announcer.match(/politenessOf\(tone\)/g)?.length).toBe(2);
+    // Android: the live region, on the line and on the region.
+    expect(announcer).toContain("live={politeness}");
+    expect(announcer).toContain("accessibilityLiveRegion={politeness}");
+    // iOS: the announcement, posted by both components on every change.
+    expect(announcer.match(/useLineAnnouncement\(spoken, politeness\)/g)?.length).toBe(2);
+    // SC 3.3.1: an error is heard as one — the error word, from the catalogue.
+    expect(announcer.match(/spokenLine\(tone, message, t\("a11y\.error"\)\)/g)?.length).toBe(2);
+    const prefs = readFileSync(join(SRC, "lib", "a11y", "prefs.ts"), "utf8");
+    expect(prefs).toMatch(/lineStep\(previous\.current, message, Platform\.OS, politeness\)/);
+    expect(prefs).toContain("AccessibilityInfo.announceForAccessibilityWithOptions(");
+    // The iOS half is never taken on its own: only the announcer calls it.
+    const halfOnly = LINE_SOURCES.filter((f) => /\buseLineAnnouncement\b/.test(code(f.source))).map(
+      (f) => f.name,
+    );
+    expect(halfOnly).toEqual([]);
+  });
+
+  it("the announcement path writes nothing to a log (invariant 6)", () => {
+    // What is announced is what the screen already shows; it must not also
+    // reach a console, a metric or a crash report.
+    for (const name of [ANNOUNCER, "src/lib/a11y/prefs.ts", "src/lib/a11y/announce.ts"]) {
+      const source = code(readFileSync(join(MOBILE, name), "utf8"));
+      expect(source, name).not.toMatch(/\bconsole\s*\./);
+      expect(source, name).not.toMatch(
+        /from\s+"[^"]*(?:telemetry|metrics|analytics|logger)[^"]*"/i,
+      );
+    }
   });
 
   it("AppText maps `live` onto the platform's own announcement props", () => {
     const themed = readFileSync(join(COMPONENTS, "Themed.tsx"), "utf8");
     expect(themed).toContain("accessibilityLiveRegion={live}");
     expect(themed).toContain('"alert"');
+    // What TalkBack reads out of the live region is the spoken form — the
+    // error word included — while the visible words stay as they are.
+    expect(themed).toContain("accessibilityLabel={spokenAs}");
   });
 
   it("an error is never carried by colour alone", () => {
@@ -693,9 +984,172 @@ describe("BK28 / SC 3.3.1 — an error announces itself", () => {
     const amberOnly = TSX.filter(
       (f) =>
         /color="amber"|theme\.amber\b/.test(f.source) &&
-        !/\blive=|accessibilityLabel/.test(f.source),
+        !/\blive=|<Announced(?:Text|Region)\b|accessibilityLabel/.test(f.source),
     ).map((f) => f.name);
     expect(amberOnly).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* SC 3.3.8 Accessible Authentication (Minimum) — INT-361              */
+/* ------------------------------------------------------------------ */
+
+describe("SC 3.3.8 — a delivered code fills the boxes without transcription", () => {
+  const OTP_SCREEN = "src/app/(auth)/otp.tsx";
+  const otp = TSX.find((f) => f.name === OTP_SCREEN)!;
+  const registers = TEXT_INPUTS.filter((o) => o.file === OTP_SCREEN);
+
+  it("the six boxes are one TextInput rendered once per register", () => {
+    // One opening tag inside the digits map is what makes each assertion
+    // below hold for EVERY box, not just the first.
+    expect(otp, OTP_SCREEN).toBeDefined();
+    expect(registers).toHaveLength(1);
+    const mapped = otp.source.indexOf("digits.map(");
+    expect(mapped).toBeGreaterThan(-1);
+    expect(otp.source.indexOf("<TextInput")).toBeGreaterThan(mapped);
+    expect(otp.source).toMatch(/Array\.from\(\{ length: OTP_LENGTH \}/);
+    expect(OTP_LENGTH).toBe(6);
+  });
+
+  it("every box asks the OS for the one-time code on each platform", () => {
+    const [box] = registers;
+    // iOS: the "From Messages" suggestion above the keyboard.
+    expect(propValue(box.props, "textContentType")).toBe('"oneTimeCode"');
+    // Android: the SMS-code autofill hint; web: the HTML autocomplete token.
+    const hints = stringLiterals(propValue(box.props, "autoComplete") ?? "");
+    expect(hints).toContain("sms-otp");
+    expect(hints).toContain("one-time-code");
+  });
+
+  it("no field cap cuts a pasted or autofilled code down to its first digit", () => {
+    // The platform applies maxLength BEFORE onChangeText sees the text, so a
+    // cap of one silently kept only the first digit of a paste or of the OS
+    // autofill. One digit per register is now kept by the entry state.
+    expect(propValue(registers[0].props, "maxLength")).toBeNull();
+  });
+
+  it("every box hands its whole new text to the shared distributor", () => {
+    expect(propValue(registers[0].props, "onChangeText")).toMatch(/enterOtp\(digits, index, /);
+    expect(otp.source).toMatch(/import \{[^}]*\benterOtp\b[^}]*\} from "@\/lib\/auth\/phone";/);
+  });
+
+  it("each box keeps its catalog name: which digit of the code it holds", () => {
+    expect(propValue(registers[0].props, "accessibilityLabel")).toBe(
+      '{labelled(t("a11y.otp.digit"), `${index + 1}`)}',
+    );
+  });
+
+  it("the code stays masked while it is on screen", () => {
+    expect(hasProp(registers[0].props, "secureTextEntry")).toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Invariant 6 — the code never reaches a log, analytics or a report   */
+/* ------------------------------------------------------------------ */
+
+describe("invariant 6 — the one-time code reaches no log line, analytics event or error report", () => {
+  const AUTH_LIB = join(SRC, "lib", "auth");
+  const onPath = [
+    TSX.find((f) => f.name === "src/app/(auth)/otp.tsx")!,
+    ...readdirSync(AUTH_LIB)
+      .filter((n) => n.endsWith(".ts") && !n.endsWith(".test.ts"))
+      .map((n) => ({
+        name: `src/lib/auth/${n}`,
+        source: readFileSync(join(AUTH_LIB, n), "utf8"),
+      })),
+  ];
+
+  it("the scan covers the screen, the distributor and the verify client", () => {
+    const names = onPath.map((f) => f.name);
+    expect(names).toContain("src/app/(auth)/otp.tsx");
+    expect(names).toContain("src/lib/auth/phone.ts");
+    expect(names).toContain("src/lib/auth/api.ts");
+  });
+
+  it.each(["src/app/(auth)/otp.tsx", "src/lib/auth/phone.ts", "src/lib/auth/api.ts"])(
+    "%s writes nothing to the console",
+    (name) => {
+      const file = onPath.find((f) => f.name === name)!;
+      expect(file.source).not.toMatch(/\bconsole\s*\./);
+    },
+  );
+
+  it("nothing on the entry path imports a telemetry, metrics or analytics sink", () => {
+    const sinks = onPath.flatMap((f) =>
+      [...f.source.matchAll(/from\s+"([^"]+)"|import\(\s*"([^"]+)"\s*\)/g)]
+        .map((m) => m[1] ?? m[2])
+        .filter((spec) => /telemetry|metrics|analytics|sentry|glitchtip|logger/i.test(spec))
+        .map((spec) => `${f.name} → ${spec}`),
+    );
+    expect(sinks).toEqual([]);
+  });
+
+  it("a crash event that carries the code reports none of it", () => {
+    // If the SafeError boundary were ever missed on the verify path, the
+    // crash scrubber is the last wall: plant the code in every limb a
+    // reporter fills and read the bytes the transport would send.
+    const CODE = "730418";
+    const identity: TelemetryIdentity = {
+      appVersion: "0.1.0",
+      buildId: "eas-1841",
+      sbomDigest: `sha256:${"ab".repeat(32)}`,
+      platform: "android",
+      osVersion: "15",
+      deviceModel: "Pixel8",
+      environment: "dev",
+      releaseChannel: "preview",
+      tenantId: "acibadem-maslak",
+    };
+    const report = buildCrashReport(identity, {
+      message: `verify failed for code ${CODE}`,
+      errorCode: "otp_verify_failed",
+      exception: {
+        values: [
+          {
+            type: "AuthApiError",
+            value: `code ${CODE} rejected`,
+            stacktrace: {
+              frames: [
+                {
+                  module: "src/app/(auth)/otp.tsx",
+                  function: "submit",
+                  lineno: 111,
+                  colno: 7,
+                  vars: { code: CODE, digits: CODE.split("") },
+                  context_line: `const patientId = await verifyOtp(phone, "${CODE}");`,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      breadcrumbs: {
+        values: [
+          {
+            category: "network",
+            event: "request_failed",
+            status: 401,
+            url: `https://api.example.test/v1/auth/otp/verify?code=${CODE}`,
+            data: { body: JSON.stringify({ code: CODE }) },
+          },
+          { category: "user_input", event: "pasted", message: CODE },
+        ],
+      },
+      tags: { screen_id: "auth_otp", otp: CODE, prompt_version: CODE },
+      extra: { code: CODE },
+      request: { data: { code: CODE } },
+    });
+    const body = buildEnvelopeBody(
+      { publicKey: "f00d", projectId: "1", envelopeUrl: "http://127.0.0.1:8010/api/1/envelope/" },
+      report,
+    );
+    expect(body).not.toContain(CODE);
+    // NEAR-MISS CONTROL: the report is not simply empty — the legitimate,
+    // allow-listed values of the same event do come through.
+    expect(report.errorCode).toBe("otp_verify_failed");
+    expect(report.tags.screen_id).toBe("auth_otp");
+    expect(report.exceptionType).toBe("AuthApiError");
   });
 });
 

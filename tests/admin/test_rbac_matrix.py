@@ -91,6 +91,7 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/actions"): ALL_ROLES,
     ("GET", "/admin/models"): PLATFORM_SCOPE_ROLES,
     ("GET", "/admin/ops"): PLATFORM_SCOPE_ROLES,
+    ("GET", "/admin/reliability"): PLATFORM_SCOPE_ROLES,
     ("POST", "/admin/models/{component}/benchmark"): BENCHMARK_ACTORS,
     ("POST", "/admin/break-glass"): BREAK_GLASS_OPENERS,
     ("GET", "/admin/break-glass/{action_id}"): frozenset(BREAK_GLASS_BRIEF_READERS),
