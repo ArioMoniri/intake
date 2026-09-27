@@ -5577,3 +5577,17 @@
     - "the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"
   tests: [apps/mobile/e2e/visitCard.spec.ts, apps/mobile/src/lib/visitCardLayout.test.ts]
   sec_row: "mobile"
+- id: INT-379
+  epic: E03-protocols
+  phase: P1
+  title: "Question-set generator capabilities the verifiers asked for: duration=omit, code answers, skip_if"
+  depends_on: [INT-353, INT-355]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-379.md
+  acceptance:
+    - "the generator accepts `pack: duration=omit` (no duration slot emitted), `gen: type=code; options=<ids>` (each option id from a fixed vocabulary with committed tr labels, never free text), and `gen: skip_if=<expr>` under the same earlier-slot rule as `ask_if` (INT-355 resolution; INT-375 ordering)"
+    - "capabilities only: no proposal or candidate changes in this issue; choosing where to use them is the clinician's (HB-C1, HB-C3, HB-C5)"
+    - "unknown keys stay refused; each new key has refusal tests and a near-miss control; every candidate regenerates byte-identically"
+  tests: [tests/protocols/test_gen_specialty_packs.py]
+  sec_row: "protocol-registry"

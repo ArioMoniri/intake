@@ -231,9 +231,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
     # previsit routing); grows only with a stated reason.
-    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
+    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron)
+    # + INT-379 (the generator's duration=omit, code answers and skip_if);
     # grows only with a stated reason.
-    assert len(ids) == 294, f"expected 175 blueprint + 119 added issues, got {len(ids)}"
+    assert len(ids) == 295, f"expected 175 blueprint + 120 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

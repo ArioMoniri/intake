@@ -77,8 +77,10 @@ def test_ids_unique_and_well_formed() -> None:
     # rotation schedule, dependency updates, API fuzzing in CI).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
-    # ported to main as its own one-issue PR).
-    assert len(ids) == 294
+    # ported to main as its own one-issue PR)
+    # + INT-379 (the question-set generator's duration=omit, code answers and
+    # skip_if, asked for by the department verifications, GitHub #623).
+    assert len(ids) == 295
     import re
 
     for i in ids:
