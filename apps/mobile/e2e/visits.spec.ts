@@ -93,6 +93,78 @@ describe("the OCR path sits behind the documents consent, fail closed", () => {
   });
 });
 
+/**
+ * INT-370 (INT-354 slice S3, int-demo 148a7dbd). Acceptance, verbatim:
+ * "Vizitlerim offers a calendar view and a Geçmiş list of past visits, built
+ * on the existing visits store with no new data field".
+ */
+describe("Vizitlerim offers a calendar and a Geçmiş list over the existing visits", () => {
+  const screen = () => read(APP, "(tabs)/visits/index.tsx");
+
+  it("a Liste/Takvim toggle chooses between the list and the month calendar", () => {
+    const source = screen();
+    expect(source).toContain("<Segmented");
+    expect(source).toContain('t("visits.view.list")');
+    expect(source).toContain('t("visits.view.calendar")');
+    expect(source).toContain("<VisitCalendar");
+  });
+
+  it("both views read the one visits list the session already holds", () => {
+    const source = screen();
+    expect(source).toContain("const { visits } = useSession();");
+    expect(source).toContain("pastVisitsRecentFirst(visits,");
+    expect(source).toContain("visitsOnDay(visits,");
+    expect(source).toMatch(/<VisitCalendar[\s\S]*?visits=\{visits\}/);
+  });
+
+  it("the Geçmiş group is always shown, with an honest empty state instead of invented history", () => {
+    const source = screen();
+    // Before: the whole group, kicker included, sat behind `past.length > 0 ?`
+    // and vanished for a patient with no past visit.
+    expect(source).not.toMatch(/past\.length > 0 \? \(\s*<View style=\{styles\.section\}>/);
+    // Now the kicker renders first, and only its contents depend on the list.
+    expect(source).toMatch(
+      /<Kicker label=\{t\("visits\.past"\)\} \/>\s*\{past\.length > 0 \? \([\s\S]*?t\("visits\.pastEmpty"\)/,
+    );
+  });
+
+  it("the calendar model is pure and reads a visit's date and nothing else", () => {
+    const model = read(SRC, "lib", "calendar.ts");
+    // No import at all: no store, no persistence, no native module.
+    expect(model).not.toMatch(/^import /m);
+    expect(model).not.toMatch(/SecureStore|AsyncStorage|fetch\(/);
+    // Every visit-shaped parameter is structurally `{ date }` only.
+    expect(model).toContain("readonly { readonly date: string | null }[]");
+    const calendar = read(SRC, "components", "VisitCalendar.tsx");
+    expect(calendar).toContain("visits: readonly { readonly date: string | null }[];");
+  });
+
+  it("every day is a named target of at least MIN_TAP, with a catalogue hint", () => {
+    const calendar = read(SRC, "components", "VisitCalendar.tsx");
+    expect(calendar).toContain("minHeight: MIN_TAP");
+    expect(calendar).toContain('accessibilityHint={t("a11y.visits.dayHint")}');
+    expect(calendar).toContain("accessibilityState={{ selected }}");
+  });
+
+  it("the new chrome is catalogued in tr, the source of truth", () => {
+    const tr = read(SRC, "lib", "i18n", "tr.ts");
+    for (const key of [
+      "visits.view.label",
+      "visits.view.list",
+      "visits.view.calendar",
+      "visits.pastEmpty",
+      "visits.calendar.prevMonth",
+      "visits.calendar.nextMonth",
+      "visits.calendar.hasVisits",
+      "visits.calendar.noVisitsOnDay",
+      "visits.calendar.monthEmpty",
+      "a11y.visits.dayHint",
+    ]) {
+      expect(tr).toContain(`"${key}"`);
+    }
+  });
+});
+
 describe("visit types speak tr copy from the i18n source of truth", () => {
   it("every files/09 §1 visit type has a tr label", () => {
     const tr = read(SRC, "lib", "i18n", "tr.ts");
