@@ -20,6 +20,8 @@ here are the ones that stop a conformance report from drifting into a claim:
   the device audit, which names the owner as the person to perform it;
 - a contrast finding still matches the palette: the report cannot keep
   saying a pair fails after the palette has fixed it, or the reverse;
+- a row below Supports cannot keep leaning on an issue the backlog marks
+  done: it is re-assessed, or it records why the fix left it open (INT-387);
 - the committed Markdown is exactly the rendering, and the internal statement
   names every criterion the report does not fully support.
 
@@ -263,6 +265,146 @@ def test_the_report_names_every_essential_lock_and_says_so_when_there_is_none(
     assert "records.tsx" in named and reason in named and "essential" in named
     if not _row(source, "1.3.4")["essential_locks"]:
         assert "No screen keeps an orientation lock" in orientation_line(R.render(source))
+
+
+# ---------------------------------------------------------------- staleness (INT-387)
+# INT-361, INT-362 and INT-363 merged while the report still rated 3.3.1, 3.3.8
+# and 4.1.3 by the defects they fixed. A row below Supports is now linked to
+# the backlog issues it leans on: every INT id its finding or remarks name, and
+# every issue filed against its criterion (a backlog title that opens
+# "WCAG <sc>:"). When one of those issues is done, the row is re-assessed, or
+# it records `still_open_because:` with what the fix left open.
+
+# The four issues INT-226 filed against its own findings, written out here so
+# the link convention cannot vouch for itself.
+FILED_AGAINST = {
+    "INT-360": ("1.3.4",),
+    "INT-361": ("3.3.8",),
+    "INT-362": ("3.3.1", "4.1.3"),
+    "INT-363": ("2.2.1",),
+}
+
+
+@pytest.fixture(scope="module")
+def backlog() -> dict[str, dict[str, Any]]:
+    loaded: dict[str, dict[str, Any]] = R.load_backlog()
+    return loaded
+
+
+def _with_status(backlog: dict[str, dict[str, Any]], iid: str, status: str) -> dict[str, Any]:
+    changed = copy.deepcopy(backlog)
+    changed[iid]["status"] = status
+    return changed
+
+
+def test_the_backlog_is_read_whole(backlog: dict[str, dict[str, Any]]) -> None:
+    assert len(backlog) > 300, "the guard must see the backlog it polices"
+    assert all(str(issue.get("status", "")).strip() for issue in backlog.values())
+
+
+def test_an_issue_filed_against_a_criterion_is_linked_to_its_row(
+    source: dict[str, Any], backlog: dict[str, dict[str, Any]]
+) -> None:
+    for iid, criteria in FILED_AGAINST.items():
+        for sc in criteria:
+            assert iid in R.issues_of(_row(source, sc), backlog), (iid, sc)
+
+
+def test_an_issue_the_row_names_is_linked_to_it(backlog: dict[str, dict[str, Any]]) -> None:
+    row = {"sc": "9.9.9", "status": "Partially Supports", "finding": "see INT-144 report §5.1"}
+    assert R.issues_of(row, backlog) == ["INT-144"]
+    assert R.issues_of({"clause": "12.1.1", "remarks": "INT-359 and INT-144's"}, backlog) == [
+        "INT-144",
+        "INT-359",
+    ]
+
+
+def test_no_row_below_supports_leans_on_a_done_issue_without_a_reason(
+    source: dict[str, Any], backlog: dict[str, dict[str, Any]]
+) -> None:
+    below = [r for r in source["wcag"] + source["en301549"] if r["status"] in R.BELOW]
+    assert below, "a report with no row below Supports would make this test vacuous"
+    linked = 0
+    for row in below:
+        for iid in R.issues_of(row, backlog):
+            linked += 1
+            assert iid in backlog, f"{R.row_id(row)} cites {iid}, which the backlog does not carry"
+            if backlog[iid]["status"] == "done":
+                assert str(row.get("still_open_because", "")).strip(), (R.row_id(row), iid)
+    assert linked, "the scanner must see the citations it polices"
+
+
+def test_a_fixed_criterion_left_below_supports_is_refused(
+    source: dict[str, Any], backlog: dict[str, dict[str, Any]]
+) -> None:
+    # The regression INT-387 repairs: INT-361 is done, and 3.3.8 still says
+    # Does Not Support.
+    assert backlog["INT-361"]["status"] == "done"
+    stale = copy.deepcopy(source)
+    row = _row(stale, "3.3.8")
+    row["status"] = "Does Not Support"
+    row["finding"] = "Each of the six boxes holds one character."
+    problems = R.validate(stale, backlog=backlog)
+    assert any("3.3.8" in p and "INT-361" in p and "done" in p for p in problems), problems
+
+
+def test_a_done_issue_needs_a_recorded_reason_the_near_miss_control(
+    source: dict[str, Any], backlog: dict[str, dict[str, Any]]
+) -> None:
+    row = _row(source, "1.4.3")
+    assert row["status"] in R.BELOW and "INT-144" in R.issues_of(row, backlog)
+    assert backlog["INT-144"]["status"] != "done"
+    # The row as committed: its issue is open, so nothing is asked of it.
+    assert not any("1.4.3" in p for p in R.validate(source, backlog=backlog))
+    # The same row once its issue is done: refused without a reason ...
+    closed = _with_status(backlog, "INT-144", "done")
+    assert any("1.4.3" in p and "INT-144" in p for p in R.validate(source, backlog=closed))
+    blank = copy.deepcopy(source)
+    _row(blank, "1.4.3")["still_open_because"] = "  "
+    assert any("1.4.3" in p and "INT-144" in p for p in R.validate(blank, backlog=closed))
+    # ... and accepted with one.
+    reasoned = copy.deepcopy(source)
+    _row(reasoned, "1.4.3")["still_open_because"] = "The palette decision is still open."
+    assert not any("1.4.3" in p for p in R.validate(reasoned, backlog=closed))
+
+
+def test_a_reason_is_refused_where_nothing_is_still_open(
+    source: dict[str, Any], backlog: dict[str, dict[str, Any]]
+) -> None:
+    on_supports = copy.deepcopy(source)
+    _row(on_supports, "2.3.1")["still_open_because"] = "nothing"
+    assert any(
+        "2.3.1" in p and "still_open_because" in p for p in R.validate(on_supports, backlog=backlog)
+    )
+    # A reason that excuses no done issue is noise, and is refused too.
+    unlinked = copy.deepcopy(source)
+    _row(unlinked, "3.1.2")["still_open_because"] = "nothing is done yet"
+    assert _row(source, "3.1.2")["status"] in R.BELOW
+    assert any(
+        "3.1.2" in p and "still_open_because" in p for p in R.validate(unlinked, backlog=backlog)
+    )
+
+
+def test_a_row_cannot_cite_an_issue_the_backlog_does_not_carry(
+    source: dict[str, Any], backlog: dict[str, dict[str, Any]]
+) -> None:
+    broken = copy.deepcopy(source)
+    _row(broken, "3.1.2")["finding"] += " INT-9999 tracks it."
+    assert any("3.1.2" in p and "INT-9999" in p for p in R.validate(broken, backlog=backlog))
+
+
+def test_the_report_says_why_a_row_is_still_open(source: dict[str, Any]) -> None:
+    reasons = {
+        str(r.get("sc", r.get("clause"))): str(r["still_open_because"]).strip()
+        for r in source["wcag"] + source["en301549"]
+        if "still_open_because" in r
+    }
+    assert reasons, "4.1.3 records what INT-362 left open"
+    text = R.render(source)
+    for number, reason in reasons.items():
+        # The row's own line in §1, §2 or §3.2, not the derived clause-11 table.
+        line = next(ln for ln in text.splitlines() if ln.startswith(f"| {number} "))
+        assert "**Still open because:**" in line and " ".join(reason.split()) in line, number
 
 
 # ---------------------------------------------------------------- device audit

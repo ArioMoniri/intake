@@ -61,6 +61,7 @@ from clinical_schemas.note import (
     ScreeningBlock,
     SelfReportedMeasure,
 )
+from clinical_schemas.quantity import quantity_atom
 from clinical_schemas.triage import LlmCandidateTriage, RulesTriageResult
 
 from intake_voice_runtime.note.facts import (
@@ -71,9 +72,6 @@ from intake_voice_runtime.note.facts import (
 )
 
 __all__ = ["ComposedNote", "compose", "facts_by_section"]
-
-# One non-breaking space: number + unit is one atom (CLAUDE.md invariant 22).
-_NBSP = " "
 
 #: files/04 §5 ``hpi.oldcarts`` scalar fields, in sketch order. ``severity_nrs``
 #: is handled apart because ``None`` means "not elicited" and must never print
@@ -161,11 +159,11 @@ def _social_lines(value: FamilySocial) -> tuple[str, ...]:
     return tuple(lines)
 
 
-def _measure_line(value: SelfReportedMeasure) -> str:
-    # invariant 22: Decimal's own str() never groups, and the number binds to
-    # its unit with a non-breaking space so the pair cannot be split by a line
-    # break in any renderer.
-    return f"{value.code.value}: {value.magnitude}{_NBSP}{value.unit}"
+def _measure_line(value: SelfReportedMeasure, *, locale: str) -> str:
+    # invariant 22, through the one renderer (INT-386): no grouping, the note
+    # reader's decimal point, and the number bound to its unit with a
+    # non-breaking space so no renderer can split the pair.
+    return f"{value.code.value}: {quantity_atom(value.magnitude, value.unit, locale=locale)}"
 
 
 def _imported_line(value: ImportedObjectiveItem) -> str:
@@ -256,7 +254,7 @@ def compose(
     if social is not None:
         index.add("family_social", social, _social_lines(social.value))
     for measure in measurements:
-        index.add("measurements", measure, (_measure_line(measure.value),))
+        index.add("measurements", measure, (_measure_line(measure.value, locale=meta.language),))
     for imported in imported_objective:
         index.add("imported_objective", imported, (_imported_line(imported.value),))
 

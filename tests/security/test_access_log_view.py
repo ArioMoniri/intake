@@ -184,6 +184,11 @@ def test_an_unresolvable_actor_is_unknown_not_omitted() -> None:
         ("dsar.export.issue", AccessCategory.DATA_REQUEST),
         ("dsar.delete.request", AccessCategory.DATA_REQUEST),
         ("dsar.delete.shred", AccessCategory.DATA_REQUEST),
+        # INT-392/INT-393: one erasure entry per removed row, by id. The
+        # "share" segment must not turn an erasure into "shared".
+        ("dsar.delete.previsit_output", AccessCategory.DATA_REQUEST),
+        ("dsar.delete.doctor_link", AccessCategory.DATA_REQUEST),
+        ("dsar.delete.share", AccessCategory.DATA_REQUEST),
         ("dsar.delete.cancel", AccessCategory.DATA_REQUEST),
         ("dsar.rectify", AccessCategory.DATA_REQUEST),
         ("api.experience.wait_times.export", AccessCategory.DATA_REQUEST),

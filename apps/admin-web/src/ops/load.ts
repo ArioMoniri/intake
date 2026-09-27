@@ -61,7 +61,7 @@ async function errorCode(response: Response): Promise<string | null> {
   return null;
 }
 
-async function refusal(response: Response): Promise<RefusedState> {
+export async function refusal(response: Response): Promise<RefusedState> {
   if (response.status === 401) return { kind: "not_admitted", reason: "token_refused" };
   const code = await errorCode(response);
   if (response.status === 403) {

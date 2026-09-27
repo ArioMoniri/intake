@@ -19,11 +19,13 @@ addresses is the correct shipping state; a plausible address is not).
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from access_fakes import seed_signed_sections
 from api_harness import ADMIN_TOKEN, PATIENT_TOKEN, ApiHarness, build_harness
 from intake_platform.admin import (
     AdminWiring,
@@ -31,6 +33,8 @@ from intake_platform.admin import (
     FourEyesService,
     IpAllowList,
 )
+from intake_platform.admin.access import IdentityWiring
+from intake_platform.admin.access.review import CONSOLE_SECTIONS, ReviewLedger
 from intake_platform.admin.principal import ClaimsRejected
 from intake_platform.voice_control import VoiceControlStore
 
@@ -88,6 +92,8 @@ def build_admin_wiring(
     allowlist: str = ALLOWED_CIDRS,
     deployments: Mapping[str, Deployment] | None = None,
     voice_controls: VoiceControlStore | None = None,
+    identity: IdentityWiring | None = None,
+    review_clock: Callable[[], datetime] | None = None,
 ) -> AdminWiring:
     return AdminWiring(
         claims=RecordedClaimsVerifier(recorded_claims()),
@@ -95,6 +101,8 @@ def build_admin_wiring(
         four_eyes=FourEyesService(),
         deployments=dict(TEST_DEPLOYMENTS if deployments is None else deployments),
         voice_controls=voice_controls,
+        review_ledger=ReviewLedger(clock=review_clock),
+        identity=identity,
     )
 
 
@@ -103,14 +111,27 @@ def build_admin_harness(
     *,
     admin: AdminWiring | None = None,
     client_addr: tuple[str, int] = CLIENT_ADDR,
+    signed_sections: tuple[str, ...] = CONSOLE_SECTIONS,
+    signed_at: datetime | None = None,
 ) -> Iterator[ApiHarness]:
-    yield from build_harness(
+    """The console on the unit-lane app.
+
+    INT-366: a console whose access review was never countersigned is
+    read-only for ``platform_owner`` and ``tenant_admin`` (files/08 §2.7), so
+    by default the harness starts from a review countersigned *now* — suites
+    that are not about the review exercise their own routes, not the
+    downgrade. ``signed_sections=()`` starts from no review at all, which is
+    what the review suite does.
+    """
+    for harness in build_harness(
         tmp_path,
         token_patient=PATIENT_TOKEN,
         token_admin=ADMIN_TOKEN,
         admin=admin if admin is not None else build_admin_wiring(),
         client_addr=client_addr,
-    )
+    ):
+        seed_signed_sections(harness.audit_store, signed_sections, at=signed_at)
+        yield harness
 
 
 @dataclass(frozen=True)
@@ -262,6 +283,39 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/voice/pending/{action_id}",
         f"/admin/voice/pending/{ABSENT_ACTION_ID}",
         "auditor",
+    ),
+    # INT-366 — Access & identity. With no identity wired (the harness
+    # default) the review, the signature and the offboarding answer 503; the
+    # countersign and the confirmation name ids nothing ever minted, so they
+    # answer 404 — past the role guard either way.
+    RouteDrive("GET", "/admin/access/review", "/admin/access/review", "compliance_officer"),
+    RouteDrive(
+        "POST",
+        "/admin/access/review/sign",
+        "/admin/access/review/sign",
+        "compliance_officer",
+        {"section": "console_roles", "review_digest": "0" * 32},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/access/review/sign/{action_id}/countersign",
+        f"/admin/access/review/sign/{ABSENT_ACTION_ID}/countersign",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-2"},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/access/offboard",
+        "/admin/access/offboard",
+        "sre_oncall",
+        {"subject": "kc-sub-platform-owner", "reason_class": "departure"},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/access/offboard/{offboarding_id}/confirm",
+        f"/admin/access/offboard/{'0' * 32}/confirm",
+        "sre_oncall",
+        {"system": "grafana"},
     ),
 )
 
