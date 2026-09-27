@@ -5888,6 +5888,23 @@
   tests: [tests/legal/test_dsar_flows.py, tests/integration/test_session_erasure.py, tests/data/test_session_delete_contract.py]
   legal: "KVKK-7,KVKK-11,DEST-2017"
   sec_row: "data-at-rest"
+- id: INT-391
+  epic: E12-admin
+  phase: P1
+  title: "The console accepts every valid WebAuthn credential id (leading - or _, and longer than 96 bytes)"
+  # GitHub #646. Found by INT-378 (PR #643): principal_from_claims checked
+  # credential_id with the generic 128-character id shape, which refused
+  # base64url ids starting with - or _ and ids over 96 bytes. The claim is now
+  # decoded: unpadded base64url, 16-1023 bytes, one spelling per credential.
+  depends_on: [INT-180, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-391.md
+  acceptance:
+    - "the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"
+    - "property tests over generated ids, with near-misses (padding, a non-base64url character, 0 bytes, 1024 bytes)"
+  tests: [tests/admin/test_staff_second_factor.py, tests/admin/test_oidc_verifier.py]
+  sec_row: "admin-console"
 - id: INT-395
   epic: E02-data
   phase: P0

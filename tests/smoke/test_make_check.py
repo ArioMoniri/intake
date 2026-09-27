@@ -254,10 +254,12 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) + INT-392 (a session with a previsit output can be
     # deleted again, found on check-integration); grows only with a stated reason.
     # deleted again, found on check-integration) + INT-393 (a patient who issued
-    # a Doctor Link can be erased, found by INT-392) + INT-395 (DSAR erasure and
-    # export cover every patient-deletable table, found by INT-393); grows only
-    # with a stated reason.
-    assert len(ids) == 306, f"expected 175 blueprint + 131 added issues, got {len(ids)}"
+    # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
+    # + INT-391 (the console accepts every valid WebAuthn credential id, found
+    # by INT-378's PR as GitHub #646); grows only with a stated reason.
+    # + INT-395 (DSAR erasure and export cover every patient-deletable table,
+    # found by INT-393); grows only with a stated reason.
+    assert len(ids) == 307, f"expected 175 blueprint + 132 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
