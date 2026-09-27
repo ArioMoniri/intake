@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**307 issues.** By phase: P0 159 · P1 94 · P2 47 · P3 7. By status: awaiting-human 26 · doing 7 · done 192 · todo 81 · withdrawn 1.
+**308 issues.** By phase: P0 159 · P1 95 · P2 47 · P3 7. By status: awaiting-human 26 · doing 7 · done 193 · todo 81 · withdrawn 1.
 
 ## P0
 
@@ -269,6 +269,7 @@
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
 | INT-391 | The console accepts every valid WebAuthn credential id (leading - or _, and longer than 96 bytes) | E12-admin | INT-180, INT-365 | area:admin, risk:security | done |
 | INT-396 | Backlog rows match what merged: status reconciliation and a guard against drift | E00-governance | INT-004 | area:platform | done |
+| INT-405 | The backlog sync pages past 500 issues and keeps issue state in step with rows | E00-governance | INT-004, INT-396 | area:platform | done |
 
 ## P2
 

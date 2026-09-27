@@ -106,7 +106,9 @@ def test_ids_unique_and_well_formed() -> None:
     # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
     # + INT-396 (backlog rows reconciled with what merged, and the status
     # consistency guard; GitHub #655, carried by its own PR).
-    assert len(ids) == 307
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
+    # step with rows; found by INT-396, GitHub #675).
+    assert len(ids) == 308
     import re
 
     for i in ids:

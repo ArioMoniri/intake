@@ -259,7 +259,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # by INT-378's PR as GitHub #646); grows only with a stated reason.
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
     # grows only with a stated reason.
-    assert len(ids) == 307, f"expected 175 blueprint + 132 added issues, got {len(ids)}"
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
+    # in step with rows, found by INT-396, GitHub #675); grows only with a
+    # stated reason.
+    assert len(ids) == 308, f"expected 175 blueprint + 133 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
