@@ -1565,6 +1565,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
+  "src/lib/motion/native/useLevelSampler.ts":
+    "the presence orb's level meter sampling interval (INT-336): it draws loudness, it limits nothing",
   "src/lib/records/extraction.ts":
     "the backoff between asks about a document still being read: when it stops, the reading line stays and nothing is taken",
 };

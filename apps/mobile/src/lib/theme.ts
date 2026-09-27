@@ -104,19 +104,58 @@ export const radius = { card: 24, control: 999, hero: 32, chip: 999, group: 16 }
  * - `easing.breath` (ease-in-out sine) is for loops only: symmetric, so the
  *   turn of the loop has no visible corner;
  * - `loop` holds FULL periods. SC 2.3.1 draws the line at a 167 ms half, and
- *   theme.test.ts checks every period against it; the dialogue's listening
- *   pulse is the first to read one.
+ *   theme.test.ts checks every period against it.
+ *
+ * INT-336 (MOTION-7) adds the presence orb's tokens, with the orb as their
+ * first consumer (lib/motion/orb.ts, components/PresenceOrb.tsx):
+ * - `duration.fast` is the speaking → listening shift, which starts in the
+ *   same tick as the barge-in's `player.pause()`;
+ * - `easing.linear` is the level following its samples, and nothing else;
+ * - the three orb periods replace the dialogue pulse's `pulsePeriodMs`, which
+ *   left with the pulse;
+ * - `level` turns the recorder's metering into one 0…1 scalar at 10 Hz or
+ *   less (attack faster than release, 0.05 steps);
+ * - `orb` holds opacities only. The scale values the voice spec proposed ship
+ *   only if the owner answers ADR-033 Q5 yes; until then no scale token exists.
  */
 export type Bezier = readonly [number, number, number, number];
 
-const duration = { instant: 0, fade: 120 } as const;
+const duration = { instant: 0, fast: 90, fade: 120 } as const;
 
 const easing = {
   out: [0.23, 1, 0.32, 1] as Bezier,
   breath: [0.37, 0, 0.63, 1] as Bezier,
+  linear: [0, 0, 1, 1] as Bezier,
 } as const;
 
-const loop = { pulsePeriodMs: 1400 } as const;
+const loop = { breathePeriodMs: 4000, speakPeriodMs: 1600, shimmerPeriodMs: 1400 } as const;
+
+const level = {
+  sampleMs: 100,
+  floorDbfs: -50,
+  ceilDbfs: -10,
+  attack: 0.5,
+  release: 0.2,
+  step: 0.05,
+} as const;
+
+/**
+ * The orb: a 40 pt disc in a 48 pt box (the box scales with the patient's
+ * text size). The listening halo breathes between `haloOpacity` and
+ * `haloBreathLow`; speaking dips the core to `speakOpacityLow`; thinking
+ * shimmers the core between the two shimmer values; background work shows a
+ * static ring at `workRingOpacity`.
+ */
+const orb = {
+  sizePt: 40,
+  boxPt: 48,
+  haloOpacity: 0.35,
+  haloBreathLow: 0.2,
+  speakOpacityLow: 0.75,
+  shimmerOpacityLow: 0.55,
+  shimmerOpacityHigh: 0.9,
+  workRingOpacity: 0.5,
+} as const;
 
 /**
  * Press feedback (INT-341, MOTION-12): an instant opacity step, never an
@@ -128,7 +167,15 @@ const loop = { pulsePeriodMs: 1400 } as const;
  */
 const press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 } as const;
 
-export const motion = { fadeMs: duration.fade, duration, easing, loop, press } as const;
+export const motion = {
+  fadeMs: duration.fade,
+  duration,
+  easing,
+  loop,
+  level,
+  orb,
+  press,
+} as const;
 
 /**
  * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app

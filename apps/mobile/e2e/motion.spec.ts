@@ -299,7 +299,8 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     }
 
     const looping = APP_SOURCE.filter((f) => loops(f.source));
-    expect(looping.map((f) => f.name)).toContain("src/components/DialogueIntake.tsx");
+    // INT-336: the orb carries the dialogue's loops; the pulse it replaced is gone.
+    expect(looping.map((f) => f.name)).toContain("src/components/PresenceOrb.tsx");
     const offenders = looping.flatMap((f) =>
       literalDurations(f.source).map((value) => `${f.name}: ${value}`),
     );
@@ -345,9 +346,10 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     const found = APP_SOURCE.flatMap((f) =>
       animatedStyleKeys(f.source).map((k) => ({ ...k, file: f.name })),
     );
-    // The dialogue's pulse drives opacity today; a silent zero would make
+    // The presence orb drives opacity (INT-336); a silent zero would make
     // this vacuous.
     expect(found.length).toBeGreaterThan(0);
+    expect(found.map((k) => k.file)).toContain("src/components/PresenceOrb.tsx");
     const offenders = found
       .filter((k) => !animatable(k.key))
       .map((k) => `${k.file} ${k.site} ${k.key}`);
@@ -601,6 +603,8 @@ const RED_SURFACE_FILES: readonly string[] = [
   "src/lib/livekit/red.ts",
   "src/lib/livekit/session.ts",
   "src/lib/livekit/types.ts",
+  // INT-336: the orb's policy reads a RED's yield (unmount, idle, unchanged).
+  "src/lib/motion/orb.ts",
   "src/lib/motion/red.ts",
 ];
 
@@ -686,5 +690,84 @@ describe("MOTION-4 — the RED path paints first, with no motion", () => {
     // The motion contract that sizes the first paint imports nothing that
     // could make it wait: only the RED types.
     expect(specifiers(file("src/lib/motion/red.ts"))).toEqual(["../livekit/red"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-7 — one presence orb carries the dialogue's state
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-336 (docs/design/motion/motion-verification.md §4 MOTION-7; ADR-033 Q5,
+ * open, so opacity-only). The policy is src/lib/motion/orb.ts and its suite;
+ * these guards hold the wiring: the dialogue draws no spinner and no loop of
+ * its own, the orb's state comes only from the policy, the orb is decoration,
+ * and the level is sampled outside every screen and component.
+ */
+
+const DIALOGUE = "src/components/DialogueIntake.tsx";
+const ORB = "src/components/PresenceOrb.tsx";
+const SAMPLER = "src/lib/motion/native/useLevelSampler.ts";
+const SPINNER = ["Activity", "Indicator"].join("");
+
+/** Every JSX opening `<Name …>` in `source`, with its props text. */
+function openings(source: string, name: string): string[] {
+  const text = code(source);
+  return [...text.matchAll(new RegExp(`<${name}\\b`, "g"))].map((m) => {
+    const from = m.index + m[0].length;
+    return text.slice(from, expressionEnd(text, from));
+  });
+}
+
+describe("MOTION-7 — one presence orb carries the dialogue's state", () => {
+  it("the dialogue has no ActivityIndicator and no core Animated loop", () => {
+    // Non-vacuity: both shapes are seen when present.
+    expect(new RegExp(`\\b${SPINNER}\\b`).test(`<${SPINNER} size="small" />`)).toBe(true);
+    expect(loops("Animated.loop(Animated.timing(v, t)).start();")).toBe(true);
+
+    const dialogue = code(file(DIALOGUE));
+    expect(dialogue).not.toMatch(new RegExp(`\\b${SPINNER}\\b`));
+    expect(loops(dialogue)).toBe(false);
+    expect(dialogue).not.toMatch(/\bAnimated\s*\.\s*(?:loop|timing|sequence)\b/);
+    // The orb is what it shows instead.
+    expect(openings(file(DIALOGUE), "PresenceOrb")).toHaveLength(1);
+  });
+
+  it("PresenceOrb takes its state only from orbStateFor", () => {
+    const [props] = openings(file(DIALOGUE), "PresenceOrb");
+    expect(props).toMatch(/\bstate=\{\s*orbState\s*\}/);
+    expect(code(file(DIALOGUE))).toMatch(/const\s+orbState\s*=\s*orbStateFor\(/);
+    // The orb itself decides no state: it reads no turn, lane or RED.
+    const orb = code(file(ORB));
+    expect(orb).not.toMatch(/\bturn\b|\bphase\b|\bplaying\b|\bvoiceMuted\b|\bred\b/);
+    expect(orb).toMatch(/\borbVisual\(/);
+    expect(orb).toMatch(/\borbTransition\(/);
+  });
+
+  it("the orb is hidden from the accessibility tree and is not pressable", () => {
+    const orb = code(file(ORB));
+    expect(orb).toMatch(/\baccessibilityElementsHidden\b/);
+    expect(orb).toMatch(/importantForAccessibility="no-hide-descendants"/);
+    expect(orb).not.toMatch(/\bPressable\b|\bTouchable\w*|\bonPress\b|\baccessibilityRole\b/);
+    // It adds no live region, and the dialogue keeps exactly one barge-in
+    // control (e2e/a11y.spec.ts pins both on the dialogue itself).
+    expect(orb).not.toMatch(/\baccessibilityLiveRegion\b|\bannounceForAccessibility\b/);
+  });
+
+  it("the level sampler lives under src/lib, never in a screen or component", () => {
+    const TIMER = /\bset(?:Interval|Timeout)\s*\(/;
+    expect(TIMER.test("const t = setInterval(tick, ms);")).toBe(true);
+    const sampler = code(file(SAMPLER));
+    expect(sampler).toMatch(TIMER);
+    // It writes one shared value and never React state: zero renders per sample.
+    expect(sampler).not.toMatch(/\buseState\b|\buseReducer\b|\bsetState\b|\bdispatch\(/);
+    expect(sampler).toMatch(/\.set\(/);
+    // Its rate is the policy's, never a number of its own.
+    expect(literalDurations(sampler)).toEqual([]);
+    expect(sampler).toMatch(/\bplan\.intervalMs\b/);
+    // Neither the orb nor the dialogue owns a timer.
+    for (const name of [ORB, DIALOGUE]) {
+      expect(code(file(name)), name).not.toMatch(TIMER);
+    }
   });
 });
