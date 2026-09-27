@@ -245,9 +245,13 @@
   # clause is "data-subject notice templates": counsel-authored legal text, and files/06
   # §5 lists the breach packet templates with the INT-210..227 legal set, INT-214 (which
   # depends on this row). Moving that clause to INT-214 is the coordinator's/owner's call.
-  status: doing
+  # RESCOPED 27 Sep 2026 (PR #680): the data-subject notice templates (legal text,
+  # counsel) move to INT-214, which already owns data-subject notices and
+  # depends on this issue; holding INT-020 open for them was circular.
+  status: done
+  evidence: docs/evidence/INT-020.md
   acceptance:
-    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
+    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
   tests: [tests/docs/test_threat_model_rows.py]
   legal: "KVKK-12-breach,7545"
@@ -2922,6 +2926,7 @@
   status: todo
   acceptance:
     - "runbook executable: incident record -> prefilled Board form -> notices; drill test produces the full packet within 72h simulated clock"
+    - "the data-subject notice templates (moved from INT-020, 27 Sep 2026): counsel-authored text under docs/legal/ with hash binding, rendered by the breach drill; no template text is drafted by an agent"
   tests: [tests/legal/test_breach_drill.py]
   legal: "KVKK-12-breach,7545"
   sec_row: "incident-response"
