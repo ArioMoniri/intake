@@ -95,6 +95,11 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
     # A statement about the PLATFORM, aggregates and ids only, read only — so
     # the same platform-scope set as the registry read, and no DangerousAction.
     AdminRoute("GET", "/admin/ops", "admin.ops.read", _PLATFORM_SCOPE_ROLES),
+    # INT-181 — the reliability composite (files/08 §3 Overview, Reliability):
+    # SLO tiles and burn rates, the synthetic probe matrix, dependency health.
+    # The same kind of read as /admin/ops — platform facts, ids only — so the
+    # same platform-scope set and no DangerousAction.
+    AdminRoute("GET", "/admin/reliability", "admin.reliability.read", _PLATFORM_SCOPE_ROLES),
     AdminRoute(
         "POST",
         "/admin/models/{component}/benchmark",

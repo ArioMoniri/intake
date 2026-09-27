@@ -1,5 +1,93 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T02:00:00Z · INT-181 · done
+- Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
+- Plan:
+  - `GET /admin/reliability` (`intake.admin.reliability.v1`, platform scope, audited): one tile per SLO in `docs/slo`, each SLI re-ranged over every window its file declares (5m/30m/1h/6h/3d lanes, 28d objective window) for SLI, budget remaining, burn per window and the alert condition; the probe matrix from the registry × the runner's results file; dependency health from the sweep (self-hosted components + fallback edges), Prometheus as the API sees it, `ops_gpu_host_up` and INT-100's `vendor_breaker_state`.
+  - The runner stamps each result with `checked_at` and names `SWEEP_INTERVAL_S`; stale = three missed sweeps.
+  - `/overview` on the INT-351 pattern; the INT-351 session, guards, tile primitives and admission step become shared modules instead of copies. `/` lands on `/overview`.
+  - `scripts/dev/record_reliability_fixture.py` records a real runner sweep and the live dev API's `/readyz` + `/version`, and builds the e2e payloads with the shipped composite.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_reliability_console.py` (78): query table catalogued and derived from the files; `or vector(0)` only beside traffic (no traffic is no SLI); one tile per SLO; burn condition (near-miss: long over, short under = not met); overspent budget negative; one fail-closed test per tile/section; stale at 181 s not 180 s; `detail` never leaves; ids only; drift gate on the e2e fixtures; route RBAC.
+  - `apps/admin-web/e2e/overview.spec.ts` (51): admission (a refused caller never reaches `/readyz`); every tile rendered and each failing closed; `OverviewBurnInconsistent`, `OverviewBudgetInconsistent`, `OverviewStaleRenderedFresh` each with its near-miss.
+  - `tests/observability/test_probe_registry.py` (+4), RBAC matrix and audit drive rows.
+  - RED: pytest collection rc=2 (2 import errors) + 6 RBAC/audit failures; vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); its lanes run individually — ruff/format clean (1157 files), `mypy --strict` clean (445 files), whole-tree pytest at the 85 % floor **7312 passed**, 0 failed, 95.95 %; `tests/admin tests/observability` + siem 902 passed; admin-web vitest 233 passed; `pnpm -r lint` and `pnpm -r typecheck` green; `next build` clean. `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged), sec-row linkage: OK. `make safety` exits 0 (nothing under packages/protocols, PolicyGuard or the runtime changed). `make security`'s container/SBOM scanners are CI-only here; no dependency was added.
+- Invariants touched and still passing: 6 (ids only; `detail` dropped), 13 (catalogued series only; registry projection), 15, 16 (Sec-Row admin-console; threat-model controls), 17 (per-tile unknown; stale never current), 20 (no target key; no verdict copy), 22 (atoms, no grouping).
+- Decisions / ADRs / `00_STATE.md` rows: none new. Fixed a defect found on the way: `docs/slo/langfuse.yaml` and `siem.yaml` declared GOOD ratios under the error-ratio convention (would burn ~1000× on a healthy boundary once the rule generator grows past api.yaml). Reported, not fixed: `/admin/models` and `/admin/ops` raise on a malformed `INTAKE_PROBE_RESULTS_PATH` file (`models_source._results` is unguarded).
+- Blocked on: nothing new. Admission remains HB-A16 (already open).
+- Next: PR (Sec-Row `admin-console`, Closes #132); the owner sets `INTAKE_PROBE_RESULTS_PATH` once the runner's 60 s loop is deployed.
+
+### 2026-09-27T01:45:00Z · INT-372 · delivered (PR open, device screenshots pending)
+- Goal: acceptance verbatim (GitHub #606): *"the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"*. Slice S5 of INT-354, int-demo `01e224a2`.
+- Plan: cherry-pick `01e224a2`, then adapt. Its 24 pt inset breaks "Hastalıkları" (245.2 pt in Newsreader 500 at 48 pt) mid-word on a 320 pt card that has 246 pt. So the chevron is laid out, not painted: a flex column below the large-text scale, and the end of the date line from it up (`lib/visitCardLayout.ts`, the Card's own `isLargeText` threshold).
+- Tests added: `src/lib/visitCardLayout.test.ts` (4) and `e2e/visitCard.spec.ts` (7: wiring, Themed geometry, measured fits over every branch word). RED: module missing; then the wiring test on main's and the as-ported `VisitCard.tsx`. GREEN: 11/11. Mutation (always beside) is killed by 3 tests.
+- Result: mobile vitest 106 files / 2023 tests; `pnpm -r typecheck`, expo lint and prettier clean; `make check-i18n` 30 passed; backlog + smoke 28 passed; `no_placeholders` OK after staging. `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (no copy changed), 8 (tests only added), 17 (the residual is a recorded measurement, not a skip).
+- Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
+- Blocked on: nothing. Device screenshots are an owner step.
+- Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-27T02:10:00Z · INT-370 · delivered (PR open; clinical-reviewer and device screenshots pending)
+- Goal: acceptance verbatim (GitHub #604):
+  - *"Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"*
+  - *"the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"*
+  - *"INT-341's calendar press tokens apply"*
+
+  This is slice S3 of INT-354, int-demo `148a7dbd`.
+- Plan:
+  - Cherry-pick `148a7dbd`. It auto-merged, and git's conflict list was empty.
+  - Point the calendar's three Pressables at `motion.press`: the days and arrows 0.6 → `rowOpacity` 0.7, and the agenda row `opacity`.
+  - Record the day hint as a register finding instead of rewriting it.
+- Tests added:
+  - `src/lib/calendar.test.ts` (16, ported) and `e2e/visits.spec.ts` (+6: toggle, one visits list, the Geçmiş group always shown with an empty state, a pure date-only model, MIN_TAP targets, tr keys).
+  - `tests/release` records `a11y.visits.dayHint`.
+  - RED: 6 failed plus a missing module; the i18n gate is red on the unrecorded key; `motion.spec` is red on the 3 literals after the cherry-pick. GREEN: 42/42 targeted.
+- Result:
+  - mobile vitest 105 files / 2034 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - `make check-i18n` 30 passed;
+  - the Python suites that read `apps/mobile` 526 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (tr source of truth, en mirror), 18 (no new field, nothing persisted), 17, 8.
+- Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
+- Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-26T23:20:00Z · INT-352 · done (PR open)
+- Goal: close INT-352 (GitHub #558) by stamping `/version`'s `sbom_digest` on the production API (audit F18), and split the Frankfurt move into INT-376 (#613). Acceptance verbatim:
+  - *"main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"*
+  - *"a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"*
+  - *"the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"* (rescoped from "and the host moves to Frankfurt when the eu-central-1 request is approved")
+  - *"real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"*
+- Plan:
+  - init.sh and deploy.sh build the api image, then have syft, pinned by digest, write its SPDX SBOM into `/etc/intake-staging/releases/<commit>/`, outside the build context.
+  - The file's sha256 becomes `INTAKE_SBOM_DIGEST`, a required compose interpolation.
+  - The final up is `--no-build`.
+  - smoke.sh reads the SBOM from disk and fails `dev` in any stamp, a digest mismatch, or a different running image.
+- Tests added: `TestSbomStamp` in `tests/infra/test_staging_compose.py` (57 tests), with near-miss negatives:
+  - a syft that exits 0 with empty or non-SPDX output;
+  - a well-formed digest one character off the file's;
+  - the required interpolation, which the no-`dev`-fallback scan must pass.
+  - A docker shim runs the stamp logic without a container runtime.
+  - RED: 43 failed, 201 passed. GREEN: 244 passed. Mutations M1 and M2 killed.
+- Result:
+  - tests/backlog, tests/smoke/test_make_check.py and tests/infra: 648 passed.
+  - tests/docs and the security-gate tests: green.
+  - bash -n and shellcheck: clean. `no_placeholders` OK after staging. `evidence_check` OK.
+  - `make check` was not run whole (check-integration is CI-only). `make safety` and `make security` were not run: no protocol, PolicyGuard or Python security surface changed.
+  - Nothing was deployed. The live stamp is shown by the coordinator's next `deploy.sh` and `smoke.sh` run.
+- Invariants touched and still passing:
+  - **14**: syft is pinned by digest, its licence was verified from the raw LICENSE blob, and it runs offline on a read-only archive without the docker socket.
+  - **15**: `/version` gets all three stamps.
+  - **17**: no placeholder. The build-time value is documented, bound to one call, never exported, and rejected by smoke.
+  - **19**: syft is Apache-2.0.
+- Decisions / ADRs / `00_STATE.md` rows: none. The acceptance's Frankfurt clause is rescoped to INT-376 as the coordinator directed.
+- Blocked on: nothing for this PR. INT-376 waits on AWS quota request `c6c0d271…`. Acceptance 2 names p50, and the Part 1 k6 table has p95 and max only, so the next deploy's k6 run must record the median (evidence Part 3, item 4).
+- Next: PR `INT-352: stamped /version (sbom_digest) on the production API; Frankfurt move split to INT-376` (Closes #558, Sec-Row platform), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T10:30:00Z · INT-363 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #589):
   - *"before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"*
@@ -140,6 +228,63 @@
 - Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
 - Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T12:00:00Z · INT-317 (INT-354 slice 1) · delivered (PR open; the read-back stays shut on HB-A18 and HB-L27)
+- Goal: INT-354 acceptance 1, one slice at a time. INT-317 is the first slice: previsit
+  output store and hospital read-back. Its acceptance is verbatim in its backlog row.
+  - Work: land int-demo's INT-317 work on main as one PR.
+  - Carry: its backlog row and HB-A18, both int-demo-only.
+  - Strip: F06/F21 demo-scoped content.
+- Plan:
+  - Classify all 26 `origin/main..origin/int-demo` commits: issue, on-main by content,
+    F06/held, slice. See `docs/evidence/INT-354.md`.
+  - Cherry-pick the nine INT-317 commits and squash them into three:
+    - red;
+    - implementation;
+    - backlog and evidence.
+  - Regenerate the exports on current main.
+  - Drop `545abfa7`, the demo recipient overlay and guide.
+- Tests added: none new. The int-demo suites are carried unchanged:
+  - `tests/api/test_previsit_output.py`;
+  - `tests/schemas/test_previsit_output_contract.py`;
+  - `tests/platform/test_previsit_output_recipients.py`;
+  - the `tests/data` table checks.
+
+  Their near-miss controls are carried too: no scope → refused and unaudited; no stored
+  previsit → 404; the note grant does not unlock the output scope. RED on main: 3
+  collection errors plus 4 `tests/data` failures. GREEN: 62 passed on the INT-317 suites
+  and 357 on the wider set.
+- Result: `make check` was not run whole, because check-integration needs a container
+  runtime. The `check-py` lanes were run instead:
+  - ruff and format clean; `mypy --strict` clean on 436 files;
+  - the whole-tree pytest: 7106 passed at 95.74 % (floor 85). There were 4 `test_deid_ner`
+    failures, caused by the model cache being absent from a fresh worktree;
+  - schemas 189 passed at 91.76 % (floor 90);
+  - `pnpm -r typecheck` 0; `no_placeholders` OK after staging; phi and claims scans OK.
+
+  `make safety`: not touched, because nothing changed under protocols or voice-runtime.
+- Invariants touched and still passing:
+  - **1**: `triage` is rules-or-`not_evaluated` only;
+  - **4**: a share means a consent check plus an audit entry before the answer;
+  - **6/14**: the patient number is body-only, tokenized and never stored, and the payload
+    is envelope-encrypted;
+  - **17**: an empty registry fails closed;
+  - **18**: every column is annotated;
+  - **22**: magnitude and unit are one object, on the ADR-030 carrier.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No new ADR.
+  - `ADR-029` → `ADR-030` references were corrected, because main de-collided the number.
+  - INT-317 and HB-A18 were carried, not minted. The check found no other use on main, on
+    any remote branch or on GitHub.
+  - Migration `0013_previsit_output` → `0012_int150`, with one alembic head.
+- Blocked on:
+  - **owner + hospital IT + counsel (HB-A18):** which credential a hospital system presents,
+    and the DPA's `dpa_ref`/`approval_ref`/`retention_ref`;
+  - **counsel (HB-L27):** the `share` consent text.
+- Next:
+  - The owner confirms INT-318 and allocates ids for the mobile slices.
+  - Then S2 INT-318, with the F06 route rebuilt registry-only.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):

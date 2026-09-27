@@ -19,6 +19,9 @@
 #   - Every credential the API requires outside dev (INT-325: the three DB
 #     URLs and the object store's root pair) is a required interpolation of
 #     a host-generated secret. None has a default.
+#   - INT-352 (audit F18): all three /version stamps are required. git_sha
+#     and built_at are build args, and sbom_digest is the sha256 of the
+#     image's SBOM, which the host scripts write outside the image.
 #
 # The object store's image is OBJECT_STORE_IMAGE, which lib.sh sets and
 # exports: the one the owner chose on 2026-09-26 (owner decision D1), pinned
@@ -57,6 +60,12 @@ services:
         BUILT_AT: ${INTAKE_BUILT_AT:?set by deploy.sh}
     environment:
       INTAKE_ENV: staging
+      # INT-352 (audit F18): /version's sbom_digest, the sha256 of the SBOM
+      # that deploy.sh has syft write of this image into the host's release
+      # directory, never into the image. git_sha and built_at come in as the
+      # build args above. Required, no default: without it compose starts no
+      # api container, so /version cannot report "dev" for it here.
+      INTAKE_SBOM_DIGEST: ${INTAKE_SBOM_DIGEST:?set by deploy.sh from the release SBOM}
       INTAKE_API_KEK_MODE: transit
       OPENBAO_ADDR: http://openbao:8200
       OPENBAO_TOKEN: ${OPENBAO_TOKEN:?run init.sh}

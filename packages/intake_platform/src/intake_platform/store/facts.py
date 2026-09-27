@@ -45,6 +45,7 @@ from intake_platform.db.inventory import (
     REC_AUDITOR,
     REC_CLINICIAN,
     REC_GUARDIAN_INTERNAL,
+    REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
     REC_INTERNAL,
     REC_ON_DEVICE,
     REC_PATIENT_CLINICIAN,
@@ -92,6 +93,17 @@ RECIPIENT_SHARING: Final[Mapping[str, Sharing]] = MappingProxyType(
     {
         REC_INTERNAL: Sharing.NONE,
         REC_GUARDIAN_INTERNAL: Sharing.NONE,
+        # INT-317 — the previsit output exists TO BE fetched by a hospital
+        # system, and today it is not: the recipient registry holds zero rows,
+        # so nothing outside the PHI boundary can reach it and NONE is the true
+        # answer rather than a convenient one. The string says so in its own
+        # words ("while the recipient registry is empty"), and the classification
+        # is pinned to that condition by
+        # tests/platform/test_previsit_output_recipients.py — the moment a row
+        # is registered that test fails, which is what forces a new recipient
+        # constant and a new classification instead of a silent flip from "not
+        # shared" to "shared" underneath a published store label.
+        REC_HOSPITAL_SYSTEM_AWAITING_HUMAN: Sharing.NONE,
         REC_ON_DEVICE: Sharing.NONE,
         REC_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_PATIENT_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
