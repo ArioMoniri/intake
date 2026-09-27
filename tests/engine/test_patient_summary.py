@@ -713,6 +713,28 @@ class TestTriageAndTheRestOfTheValue:
         assert "1.234" not in _all_text(summary.summary)
         assert "1,234" not in _all_text(summary.summary)
 
+    def test_a_decimal_measurement_is_written_with_the_turkish_decimal_comma(
+        self, copy: PatientSummaryCopy
+    ) -> None:
+        """INT-386, on the patient's own screen. The summary is Turkish, and a
+        Turkish reader takes ``72.5`` for grouping, so the measure is written
+        ``72,5`` and the near miss, the full stop it carried before, is
+        absent."""
+        built = build_patient_summary(
+            compose(
+                meta=_meta(),
+                triage=RulesTriageResult(level=TriageLevel.GREEN),
+                screening=_screening(scored=False),
+                measurements=[
+                    _self(SelfReportedMeasure(code="weight", magnitude=Decimal("72.5"), unit="kg"))
+                ],
+            ),
+            copy,
+        )
+        (measure,) = [line for line in built.lines if line.section == "measurements"]
+        assert measure.quoted == "72,5 kg"
+        assert "72.5" not in _all_text(built.summary)
+
     def test_the_summary_states_no_measurement_and_no_percentage(
         self, summary: ComposedSummary
     ) -> None:

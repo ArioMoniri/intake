@@ -62,12 +62,24 @@ def issue_body(issue: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_plan(issues: list[dict[str, Any]], existing: list[dict[str, Any]]) -> dict[str, Any]:
+def owned_issue_numbers(existing: list[dict[str, Any]]) -> dict[str, int]:
+    """The GitHub issue number the sync edits for each backlog id.
+
+    Matched on the 7-character `INT-xxx` title prefix; when several issues
+    share it the last one listed wins. `gh issue list` lists newest first, so
+    the sync owns the OLDEST issue carrying the id — every other one is a
+    duplicate (scripts/backlog/reconcile.py reports them).
+    """
     by_prefix: dict[str, int] = {}
     for e in existing:
         title = e.get("title", "")
         if title[:7].startswith("INT-"):
             by_prefix[title[:7]] = e["number"]
+    return by_prefix
+
+
+def build_plan(issues: list[dict[str, Any]], existing: list[dict[str, Any]]) -> dict[str, Any]:
+    by_prefix = owned_issue_numbers(existing)
 
     actions = []
     used_labels: set[str] = set()

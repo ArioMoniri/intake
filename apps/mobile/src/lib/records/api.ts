@@ -19,6 +19,14 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { File } from "expo-file-system";
 
 import { AuthApiError, authedFetch } from "@/lib/auth/api";
+import {
+  decisionBody,
+  isAcknowledgement,
+  parseExtraction,
+  type CardDecision,
+  type ExtractionFeed,
+  type ExtractionSource,
+} from "@/lib/records/extraction";
 import { stripJpegMetadata } from "@/lib/records/jpeg";
 
 /** Server allow-list mirror (intake_platform.documents.ALLOWED_CONTENT_TYPES). */
@@ -370,8 +378,7 @@ export async function upload(visitId: string, file: PickedFile): Promise<UploadO
   // nothing in this repository has declared. The strip comes first because the
   // digest is declared to the server from the bytes that actually travel.
   const picked = await new File(file.uri).bytes();
-  const bytes =
-    pre.contentType === "image/jpeg" ? stripJpegMetadata(picked) : picked;
+  const bytes = pre.contentType === "image/jpeg" ? stripJpegMetadata(picked) : picked;
   if (bytes.byteLength > MAX_DOCUMENT_BYTES) {
     throw new RecordsApiError("size");
   }
@@ -422,6 +429,54 @@ export async function downloadUrl(visitId: string, docId: string): Promise<Downl
   }
   return { kind: "url", url: body.url };
 }
+
+// --- extraction: confirm cards in, verdicts out (INT-138) --------------------------------------
+
+/**
+ * What has been read out of one document, from the route that publishes it
+ * (services/api `record_items.py`). The payload goes through the closed-shape
+ * reader and nothing else: a card that cannot point at its page, or a feed
+ * carrying a level-shaped key, is refused here as it is on the server.
+ */
+export async function readExtraction(visitId: string, docId: string): Promise<ExtractionFeed> {
+  const response = await call(`/v1/visits/${visitId}/documents/${docId}/extraction`);
+  const body = await parseBody(response);
+  if (!response.ok) {
+    throw mapError(response.status, body);
+  }
+  return parseExtraction(body);
+}
+
+/**
+ * The patient's verdict on one card. True only when the server echoes this
+ * card and this verdict back — a refusal, a success naming something else, or
+ * no answer at all leaves the card pending (no optimistic write). The body is
+ * `decisionBody` and nothing more: no value, no unit, no actor.
+ */
+export async function recordDecision(
+  visitId: string,
+  docId: string,
+  cardId: string,
+  decision: CardDecision,
+): Promise<boolean> {
+  let response: Response;
+  try {
+    response = await call(`/v1/visits/${visitId}/documents/${docId}/extraction/decisions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(decisionBody(cardId, decision)),
+    });
+  } catch {
+    return false; // unreachable: not saved, and the card says so
+  }
+  return response.ok && isAcknowledgement(await parseBody(response), cardId, decision);
+}
+
+/** The production extraction source: the two routes above, and nothing else. */
+export const apiExtractionSource: ExtractionSource = {
+  read: readExtraction,
+  record: recordDecision,
+};
 
 // --- display names (the patient's own data, kept ON DEVICE only) ------------------------------
 

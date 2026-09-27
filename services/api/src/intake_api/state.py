@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.age_context import AgeContextSource, NoAgeRecordSource
 from intake_api.audit import AuditWriter
+from intake_api.record_feed import ExtractionSource, NoExtractionSource, RecordDecisions
 from intake_api.settings import ApiSettings
 from intake_api.taxonomy_feed import LoadedTaxonomy, load_taxonomy_feed
 
@@ -89,6 +90,12 @@ class ApiState:
     # an unwired deployment shows an empty register rather than a fabricated one
     # (files/08 §4; the register is a projection, never a second store).
     transfer_feed: tuple[TransferRecord, ...] = ()
+    # INT-138: where a document's extraction is read from, and the patient's
+    # verdicts on it. The default source answers "unread" for every document,
+    # because every producer is shut (NoLayout/NoOcr, row 9 unserved); the
+    # ledger admits confirmed items into INT-121's ConfirmedRecordStore only.
+    extractions: ExtractionSource = field(default_factory=NoExtractionSource)
+    record_decisions: RecordDecisions = field(default_factory=RecordDecisions)
     # INT-038: the docs/legal consent-text catalog the guard binds against;
     # defaults from settings.legal_root in __post_init__ so every state has
     # one (an absent legal tree is an EMPTY catalog — grants fail closed).

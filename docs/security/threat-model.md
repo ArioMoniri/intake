@@ -1022,6 +1022,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
      and XMP, so it is a third metadata container beside the two the JPEG strip names.
      Reachable through the file picker only — the camera path produces JPEG — so the
      probability is lower, but the exposure is the same one.
+- **INT-138 addition — the extraction reaches the patient, and the verdict comes back.**
+  `GET /v1/visits/{visit_id}/documents/{doc_id}/extraction` publishes a scanned-clean
+  document's items; `POST …/extraction/decisions` takes `{card_id, decision}`
+  (`services/api/src/intake_api/record_items.py`). New boundary: extracted text ↔ the
+  patient's screen. Threats and their controls: [I] another patient's items — the
+  caller's own visit and document under the RLS tenant session, the `documents` consent
+  scope enforced on both routes, clinic principals refused; [T] a caller asserting who
+  confirmed, or restating the value — the body is closed to those two fields and
+  `confirm_record_item` takes no `by=`, so the actor is read off INT-170's vocabulary;
+  [T/S] document text shaped as a control — an item carrying the data-boundary control
+  token, or a box pointing into another document, refuses the extraction whole (the one
+  fence's own check, not a second one), and nothing on this path reaches a model; [T] a
+  flagged magnitude tidied in transit — `summary` and `unit_conflict` are carried byte
+  for byte, no parse, no conversion; [R] every read and verdict appends `doc:<id>` to the
+  hash chain, ids only, before the verdict takes effect. Only a clean document is ever
+  passed to a source. The production source (`NoExtractionSource`) answers *unread* for
+  every document while every producer is shut.
+- ⚠️ **One limit of that transport, named for a human.** A confirmed item is admitted to
+  INT-121's `ConfirmedRecordStore`, which lives in process memory: a restart loses the
+  verdict and the card returns to *pending*, which reaches no note — the safe direction.
+  A durable store would persist a structured copy of patient health values, which needs
+  its invariant-18 annotation and an owner's decision (CLAUDE.md, *when to stop and
+  ask*); none was made here. Tests: `tests/records/test_extraction_transport.py`.
 
 ## `documents` — the object store
 
@@ -1639,6 +1662,18 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     console is read-only for `platform_owner`/`tenant_admin` until the owner acts; Grafana,
     Langfuse and Unleash stay manual steps; access tokens already issued live until their
     expiry (INT-365's session bounds).
+  - **Controls added by INT-391 (the credential id is WebAuthn's, not a generic id):**
+    `principal_from_claims` decodes `credential_id` instead of matching the 128-character id
+    shape. It admits exactly the ids WebAuthn Level 3 lets an authenticator mint: unpadded
+    base64url (§3), 16 to 1023 bytes once decoded (§4). The old shape refused a valid staff key
+    at random (an id starting with `-` or `_`, about 2 in 64, or longer than 96 bytes). It also
+    admitted strings that are no credential id (`/`, `.`, `:` or `@` inside, fewer than 16
+    bytes). A padded id, the standard alphabet, a dangling character and a second spelling of
+    the same bytes (pad bits set) are refused. Each credential therefore has one spelling, and
+    four-eyes' distinct-credential check, which compares strings, compares credentials. The
+    refusal is the generic 403 every malformed claim gets, audited as `admin:unresolved`; it
+    names the claim and never its value (inv 6). `aaguid` keeps its shape: the provider writes
+    UUID text, which that shape always admits.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1646,7 +1681,8 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `sec.break_glass_total` with alerts actually attached — land with INT-180…INT-192.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365).
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
+  the same file, with property tests over generated ids (INT-391).
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 
