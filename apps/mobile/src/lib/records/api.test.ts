@@ -20,12 +20,15 @@ import {
   ALLOWED_DOCUMENT_TYPES,
   MAX_DOCUMENT_BYTES,
   RecordsApiError,
+  apiExtractionSource,
   cameraFile,
   downloadUrl,
   ensureServerVisit,
   listDocuments,
   pickUploadVisit,
   precheckFile,
+  readExtraction,
+  recordDecision,
   upload,
 } from "./api";
 
@@ -304,6 +307,87 @@ describe("downloadUrl — 409 is a typed scanning state, never an error", () => 
   it("still throws typed errors for the other refusals", async () => {
     mocks.authedFetch.mockResolvedValueOnce(json(404, { error: "not_found" }));
     await expect(downloadUrl("visit-1", "doc-1")).rejects.toMatchObject({ kind: "not_found" });
+  });
+});
+
+describe("INT-138 — the extraction routes: cards in, verdicts out", () => {
+  const CARD = {
+    id: "item-1",
+    kind: "lab",
+    summary: "ALT 30 U/mL",
+    unit_conflict: true,
+    date: null,
+    provenance: { document_ref: "doc:doc-1", page: 2, bbox: [0.1, 0.7, 0.6, 0.74] },
+    decision: null,
+  };
+
+  it("reads a document's cards from the route the server declares", async () => {
+    mocks.authedFetch.mockResolvedValueOnce(json(200, { state: "read", items: [CARD] }));
+    const feed = await readExtraction("visit-1", "doc-1");
+    expect(mocks.authedFetch.mock.calls[0][0]).toBe(
+      "/v1/visits/visit-1/documents/doc-1/extraction",
+    );
+    expect(feed.kind).toBe("cards");
+    if (feed.kind !== "cards") return;
+    // the flag and the line cross as the server wrote them
+    expect(feed.cards[0].summary).toBe("ALT 30 U/mL");
+    expect(feed.cards[0].unitConflict).toBe(true);
+    expect(feed.cards[0].box).toEqual({
+      documentRef: "doc:doc-1",
+      page: 2,
+      bbox: [0.1, 0.7, 0.6, 0.74],
+    });
+  });
+
+  it("reads the production answer — nothing has been read — as unread", async () => {
+    mocks.authedFetch.mockResolvedValueOnce(json(200, { state: "unread", items: [] }));
+    await expect(readExtraction("visit-1", "doc-1")).resolves.toEqual({ kind: "unread" });
+  });
+
+  it("throws a typed kind on a refusal, never a narrative", async () => {
+    mocks.authedFetch.mockResolvedValueOnce(
+      json(403, { error: "consent_required", scope: "documents" }),
+    );
+    await expect(readExtraction("visit-1", "doc-1")).rejects.toMatchObject({ kind: "consent" });
+    mocks.authedFetch.mockRejectedValueOnce(new mocks.AuthApiError("network"));
+    await expect(readExtraction("visit-1", "doc-1")).rejects.toMatchObject({ kind: "network" });
+  });
+
+  it("posts exactly the card and the verdict — no value, no unit, no actor", async () => {
+    mocks.authedFetch.mockResolvedValueOnce(
+      json(200, { card_id: "item-1", decision: "confirmed" }),
+    );
+    await expect(recordDecision("visit-1", "doc-1", "item-1", "confirmed")).resolves.toBe(true);
+    const [path, init] = mocks.authedFetch.mock.calls[0] as [string, RequestInit];
+    expect(path).toBe("/v1/visits/visit-1/documents/doc-1/extraction/decisions");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ card_id: "item-1", decision: "confirmed" });
+  });
+
+  it.each([
+    ["a refusal", () => json(409, { error: "already_decided" })],
+    ["an echo of another card", () => json(200, { card_id: "item-2", decision: "confirmed" })],
+    ["an echo of another verdict", () => json(200, { card_id: "item-1", decision: "declined" })],
+    ["an empty success", () => json(200, {})],
+  ])("NEAR MISS: %s is not an acknowledgement", async (_label, response) => {
+    mocks.authedFetch.mockResolvedValueOnce(response());
+    await expect(recordDecision("visit-1", "doc-1", "item-1", "confirmed")).resolves.toBe(false);
+  });
+
+  it("reports an unreachable server as not saved rather than throwing past the card", async () => {
+    mocks.authedFetch.mockRejectedValueOnce(new mocks.AuthApiError("network"));
+    await expect(recordDecision("visit-1", "doc-1", "item-1", "declined")).resolves.toBe(false);
+  });
+
+  it("is the one production source, and it goes through these two calls", async () => {
+    mocks.authedFetch.mockResolvedValueOnce(json(200, { state: "reading", items: [] }));
+    await expect(apiExtractionSource.read("visit-1", "doc-1")).resolves.toEqual({
+      kind: "reading",
+    });
+    mocks.authedFetch.mockResolvedValueOnce(json(200, { card_id: "item-1", decision: "declined" }));
+    await expect(
+      apiExtractionSource.record("visit-1", "doc-1", "item-1", "declined"),
+    ).resolves.toBe(true);
   });
 });
 

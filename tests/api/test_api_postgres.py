@@ -138,13 +138,22 @@ def client(migrated: None, minio_client: Minio) -> Iterator[TestClient]:
     # teardown: the run's record rows go; the dev fixture rows stay. Children
     # before the session, previsit outputs first (INT-392): a sent note writes
     # one (INT-317), and its key to sessions has no ON DELETE rule on purpose,
-    # so a teardown that forgot it failed here with ForeignKeyViolation.
+    # so a teardown that forgot it failed here with ForeignKeyViolation. Doctor
+    # Links go before their shares for the same reason (INT-393).
     with psycopg.connect(
         host=HOST, port=PORT, dbname=DBNAME, user=SUPERUSER, password=SUPERPASS
     ) as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
-            for table in ("previsit_outputs", "shares", "notes", "documents", "slots", "events"):
+            for table in (
+                "previsit_outputs",
+                "doctor_links",
+                "shares",
+                "notes",
+                "documents",
+                "slots",
+                "events",
+            ):
                 cur.execute(
                     f"DELETE FROM {table} WHERE tenant_id = %s",  # noqa: S608 — fixed names
                     (DEV_TENANT_ID,),
