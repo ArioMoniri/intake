@@ -17,9 +17,9 @@
  * always labelled, never colour alone (02 §8.2).
  */
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/Icon";
 import { ListGroup } from "@/components/ListRow";
 import { AppText, useScheme, useTheme } from "@/components/Themed";
 import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
@@ -74,7 +74,7 @@ export function SectionStrip({ filled, total, onPress }: SectionStripProps) {
       <AppText role="caption" color="inkFaint" style={styles.stripCount}>
         {count} {t("dialogue.sectionsLabel")}
       </AppText>
-      <SymbolView name="chevron.up" size={11} tintColor={theme.inkFaint} />
+      <Icon name="chevron.up" size={11} tintColor={theme.inkFaint} />
     </Pressable>
   );
 }
