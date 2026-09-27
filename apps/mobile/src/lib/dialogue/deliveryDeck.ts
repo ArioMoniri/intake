@@ -21,6 +21,7 @@
  *     the product does not have (docs/evidence/INT-414.md, owner ask).
  */
 import { t, type MessageKey } from "../i18n";
+import type { DeliveryContext } from "./deliveryContext";
 
 export const DELIVERY_DECK = {
   /** Opening, first sentence pair: a warm welcome and what will happen. */
@@ -130,6 +131,58 @@ export function isDeliveryKey(key: string): key is DeliveryKey {
 /** `key` as a deck key, or null — for callers holding an utterance's key. */
 export function asDeliveryKey(key: string): DeliveryKey | null {
   return isDeliveryKey(key) ? key : null;
+}
+
+/**
+ * How each slot's lines are delivered (INT-414 / INT-415) — the voice profile,
+ * never the words. The composer tags a line with its slot's context, except
+ * the two lines that stand in front of a question the patient is struggling
+ * with (`repair`, `silence`), which take that question's own context so the
+ * voice does not change register between the line and the question.
+ */
+export const SLOT_CONTEXT: Record<DeliverySlot, DeliveryContext> = {
+  welcome: "welcome",
+  orientVoice: "welcome",
+  orientTyped: "welcome",
+  resume: "routine",
+  routine: "routine",
+  thanks: "acknowledgement",
+  hesitant: "acknowledgement",
+  revised: "acknowledgement",
+  silence: "routine",
+  repair: "routine",
+  pain: "routine",
+  instrument: "instrument",
+  sensitive: "sensitive",
+  sensitiveLead: "sensitive",
+  topicAllergies: "routine",
+  topicMedications: "routine",
+  topicPmh: "routine",
+  topicFamily: "sensitive",
+  topicSocial: "routine",
+  topicMeasurements: "routine",
+  topicWrapup: "routine",
+  closing: "closing",
+};
+
+const SLOT_OF: ReadonlyMap<string, DeliverySlot> = new Map(
+  ALL_SLOTS.flatMap((slot) => DELIVERY_DECK[slot].map((key) => [key, slot] as const)),
+);
+
+/** The slot a deck key belongs to. Keys are unique across slots, so this is total. */
+export function slotOf(key: string): DeliverySlot | undefined {
+  return SLOT_OF.get(key);
+}
+
+/**
+ * The context a line's clip is made in ahead of time. Exactly the slot's
+ * context, so every pre-warmed clip is the one a turn asks for; a repair or
+ * silence line in front of a sensitive or instrument question is the one
+ * miss, and a missed lead-in is dropped for its turn, never waited for.
+ */
+export function prewarmContextOf(key: string): DeliveryContext {
+  const slot = slotOf(key);
+  return slot === undefined ? "routine" : SLOT_CONTEXT[slot];
 }
 
 /** The Turkish line for a deck key — the voice is Turkish whatever the UI locale. */

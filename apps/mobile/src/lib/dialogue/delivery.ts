@@ -39,7 +39,13 @@
  * turns, and a cadence line only follows a turn that had none.
  */
 import type { DeliveryContext } from "./deliveryContext";
-import { DELIVERY_DECK, deliveryTextTr, type DeliveryKey, type DeliverySlot } from "./deliveryDeck";
+import {
+  DELIVERY_DECK,
+  deliveryTextTr,
+  SLOT_CONTEXT,
+  type DeliveryKey,
+  type DeliverySlot,
+} from "./deliveryDeck";
 
 /** Where the session is. `first` is the first question of a sitting that did
  * not open the intake — a resume, or the typed steps after a voice hand-over. */
@@ -172,7 +178,7 @@ function pick(input: DeliveryInput, slot: DeliverySlot): DeliveryKey {
 }
 
 /** How the question itself is said: the context never changes its words. */
-function questionDeliveryContext(context: QuestionContext): DeliveryContext {
+export function questionDeliveryContext(context: QuestionContext): DeliveryContext {
   switch (context) {
     case "sensitive":
       return "sensitive";
@@ -186,11 +192,13 @@ function questionDeliveryContext(context: QuestionContext): DeliveryContext {
   }
 }
 
+/** One line from `slot`, delivered in the slot's own context unless the
+ * caller says otherwise (deliveryDeck.ts SLOT_CONTEXT). */
 function line(
   input: DeliveryInput,
   slot: DeliverySlot,
   kind: Exclude<UtteranceKind, "question">,
-  deliveryContext: DeliveryContext,
+  deliveryContext: DeliveryContext = SLOT_CONTEXT[slot],
 ): Utterance {
   const key = pick(input, slot);
   return { kind, key, text: deliveryTextTr(key), deliveryContext };
@@ -217,28 +225,26 @@ function midLine(input: DeliveryInput): Utterance | null {
   }
   if (input.phase === "sensitive") {
     return input.topic === "family"
-      ? line(input, "topicFamily", "transition", "sensitive")
-      : line(input, "sensitive", "transition", "sensitive");
+      ? line(input, "topicFamily", "transition")
+      : line(input, "sensitive", "transition");
   }
   const slot = TOPIC_SLOT[input.topic];
   if (slot !== null && input.previousTopic !== null && input.topic !== input.previousTopic) {
-    return line(input, slot, "transition", input.topic === "family" ? "sensitive" : "routine");
+    return line(input, slot, "transition");
   }
   if (context === "instrument") {
     // Standardised administration: the instrument is introduced once, and
     // nothing — no thanks, no reassurance — is said between its items.
-    return previousContext === "instrument"
-      ? null
-      : line(input, "instrument", "lead_in", "instrument");
+    return previousContext === "instrument" ? null : line(input, "instrument", "lead_in");
   }
   if (cue === "barge_in") {
     return null; // they cut in: say less, not more
   }
   if (context === "pain" && previousContext !== "pain") {
-    return line(input, "pain", "lead_in", "routine");
+    return line(input, "pain", "lead_in");
   }
   if (cue === "hesitant" || cue === "revised") {
-    return line(input, cue, "acknowledgement", "acknowledgement");
+    return line(input, cue, "acknowledgement");
   }
   if (cue === "long_silence") {
     return line(input, "silence", "lead_in", own);
@@ -248,11 +254,11 @@ function midLine(input: DeliveryInput): Utterance | null {
     return null;
   }
   if (context === "sensitive") {
-    return line(input, "sensitiveLead", "lead_in", "sensitive");
+    return line(input, "sensitiveLead", "lead_in");
   }
   return roll(input, "cadence-slot") % 2 === 0
-    ? line(input, "routine", "lead_in", "routine")
-    : line(input, "thanks", "acknowledgement", "acknowledgement");
+    ? line(input, "routine", "lead_in")
+    : line(input, "thanks", "acknowledgement");
 }
 
 /**
@@ -268,16 +274,16 @@ export function composeDelivery(input: DeliveryInput): readonly Utterance[] {
       : [{ kind: "question", key: item.key, text: item.text, deliveryContext: "red" }];
   }
   if (input.phase === "closing") {
-    return [line(input, "closing", "transition", "closing")];
+    return [line(input, "closing", "transition")];
   }
   const delivery: Utterance[] = [];
   if (input.phase === "opening") {
-    delivery.push(line(input, "welcome", "lead_in", "welcome"));
+    delivery.push(line(input, "welcome", "lead_in"));
     delivery.push(
-      line(input, input.lane === "voice" ? "orientVoice" : "orientTyped", "transition", "welcome"),
+      line(input, input.lane === "voice" ? "orientVoice" : "orientTyped", "transition"),
     );
   } else if (input.phase === "first") {
-    delivery.push(line(input, "resume", "lead_in", "routine"));
+    delivery.push(line(input, "resume", "lead_in"));
   } else {
     const mid = midLine(input);
     if (mid !== null) {

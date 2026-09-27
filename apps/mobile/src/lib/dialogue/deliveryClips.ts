@@ -7,12 +7,17 @@
  * useDialogueSession; this module only decides WHICH clips play, which is the
  * part that has to be provable without a device.
  */
+import type { DeliveryContext } from "./deliveryContext";
 import { withDeadline } from "./tts";
 
-/** The session-cache file name for a delivery line's clip. Keys are unique,
- * so names are; the `l_` prefix keeps them apart from `q_`/`c_` clips. */
-export function deliveryClipName(key: string): string {
-  return `l_${key.toLowerCase().replace(/[^a-z0-9]+/g, "_")}.wav`;
+/**
+ * The session-cache file name for a delivery line's clip in one delivery
+ * context. The same line in two contexts is two clips — the INT-415 profiles
+ * differ — so the context is part of the name and a cache hit is never the
+ * wrong voice. The `l_` prefix keeps them apart from `q_`/`c_` clips.
+ */
+export function deliveryClipName(key: string, context: DeliveryContext): string {
+  return `l_${context}_${key.toLowerCase().replace(/[^a-z0-9]+/g, "_")}.wav`;
 }
 
 export interface SettleOptions {

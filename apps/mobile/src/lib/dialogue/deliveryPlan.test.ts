@@ -30,8 +30,15 @@ import {
   spokenPack,
   type IntakeQuestion,
 } from "../intake/questions";
-import type { Utterance } from "./delivery";
-import { DELIVERY_DECK, DELIVERY_KEYS, VOICE_DELIVERY_KEYS } from "./deliveryDeck";
+import { composeDelivery, DELIVERY_CUES, DELIVERY_TOPICS, type Utterance } from "./delivery";
+import { DELIVERY_CONTEXTS, type DeliveryContext } from "./deliveryContext";
+import {
+  DELIVERY_DECK,
+  DELIVERY_KEYS,
+  prewarmContextOf,
+  slotOf,
+  VOICE_DELIVERY_KEYS,
+} from "./deliveryDeck";
 import { deliveryClipName, settleTurnClips } from "./deliveryClips";
 import {
   closingDelivery,
@@ -39,13 +46,15 @@ import {
   planDelivery,
   planDialogueDelivery,
   questionContextOf,
+  questionDeliveryContextOf,
+  questionItem,
   stepFor,
   typedStepDelivery,
 } from "./deliveryPlan";
 import { requireScriptedDeliveryTr, scriptedDeliveryTr } from "./georgeClip";
 import { questionSpeechTr } from "./speech";
 import type { StreamEntry } from "./stream";
-import { clipName } from "./tts";
+import { clipName, createClipStore, type ClipFs } from "./tts";
 
 const REPO = join(__dirname, "..", "..", "..", "..", "..");
 const SRC = join(__dirname, "..", "..");
@@ -363,8 +372,12 @@ describe("delivery clips", () => {
     vi.useRealTimers();
   });
 
-  it("names every delivery clip safely, uniquely, and apart from question clips", () => {
-    const names = DELIVERY_KEYS.map(deliveryClipName);
+  it("names every delivery clip safely and uniquely, per key AND context, apart from question clips", () => {
+    // A line said in two contexts is two clips (INT-415 profiles differ), so
+    // the context is part of the name and a cache hit is never the wrong voice.
+    const names = DELIVERY_KEYS.flatMap((key) =>
+      DELIVERY_CONTEXTS.map((context) => deliveryClipName(key, context)),
+    );
     expect(new Set(names).size).toBe(names.length);
     for (const name of names) {
       expect(name).toMatch(/^l_[a-z0-9_]+\.wav$/);
@@ -423,6 +436,141 @@ describe("delivery clips", () => {
         deadlineMs: 1_000,
       }),
     ).rejects.toThrow("tts_deadline");
+  });
+});
+
+// --- the delivery context reaches the voice lane (INT-415 contract) ------------------
+
+describe("each utterance's delivery context travels with its clip", () => {
+  it("a question is spoken in its own context — sensitive, instrument, or routine", () => {
+    expect(questionDeliveryContextOf(byId("fh_known"))).toBe("sensitive");
+    expect(questionDeliveryContextOf(byId("substance"))).toBe("sensitive");
+    expect(questionDeliveryContextOf(byId("pain_character"))).toBe("routine");
+    expect(questionDeliveryContextOf(byId("complaint"))).toBe("routine");
+    for (const question of allQuestions) {
+      // the context the plan tags the question with is the one its clip is made in
+      const [asked] = composeDelivery({
+        phase: "mid",
+        questionContext: questionContextOf(question),
+        cue: "none",
+        turnIndex: 1,
+        sessionSeed: "s",
+        previousKey: "dialogue.delivery.lead.a",
+        lane: "voice",
+        topic: "hpi",
+        previousTopic: "hpi",
+        previousContext: questionContextOf(question),
+        item: questionItem(question),
+      }).filter((u) => u.kind === "question");
+      expect(asked.deliveryContext, question.id).toBe(questionDeliveryContextOf(question));
+      expect(asked.deliveryContext).not.toBe("red");
+    }
+  });
+
+  it("every fixed-slot line is tagged with its slot's context; repair and silence follow the question", () => {
+    const offenders: string[] = [];
+    for (const [c, questionContext] of (
+      ["routine", "pain", "sensitive", "instrument"] as const
+    ).entries()) {
+      for (const cue of DELIVERY_CUES) {
+        for (const topic of DELIVERY_TOPICS) {
+          for (let turnIndex = 0; turnIndex < 6; turnIndex += 1) {
+            for (const phase of ["opening", "first", "mid", "sensitive"] as const) {
+              const out = composeDelivery({
+                phase,
+                questionContext,
+                cue,
+                turnIndex,
+                sessionSeed: `s-${c}`,
+                previousKey: null,
+                lane: "voice",
+                topic,
+                previousTopic: "hpi",
+                previousContext: "routine",
+                item: questionItem(allQuestions[0]),
+              });
+              for (const utterance of out.filter((u) => u.kind !== "question")) {
+                const slot = slotOf(utterance.key);
+                const expected: DeliveryContext =
+                  slot === "repair" || slot === "silence"
+                    ? questionContext === "pain"
+                      ? "routine"
+                      : questionContext
+                    : prewarmContextOf(utterance.key);
+                if (utterance.deliveryContext !== expected) {
+                  offenders.push(
+                    `${utterance.key} in ${utterance.deliveryContext}, not ${expected}`,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the clip store forwards the context to the synthesizer", async () => {
+    const files = new Map<string, string>();
+    const fs: ClipFs = {
+      exists: async (path) => files.has(path),
+      mkdirp: async () => undefined,
+      writeBase64: async (path, base64) => {
+        files.set(path, base64);
+      },
+      removeDir: async () => undefined,
+    };
+    const seen: (DeliveryContext | undefined)[] = [];
+    const store = createClipStore("cache/dialogue/", fs, async (_text, context) => {
+      seen.push(context);
+      return new Uint8Array([1, 2, 3]);
+    });
+    await store.ensure("l_welcome_x.wav", tr["dialogue.delivery.welcome.a"], "welcome");
+    await store.ensure("q_complaint.wav", "Bugün sizi buraya getiren nedir");
+    expect(seen).toEqual(["welcome", undefined]);
+  });
+
+  it("the voice lane hands every clip its context, and George receives it", () => {
+    const read = (...parts: string[]) => readFileSync(join(SRC, ...parts), "utf8");
+    const clips = read("lib", "dialogue", "clips.ts");
+    expect(clips).toContain("prefer(text as ScriptedTr, context)");
+    const hook = read("lib", "dialogue", "useDialogueSession.ts");
+    expect(hook).toContain("deliveryClipName(key, context)");
+    expect(hook).toContain("store.ensure(name, scriptedDeliveryTr(key), context)");
+    expect(hook).toContain("utterance.deliveryContext");
+    expect(hook).toContain("prewarmContextOf(key)");
+    expect(hook).toMatch(/store\.ensure\(name, speech, questionContext\)/);
+    // every question-clip ensure in the hook carries a context
+    /** The top-level argument count of the call whose `(` is at `open`. */
+    const argumentCount = (source: string, open: number): number => {
+      let depth = 0;
+      let commas = 0;
+      for (let i = open; i < source.length; i += 1) {
+        const ch = source[i];
+        if (ch === "(" || ch === "[" || ch === "{") {
+          depth += 1;
+        } else if (ch === ")" || ch === "]" || ch === "}") {
+          depth -= 1;
+          if (depth === 0) {
+            const inner = source
+              .slice(open + 1, i)
+              .trim()
+              .replace(/,$/, "");
+            return inner.length === 0 ? 0 : commas + 1;
+          }
+        } else if (ch === "," && depth === 1) {
+          commas += 1;
+        }
+      }
+      return -1;
+    };
+    const calls = [...hook.matchAll(/store\.ensure\(/g)];
+    expect(calls.length).toBeGreaterThan(3);
+    for (const call of calls) {
+      const open = call.index + call[0].length - 1;
+      expect(argumentCount(hook, open), hook.slice(call.index, call.index + 80)).toBe(3);
+    }
   });
 });
 

@@ -24,6 +24,7 @@ import { WRAPUP_QUESTION_ID, type AnsweredValues, type IntakeQuestion } from "..
 import {
   composeDelivery,
   lastDeliveryKey,
+  questionDeliveryContext,
   type DeliveryCue,
   type DeliveryLane,
   type DeliveryTopic,
@@ -31,6 +32,7 @@ import {
   type Utterance,
   type VerbatimItem,
 } from "./delivery";
+import type { DeliveryContext } from "./deliveryContext";
 import { questionSpeechTr } from "./speech";
 import type { StreamEntry } from "./stream";
 
@@ -57,6 +59,11 @@ export function questionContextOf(question: IntakeQuestion): QuestionContext {
     return "pain";
   }
   return "routine";
+}
+
+/** How the question itself is spoken (INT-415 profile) — never its words. */
+export function questionDeliveryContextOf(question: IntakeQuestion): DeliveryContext {
+  return questionDeliveryContext(questionContextOf(question));
 }
 
 /** The note topic a question opens — its 04 §5 note section, or the HPI. */

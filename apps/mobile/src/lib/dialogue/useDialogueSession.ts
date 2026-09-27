@@ -70,13 +70,19 @@ import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { readCue, type DeliveryCue, type Utterance } from "./delivery";
 import { deliveryClipName, settleTurnClips } from "./deliveryClips";
+import type { DeliveryContext } from "./deliveryContext";
 import {
   asDeliveryKey,
   DELIVERY_DECK,
+  prewarmContextOf,
   VOICE_DELIVERY_KEYS,
   type DeliveryKey,
 } from "./deliveryDeck";
-import { HESITANT_OPTION_IDS, planDialogueDelivery } from "./deliveryPlan";
+import {
+  HESITANT_OPTION_IDS,
+  planDialogueDelivery,
+  questionDeliveryContextOf,
+} from "./deliveryPlan";
 import { scriptedDeliveryTr } from "./georgeClip";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
@@ -357,11 +363,16 @@ export function useDialogueSession({
     return [];
   };
 
-  /** Make one delivery line's clip. The text is minted from its deck key and
-   * nothing else, so no patient word can reach a synthesizer this way. */
-  const ensureLead = (store: ClipStore, key: DeliveryKey): Promise<string> => {
-    const name = deliveryClipName(key);
-    return store.ensure(name, scriptedDeliveryTr(key)).then((uri) => {
+  /** Make one delivery line's clip, in the context it will be said in
+   * (INT-415). The text is minted from its deck key and nothing else, so no
+   * patient word can reach a synthesizer this way. */
+  const ensureLead = (
+    store: ClipStore,
+    key: DeliveryKey,
+    context: DeliveryContext,
+  ): Promise<string> => {
+    const name = deliveryClipName(key, context);
+    return store.ensure(name, scriptedDeliveryTr(key), context).then((uri) => {
       readyLeadsRef.current.set(name, uri);
       return uri;
     });
@@ -378,7 +389,11 @@ export function useDialogueSession({
       if (key === null) {
         return [];
       }
-      return [readyLeadsRef.current.get(deliveryClipName(key)) ?? ensureLead(store, key)];
+      const context = utterance.deliveryContext;
+      return [
+        readyLeadsRef.current.get(deliveryClipName(key, context)) ??
+          ensureLead(store, key, context),
+      ];
     });
 
   // Pre-warm the session's scripted clips at mount, FIRST QUESTION FIRST
@@ -398,11 +413,18 @@ export function useDialogueSession({
     let stale = false;
     (async () => {
       const warm = (store: ClipStore, question: IntakeQuestion): Promise<unknown>[] => {
-        const clips = [store.ensure(clipName("question", question.id), questionSpeechTr(question))];
+        // A question's context follows from its declarations alone, so it is
+        // the same here as on its turn and the warm clip is the one used.
+        const context = questionDeliveryContextOf(question);
+        const clips = [
+          store.ensure(clipName("question", question.id), questionSpeechTr(question), context),
+        ];
         if (question.kind === "text") {
           // The generic confirm line is scripted too — free text never
           // names a clip and patient words are never synthesized.
-          clips.push(store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, [])));
+          clips.push(
+            store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, []), context),
+          );
         }
         return clips;
       };
@@ -427,7 +449,7 @@ export function useDialogueSession({
         ]);
         await Promise.allSettled(
           VOICE_DELIVERY_KEYS.filter((key) => !openingOnly.has(key)).map((key) =>
-            ensureLead(store, key),
+            ensureLead(store, key, prewarmContextOf(key)),
           ),
         );
       } catch {
@@ -512,13 +534,16 @@ export function useDialogueSession({
         // lead-in or acknowledgement first, the question verbatim last. A
         // confirm turn is a read-back and carries none.
         const turnPlan = speaking.intent === "question" ? plannedTurn(question.id) : [];
+        // INT-415: the question (and its read-back) is spoken in the
+        // question's own context — the same one the pre-warm made it in.
+        const questionContext = questionDeliveryContextOf(question);
         // INT-261: the ladder may take as long as it likes; the patient may
         // not be made to wait more than this clip's own worth of work. A
         // lead-in whose clip is not made yet is dropped for this turn rather
         // than waited for (deliveryClips.ts) — only the opening waits for its
         // own welcome, which IS that turn's content.
         const turnClips = await settleTurnClips(
-          withDeadline(store.ensure(name, speech), clipDeadlineMs(speech)),
+          withDeadline(store.ensure(name, speech, questionContext), clipDeadlineMs(speech)),
           leadClipsFor(store, turnPlan),
           {
             awaitLeads: turnPlan.some((utterance) => utterance.deliveryContext === "welcome"),
