@@ -27,6 +27,33 @@
 - Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
 - Blocked on: nothing. Device screenshots are an owner step.
 - Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-27T02:10:00Z · INT-370 · delivered (PR open; clinical-reviewer and device screenshots pending)
+- Goal: acceptance verbatim (GitHub #604):
+  - *"Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"*
+  - *"the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"*
+  - *"INT-341's calendar press tokens apply"*
+
+  This is slice S3 of INT-354, int-demo `148a7dbd`.
+- Plan:
+  - Cherry-pick `148a7dbd`. It auto-merged, and git's conflict list was empty.
+  - Point the calendar's three Pressables at `motion.press`: the days and arrows 0.6 → `rowOpacity` 0.7, and the agenda row `opacity`.
+  - Record the day hint as a register finding instead of rewriting it.
+- Tests added:
+  - `src/lib/calendar.test.ts` (16, ported) and `e2e/visits.spec.ts` (+6: toggle, one visits list, the Geçmiş group always shown with an empty state, a pure date-only model, MIN_TAP targets, tr keys).
+  - `tests/release` records `a11y.visits.dayHint`.
+  - RED: 6 failed plus a missing module; the i18n gate is red on the unrecorded key; `motion.spec` is red on the 3 literals after the cherry-pick. GREEN: 42/42 targeted.
+- Result:
+  - mobile vitest 105 files / 2034 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - `make check-i18n` 30 passed;
+  - the Python suites that read `apps/mobile` 526 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (tr source of truth, en mirror), 18 (no new field, nothing persisted), 17, 8.
+- Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
+- Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)

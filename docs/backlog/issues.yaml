@@ -5576,4 +5576,17 @@
   acceptance:
     - "the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"
   tests: [apps/mobile/e2e/visitCard.spec.ts, apps/mobile/src/lib/visitCardLayout.test.ts]
+- id: INT-370
+  epic: E08-mobile
+  phase: P1
+  title: "Visits calendar view and Geçmiş (past) list on Vizitlerim"
+  depends_on: [INT-341]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-370.md
+  acceptance:
+    - "Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"
+    - "the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"
+    - "INT-341's calendar press tokens apply"
+  tests: [apps/mobile/src/lib/calendar.test.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/e2e/motion.spec.ts, tests/release/test_i18n_complete.py]
   sec_row: "mobile"

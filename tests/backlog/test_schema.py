@@ -78,7 +78,9 @@ def test_ids_unique_and_well_formed() -> None:
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
-    assert len(ids) == 294
+    # + INT-370 (slice S3 of INT-354: the int-demo visits calendar and Geçmiş
+    # list, ported to main as its own one-issue PR).
+    assert len(ids) == 295
     import re
 
     for i in ids:

@@ -233,7 +233,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing); grows only with a stated reason.
     # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
     # grows only with a stated reason.
-    assert len(ids) == 294, f"expected 175 blueprint + 119 added issues, got {len(ids)}"
+    # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
+    assert len(ids) == 295, f"expected 175 blueprint + 120 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
