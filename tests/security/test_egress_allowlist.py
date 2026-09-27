@@ -454,7 +454,11 @@ def test_the_transport_refuses_a_wrong_purpose_before_resolving() -> None:
 #: intact, and the test below adds the direction that matters more: such a
 #: purpose must be ABSENT from this file, never merely optional in it.
 NON_VENDOR_PURPOSES = frozenset(
-    {EgressPurpose.CLINICAL_RECORD_PUSH, EgressPurpose.CONNECTOR_AUTHORIZATION}
+    {
+        EgressPurpose.CLINICAL_RECORD_PUSH,
+        EgressPurpose.CONNECTOR_AUTHORIZATION,
+        EgressPurpose.CLINICAL_RECORD_READ,
+    }
 )
 
 #: INT-329. A VENDOR purpose whose row is a decision nobody has made yet. The

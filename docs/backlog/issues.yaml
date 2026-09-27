@@ -4907,6 +4907,31 @@
   - tests/api/test_previsit_output.py
   - tests/schemas/test_previsit_output_contract.py
   - tests/platform/test_previsit_output_recipients.py
+- id: INT-318
+  epic: E10-connectors
+  phase: P1
+  # Slice S2 of INT-354 (int-demo -> main). Cited by int-demo code with no
+  # backlog row anywhere; the id was reserved by the coordinator and filed as
+  # GitHub #603 before this row was written, not minted by an agent. The
+  # connector mechanism carried as written; the server route is REBUILT, because
+  # on int-demo it built its source row in code (audit 2026-09-26 F06, section 6
+  # item 8).
+  # The registry row itself is the humans' (HB-A15, HB-A5, HB-L27, the
+  # plaintext decision): until it exists the route answers "unavailable".
+  title: "Acıbadem appointments read source, /v1/visits/sync and the phone-first login it feeds"
+  depends_on: [INT-160, INT-131]
+  labels: [area:connectors, area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-318.md
+  acceptance:
+    - "the visits route reads its source row only from infra/connectors/sources.yaml, which ships sources: [], and fails closed when no row exists; no DPA or approval ref appears in code (audit F06, section 6 item 8)"
+    - "the hardening carries over: require_scopes, a hash-chained audit, resolve_identity for shared handsets, an ownership re-check, and upstream error -> upstream_unavailable (200, no visits)"
+    - "the mobile sync client runs only in a dev build (build-source 79a6fc58)"
+  tests:
+    - tests/connectors/test_acibadem.py
+    - tests/api/test_visits_acibadem_sync.py
+    - tests/api/test_visits_acibadem_registry.py
+    - apps/mobile/e2e/releaseDemoSurfaces.spec.ts
   sec_row: "connectors"
 - id: INT-319
   epic: E05-voice
@@ -5564,7 +5589,8 @@
   title: "WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend"
   depends_on: [INT-226]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-363.md
   acceptance:
     - "before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"
     - "the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"
@@ -5590,7 +5616,8 @@
   title: "Staff second factor and session bounds: the console refuses a token issued without a second factor"
   depends_on: [INT-215]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-365.md
   acceptance:
     - "the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"
     - "the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"
@@ -5616,7 +5643,13 @@
   title: "Scheduled quarterly key rotation that emits sec_secret_rotation_due_days"
   depends_on: [INT-215]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-367.md
+  # NOTE 27 Sep 2026: the job (intake_platform.key_rotation, make
+  # key-rotation), the live gauge and SecretRotationOverdue ship here. Which
+  # host runs the daily tick in production, the scrape of its gauge and its
+  # rotation-scoped OpenBao token are the owner's deployment decision; the
+  # runbook (docs/runbooks/key-rotation.md) states all three.
   acceptance:
     - "a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"
   tests: [tests/security/test_rotation_schedule.py]
@@ -5628,7 +5661,8 @@
   title: "Continuous dependency security updates (Renovate) for every lockfile"
   depends_on: [INT-215]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-368.md
   acceptance:
     - "a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"
   tests: [tests/ci/test_dependency_updates.py]

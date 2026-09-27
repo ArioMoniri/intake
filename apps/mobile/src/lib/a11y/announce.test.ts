@@ -57,6 +57,30 @@ describe("politenessOf — an error interrupts, a status waits (INT-362)", () =>
   it("a status is polite", () => {
     expect(politenessOf("status")).toBe("polite");
   });
+
+  it("a warning is assertive — time is running out, it cannot wait its turn (INT-363)", () => {
+    expect(politenessOf("warning")).toBe("assertive");
+  });
+});
+
+describe("a warning is urgent but is not an error (INT-363, SC 2.2.1)", () => {
+  const HATA = "Hata";
+  const WARNING = "Hâlâ burada mısınız? Bilgilerinizi korumak için oturum birazdan kapanacak.";
+
+  it("is spoken exactly as shown — the patient did nothing wrong, so no error word", () => {
+    expect(spokenLine("warning", WARNING, HATA)).toBe(WARNING);
+  });
+
+  it("interrupts on iOS and cannot be cut off by the focus move that follows it", () => {
+    expect(lineStep(null, WARNING, "ios", politenessOf("warning")).post).toEqual({
+      text: WARNING,
+      options: { queue: false, priority: "high" },
+    });
+  });
+
+  it("posts nothing on Android, where the line's live region carries it", () => {
+    expect(lineStep(null, WARNING, "android", politenessOf("warning")).post).toBeNull();
+  });
 });
 
 describe("spokenLine — an error is heard as one (SC 3.3.1)", () => {
