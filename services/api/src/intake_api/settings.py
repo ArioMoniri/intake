@@ -197,6 +197,12 @@ class ApiSettings:
     clinical_sources_path: Path = field(
         default_factory=lambda: Path("infra/connectors/sources.yaml")
     )
+    # INT-317: which hospital systems may FETCH a finished previsit. The
+    # committed file has zero rows (no DPA is executed and no reader is
+    # approved), so the read-back refuses every caller until a human adds one.
+    previsit_output_recipients_path: Path = field(
+        default_factory=lambda: Path("infra/previsit_output/recipients.yaml")
+    )
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
@@ -259,6 +265,10 @@ class ApiSettings:
             ),
             clinical_sources_path=Path(
                 os.environ.get("INTAKE_CLINICAL_SOURCES") or "infra/connectors/sources.yaml"
+            ),
+            previsit_output_recipients_path=Path(
+                os.environ.get("INTAKE_PREVISIT_OUTPUT_RECIPIENTS")
+                or "infra/previsit_output/recipients.yaml"
             ),
             environment=environment_name(os.environ),
         )

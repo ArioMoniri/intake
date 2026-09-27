@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { AppText, Card, Hairline, SecondaryButton } from "@/components/Themed";
@@ -62,12 +63,14 @@ export function HealthSection() {
     };
   }, [locale]);
 
+  // SC 4.1.3 (INT-362): the read is a wait, and every one-line state it can
+  // end in sits in the same slot, so each is an announced status — polite, and
+  // never an error: nothing the patient did went wrong. The summary itself is
+  // content, read in place.
   if (availability === null) {
     return (
       <Card>
-        <AppText role="caption" color="inkSoft">
-          {t("health.loading")}
-        </AppText>
+        <AnnouncedText tone="status" role="caption" color="inkSoft" message={t("health.loading")} />
       </Card>
     );
   }
@@ -85,9 +88,12 @@ export function HealthSection() {
   if (availability.status === "platform_unsupported") {
     return (
       <Card>
-        <AppText role="body" color="inkSoft">
-          {t("health.unsupported")}
-        </AppText>
+        <AnnouncedText
+          tone="status"
+          role="body"
+          color="inkSoft"
+          message={t("health.unsupported")}
+        />
       </Card>
     );
   }
@@ -95,9 +101,12 @@ export function HealthSection() {
   if (availability.status === "permission_denied") {
     return (
       <Card>
-        <AppText role="body" color="inkSoft">
-          {t("health.permissionDenied")}
-        </AppText>
+        <AnnouncedText
+          tone="status"
+          role="body"
+          color="inkSoft"
+          message={t("health.permissionDenied")}
+        />
       </Card>
     );
   }
@@ -105,9 +114,7 @@ export function HealthSection() {
   if (readFailed) {
     return (
       <Card>
-        <AppText role="body" color="inkSoft">
-          {t("health.readFailed")}
-        </AppText>
+        <AnnouncedText tone="status" role="body" color="inkSoft" message={t("health.readFailed")} />
       </Card>
     );
   }
@@ -115,9 +122,7 @@ export function HealthSection() {
   if (summary === null) {
     return (
       <Card>
-        <AppText role="caption" color="inkSoft">
-          {t("health.loading")}
-        </AppText>
+        <AnnouncedText tone="status" role="caption" color="inkSoft" message={t("health.loading")} />
       </Card>
     );
   }
@@ -127,9 +132,7 @@ export function HealthSection() {
   if (!hasData) {
     return (
       <Card>
-        <AppText role="body" color="inkSoft">
-          {t("health.noData")}
-        </AppText>
+        <AnnouncedText tone="status" role="body" color="inkSoft" message={t("health.noData")} />
       </Card>
     );
   }
@@ -185,9 +188,12 @@ export function HealthSection() {
         ) : null}
       </Card>
       {attachStep === "done" ? (
-        <AppText role="caption" color="inkSoft">
-          {t("health.attach.done")}
-        </AppText>
+        <AnnouncedText
+          tone="status"
+          role="caption"
+          color="inkSoft"
+          message={t("health.attach.done")}
+        />
       ) : targetVisit === null ? (
         <AppText role="caption" color="inkFaint">
           {t("health.attach.noVisit")}

@@ -8,56 +8,13 @@
  * `data-tile-state`; an unknown tile says so in words with its reason code
  * beside it, and carries no figure (invariant 17).
  */
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 
 import { COPY, type Copy, type Lang } from "./copy";
 import type { OpsConsoleState } from "./load";
-import type { OpsView, TileState } from "./module";
-
-interface TileProps {
-  id: string;
-  title: string;
-  state: TileState;
-  reason: string | null;
-  c: Copy;
-  meta?: ReactNode;
-  children?: ReactNode;
-}
-
-function Tile({ id, title, state, reason, c, meta, children }: TileProps): ReactElement {
-  return (
-    <section
-      data-tile={id}
-      data-tile-state={state}
-      className={`tile tile-${state}`}
-      aria-labelledby={`tile-${id}`}
-    >
-      <header className="tile-head">
-        <h2 id={`tile-${id}`}>{title}</h2>
-        {meta}
-      </header>
-      {state === "unknown" ? (
-        <p className="unknown" data-reason={reason ?? ""}>
-          <strong>{c.unknown}</strong> · {c.reasons[reason ?? ""] ?? reason} <code>{reason}</code>
-        </p>
-      ) : (
-        children
-      )}
-    </section>
-  );
-}
-
-function ScrollTable({ children }: { children: ReactNode }): ReactElement {
-  return (
-    <div className="scroll">
-      <table>{children}</table>
-    </div>
-  );
-}
-
-function Cell({ value, c }: { value: string | null; c: Copy }): ReactElement {
-  return value === null ? <span className="cell-unknown">{c.unknown}</span> : <>{value}</>;
-}
+import type { OpsView } from "./module";
+import { ConsoleNav } from "./nav";
+import { Cell, ScrollTable, Tile } from "./tiles";
 
 function windowLabel(c: Copy, window: string): string {
   return (c.windows as Record<string, string>)[window] ?? window;
@@ -452,6 +409,7 @@ export function OpsConsole({ state, lang }: { state: OpsConsoleState; lang: Lang
   return (
     <main lang={lang} className="ops" data-page="ops">
       <header className="page-head">
+        <ConsoleNav current="ops" lang={lang} />
         <h1>{c.title}</h1>
         <p>
           {c.generatedAt}: <time>{view.generatedAt}</time> · {c.prometheus}:{" "}

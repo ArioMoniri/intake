@@ -51,6 +51,7 @@ from intake_api import (
     notes,
     notification_prefs,
     otp_routes,
+    previsit_output,
     profile_routes,
     satisfaction,
     taxonomy_routes,
@@ -491,6 +492,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(visits.router)
     app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
+    app.include_router(previsit_output.router)
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)
     app.include_router(documents.router)
