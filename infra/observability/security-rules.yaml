@@ -23,3 +23,36 @@ groups:
         §3). Every ciphertext still decrypts; the rotation is late, not
         destructive.
       runbook: docs/runbooks/key-rotation.md#overdue
+- name: admin-access
+  rules:
+  # tests/admin/test_access_review.py. files/08 §2.7: "a review older than
+  # 100 days downgrades every platform_owner and tenant_admin session to
+  # read-only and pages". Every API replica computes the age from the audit
+  # chain at scrape time; `min` across replicas, so one replica that has not
+  # re-read the chain since a countersignature cannot page alone. +Inf (never
+  # countersigned, or the chain unread) is above 100 and pages.
+  - alert: AccessReviewOverdue
+    expr: min(admin_access_review_age_days) > 100
+    labels:
+      severity: page
+    annotations:
+      summary: 'the console access review is more than 100 days old'
+      description: >-
+        platform_owner and tenant_admin sessions are read-only until the
+        platform_owner and console_roles sections are signed and countersigned
+        again (files/08 §2.7).
+      runbook: docs/runbooks/access-review.md#overdue
+  # tests/admin/test_offboarding.py. files/08 §2.4: one action revokes every
+  # console account. An offboarding that ends with a failed step or a manual
+  # step awaiting confirmation is counted complete="false"; someone has to
+  # close it.
+  - alert: OffboardingIncomplete
+    expr: increase(admin_offboarding_total{complete="false"}[1h]) > 0
+    labels:
+      severity: ticket
+    annotations:
+      summary: 'an offboarding ended with a system still open'
+      description: >-
+        A revocation failed or a manual step (Grafana, Langfuse, Unleash)
+        awaits confirmation. The review lists it under pending_offboardings.
+      runbook: docs/runbooks/access-review.md#incomplete

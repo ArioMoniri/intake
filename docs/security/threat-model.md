@@ -1014,6 +1014,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
      and XMP, so it is a third metadata container beside the two the JPEG strip names.
      Reachable through the file picker only — the camera path produces JPEG — so the
      probability is lower, but the exposure is the same one.
+- **INT-138 addition — the extraction reaches the patient, and the verdict comes back.**
+  `GET /v1/visits/{visit_id}/documents/{doc_id}/extraction` publishes a scanned-clean
+  document's items; `POST …/extraction/decisions` takes `{card_id, decision}`
+  (`services/api/src/intake_api/record_items.py`). New boundary: extracted text ↔ the
+  patient's screen. Threats and their controls: [I] another patient's items — the
+  caller's own visit and document under the RLS tenant session, the `documents` consent
+  scope enforced on both routes, clinic principals refused; [T] a caller asserting who
+  confirmed, or restating the value — the body is closed to those two fields and
+  `confirm_record_item` takes no `by=`, so the actor is read off INT-170's vocabulary;
+  [T/S] document text shaped as a control — an item carrying the data-boundary control
+  token, or a box pointing into another document, refuses the extraction whole (the one
+  fence's own check, not a second one), and nothing on this path reaches a model; [T] a
+  flagged magnitude tidied in transit — `summary` and `unit_conflict` are carried byte
+  for byte, no parse, no conversion; [R] every read and verdict appends `doc:<id>` to the
+  hash chain, ids only, before the verdict takes effect. Only a clean document is ever
+  passed to a source. The production source (`NoExtractionSource`) answers *unread* for
+  every document while every producer is shut.
+- ⚠️ **One limit of that transport, named for a human.** A confirmed item is admitted to
+  INT-121's `ConfirmedRecordStore`, which lives in process memory: a restart loses the
+  verdict and the card returns to *pending*, which reaches no note — the safe direction.
+  A durable store would persist a structured copy of patient health values, which needs
+  its invariant-18 annotation and an owner's decision (CLAUDE.md, *when to stop and
+  ask*); none was made here. Tests: `tests/records/test_extraction_transport.py`.
 
 ## `documents` — the object store
 
@@ -1600,6 +1623,49 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
     closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
     `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
+    auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
+    departure that leaves one identity store open. `GET /admin/access/review` is generated
+    from the Keycloak admin API (effective realm roles, enabled flag, last login from LOGIN
+    events) and the audit chain (last console action; each section's last countersignature) —
+    ids only: Keycloak's names and mail are never copied, a non-id username is dropped, and
+    the section digest is 128 bits so nothing on the page is chain-hash-shaped (HB-I12).
+    Signing a section is a tier-2 ceremony (it lifts the read-only downgrade, so it is the
+    dangerous direction): the §2.7 reviewer signs the population's digest, a second person
+    countersigns with a fresh single-use assertion, `platform_owner` needs the countersigner
+    from another organisation, and a grant between the two keys voids the signature. The
+    countersignature is an `admin.access_review.signed` row on the chain, so the review state
+    has no second store to forge and every replica reads it back. **Enforced by the router,
+    not the page:** past 100 days, or with no review, every write reached only through
+    `platform_owner` or `tenant_admin` is refused (`access_review_overdue`) and audited; an
+    unread chain counts as no review (fail closed). Offboarding is tier 1 (the safe direction;
+    §8.2 "token revoke"): Keycloak account disabled before its sessions are ended, the OpenBao
+    entity disabled and each of its tokens revoked (with their leases), the person's pending
+    four-eyes requests expired, and every other console system from
+    `infra/admin/console-accounts.yaml` listed — a system without a programmatic adapter is a
+    manual step that keeps the offboarding incomplete until an audited confirmation; the loader
+    refuses a file that would skip one. Each step is write-ahead on the chain; a failed step is
+    reported and the rest still run. The subject is path-shape-checked before it reaches a
+    Keycloak or OpenBao URL. The 60-day job offboards through the same pipeline under
+    `svc:access-hygiene` and refuses to disable anyone when the realm keeps under 60 days of
+    login history (an expired login must not read as "never logged in"). **Known limits, owner
+    decisions:** the admin client, the OpenBao offboarding policy (which needs `sudo` to list
+    token accessors), the scheduler and the first countersigned review are unwired, so the
+    console is read-only for `platform_owner`/`tenant_admin` until the owner acts; Grafana,
+    Langfuse and Unleash stay manual steps; access tokens already issued live until their
+    expiry (INT-365's session bounds).
+  - **Controls added by INT-391 (the credential id is WebAuthn's, not a generic id):**
+    `principal_from_claims` decodes `credential_id` instead of matching the 128-character id
+    shape. It admits exactly the ids WebAuthn Level 3 lets an authenticator mint: unpadded
+    base64url (§3), 16 to 1023 bytes once decoded (§4). The old shape refused a valid staff key
+    at random (an id starting with `-` or `_`, about 2 in 64, or longer than 96 bytes). It also
+    admitted strings that are no credential id (`/`, `.`, `:` or `@` inside, fewer than 16
+    bytes). A padded id, the standard alphabet, a dangling character and a second spelling of
+    the same bytes (pad bits set) are refused. Each credential therefore has one spelling, and
+    four-eyes' distinct-credential check, which compares strings, compares credentials. The
+    refusal is the generic 403 every malformed claim gets, audited as `admin:unresolved`; it
+    names the claim and never its value (inv 6). `aaguid` keeps its shape: the provider writes
+    UUID text, which that shape always admits.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1607,7 +1673,8 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `sec.break_glass_total` with alerts actually attached — land with INT-180…INT-192.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365).
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
+  the same file, with property tests over generated ids (INT-391).
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 
