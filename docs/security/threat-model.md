@@ -91,13 +91,26 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
   with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
   `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
-  Skipped naming HB-I7 while no pool is declared — never as healthy.
+  Skipped naming HB-I7 while no pool is declared — never as healthy. **INT-187 adds the
+  console surface** (`/cicd`, `GET /admin/cicd`): recent runs per workflow with failing jobs,
+  every PR-triggered gate per ref on `main` and the open PRs, **whether GitHub itself enforces
+  any of them** (today: no — branch protection off, no ruleset, read from the API rather than
+  assumed), releases with the `sign-and-attest` job's outcome, and this deployment's stamped
+  `/version`. The GitHub read is the ops collector's (read-only token from OpenBao, egress
+  guard, purpose `issue_tracking`); run actors, commit messages, PR titles and users never
+  become labels (`ops_cicd_*`, catalogued). **The deploy freeze** is a §8.2 pair — engage
+  tier 1, lift tier 2 — kept out of Unleash (a CI-held token must not lift it), and enforced
+  in `infra/staging/deploy.sh` by the release gate, which also refuses on an exhausted SLO
+  error budget and on a freeze it cannot read; `admin.deploy_freeze_changes_total` is the
+  alert. Argo CD and a deploy canary are shown as not deployed — none exists in `infra/`.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
   tests/security/test_threat_model.py (the sec_row linkage gate);
   tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
   heartbeat probe); tests/ci/test_dependency_updates.py (INT-368: ecosystem coverage from
   the tree, unscheduled security updates, no auto-merge anywhere); full gate job lands
-  with INT-019.
+  with INT-019. INT-187: tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py,
+  tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py,
+  tests/infra/test_staging_release_freeze.py and apps/admin-web/e2e/cicd.spec.ts.
 
 ## `secrets` — OpenBao and service credentials
 

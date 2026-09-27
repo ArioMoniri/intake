@@ -31,7 +31,10 @@ from intake_platform.admin.roles import TIER3_APPROVER_ROLES, AdminRole
 
 __all__ = [
     "BREAK_GLASS_OPEN",
+    "CICD_CEREMONIES",
     "DANGEROUS_ACTIONS",
+    "DEPLOY_FREEZE_ENGAGE",
+    "DEPLOY_FREEZE_LIFT",
     "MODEL_BENCHMARK_RUN",
     "SAFETY_FLAG_ENABLE",
     "VOICE_CANARY_SET",
@@ -278,6 +281,54 @@ VOICE_CEREMONIES: tuple[DangerousAction, ...] = (
     VOICE_CANARY_SET,
 )
 
+# --- INT-187: the CI/CD & releases module (files/08 §3, §8.2) -----------------------
+#
+# files/08 §8.2 lists "deploy freeze" on the tier-1 row: the safe direction,
+# one `sre_oncall` or `clinical_lead`, audited, no approver — and
+# `platform_owner`, the platform authority above both, may take the safe
+# direction alone too (the INT-188 / INT-182 precedent). Lifting a freeze is
+# the direction that lets changes reach patients again, so it is tier 2: two
+# humans on distinct authenticators.
+#
+# Who may request and approve a lift is read off files/08 §2.1: a deploy is
+# infrastructure, so the requesters are the roles that own it
+# (`platform_owner`, and `platform_admin` — "infrastructure, no clinical
+# surfaces"); the second key is `platform_owner` or `qms_owner`, because a
+# release is IEC 62304 change control and §9 makes `qms_owner` "a release-gate
+# role, not a courtesy". `sre_oncall`'s scope is "T1 safe-direction actions"
+# and it stands on neither side of a tier-2 ceremony; `clinical_lead` may
+# freeze, but a clinical role does not decide that a build is fit to ship.
+
+_FREEZE_RUNBOOK = "docs/runbooks/deploy-freeze.md"
+_FREEZE_ALERT = "admin.deploy_freeze_changes_total"
+
+DEPLOY_FREEZE_ENGAGE = DangerousAction(
+    id="admin.cicd.freeze.engage",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        {AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER}
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_FREEZE_RUNBOOK,
+    alert_metric=_FREEZE_ALERT,
+)
+
+DEPLOY_FREEZE_LIFT = DangerousAction(
+    id="admin.cicd.freeze.lift",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=frozenset({AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN}),
+    approver_roles=frozenset({AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER}),
+    approver_must_differ_org=False,
+    runbook=_FREEZE_RUNBOOK,
+    alert_metric=_FREEZE_ALERT,
+)
+
+#: The CI/CD action that opens a four-eyes ceremony.
+CICD_CEREMONIES: tuple[DangerousAction, ...] = (DEPLOY_FREEZE_LIFT,)
+
 DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
     MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
@@ -286,6 +337,8 @@ DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     VOICE_KILL_SWITCH_RELEASE.id: VOICE_KILL_SWITCH_RELEASE,
     VOICE_PROFILE_SWITCH.id: VOICE_PROFILE_SWITCH,
     VOICE_CANARY_SET.id: VOICE_CANARY_SET,
+    DEPLOY_FREEZE_ENGAGE.id: DEPLOY_FREEZE_ENGAGE,
+    DEPLOY_FREEZE_LIFT.id: DEPLOY_FREEZE_LIFT,
 }
 
 

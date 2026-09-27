@@ -32,6 +32,7 @@ from intake_platform.admin import (
     IpAllowList,
 )
 from intake_platform.admin.principal import ClaimsRejected
+from intake_platform.release_freeze import ReleaseFreezeStore
 from intake_platform.voice_control import VoiceControlStore
 
 #: The tenant deployment map the wiring ships EMPTY (files/08 §2.6): whether
@@ -88,6 +89,7 @@ def build_admin_wiring(
     allowlist: str = ALLOWED_CIDRS,
     deployments: Mapping[str, Deployment] | None = None,
     voice_controls: VoiceControlStore | None = None,
+    release_freeze: ReleaseFreezeStore | None = None,
 ) -> AdminWiring:
     return AdminWiring(
         claims=RecordedClaimsVerifier(recorded_claims()),
@@ -95,6 +97,7 @@ def build_admin_wiring(
         four_eyes=FourEyesService(),
         deployments=dict(TEST_DEPLOYMENTS if deployments is None else deployments),
         voice_controls=voice_controls,
+        release_freeze=release_freeze,
     )
 
 
@@ -149,6 +152,13 @@ VOICE_TENANT = "tenant-a"
 VOICE_REASON: dict[str, Any] = {
     "reason_class": "incident_mitigation",
     "justification": "Speech lane degraded on the bridge; typed until it recovers.",
+}
+
+#: INT-187. The deploy freeze's bodies: the same closed reason class and real
+#: explanation as every other governed change (INT-188).
+FREEZE_REASON: dict[str, Any] = {
+    "reason_class": "incident_mitigation",
+    "justification": "Error budget burning on the api; hold every deploy.",
 }
 
 ROUTE_DRIVES: tuple[RouteDrive, ...] = (
@@ -261,6 +271,33 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "GET",
         "/admin/voice/pending/{action_id}",
         f"/admin/voice/pending/{ABSENT_ACTION_ID}",
+        "auditor",
+    ),
+    # INT-187 — the CI/CD & releases module (files/08 §3, §8.2). The read is
+    # platform scope; freezing deploys is tier 1 (sre_oncall alone); lifting a
+    # freeze is a tier-2 ceremony. The harness wires no freeze store, so a
+    # permitted role reaches the handler and is answered 503 — past the guard,
+    # audited, and never 403.
+    RouteDrive("GET", "/admin/cicd", "/admin/cicd", "sre_oncall"),
+    RouteDrive("POST", "/admin/cicd/freeze", "/admin/cicd/freeze", "sre_oncall", FREEZE_REASON),
+    RouteDrive(
+        "POST",
+        "/admin/cicd/freeze/lift",
+        "/admin/cicd/freeze/lift",
+        "platform_admin",
+        FREEZE_REASON,
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/cicd/freeze/lift/{action_id}/approve",
+        f"/admin/cicd/freeze/lift/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-cicd-1"},
+    ),
+    RouteDrive(
+        "GET",
+        "/admin/cicd/pending/{action_id}",
+        f"/admin/cicd/pending/{ABSENT_ACTION_ID}",
         "auditor",
     ),
 )

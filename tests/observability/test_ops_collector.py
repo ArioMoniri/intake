@@ -259,7 +259,7 @@ class TestCollectOnce:
         _, run = _runner(TWO_GPUS)
         collector = OpsCollector(gpu_host=NvidiaSmiSource(host_id="gpu-a", run=run))  # type: ignore[arg-type]
         report = collector.collect_once()
-        assert report == {"gpu_host": "ok", "ci": "unconfigured"}
+        assert report == {"gpu_host": "ok", "ci": "unconfigured", "cicd": "unconfigured"}
         assert _sample("ops_gpu_host_up", host_id="gpu-a") == 1.0
         assert _sample("ops_gpu_utilization_ratio", host_id="gpu-a", gpu_index="0") == 0.37
         assert _sample("ops_gpu_memory_total_bytes", host_id="gpu-a", gpu_index="1") == float(

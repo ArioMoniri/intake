@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 
 from intake_platform.admin.actions import (
     BREAK_GLASS_OPEN,
+    DEPLOY_FREEZE_ENGAGE,
+    DEPLOY_FREEZE_LIFT,
     MODEL_BENCHMARK_RUN,
     VOICE_CANARY_SET,
     VOICE_KILL_SWITCH_ENGAGE,
@@ -39,6 +41,7 @@ from intake_platform.admin.four_eyes import FourEyesService
 from intake_platform.admin.ip_allowlist import IpAllowList
 from intake_platform.admin.principal import AdminClaimsVerifier
 from intake_platform.admin.roles import ADMIN_ROLES, ROLE_SPECS, AdminRole, RoleScope
+from intake_platform.release_freeze import ReleaseFreezeStore
 from intake_platform.voice_control import VoiceControlStore
 
 __all__ = ["ADMIN_ROUTES", "AdminRoute", "AdminWiring"]
@@ -81,6 +84,15 @@ _VOICE_BRIEF_READERS = (
     VOICE_KILL_SWITCH_ENGAGE.actor_roles
     | VOICE_PROFILE_SWITCH.actor_roles
     | VOICE_PROFILE_SWITCH.approver_roles
+    | {AdminRole.AUDITOR}
+)
+
+#: INT-187. A lift request's brief is read by whoever may freeze, request a
+#: lift or approve one, and by `auditor` — the voice module's shape.
+_FREEZE_BRIEF_READERS = (
+    DEPLOY_FREEZE_ENGAGE.actor_roles
+    | DEPLOY_FREEZE_LIFT.actor_roles
+    | DEPLOY_FREEZE_LIFT.approver_roles
     | {AdminRole.AUDITOR}
 )
 
@@ -242,6 +254,39 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         "admin.voice.pending.brief.read",
         frozenset(_VOICE_BRIEF_READERS),
     ),
+    # INT-187 — the CI/CD & releases module (files/08 §3, §8, §8.2). The read
+    # is platform facts, ids only — the same platform-scope set as /admin/ops.
+    # Freezing deploys is tier 1 (one key, the safe direction); lifting a
+    # freeze is a tier-2 ceremony, approved on its own route so the audit row
+    # names exactly the action it approved.
+    AdminRoute("GET", "/admin/cicd", "admin.cicd.read", _PLATFORM_SCOPE_ROLES),
+    AdminRoute(
+        "POST",
+        "/admin/cicd/freeze",
+        "admin.cicd.freeze.engage",
+        DEPLOY_FREEZE_ENGAGE.actor_roles,
+        DEPLOY_FREEZE_ENGAGE.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/cicd/freeze/lift",
+        "admin.cicd.freeze.lift",
+        DEPLOY_FREEZE_LIFT.actor_roles,
+        DEPLOY_FREEZE_LIFT.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/cicd/freeze/lift/{action_id}/approve",
+        "admin.cicd.freeze.lift.approve",
+        DEPLOY_FREEZE_LIFT.approver_roles,
+        DEPLOY_FREEZE_LIFT.id,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/cicd/pending/{action_id}",
+        "admin.cicd.pending.brief.read",
+        frozenset(_FREEZE_BRIEF_READERS),
+    ),
 )
 
 
@@ -258,3 +303,8 @@ class AdminWiring:
     #: session start. ``None`` = unconfigured: the voice mutations answer 503
     #: and the Voice module's controls tile reads unknown (fail closed).
     voice_controls: VoiceControlStore | None = None
+    #: INT-187: the deployment's deploy-freeze record, which the deploy path's
+    #: release gate reads before it touches the host. ``None`` = unconfigured:
+    #: the freeze controls answer 503, the freeze tile reads unknown, and the
+    #: console's deploy gate shows what deploy.sh would do — refuse.
+    release_freeze: ReleaseFreezeStore | None = None

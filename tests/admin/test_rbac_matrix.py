@@ -101,6 +101,18 @@ VOICE_BRIEF_READERS = (
     VOICE_KILL_SWITCH_ACTORS | VOICE_REQUESTERS | VOICE_APPROVERS | {AdminRole.AUDITOR}
 )
 
+#: INT-187 — the CI/CD module (files/08 §8.2). Tier 1, the safe direction: the
+#: T1 row's `sre_oncall` or `clinical_lead`, and `platform_owner` above both.
+#: Tier 2, lifting a freeze: requested by the infrastructure roles that own a
+#: deploy (`platform_owner`, `platform_admin`), approved by `platform_owner` or
+#: `qms_owner` — a release is IEC 62304 change control (§2.1, §9).
+FREEZE_ACTORS = frozenset({AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER})
+FREEZE_LIFT_REQUESTERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN})
+FREEZE_LIFT_APPROVERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER})
+FREEZE_BRIEF_READERS = (
+    FREEZE_ACTORS | FREEZE_LIFT_REQUESTERS | FREEZE_LIFT_APPROVERS | {AdminRole.AUDITOR}
+)
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -126,6 +138,11 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("PUT", "/admin/voice/canary/{tenant}"): VOICE_REQUESTERS,
     ("POST", "/admin/voice/canary/pending/{action_id}/approve"): VOICE_APPROVERS,
     ("GET", "/admin/voice/pending/{action_id}"): frozenset(VOICE_BRIEF_READERS),
+    ("GET", "/admin/cicd"): PLATFORM_SCOPE_ROLES,
+    ("POST", "/admin/cicd/freeze"): FREEZE_ACTORS,
+    ("POST", "/admin/cicd/freeze/lift"): FREEZE_LIFT_REQUESTERS,
+    ("POST", "/admin/cicd/freeze/lift/{action_id}/approve"): FREEZE_LIFT_APPROVERS,
+    ("GET", "/admin/cicd/pending/{action_id}"): frozenset(FREEZE_BRIEF_READERS),
 }
 
 

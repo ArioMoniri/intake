@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**303 issues.** By phase: P0 157 · P1 92 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 173 · todo 87 · withdrawn 1.
+**303 issues.** By phase: P0 157 · P1 92 · P2 47 · P3 7. By status: awaiting-human 27 · doing 16 · done 173 · todo 86 · withdrawn 1.
 
 ## P0
 
@@ -199,7 +199,7 @@
 | INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | done |
 | INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | done |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin, approval:human-legal | awaiting-human |
-| INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |
+| INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | awaiting-human |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
 | INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | awaiting-human |

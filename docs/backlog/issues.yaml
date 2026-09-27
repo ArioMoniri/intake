@@ -2635,10 +2635,25 @@
   title: "CI/CD & releases module (GH API + Argo CD + gates + freeze)"
   depends_on: [INT-181]
   labels: [area:admin]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-187.md
+  # EVERYTHING BUT THE ROLLBACK BUTTON SHIPPED (27 Sep 2026). /cicd renders
+  # recent runs per workflow with failing jobs, every PR-triggered gate on main
+  # and the open PRs (and that GitHub enforces none of them today), releases
+  # with their signing outcome, this deployment's stamped /version, the error
+  # budget, and a deploy freeze: engage tier 1, lift tier 2 (four eyes), kept
+  # out of Unleash, and ENFORCED in infra/staging/deploy.sh by a release gate
+  # that also refuses on an exhausted SLO budget or a freeze it cannot read.
+  # The GitHub read is the INT-351 ops collector's (read-only OpenBao token,
+  # egress guard). Canary state is shown truthfully as "not deployed": no
+  # canary controller exists. WHAT WAITS: the "rollback button (4-eyes)" needs
+  # a deploy controller the console can command, and Argo CD is not deployed
+  # (no cluster; the siting question HB-I13 asks for the edge tier). A
+  # ceremony over nothing to roll back is not a control, so the button renders
+  # disabled with that reason. docs/backlog/blockers.md carries the ask.
   acceptance:
     - "pipelines, eval gates, deploy health, canary state, rollback button (4-eyes), deploy-freeze on budget exhaustion"
-  tests: [apps/admin-web/e2e/cicd.spec.ts]
+  tests: [apps/admin-web/e2e/cicd.spec.ts, tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py, tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py, tests/infra/test_staging_release_freeze.py]
   sec_row: "cicd"
 - id: INT-188
   epic: E12-admin

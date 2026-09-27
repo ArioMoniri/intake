@@ -270,3 +270,17 @@ export {
 } from "./voice/module";
 export { loadVoice, resultFrom, type VoiceState } from "./voice/load";
 export { planVoiceAction, submitVoiceAction, type ResultCode } from "./voice/actions";
+// INT-187 — the CI/CD & releases module (files/08 §3): workflow runs, required
+// gates, releases, deploy state, the deploy freeze and the gate it feeds, and
+// the two freeze controls, rendered at `app/cicd/page.tsx`.
+export {
+  CICD_SCHEMA,
+  CicdFreezeIncoherent,
+  CicdGateIncoherent,
+  CicdNotWired,
+  renderCicd,
+  type CicdPayload,
+  type CicdView,
+} from "./cicd/module";
+export { loadCicd, type CicdState } from "./cicd/load";
+export { planCicdAction, submitCicdAction } from "./cicd/actions";
