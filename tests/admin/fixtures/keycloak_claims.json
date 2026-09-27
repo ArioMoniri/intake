@@ -1,5 +1,5 @@
 {
-  "_comment": "Recorded Keycloak access-token claim sets for the INT-180 admin shell suite. Synthetic throughout: subs, session ids and credential ids are test values, the AAGUID is the all-zero 'no attestation' value, the issuer is the committed dev realm, and amr carries the realm's password and WebAuthn references (pwd, hwk) because every recorded account is a WebAuthn login (INT-365; tests/admin/test_staff_second_factor.py holds them against the realm). tests/admin/test_rbac_matrix.py holds realm_access.roles against infra/keycloak/dev-realm.json so the fixture cannot drift from the realm the platform declares.",
+  "_comment": "Recorded Keycloak access-token claim sets for the INT-180 admin shell suite. Synthetic throughout: subs, session ids and credential ids are test values; each credential id is a WebAuthn credential id as the provider writes it, unpadded base64url of 16 to 1023 bytes, its counter zero-padded to a multiple of four characters so it decodes (INT-391); the AAGUID is the all-zero 'no attestation' value, the issuer is the committed dev realm, and amr carries the realm's password and WebAuthn references (pwd, hwk) because every recorded account is a WebAuthn login (INT-365; tests/admin/test_staff_second_factor.py holds them against the realm). tests/admin/test_rbac_matrix.py holds realm_access.roles against infra/keycloak/dev-realm.json so the fixture cannot drift from the realm the platform declares.",
   "realm": "intake-dev",
   "accounts": {
     "kc:platform_owner": {
@@ -22,7 +22,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-platform-owner-1"
+      "credential_id": "cred-platform-owner-0001"
     },
     "kc:platform_admin": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -44,7 +44,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-platform-admin-1"
+      "credential_id": "cred-platform-admin-0001"
     },
     "kc:tenant_admin": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -66,7 +66,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-tenant-admin-1"
+      "credential_id": "cred-tenant-admin-000001"
     },
     "kc:tenant_clinical_responsible": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -88,7 +88,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-tenant-clinical-responsible-1"
+      "credential_id": "cred-tenant-clinical-responsible-001"
     },
     "kc:clinical_lead": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -110,7 +110,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-clinical-lead-1"
+      "credential_id": "cred-clinical-lead-00001"
     },
     "kc:qms_owner": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -132,7 +132,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-qms-owner-1"
+      "credential_id": "cred-qms-owner-000000001"
     },
     "kc:investigator": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -154,7 +154,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-investigator-1"
+      "credential_id": "cred-investigator-000001"
     },
     "kc:auditor": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -176,7 +176,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-auditor-1"
+      "credential_id": "cred-auditor-00000000001"
     },
     "kc:sre_oncall": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -198,7 +198,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-sre-oncall-1"
+      "credential_id": "cred-sre-oncall-00000001"
     },
     "kc:compliance_officer": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -220,7 +220,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-compliance-officer-1"
+      "credential_id": "cred-compliance-officer-0001"
     },
     "kc:researcher": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -242,7 +242,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-researcher-1"
+      "credential_id": "cred-researcher-00000001"
     },
     "kc:support": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -264,7 +264,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-support-1"
+      "credential_id": "cred-support-00000000001"
     },
     "kc:clinical_lead_second_account": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -286,7 +286,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-clinical-lead-2"
+      "credential_id": "cred-clinical-lead-00002"
     },
     "kc:clinical_lead_second_tab": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -308,7 +308,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-clinical-lead-1"
+      "credential_id": "cred-clinical-lead-00001"
     },
     "kc:qms_owner_other_org": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -330,7 +330,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-qms-owner-ext-1"
+      "credential_id": "cred-qms-owner-ext-00001"
     },
     "kc:no_console_role": {
       "iss": "http://localhost:8080/realms/intake-dev",
@@ -352,7 +352,7 @@
         "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
-      "credential_id": "cred-clinician-1"
+      "credential_id": "cred-clinician-000000001"
     }
   }
 }
