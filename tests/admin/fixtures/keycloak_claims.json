@@ -1,5 +1,5 @@
 {
-  "_comment": "Recorded Keycloak access-token claim sets for the INT-180 admin shell suite. Synthetic throughout: subs, session ids and credential ids are test values, the AAGUID is the all-zero 'no attestation' value, and the issuer is the committed dev realm. tests/admin/test_rbac_matrix.py holds realm_access.roles against infra/keycloak/dev-realm.json so the fixture cannot drift from the realm the platform declares.",
+  "_comment": "Recorded Keycloak access-token claim sets for the INT-180 admin shell suite. Synthetic throughout: subs, session ids and credential ids are test values, the AAGUID is the all-zero 'no attestation' value, the issuer is the committed dev realm, and amr carries the realm's password and WebAuthn references (pwd, hwk) because every recorded account is a WebAuthn login (INT-365; tests/admin/test_staff_second_factor.py holds them against the realm). tests/admin/test_rbac_matrix.py holds realm_access.roles against infra/keycloak/dev-realm.json so the fixture cannot drift from the realm the platform declares.",
   "realm": "intake-dev",
   "accounts": {
     "kc:platform_owner": {
@@ -18,7 +18,8 @@
       "org": "org:intake",
       "tenant": null,
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-platform-owner-1"
@@ -39,7 +40,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-platform-admin-1"
@@ -60,7 +62,8 @@
       "org": "org:tenant-a",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-tenant-admin-1"
@@ -81,7 +84,8 @@
       "org": "org:tenant-a",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-tenant-clinical-responsible-1"
@@ -102,7 +106,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-clinical-lead-1"
@@ -123,7 +128,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-qms-owner-1"
@@ -144,7 +150,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-investigator-1"
@@ -165,7 +172,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-auditor-1"
@@ -186,7 +194,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-sre-oncall-1"
@@ -207,7 +216,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-compliance-officer-1"
@@ -228,7 +238,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-researcher-1"
@@ -249,7 +260,8 @@
       "org": "org:tenant-a",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-support-1"
@@ -270,7 +282,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-clinical-lead-2"
@@ -291,7 +304,8 @@
       "org": "org:intake",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-clinical-lead-1"
@@ -312,7 +326,8 @@
       "org": "org:notified-body",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-qms-owner-ext-1"
@@ -333,7 +348,8 @@
       "org": "org:tenant-a",
       "tenant": "tenant-a",
       "amr": [
-        "webauthn"
+        "pwd",
+        "hwk"
       ],
       "aaguid": "00000000-0000-0000-0000-000000000000",
       "credential_id": "cred-clinician-1"

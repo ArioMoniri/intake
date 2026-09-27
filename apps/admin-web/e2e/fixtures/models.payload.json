@@ -1,4 +1,8 @@
 {
+  "probe_results": {
+    "state": "unknown",
+    "reason": "probe_results_unconfigured"
+  },
   "release": {
     "blocked": true,
     "reasons": [
