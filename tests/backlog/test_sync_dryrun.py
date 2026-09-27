@@ -66,7 +66,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-380 and INT-381, split out of INT-121 and INT-124 by INT-124's PR
     # + INT-385 (record quantities in the locale's decimal separator, GitHub #635)
     # + INT-392, the session-deletion fix found on check-integration)
-    assert len(actions) == 304
+    assert len(actions) == 307
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

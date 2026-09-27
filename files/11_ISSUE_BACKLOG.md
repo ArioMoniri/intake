@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**304 issues.** By phase: P0 158 · P1 92 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 175 · todo 86 · withdrawn 1.
+**307 issues.** By phase: P0 158 · P1 95 · P2 47 · P3 7. By status: awaiting-human 28 · doing 16 · done 176 · todo 86 · withdrawn 1.
 
 ## P0
 
@@ -182,7 +182,7 @@
 | INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | INT-110 | area:lanes, approval:human-clinical | awaiting-human |
 | INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | INT-110, INT-095 | area:lanes, approval:human-legal | awaiting-human |
 | INT-114 | engagement lane -> satisfaction proxies + pacing hints | E06-lanes | INT-110 | area:lanes, approval:human-legal | awaiting-human |
-| INT-122 | e-Nabız export/PDF import parser + MHRS SMS screenshot OCR | E07-records | INT-121 | area:records | todo |
+| INT-122 | e-Nabız export/PDF import parser + MHRS SMS screenshot OCR | E07-records | INT-121 | area:records | done |
 | INT-123 | pgvector record index (RLS, per-patient namespace) + retrieval Work | E07-records | INT-030, INT-121 | area:records | todo |
 | INT-135 | Voice intake UI (Hizli): states, recording indicator, inline cards, barge-in, RED UI, typed fallback | E08-mobile | INT-103, INT-096, INT-117 | area:mobile, risk:clinical | todo |
 | INT-141 | Notifications: content-free reminders, quiet hours, opt-out; transactional-only | E08-mobile | INT-130 | area:mobile, risk:legal | done |
@@ -266,6 +266,9 @@
 | INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
 | INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
+| INT-398 | Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox | E07-records | INT-122 | area:records, risk:security | awaiting-human |
+| INT-399 | Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2) | E07-records | INT-122 | area:records | awaiting-human |
+| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | todo |
 
 ## P2
 
