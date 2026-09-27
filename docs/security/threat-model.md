@@ -1005,7 +1005,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `tests/records/test_labjson_eval.py`); the patient-facing half of the confirm gate,
   the client-side level-shaped-key refusal and the camera path with INT-138
   (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
-  RLS namespace tests with INT-123.
+  the pgvector index with INT-123 — a PERMISSIVE tenant and a RESTRICTIVE patient RLS
+  policy checked against the model metadata, A-cannot-read-B live under the app role with
+  the same probe shown red on a copy of the table without RLS, confirmed-only indexing, the
+  `documents` consent refusal, erasure of vectors on both deletion paths and retrieval
+  cited into the note with document, page, box and item id
+  (`tests/records/test_vector_rls.py`, `tests/records/test_record_index.py`,
+  `tests/voice/test_retrieve_records_work.py`). files/03 §4.9.1 names no embedding model,
+  so indexing and retrieval refuse (`EmbeddingModelUnregistered`) with no fallback.
 - **INT-138 addition — the capture is a second way in, and it carries metadata.** A
   photograph of a report taken in the app reaches the same object store as an uploaded
   file, so it goes through the same allow-list pre-check, size cap and digest. On the
