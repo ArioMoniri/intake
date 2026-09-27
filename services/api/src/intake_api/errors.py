@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 __all__ = [
+    "InsufficientUserAuthentication",
     "admin_console_unconfigured",
     "admin_refused",
     "benchmark_refused",
@@ -51,6 +52,7 @@ __all__ = [
     "unauthorized",
     "unknown_embed_tenant",
     "visit_invalid",
+    "voice_control_refused",
 ]
 
 
@@ -332,6 +334,30 @@ def source_ip_refused() -> HTTPException:
     return HTTPException(status_code=403, detail={"error": "source_ip_refused"})
 
 
+class InsufficientUserAuthentication(HTTPException):
+    """INT-365 (files/08 §2.3): a verified staff token that does not show the
+    second factor its console roles need.
+
+    RFC 9470 gives the shape: 401, with ``insufficient_user_authentication``
+    in the ``WWW-Authenticate`` challenge, so admin-web knows to send the user
+    back through Keycloak rather than show a dead end. The body is that one
+    code. It is the same for "no second factor" and "not WebAuthn", and it
+    names no claim, factor or role (invariant 6).
+
+    ``subject`` is not part of the response. The console's audit wrapper
+    reads it to name the caller on the refusal row. It is the verified,
+    id-shaped ``sub`` or ``None``.
+    """
+
+    def __init__(self, subject: str | None) -> None:
+        super().__init__(
+            status_code=401,
+            detail={"error": "insufficient_user_authentication"},
+            headers={"WWW-Authenticate": 'Bearer error="insufficient_user_authentication"'},
+        )
+        self.subject = subject
+
+
 def admin_refused(code: str) -> HTTPException:
     """A refusal from the console's own guards — role, tenant scope, or a
     malformed claim set. ``code`` is machine-shaped and carries no narrative
@@ -361,6 +387,16 @@ def benchmark_refused(code: str, reason: str) -> HTTPException:
     text: it names an invariant and a blocker id, never a value from the
     request and never anything patient-shaped (invariant 6)."""
     return HTTPException(status_code=409, detail={"error": code, "reason": reason})
+
+
+def voice_control_refused(status: int, code: str) -> HTTPException:
+    """INT-182: the Voice module refused a control change or could not reach
+    its store. 422 — a value it will not hold (a profile that does not exist,
+    a weight outside 0..100, a body field it does not take); 409 — the
+    control's state forbids it (nothing to release, the control moved since
+    the request); 503 — no store wired, or the store unreachable. ``code`` is
+    machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
 
 
 def break_glass_refused(code: str) -> HTTPException:

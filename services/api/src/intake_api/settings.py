@@ -190,6 +190,13 @@ class ApiSettings:
     # INT-329: the egress allow-list (INT-018) the SMS vendor call must clear.
     # Absent or unreadable → the OTP tier stays unconfigured outside dev.
     egress_allowlist_path: Path = field(default_factory=lambda: Path(EGRESS_ALLOWLIST_DEFAULT))
+    # INT-318: the clinical READ-source registry (intake_connectors.sources).
+    # It ships with zero rows, so /v1/visits/sync answers "unavailable"; a row
+    # is registered there by a human (HB-A15, HB-A5, HB-L27) and never built
+    # in code. Absent, invalid or ambiguous → nothing is wired (fail closed).
+    clinical_sources_path: Path = field(
+        default_factory=lambda: Path("infra/connectors/sources.yaml")
+    )
     # INT-317: which hospital systems may FETCH a finished previsit. The
     # committed file has zero rows (no DPA is executed and no reader is
     # approved), so the read-back refuses every caller until a human adds one.
@@ -255,6 +262,9 @@ class ApiSettings:
             app_attest_environment=os.environ.get(ENV_APP_ATTEST_ENVIRONMENT) or None,
             egress_allowlist_path=Path(
                 os.environ.get(ENV_EGRESS_ALLOWLIST) or EGRESS_ALLOWLIST_DEFAULT
+            ),
+            clinical_sources_path=Path(
+                os.environ.get("INTAKE_CLINICAL_SOURCES") or "infra/connectors/sources.yaml"
             ),
             previsit_output_recipients_path=Path(
                 os.environ.get("INTAKE_PREVISIT_OUTPUT_RECIPIENTS")

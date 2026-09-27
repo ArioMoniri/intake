@@ -293,6 +293,54 @@ metrics:
       in the registry's fallback order, or for `typed` (the text lane) when no
       lane was left. Emitted by
       intake_voice_runtime.resilience.failover.FailoverSynthesizer (INT-100).
+  # --- live series (INT-182): the Voice module — session routing, the kill
+  # switch, speech-call errors. files/08 §3 "Voice runtime" asks for
+  # per-profile metrics and a kill switch that works without a deploy; these
+  # make both observable. Not files/08 §4 ids, so no `id` (the INT-100
+  # precedent). Labels are tenant ids, closed enumerations and registry
+  # component names — never a session id or text (inv. 6).
+  - name: voice_session_routes_total
+    type: counter
+    labels: [tenant, profile, reason]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Session starts by tenant, the profile the runtime routed them to
+      (residency_tr / typed) and why: default, canary, kill_switch, or
+      control_unreadable (the control store could not answer, so the session
+      started typed). Emitted by
+      intake_voice_runtime.session_router.VoiceSessionRouter at every start.
+  - name: voice_kill_switch_flips_total
+    type: counter
+    labels: [tenant, outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Live voice sessions the kill switch's poll moved to typed (switched), or
+      left in voice because they have no screen to fall back to (not_armed,
+      counted once per session). Emitted by
+      intake_voice_runtime.session_router.VoiceSessionRouter.poll.
+  - name: voice_control_read_failures_total
+    type: counter
+    labels: [phase, code]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Per-tenant voice control reads that failed, by phase (start: the session
+      went typed; poll: live sessions kept their last-known state) and machine
+      code (voice_control_unreachable / voice_control_malformed). Emitted by
+      intake_voice_runtime.session_router.VoiceSessionRouter.
+  - name: voice_speech_calls_total
+    type: counter
+    labels: [component, kind, outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      ASR and TTS calls that reached a wire, by registry component, kind
+      (asr / tts) and outcome (ok / failed) — the Voice module's error rate
+      is failed over ok + failed. TTS is counted by the INT-100 failover
+      ladder per lane dialled (a lane skipped behind an open breaker dialled
+      nothing); ASR by intake_voice_runtime.adapters.asr.HttpTranscriber.
   # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
   # Wazuh's and Falco's own liveness are probes, not error budgets (the
   # `wazuh-manager`, `wazuh-indexer` and `falco` rows of
@@ -1164,11 +1212,14 @@ metrics:
   - name: sec_secret_rotation_due_days
     id: sec.secret_rotation_due_days
     type: gauge
-    labels: []
+    labels: [key]
     owner: security
     unit: "days"
-    status: planned
-    description: Days until the next secret rotation is due.
+    description: >-
+      Days until each tenant KEK's next quarterly rotation is due (files/10
+      §3); negative means overdue, which SecretRotationOverdue alerts on.
+      `key` is the Transit key name (tenant-<tenant_id>), an id. Emitted by
+      intake_platform.key_rotation.job.run_rotation (INT-367).
   - name: sec_cert_expiry_days
     id: sec.cert_expiry_days
     type: gauge
@@ -1469,6 +1520,18 @@ metrics:
       lane (latency|quality) and outcome (planned|refused). `actor` is a staff
       account subject and both other labels are closed enums — never a patient
       and never free text (INT-183).
+  - name: admin_voice_control_changes_total
+    id: admin.voice_control_changes_total
+    type: counter
+    labels: [control, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Voice module control changes (INT-182), by control (kill_switch_engage,
+      kill_switch_release, default_profile, canary) and outcome (requested,
+      applied, unchanged, refused). The alert of the four voice
+      DangerousActions; who acted is on the audit chain, never on a label.
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge

@@ -67,7 +67,19 @@ export interface BlockReason {
   readonly reason: string;
 }
 
+/**
+ * Whether the release gate saw a probe sweep at all (INT-377). `unknown`
+ * carries the server's code — `probe_results_unconfigured`, `_missing` or
+ * `_unreadable` — and the gate has then blocked on every fallback it could
+ * not see, so this never softens the release tile; it says why it is red.
+ */
+export interface ProbeResults {
+  readonly state: "ok" | "unknown";
+  readonly reason: string | null;
+}
+
 export interface ModelsPayload {
+  readonly probe_results: ProbeResults;
   readonly release: {
     readonly blocked: boolean;
     readonly reasons: readonly BlockReason[];
@@ -109,6 +121,8 @@ export interface RowPresentation {
 }
 
 export interface ModelsPresentation {
+  /** The sweep the gate read, or the code saying why there was none. */
+  readonly probeResults: ProbeResults;
   /** files/08 §6: "the console renders this as the first tile". */
   readonly releaseTile: {
     readonly blocked: boolean;
@@ -202,6 +216,7 @@ export function renderModelsModule(
   const reasons = payload.release.reasons.map((reason) => `${reason.component} — ${reason.reason}`);
 
   return {
+    probeResults: { state: payload.probe_results.state, reason: payload.probe_results.reason },
     releaseTile: {
       blocked: payload.release.blocked,
       headline: payload.release.blocked

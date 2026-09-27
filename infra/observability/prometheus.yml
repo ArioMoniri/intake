@@ -13,6 +13,9 @@ rule_files:
   # INT-190 budget alerts, generated from infra/costs/unit-prices.yaml and
   # drift-gated by tests/observability/test_cost_rules.py
   - /etc/prometheus/rules/cost-rules.yaml
+  # INT-367 security countdowns (key rotation overdue), pinned by
+  # tests/security/test_rotation_schedule.py
+  - /etc/prometheus/rules/security-rules.yaml
 
 scrape_configs:
   - job_name: prometheus

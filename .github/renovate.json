@@ -1,0 +1,187 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "INT-368 (files/10 §8; KVKK 2018/10 measure 3ç): Renovate follows updates for every lockfile and pin in this repository - uv, pnpm, container digests and GitHub Actions.",
+    "Security updates open at once, outside the weekly schedule. Nothing is ever merged automatically: every update is a pull request that runs the CI, security and licence gates and waits for a human.",
+    "No preset is extended, so every behaviour is stated here. tests/ci/test_dependency_updates.py pins it; docs/runbooks/dependency-updates.md is the maintainer's procedure."
+  ],
+  "timezone": "Europe/Istanbul",
+  "enabledManagers": [
+    "custom.regex",
+    "docker-compose",
+    "dockerfile",
+    "github-actions",
+    "npm",
+    "pep621",
+    "pip_requirements",
+    "pre-commit",
+    "pyenv"
+  ],
+  "pre-commit": {
+    "enabled": true
+  },
+  "ignorePaths": [
+    "**/node_modules/**",
+    ".claude/**",
+    "docs/**",
+    "files/**",
+    "infra/k8s/**",
+    "packages/protocols/base/**",
+    "packages/protocols/specialty/**",
+    "packages/protocols/review/**",
+    "packages/protocols/dist/**",
+    "tests/fixtures/**"
+  ],
+  "automerge": false,
+  "platformAutomerge": false,
+  "rangeStrategy": "pin",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "labels": ["dependencies"],
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Dashboard (Renovate)",
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "prFooter": "Renovate never merges this. To merge it, carry it under a backlog issue - an `INT-xxx:` title, `Closes #n`, the issue's `Sec-Row` and docs/evidence/INT-xxx.md - as docs/runbooks/dependency-updates.md describes; the evidence and sec_row gates refuse it until then.",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": [],
+    "prCreation": "immediate",
+    "dependencyDashboardApproval": false,
+    "minimumReleaseAge": null,
+    "automerge": false,
+    "labels": ["dependencies", "security"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"],
+    "automerge": false
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The two digest-pinned image references that live outside a Dockerfile or compose file: the staging object-store image (infra/staging/lib.sh) and its single source of truth in the model registry (observability/registry.yaml, INT-347). tests/infra/test_object_store_image.py requires every copy to agree, so all of them move in the container-images group.",
+      "managerFilePatterns": ["/^infra/staging/lib\\.sh$/", "/^observability/registry\\.yaml$/"],
+      "matchStrings": [
+        "\"(?<depName>[a-z0-9][a-z0-9./_-]*):(?<currentValue>[A-Za-z0-9._-]+)@(?<currentDigest>sha256:[0-9a-f]{64})\""
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Container images and GitHub Actions are pinned by digest (CLAUDE.md invariant 14); the tag stays beside the digest as its readable label.",
+      "matchManagers": ["dockerfile", "docker-compose", "github-actions", "custom.regex"],
+      "pinDigests": true
+    },
+    {
+      "description": "Constraints are not versions: the interpreter floor, engines, the package manager field and the security overrides keep their range and move only when a release falls outside it.",
+      "matchDepTypes": [
+        "requires-python",
+        "engines",
+        "packageManager",
+        "volta",
+        "pnpm.overrides",
+        "overrides",
+        "resolutions"
+      ],
+      "rangeStrategy": "replace",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "A peer dependency range is widened, never pinned.",
+      "matchDepTypes": ["peerDependencies"],
+      "rangeStrategy": "widen",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Python (uv.lock and the hash-pinned staging requirements): one weekly PR for minor and patch updates.",
+      "matchManagers": ["pep621", "pip_requirements"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "python dependencies"
+    },
+    {
+      "description": "Node (pnpm-lock.yaml): one weekly PR for minor and patch updates.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "node dependencies"
+    },
+    {
+      "description": "Container images (Dockerfiles, compose files and the two regex-managed references): one weekly PR for minor, patch and digest updates.",
+      "matchManagers": ["dockerfile", "docker-compose", "custom.regex"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "container images"
+    },
+    {
+      "description": "GitHub Actions (SHA pins with the tag in a trailing comment): one weekly PR for minor, patch and digest updates.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "pre-commit hook revisions: one weekly PR for minor, patch and digest updates.",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "pre-commit hooks"
+    },
+    {
+      "description": "The Expo SDK moves as a unit (`npx expo install --fix` picks the compatible set), so its packages share one PR that waits for a maintainer to ask for it on the Dependency Dashboard. A security fix is not held back: vulnerabilityAlerts overrides this.",
+      "matchFileNames": ["apps/mobile/package.json"],
+      "matchPackageNames": [
+        "expo",
+        "expo-*",
+        "@expo/*",
+        "react",
+        "react-dom",
+        "react-native",
+        "react-native-*",
+        "@react-native/*",
+        "@types/react",
+        "eslint-config-expo"
+      ],
+      "groupName": "expo sdk",
+      "dependencyDashboardApproval": true,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "The ruff pre-commit rev tracks the ruff pin in the dev dependencies; a mismatch makes the hook and make check-py fight over formatting (.pre-commit-config.yaml). Both halves carry the same cooldown, so neither enters the group PR without the other.",
+      "matchPackageNames": ["ruff", "astral-sh/ruff-pre-commit"],
+      "groupName": "ruff",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "The object-store image is tagged RELEASE.<date>T<time>Z; this versioning lets Renovate order those tags instead of only refreshing the digest. Docker Hub carries the release timestamp the cooldown needs.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["pgsty/minio"],
+      "versioning": "regex:^RELEASE\\.(?<major>\\d{4})-(?<minor>\\d{2})-(?<patch>\\d{2})T(?<build>\\d{2})-(?<revision>\\d{2})-\\d{2}Z$",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Supply-chain cooldown: a regular npm or PyPI release is proposed only after it has been public for seven days, long enough for a compromised release to be caught and yanked (semgrep p/ci renovate-missing-minimum-release-age). Every rule that names packages or dependency types carries the same cooldown. Security updates skip it: vulnerabilityAlerts clears minimumReleaseAge.",
+      "matchDatasources": ["npm", "pypi"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "A major update is its own PR and waits for a maintainer to ask for it on the Dependency Dashboard; a major that fixes a vulnerability does not wait.",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "A new Python minor (the interpreter in the base image or in .python-version) is a platform decision, not a routine update.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["python"],
+      "matchUpdateTypes": ["minor"],
+      "dependencyDashboardApproval": true,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "The interpreter line in .python-version moves only on request.",
+      "matchManagers": ["pyenv"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

@@ -69,7 +69,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
-  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided.
+  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
+  is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
+  update** past review and the licence gate.
 - **Controls (files/10):** §8 in full — OSV/Trivy/Checkov fail-on high, licence check, Syft
   SBOM, cosign keyless signing with SLSA provenance, schemathesis, MobSF; CI carries no
   secrets and never calls a vendor (ci.yml header; CLAUDE.md). **INT-206 adds the
@@ -80,7 +83,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   corpus may not be printed into the job log, uploaded as an artefact or cached; every
   `runs-on` must resolve to a known hosted label or a declared pool, failing closed
   otherwise. The gate's own report carries digests, never values — it runs in a job whose
-  stdout is retained 30 d hot / 1 y cold (files/10 §6).
+  stdout is retained 30 d hot / 1 y cold (files/10 §6). **INT-368 adds Renovate**
+  (`.github/renovate.json`, runbook `docs/runbooks/dependency-updates.md`): every uv, pnpm,
+  container-digest and Actions pin is watched, security updates open immediately outside
+  the weekly schedule, and nothing auto-merges — each update is a PR through the same gates,
+  carried under an `INT-` issue because the evidence and sec_row gates refuse a bot title.
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
   with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
   `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
@@ -88,7 +95,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
   tests/security/test_threat_model.py (the sec_row linkage gate);
   tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
-  heartbeat probe); full gate job lands with INT-019.
+  heartbeat probe); tests/ci/test_dependency_updates.py (INT-368: ecosystem coverage from
+  the tree, unscheduled security updates, no auto-merge anywhere); full gate job lands
+  with INT-019.
 
 ## `secrets` — OpenBao and service credentials
 
@@ -1256,6 +1265,41 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   pack fails closed while the SBSGM list is uncommitted, and the processor-role DPA clause set
   anchors to real repo documents.
 
+### INT-318 — the read direction: an on-premises appointments source and `/v1/visits/sync`
+
+- **Assets:** the clinical read-source registry (`infra/connectors/sources.yaml`), the
+  upstream directory of upcoming patients (names, mobile numbers, TC Kimlik — PHI), one
+  patient's appointments, the verified phone the app submits.
+- **Trust boundaries:** our server ↔ a hospital LAN host reached by a private IPv4 literal,
+  possibly over plaintext; the signed-in patient ↔ another patient's record.
+- **Threats (STRIDE/LINDDUN):** [E/I] a source row built in code so the read goes live on
+  environment variables alone (audit 2026-09-26 F06); [I] patient A reading B's visits by
+  submitting B's number; [I] a shared handset showing one patient's visits to the other; [I]
+  a service consent standing in for a hospital-record read; [Dd] SSRF through the read
+  guard; [D] an upstream blip breaking sign-in.
+- **Controls (files/10):** the row is read from the registry and never built — the file
+  ships with zero rows, so nothing is wired and the route answers `unavailable`; a row must
+  name a signed DPA, a tier-3 approval, a purpose from the closed INT-038 registry and, for
+  `http`, a separate recorded plaintext decision; `LanSourcePolicy` accepts only the
+  registered RFC 1918 literal (the exact complement of the vendor allow-list), performs no
+  DNS, disables redirects and needs `INTAKE_ALLOW_LAN_SOURCE=explicit-yes` at runtime; the
+  credential is read from OpenBao by the row's reference; the row serves only its own
+  tenant; the submitted phone must tokenize to the caller's own pseudonym before the feed is
+  touched; identity is `resolve_identity` with a terminal ambiguous refusal; the read clears
+  `core` at the door and the row's own purpose inside, and is audited (hash chain, ids
+  only); an upstream failure is `upstream_unavailable`, 200, no visits.
+- **Signals:** the egress decision lands in the KVKK transfer register, and a denial counts
+  on `sec_egress_denied_total` — the same series and the same `EgressDenied` as the vendor guard.
+  No new metric.
+- **Tests:** `tests/connectors/test_acibadem.py` — the guard in both directions, the schema's
+  refusals, identity resolution. `tests/api/test_visits_acibadem_sync.py` — the route's
+  behaviour (own visits only, A-cannot-read-B with an untouched feed, the shared handset,
+  consent at the door, the audit, upstream failures). `tests/api/test_visits_acibadem_registry.py`
+  — zero rows wire nothing even with the int-demo environment set, no `intake_api` module
+  builds a row or names a binding ref (derived from the schema), core alone does not unlock a
+  row registered for another purpose, another tenant's row serves no one, the runtime gate,
+  and an invalid, ambiguous or plaintext-without-decision registry wiring nothing.
+
 ## `embed` — the partner white-label launch handshake
 
 - **Assets:** the tenant embed registry (branding + recorded human facts), per-tenant
@@ -1509,13 +1553,52 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     "both windows above the factor", a budget that does not follow from its SLI and objective,
     and a stale result rendered fresh, so neither a bent payload nor a stale tab can hide a
     burning budget.
+  - **Controls added by INT-365 (staff second factor and session bounds, files/08 §2.3):**
+    against [S] a phished approver. Every staff token reaches the console through
+    `principal_from_claims`, which refuses it unless `amr` shows `pwd` plus a second factor
+    (`otp` or `hwk`). A role whose §2.1 patient-content cell is not "no" needs `hwk`: TOTP is
+    phishable. `platform_owner`, `tenant_clinical_responsible`, `clinical_lead`,
+    `investigator`, `compliance_officer` and `support` therefore need it. The set is derived
+    from `PatientContentPath` and never listed in code. `amr` must be a JSON array of exact,
+    case-sensitive strings. An absent claim, a bare string, a mapping or a non-string member is
+    no evidence, and `acr` alone never admits. The refusal is RFC 9470's 401
+    `insufficient_user_authentication`, with one body for "no second factor" and "not
+    WebAuthn", so the response does not reveal whether an account reaches patient content. It
+    is audited under the verified subject id and nothing else. The committed realm configures
+    the OTP policy (TOTP, 6 digits, 30 s, code not reusable) and the WebAuthn policy (user
+    verification required). Its browser flow is a password and then WebAuthn or TOTP, each
+    execution tagged with the `amr` reference the verifier accepts. The realm bounds every
+    session to 8 h and 30 minutes idle, offline sessions included. The `amr` references expire
+    at the same 8 h, so after that bound the API refuses a refreshed token too.
+  - **Controls added by INT-182 (the Voice module: kill switch, profile switch, canary):**
+    the per-tenant voice control lives in its own Redis record written **only** by
+    `services/api/admin` — not in Unleash, whose tokens flip flags with no audit row (F1,
+    inv 34) — and the runtime reads it at every session start and on a 1 s poll, so the kill
+    switch takes effect without a deploy. **Asymmetric authority, from the `DangerousAction`
+    registry:** pulling the kill switch (toward `typed`) is tier 1 — one `sre_oncall`,
+    `clinical_lead` or `platform_owner`, audited, no approver (F17); releasing it, switching a
+    tenant's default profile and setting a canary weight (toward voice) are tier-2 four-eyes
+    ceremonies through the INT-180 pending-action protocol, `sre_oncall` on neither side. An
+    approval binds to the record revision its brief showed and is refused if the control moved
+    since — a kill switch pulled mid-ceremony cannot be undone by approving the stale request.
+    Fail-closed in three places: a tenant with no record is `typed` (voice is opt-in by a
+    tier-2 switch, and a store that loses its keys falls every tenant to the keyboard); a
+    control the runtime cannot read starts the session `typed` and is counted; a speech worker
+    without the store is not ready. Only `residency_tr` and `typed` parse (inv 19); weights are
+    integers 0..100; bodies are closed and refused by field name; the change reason's free text
+    never enters the record, the ceremony evidence, a label or a response (inv 6). The admin-web
+    forms are script-free, same-origin only (`Sec-Fetch-Site`), and cannot approve — approval
+    needs a fresh WebAuthn assertion the console does not mint yet. **Known limit, owner
+    decision:** the tier-2 second key is still two accounts, not two proven humans (the
+    INT-180 limit), and the step-up ceremony in the browser is unbuilt.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
   audit `seq` gaps, external-anchor age, access-review age; `sec.admin_actions_total` and
   `sec.break_glass_total` with alerts actually attached — land with INT-180…INT-192.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
-  the role × tenant matrix with INT-180.
+  the role × tenant matrix with INT-180; the second factor, the realm flow and the session
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365).
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 

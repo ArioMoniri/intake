@@ -10,11 +10,12 @@
  * files/06 §6; docs/security/threat-model.md `kiosk`).
  *
  * Everything here is pure and node-testable — no react-native, no expo, no
- * clock — the same split lib/prefs/appearance.ts and lib/auth/integrityState.ts
- * make. The native halves (the MDM managed-config read that provisions the
- * PIN, the guided-access / screen-pinning probe, the idle timer and the
- * AppState listener) live in nativeKiosk.ts behind a lazy import, and both
- * fail closed until the dev-build native layer exists (HB-A3; files/10 §4.7).
+ * real clock (the idle clock is handed its timers) — the same split
+ * lib/prefs/appearance.ts and lib/auth/integrityState.ts make. The native
+ * halves (the MDM managed-config read that provisions the PIN, the
+ * guided-access / screen-pinning probe, the platform timer and the AppState
+ * listener) live in nativeKiosk.ts behind a lazy import, and both fail closed
+ * until the dev-build native layer exists (HB-A3; files/10 §4.7).
  *
  * NO value here is invented (CLAUDE.md invariant 17, HUMAN_BLOCKERS.md Rule 1):
  * the clinic PIN is provisioned per clinic through MDM as a salted hash, never
@@ -32,6 +33,16 @@ import { LARGE_TEXT_SCALE } from "../prefs/appearance";
  * inherits the last one's data.
  */
 export const KIOSK_IDLE_WIPE_MS = 60_000;
+
+/**
+ * INT-363 — the warning before the idle wipe (WCAG 2.2 SC 2.2.1 Timing
+ * Adjustable, the "Extend" option). The wipe is a time limit the patient
+ * meets, so the patient is warned before it acts and gets at least 20 seconds
+ * to extend it with one action, as often as needed. 20 s is the criterion's
+ * own floor. The warning therefore appears after 40 s without a touch, and
+ * the wipe still falls at 60 s when nobody answers it.
+ */
+export const KIOSK_IDLE_WARNING_MS = 20_000;
 
 /** A clinic PIN is 4–12 digits; the length is provisioned per clinic. */
 export const CLINIC_PIN_MIN_LENGTH = 4;
@@ -276,4 +287,157 @@ export function kioskReducer(state: KioskModeState, event: KioskEvent): KioskMod
 /** Too many failed PIN attempts: the gate refuses further tries until reset. */
 export function pinLockedOut(state: KioskModeState): boolean {
   return state.pinFailures >= KIOSK_MAX_PIN_FAILURES;
+}
+
+/* ------------------------------------------------------------------ */
+/* INT-363 — the idle clock: active → warning → wiped                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Where the armed session's idle clock stands. `active`: someone is using the
+ * screen. `warning`: nobody has touched it for KIOSK_IDLE_WIPE_MS minus
+ * KIOSK_IDLE_WARNING_MS; the patient is being asked whether to continue.
+ * `wiped`: nobody answered; the session was cleared and the clock waits for
+ * the next patient's first touch.
+ */
+export type KioskIdlePhase = "active" | "warning" | "wiped";
+
+export interface KioskIdleState {
+  readonly phase: KioskIdlePhase;
+  /** Clock time (ms) the phase began: the last activity, the warning shown, the wipe. */
+  readonly since: number;
+}
+
+export type KioskIdleEvent =
+  /** A touch anywhere on the armed session. */
+  | { type: "activity"; at: number }
+  /** The warning's one action ("Devam edin"). */
+  | { type: "extend"; at: number }
+  /** The clock came due. */
+  | { type: "tick"; at: number };
+
+/** A fresh clock: the session is in use from `at`. */
+export function kioskIdleStart(at: number): KioskIdleState {
+  return { phase: "active", since: at };
+}
+
+/**
+ * When the clock next needs a tick, or null when nothing is due. The grace is
+ * counted from the moment the warning was SHOWN, not from the last touch, so a
+ * timer that fires late can delay the wipe but never shorten the patient's
+ * 20 seconds.
+ */
+export function kioskIdleDue(state: KioskIdleState): number | null {
+  switch (state.phase) {
+    case "active":
+      return state.since + KIOSK_IDLE_WIPE_MS - KIOSK_IDLE_WARNING_MS;
+    case "warning":
+      return state.since + KIOSK_IDLE_WARNING_MS;
+    default:
+      return null;
+  }
+}
+
+/**
+ * The idle clock. Activity or the extend action returns to `active` and
+ * restarts the whole timeout, however many times it happens. A tick that is
+ * not yet due changes nothing (the caller re-arms); a due tick moves `active`
+ * to `warning`, and `warning` to `wiped`. There is no path from `active` to
+ * `wiped` that does not pass through the warning.
+ */
+export function kioskIdleReducer(state: KioskIdleState, event: KioskIdleEvent): KioskIdleState {
+  switch (event.type) {
+    case "activity":
+    case "extend":
+      return { phase: "active", since: event.at };
+    case "tick": {
+      const due = kioskIdleDue(state);
+      if (due === null || event.at < due) {
+        return state;
+      }
+      return { phase: state.phase === "active" ? "warning" : "wiped", since: event.at };
+    }
+    default:
+      return state;
+  }
+}
+
+/**
+ * The platform's clock, injected so the idle clock runs on a fake one in
+ * node. The native adapter passes `Date.now` and the real one-shot timer.
+ */
+export interface KioskIdleTimers<Handle> {
+  now(): number;
+  schedule(fire: () => void, delayMs: number): Handle;
+  cancel(handle: Handle): void;
+}
+
+/** A running idle clock: what the gate drives. */
+export interface KioskIdleClock {
+  /** A touch anywhere: restart the timeout (and dismiss a standing warning). */
+  touch(): void;
+  /** The warning's one action. */
+  extend(): void;
+  /** Tear the timer down; a stopped clock never reports again. */
+  stop(): void;
+}
+
+/**
+ * Run the idle clock on the given timers. `onPhase` hears each phase change
+ * once — `warning` (show and announce it), `active` (take it down), `wiped`
+ * (clear the session) — and never a repeat. Exactly one timer is armed at a
+ * time, always for the machine's next due moment.
+ */
+export function startKioskIdleClock<Handle>(
+  onPhase: (phase: KioskIdlePhase) => void,
+  timers: KioskIdleTimers<Handle>,
+): KioskIdleClock {
+  let state = kioskIdleStart(timers.now());
+  let armed: { handle: Handle } | null = null;
+  let stopped = false;
+
+  const disarm = (): void => {
+    if (armed !== null) {
+      timers.cancel(armed.handle);
+      armed = null;
+    }
+  };
+
+  const arm = (): void => {
+    disarm();
+    const due = kioskIdleDue(state);
+    if (stopped || due === null) {
+      return;
+    }
+    const handle = timers.schedule(
+      () => {
+        armed = null;
+        step({ type: "tick", at: timers.now() });
+      },
+      Math.max(0, due - timers.now()),
+    );
+    armed = { handle };
+  };
+
+  const step = (event: KioskIdleEvent): void => {
+    if (stopped) {
+      return;
+    }
+    const before = state.phase;
+    state = kioskIdleReducer(state, event);
+    arm();
+    if (state.phase !== before) {
+      onPhase(state.phase);
+    }
+  };
+
+  arm();
+  return {
+    touch: () => step({ type: "activity", at: timers.now() }),
+    extend: () => step({ type: "extend", at: timers.now() }),
+    stop: () => {
+      stopped = true;
+      disarm();
+    },
+  };
 }
