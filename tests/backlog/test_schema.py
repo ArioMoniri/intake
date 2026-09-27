@@ -76,6 +76,7 @@ def test_ids_unique_and_well_formed() -> None:
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
     # + INT-396 (backlog status reconciliation and its drift guard).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -115,7 +116,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-409 (Vizitlerim reads "today" from an injected clock in the
     # Europe/Istanbul day instead of a date pinned in every build; found by
     # INT-179's close-out, GitHub #688).
-    assert len(ids) == 311
+    assert len(ids) == 312
     import re
 
     for i in ids:

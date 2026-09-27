@@ -2682,10 +2682,27 @@
   title: "CI/CD & releases module (GH API + Argo CD + gates + freeze)"
   depends_on: [INT-181]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-187.md
+  # EVERYTHING BUT THE ROLLBACK BUTTON SHIPPED (27 Sep 2026). /cicd renders
+  # recent runs per workflow with failing jobs, every PR-triggered gate on main
+  # and the open PRs (and that GitHub enforces none of them today), releases
+  # with their signing outcome, this deployment's stamped /version, the error
+  # budget, and a deploy freeze: engage tier 1, lift tier 2 (four eyes), kept
+  # out of Unleash, and ENFORCED in infra/staging/deploy.sh by a release gate
+  # that also refuses on an exhausted SLO budget or a freeze it cannot read.
+  # The GitHub read is the INT-351 ops collector's (read-only OpenBao token,
+  # egress guard). Canary state is shown truthfully as "not deployed": no
+  # canary controller exists. WHAT WAITS: the "rollback button (4-eyes)" needs
+  # a deploy controller the console can command, and Argo CD is not deployed
+  # (no cluster; the siting question HB-I13 asks for the edge tier). A
+  # ceremony over nothing to roll back is not a control, so the button renders
+  # disabled with that reason. docs/backlog/blockers.md carries the ask.
+  # RESCOPED 27 Sep 2026 (PR #667): the rollback button moves to INT-401
+  # (awaiting a CD target; HB-I13); everything else is delivered.
   acceptance:
-    - "pipelines, eval gates, deploy health, canary state, rollback button (4-eyes), deploy-freeze on budget exhaustion"
-  tests: [apps/admin-web/e2e/cicd.spec.ts]
+    - "pipelines, eval gates, deploy health, canary state (shown not deployed until a CD tier exists), deploy-freeze on budget exhaustion; the rollback button (4-eyes) is INT-401, which needs a CD target"
+  tests: [apps/admin-web/e2e/cicd.spec.ts, tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py, tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py, tests/infra/test_staging_release_freeze.py]
   sec_row: "cicd"
 - id: INT-188
   epic: E12-admin
@@ -6070,6 +6087,17 @@
     - "one pass applies the recommendations to issues.yaml (evidence: added to every done row), with a table of every change in docs/evidence/INT-396.md; duplicate GitHub issues are closed as duplicates of the one the backlog sync owns"
     - "a backlog test fails when a row has an evidence: path but is todo, or is done without evidence: (near-miss controls)"
   tests: [tests/backlog/test_status_consistency.py, tests/backlog/test_reconcile.py]
+- id: INT-401
+  epic: E12-admin
+  phase: P1
+  title: "Rollback from the console (4-eyes) once a CD target exists"
+  depends_on: [INT-187]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "once a CD target exists (Argo CD, or an API-driven deploy of the previous signed release), rollback is a tier-2 (4-eyes) console action: requested and approved by different eligible roles, audited, refused while the freeze state is unreadable, verified by the new /version; a test proves one person cannot complete it"
+  tests: [tests/admin/test_cicd_rollback.py]
+  sec_row: "admin-console"
 - id: INT-409
   epic: E08-mobile
   phase: P1
