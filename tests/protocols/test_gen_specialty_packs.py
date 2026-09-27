@@ -13,6 +13,10 @@ from typing import Any
 
 import pytest
 import yaml
+from protocols.compile.resolve import _apply_ops, _merge_chain, _ordered_ops
+from protocols.loader import PackRegistry, load_pack
+from protocols.pack import ProtocolPack
+from protocols.validator import validate_packs
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -495,3 +499,333 @@ def test_committed_candidates_equal_the_generator_output(
                 drift.append(f"{layer}/{path.name}: {line}")
     assert drift == []
     assert checked > 0
+
+
+# --- INT-379: duration=omit, code answers, skip_if -----------------------------
+#
+# Three things the department verifications could not express (wave 7 §E-2,
+# cluster-wave-b Q14, cluster-wave-a women's health Q13/Q14). Each key has an
+# acceptance test, its refusals and a near-miss control. No committed proposal
+# uses them: where to use them is the clinician's choice (HB-C1, HB-C3, HB-C5).
+# Every patient-facing text below is one already in this file or in base.intake.
+
+BASE_PACK = ROOT / "packages/protocols/base/intake.yaml"
+REVIEW_CLUSTER_MEDICAL = REVIEW_ROOT / "cluster" / "medical.yaml"
+# The refusal code for an answer option no base.intake label carries.
+UNKNOWN_OPTION = "CODE_OPTION_NOT_IN_VOCABULARY"
+REASON_TEXT = "Bugün sizi buraya getiren nedeni kısaca anlatır mısınız?"
+REASON_Q = GEN.Question(text=REASON_TEXT, number=1)
+ITEM_TEXTS = (
+    "Son zamanlarda hiç bayıldınız mı?",
+    "Bu baygınlık efor sırasında mı oldu?",
+    "Karnınızda şişlik var mı?",
+)
+
+
+def _items(*gens: str | None) -> str:
+    """A proposal: Q1 (the reason), then one item per `gen:` line (None: no line)."""
+    body = '**Q1 — Reason** · source: general\n> "' + REASON_TEXT + '"\n'
+    for number, (text, gen) in enumerate(zip(ITEM_TEXTS, gens, strict=False), 2):
+        body += f'\n**Q{number} — Item** · source: S{number}\n> "{text}"\n'
+        body += f"gen: {gen}\n" if gen else ""
+    return "# Sample\n\n## 4. Candidate questions\n\n" + body + "\n## 5. Gaps\n"
+
+
+def _pack_line(line: str) -> str:
+    return _items("slot=bayginlik; type=boolean", None).replace(
+        "## 4. Candidate questions\n", f"## 4. Candidate questions\n\npack: {line}\n"
+    )
+
+
+def _sorular(pack: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    slots: dict[str, dict[str, Any]] = pack["sections"]["sorular"]["slots"]
+    return slots
+
+
+def _base_choices(ref: str) -> list[str]:
+    section, key = ref.split(".")
+    labels: list[str] = _pack(BASE_PACK)["sections"][section]["slots"][key]["choices_tr"]["tr"]
+    return labels
+
+
+# duration=omit ------------------------------------------------------------------
+
+
+def test_duration_omit_emits_no_duration_slot() -> None:
+    options = GEN.extract_pack_options(_pack_line("duration=omit"))
+    qs, _ = GEN.extract_questions(_pack_line("duration=omit"))
+    pack = GEN.build_pack(DRAFT, "ornek", qs, options=options)
+    assert list(pack["sections"]["ziyaret_baglami"]["slots"]) == ["basvuru_nedeni"]
+    assert "ops" not in pack
+    ProtocolPack.model_validate(pack)
+
+
+def test_without_duration_omit_the_duration_slot_is_emitted() -> None:
+    """Near-miss control: a pack line that sets the ask keeps the slot."""
+    text = _pack_line(f"duration_ask={GEN.DURATION_ASK}")
+    qs, _ = GEN.extract_questions(text)
+    pack = GEN.build_pack(DRAFT, "ornek", qs, options=GEN.extract_pack_options(text))
+    ctx = pack["sections"]["ziyaret_baglami"]["slots"]
+    assert list(ctx) == ["basvuru_nedeni", "sikayet_suresi"]
+    assert ctx["sikayet_suresi"]["type"] == "duration"
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["duration=omitted", "duration=Omit", "duration=", "duration=keep", "duration_omit=true"],
+)
+def test_duration_takes_the_single_value_omit(line: str) -> None:
+    with pytest.raises(ValueError, match="duration"):
+        GEN.extract_pack_options(_pack_line(line))
+
+
+@pytest.mark.parametrize("key", ["duration_ask", "duration_follow_up"])
+def test_duration_omit_with_a_duration_text_is_refused_as_contradictory(key: str) -> None:
+    text = GEN.DURATION_ASK if key == "duration_ask" else GEN.DURATION_FOLLOW_UP
+    with pytest.raises(ValueError, match="contradict"):
+        GEN.extract_pack_options(_pack_line(f"duration=omit; {key}={text}"))
+
+
+def test_a_gate_on_the_omitted_duration_slot_is_refused() -> None:
+    gated = GEN.Question(text=ITEM_TEXTS[0], slot="bayginlik", ask_if="sikayet_suresi != ''")
+    other = GEN.Question(text=ITEM_TEXTS[2], slot="sislik")
+    with pytest.raises(ValueError, match="undeclared"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, gated, other], options={"duration": "omit"})
+    # Near-miss control: the same gate reads the slot when the pack keeps it.
+    kept = GEN.build_pack(DRAFT, "ornek", [REASON_Q, gated, other])
+    assert _sorular(kept)["bayginlik"]["ask_if"] == "sikayet_suresi != ''"
+
+
+def test_duration_omit_suppresses_the_duration_slot_a_parent_declares() -> None:
+    """A child cannot drop a parent slot by leaving it out: the merge keeps it."""
+    parent_visit = GEN.parent_section("cluster.medical", "ziyaret_baglami")
+    assert "sikayet_suresi" in parent_visit
+    qs, _ = GEN.extract_questions(_items("slot=bayginlik; type=boolean", None))
+    pack = GEN.build_pack(
+        DRAFT, "ornek", qs, options={"duration": "omit"}, parent_visit_slots=parent_visit
+    )
+    assert pack["ops"] == [{"op": "suppress_slot", "pointer": GEN.DURATION_POINTER}]
+    # Near-miss control: without omit, nothing is suppressed.
+    kept = GEN.build_pack(DRAFT, "ornek", qs, parent_visit_slots=parent_visit)
+    assert "ops" not in kept
+
+
+@pytest.mark.parametrize("omit", [True, False], ids=["omit", "near-miss-kept"])
+def test_the_resolved_chain_asks_no_duration_question_only_when_omitted(omit: bool) -> None:
+    qs, _ = GEN.extract_questions(_items("slot=bayginlik; type=boolean", None))
+    branch = ProtocolPack.model_validate(
+        GEN.build_pack(
+            DRAFT,
+            "ornek",
+            qs,
+            options={"duration": "omit"} if omit else {},
+            parent_visit_slots=GEN.parent_section("cluster.medical", "ziyaret_baglami"),
+        )
+    )
+    chain = [load_pack(BASE_PACK), load_pack(REVIEW_CLUSTER_MEDICAL), branch]
+    registry = PackRegistry()
+    for pack in chain:
+        registry.add(pack)
+    assert validate_packs(registry) == ()
+    merged = _merge_chain(chain)
+    assert _apply_ops(merged, _ordered_ops(chain), "tr") == []
+    assert ("sikayet_suresi" in merged["ziyaret_baglami"].slots) is not omit
+
+
+# gen: type=code; options=… ------------------------------------------------------
+
+
+def test_every_code_option_is_a_label_base_intake_already_carries() -> None:
+    assert GEN.CODE_OPTIONS
+    for option, (label, ref) in GEN.CODE_OPTIONS.items():
+        assert re.fullmatch(r"[a-z][a-z0-9_]*", option), option
+        assert label in _base_choices(ref), f"{option}: {label!r} is not in {ref}"
+        assert not any(ch.isdigit() for ch in label), label  # invariant 22
+    labels = [label for label, _ in GEN.CODE_OPTIONS.values()]
+    assert len(labels) == len(set(labels))
+
+
+def test_a_code_question_offers_base_labels_under_its_own_valueset() -> None:
+    qs, warnings = GEN.extract_questions(
+        _items(
+            "slot=bayginlik; type=boolean",
+            None,
+            "slot=sislik; type=code; options=evet|hayir|bilmiyorum",
+        )
+    )
+    assert warnings == []
+    pack = GEN.build_pack(DRAFT, "ornek", qs)
+    slot = _sorular(pack)["sislik"]
+    assert slot["type"] == "code"
+    assert slot["valueset"] == "vs.sislik"
+    assert slot["choices_tr"] == {"tr": _base_choices("meds_allergies.anticoagulant_use")}
+    assert slot["ask_tr"] == {"tr": ITEM_TEXTS[2]}
+    ProtocolPack.model_validate(pack)
+
+
+def test_two_options_are_enough() -> None:
+    """Near-miss control for the arity refusal below."""
+    qs, warnings = GEN.extract_questions(
+        _items("slot=bayginlik; type=boolean", None, "slot=sislik; type=code; options=evet|hayir")
+    )
+    assert warnings == []
+    choices = _sorular(GEN.build_pack(DRAFT, "ornek", qs))["sislik"]["choices_tr"]["tr"]
+    assert choices == _base_choices("meds_allergies.anticoagulant_use")[:2]
+
+
+@pytest.mark.parametrize(
+    ("gen", "reason"),
+    [
+        ("slot=sislik; type=code", "options"),
+        ("slot=sislik; type=code; options=", "options"),
+        ("slot=sislik; type=boolean; options=evet|hayir", "contradict"),
+        ("slot=sislik; options=evet|hayir", "contradict"),
+        ("slot=sislik; type=code; options=evet|aniden", UNKNOWN_OPTION),
+        ("slot=sislik; type=code; options=evet|hayır", UNKNOWN_OPTION),
+        ("slot=sislik; type=code; options=Evet|hayir", UNKNOWN_OPTION),
+        ("slot=sislik; type=code; options=evet|evet", "twice"),
+        ("slot=sislik; type=code; options=evet", "two"),
+        ("type=code; options=evet|hayir", "slot="),
+        ("slot=sislik; type=code; option=evet|hayir", "unknown gen key"),
+    ],
+)
+def test_a_malformed_code_question_is_refused(gen: str, reason: str) -> None:
+    qs, warnings = GEN.extract_questions(_items("slot=bayginlik; type=boolean", None, gen))
+    assert ITEM_TEXTS[2] not in [q.text for q in qs]
+    assert any(reason in w for w in warnings), warnings
+
+
+def test_an_option_without_a_base_label_names_the_clinician() -> None:
+    _, warnings = GEN.extract_questions(
+        _items("slot=bayginlik; type=boolean", None, "slot=sislik; type=code; options=aniden|evet")
+    )
+    (warning,) = warnings
+    assert GEN.CODE_OPTION_UNKNOWN == UNKNOWN_OPTION
+    assert UNKNOWN_OPTION in warning and "'aniden'" in warning and "HB-C1" in warning
+
+
+def test_a_code_question_without_options_is_refused_by_build_pack_too() -> None:
+    bare = GEN.Question(text=ITEM_TEXTS[2], slot="sislik", type="code")
+    with pytest.raises(ValueError, match="options"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, bare, bare])
+
+
+# gen: skip_if=… -----------------------------------------------------------------
+
+
+def test_skip_if_is_emitted_and_reads_an_earlier_slot() -> None:
+    qs, warnings = GEN.extract_questions(
+        _items(
+            "slot=bayginlik; type=boolean",
+            "slot=efor_bayginlik; type=boolean; skip_if=bayginlik == false",
+        )
+    )
+    assert warnings == []
+    slot = _sorular(GEN.build_pack(DRAFT, "ornek", qs))["efor_bayginlik"]
+    assert slot["skip_if"] == "bayginlik == false"
+    assert "ask_if" not in slot
+
+
+def test_skip_if_may_read_a_base_slot() -> None:
+    """Near-miss control: base.intake slots are readable, as for ask_if."""
+    gated = GEN.Question(text=ITEM_TEXTS[0], slot="devam", skip_if="subject_role != 'kendim'")
+    other = GEN.Question(text=ITEM_TEXTS[2], slot="sislik")
+    pack = GEN.build_pack(
+        DRAFT, "ornek", [REASON_Q, gated, other], base_slots=GEN.base_slot_names()
+    )
+    assert _sorular(pack)["devam"]["skip_if"] == "subject_role != 'kendim'"
+    ProtocolPack.model_validate(pack)
+
+
+@pytest.mark.parametrize("field", ["ask_if", "skip_if"])
+@pytest.mark.parametrize(
+    ("reads", "reason"),
+    [("olmayan_slot", "undeclared"), ("sislik", "later"), ("devam", "itself")],
+    ids=["undeclared", "forward", "self"],
+)
+def test_a_gate_reads_only_slots_declared_before_it(field: str, reads: str, reason: str) -> None:
+    """INT-375's order rule inside one pack: a gate reads fixed, base or earlier slots."""
+    gated = GEN.Question(text=ITEM_TEXTS[0], slot="devam", **{field: f"{reads} == true"})
+    later = GEN.Question(text=ITEM_TEXTS[2], slot="sislik")
+    with pytest.raises(ValueError, match=reason):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, gated, later], base_slots=GEN.base_slot_names())
+
+
+def test_one_question_carries_one_gate() -> None:
+    qs, warnings = GEN.extract_questions(
+        _items(
+            "slot=bayginlik; type=boolean",
+            "slot=efor_bayginlik; type=boolean; ask_if=bayginlik == true; "
+            "skip_if=bayginlik == false",
+        )
+    )
+    assert ITEM_TEXTS[1] not in [q.text for q in qs]
+    assert any("one gate" in w for w in warnings), warnings
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [{"skip_if": "subject_role != 'kendim'"}, {"type": "code", "options": ("evet", "hayir")}],
+    ids=["skip_if", "code"],
+)
+def test_the_reason_question_takes_no_gate_and_no_code(extra: dict[str, Any]) -> None:
+    """Q1 fills the fixed, required basvuru_nedeni slot: a new key on it would be dropped."""
+    reason = GEN.Question(text=REASON_TEXT, number=1, **extra)
+    items = [GEN.Question(text=t, slot=f"soru_{i}") for i, t in enumerate(ITEM_TEXTS[:2], 1)]
+    with pytest.raises(ValueError, match="Q1"):
+        GEN.build_pack(DRAFT, "ornek", [reason, *items], base_slots=GEN.base_slot_names())
+
+
+def test_a_skip_if_gate_is_ordered_like_an_ask_if_gate() -> None:
+    """The merge keeps a re-declared parent slot in place; a skip_if on a new slot moves it."""
+    parent = {
+        "a": {"type": "boolean", "ask_tr": {"tr": ITEM_TEXTS[0]}},
+        "y": {"type": "boolean", "ask_tr": {"tr": ITEM_TEXTS[1]}},
+    }
+    z = GEN.Question(text=ITEM_TEXTS[2], slot="z", type="boolean")
+    y = GEN.Question(text=ITEM_TEXTS[1], slot="y", type="boolean", skip_if="z == true")
+    pack = GEN.build_pack(DRAFT, "ornek", [REASON_Q, z, y], parent_slots=parent)
+    assert pack["ops"] == [
+        {"op": "reorder", "pointer": GEN.REORDER_POINTER, "order": ["a", "z", "y"]}
+    ]
+    # Near-miss control: the same skip_if on a new slot, which merges after its gate.
+    w = GEN.Question(text=ITEM_TEXTS[1], slot="w", type="boolean", skip_if="z == true")
+    assert "ops" not in GEN.build_pack(DRAFT, "ornek", [REASON_Q, z, w], parent_slots=parent)
+
+
+@pytest.mark.parametrize(
+    "gen", ["slot=efor_bayginlik; skipif=bayginlik == false", "slot=efor_bayginlik; omit=1"]
+)
+def test_near_miss_spellings_of_the_new_keys_stay_refused(gen: str) -> None:
+    _, warnings = GEN.extract_questions(_items("slot=bayginlik; type=boolean", gen))
+    assert any("unknown gen key" in w for w in warnings), warnings
+
+
+# All three, end to end ---------------------------------------------------------
+
+
+def test_a_cluster_candidate_using_all_three_loads_and_validates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    review, served, prop = tmp_path / "review", tmp_path / "served", tmp_path / "proposals"
+    prop.mkdir()
+    text = _items(
+        "slot=bayginlik; type=boolean",
+        "slot=efor_bayginlik; type=boolean; skip_if=bayginlik == false",
+        "slot=sislik; type=code; options=evet|hayir|bilmiyorum; delivery=text_first",
+    ).replace("## 4. Candidate questions\n", "## 4. Candidate questions\n\npack: duration=omit\n")
+    (prop / "cluster_medical.md").write_text(text, encoding="utf-8")
+    monkeypatch.setattr(GEN, "REVIEW_CLUSTER", review)
+    monkeypatch.setattr(GEN, "SERVED_CLUSTER", served)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("cluster_medical")
+    assert ok, line
+    pack = load_pack(review / "medical.yaml")
+    assert list(pack.sections["ziyaret_baglami"].slots) == ["basvuru_nedeni"]
+    assert pack.sections["sorular"].slots["efor_bayginlik"].skip_if == "bayginlik == false"
+    assert pack.sections["sorular"].slots["sislik"].valueset == "vs.sislik"
+    assert pack.ops == ()  # base.intake declares no duration slot, so none to suppress
+    registry = PackRegistry()
+    for member in (load_pack(BASE_PACK), pack):
+        registry.add(member)
+    assert validate_packs(registry) == ()
