@@ -5618,7 +5618,13 @@
   title: "Scheduled quarterly key rotation that emits sec_secret_rotation_due_days"
   depends_on: [INT-215]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-367.md
+  # NOTE 27 Sep 2026: the job (intake_platform.key_rotation, make
+  # key-rotation), the live gauge and SecretRotationOverdue ship here. Which
+  # host runs the daily tick in production, the scrape of its gauge and its
+  # rotation-scoped OpenBao token are the owner's deployment decision; the
+  # runbook (docs/runbooks/key-rotation.md) states all three.
   acceptance:
     - "a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"
   tests: [tests/security/test_rotation_schedule.py]
@@ -5630,7 +5636,8 @@
   title: "Continuous dependency security updates (Renovate) for every lockfile"
   depends_on: [INT-215]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-368.md
   acceptance:
     - "a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"
   tests: [tests/ci/test_dependency_updates.py]

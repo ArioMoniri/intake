@@ -35,7 +35,34 @@
 - Invariants touched and still passing: 2 and 5 (no copy changed), 6, 8 (tests only added), 17 (both allow-lists carry reasons and fail on stale entries).
 - Decisions / ADRs / `00_STATE.md` rows: none. SC 1.3.4 moves from Does Not Support to Supports. DA-05 now covers landscape and confirms 1.3.4.
 - Blocked on: nothing. Landscape screenshots on hardware are the owner's DA-05 step.
-- Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx`, so expect a small rebase there.
+- Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx` and the dialogue's bottom stack in `DialogueIntake.tsx`. Whichever merges second rebases there: #615's "Bitirdim" button goes inside the new bar `ScrollView`.
+
+### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
+- Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
+- Plan:
+  - `.github/renovate.json`, not a workflow file. It enables nine managers (pep621/uv, npm/pnpm, dockerfile, docker-compose, github-actions, pip_requirements, pre-commit, pyenv, and a regex manager for the two `pgsty/minio` digest pins outside compose).
+  - Digests pinned for containers and Actions.
+  - `vulnerabilityAlerts` unscheduled, not approval-gated, no cooldown, labelled `security`.
+  - Weekly per-ecosystem groups; majors and platform bumps on dashboard request.
+  - Monthly lock-file maintenance.
+  - `automerge` and `platformAutomerge` are false, and there is no `extends`.
+  - Commits are `chore(deps)`.
+- Tests added: `tests/ci/test_dependency_updates.py`, 24 tests.
+  - Ecosystems are discovered from `git ls-files`.
+  - Near-miss controls: a planted `go.mod`, an unwatched digest pin, `infra/**` and bare-substring ignores, an unpinned digest, a scheduled or gated security update, a cooldown under 7 days, and automerge anywhere.
+  - RED: 19 failed, 3 passed (three guards over things already compliant).
+  - Second RED: the pre-commit semgrep p/ci `renovate-missing-minimum-release-age` refused a 3-day cooldown and rules without an age. A test was added and failed on the staged config. The fix was 7 days, not a suppression.
+  - GREEN: 24 passed. Mutations: 17/17 killed. Semgrep 1.86.0 p/ci: 0 findings.
+- Result:
+  - The Renovate 44.115.10 validator (`--strict`, RE2, Node 24) passes, and a planted-defect copy is refused.
+  - Renovate extract-only found 34 package files and 293 deps across the 9 managers.
+  - The ci, legal, compliance, backlog and docs suites: 703 passed. `make check-py` is recorded in the evidence file.
+- Invariants touched and still passing: **14** (digest pins; no gate skipped; the licence gate runs on every Renovate PR because nothing auto-merges) and **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - 2018/10 measure 3ç gains control `dependency-update-config`.
+  - Gap `dependency-update-tracking` is narrowed from "which tool" (answered) to the owner's installation (organisational, owner).
+- Blocked on: the owner installs the Renovate GitHub App on ArioMoniri/intake and enables Dependabot alerts (runbook `docs/runbooks/dependency-updates.md`). This is not a new HB id; the mapping's gap carries it.
+- Next: PR `INT-368: Renovate configuration for uv, pnpm, container digests and Actions (no auto-merge)` (Closes #595, Sec-Row cicd), left unmerged for review.
 
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
@@ -2321,3 +2348,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — the seventeen organisational gaps (policy, training, undertakings, grant register and reviews, offboarding, unseal-key custody, premises, transfer rules, pen test), of which three are HB-I12, HB-I9, HB-I8; counsel — mTLS vs "VPN or sFTP" (5c), plaintext LAN feeds (5c), whether patient OTP + device-bound key is two-factor (3e), the undertaking text (2b). No HB row minted; blockers.md carries both asks.
 - Next: the coordinator allocates issues for the ten `security_owner` gaps (staff second factor, session lifetime, access-review generator, offboarding, key-rotation schedule, encryption and auth signals, dependency updates, API fuzzing, the Kurum's security guide).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:30:00Z · INT-367 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #594): *"a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"*. Found by INT-215 as the 2018/10 measure 3b gap `rotation-schedule`.
+- Plan: `intake_platform.key_rotation` — `schedule` (three calendar months in UTC, `ROTATION_PERIOD_MONTHS` sourced to files/10 §3), `transit` (last rotation = creation time of the latest Transit version, read from Transit's own key metadata; no new store), `job` (one idempotent tick: rotate what is due through the existing `TransitKekProvider.rotate`, confirm the new version, set `sec_secret_rotation_due_days{key}`), `cli` (`make key-rotation`). Catalogue entry flipped to live with `[key]`; `SecretRotationOverdue` in a new `infra/observability/security-rules.yaml` wired into the obs Prometheus; runbook `docs/runbooks/key-rotation.md`.
+- Tests added: `tests/security/test_rotation_schedule.py` (31) on the INT-014 FakeTransit extended with metadata reads, a fake clock and `min_decryption_version` on decrypt. Near-miss control: one second short of the quarter is not rotated, the quarter is. Failed and partial rotations leave every ciphertext decryptable; the job's only write is `rotate`. RED 1: module missing. RED 2: 4 wiring failures plus the INT-025 gate naming the metric as planned-but-emitted. GREEN: all pass. Mutants 7/7 killed.
+- Result: see docs/evidence/INT-367.md (pytest lane with coverage, ruff, format, mypy --strict, no_placeholders after staging, evidence_check). `make check-ts`/`check-i18n`, `make safety` and `make security` not run: no TS, protocol or dependency change.
+- Invariants touched and still passing: 6 (label is the Transit key name only; CLI prints ids only), 13 (metric catalogued live and emitted; alert reads only catalogued series), 14 (secrets only via `SecretsProvider.from_env`, fails closed), 15 (runbook linked from the alert), 17 (no fake outside tests; the unwired production pieces are stated, not faked).
+- Decisions / ADRs / `00_STATE.md` rows: none. OpenBao policies untouched (LOOP guardrail).
+- Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
+- Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
+- LOOP_STATUS: CONTINUE
