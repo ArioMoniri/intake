@@ -1,5 +1,5 @@
 {
-  "about": "INT-400: how a printed date in an MHRS appointment message is read, on the server and on the device. Both parsers are held to this one file: tests/records/test_mhrs.py holds the server's parse_printed_date and parse_mhrs_sms (intake_platform.records.turkish_dates and .mhrs, INT-122) to it, and apps/mobile/src/lib/taxonomy/turkishDates.test.ts and mhrsSms.test.ts hold the device's parsePrintedDate and parseMhrsSms to it. So the two cannot drift apart. The rule is the server's (CLAUDE.md invariant 22): a numeric date whose day-first and month-first readings are two different real days is refused as ambiguous and never guessed; a two-digit year is refused because the century would be a guess; a message that states two different dates is refused; a date-shaped token that cannot be read refuses the whole message, and the first refusal met decides which one is named (month-name forms are scanned before numeric ones). No committed source states the order an MHRS SMS prints (docs/backlog/blockers.md INT-122 Ask 2), so neither parser is given an order. The rows with an order exercise the seam only. When INT-399 fixes the order from a real sample, the rows here change, and both parsers have to change with them. Every message is synthetic, and names are masked. `printed` rows give one printed value; `messages` rows give a whole pasted message, and only its date is compared here. `expect` is either {\"date\": ISO date} or {\"refusal\": ambiguous | not_found | unreadable}.",
+  "about": "INT-400: how a printed date in an MHRS appointment message is read, on the server and on the device. Both parsers are held to this one file: tests/records/test_mhrs.py holds the server's parse_printed_date and parse_mhrs_sms (intake_platform.records.turkish_dates and .mhrs, INT-122) to it, and apps/mobile/src/lib/taxonomy/turkishDates.test.ts and mhrsSms.test.ts hold the device's parsePrintedDate and parseMhrsSms to it. So the two cannot drift apart. The rule is the server's (CLAUDE.md invariant 22): a numeric date whose day-first and month-first readings are two different real days is refused as ambiguous and never guessed; a two-digit year is refused because the century would be a guess; a message that states two different dates is refused; a date-shaped token that cannot be read refuses the whole message, and the first refusal met decides which one is named (month-name forms are scanned before numeric ones). No committed source states the order an MHRS SMS prints (docs/backlog/blockers.md INT-122 Ask 2), so neither parser is given an order. The rows with an order exercise the seam only. When INT-399 fixes the order from a real sample, the rows here change, and both parsers have to change with them. Every message is synthetic, and names are masked. `printed` rows give one printed value; `messages` rows give a whole pasted message, and only its date is compared here. The app's new-visit form is held to the message rows too (apps/mobile/src/lib/visits.test.ts): a pasted message leaves the date field holding the row's date or nothing, never a date the field held before the paste. `expect` is either {\"date\": ISO date} or {\"refusal\": ambiguous | not_found | unreadable}.",
   "printed": [
     {
       "id": "int134_fixture_reads_two_ways",
@@ -287,6 +287,16 @@
       "id": "year_first",
       "text": "Randevu tarihi 2026-09-03 saat 10:00",
       "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "mhrs_two_digit_year",
+      "text": "Sayin A*** Y***, 15.10.26 Persembe saat 14:30 icin ANKARA SEHIR HASTANESI KARDIYOLOJI poliklinigi randevunuz olusturulmustur. MHRS",
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "mhrs_day_and_month_without_year",
+      "text": "Sayin A*** Y***, 15.10 Persembe saat 14:30 icin ANKARA SEHIR HASTANESI KARDIYOLOJI poliklinigi randevunuz olusturulmustur. MHRS",
+      "expect": { "refusal": "not_found" }
     }
   ]
 }

@@ -3,10 +3,12 @@
  * the local build, the list split with optional dates, the new-visit form
  * reducer (SMS paste-parse included) and the fail-closed OCR gate.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { SEED_BRANCHES, branchById } from "./taxonomy/branches";
-import type { ParsedMhrsSms } from "./taxonomy/mhrsSms";
+import { parseMhrsSms, type ParsedMhrsSms } from "./taxonomy/mhrsSms";
 import {
   buildLocalVisit,
   emptyNewVisitForm,
@@ -170,7 +172,7 @@ describe("the new-visit form reducer", () => {
     expect(state.smsNotice).toBe("no_date");
   });
 
-  it("an unreadable message says so and changes nothing else", () => {
+  it("an unreadable message says so and keeps the fields the patient typed", () => {
     const parsed: ParsedMhrsSms = {
       dateIso: null,
       dateRefusal: "not_found",
@@ -190,6 +192,125 @@ describe("the new-visit form reducer", () => {
     });
     expect(state.hospital).toBe("Elle girilen hastane");
     expect(state.smsNotice).toBe("unreadable");
+  });
+});
+
+/**
+ * INT-400: tests/fixtures/records/mhrs_dates.json, the table the server's
+ * parse_mhrs_sms and the device's parseMhrsSms are both held to. Each message
+ * row goes through the real parser into a form that already holds a date from
+ * an earlier paste. The form then holds the row's date or nothing, never the
+ * earlier date.
+ */
+const MESSAGE_ROWS = (
+  JSON.parse(
+    readFileSync(
+      join(__dirname, "..", "..", "..", "..", "tests", "fixtures", "records", "mhrs_dates.json"),
+      "utf8",
+    ),
+  ) as {
+    messages: {
+      id: string;
+      text: string;
+      expect: { date: string } | { refusal: "ambiguous" | "not_found" | "unreadable" };
+    }[];
+  }
+).messages.map((row) => [row.id, row] as const);
+
+/** A date no fixture row prints, so it can only be the earlier paste's. */
+const EARLIER = "2031-01-17";
+
+describe("a stale date never survives a new SMS (INT-400, shared table)", () => {
+  it.each(MESSAGE_ROWS)("%s", (_id, row) => {
+    const before = newVisitFormReducer(emptyNewVisitForm(), { type: "set_date", value: EARLIER });
+    const state = newVisitFormReducer(before, {
+      type: "apply_sms",
+      parsed: parseMhrsSms(row.text, SEED_BRANCHES),
+      branches: SEED_BRANCHES,
+    });
+    expect(state.date).toBe("date" in row.expect ? row.expect.date : null);
+  });
+
+  it("the table carries both refusals this rule is about", () => {
+    const refusals = MESSAGE_ROWS.map(([, row]) =>
+      "refusal" in row.expect ? row.expect.refusal : null,
+    );
+    expect(refusals).toContain("unreadable");
+    expect(refusals).toContain("not_found");
+  });
+});
+
+describe("an unreadable or missing date clears the field too (INT-400)", () => {
+  const refused = (dateRefusal: "unreadable" | "not_found"): ParsedMhrsSms => ({
+    dateIso: null,
+    dateRefusal,
+    time: "14:30",
+    hospital: "ANKARA SEHIR HASTANESI",
+    branchId: "kardiyoloji",
+    branchText: "KARDIYOLOJI",
+  });
+
+  it.each(["unreadable", "not_found"] as const)(
+    "%s: the earlier date is cleared and the patient is asked for the date",
+    (dateRefusal) => {
+      const before = newVisitFormReducer(emptyNewVisitForm(), {
+        type: "set_date",
+        value: EARLIER,
+      });
+      const state = newVisitFormReducer(before, {
+        type: "apply_sms",
+        parsed: refused(dateRefusal),
+        branches: SEED_BRANCHES,
+      });
+      expect(state.date).toBeNull();
+      expect(state.smsNotice).toBe("no_date");
+      expect(state.branchId).toBe("kardiyoloji");
+    },
+  );
+
+  it("an unknown clinic with an unreadable date still clears the date", () => {
+    const before = newVisitFormReducer(emptyNewVisitForm(), { type: "set_date", value: EARLIER });
+    const state = newVisitFormReducer(before, {
+      type: "apply_sms",
+      parsed: { ...refused("unreadable"), branchId: null, branchText: "CILDIYE" },
+      branches: SEED_BRANCHES,
+    });
+    expect(state.date).toBeNull();
+    expect(state.smsNotice).toBe("unknown_branch");
+  });
+
+  it("a message nothing could be read from clears the date but keeps what the patient typed", () => {
+    let before = newVisitFormReducer(emptyNewVisitForm(), {
+      type: "set_hospital",
+      value: "Elle girilen hastane",
+    });
+    before = newVisitFormReducer(before, { type: "set_date", value: EARLIER });
+    const state = newVisitFormReducer(before, {
+      type: "apply_sms",
+      parsed: {
+        dateIso: null,
+        dateRefusal: "not_found",
+        time: null,
+        hospital: null,
+        branchId: null,
+        branchText: null,
+      },
+      branches: SEED_BRANCHES,
+    });
+    expect(state.smsNotice).toBe("unreadable");
+    expect(state.date).toBeNull();
+    expect(state.hospital).toBe("Elle girilen hastane");
+  });
+
+  it("a date read from the new message replaces the earlier one", () => {
+    const before = newVisitFormReducer(emptyNewVisitForm(), { type: "set_date", value: EARLIER });
+    const state = newVisitFormReducer(before, {
+      type: "apply_sms",
+      parsed: { ...refused("not_found"), dateIso: "2026-10-15", dateRefusal: null },
+      branches: SEED_BRANCHES,
+    });
+    expect(state.date).toBe("2026-10-15");
+    expect(state.smsNotice).toBe("filled");
   });
 });
 

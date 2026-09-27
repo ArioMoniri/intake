@@ -169,3 +169,7 @@ class TestTheAppIsHeldToTheSameTable:
         sms = (MOBILE_TAXONOMY / "mhrsSms.test.ts").read_text(encoding="utf-8")
         assert '"mhrs_dates.json"' in sms
         assert "parseMhrsSms(" in sms
+        # the form: a pasted message never leaves an earlier date in the field
+        form = (MOBILE_TAXONOMY.parent / "visits.test.ts").read_text(encoding="utf-8")
+        assert '"mhrs_dates.json"' in form
+        assert "parseMhrsSms(row.text" in form

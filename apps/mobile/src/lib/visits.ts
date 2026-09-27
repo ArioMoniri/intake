@@ -167,8 +167,11 @@ export function newVisitFormReducer(state: NewVisitForm, action: NewVisitAction)
         parsed.hospital !== null ||
         ambiguousDate;
       // the raw message is cleared the moment it has been read: it is parsed
-      // on the device and kept only as structure (no raw SMS is persisted)
-      const base: NewVisitForm = { ...state, sms: "", problem: null };
+      // on the device and kept only as structure (no raw SMS is persisted).
+      // INT-400: the date field is cleared too, whatever the message said. A
+      // date from an earlier paste is not known to be this message's date,
+      // and an empty field is the one state that cannot pass for an answer.
+      const base: NewVisitForm = { ...state, sms: "", date: null, problem: null };
       if (!readable) {
         return { ...base, smsNotice: "unreadable" };
       }
@@ -178,10 +181,10 @@ export function newVisitFormReducer(state: NewVisitForm, action: NewVisitAction)
         branchId: branch?.id ?? state.branchId,
         branchNameTr: branch?.nameTr ?? state.branchNameTr,
         visitType: branch !== undefined ? null : state.visitType,
-        // an ambiguous date fills in neither reading, and clears a date the
-        // field already held: it is not known to be this message's date, and
-        // an empty field is the one state that cannot pass for an answer
-        date: ambiguousDate ? null : (parsed.dateIso ?? state.date),
+        // only a date read from THIS message fills the field: an ambiguous
+        // one fills in neither reading, and an unreadable or missing one
+        // leaves it empty rather than keeping an earlier paste's date
+        date: parsed.dateIso,
         smsNotice: null,
       };
       if (ambiguousDate) {
