@@ -64,8 +64,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # tracks test_schema.py (175 blueprint + added issues, latest INT-376)
     # + INT-318, the INT-354 slice S2 row)
     # + INT-380 and INT-381, split out of INT-121 and INT-124 by INT-124's PR
+    # + INT-385 (record quantities in the locale's decimal separator, GitHub #635)
+    # + INT-392, the session-deletion fix found on check-integration)
+    # + INT-393, the Doctor Link erasure fix found by INT-392)
     # + INT-390, the Keycloak upgrade INT-378 found
-    assert len(actions) == 302
+    assert len(actions) == 306
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -26,7 +26,11 @@ lands; the table only turns some refusals into readings.
 Rendering is the same rule in the other direction: ``useGrouping:false``, plain
 positional notation (never an exponent, which is a second representation of the
 same magnitude), and number + unit joined by a NO-BREAK SPACE so they are one
-atom that cannot wrap apart in a narrow column.
+atom that cannot wrap apart in a narrow column. A rendering is written for a
+reader, so its decimal separator is the reader's locale's (INT-385): a Turkish
+reader takes a full stop as grouping, and ``12.500`` on a Turkish screen is
+twelve thousand five hundred. Parsing picks no locale; rendering always names
+one.
 
 **No message here echoes a printed form** (invariant 6).
 """
@@ -34,12 +38,15 @@ atom that cannot wrap apart in a narrow column.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
+from types import MappingProxyType
 from typing import Final
 
 __all__ = [
     "COMPARATORS",
+    "DECIMAL_SEPARATORS",
+    "QuantityLocaleUnknown",
     "NBSP",
     "PrintedMagnitudeAmbiguous",
     "PrintedMagnitudeUnreadable",
@@ -60,6 +67,13 @@ NBSP: Final = " "
 #: Both ASCII and the typeset forms a Turkish lab report actually prints.
 COMPARATORS: Final = "<>≤≥"
 
+#: The decimal point a reader of each display locale reads (INT-385). A
+#: Turkish reader reads a comma as the point and a full stop as grouping
+#: (files/03 §4.9.6), so a full stop written for a Turkish reader moves the
+#: magnitude by a factor of 1000. The table is closed and read-only. A locale
+#: missing from it is refused and never written with a guessed separator.
+DECIMAL_SEPARATORS: Final[Mapping[str, str]] = MappingProxyType({"tr": ",", "en": "."})
+
 _DIGITS_ONLY: Final = re.compile(r"^\d+$")
 _NUMERIC_SHAPE: Final = re.compile(r"^[+-]?\d[\d.,]*$")
 
@@ -78,6 +92,15 @@ class PrintedMagnitudeAmbiguous(PrintedMagnitudeUnreadable):
     ``1.500`` is ``1500`` under Turkish grouping and ``1.5`` under an en-US
     decimal point. Both are valid readings of the same characters and the
     difference is a factor of 1000, so neither is taken.
+    """
+
+
+class QuantityLocaleUnknown(ValueError):
+    """A quantity was asked for in a locale with no recorded decimal point.
+
+    Writing it with a guessed separator is how a value read as 12.5 reaches a
+    Turkish reader as ``12.500`` (INT-385), so nothing is written. The message
+    does not echo the locale it was given: a caller can pass any string.
     """
 
 
@@ -188,20 +211,40 @@ def magnitude_readings(printed: str) -> tuple[Decimal, ...]:
     return readings
 
 
-def render_quantity(magnitude: Decimal) -> str:
-    """One rendering of a clinical quantity: no grouping, no exponent.
+def render_quantity(magnitude: Decimal, *, locale: str) -> str:
+    """One rendering of a clinical quantity, for a reader of ``locale``.
 
-    ``Decimal.__str__`` switches to scientific notation for some exponents, and
-    an exponent beside a unit is a second representation of the magnitude in
-    the same string. ``f"{...:f}"`` is plain positional notation always, and
-    it preserves the printed precision (``2.50`` stays ``2.50``).
+    * The decimal point is the locale's (:data:`DECIMAL_SEPARATORS`: ``tr``
+      comma, ``en`` full stop). INT-121 wrote a full stop for every reader
+      (INT-385).
+    * No grouping, ever (``useGrouping:false``): 12500 is ``12500`` in every
+      locale, never ``12.500`` or ``12,500``.
+    * No exponent. ``Decimal.__str__`` switches to scientific notation for some
+      exponents, and an exponent beside a unit is a second representation of
+      the magnitude in the same string. ``f"{...:f}"`` is plain positional
+      notation always, and it keeps the printed precision (``2.50`` is
+      ``2,50`` in ``tr``).
+
+    ``locale`` has no default. The reader is the caller's to name, and a
+    locale with no recorded separator raises :class:`QuantityLocaleUnknown`.
     """
-    return f"{magnitude:f}"
+    separator = DECIMAL_SEPARATORS.get(locale)
+    if separator is None:
+        raise QuantityLocaleUnknown(
+            "no decimal point is recorded for the requested locale (known: "
+            f"{', '.join(sorted(DECIMAL_SEPARATORS))}); a guessed separator is how 12.5 "
+            "reaches a Turkish reader as 12.500, so the quantity is not written "
+            "(the requested locale is not echoed here)"
+        )
+    # Positional notation writes a full stop and never a comma, so this one
+    # substitution is the whole of the locale's effect on the number.
+    return f"{magnitude:f}".replace(".", separator)
 
 
-def quantity_atom(magnitude: Decimal, unit: str | None) -> str:
-    """Number and unit as one non-breaking atom (invariant 22)."""
-    rendered = render_quantity(magnitude)
+def quantity_atom(magnitude: Decimal, unit: str | None, *, locale: str) -> str:
+    """Number and unit as one non-breaking atom (invariant 22), for a reader of
+    ``locale`` (:func:`render_quantity`)."""
+    rendered = render_quantity(magnitude, locale=locale)
     if unit is None or not unit.strip():
         return rendered
     return f"{rendered}{NBSP}{unit.strip()}"
