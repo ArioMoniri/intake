@@ -69,6 +69,7 @@ from intake_platform.db.models import (
     SlotSensitivity,
 )
 from intake_platform.envelope import shred_field
+from intake_platform.records.index_store import erase_record_index
 from prometheus_client import Counter
 from sqlalchemy import Delete, delete, select, update
 from sqlalchemy.engine import CursorResult
@@ -286,6 +287,12 @@ async def _erase_subject(
             PatientOverlayHeader.patient_id == patient_id,
         ),
     )
+    # INT-123: the record index is derived from the subject's confirmed record,
+    # so it goes with it. A vector is not an envelope — there is no DEK to
+    # destroy — and the row delete is the erasure, as for a plain slot. The
+    # helper sets the patient GUC first: the index's RESTRICTIVE policy would
+    # otherwise make this DELETE a silent no-op under a non-owner role.
+    removed += await erase_record_index(session, tenant_id=tenant_id, patient_id=patient_id)
     if session_ids:
         removed += await _delete(
             session,

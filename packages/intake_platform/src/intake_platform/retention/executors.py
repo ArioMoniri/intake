@@ -45,9 +45,11 @@ from intake_platform.db.models import (
     Event,
     IntakeSession,
     Note,
+    RecordEmbedding,
     Share,
     Slot,
 )
+from intake_platform.records.index import document_ref_of
 from intake_platform.retention.engine import Destroyer
 from intake_platform.retention.policy import DestroyableClass
 
@@ -164,6 +166,19 @@ def sqlalchemy_destroyers(
             note_ids = session.scalars(
                 select(Note.id).where(Note.session_id.in_(session_ids))
             ).all()
+            # INT-123: the vectors indexed from a destroyed document go with it.
+            # The index writer refuses any source box that is not
+            # doc:<documents.id>, so this finds every row a document produced.
+            document_refs = [
+                document_ref_of(document_id)
+                for document_id in session.scalars(
+                    select(Document.id).where(Document.session_id.in_(session_ids))
+                ).all()
+            ]
+            if document_refs:
+                session.execute(
+                    delete(RecordEmbedding).where(RecordEmbedding.document_ref.in_(document_refs))
+                )
             session.execute(delete(Document).where(Document.session_id.in_(session_ids)))
             if note_ids:
                 session.execute(delete(Share).where(Share.note_id.in_(note_ids)))

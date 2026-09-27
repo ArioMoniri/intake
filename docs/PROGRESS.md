@@ -1,5 +1,44 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T12:00:00Z · INT-123 · todo (PR open; mechanism shipped, no embedding model pinned)
+- Goal: acceptance verbatim (GitHub #98): *"embeddings scoped by patient+consent; retrieval cited into notes with provenance"*.
+- Plan:
+  - Migration `0014_int123`: `record_embeddings`, with a PERMISSIVE tenant and a RESTRICTIVE patient RLS policy, FORCE, and no clinician grant.
+  - Confirmed-only indexing through a queue hooked on `ConfirmedRecordStore.admit`.
+  - The `documents` consent gate on indexing and on retrieval.
+  - Erasure of vectors in the DSAR shred and in the retention executor.
+  - The `retrieve_records` background Work, and `cite_records` into `imported_objective`, with the document, page, bbox and item id on the span.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_vector_rls.py` (the row's file), `tests/records/test_record_index.py` and `tests/voice/test_retrieve_records_work.py`: 55 unit + 8 integration.
+  - Near-miss controls:
+    - a PERMISSIVE patient policy, a missing WITH CHECK, an unforced table and a widened namespace are each named;
+    - the live probe is shown red on a copy of the table without RLS;
+    - a planted §4.9.1 record-embedding row is detected.
+  - RED: collection errors; then both erasure tests failing on surviving vectors; then the INT-385 guard catching a voice-side import of `intake_platform.records`. The guard was kept, and the voice side types by structure instead.
+  - Mutations: 10/10 killed (one survivor on the first pass got its test).
+- Result:
+  - ruff and format are clean; `mypy --strict` has no issues in 479 files.
+  - Full unit suite: 8417 passed, coverage 95.96 %. The 4 `test_deid_ner` failures are the missing model cache in a fresh worktree, and pass 4/4 against a sibling's cache.
+  - `alembic heads` is one head, `0014_int123`.
+  - `make check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 4 (the consent scope on every index read and write);
+  - 6 (receipts are ids, closed states and class names);
+  - 12 (confirmed only);
+  - 14 and 19 (no model, no fallback; a pin must be `org/model@<commit>`);
+  - 17 (the fail-closed default, no fake);
+  - 18 (every column annotated);
+  - 22 (the INT-385 guard is untouched).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The patient namespace is a RESTRICTIVE policy on a new `app.patient_id` GUC.
+  - Index rows hold no item text.
+  - The embedder dimension is a per-row CHECK because no model declares one.
+- Blocked on: the owner (model-stack author) must choose a files/03 §4.9.1 record-embedding row: open weights, licence from the raw blob, `model_id@revision + sha256`, in-country. No HB row exists yet; the coordinator allocates one (docs/backlog/blockers.md).
+- Next:
+  - Whichever of #648/#653 and this PR merges second adds `record_embeddings` (ERASED) and `record_embeddings.patient_id` (PARENT_KEPT) to `test_session_delete_contract.py`, plus a seed row.
+  - Purging the index on a `documents` withdrawal is a retention decision for a consent issue.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
   - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*

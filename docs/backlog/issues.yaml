@@ -1453,6 +1453,19 @@
   title: "pgvector record index (RLS, per-patient namespace) + retrieval Work"
   depends_on: [INT-030, INT-121]
   labels: [area:records]
+  # `status: todo` on the INT-121 / INT-122 precedent (27 Sep 2026). The
+  # mechanism ships whole: migration 0014 (record_embeddings, a PERMISSIVE
+  # tenant and a RESTRICTIVE patient RLS policy, FORCE, no clinician grant),
+  # confirmed-only indexing hooked on ConfirmedRecordStore.admit, the
+  # `documents` consent refusal, erasure of vectors on both deletion paths,
+  # the `retrieve_records` background Work and its citations in the note with
+  # document, page, bbox and item id. What does not exist is an embedding
+  # model: files/03 §4.9.1 names none (row 18 is a SPEAKER embedding and may
+  # never be persisted, invariant 15), and choosing one is the owner's call
+  # under invariant 19. So every index Work fails `EmbeddingModelUnregistered`
+  # and no embedding exists anywhere, and "embeddings scoped by patient" is
+  # not met as written. The ask is in docs/backlog/blockers.md; the HB id is
+  # the coordinator's to allocate. See docs/evidence/INT-123.md.
   status: todo
   acceptance:
     - "embeddings scoped by patient+consent; retrieval cited into notes with provenance"
