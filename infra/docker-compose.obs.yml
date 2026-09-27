@@ -207,6 +207,10 @@ services:
       KC_HEALTH_ENABLED: "true"
     volumes:
       - ./keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
+      # INT-378: the realm's staff flow names intake-webauthn-session-notes. `make obs`
+      # runs `make keycloak-provider` first, which stages the jar here only once it
+      # matches keycloak/providers/webauthn-session-notes.sha256.
+      - ./keycloak/providers/deploy:/opt/keycloak/providers:ro
     ports:
       - "127.0.0.1:8085:8080"
     healthcheck:
