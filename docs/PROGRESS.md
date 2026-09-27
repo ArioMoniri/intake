@@ -1,5 +1,30 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T07:30:00+03:00 · INT-390 · done (PR open)
+- Goal: acceptance verbatim (GitHub #645):
+  - *"every Keycloak pin (compose images by digest, docs, runbook, the INT-378 provider's `provided` dependency) moves to the newest patched 26.x release; licence re-verified from the raw LICENSE; OSV clean for Keycloak"*;
+  - *"the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"*.
+- Plan:
+  - Compose runs `quay.io/keycloak/keycloak:26.7.4@sha256:82a77884…29b2c` (released 16 Sep 2026). Apache-2.0 was read from the raw `LICENSE.txt` at the tag, which is byte-identical to apache.org's text.
+  - The `staff browser` description goes from 271 characters to 242, with the same wording as #643.
+  - Compose mounts the realm as `intake-dev-realm.json`, because 26.2.0+ refuses a file not named after its realm.
+  - Column limits were derived by replaying 26.7.4's 78 JPA changelogs, which are byte-identical to the shipped `keycloak-model-jpa` jar.
+- Tests added: `tests/infra/test_keycloak_realm_import.py`, 33 tests.
+  - Every realm string is classified and fits its column, measured in UTF-16 units.
+  - Near-misses: 256-character descriptions and names, 128 astral characters, 37-character authenticator and provider ids, unclassified fields, the 26.1.4 mount name, and a stale image tag.
+  - RED: 6 failed, 23 passed.
+  - GREEN: 33 passed. `tests/admin tests/infra tests/observability`: 1611 passed.
+- Result:
+  - Live on the JVM, red: 26.7.4 refused `main`'s mount name, then `Value too long for column "DESCRIPTION CHARACTER VARYING(255)" … (271)`.
+  - Live, green: `Realm 'intake-dev' imported`, `/health/ready` 200, and the export read-back matched 146 values (two set orderings and one mapper default aside).
+  - OSV: 26.1.4 has 72 advisories and 26.7.4 has 3. All three are open-ended OSV ranges whose GitHub source bounds them below 26.7.4. On #643's five artefacts osv-scanner gives 64 at 26.1.4 and 1 at 26.7.4 (GHSA-794g-x443-36f7).
+- Invariants touched and still passing: **14** (the image is pinned by digest and the licence was read from the blob), **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `admin-console` gains "Controls added by INT-390".
+- Blocked on: nothing here. #643 must rebuild its provider against 26.7.4, adapt its tag-equality tests to the digest pin, and take the owner's call on the one residual OSV record in its gate.
+- Next: PR `INT-390: Keycloak upgraded to 26.7.4; the committed realm imports on it` (Closes #645, Sec-Row admin-console), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
 - Plan:

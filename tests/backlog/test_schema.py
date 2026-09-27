@@ -90,7 +90,9 @@ def test_ids_unique_and_well_formed() -> None:
     # kiosk idle warning).
     # + INT-377 (a malformed probe-results file 500'd /admin/models and
     # /admin/ops; found by INT-181, fixed and closed in the same PR).
-    assert len(ids) == 299
+    # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
+    # main never imported; found by INT-378, fixed and closed in the same PR).
+    assert len(ids) == 300
     import re
 
     for i in ids:

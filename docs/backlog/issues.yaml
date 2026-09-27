@@ -5747,3 +5747,22 @@
     - "one test per malformation, plus a near-miss control with a valid file"
   tests: [tests/admin/test_probe_results_fail_closed.py, apps/admin-web/e2e/models.spec.ts, apps/admin-web/e2e/ops.spec.ts]
   sec_row: "admin-console"
+- id: INT-390
+  epic: E12-admin
+  phase: P0
+  title: "Keycloak upgraded to a patched release, and the committed realm imports on it"
+  depends_on: [INT-023, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-390.md
+  # Found by INT-378 (PR #643): OSV reports 64 advisories on the 26.1.4 pin
+  # (up to CVSS 9.1), and the realm on main never imported on a real Keycloak
+  # (a 271-character flow description in a 255 column). Compose now runs
+  # 26.7.4 by digest; 26.7.4 also refuses the old `dev-realm.json` import file
+  # name, so the mount is `intake-dev-realm.json`. The INT-378 provider is
+  # rebuilt against 26.7.4 in #643 itself, after this merges.
+  acceptance:
+    - "every Keycloak pin (compose images by digest, docs, runbook, the INT-378 provider's `provided` dependency) moves to the newest patched 26.x release; licence re-verified from the raw LICENSE; OSV clean for Keycloak"
+    - "the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"
+  tests: [tests/infra/test_keycloak_realm_import.py, tests/admin/test_staff_second_factor.py]
+  sec_row: "admin-console"
