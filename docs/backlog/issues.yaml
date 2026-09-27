@@ -5321,7 +5321,8 @@
   title: "Motion: arbiter and commit windows (pure)"
   depends_on: [INT-333]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-334.md
   acceptance:
     - "one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"
     - "rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**312 issues.** By phase: P0 160 · P1 98 · P2 47 · P3 7. By status: awaiting-human 27 · doing 7 · done 198 · todo 79 · withdrawn 1.
+**312 issues.** By phase: P0 160 · P1 98 · P2 47 · P3 7. By status: awaiting-human 27 · doing 7 · done 199 · todo 78 · withdrawn 1.
 
 ## P0
 
@@ -319,7 +319,7 @@
 | INT-307 | publish_wait / roll_up_wait handle only the labelled records_processing family, so an unlabelled wait series has nowhere to be written | E01-platform | — | area:platform, area:observability | done |
 | INT-320 | Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold) | E10-connectors | INT-250 | area:release, risk:security, risk:legal, approval:human-legal | doing |
 | INT-322 | Embed handshake: intake mode (hastanede/brief) bound inside the signed launch ticket | E10-connectors | INT-320 | area:release, risk:security, risk:legal | done |
-| INT-334 | Motion: arbiter and commit windows (pure) | E08-mobile | INT-333 | area:mobile | todo |
+| INT-334 | Motion: arbiter and commit windows (pure) | E08-mobile | INT-333 | area:mobile | done |
 | INT-335 | Motion: Reanimated hygiene gates before the first Reanimated consumer | E08-mobile | INT-331 | area:mobile | done |
 | INT-336 | Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners | E08-mobile | INT-332, INT-334, INT-335 | area:mobile, risk:clinical | todo |
 | INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | INT-334, INT-335, INT-336 | area:mobile | todo |
