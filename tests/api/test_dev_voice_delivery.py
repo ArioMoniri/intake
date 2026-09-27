@@ -55,6 +55,41 @@ def test_every_delivery_line_is_admitted(tmp_path: Path) -> None:
     assert gateway.seen == list(DELIVERY_TR.values())
 
 
+def test_a_delivery_line_is_never_served_as_red(tmp_path: Path) -> None:
+    # RED gets nothing around it (invariant 21): no delivery line may be
+    # fetched under the red label, and the route's INT-415 door says so.
+    gateway = CountingGateway()
+    wiring = george_wiring_for(
+        gateway, tmp_path / "c", catalogue=with_delivery_lines(catalogue_of())
+    )
+    for text in DELIVERY_TR.values():
+        response = router_client(wiring).post(
+            GEORGE_CLIP_PATH, json={"text_tr": text, "delivery_context": "red"}
+        )
+        assert response.status_code == 422, text
+        assert response.json() == {"error": "red_not_on_demand"}
+    assert gateway.calls == 0
+
+
+@pytest.mark.parametrize(
+    "context", ["welcome", "routine", "sensitive", "instrument", "acknowledgement", "closing"]
+)
+def test_a_delivery_line_carries_no_pin_so_every_other_context_admits_it(
+    tmp_path: Path, context: str
+) -> None:
+    gateway = CountingGateway()
+    wiring = george_wiring_for(
+        gateway, tmp_path / "c", catalogue=with_delivery_lines(catalogue_of())
+    )
+    line = next(iter(DELIVERY_TR.values()))
+    assert wiring.catalogue.pinned_context(line) is None
+    response = router_client(wiring).post(
+        GEORGE_CLIP_PATH, json={"text_tr": line, "delivery_context": context}
+    )
+    assert response.status_code == 200
+    assert gateway.seen == [line]
+
+
 def test_free_text_is_still_refused_and_never_dialled(tmp_path: Path) -> None:
     gateway = CountingGateway()
     wiring = george_wiring_for(

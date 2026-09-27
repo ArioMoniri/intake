@@ -39,6 +39,7 @@ from protocols.dsl import ClipManifestEntry, clip_text_hash
 from protocols.locale_text import DEFAULT_LOCALE
 from pydantic import Field, ValidationError
 
+from voice_clips.delivery import DeliveryContext, DeliveryProfile, delivery_context_for_subject
 from voice_clips.errors import ClipCacheError
 
 __all__ = [
@@ -63,9 +64,10 @@ __all__ = [
     "load_clip_manifest",
 ]
 
-#: One flat namespace per (locale, voice) under the bucket. No pack id in the
-#: key: two packs that share a scripted sentence share its clip, which is the
-#: point of keying by the text hash in the first place. Two *locales* never do,
+#: One flat namespace per (locale, voice, delivery profile) under the bucket.
+#: No pack id in the key: two packs that share a scripted sentence share its
+#: clip, which is the point of keying by the text hash in the first place — as
+#: long as they deliver it the same way (INT-415). Two *locales* never do,
 #: even where the bytes coincide — a short string can be identical in two
 #: languages and is not the same utterance in either (INT-297).
 CLIP_KEY_PREFIX: Final = "clips"
@@ -143,6 +145,12 @@ class ClipManifestRow(FrozenModel):
             locale=self.locale,
         )
 
+    @property
+    def delivery_context(self) -> DeliveryContext:
+        """How this row is delivered, read from whose text it is (INT-415): a
+        rule script is RED, an instrument item is instrument, a slot is routine."""
+        return delivery_context_for_subject(self.subject)
+
 
 class CompiledClipManifest(FrozenModel):
     """``clips.<locale>.<voice>.json`` for one pack."""
@@ -161,14 +169,19 @@ def clip_manifest_filename(voice: str, locale: str = DEFAULT_LOCALE) -> str:
     return f"clips.{locale}.{voice}.json"
 
 
-def clip_object_key(entry: ClipManifestEntry) -> str:
-    """``clips/<locale>/<voice>/<clip_id>`` — the clip id verbatim, never re-derived.
+def clip_object_key(entry: ClipManifestEntry, *, profile: DeliveryProfile) -> str:
+    """``clips/<locale>/<voice>/<profile key>/<clip_id>``, with the clip id
+    taken verbatim and never re-derived.
 
     The locale is a path segment as well as part of the id, so a bucket listing
     reads as one namespace per language and a misfiled clip is visible rather
-    than merely improbable (INT-297).
+    than merely improbable (INT-297). The delivery profile's id and version are
+    a segment too (INT-415), so the same text delivered two ways is two
+    objects, and a retuned profile (version bump) is a miss that re-synthesises
+    rather than a hit that replays the old tuning. The compiler's ``clip_id``
+    and its ``text_hash`` binding are unchanged (invariant 10).
     """
-    return f"{CLIP_KEY_PREFIX}/{entry.locale}/{entry.voice}/{entry.clip_id}"
+    return f"{CLIP_KEY_PREFIX}/{entry.locale}/{entry.voice}/{profile.key}/{entry.clip_id}"
 
 
 def discover_packs(dist_root: Path, voice: str, locale: str = DEFAULT_LOCALE) -> tuple[str, ...]:

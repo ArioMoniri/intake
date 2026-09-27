@@ -18,7 +18,12 @@ itself, so none of it depends on a well-behaved client:
   the whole catalogue rather than widening it. The one widening is INT-414's:
   the fixed conversational delivery lines (:mod:`intake_api.dev_voice_delivery`,
   verbatim ``tr`` catalogue copy, pinned to it by test) join a catalogue that
-  loaded, hashed the same way (:func:`with_delivery_lines`).
+  loaded, hashed the same way (:func:`with_delivery_lines`). They carry no
+  delivery pin, so the route refuses them under ``red`` like any other text.
+- **The delivery pins** (INT-415). The same compiled rows say whose text each
+  one is. A rule's action script is pinned to ``red``, which is never served
+  on demand, and an instrument item is pinned to ``instrument``. So a client
+  that labels a RED script "routine" does not get it synthesised.
 - **The budget.** A per-principal token bucket on the INT-012 Redis limiter
   (``intake_platform.security.rate_limit``), shared by every replica.
 - **Production.** ``INTAKE_ENV`` read the way the platform reads it
@@ -32,8 +37,10 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import Final
 
 from intake_platform.security.rate_limit import TokenBucketLimiter
@@ -42,6 +49,7 @@ from protocols.locale_text import DEFAULT_LOCALE
 from redis import Redis
 from voice_clips.cache import clip_manifest_filename, load_clip_manifest
 from voice_clips.cli import DEFAULT_DIST_ROOT
+from voice_clips.delivery import PINNED_CONTEXTS, DeliveryContext
 from voice_clips.errors import ClipCacheError
 
 from intake_api.dev_voice_delivery import delivery_text_hashes
@@ -88,12 +96,27 @@ def intake_env_is_prod() -> bool:
 
 @dataclass(frozen=True)
 class ScriptedCatalogue:
-    """The ``clip_text_hash`` of every compiled clip-manifest row."""
+    """The ``clip_text_hash`` of every compiled clip-manifest row, and the
+    delivery context a row is pinned to when its subject decides one.
+
+    ``pinned_contexts`` (INT-415) maps a text hash to the only context it may
+    be spoken in: a rule's action script is ``red``, an instrument item is
+    ``instrument``. Both are derived here, server-side, from the compiled row's
+    subject (``voice_clips.delivery.delivery_context_for_subject``), so the
+    route never takes the client's word for which delivery a script gets. An
+    ordinary scripted question is not pinned.
+    """
 
     text_hashes: frozenset[str]
+    pinned_contexts: Mapping[str, DeliveryContext] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def admits(self, text_tr: str) -> bool:
         return clip_text_hash(text_tr) in self.text_hashes
+
+    def pinned_context(self, text_tr: str) -> DeliveryContext | None:
+        return self.pinned_contexts.get(clip_text_hash(text_tr))
 
 
 def george_clip_dist_root() -> Path:
@@ -110,13 +133,21 @@ def load_scripted_catalogue(dist_root: Path, *, locale: str = DEFAULT_LOCALE) ->
     """
     prefix = clip_manifest_filename("", locale).removesuffix(_MANIFEST_SUFFIX)
     hashes: set[str] = set()
+    pinned: dict[str, DeliveryContext] = {}
     for path in sorted(dist_root.glob(f"*/{clip_manifest_filename('*', locale)}")):
         voice = path.name.removeprefix(prefix).removesuffix(_MANIFEST_SUFFIX)
         manifest = load_clip_manifest(
             dist_root, pack_id=path.parent.name, voice=voice, locale=locale
         )
-        hashes.update(row.text_hash for row in manifest.entries)
-    return ScriptedCatalogue(text_hashes=frozenset(hashes))
+        for row in manifest.entries:
+            hashes.add(row.text_hash)
+            context = row.delivery_context
+            if context in PINNED_CONTEXTS and pinned.get(row.text_hash) != "red":
+                # a text that is a RED script anywhere stays RED everywhere
+                pinned[row.text_hash] = context
+    return ScriptedCatalogue(
+        text_hashes=frozenset(hashes), pinned_contexts=MappingProxyType(pinned)
+    )
 
 
 def with_delivery_lines(catalogue: ScriptedCatalogue) -> ScriptedCatalogue:
