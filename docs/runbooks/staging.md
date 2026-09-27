@@ -168,7 +168,9 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
 - `./deploy.sh` runs on every deploy **and after every host reboot**. It
   first checks the object-store and SBOM image pins and then the host's swap
   (see above). It builds the API image and writes its SBOM, and stops if
-  syft fails. OpenBao restarts sealed, and this script unseals it. It then
+  syft fails. Before anything restarts it runs the release gate and stops if
+  deploys are frozen (see "Deploy freeze" below). OpenBao restarts sealed,
+  and this script unseals it. It then
   renews the API token, migrates, runs
   `docker compose -p intake-staging up -d --no-build`, so the api runs exactly
   the image the SBOM describes, and probes `/healthz` and `/readyz` over HTTPS.
@@ -245,6 +247,24 @@ cd /opt/intake/infra/staging
 - **Setting the SMS keys sends a real phone number through this host to the
   vendor.** The host is synthetic-only (HB-I5, HB-L11), so setting them is the
   owner's decision, and the vendor needs a signed DPA first (invariant 18).
+
+## Deploy freeze
+
+`./deploy.sh` runs `require_release_not_frozen` after it builds the image and
+writes its SBOM, and before the first `compose up` (INT-187). It runs the
+release gate, `python -m intake_api.admin.release_gate`, in a one-off api
+container on the project network, and stops the deploy when:
+
+- deploys are frozen from the console (`/cicd`);
+- an SLO's error budget is exhausted (only where a Prometheus is declared —
+  staging declares none, and the gate says so on every run);
+- the freeze record cannot be read: `INTAKE_RELEASE_FREEZE_REDIS_URL` unset,
+  Redis down, or a record that is not the model;
+- the gate itself could not run.
+
+A refused deploy has changed nothing on the host: nothing was restarted.
+`docs/runbooks/deploy-freeze.md` explains each refusal and how a freeze is
+lifted (two people). Do not work around the gate on the host.
 
 ## Known gaps, stated rather than hidden
 

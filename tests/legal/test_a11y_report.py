@@ -394,17 +394,23 @@ def test_a_row_cannot_cite_an_issue_the_backlog_does_not_carry(
 
 
 def test_the_report_says_why_a_row_is_still_open(source: dict[str, Any]) -> None:
-    reasons = {
-        str(r.get("sc", r.get("clause"))): str(r["still_open_because"]).strip()
-        for r in source["wcag"] + source["en301549"]
-        if "still_open_because" in r
-    }
-    assert reasons, "4.1.3 records what INT-362 left open"
-    text = R.render(source)
-    for number, reason in reasons.items():
-        # The row's own line in §1, §2 or §3.2, not the derived clause-11 table.
-        line = next(ln for ln in text.splitlines() if ln.startswith(f"| {number} "))
-        assert "**Still open because:**" in line and " ".join(reason.split()) in line, number
+    # INT-397 closed 4.1.3, the last row that recorded a reason, so the
+    # rendering is proven on a copy that records one. Any reason the committed
+    # source carries is held to the same rule.
+    reasoned = copy.deepcopy(source)
+    _row(reasoned, "1.4.3")["still_open_because"] = "The palette decision is still open."
+    for candidate in (source, reasoned):
+        reasons = {
+            str(r.get("sc", r.get("clause"))): str(r["still_open_because"]).strip()
+            for r in candidate["wcag"] + candidate["en301549"]
+            if "still_open_because" in r
+        }
+        text = R.render(candidate)
+        for number, reason in reasons.items():
+            # The row's own line in §1, §2 or §3.2, not the derived clause-11 table.
+            line = next(ln for ln in text.splitlines() if ln.startswith(f"| {number} "))
+            assert "**Still open because:**" in line and " ".join(reason.split()) in line, number
+    assert "**Still open because:** The palette decision is still open." in R.render(reasoned)
 
 
 # ---------------------------------------------------------------- device audit

@@ -164,13 +164,26 @@ it or whose tests exercise it.
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
   with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
   `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
-  Skipped naming HB-I7 while no pool is declared — never as healthy.
+  Skipped naming HB-I7 while no pool is declared — never as healthy. **INT-187 adds the
+  console surface** (`/cicd`, `GET /admin/cicd`): recent runs per workflow with failing jobs,
+  every PR-triggered gate per ref on `main` and the open PRs, **whether GitHub itself enforces
+  any of them** (today: no — branch protection off, no ruleset, read from the API rather than
+  assumed), releases with the `sign-and-attest` job's outcome, and this deployment's stamped
+  `/version`. The GitHub read is the ops collector's (read-only token from OpenBao, egress
+  guard, purpose `issue_tracking`); run actors, commit messages, PR titles and users never
+  become labels (`ops_cicd_*`, catalogued). **The deploy freeze** is a §8.2 pair — engage
+  tier 1, lift tier 2 — kept out of Unleash (a CI-held token must not lift it), and enforced
+  in `infra/staging/deploy.sh` by the release gate, which also refuses on an exhausted SLO
+  error budget and on a freeze it cannot read; `admin.deploy_freeze_changes_total` is the
+  alert. Argo CD and a deploy canary are shown as not deployed — none exists in `infra/`.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
   tests/security/test_threat_model.py (the sec_row linkage gate);
   tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
   heartbeat probe); tests/ci/test_dependency_updates.py (INT-368: ecosystem coverage from
   the tree, unscheduled security updates, no auto-merge anywhere); full gate job lands
-  with INT-019.
+  with INT-019. INT-187: tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py,
+  tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py,
+  tests/infra/test_staging_release_freeze.py and apps/admin-web/e2e/cicd.spec.ts.
 
 ## `secrets` — OpenBao and service credentials
 
@@ -1079,7 +1092,14 @@ it or whose tests exercise it.
   `tests/records/test_labjson_eval.py`); the patient-facing half of the confirm gate,
   the client-side level-shaped-key refusal and the camera path with INT-138
   (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
-  RLS namespace tests with INT-123.
+  the pgvector index with INT-123 — a PERMISSIVE tenant and a RESTRICTIVE patient RLS
+  policy checked against the model metadata, A-cannot-read-B live under the app role with
+  the same probe shown red on a copy of the table without RLS, confirmed-only indexing, the
+  `documents` consent refusal, erasure of vectors on both deletion paths and retrieval
+  cited into the note with document, page, box and item id
+  (`tests/records/test_vector_rls.py`, `tests/records/test_record_index.py`,
+  `tests/voice/test_retrieve_records_work.py`). files/03 §4.9.1 names no embedding model,
+  so indexing and retrieval refuse (`EmbeddingModelUnregistered`) with no fallback.
 - **INT-138 addition — the capture is a second way in, and it carries metadata.** A
   photograph of a report taken in the app reaches the same object store as an uploaded
   file, so it goes through the same allow-list pre-check, size cap and digest. On the
@@ -1101,6 +1121,29 @@ it or whose tests exercise it.
      and XMP, so it is a third metadata container beside the two the JPEG strip names.
      Reachable through the file picker only — the camera path produces JPEG — so the
      probability is lower, but the exposure is the same one.
+- **INT-138 addition — the extraction reaches the patient, and the verdict comes back.**
+  `GET /v1/visits/{visit_id}/documents/{doc_id}/extraction` publishes a scanned-clean
+  document's items; `POST …/extraction/decisions` takes `{card_id, decision}`
+  (`services/api/src/intake_api/record_items.py`). New boundary: extracted text ↔ the
+  patient's screen. Threats and their controls: [I] another patient's items — the
+  caller's own visit and document under the RLS tenant session, the `documents` consent
+  scope enforced on both routes, clinic principals refused; [T] a caller asserting who
+  confirmed, or restating the value — the body is closed to those two fields and
+  `confirm_record_item` takes no `by=`, so the actor is read off INT-170's vocabulary;
+  [T/S] document text shaped as a control — an item carrying the data-boundary control
+  token, or a box pointing into another document, refuses the extraction whole (the one
+  fence's own check, not a second one), and nothing on this path reaches a model; [T] a
+  flagged magnitude tidied in transit — `summary` and `unit_conflict` are carried byte
+  for byte, no parse, no conversion; [R] every read and verdict appends `doc:<id>` to the
+  hash chain, ids only, before the verdict takes effect. Only a clean document is ever
+  passed to a source. The production source (`NoExtractionSource`) answers *unread* for
+  every document while every producer is shut.
+- ⚠️ **One limit of that transport, named for a human.** A confirmed item is admitted to
+  INT-121's `ConfirmedRecordStore`, which lives in process memory: a restart loses the
+  verdict and the card returns to *pending*, which reaches no note — the safe direction.
+  A durable store would persist a structured copy of patient health values, which needs
+  its invariant-18 annotation and an owner's decision (CLAUDE.md, *when to stop and
+  ask*); none was made here. Tests: `tests/records/test_extraction_transport.py`.
 
 ## `documents` — the object store
 
@@ -1765,6 +1808,15 @@ it or whose tests exercise it.
     refusal is the generic 403 every malformed claim gets, audited as `admin:unresolved`; it
     names the claim and never its value (inv 6). `aaguid` keeps its shape: the provider writes
     UUID text, which that shape always admits.
+  - **Controls added by INT-390 (the identity provider's own patch level):** against [E] an
+    identity provider with published advisories. Compose runs Keycloak 26.7.4 pinned by
+    index digest (26.1.4 carried 64 OSV advisories on the artefacts INT-378 compiles against).
+    The committed realm is held to the columns 26.7.4's import writes, derived from that
+    tag's changelogs and measured in UTF-16 units, and every string field must be classified,
+    so a realm that cannot load fails CI rather than `make obs`. The realm is mounted under
+    the file name 26.7.4's directory import requires. **Known limit:** three OSV records
+    still match 26.7.4 through open-ended ranges whose GitHub source bounds them below it
+    (docs/evidence/INT-390.md); a scanner that reads the Keycloak artefacts reports them.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1773,6 +1825,10 @@ it or whose tests exercise it.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
+  the same file, with property tests over generated ids (INT-391).
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  limits, the image digest and the import file name in
+  `tests/infra/test_keycloak_realm_import.py` (INT-390).
   the same file, with property tests over generated ids (INT-391). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both
