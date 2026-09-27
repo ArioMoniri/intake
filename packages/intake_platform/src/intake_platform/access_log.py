@@ -120,6 +120,11 @@ _EXACT: dict[str, AccessCategory] = {
     "api.document.list": AccessCategory.RECORD_VIEWED,
     "api.document.create": AccessCategory.RECORD_UPDATED,
     "api.document.ingest": AccessCategory.RECORD_UPDATED,
+    # INT-138: reading what was extracted from a document is a read of it;
+    # a verdict on one of its lines changes what reaches the patient's note.
+    "api.document.extraction.read": AccessCategory.RECORD_VIEWED,
+    "api.document.extraction.confirm": AccessCategory.RECORD_UPDATED,
+    "api.document.extraction.decline": AccessCategory.RECORD_UPDATED,
     "api.experience.wait_times.read": AccessCategory.RECORD_VIEWED,
     "api.experience.wait_times.export": AccessCategory.DATA_REQUEST,
     "api.consent.read": AccessCategory.CONSENT_CHANGED,
