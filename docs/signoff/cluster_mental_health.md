@@ -84,6 +84,8 @@ The chain is merged by the resolver (`_merge_chain`, then `_apply_ops`) and read
 
 11 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (1 item).
+
 ### OI-1 · `docs/evidence/verification/cluster-wave-b.md` L88
 
 - section: A.2 cluster_mental_health

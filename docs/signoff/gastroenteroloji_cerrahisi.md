@@ -77,6 +77,8 @@ The chain is merged by the resolver (`_merge_chain`, then `_apply_ops`) and read
 
 1 open item naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ### OI-1 · `docs/evidence/verification/near-twin-sweep-582.md` L125
 
 - section: A. SAME and OVERLAP pairs

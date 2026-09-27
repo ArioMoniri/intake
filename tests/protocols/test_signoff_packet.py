@@ -5,7 +5,8 @@ review candidate from the candidate, its proposal and the verification trail. Th
 tests hold the committed packets to that source: they regenerate byte for byte, every
 questions-table row is a candidate slot with its Turkish text byte-equal, every open
 item of the trail is filed or listed as unassigned (and the unassigned list must be
-empty), the packets carry no invariant 17 marker and no performance claim.
+empty), legend rows are no items, items scoped to every pack are signed once in
+_cross-cutting.md, and the packets carry no invariant 17 marker and no performance claim.
 """
 
 from __future__ import annotations
@@ -105,7 +106,11 @@ def test_packets_regenerate_byte_identically() -> None:
 
 
 def test_one_packet_per_review_candidate_plus_readme_and_unassigned() -> None:
-    expected = {f"{key}.md" for key in CANDIDATES} | {"README.md", "_unassigned.md"}
+    expected = {f"{key}.md" for key in CANDIDATES} | {
+        "README.md",
+        "_unassigned.md",
+        "_cross-cutting.md",
+    }
     assert set(_rendered()) == expected
     assert {p.name for p in OUT.glob("*.md")} == expected
     assert len(CANDIDATES) == 99
@@ -229,34 +234,69 @@ def _independent_scan() -> set[tuple[str, int]]:
     found: set[tuple[str, int]] = set()
     for path in docs:
         lines = path.read_text(encoding="utf-8").splitlines()
-        fenced = False
+        fenced, legend, section = False, False, ""
         for n, line in enumerate(lines, 1):
             fenced = fenced != line.lstrip().startswith("```")
+            section = line if line.startswith("#") and not fenced else section
             is_row = line.startswith("|") and not re.match(r"^\|\s*:?-{3,}", line)
             is_header = n < len(lines) and re.match(r"^\|\s*:?-{3,}", lines[n]) is not None
-            if not fenced and is_row and not is_header and MARKER.search(line):
+            if is_row and is_header:
+                first = line.split("|")[1].strip().lower()
+                legend = first in {"code", "codes", "legend"} or bool(
+                    re.search(r"\b(codes|legend)\b", section, re.I)
+                )
+            legend = legend and line.startswith("|")
+            if not fenced and is_row and not is_header and not legend and MARKER.search(line):
                 found.add((path.relative_to(ROOT).as_posix(), n))
     return found
 
 
-def test_every_open_item_is_filed_or_listed_unassigned() -> None:
+def _filing() -> Any:
     items = TRAILMOD.open_items(TRAILMOD.trail_documents())
+    return items, TRAILMOD.assign(items, TRAILMOD.NameIndex(CONTENT.packets()))
+
+
+def test_every_open_item_is_filed_cross_cutting_or_listed_unassigned() -> None:
+    items, filing = _filing()
     assert {(i.doc, i.line) for i in items} == _independent_scan()
-    filed, unassigned = TRAILMOD.assign(items, TRAILMOD.NameIndex(CONTENT.packets()))
-    listed = _committed("_unassigned.md")
+    listed, cross = _committed("_unassigned.md"), _committed("_cross-cutting.md")
+    packet_texts = {key: _committed(f"{key}.md") for key in CANDIDATES}
     for item in items:
-        homes = [key for key, its in filed.items() if item in its]
-        assert bool(homes) != (item in unassigned), item.ref
-        for key in homes:
-            assert f"· {item.ref}\n" in _committed(f"{key}.md"), (key, item.ref)
-        assert (f"· {item.ref}\n" in listed) == (item in unassigned), item.ref
+        homes = [key for key, its in filing.filed.items() if item in its]
+        places = [bool(homes), item in filing.cross_cutting, item in filing.unassigned]
+        assert places.count(True) == 1, item.ref
+        for key, text in packet_texts.items():
+            assert (f"· {item.ref}\n" in text) == (key in homes), (key, item.ref)
+        assert (f"· {item.ref}\n" in cross) == (item in filing.cross_cutting), item.ref
+        assert (f"· {item.ref}\n" in listed) == (item in filing.unassigned), item.ref
 
 
 def test_the_unassigned_list_is_empty() -> None:
-    items = TRAILMOD.open_items(TRAILMOD.trail_documents())
-    _, unassigned = TRAILMOD.assign(items, TRAILMOD.NameIndex(CONTENT.packets()))
-    assert TRAILMOD.unassigned_problems(unassigned) == []
+    _, filing = _filing()
+    assert TRAILMOD.unassigned_problems(filing.unassigned) == []
     assert "### OI-" not in _committed("_unassigned.md")
+
+
+def test_legend_rows_define_codes_and_are_no_items(tmp_path: Path) -> None:
+    near_twin = TRAIL / "near-twin-sweep-582.md"
+    lines = near_twin.read_text(encoding="utf-8").splitlines()
+    legend = {n for n in range(242, 248) if MARKER.search(lines[n - 1])}
+    assert len(legend) == 6 and lines[239].startswith("| code |")
+    items, _ = _filing()
+    assert not {(i.doc, i.line) for i in items} & {
+        ("docs/evidence/verification/near-twin-sweep-582.md", n) for n in legend
+    }
+    assert TRAILMOD.is_legend(("code", "applies to"), "A. Findings")
+    assert TRAILMOD.is_legend(("where", "finding"), "C. Resolution codes")
+    # Near-miss control: the same row in a findings table is an open item.
+    for header, heading, expected in (("code", "A. Findings", 0), ("where", "A. Findings", 1)):
+        doc = tmp_path / f"{header}.md"
+        doc.write_text(
+            f"# Planted — awaiting-clinical-review\n\n## {heading}\n\n"
+            f"| {header} | rule |\n|---|---|\n| **C** | The clinician chooses. |\n",
+            encoding="utf-8",
+        )
+        assert len(TRAILMOD.open_items([doc])) == expected
 
 
 def _planted(tmp_path: Path, where: str) -> Path:
@@ -275,12 +315,57 @@ def test_a_planted_item_naming_no_branch_fails_the_empty_check(tmp_path: Path) -
     index = TRAILMOD.NameIndex(CONTENT.packets())
     unknown = TRAILMOD.open_items([_planted(tmp_path, "zz_bilinmeyen_brans Q1")])
     assert len(unknown) == 1
-    filed, unassigned = TRAILMOD.assign(unknown, index)
-    assert filed == {} and TRAILMOD.unassigned_problems(unassigned) != []
+    filing = TRAILMOD.assign(unknown, index)
+    assert filing.filed == {} and filing.cross_cutting == []
+    assert TRAILMOD.unassigned_problems(filing.unassigned) != []
     # Near-miss control: the same row naming a real branch is filed, and nothing is left.
-    known = TRAILMOD.open_items([_planted(tmp_path, "kardiyoloji Q2")])
-    filed, unassigned = TRAILMOD.assign(known, index)
-    assert list(filed) == ["kardiyoloji"] and TRAILMOD.unassigned_problems(unassigned) == []
+    filing = TRAILMOD.assign(TRAILMOD.open_items([_planted(tmp_path, "kardiyoloji Q2")]), index)
+    assert list(filing.filed) == ["kardiyoloji"]
+    assert TRAILMOD.unassigned_problems(filing.unassigned) == []
+
+
+def test_a_row_scoped_to_every_pack_is_cross_cutting_and_signed_once(tmp_path: Path) -> None:
+    packets = CONTENT.packets()
+    index = TRAILMOD.NameIndex(packets)
+    for where, label, count in (
+        ("all 91", "all specialties", 91),
+        ("every generated pack; the generator", "all generated packs", 96),
+    ):
+        filing = TRAILMOD.assign(TRAILMOD.open_items([_planted(tmp_path, where)]), index)
+        assert filing.filed == {} and filing.unassigned == []
+        (item,) = filing.cross_cutting
+        assert item.scope and item.scope[1] == label
+        assert len(TRAILMOD.covered(item, packets, index)) == count
+    # A scope phrase outside the locator cell does not make a row cross-cutting.
+    doc = _planted(tmp_path, "kardiyoloji Q2")
+    doc.write_text(doc.read_text().replace("The clinician", "In all 91 chains the clinician"))
+    filing = TRAILMOD.assign(TRAILMOD.open_items([doc]), index)
+    assert list(filing.filed) == ["kardiyoloji"] and filing.cross_cutting == []
+
+
+def test_each_packet_points_to_the_cross_cutting_items_that_cover_it() -> None:
+    _, filing = _filing()
+    packets = CONTENT.packets()
+    index = TRAILMOD.NameIndex(packets)
+    covers = [TRAILMOD.covered(i, packets, index) for i in filing.cross_cutting]
+    assert len(filing.cross_cutting) == 8
+    for p in packets:
+        n = sum(p.key in keys for keys in covers)
+        noun = "item" if n == 1 else "items"
+        pointer = (
+            "Cross-cutting items that also apply here: see "
+            f"[`_cross-cutting.md`](_cross-cutting.md) ({n} {noun})."
+        )
+        assert _committed(f"{p.key}.md").count(pointer) == 1, p.key
+    cross = _committed("_cross-cutting.md")
+    tags = re.findall(r"^### (XC-\d+ · .+)$", cross, re.M)
+    signature = _section(cross, 2)
+    for field in ("signer", "role", "date"):
+        assert f"| {field} |" in signature
+    decisions = [r[0] for r in _rows("| item |" + signature.split("\n\n| item |", 1)[1])]
+    assert decisions == tags and len(tags) == 8
+    for item in filing.cross_cutting:
+        assert f"- scope: {item.scope[1]} (stated: “{item.scope[0]}”)" in cross
 
 
 def test_short_names_resolve_only_where_unambiguous() -> None:
@@ -313,7 +398,7 @@ def test_the_signature_block_has_one_decision_row_per_open_item(key: str) -> Non
 
 def test_the_zero_marker_gate_passes_on_every_packet(tmp_path: Path) -> None:
     files = [str(p) for p in sorted(OUT.glob("*.md"))]
-    assert len(files) == len(CANDIDATES) + 2
+    assert len(files) == len(CANDIDATES) + 3
     run = subprocess.run(
         ["bash", "scripts/ci/no_placeholders.sh", *files], cwd=ROOT, capture_output=True, text=True
     )
@@ -334,7 +419,7 @@ def test_the_zero_marker_gate_passes_on_every_packet(tmp_path: Path) -> None:
 
 def test_no_performance_claim_in_the_packets(tmp_path: Path) -> None:
     files = [str(p) for p in sorted(OUT.glob("*.md"))]
-    assert len(files) == len(CANDIDATES) + 2
+    assert len(files) == len(CANDIDATES) + 3
     run = subprocess.run(
         ["bash", "scripts/ci/claims_scan.sh", "--copy", *files],
         cwd=ROOT,
@@ -358,19 +443,23 @@ def test_no_performance_claim_in_the_packets(tmp_path: Path) -> None:
 
 def test_the_readme_counts_packets_and_items_per_decider() -> None:
     readme = _committed("README.md")
-    items = TRAILMOD.open_items(TRAILMOD.trail_documents())
-    filed, unassigned = TRAILMOD.assign(items, TRAILMOD.NameIndex(CONTENT.packets()))
+    items, filing = _filing()
     assert f"{len(items)} open items" in readme
-    assert f"{len(unassigned)} name no packet" in readme
+    assert f"{len(filing.cross_cutting)} cross-cutting" in readme
+    assert f"{len(filing.unassigned)} name no packet" in readme
     rows = {
         r[0].strip("`"): r[1:]
         for r in _rows(_first_table(readme.split("## Open items by decider")[1]))
     }
-    for decider, (count, packets, left) in rows.items():
+    for decider, (count, packets, cross, left) in rows.items():
         assert int(count) == sum(decider in i.deciders for i in items)
         assert int(packets) == sum(
-            any(decider in i.deciders for i in its) for its in filed.values()
+            any(decider in i.deciders for i in its) for its in filing.filed.values()
         )
-        assert int(left) == sum(decider in i.deciders for i in unassigned)
+        assert int(cross) == sum(decider in i.deciders for i in filing.cross_cutting)
+        assert int(left) == sum(decider in i.deciders for i in filing.unassigned)
+    listed = _rows(_first_table(readme.split("## Packets")[1]))
+    assert listed[0][0] == "[`_cross-cutting`](_cross-cutting.md)"
+    assert len(listed) == len(CANDIDATES) + 1
     for step in ("How to sign", "How decisions flow back", "gen_specialty_packs.py"):
         assert step in readme

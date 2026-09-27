@@ -81,7 +81,9 @@ None: every proposal item is in the candidate.
 
 ## 4. Open items
 
-9 open items naming this packet.
+8 open items naming this packet.
+
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (4 items).
 
 ### OI-1 · `docs/evidence/verification/cluster-wave-a.md` L96
 
@@ -103,17 +105,7 @@ None: every proposal item is in the candidate.
   - **finding**: Consistent with base: no neutral probe is drafted for rigidity, ischaemia, compartment syndrome, torsion, stridor or post-tonsillectomy bleeding. While the cluster is the served pack, those patterns therefore have no input. Sibling items exist for the clinician: ortopedi `orantisiz_agri`, `uyusma_solukluk_soguk`; uroloji `ani_siddetli_testis_agrisi`; KBB Q10 (stridor, `soru_N`).
   - **severity**: NOTE (clinician)
 
-### OI-3 · `docs/evidence/verification/cluster-wave-a.md` L124
-
-- section: A. Findings
-- deciders: HB-C5, clinician
-- also filed under: `cluster_medical`, `cluster_sensory`, `cluster_womens_health`
-- row, as recorded:
-  - **where**: all four
-  - **finding**: Turn cost. Unconditional cluster turns, including reason and duration: medical 13, surgical 11, sensory 15, women's health 9 (10 with Q14a). These come on top of base's 27 must-ask steps, against the fast-mode ceiling of 18 turns (04 §1), and before any branch items. HB-C5.
-  - **severity**: NOTE (clinician)
-
-### OI-4 · `docs/evidence/verification/cluster-wave-a.md` L244
+### OI-3 · `docs/evidence/verification/cluster-wave-a.md` L244
 
 - section: F. Sibling rebinds (same fact, different id; the branch extends the cluster)
 - deciders: clinician
@@ -124,7 +116,7 @@ None: every proposal item is in the candidate.
   - **sibling id**: `yaralanma_sonrasi_basladi`
   - **action**: el_cerrahisi rebinds, or the clinician keeps the hand-specific fact
 
-### OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L137
+### OI-4 · `docs/evidence/verification/near-twin-sweep-582.md` L137
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -139,7 +131,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: new lump anywhere on the body contains a lump in the complaint area. **C**; HB-C1
   - **first recorded**: new
 
-### OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L154
+### OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L154
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -154,7 +146,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: cluster chronic-condition umbrella names diabetes; branch asks diabetes. **C**; HB-C1
   - **first recorded**: new
 
-### OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L182
+### OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L182
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -169,7 +161,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: onset after an event: branch lists injury, burn or surgery; cluster lists fall, blow or injury (the el_cerrahisi rebind precedent). **C**; HB-C1
   - **first recorded**: new
 
-### OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L258
+### OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L258
 
 - section: D. The closest DISTINCT calls (a clinician may overrule)
 - deciders: clinician, owner
@@ -180,7 +172,7 @@ None: every proposal item is in the candidate.
   - **examples**: cluster surgical `onceki_ameliyat` against `onceki_el_ameliyati`, `karin_ameliyati`, `onceki_karin_ameliyati`, `beyin_omurga_ameliyati`, göğüs cerrahisi Q8, kalp ve damar Q11, plastik Q3
   - **why DISTINCT**: The site history is what the specialist needs. The owner or clinician may gate each on `onceki_ameliyat == true`, which is a gate change and not a merge.
 
-### OI-9 · `docs/evidence/INT-353.md` L287
+### OI-8 · `docs/evidence/INT-353.md` L287
 
 - section: Finding → proposal → id
 - deciders: HB-C1, clinician
@@ -207,10 +199,9 @@ Fill this block on a copy under `docs/signoff/signed/` (README.md, How to sign).
 |---|---|
 | OI-1 · `docs/evidence/verification/cluster-wave-a.md` L96 |   |
 | OI-2 · `docs/evidence/verification/cluster-wave-a.md` L116 |   |
-| OI-3 · `docs/evidence/verification/cluster-wave-a.md` L124 |   |
-| OI-4 · `docs/evidence/verification/cluster-wave-a.md` L244 |   |
-| OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L137 |   |
-| OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L154 |   |
-| OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L182 |   |
-| OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L258 |   |
-| OI-9 · `docs/evidence/INT-353.md` L287 |   |
+| OI-3 · `docs/evidence/verification/cluster-wave-a.md` L244 |   |
+| OI-4 · `docs/evidence/verification/near-twin-sweep-582.md` L137 |   |
+| OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L154 |   |
+| OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L182 |   |
+| OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L258 |   |
+| OI-8 · `docs/evidence/INT-353.md` L287 |   |

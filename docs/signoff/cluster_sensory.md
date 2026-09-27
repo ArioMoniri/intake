@@ -86,7 +86,9 @@ None: every proposal item is in the candidate.
 
 ## 4. Open items
 
-15 open items naming this packet.
+14 open items naming this packet.
+
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (4 items).
 
 ### OI-1 · `docs/evidence/verification/cluster-wave-a.md` L116
 
@@ -108,17 +110,7 @@ None: every proposal item is in the candidate.
   - **finding**: Every member branch inherits all 18 items. An odyoloji patient hears six ungated eye items and a göz patient seven ungated ENT items. Domain gates would cut this, but would also close cross-domain inputs such as sudden vision loss in an ENT booking. Clinician decision (HB-C5); no text proposed.
   - **severity**: NOTE
 
-### OI-3 · `docs/evidence/verification/cluster-wave-a.md` L124
-
-- section: A. Findings
-- deciders: HB-C5, clinician
-- also filed under: `cluster_medical`, `cluster_surgical`, `cluster_womens_health`
-- row, as recorded:
-  - **where**: all four
-  - **finding**: Turn cost. Unconditional cluster turns, including reason and duration: medical 13, surgical 11, sensory 15, women's health 9 (10 with Q14a). These come on top of base's 27 must-ask steps, against the fast-mode ceiling of 18 turns (04 §1), and before any branch items. HB-C5.
-  - **severity**: NOTE (clinician)
-
-### OI-4 · `docs/evidence/verification/cluster-wave-a.md` L247
+### OI-3 · `docs/evidence/verification/cluster-wave-a.md` L247
 
 - section: F. Sibling rebinds (same fact, different id; the branch extends the cluster)
 - deciders: clinician
@@ -129,7 +121,7 @@ None: every proposal item is in the candidate.
   - **sibling id**: `bas_donmesi_dengesizlik` (broader: dizziness or imbalance)
   - **action**: NOTE: near-duplicate; the clinician keeps or merges
 
-### OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L163
+### OI-4 · `docs/evidence/verification/near-twin-sweep-582.md` L163
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -144,7 +136,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: vision reduction or blur 'son zamanlarda' against new reduction or change. **C**; HB-C1
   - **first recorded**: cluster-wave-a §F (göz Q2)
 
-### OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L164
+### OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L164
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -159,7 +151,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: sudden visual loss; branch includes transient loss. **C**; HB-C1
   - **first recorded**: cluster-wave-a §F (göz Q3)
 
-### OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L165
+### OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L165
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -174,7 +166,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: branch adds the skin around the eye and drops 'yeni'. **C**; HB-C1
   - **first recorded**: cluster-wave-a §F (göz Q8)
 
-### OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L166
+### OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L166
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -189,7 +181,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: floaters half of the cluster's flashes-or-floaters item. **C**; HB-C1
   - **first recorded**: cluster-wave-a §F (göz Q4)
 
-### OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L167
+### OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L167
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -204,7 +196,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: flashes half of the cluster's flashes-or-floaters item. **C**; HB-C1
   - **first recorded**: cluster-wave-a §F (göz Q5)
 
-### OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L175
+### OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L175
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -219,7 +211,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: KBB Q3 asks new ear blockage or fullness, the fullness half of the cluster's hearing-reduction-or-blockage item. **C**; HB-C1
   - **first recorded**: new
 
-### OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L176
+### OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L176
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1, clinician
@@ -234,7 +226,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: no recency frame against 'son zamanlarda'. **C**; HB-C1
   - **first recorded**: 582 review §D-3 (CLINICIAN_HELD)
 
-### OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L177
+### OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L177
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -249,7 +241,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: KBB Q9 contains 'yutkunurken ağrı', the cluster's odynophagia item. **C**; HB-C1
   - **first recorded**: new
 
-### OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L178
+### OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L178
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1, clinician
@@ -264,7 +256,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: persistent lump ('kitle') against a new swelling or hardness. **C**; HB-C1
   - **first recorded**: 582 review §D-3 (CLINICIAN_HELD)
 
-### OI-14 · `docs/evidence/verification/near-twin-sweep-582.md` L181
+### OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L181
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -279,7 +271,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: dizziness or imbalance is broader than vertigo. **C**; HB-C1
   - **first recorded**: cluster-wave-a §F NOTE
 
-### OI-15 · `docs/evidence/INT-353.md` L292
+### OI-14 · `docs/evidence/INT-353.md` L292
 
 - section: Finding → proposal → id
 - deciders: HB-C1, clinician
@@ -306,16 +298,15 @@ Fill this block on a copy under `docs/signoff/signed/` (README.md, How to sign).
 |---|---|
 | OI-1 · `docs/evidence/verification/cluster-wave-a.md` L116 |   |
 | OI-2 · `docs/evidence/verification/cluster-wave-a.md` L123 |   |
-| OI-3 · `docs/evidence/verification/cluster-wave-a.md` L124 |   |
-| OI-4 · `docs/evidence/verification/cluster-wave-a.md` L247 |   |
-| OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L163 |   |
-| OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L164 |   |
-| OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L165 |   |
-| OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L166 |   |
-| OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L167 |   |
-| OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L175 |   |
-| OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L176 |   |
-| OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L177 |   |
-| OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L178 |   |
-| OI-14 · `docs/evidence/verification/near-twin-sweep-582.md` L181 |   |
-| OI-15 · `docs/evidence/INT-353.md` L292 |   |
+| OI-3 · `docs/evidence/verification/cluster-wave-a.md` L247 |   |
+| OI-4 · `docs/evidence/verification/near-twin-sweep-582.md` L163 |   |
+| OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L164 |   |
+| OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L165 |   |
+| OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L166 |   |
+| OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L167 |   |
+| OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L175 |   |
+| OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L176 |   |
+| OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L177 |   |
+| OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L178 |   |
+| OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L181 |   |
+| OI-14 · `docs/evidence/INT-353.md` L292 |   |

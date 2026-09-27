@@ -72,6 +72,8 @@ The chain is merged by the resolver (`_merge_chain`, then `_apply_ops`) and read
 
 0 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ## 5. Signature
 
 Fill this block on a copy under `docs/signoff/signed/` (README.md, How to sign).

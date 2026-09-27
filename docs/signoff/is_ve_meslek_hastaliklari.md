@@ -79,6 +79,8 @@ None: every proposal item is in the candidate.
 
 3 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ### OI-1 · `docs/evidence/verification/cluster-wave-b.md` L115
 
 - section: A.4 cluster_allied_and_reports

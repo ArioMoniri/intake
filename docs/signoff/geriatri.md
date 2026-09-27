@@ -80,6 +80,8 @@ None: every proposal item is in the candidate.
 
 3 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ### OI-1 · `docs/evidence/verification/specialty-wave8-geriatric-dental.md` L94
 
 - section: A. Findings

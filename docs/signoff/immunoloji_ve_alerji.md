@@ -80,6 +80,8 @@ None: every proposal item is in the candidate.
 
 0 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ## 5. Signature
 
 Fill this block on a copy under `docs/signoff/signed/` (README.md, How to sign).

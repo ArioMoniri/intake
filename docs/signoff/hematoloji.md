@@ -73,6 +73,8 @@ None: every proposal item is in the candidate.
 
 6 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ### OI-1 · `docs/evidence/verification/specialty-wave6-internal-mental.md` L57
 
 - section: A. Findings

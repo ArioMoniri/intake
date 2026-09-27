@@ -71,6 +71,8 @@ The chain is merged by the resolver (`_merge_chain`, then `_apply_ops`) and read
 
 1 open item naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ### OI-1 · `docs/evidence/verification/specialty-wave9-occupational-public.md` L71
 
 - section: A. Findings

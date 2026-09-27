@@ -76,6 +76,8 @@ The chain is merged by the resolver (`_merge_chain`, then `_apply_ops`) and read
 
 7 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (5 items).
+
 ### OI-1 · `docs/evidence/verification/cluster-wave-a.md` L123
 
 - section: A. Findings

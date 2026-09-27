@@ -84,7 +84,9 @@ None: every proposal item is in the candidate.
 
 ## 4. Open items
 
-28 open items naming this packet.
+27 open items naming this packet.
+
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (4 items).
 
 ### OI-1 · `docs/evidence/verification/cluster-wave-a.md` L113
 
@@ -106,17 +108,7 @@ None: every proposal item is in the candidate.
   - **finding**: Base declares unaskable probe slots `rf_fever_high_persistent`, `rf_weight_loss_unintentional` and `rf_pregnancy_bleeding_pain`. When HB-C1 authors their wording, the base owner must read `son_gunlerde_ates`, `istemsiz_kilo_kaybi` and `gebelikte_kanama`, or give the probes those ids. Otherwise the patient hears both questions.
   - **severity**: NOTE (base owner)
 
-### OI-3 · `docs/evidence/verification/cluster-wave-a.md` L124
-
-- section: A. Findings
-- deciders: HB-C5, clinician
-- also filed under: `cluster_sensory`, `cluster_surgical`, `cluster_womens_health`
-- row, as recorded:
-  - **where**: all four
-  - **finding**: Turn cost. Unconditional cluster turns, including reason and duration: medical 13, surgical 11, sensory 15, women's health 9 (10 with Q14a). These come on top of base's 27 must-ask steps, against the fast-mode ceiling of 18 turns (04 §1), and before any branch items. HB-C5.
-  - **severity**: NOTE (clinician)
-
-### OI-4 · `docs/evidence/verification/cluster-wave-a.md` L243
+### OI-3 · `docs/evidence/verification/cluster-wave-a.md` L243
 
 - section: F. Sibling rebinds (same fact, different id; the branch extends the cluster)
 - deciders: clinician
@@ -127,7 +119,7 @@ None: every proposal item is in the candidate.
   - **sibling id**: `soru_N` (no `gen:` lines, wave 9)
   - **action**: ic_hastaliklari adds `gen:` lines with the cluster ids. NOTE: Q4 (unexplained fever) is a near duplicate of `son_gunlerde_ates`, not the same fact; the clinician keeps or merges (PR #582 review §D-1)
 
-### OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L99
+### OI-4 · `docs/evidence/verification/near-twin-sweep-582.md` L99
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1, clinician
@@ -142,7 +134,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: unexplained fever over 'son zamanlarda' against any fever over 'son günlerde'. **C**; HB-C1
   - **first recorded**: 582 review §D-1 (CLINICIAN_HELD)
 
-### OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L130
+### OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L130
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -157,7 +149,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: chronic-disease umbrella contains the three other cluster diagnoses (recall pass). **C**; HB-C1
   - **first recorded**: new
 
-### OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L131
+### OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L131
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -172,7 +164,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: chronic-disease umbrella naming diabetes. **C**; HB-C1
   - **first recorded**: new
 
-### OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L132
+### OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L132
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -187,7 +179,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: chronic-disease umbrella naming hypertension. **C**; HB-C1
   - **first recorded**: new
 
-### OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L133
+### OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L133
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -202,7 +194,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: functional impact of the presenting problem (pain is the pain clinic's defining complaint); boolean against degree. **C**; HB-C1
   - **first recorded**: new
 
-### OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L153
+### OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L153
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -217,7 +209,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: any non-healing skin wound contains the (diabetes-gated) non-healing foot wound. **C**; HB-C1
   - **first recorded**: new
 
-### OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L155
+### OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L155
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -232,7 +224,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: weight loss or gain contains weight loss; window 'son zamanlarda' against 'son aylarda'. **C**; HB-C1
   - **first recorded**: new
 
-### OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L156
+### OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L156
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -247,7 +239,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella contains kidney disease. **C**; HB-C1
   - **first recorded**: new
 
-### OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L157
+### OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L157
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -262,7 +254,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella contains thyroid disease. **C**; HB-C1
   - **first recorded**: new
 
-### OI-14 · `docs/evidence/verification/near-twin-sweep-582.md` L158
+### OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L158
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -277,7 +269,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella contains diabetes. **C**; HB-C1
   - **first recorded**: new
 
-### OI-15 · `docs/evidence/verification/near-twin-sweep-582.md` L159
+### OI-14 · `docs/evidence/verification/near-twin-sweep-582.md` L159
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -292,7 +284,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella contains hypertension. **C**; HB-C1
   - **first recorded**: new
 
-### OI-16 · `docs/evidence/verification/near-twin-sweep-582.md` L160
+### OI-15 · `docs/evidence/verification/near-twin-sweep-582.md` L160
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -307,7 +299,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella contains asthma or COPD. **C**; HB-C1
   - **first recorded**: new
 
-### OI-17 · `docs/evidence/verification/near-twin-sweep-582.md` L161
+### OI-16 · `docs/evidence/verification/near-twin-sweep-582.md` L161
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -322,7 +314,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: any fever; window 'son zamanlarda' against 'son günlerde'. Nearest to SAME: only the recall word differs. **C**; HB-C1
   - **first recorded**: 582 review §A NOTE
 
-### OI-18 · `docs/evidence/verification/near-twin-sweep-582.md` L162
+### OI-17 · `docs/evidence/verification/near-twin-sweep-582.md` L162
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -337,7 +329,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: functional impact of the presenting problem; boolean against degree (string). **C**; HB-C1
   - **first recorded**: new
 
-### OI-19 · `docs/evidence/verification/near-twin-sweep-582.md` L168
+### OI-18 · `docs/evidence/verification/near-twin-sweep-582.md` L168
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -352,7 +344,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella naming kidney disease. **C**; HB-C1
   - **first recorded**: new
 
-### OI-20 · `docs/evidence/verification/near-twin-sweep-582.md` L169
+### OI-19 · `docs/evidence/verification/near-twin-sweep-582.md` L169
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1, clinician
@@ -367,7 +359,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: no recency frame and a waking threshold against recent and drenching. **C**; HB-C1
   - **first recorded**: 582 review §D-3 (CLINICIAN_HELD)
 
-### OI-21 · `docs/evidence/verification/near-twin-sweep-582.md` L170
+### OI-20 · `docs/evidence/verification/near-twin-sweep-582.md` L170
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -382,7 +374,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella naming diabetes. **C**; HB-C1
   - **first recorded**: new
 
-### OI-22 · `docs/evidence/verification/near-twin-sweep-582.md` L171
+### OI-21 · `docs/evidence/verification/near-twin-sweep-582.md` L171
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -397,7 +389,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella naming hypertension. **C**; HB-C1
   - **first recorded**: new
 
-### OI-23 · `docs/evidence/verification/near-twin-sweep-582.md` L172
+### OI-22 · `docs/evidence/verification/near-twin-sweep-582.md` L172
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -412,7 +404,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: long-term-disease umbrella contains the two cluster diagnoses it does not name (recall pass). **C**; HB-C1
   - **first recorded**: new
 
-### OI-24 · `docs/evidence/verification/near-twin-sweep-582.md` L173
+### OI-23 · `docs/evidence/verification/near-twin-sweep-582.md` L173
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -427,7 +419,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: heart-diagnosis umbrella naming hypertension. **C**; HB-C1
   - **first recorded**: new
 
-### OI-25 · `docs/evidence/verification/near-twin-sweep-582.md` L183
+### OI-24 · `docs/evidence/verification/near-twin-sweep-582.md` L183
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -442,7 +434,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: any non-healing wound contains the (diabetes-gated) non-healing foot wound. **C**; HB-C1
   - **first recorded**: new
 
-### OI-26 · `docs/evidence/verification/near-twin-sweep-582.md` L184
+### OI-25 · `docs/evidence/verification/near-twin-sweep-582.md` L184
 
 - section: A. SAME and OVERLAP pairs
 - deciders: HB-C1
@@ -457,7 +449,7 @@ None: every proposal item is in the candidate.
   - **resolution (§C code; who decides)**: heart or lung disease contains asthma or COPD. **C**; HB-C1
   - **first recorded**: new
 
-### OI-27 · `docs/evidence/verification/sibling-rebinds-582.md` L61
+### OI-26 · `docs/evidence/verification/sibling-rebinds-582.md` L61
 
 - section: A. Findings
 - deciders: owner
@@ -467,7 +459,7 @@ None: every proposal item is in the candidate.
   - **finding**: Outside §F. `ates_var_mi` "Son zamanlarda ateşiniz oldu mu?" is a near twin of cluster medical `son_gunlerde_ates` (ratio 0.84), and fizik tedavi extends `cluster.medical`. The fever is asked twice in that chain. The exact-text test cannot see it, and the PR correctly did not invent the rebind. Route to the cluster-wave-a owner.
   - **severity**: NOTE
 
-### OI-28 · `docs/evidence/INT-353.md` L432
+### OI-27 · `docs/evidence/INT-353.md` L432
 
 - section: Review fixes (`docs/evidence/verification/sibling-rebinds-582.md` §D)
 - deciders: owner
@@ -493,29 +485,28 @@ Fill this block on a copy under `docs/signoff/signed/` (README.md, How to sign).
 |---|---|
 | OI-1 · `docs/evidence/verification/cluster-wave-a.md` L113 |   |
 | OI-2 · `docs/evidence/verification/cluster-wave-a.md` L115 |   |
-| OI-3 · `docs/evidence/verification/cluster-wave-a.md` L124 |   |
-| OI-4 · `docs/evidence/verification/cluster-wave-a.md` L243 |   |
-| OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L99 |   |
-| OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L130 |   |
-| OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L131 |   |
-| OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L132 |   |
-| OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L133 |   |
-| OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L153 |   |
-| OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L155 |   |
-| OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L156 |   |
-| OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L157 |   |
-| OI-14 · `docs/evidence/verification/near-twin-sweep-582.md` L158 |   |
-| OI-15 · `docs/evidence/verification/near-twin-sweep-582.md` L159 |   |
-| OI-16 · `docs/evidence/verification/near-twin-sweep-582.md` L160 |   |
-| OI-17 · `docs/evidence/verification/near-twin-sweep-582.md` L161 |   |
-| OI-18 · `docs/evidence/verification/near-twin-sweep-582.md` L162 |   |
-| OI-19 · `docs/evidence/verification/near-twin-sweep-582.md` L168 |   |
-| OI-20 · `docs/evidence/verification/near-twin-sweep-582.md` L169 |   |
-| OI-21 · `docs/evidence/verification/near-twin-sweep-582.md` L170 |   |
-| OI-22 · `docs/evidence/verification/near-twin-sweep-582.md` L171 |   |
-| OI-23 · `docs/evidence/verification/near-twin-sweep-582.md` L172 |   |
-| OI-24 · `docs/evidence/verification/near-twin-sweep-582.md` L173 |   |
-| OI-25 · `docs/evidence/verification/near-twin-sweep-582.md` L183 |   |
-| OI-26 · `docs/evidence/verification/near-twin-sweep-582.md` L184 |   |
-| OI-27 · `docs/evidence/verification/sibling-rebinds-582.md` L61 |   |
-| OI-28 · `docs/evidence/INT-353.md` L432 |   |
+| OI-3 · `docs/evidence/verification/cluster-wave-a.md` L243 |   |
+| OI-4 · `docs/evidence/verification/near-twin-sweep-582.md` L99 |   |
+| OI-5 · `docs/evidence/verification/near-twin-sweep-582.md` L130 |   |
+| OI-6 · `docs/evidence/verification/near-twin-sweep-582.md` L131 |   |
+| OI-7 · `docs/evidence/verification/near-twin-sweep-582.md` L132 |   |
+| OI-8 · `docs/evidence/verification/near-twin-sweep-582.md` L133 |   |
+| OI-9 · `docs/evidence/verification/near-twin-sweep-582.md` L153 |   |
+| OI-10 · `docs/evidence/verification/near-twin-sweep-582.md` L155 |   |
+| OI-11 · `docs/evidence/verification/near-twin-sweep-582.md` L156 |   |
+| OI-12 · `docs/evidence/verification/near-twin-sweep-582.md` L157 |   |
+| OI-13 · `docs/evidence/verification/near-twin-sweep-582.md` L158 |   |
+| OI-14 · `docs/evidence/verification/near-twin-sweep-582.md` L159 |   |
+| OI-15 · `docs/evidence/verification/near-twin-sweep-582.md` L160 |   |
+| OI-16 · `docs/evidence/verification/near-twin-sweep-582.md` L161 |   |
+| OI-17 · `docs/evidence/verification/near-twin-sweep-582.md` L162 |   |
+| OI-18 · `docs/evidence/verification/near-twin-sweep-582.md` L168 |   |
+| OI-19 · `docs/evidence/verification/near-twin-sweep-582.md` L169 |   |
+| OI-20 · `docs/evidence/verification/near-twin-sweep-582.md` L170 |   |
+| OI-21 · `docs/evidence/verification/near-twin-sweep-582.md` L171 |   |
+| OI-22 · `docs/evidence/verification/near-twin-sweep-582.md` L172 |   |
+| OI-23 · `docs/evidence/verification/near-twin-sweep-582.md` L173 |   |
+| OI-24 · `docs/evidence/verification/near-twin-sweep-582.md` L183 |   |
+| OI-25 · `docs/evidence/verification/near-twin-sweep-582.md` L184 |   |
+| OI-26 · `docs/evidence/verification/sibling-rebinds-582.md` L61 |   |
+| OI-27 · `docs/evidence/INT-353.md` L432 |   |

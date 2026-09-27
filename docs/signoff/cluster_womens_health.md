@@ -86,7 +86,9 @@ None: every proposal item is in the candidate.
 
 ## 4. Open items
 
-5 open items naming this packet.
+4 open items naming this packet.
+
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (4 items).
 
 ### OI-1 · `docs/evidence/verification/cluster-wave-a.md` L115
 
@@ -118,17 +120,7 @@ None: every proposal item is in the candidate.
   - **finding**: NG133 and WH-S1 both include the feet or legs and NG133 says "sudden". The ask drops both and adds eyelids. The rationale (common late-pregnancy ankle oedema) is clinical, so the clinician confirms it.
   - **severity**: NOTE
 
-### OI-4 · `docs/evidence/verification/cluster-wave-a.md` L124
-
-- section: A. Findings
-- deciders: HB-C5, clinician
-- also filed under: `cluster_medical`, `cluster_sensory`, `cluster_surgical`
-- row, as recorded:
-  - **where**: all four
-  - **finding**: Turn cost. Unconditional cluster turns, including reason and duration: medical 13, surgical 11, sensory 15, women's health 9 (10 with Q14a). These come on top of base's 27 must-ask steps, against the fast-mode ceiling of 18 turns (04 §1), and before any branch items. HB-C5.
-  - **severity**: NOTE (clinician)
-
-### OI-5 · `docs/evidence/verification/reorder-op-582.md` L42
+### OI-4 · `docs/evidence/verification/reorder-op-582.md` L42
 
 - section: A. Findings
 - deciders: HB-C1
@@ -155,5 +147,4 @@ Fill this block on a copy under `docs/signoff/signed/` (README.md, How to sign).
 | OI-1 · `docs/evidence/verification/cluster-wave-a.md` L115 |   |
 | OI-2 · `docs/evidence/verification/cluster-wave-a.md` L117 |   |
 | OI-3 · `docs/evidence/verification/cluster-wave-a.md` L118 |   |
-| OI-4 · `docs/evidence/verification/cluster-wave-a.md` L124 |   |
-| OI-5 · `docs/evidence/verification/reorder-op-582.md` L42 |   |
+| OI-4 · `docs/evidence/verification/reorder-op-582.md` L42 |   |

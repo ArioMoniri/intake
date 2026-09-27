@@ -71,6 +71,8 @@ A hand-authored candidate: the generator does not map its proposal.
 
 2 open items naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (4 items).
+
 ### OI-1 · `docs/evidence/verification/near-twin-sweep-582.md` L173
 
 - section: A. SAME and OVERLAP pairs

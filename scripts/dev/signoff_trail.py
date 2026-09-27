@@ -5,9 +5,16 @@ names a human decider (an HB-C id, a psychiatrist, a paediatrician, the owner, t
 clinician, or ``awaiting-human``). The trail is every docs/evidence/verification file
 whose title says awaiting-clinical-review, plus docs/evidence/INT-353.md.
 
-A row is filed under every packet that it, or its section heading, names. Only a row
-that names no packet by name falls back to the slot ids it quotes. A row that names
-nothing is unassigned and is never forced into a packet.
+Rules, in order:
+
+1. A row of a legend table (its first header cell is ``code``, or its section heading
+   names codes or a legend) defines terms, not a decision, and is no open item.
+2. A row whose locator cell states a scope over every pack (``all four`` clusters,
+   ``all 91`` specialties, ``every generated pack``) is cross-cutting: it is listed
+   once in docs/signoff/_cross-cutting.md and signed there, never copied into packets.
+3. Any other row is filed under every packet that it, or its section heading, names.
+   Only a row that names no packet by name falls back to the slot ids it quotes.
+4. A row that names nothing is unassigned and is never forced into a packet.
 """
 
 from __future__ import annotations
@@ -37,6 +44,16 @@ BACKTICKED = re.compile(r"`([a-z][a-z0-9_]*)`")
 TOKEN = re.compile(r"[a-z0-9_]+")
 QREF = re.compile(r"q\d+$")
 POSITIONAL_SLOT = re.compile(r"soru_\d+$")
+LEGEND_HEADERS = frozenset({"code", "codes", "legend"})
+LEGEND_HEADING = re.compile(r"\b(codes|legend)\b", re.IGNORECASE)
+LOCATOR_HEADERS = frozenset({"where", "chain", "proposal", "branch", "scope"})
+# A scope phrase in a row's locator cell → (scope label, the packet kinds it covers).
+# "all four" is scoped by its document: the clusters that document's title names.
+SCOPES = (
+    ("every generated pack", "all generated packs", "generated"),
+    ("all 91", "all specialties", "branch"),
+    ("all four", "the clusters this document reviews", "cluster"),
+)
 _TR_UPPER = str.maketrans({"İ": "i", "I": "ı"})
 _ASCII = str.maketrans("ıçğöşüâîû", "icgosuaiu")
 
@@ -59,6 +76,24 @@ class Item:
     header: tuple[str, ...]
     cells: tuple[str, ...]
     doc_headings: str = ""
+
+    @property
+    def locator(self) -> str:
+        """The first cell and every cell under a where/chain-style header."""
+        cells = [
+            c for h, c in zip(self.header, self.cells, strict=False) if h.lower() in LOCATOR_HEADERS
+        ]
+        return " | ".join([*self.cells[:1], *cells])
+
+    @property
+    def scope(self) -> tuple[str, str, str] | None:
+        """(phrase, label, packet kind) when the locator states a scope over every pack."""
+        low = self.locator.lower()
+        return next((s for s in SCOPES if s[0] in low), None)
+
+    @property
+    def title(self) -> str:
+        return self.doc_headings.split("\n", 1)[0].lstrip("#").strip()
 
     @property
     def text(self) -> str:
@@ -95,8 +130,14 @@ def _cells(line: str) -> tuple[str, ...]:
     return tuple(parts[1:-1] if line.strip().endswith("|") else parts[1:])
 
 
+def is_legend(header: Sequence[str], heading: str) -> bool:
+    """A table that defines codes or terms: ``code`` first header cell, or a legend section."""
+    first = header[0].strip("`* ").lower() if header else ""
+    return first in LEGEND_HEADERS or LEGEND_HEADING.search(heading) is not None
+
+
 def open_items(docs: Iterable[Path]) -> list[Item]:
-    """Every table row (outside code fences) that names a human decider."""
+    """Every table row (outside code fences and legend tables) that names a human decider."""
     items: list[Item] = []
     for path in docs:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -119,7 +160,7 @@ def open_items(docs: Iterable[Path]) -> list[Item]:
             if not header and n < len(lines) and SEPARATOR.match(lines[n]):
                 header = _cells(line)
                 continue
-            if MARKER.search(line):
+            if MARKER.search(line) and not is_legend(header, heading):
                 items.append(Item(name, n, heading, header, _cells(line), headings))
     return items
 
@@ -209,12 +250,23 @@ class NameIndex:
         return {k for s in BACKTICKED.findall(text) for k in self.slots.get(s, set())}
 
 
-def assign(items: Sequence[Item], index: NameIndex) -> tuple[dict[str, list[Item]], list[Item]]:
-    """Packets each item names (its row and its heading, else its slot ids), and the rest."""
+@dataclass(frozen=True)
+class Filing:
+    filed: dict[str, list[Item]]
+    cross_cutting: list[Item]
+    unassigned: list[Item]
+
+
+def assign(items: Sequence[Item], index: NameIndex) -> Filing:
+    """Cross-cutting items by their scope; the rest by the packets they name, or none."""
     filed: dict[str, list[Item]] = {}
+    cross: list[Item] = []
     unassigned: list[Item] = []
     scopes: dict[str, frozenset[str]] = {}
     for item in items:
+        if item.scope:
+            cross.append(item)
+            continue
         if item.doc not in scopes:
             scopes[item.doc] = frozenset(index.named(item.doc_headings))
         scope = scopes[item.doc]
@@ -224,7 +276,20 @@ def assign(items: Sequence[Item], index: NameIndex) -> tuple[dict[str, list[Item
             filed.setdefault(key, []).append(item)
         if not keys:
             unassigned.append(item)
-    return filed, unassigned
+    return Filing(filed, cross, unassigned)
+
+
+def covered(item: Item, packets: Sequence[Packet], index: NameIndex) -> list[str]:
+    """The packets a cross-cutting item's stated scope covers."""
+    if not item.scope:
+        return []
+    kind = item.scope[2]
+    if kind == "generated":
+        return [p.key for p in packets if p.generated]
+    if kind == "branch":
+        return [p.key for p in packets if p.kind == "branch"]
+    named = index.named(item.title)
+    return [p.key for p in packets if p.kind == "cluster" and (p.key in named or not named)]
 
 
 def unassigned_problems(unassigned: Sequence[Item]) -> list[str]:

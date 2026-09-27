@@ -74,6 +74,8 @@ A hand-authored candidate: the generator does not map its proposal.
 
 1 open item naming this packet.
 
+Cross-cutting items that also apply here: see [`_cross-cutting.md`](_cross-cutting.md) (4 items).
+
 ### OI-1 · `docs/evidence/verification/specialty-wave1-3.md` L80
 
 - section: A. Findings
