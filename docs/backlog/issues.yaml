@@ -5407,11 +5407,19 @@
   title: "Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host)"
   depends_on: [INT-345, INT-347, INT-325]
   labels: [area:infra, risk:security, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-352.md
+  # Part 1 of the evidence is the live deploy on i-0e489e48739f5de98 (smoke
+  # and k6, 2026-09-26); Part 3 is the sbom_digest stamp (audit F18): the
+  # host scripts have syft, pinned by digest, write the api image's SBOM and
+  # pass its sha256 to /version, and smoke.sh fails a "dev" stamp. The live
+  # stamp is shown by the next run of deploy.sh and smoke.sh. The Frankfurt
+  # move waits on AWS's eu-central-1 quota, so it is split out as INT-376
+  # (GitHub #613).
   acceptance:
     - "main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"
     - "a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"
-    - "the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file, and the host moves to Frankfurt when the eu-central-1 request is approved"
+    - "the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"
     - "real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
@@ -5663,3 +5671,20 @@
     - "INT-341's calendar press tokens apply"
   tests: [apps/mobile/src/lib/calendar.test.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/e2e/motion.spec.ts, tests/release/test_i18n_complete.py]
   sec_row: "mobile"
+- id: INT-376
+  epic: E13-infra
+  phase: P0
+  title: "Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved"
+  depends_on: [INT-352]
+  labels: [area:infra, risk:legal]
+  status: todo
+  # GitHub #613. Split out of INT-352, which closes on the us-east-1 host.
+  # This one waits on AWS: service-quota request c6c0d271… (eu-central-1 G/VT
+  # on-demand vCPU to 8) is CASE_OPENED.
+  acceptance:
+    - "once the eu-central-1 request is approved, a g6.2xlarge (or the owner-approved size) runs the same infra/staging stack in eu-central-1, with public HTTPS, a stamped /version, a passing smoke test and a restart-decrypt proof recorded in docs/evidence/INT-376.md"
+    - "EXPO_PUBLIC_API_BASE_URL in the EAS production environment points at the new host, and the us-east-1 host is stopped only after the new one passes"
+    - "real patient PHI is still not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11); Frankfurt is not Turkey"
+  tests: [tests/infra/test_staging_compose.py]
+  legal: "KVKK-9"
+  sec_row: "platform"
