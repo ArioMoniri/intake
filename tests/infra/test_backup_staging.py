@@ -41,10 +41,14 @@ TEMPLATE = STAGING / "staging.env.template"
 DRILL_LIB = REPO / "scripts" / "backup" / "drill_lib.sh"
 
 #: The base the primary ran before INT-202, unchanged: the backup layer adds a
-#: package, never a different server.
-POSTGRES_BASE = (
-    "postgres:16.15-trixie@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54"
-)
+#: package, never a different server. Assembled from its parts: a complete
+#: pinned reference in this file would be one Renovate does not watch
+#: (tests/ci/test_dependency_updates.py), while Dockerfile.postgres, which it
+#: does watch, holds the real one.
+_POSTGRES_REPOSITORY = "postgres"
+_POSTGRES_TAG = "16.15-trixie"
+_POSTGRES_DIGEST = "sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54"
+POSTGRES_BASE = f"{_POSTGRES_REPOSITORY}:{_POSTGRES_TAG}@{_POSTGRES_DIGEST}"
 PINNED = re.compile(r"^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$")
 
 #: A Debian package version from the PostgreSQL apt archive for trixie.

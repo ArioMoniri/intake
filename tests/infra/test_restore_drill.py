@@ -226,6 +226,22 @@ class TestConfigRefusals:
         with pytest.raises(BackupConfigError, match="verify-tls"):
             load_pgbackrest_config(_conf(tmp_path, body))
 
+    @pytest.mark.parametrize("option", ["repo1-bundle", "repo1-block", "repo2-bundle"])
+    def test_a_packed_repository_layout_is_refused(self, tmp_path: Path, option: str) -> None:
+        """Measured, not assumed: with bundling and block incremental on, the
+        first CI drill found the bundle files did not begin with the cipher
+        header every other repository file carries, so the drill could not
+        prove the repository is ciphertext file by file."""
+        body = GOOD_CONF.replace("archive-async=y", f"archive-async=y\n{option}=y")
+        with pytest.raises(BackupConfigError, match="cipher header"):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    def test_a_packed_layout_switched_off_explicitly_is_accepted(self, tmp_path: Path) -> None:
+        body = GOOD_CONF.replace(
+            "archive-async=y", "archive-async=y\nrepo1-bundle=n\nrepo1-block=n"
+        )
+        assert load_pgbackrest_config(_conf(tmp_path, body)).pitr_capable
+
     def test_no_global_section_is_refused(self, tmp_path: Path) -> None:
         with pytest.raises(BackupConfigError, match="global"):
             load_pgbackrest_config(_conf(tmp_path, "[intake]\npg1-path=/x\n"))

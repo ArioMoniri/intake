@@ -97,7 +97,7 @@ drill_repository_headers() {
   docker run --rm --network none -u postgres \
     -v "${DRILL_REPO_VOLUME}:/var/lib/pgbackrest:ro" \
     --entrypoint sh "$DRILL_IMAGE" -c \
-    'cd /var/lib/pgbackrest && find . -type f | head -n 500 | while IFS= read -r f; do printf "%s %s\n" "$(head -c 8 "$f" | tr -c "[:alnum:]_" "?")" "${f#./}"; done'
+    'cd /var/lib/pgbackrest && find . -type f | while IFS= read -r f; do printf "%s %s\n" "$(head -c 8 "$f" | tr -c "[:alnum:]_" "?")" "${f#./}"; done'
 }
 
 drill_restore_to() {

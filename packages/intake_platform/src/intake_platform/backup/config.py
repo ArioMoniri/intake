@@ -52,6 +52,11 @@ _SECRET_OPTION = re.compile(
 )
 _VERIFY_TLS = re.compile(r"^repo\d+-storage-verify-tls$")
 
+#: Bundling and block incremental pack many files into one; measured in CI
+#: (run 36308883024), the packed files do not begin with the salted-cipher
+#: header, which is what the drill checks every repository file for.
+_PACKED_LAYOUT = re.compile(r"^repo\d+-(?:bundle|block)$")
+
 
 class BackupConfigError(ValueError):
     """A backup artefact is unusable as written."""
@@ -164,6 +169,12 @@ def load_pgbackrest_config(path: Path) -> PgBackRestConfig:
                 raise BackupConfigError(
                     f"{path.name}: {option}=n — a repository reached without TLS "
                     "verification can be impersonated"
+                )
+            if _PACKED_LAYOUT.match(option) and value.strip().lower() in {"y", "yes", "true", "1"}:
+                raise BackupConfigError(
+                    f"{path.name}: {option}=y — packed repository files do not each carry the "
+                    "cipher header, so the drill cannot prove file by file that the repository "
+                    "is ciphertext"
                 )
 
     repo_type = _opt(glob, "repo1-type") or "posix"
