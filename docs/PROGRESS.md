@@ -44,6 +44,39 @@
 - Next: PR `INT-340: Haptics: one policy, sticky suppression, server-confirmed success` (Closes #539, Sec-Row mobile).
 - LOOP_STATUS: CONTINUE
 
+### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
+- Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
+  - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
+  - The close-out audits every clause against the services, apps, jobs and tiers that exist now, and builds what is missing.
+- Plan:
+  - Generate the rules from every SLO file, not from `api.yaml` alone.
+  - Generate one golden-signal dashboard per SLO file (`intake_platform.slo_dashboards`) and mount the directory into Grafana.
+  - Hold every alert in every rule file Prometheus loads to a runbook heading that resolves, and every series a rule reads to a `live` catalogue entry (`intake_platform.alert_rules`).
+  - Discover every service, app and job, and record each one's SLO file and probe rows or the reason it has none (`observability/slo_coverage.yaml`, `intake_platform.slo_coverage`).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/observability/test_alert_rules.py` (new). Near misses: an anchor one character off, a missing runbook file, a heading inside fenced code, a traversal link, an external URL, a series one letter off, a bare-name series, an undefined recording rule, a `planned` series, and an unloaded rule file.
+  - `tests/observability/test_slo_coverage.py` (new). Near misses: each entry dropped, a probe row one character off, an alert name one character off, a service exempted from its SLO, missing rule groups, a missing dashboard, a new service, app or job without an entry, and an emitter mounted under the wrong name.
+  - `tests/observability/test_slo_generator.py`, generalised to every SLO file. Near misses: the api-only rules file, and a changed objective without a re-emitted dashboard.
+  - `tests/observability/test_obs_compose.py`: the directory mount.
+  - RED 1: 3 collection errors, modules absent. RED 2: 24 failed, 67 passed.
+- Result:
+  - The four files are green, and the audit reports nothing.
+  - 1570 passed across observability, infra, ci, platform and the security-rule consumers.
+  - `make slo-report` exits 0 offline.
+  - `make check-py` (with the deid artefact dir): ruff and format are clean, and `mypy --strict` is clean over 489 files.
+  - Whole tree: 8779 passed at 95.85 %.
+  - Every scoped lane is at its floor. The host stopped the make process after the whole-tree lane, so the scoped lanes were re-run individually with the Makefile commands.
+  - `no_placeholders` (staged): OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 6, 8, 13, 15, 17, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: six SLO files had no alerts; `services/probes` never emitted the series its SLO reads; the 8 cost alerts had no runbook; nothing read `sec_audit_chain_ok` although files/08 §5 pages on it (`AuditChainVerificationFailed`, `docs/runbooks/audit-chain.md`).
+  - Found, not fixed: admin-web has no registry row (needs a re-recorded sweep); one-shot job gauges reach no Prometheus; a readiness 503 burns the HTTP SLIs (learning is not-ready by design until a human value exists); backup age has no emitter.
+  - Pins unchanged (307); files/11 regenerated for the status.
+- Blocked on: owner (backlog) — "Does the worker tier become `services/workers`, under which issue, and what objective does each worker SLI files/08 §4 A leaves open carry?" (`docs/backlog/blockers.md` INT-021; no HB id is minted here).
+- Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*

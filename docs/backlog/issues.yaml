@@ -238,9 +238,20 @@
   labels: [area:security, risk:legal]
   # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
   # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
-  status: doing
+  # CLOSE-OUT AUDIT 27 Sep 2026 (docs/evidence/INT-020.md): every other clause is met
+  # on main, and the close-out built the three engineering gaps it found (evidence_check
+  # now fails a missing Sec-Row itself; five files/10 §9 features seeded, with a map test;
+  # every services/apps/packages module owned by a row, with a map test). The one held
+  # clause is "data-subject notice templates": counsel-authored legal text, and files/06
+  # §5 lists the breach packet templates with the INT-210..227 legal set, INT-214 (which
+  # depends on this row). Moving that clause to INT-214 is the coordinator's/owner's call.
+  # RESCOPED 27 Sep 2026 (PR #680): the data-subject notice templates (legal text,
+  # counsel) move to INT-214, which already owns data-subject notices and
+  # depends on this issue; holding INT-020 open for them was circular.
+  status: done
+  evidence: docs/evidence/INT-020.md
   acceptance:
-    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
+    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
   tests: [tests/docs/test_threat_model_rows.py]
   legal: "KVKK-12-breach,7545"
@@ -251,9 +262,23 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: doing
+  # RESCOPED 27 Sep 2026 (PR #685): the workers tier and its SLI targets move to
+  # INT-408 (owner); every other service, app and job is covered.
+  status: done
+  evidence: docs/evidence/INT-021.md
+  # NOTE 27 Sep 2026 (close-out): every SLO file now generates its burn-rate
+  # rules (7 files, 8 SLOs, 24 alerts; api.yaml alone until now) and its own
+  # golden-signal dashboard, and every alert Prometheus loads links a runbook
+  # heading that resolves (the 8 cost alerts had none). observability/
+  # slo_coverage.yaml covers every discovered service, app and job; the gates
+  # are tests/observability/test_{slo_generator,alert_rules,slo_coverage}.py.
+  # Found and fixed: services/probes never emitted the series its SLO reads;
+  # nothing read sec_audit_chain_ok (files/08 §5 pages on it). What remains is
+  # docs/slo/workers.yaml: services/workers does not exist and no row creates
+  # it, and its one spec objective (note ready <= 60 s, 99 %) has no emitter —
+  # the owner's decision, docs/backlog/blockers.md INT-021.
   acceptance:
-    - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
+    - "docs/slo/{api,voice-runtime}.yaml (and every other service's SLO file; workers is INT-408) with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
   sec_row: "monitoring-contract"
 - id: INT-022
@@ -2998,6 +3023,7 @@
   status: todo
   acceptance:
     - "runbook executable: incident record -> prefilled Board form -> notices; drill test produces the full packet within 72h simulated clock"
+    - "the data-subject notice templates (moved from INT-020, 27 Sep 2026): counsel-authored text under docs/legal/ with hash binding, rendered by the breach drill; no template text is drafted by an agent"
   tests: [tests/legal/test_breach_drill.py]
   legal: "KVKK-12-breach,7545"
   sec_row: "incident-response"
@@ -6155,3 +6181,30 @@
     - "the owner (with counsel if needed) records whether withdrawal deletes the vectors or keeps them under the record's retention class (files/06); deletion is then done in the withdrawal transaction, audited by id and tested, or the inventory annotation and consent text state the retention"
   tests: [tests/records/test_record_index.py]
   sec_row: "consent"
+- id: INT-405
+  epic: E00-governance
+  phase: P1
+  title: "The backlog sync pages past 500 issues and keeps issue state in step with rows"
+  # GitHub #675. Found by INT-396 (docs/evidence/INT-396.md, "For the
+  # coordinator" 4 and the 66 done rows whose owned issue was open):
+  # fetch_existing listed at most 500 issues, and apply_plan never set state.
+  depends_on: [INT-004, INT-396]
+  labels: [area:platform]
+  status: done
+  evidence: docs/evidence/INT-405.md
+  acceptance:
+    - "fetch_existing pages until exhausted (a test with a fake paginated client over 1,200 issues, and a near-miss where page 3 is dropped)"
+    - "the sync closes the owned issue of a done row (state_reason completed) and reopens it for a row moved back from done; dry-run lists these actions; the live run is the operator's (make backlog-sync or the documented command)"
+    - "duplicates are never touched, only the owned issue per id (owned_issue_numbers())"
+  tests: [tests/backlog/test_sync_dryrun.py]
+- id: INT-408
+  epic: E01-platform
+  phase: P1
+  title: "Workers tier SLOs: the owner decides the tier and its targets"
+  depends_on: [INT-021]
+  labels: [area:observability]
+  status: awaiting-human
+  acceptance:
+    - "the owner records whether the workers tier becomes services/workers and the targets for its SLIs (upload promotion, retention runs, event-bus dead letters, notification dispatch); docs/slo/workers.yaml declares them, the generator emits rules and a dashboard, every SLI series is emitted and catalogued live, and the coverage manifest drops the workers exception"
+  tests: [tests/observability/test_slo_coverage.py]
+  sec_row: "monitoring-contract"
