@@ -318,6 +318,17 @@ class FourEyesService:
         )
         return tuple(sorted(waiting, key=lambda pending: (pending.created_at, pending.id)))
 
+    def expire_requested_by(self, subject: str) -> int:
+        """files/08 §2.4: a departed person's pending requests expire; they do
+        not sit in a queue waiting for someone to inherit them. Returns how
+        many were expired."""
+        expired = 0
+        for action_id, pending in list(self._pending.items()):
+            if pending.state is PendingActionState.PENDING and pending.actor.subject == subject:
+                self._pending[action_id] = replace(pending, state=PendingActionState.EXPIRED)
+                expired += 1
+        return expired
+
     def expire_due(self) -> int:
         """Sweep the pending set. Returns how many actions expired, which is
         what ``admin.pending_action_expired_total`` counts."""

@@ -1,0 +1,37 @@
+# infra/admin/console-accounts.yaml — every console account outside Keycloak
+# and OpenBao (INT-366; files/08 §2.4).
+#
+# files/08 §2.4: offboarding "revokes OIDC sessions and OpenBao leases and the
+# Grafana / Langfuse / Unleash accounts in one action — today those are three
+# separate identity stores". Keycloak and OpenBao are built-in steps of every
+# offboarding (intake_platform.admin.access.offboarding); this file lists the
+# rest, and the loader (intake_platform.admin.access.systems) refuses it whole
+# if an entry would let a system be skipped.
+#
+# revocation:
+#   programmatic — an adapter registered in code revokes it. None is registered
+#                  today; an entry claiming one without an adapter is refused.
+#   manual       — a person does it, following the runbook section linked.
+#                  Every offboarding lists it as pending, stays incomplete, and
+#                  closes it only by an audited confirmation.
+#
+# Why all three are manual: files/08 §0b F1 takes Grafana, Langfuse and Unleash
+# out of browser reach, so the deployed posture gives staff no account in them
+# and each holds only operator accounts. Their user-management APIs need an
+# admin credential of their own in each store; wiring three more credentials
+# into the console to disable accounts that should not exist is a decision for
+# the owner (docs/runbooks/access-review.md, "Owner steps"). Until then a
+# person confirms each one — listed, never assumed.
+#
+# Held against the names in files/08 §2.4 by tests/admin/test_offboarding.py.
+schema_version: 1
+systems:
+  - id: grafana
+    revocation: manual
+    runbook: docs/runbooks/access-review.md#grafana
+  - id: langfuse
+    revocation: manual
+    runbook: docs/runbooks/access-review.md#langfuse
+  - id: unleash
+    revocation: manual
+    runbook: docs/runbooks/access-review.md#unleash

@@ -1600,6 +1600,37 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
     closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
     `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
+    auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
+    departure that leaves one identity store open. `GET /admin/access/review` is generated
+    from the Keycloak admin API (effective realm roles, enabled flag, last login from LOGIN
+    events) and the audit chain (last console action; each section's last countersignature) —
+    ids only: Keycloak's names and mail are never copied, a non-id username is dropped, and
+    the section digest is 128 bits so nothing on the page is chain-hash-shaped (HB-I12).
+    Signing a section is a tier-2 ceremony (it lifts the read-only downgrade, so it is the
+    dangerous direction): the §2.7 reviewer signs the population's digest, a second person
+    countersigns with a fresh single-use assertion, `platform_owner` needs the countersigner
+    from another organisation, and a grant between the two keys voids the signature. The
+    countersignature is an `admin.access_review.signed` row on the chain, so the review state
+    has no second store to forge and every replica reads it back. **Enforced by the router,
+    not the page:** past 100 days, or with no review, every write reached only through
+    `platform_owner` or `tenant_admin` is refused (`access_review_overdue`) and audited; an
+    unread chain counts as no review (fail closed). Offboarding is tier 1 (the safe direction;
+    §8.2 "token revoke"): Keycloak account disabled before its sessions are ended, the OpenBao
+    entity disabled and each of its tokens revoked (with their leases), the person's pending
+    four-eyes requests expired, and every other console system from
+    `infra/admin/console-accounts.yaml` listed — a system without a programmatic adapter is a
+    manual step that keeps the offboarding incomplete until an audited confirmation; the loader
+    refuses a file that would skip one. Each step is write-ahead on the chain; a failed step is
+    reported and the rest still run. The subject is path-shape-checked before it reaches a
+    Keycloak or OpenBao URL. The 60-day job offboards through the same pipeline under
+    `svc:access-hygiene` and refuses to disable anyone when the realm keeps under 60 days of
+    login history (an expired login must not read as "never logged in"). **Known limits, owner
+    decisions:** the admin client, the OpenBao offboarding policy (which needs `sudo` to list
+    token accessors), the scheduler and the first countersigned review are unwired, so the
+    console is read-only for `platform_owner`/`tenant_admin` until the owner acts; Grafana,
+    Langfuse and Unleash stay manual steps; access tokens already issued live until their
+    expiry (INT-365's session bounds).
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
