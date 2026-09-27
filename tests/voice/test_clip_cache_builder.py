@@ -83,8 +83,12 @@ from voice_clips import (
     wav_to_speech,
 )
 from voice_clips.cli import main
+from voice_clips.delivery import delivery_profile
 
 MONO = 1
+#: INT-415: every synthesis names its delivery profile; these seam tests speak
+#: one ordinary question.
+ROUTINE = delivery_profile("routine")
 
 
 @pytest.fixture
@@ -162,12 +166,16 @@ class TestTheHttpGateway:
             seen["json"] = request.read().decode("utf-8")
             return httpx.Response(200, content=riff_wave(speech_like()))
 
-        speech = self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE)
+        speech = self._gateway(handler).synthesise(
+            text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE
+        )
         assert speech.sample_rate_hz == 24000
         assert speech.channels == MONO
         assert len(speech.pcm_s16le) > 0
         assert str(seen["url"]).endswith("/synthesize")
-        assert "Merhaba." in str(seen["json"])
+        # INT-415: the self-hosted contract carries no delivery controls today, so
+        # no vendor voice_settings leak into it (docs/voice/on-prem-tts-wiring.md)
+        assert json.loads(str(seen["json"])) == {"text": "Merhaba.", "voice_id": VOICE}
 
     def test_a_non_2xx_is_a_typed_refusal(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -175,7 +183,7 @@ class TestTheHttpGateway:
             return httpx.Response(400, json={"error": "digits_forbidden"})
 
         with pytest.raises(TtsRefusedError) as raised:
-            self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE)
+            self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE)
         assert "400" in str(raised.value)
 
     def test_an_unreachable_endpoint_is_a_typed_unavailability(self) -> None:
@@ -183,7 +191,7 @@ class TestTheHttpGateway:
             raise httpx.ConnectError("no route", request=request)
 
         with pytest.raises(TtsUnavailableError):
-            self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE)
+            self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE)
 
     def test_a_body_that_is_not_a_wav_is_refused(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -191,7 +199,7 @@ class TestTheHttpGateway:
             return httpx.Response(200, content=b"")
 
         with pytest.raises(MalformedWavError):
-            self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE)
+            self._gateway(handler).synthesise(text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE)
 
     def test_it_refuses_a_numeral_before_dialling(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover - never runs
@@ -199,14 +207,16 @@ class TestTheHttpGateway:
             raise AssertionError("the model was dialled with a numeral")
 
         with pytest.raises(NumeralInScriptError):
-            self._gateway(handler).synthesise(text_tr="Günde 5 mg.", voice_id=VOICE)
+            self._gateway(handler).synthesise(
+                text_tr="Günde 5 mg.", voice_id=VOICE, profile=ROUTINE
+            )
 
 
 class TestTheRecordedGateway:
     def test_a_missing_recording_is_a_typed_error(self, tmp_path) -> None:
         gateway = RecordedTtsGateway(root=tmp_path)
         with pytest.raises(RecordedSpeechMissingError) as raised:
-            gateway.synthesise(text_tr="Merhaba.", voice_id=VOICE)
+            gateway.synthesise(text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE)
         assert "Merhaba" not in str(raised.value), "the refusal names the hash, not the text"
 
     def test_a_recording_made_for_another_voice_is_refused(self, tmp_path) -> None:
@@ -218,7 +228,9 @@ class TestTheRecordedGateway:
             body=riff_wave(speech_like()),
         )
         with pytest.raises(RecordedSpeechMismatchError):
-            RecordedTtsGateway(root=tmp_path).synthesise(text_tr="Merhaba.", voice_id=VOICE)
+            RecordedTtsGateway(root=tmp_path).synthesise(
+                text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE
+            )
 
 
 # ------------------------------------------------------------------- the trim
@@ -288,7 +300,9 @@ class TestSilenceIsTrimmedAtBuildTime:
             text_tr="Merhaba.",
             body=riff_wave_multichannel(np.repeat(speech_like(), 2), 24000, channels=2),
         )
-        speech = RecordedTtsGateway(root=tmp_path).synthesise(text_tr="Merhaba.", voice_id=VOICE)
+        speech = RecordedTtsGateway(root=tmp_path).synthesise(
+            text_tr="Merhaba.", voice_id=VOICE, profile=ROUTINE
+        )
         assert speech.channels == 2
         with pytest.raises(MultiChannelClipError):
             encode_clip(speech)
@@ -572,8 +586,9 @@ class TestTheManifestIsKeyedByLocaleAndVoice:
         assert manifest.locale == LOCALE
         for row in manifest.entries:
             assert row.locale == LOCALE
-            assert clip_object_key(row.entry) == (
-                f"{CLIP_KEY_PREFIX}/{LOCALE}/{VOICE}/{row.clip_id}"
+            profile = delivery_profile(row.delivery_context)
+            assert clip_object_key(row.entry, profile=profile) == (
+                f"{CLIP_KEY_PREFIX}/{LOCALE}/{VOICE}/{profile.key}/{row.clip_id}"
             )
 
     def test_one_clip_id_claimed_by_two_strings_is_refused_not_preferred(

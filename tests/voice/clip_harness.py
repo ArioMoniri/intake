@@ -91,18 +91,31 @@ def riff_wave_multichannel(samples: NDArray[np.int16], sample_rate_hz: int, chan
 
 
 def write_recording(
-    root: Path, *, text_hash: str, voice_id: str, text_tr: str, body: bytes
+    root: Path,
+    *,
+    text_hash: str,
+    voice_id: str,
+    text_tr: str,
+    body: bytes,
+    delivery_profile: str | None = None,
 ) -> Path:
-    """Write one recorded-response fixture the way the gateway reads it back."""
+    """Write one recorded-response fixture the way the gateway reads it back.
+
+    ``delivery_profile`` (INT-415) binds the take to the profile key it was
+    made under; ``None`` writes a profile-free take, as a self-hosted lane with
+    no delivery controls produces."""
     root.mkdir(parents=True, exist_ok=True)
     path = root / f"{text_hash}.json"
+    recording: dict[str, str] = {
+        "voice_id": voice_id,
+        "text_tr": text_tr,
+        "body_base64": base64.b64encode(body).decode("ascii"),
+    }
+    if delivery_profile is not None:
+        recording["delivery_profile"] = delivery_profile
     path.write_text(
         json.dumps(
-            {
-                "voice_id": voice_id,
-                "text_tr": text_tr,
-                "body_base64": base64.b64encode(body).decode("ascii"),
-            },
+            recording,
             ensure_ascii=False,
             indent=2,
             sort_keys=True,
@@ -196,11 +209,14 @@ class FakeClipStorage:
 
 @dataclass
 class RecordingGateway:
-    """Wraps a real gateway and records the exact text handed to it."""
+    """Wraps a real gateway and records the exact text handed to it, and the
+    delivery profile key each call was made under (INT-415)."""
 
     inner: Any
     calls: list[tuple[str, str]] = field(default_factory=list)
+    profiles: list[str] = field(default_factory=list)
 
-    def synthesise(self, *, text_tr: str, voice_id: str) -> Any:
+    def synthesise(self, *, text_tr: str, voice_id: str, profile: Any) -> Any:
         self.calls.append((text_tr, voice_id))
-        return self.inner.synthesise(text_tr=text_tr, voice_id=voice_id)
+        self.profiles.append(profile.key)
+        return self.inner.synthesise(text_tr=text_tr, voice_id=voice_id, profile=profile)
