@@ -1635,8 +1635,29 @@ metrics:
     labels: []
     owner: admin
     unit: "days"
-    status: planned
-    description: Age of the last access review (100-day read-only threshold, files/08 §2.7).
+    status: live
+    description: >-
+      Age of the console access review — the older of the last
+      countersignatures of its platform_owner and console_roles sections — in
+      days (files/08 §2.7). Past 100, platform_owner and tenant_admin writes
+      are refused and AccessReviewOverdue pages; +Inf when never
+      countersigned. Computed at scrape time by
+      intake_platform.admin.access.review.ReviewLedger from the audit chain
+      (INT-366).
+  - name: admin_offboarding_total
+    id: admin.offboarding_total
+    type: counter
+    labels: [trigger, complete]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Offboardings run (files/08 §2.4), by trigger (console, dormant — the
+      60-day auto-disable) and whether every system was revoked or confirmed
+      when the run ended (true, false). The alert of the tier-1
+      admin.access.offboard action; OffboardingIncomplete raises a ticket on
+      complete="false". The subject is on the audit chain, never on a label
+      (INT-366).
   - name: admin_audit_seq_gaps_total
     id: admin.audit_seq_gaps_total
     type: counter

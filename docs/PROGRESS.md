@@ -92,6 +92,27 @@
   - The DSAR executor's event de-link needs an `UPDATE` grant that `app_rw` does not hold.
 - Next: PR `INT-392: deleting a session removes its previsit outputs in every erasure and retention path` (Closes #647, Sec-Row data-at-rest), left unmerged for review.
 
+### 2026-09-27T07:30:00+03:00 · INT-366 · done (PR open)
+- Goal: acceptance verbatim (GitHub #593) — *"the console generates the quarterly access review of files/08 §2.7 from Keycloak, the role grants and the audit log, and downgrades platform_owner and tenant_admin sessions to read-only past 100 days without a review; admin_access_review_age_days is emitted"* · *"one disable revokes the person's Keycloak sessions, OpenBao leases and every other console account together (files/08 §2.4), and an account with no login for 60 days is disabled automatically; both are audited"*.
+- Plan:
+  - `intake_platform.admin.access`: Keycloak admin adapter (effective roles, LOGIN events, disable, logout), OpenBao lease revoker (entity by alias → disable → revoke its tokens), console-systems config (Grafana/Langfuse/Unleash, manual, refused whole if one could be skipped).
+  - Review generated from Keycloak + the chain; review state = `admin.access_review.signed` rows read back by `ReviewLedger`; `admin_access_review_age_days` computed at scrape.
+  - Sign (§2.7 reviewer) + countersign (second person; another org for `platform_owner`) as a T2 ceremony; offboarding T1 (§8.2 "token revoke"), write-ahead per step, manual steps confirmed and audited.
+  - Router downgrade: writes reached only via `platform_owner`/`tenant_admin` refused past 100 days or with no review.
+  - `intake_platform.access_hygiene` + `make access-hygiene`: 60-day auto-disable through the same pipeline; refuses without 60 days of login history.
+  - admin-web `/access`, read-only, recorded fixtures drift-gated.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_access_review.py` and `tests/admin/test_offboarding.py` (102): 100 d ± 1 s on the ledger and at the route; 59 d vs 60 d dormancy; 5 183 999 s event retention refused; same-org vs external countersigner; grant between the keys voids the signature; self-countersign; assertion reuse; failed step reported while the rest run; unknown subject and path-shaped subject refused before any call.
+  - RBAC matrix and audit drive rows for the five routes; 2018/10 tally pinned at 11 partial / 8 not implemented.
+  - `apps/admin-web/e2e/access.spec.ts` (18).
+  - RED: pytest collection rc=2 (2 import errors, `intake_platform.admin.access` missing) at origin/main 868f6e19; vitest cannot resolve `src/access`. GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1244 files), `mypy --strict` clean (482 files), whole-tree pytest at the 85 % floor **8189 passed**, 0 failed, 95.65 %; `tests/admin tests/observability` 1264 passed; admin-web vitest 291, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged + branch), bandit and semgrep p/ci on the new code, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 13, 14, 15, 16 (Sec-Row admin-console; threat-model row), 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Tiering per files/08 §8.2 and §3 (offboarding T1; sign-off T2 because it lifts the downgrade). Reported, not fixed: `apps/admin-web/src/ops/load.ts` `errorCode` still reads `detail.error` against a flat API body.
+- Blocked on: nothing new in HUMAN_BLOCKERS. Owner steps (runbook): Keycloak admin client + OpenBao KV entry, 60 days of LOGIN events, the three env vars, the OpenBao offboarding policy (`sudo` on token accessors), a daily scheduler for `make access-hygiene`, the first countersigned review — until then `platform_owner`/`tenant_admin` are read-only.
+- Next: PR `INT-366: quarterly access review from the console and one-action offboarding with a 60-day auto-disable` (Closes #593, Sec-Row admin-console), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
 - Plan:
