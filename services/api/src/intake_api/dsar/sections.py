@@ -13,7 +13,7 @@ Every line leads with ``<ref>:<id>`` and is built from sanitised cells
 patient can name any row back to us, and nothing the patient or a third
 party typed can become a spreadsheet formula on the way out.
 
-Two things are deliberately NOT in a line:
+Three things are deliberately NOT in a line:
 
 - **a Doctor Link's recipient label.** It is the name of a third party, typed
   by the patient into an envelope. The line carries the recipient as a role,
@@ -23,6 +23,11 @@ Two things are deliberately NOT in a line:
   the link list itself (``GET …/note/doctor-links``).
 - **a guardian's account reference**, for the same reason: it identifies the
   other person in the link, not the subject.
+- **a record-index vector's numbers** (INT-123). The line names the row, the
+  document and page it was read from, the item it indexes, its kind and the
+  model; the coordinates are a model's encoding of an item the listed
+  document already carries, and the sweep never loads them. Whether the reply
+  should carry them is a reviewer's call, recorded in docs/evidence/INT-395.md.
 """
 
 from __future__ import annotations
@@ -239,22 +244,43 @@ def _guardian_lines(record: SubjectRecord) -> tuple[str, ...]:
     )
 
 
+def _document_lines(record: SubjectRecord) -> tuple[str, ...]:
+    documents = tuple(
+        _line(
+            [
+                f"document:{doc.id}",
+                doc.media_type,
+                f"sha256:{doc.sha256}",
+                _stamp(doc.created_at),
+            ]
+        )
+        for doc in record.documents
+    )
+    # INT-123: each record-index row is listed with the documents, because it
+    # was read from one of them (module docstring, third point).
+    index = tuple(
+        _line(
+            [
+                f"record_index:{row.id}",
+                row.document_ref,
+                f"page:{row.page}",
+                f"item:{row.item_ref}",
+                f"kind:{row.kind.value}",
+                f"model:{row.model_ref}",
+                f"created:{_stamp(row.created_at)}",
+            ]
+        )
+        for row in record.record_index
+    )
+    return documents + index
+
+
 def record_section_lines(
     record: SubjectRecord, *, cipher: EnvelopeCipher, tenant_id: uuid.UUID
 ) -> dict[str, tuple[str, ...]]:
     """Every section rendered from the record's rows, keyed by section id."""
     return {
-        "documents": tuple(
-            _line(
-                [
-                    f"document:{doc.id}",
-                    doc.media_type,
-                    f"sha256:{doc.sha256}",
-                    _stamp(doc.created_at),
-                ]
-            )
-            for doc in record.documents
-        ),
+        "documents": _document_lines(record),
         "consents": tuple(
             _line(
                 [

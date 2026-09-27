@@ -93,6 +93,8 @@ ERASURE_PRIVILEGES: Final[frozenset[Privilege]] = (
         "notification_preferences",
         "guardian_links",
         "events",
+        # INT-123: the record index, read in the patient's namespace
+        "record_embeddings",
     )
     # the crypto-shred of every envelope, and the request's own close
     | frozenset(
@@ -120,6 +122,7 @@ ERASURE_PRIVILEGES: Final[frozenset[Privilege]] = (
         "overlay_facts",
         "patient_overlays",
         "notification_preferences",
+        "record_embeddings",
         "slots",
         "sessions",
     )

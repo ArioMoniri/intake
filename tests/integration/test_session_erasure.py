@@ -38,6 +38,13 @@ naming every grant it lacks: the refusal INT-394's role decision resolves.
 The export sweep runs as ``app_rw`` under RLS and lists the Doctor Link and
 the preference.
 
+INT-123's ``record_embeddings`` carries a RESTRICTIVE patient policy on the
+``app.patient_id`` GUC, which ``tenant_session`` does not set: a sweep that
+forgot it would read no vector at all under ``app_rw``, and the export would
+silently show less than the erasure destroys. The ``visit`` fixture seeds one
+vector, the export sweep as ``app_rw`` lists it, the erasure removes it, and
+the refused run leaves it.
+
 Runs via ``make check-integration``. Every row is synthetic and belongs to a
 tenant created for the test, removed again afterwards. Sec row: data-at-rest.
 """
@@ -100,6 +107,7 @@ _TENANT_ROWS = (
     "sessions",
     "dsar_requests",
     "notification_preferences",
+    "record_embeddings",
     "patients",
 )
 
@@ -137,6 +145,8 @@ class Visit:
     output_id: uuid.UUID
     event_id: int
     preference_id: uuid.UUID
+    vector_id: uuid.UUID
+    document_ref: str
     cipher: EnvelopeCipher
 
 
@@ -151,9 +161,11 @@ class Linked:
 def visit(migrated: None) -> Iterator[Visit]:
     """One completed visit as a sent note leaves it: a note and a previsit
     output (both envelopes), a slot, and a telemetry event on the session —
-    and the patient's notification preference (INT-395)."""
+    and the patient's notification preference (INT-395) and one record-index
+    vector (INT-123)."""
     cipher = EnvelopeCipher(FileKekProvider())
-    tenant, patient, session, output, preference = (uuid.uuid4() for _ in range(5))
+    tenant, patient, session, output, preference, vector = (uuid.uuid4() for _ in range(6))
+    document_ref = f"doc:{uuid.uuid4()}"
 
     def envelope(body: bytes) -> Jsonb:
         return Jsonb(encrypted_field_to_json(cipher.encrypt_field(str(tenant), body)))
@@ -209,8 +221,24 @@ def visit(migrated: None) -> Iterator[Visit]:
             "quiet_start_minute, quiet_end_minute) VALUES (%s, %s, %s, %s, %s, %s)",
             (preference, tenant, patient, True, 22 * 60, 7 * 60),
         )
+        cur.execute(
+            "INSERT INTO record_embeddings (id, tenant_id, patient_id, item_ref, document_ref, "
+            "page, bbox, char_start, char_end, kind, model_ref, dimensions, embedding, "
+            "consent_scope_ref) VALUES (%s, %s, %s, %s, %s, 1, '[0.1, 0.2, 0.6, 0.24]', 0, 12, "
+            "'lab', %s, 3, CAST('[1, 0, 0]' AS vector), 'scope:documents')",
+            (
+                vector,
+                tenant,
+                patient,
+                "ri_" + "0" * 32,
+                document_ref,
+                "fixture/recorded-embedder@0123456789abcdef0123456789abcdef01234567",
+            ),
+        )
 
-    yield Visit(tenant, patient, session, output, event_id, preference, cipher)
+    yield Visit(
+        tenant, patient, session, output, event_id, preference, vector, document_ref, cipher
+    )
 
     with _connect() as conn, conn.cursor() as cur:
         for table in _TENANT_ROWS:
@@ -315,6 +343,7 @@ def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Vi
     assert _count("sessions", "id = %s", visit.session_id) == 0
     assert _event_session(visit.event_id) is None
     assert _count("notification_preferences", "id = %s", visit.preference_id) == 0
+    assert _count("record_embeddings", "id = %s", visit.vector_id) == 0
     assert (
         entries.count(
             (
@@ -464,6 +493,7 @@ def test_the_dsar_erasure_as_app_rw_is_refused_for_the_grants_int394_owns(
         item.describe() for item in report.blocked.missing
     ]
     assert _count("notification_preferences", "id = %s", visit.preference_id) == 1
+    assert _count("record_embeddings", "id = %s", visit.vector_id) == 1
     assert _count("doctor_links", "id = %s", linked.link_id) == 1
     assert _count("notes", "session_id = %s", visit.session_id) == 1
     assert _count("sessions", "id = %s", visit.session_id) == 1
@@ -486,8 +516,8 @@ def test_the_export_sweep_as_app_rw_lists_the_doctor_link_and_the_preference(
 ) -> None:
     """The export reads every table the erasure does, so it runs as the
     application role under RLS: the grants and policies must let the sweep
-    see the Doctor Link and the preference, or the export silently shows less
-    than the erasure would destroy."""
+    see the Doctor Link, the preference and the record-index vector, or the
+    export silently shows less than the erasure would destroy."""
     visit = linked.visit
 
     async def _view() -> ExportView:
@@ -521,3 +551,9 @@ def test_the_export_sweep_as_app_rw_lists_the_doctor_link_and_the_preference(
     assert preference.startswith(
         f"notification_preference:{visit.preference_id} · opted_out:true · quiet:22:00-07:00"
     )
+    # INT-123: only a sweep that sets app.patient_id sees the vector at all
+    assert [
+        line
+        for line in view.section_lines["documents"]
+        if line.startswith(f"record_index:{visit.vector_id} · {visit.document_ref} · page:1 ")
+    ] != []

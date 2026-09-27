@@ -75,6 +75,11 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-396 (backlog status reconciliation and its drift guard).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
+    # + INT-402..403 (split out of INT-123: the embedding-model choice and
+    # the consent-withdrawal handling of record vectors; both the owner's).
+    # + INT-408 (workers-tier SLO targets, split out of INT-021; the owner's).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -104,10 +109,23 @@ def test_ids_unique_and_well_formed() -> None:
     # by INT-392, fixed and closed in the same PR).
     # + INT-391 (the console accepts every valid WebAuthn credential id; found
     # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, with a guard against rows that outlive their fix;
+    # found by INT-360's PR, filed as GitHub #640).
+    # + INT-397 (the three status lines INT-362 left silent are announced, and
+    # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
+    # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
+    # main never imported; found by INT-378, fixed and closed in the same PR).
+    # + INT-396 (backlog rows reconciled with what merged, and the status
+    # consistency guard; GitHub #655, carried by its own PR).
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
+    # step with rows; found by INT-396, GitHub #675).
     # + INT-395 (no path erased notification_preferences and the DSAR export
     # did not list Doctor Links; found by INT-393, fixed and closed in the
     # same PR).
-    assert len(ids) == 307
+    assert len(ids) == 317
     import re
 
     for i in ids:

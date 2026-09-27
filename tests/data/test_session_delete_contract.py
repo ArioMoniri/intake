@@ -46,6 +46,17 @@ no audit entry. So every deletion path removes the child explicitly, and the
 key keeps NO ACTION as the fail-closed backstop: a path that forgets the
 child raises instead of losing it silently.
 
+INT-123 adds ``record_embeddings``: erased with the subject (the DSAR erasure
+deletes the subject's vectors, setting the patient GUC first), and its only
+key in the graph is ``patient_id``, to a row the erasure keeps. It has no key
+to ``sessions`` or ``documents`` — a vector is keyed to its document by the
+``doc:<documents.id>`` ref — so the retention executor is held to removing the
+vector of the document it destroys by an explicit assertion below. Its
+annotations put it under both INT-395 rules (``RET_RECORD`` is
+patient-deletable; the item kind and the vector are health data), so the
+export lists each vector in the documents section, beside the document it
+was read from, and the erasure run declares the grants it needs on it.
+
 Sec row: data-at-rest (files/10 §9).
 """
 
@@ -63,8 +74,10 @@ from types import MappingProxyType
 from typing import Any, Final
 
 import pytest
+from clinical_schemas.records import RecordItemKind
 from intake_api.audit import AuditWriter
 from intake_api.dsar.export import ExportView, build_view
+from intake_api.dsar.grants import ERASURE_PRIVILEGES
 from intake_api.dsar.shred import execute_due_shreds
 from intake_api.dsar.store import subject_record
 from intake_api.dsar.strings import DSAR_EXPORT_SECTIONS
@@ -103,6 +116,7 @@ from intake_platform.db.models import (
     Patient,
     PatientOverlayHeader,
     PreVisitOutputRow,
+    RecordEmbedding,
     SessionStatus,
     Share,
     Slot,
@@ -110,6 +124,7 @@ from intake_platform.db.models import (
     Tenant,
 )
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
+from intake_platform.records.index import document_ref_of
 from intake_platform.retention import DestroyableClass, sqlalchemy_destroyers
 from sqlalchemy import (
     Column,
@@ -187,6 +202,7 @@ ROWS_ON_ERASURE: Final[Mapping[str, RowFate]] = MappingProxyType(
         "patient_overlays": RowFate.ERASED,
         # INT-395: RET_NOTIFICATION_PREFERENCE puts it on the record clock.
         "notification_preferences": RowFate.ERASED,
+        "record_embeddings": RowFate.ERASED,
     }
 )
 
@@ -232,6 +248,7 @@ ON_ERASURE: Final[Mapping[str, OnErasure]] = MappingProxyType(
         "notification_preferences.patient_id": OnErasure.PARENT_KEPT,
         "overlay_facts.patient_id": OnErasure.PARENT_KEPT,
         "patient_overlays.patient_id": OnErasure.PARENT_KEPT,
+        "record_embeddings.patient_id": OnErasure.PARENT_KEPT,
     }
 )
 
@@ -371,6 +388,8 @@ EXPORTED_IN: Final[Mapping[str, Listed]] = MappingProxyType(
         "csat_texts": Listed("feedback", "csat_text"),
         "notification_preferences": Listed("preferences", "notification_preference"),
         "guardian_links": Listed("guardians", "guardian_link"),
+        # INT-123: each vector beside the document it was read from
+        "record_embeddings": Listed("documents", "record_index"),
     }
 )
 
@@ -498,7 +517,24 @@ def test_the_tables_that_hold_the_subjects_data_are_what_the_annotations_say() -
         "overlay_facts",
         "patient_overlays",
         "notification_preferences",
+        "record_embeddings",
     }
+
+
+def test_the_erasure_declares_a_grant_for_every_table_it_reads_and_removes() -> None:
+    """The grant preflight (``intake_api.dsar.grants``) protects a run only if
+    its declaration is complete. A table the sweep reads, or the erasure
+    deletes, without a declared privilege would pass the preflight and then
+    fail half-way on postgres, after the object bytes are already gone. The
+    sweep reads every exported table (the subject header is the request's own
+    id); the erasure deletes every erased table except a cascade child, which
+    postgres removes as the table owner."""
+    declared = {(need.table, need.privilege) for need in ERASURE_PRIVILEGES if need.column is None}
+    cascaded = {where.split(".")[0] for where, on in ON_ERASURE.items() if on is OnErasure.CASCADE}
+    read = set(EXPORTED_IN) - {"patients"}
+    removed = {name for name, fate in ROWS_ON_ERASURE.items() if fate is RowFate.ERASED}
+    assert sorted({(name, "SELECT") for name in read} - declared) == []
+    assert sorted({(name, "DELETE") for name in removed - cascaded} - declared) == []
 
 
 @pytest.mark.parametrize(
@@ -751,6 +787,7 @@ def _seed_graph(db: Engine) -> Seeded:
         expires_at=T0 + timedelta(hours=72),
         **ids,
     )
+    document_id = uuid.uuid4()
     levels: list[list[object]] = [
         [tenant],
         [patient],
@@ -798,7 +835,7 @@ def _seed_graph(db: Engine) -> Seeded:
                 **ids,
             ),
             Document(
-                id=uuid.uuid4(),
+                id=document_id,
                 **subject,
                 session_id=target.id,
                 object_ref="intake-docs/clean/t/k1.int393/deadbeef",
@@ -823,6 +860,23 @@ def _seed_graph(db: Engine) -> Seeded:
                 request_id=request.id,
                 target_ref=f"note:{note.id}",
                 payload=envelope(b'{"correction": "iki gun"}'),
+            ),
+            # INT-123: the vector indexed from the session's document
+            RecordEmbedding(
+                id=uuid.uuid4(),
+                **subject,
+                item_ref="ri_" + "0" * 32,
+                document_ref=document_ref_of(document_id),
+                page=1,
+                bbox=[0.1, 0.2, 0.6, 0.24],
+                char_start=0,
+                char_end=12,
+                kind=RecordItemKind.LAB,
+                model_ref="fixture/recorded-embedder@0123456789abcdef0123456789abcdef01234567",
+                dimensions=3,
+                embedding=(1.0, 0.0, 0.0),
+                consent_scope_ref="scope:documents",
+                created_at=T0,
             ),
         ],
         [
@@ -898,6 +952,9 @@ def test_the_retention_executor_removes_the_whole_session_tree(db: Engine) -> No
     for table in sorted(session_tree):
         if ROWS_ON_ERASURE[table] is RowFate.ERASED:
             assert _count(db, table) == 0, f"{table} survived its session"
+    # INT-123: not reachable from sessions by a key, so named here — the
+    # vector indexed from the destroyed document goes with it
+    assert _count(db, "record_embeddings") == 0, "record_embeddings survived its document"
     with Session(db) as s:
         assert s.scalars(select(IntakeSession.id)).all() == [seeded.keep]
         # telemetry keeps its own clock; only the link to the erased session goes

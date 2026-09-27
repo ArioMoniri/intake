@@ -15,7 +15,11 @@ learned facts (INT-170), the previsit outputs (INT-392) and the Doctor Links
 (INT-393), so it destroyed rows the export never showed. They live here now,
 with the other subject tables the inventory annotations put under the
 subject's rights; tests/data/test_session_delete_contract.py derives that
-list from the annotations and checks the export against it.
+list from the annotations and checks the export against it. INT-123's record
+index joined them when both merged: its rows sit behind a RESTRICTIVE patient
+policy, so the sweep reads them through
+:func:`intake_platform.records.index_store.subject_record_index`, which sets
+the patient GUC the policy reads.
 """
 
 from __future__ import annotations
@@ -40,9 +44,11 @@ from intake_platform.db.models import (
     OverlayFact,
     PatientOverlayHeader,
     PreVisitOutputRow,
+    RecordEmbedding,
     Share,
     Slot,
 )
+from intake_platform.records.index_store import subject_record_index
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,6 +89,9 @@ class SubjectRecord:
     notification_preferences: tuple[NotificationPreference, ...]
     #: INT-223: the links naming this subject as a minor (gate shut today).
     guardian_links: tuple[GuardianLink, ...]
+    #: INT-123: the record index, one row per confirmed item's vector — read
+    #: in the patient's RLS namespace, the vector itself never loaded.
+    record_index: tuple[RecordEmbedding, ...]
 
     def slots_for(self, session_id: uuid.UUID) -> tuple[Slot, ...]:
         return tuple(slot for slot in self.slots if slot.session_id == session_id)
@@ -266,6 +275,9 @@ async def subject_record(
                     .order_by(GuardianLink.created_at, GuardianLink.id)
                 )
             ).all()
+        ),
+        record_index=await subject_record_index(
+            session, tenant_id=tenant_id, patient_id=patient_id
         ),
     )
 

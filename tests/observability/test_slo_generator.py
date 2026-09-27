@@ -1,41 +1,57 @@
-"""INT-021 — rules, dashboard and runbook are generated-consistent with the SLO file.
+"""INT-021 — rules, dashboards and runbooks are generated-consistent with EVERY SLO file.
 
 The acceptance's "generator emits Prometheus rules" is enforced structurally:
 infra/observability/prometheus-rules.yaml must equal, group for group, what
-``intake_platform.slo.prometheus_rule_groups`` derives from docs/slo/api.yaml.
-A hand edit to either side fails here. On top of the equality this file pins
-the Google SRE workbook shape (fast 14.4x over 1h+5m, slow 6x over 6h+30m,
-both paging; ticket 1x over 3d+6h), that every alert's runbook link resolves
-to a real heading in docs/runbooks/slo-burn.md, and that the Grafana
-dashboard is valid JSON referencing only catalogued series or slo: records.
+``intake_platform.slo.prometheus_rule_groups`` derives from every
+docs/slo/*.yaml — not only api.yaml, which is all the file held until the
+INT-021 close-out (six SLO files had objectives and no alert). Likewise every
+SLO file has a golden-signal dashboard under
+infra/observability/grafana/dashboards/, equal to what
+``intake_platform.slo_dashboards.slo_dashboard`` derives. A hand edit to
+either side fails here.
+
+On top of the equality this file pins the Google SRE workbook shape for every
+SLO (fast 14.4x over 1h+5m, slow 6x over 6h+30m, both paging; ticket 1x over
+3d+6h — files/10 §6), that every burn alert's runbook link resolves to a real
+heading in docs/runbooks/slo-burn.md, and that every dashboard panel reads only
+catalogued series or ``slo:`` recording rules the rules file defines.
 """
 
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 from typing import Any
 
 import yaml
+from intake_platform.alert_rules import markdown_anchors, promql_series
 from intake_platform.slo import (
+    SLOFile,
     alert_rule_name,
     load_metrics_catalog,
     load_slo_file,
-    metric_references,
     prometheus_rule_groups,
     recording_rule_name,
+    render_prometheus_rules,
+)
+from intake_platform.slo_dashboards import (
+    DASHBOARD_DIR,
+    dashboard_filename,
+    render_dashboard,
+    slo_dashboard,
 )
 
 REPO = Path(__file__).resolve().parents[2]
 CATALOG_PATH = REPO / "observability" / "metrics_catalog.yaml"
-API_SLO_PATH = REPO / "docs" / "slo" / "api.yaml"
+SLO_DIR = REPO / "docs" / "slo"
 RULES_PATH = REPO / "infra" / "observability" / "prometheus-rules.yaml"
-DASHBOARD_PATH = REPO / "infra" / "observability" / "grafana" / "api-slo-dashboard.json"
+DASHBOARDS = REPO / DASHBOARD_DIR
 RUNBOOK_PATH = REPO / "docs" / "runbooks" / "slo-burn.md"
 RUNBOOK_REL = "docs/runbooks/slo-burn.md"
 
-_RECORD_REF_RE = re.compile(r"slo:[a-z0-9_]+:[a-z0-9_]+")
+
+def _slo_files() -> list[SLOFile]:
+    return [load_slo_file(path) for path in sorted(SLO_DIR.glob("*.yaml"))]
 
 
 def _committed_rules() -> dict[str, Any]:
@@ -52,118 +68,182 @@ def _rules(kind: str) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _slugify(heading: str) -> str:
-    cleaned = re.sub(r"[^a-z0-9\s-]", "", heading.lower())
-    return re.sub(r"\s+", "-", cleaned.strip())
-
-
 # --- workbook shape ---------------------------------------------------------------
 
 
-def test_burn_rate_policy_matches_the_workbook_shape() -> None:
-    api = load_slo_file(API_SLO_PATH)
-    for slo in api.slos:
-        alerts = slo.burn_rate_alerts
-        assert (alerts.fast.factor, alerts.fast.long_window, alerts.fast.short_window) == (
-            14.4,
-            "1h",
-            "5m",
-        )
-        assert alerts.fast.severity == "page"
-        assert (alerts.slow.factor, alerts.slow.long_window, alerts.slow.short_window) == (
-            6.0,
-            "6h",
-            "30m",
-        )
-        assert alerts.slow.severity == "page"
-        assert alerts.ticket is not None
-        assert (
-            alerts.ticket.factor,
-            alerts.ticket.long_window,
-            alerts.ticket.short_window,
-            alerts.ticket.severity,
-        ) == (1.0, "3d", "6h", "ticket")
+def test_every_slo_file_is_loaded() -> None:
+    services = [slo_file.service for slo_file in _slo_files()]
+    assert services == [
+        "api",
+        "langfuse",
+        "learning",
+        "metrics",
+        "probes",
+        "siem",
+        "voice-runtime",
+    ]
 
 
-# --- rules file bound to the SLO file ---------------------------------------------
+def test_burn_rate_policy_matches_the_workbook_shape_everywhere() -> None:
+    for slo_file in _slo_files():
+        for slo in slo_file.slos:
+            where = f"{slo_file.service}/{slo.name}"
+            alerts = slo.burn_rate_alerts
+            assert (alerts.fast.factor, alerts.fast.long_window, alerts.fast.short_window) == (
+                14.4,
+                "1h",
+                "5m",
+            ), where
+            assert alerts.fast.severity == "page", where
+            assert (alerts.slow.factor, alerts.slow.long_window, alerts.slow.short_window) == (
+                6.0,
+                "6h",
+                "30m",
+            ), where
+            assert alerts.slow.severity == "page", where
+            assert alerts.ticket is not None, where
+            assert (
+                alerts.ticket.factor,
+                alerts.ticket.long_window,
+                alerts.ticket.short_window,
+                alerts.ticket.severity,
+            ) == (1.0, "3d", "6h", "ticket"), where
 
 
-def test_committed_rules_equal_generated_rules() -> None:
-    api = load_slo_file(API_SLO_PATH)
-    assert _committed_rules() == prometheus_rule_groups(api, RUNBOOK_REL)
+# --- rules file bound to the SLO files --------------------------------------------
+
+
+def test_committed_rules_equal_generated_rules_for_every_slo_file() -> None:
+    expected: list[dict[str, object]] = []
+    for slo_file in _slo_files():
+        expected.extend(prometheus_rule_groups(slo_file, RUNBOOK_REL)["groups"])
+    assert _committed_rules() == {"groups": expected}
+
+
+def test_committed_rules_text_is_the_rendered_text() -> None:
+    body = RULES_PATH.read_text(encoding="utf-8").split("groups:", 1)[1]
+    assert "groups:" + body == render_prometheus_rules(_slo_files(), RUNBOOK_REL)
+
+
+def test_a_rules_file_rendered_from_one_slo_file_is_not_the_committed_one() -> None:
+    # near-miss control: the pre-close-out state (api.yaml only) fails the gate
+    api_only = prometheus_rule_groups(load_slo_file(SLO_DIR / "api.yaml"), RUNBOOK_REL)
+    assert _committed_rules() != api_only
 
 
 def test_every_slo_has_recording_rules_and_burn_alerts() -> None:
-    api = load_slo_file(API_SLO_PATH)
     records = _rules("record")
     alerts = _rules("alert")
-    for slo in api.slos:
-        for kind, alert in slo.burn_rate_alerts.named_alerts():
-            long_rule = recording_rule_name(api.service, slo.name, alert.long_window)
-            short_rule = recording_rule_name(api.service, slo.name, alert.short_window)
-            assert long_rule in records
-            assert short_rule in records
-            name = alert_rule_name(api.service, slo.name, kind)
-            assert name in alerts, f"missing burn-rate alert {name}"
-            rule = alerts[name]
-            assert long_rule in rule["expr"] and short_rule in rule["expr"]
-            assert rule["labels"]["severity"] == alert.severity
-            assert rule["labels"]["service"] == api.service
-            assert rule["for"] == alert.for_duration
+    for slo_file in _slo_files():
+        for slo in slo_file.slos:
+            for kind, alert in slo.burn_rate_alerts.named_alerts():
+                long_rule = recording_rule_name(slo_file.service, slo.name, alert.long_window)
+                short_rule = recording_rule_name(slo_file.service, slo.name, alert.short_window)
+                assert long_rule in records
+                assert short_rule in records
+                name = alert_rule_name(slo_file.service, slo.name, kind)
+                assert name in alerts, f"missing burn-rate alert {name}"
+                rule = alerts[name]
+                assert long_rule in rule["expr"] and short_rule in rule["expr"]
+                assert rule["labels"]["severity"] == alert.severity
+                assert rule["labels"]["service"] == slo_file.service
+                assert rule["for"] == alert.for_duration
 
 
 def test_recording_rule_exprs_reference_only_catalogued_metrics() -> None:
     catalog = load_metrics_catalog(CATALOG_PATH)
     for name, rule in _rules("record").items():
-        unknown = catalog.unknown_references(rule["expr"])
-        assert unknown == frozenset(), f"{name} references {sorted(unknown)}"
+        unknown = [ref for ref in promql_series(rule["expr"]) if not catalog.covers(ref)]
+        assert unknown == [], f"{name} references {sorted(unknown)}"
 
 
 # --- runbook ----------------------------------------------------------------------
 
 
-def test_every_alert_links_a_runbook_heading() -> None:
-    headings = {
-        _slugify(line.lstrip("#").strip())
-        for line in RUNBOOK_PATH.read_text(encoding="utf-8").splitlines()
-        if line.startswith("#")
-    }
+def test_every_burn_alert_links_a_heading_in_the_burn_runbook() -> None:
+    anchors = markdown_anchors(RUNBOOK_PATH.read_text(encoding="utf-8"))
     alerts = _rules("alert")
-    assert alerts
+    assert len(alerts) == 3 * sum(len(f.slos) for f in _slo_files())
     for name, rule in alerts.items():
         runbook = rule["annotations"]["runbook"]
         assert runbook.startswith(f"{RUNBOOK_REL}#"), f"{name} runbook link: {runbook}"
         anchor = runbook.split("#", 1)[1]
-        assert anchor in headings, f"{name}: no heading in {RUNBOOK_REL} slugs to {anchor}"
+        assert anchor in anchors, f"{name}: no heading in {RUNBOOK_REL} slugs to {anchor}"
 
 
-# --- dashboard --------------------------------------------------------------------
+# --- dashboards -------------------------------------------------------------------
 
 
-def _dashboard_exprs() -> list[str]:
-    dashboard = json.loads(DASHBOARD_PATH.read_text(encoding="utf-8"))
-    panels = dashboard["panels"]
-    assert panels, "dashboard must define panels"
-    exprs: list[str] = []
-    for panel in panels:
-        for target in panel.get("targets", []):
-            exprs.append(target["expr"])
-    assert exprs, "dashboard panels must define Prometheus targets"
+def test_every_slo_file_has_its_committed_generated_dashboard() -> None:
+    for slo_file in _slo_files():
+        path = DASHBOARDS / dashboard_filename(slo_file.service)
+        assert path.is_file(), f"no dashboard for {slo_file.service}"
+        assert path.read_text(encoding="utf-8") == render_dashboard(slo_dashboard(slo_file)), (
+            f"{path.name} drifted from docs/slo/{slo_file.service}.yaml — re-emit with "
+            "scripts/observability/slo_report.py --emit-dashboards"
+        )
+
+
+def test_no_dashboard_without_an_slo_file() -> None:
+    expected = {dashboard_filename(f.service) for f in _slo_files()}
+    assert {path.name for path in DASHBOARDS.glob("*.json")} == expected
+
+
+def _exprs(dashboard: dict[str, Any]) -> list[str]:
+    exprs = [target["expr"] for panel in dashboard["panels"] for target in panel["targets"]]
+    assert exprs, f"{dashboard['uid']} has no Prometheus targets"
     return exprs
 
 
-def test_dashboard_references_only_catalogued_series_or_slo_records() -> None:
+def test_dashboards_reference_only_catalogued_series_or_slo_records() -> None:
     catalog = load_metrics_catalog(CATALOG_PATH)
     records = _rules("record")
-    for expr in _dashboard_exprs():
-        for ref in sorted(metric_references(expr)):
-            assert catalog.covers(ref), f"dashboard references uncatalogued series {ref!r}"
-        for match in _RECORD_REF_RE.finditer(expr):
-            assert match.group(0) in records, f"dashboard references unknown {match.group(0)!r}"
+    for path in sorted(DASHBOARDS.glob("*.json")):
+        for expr in _exprs(json.loads(path.read_text(encoding="utf-8"))):
+            for ref in sorted(promql_series(expr)):
+                if ":" in ref:
+                    assert ref in records, f"{path.name} references unknown {ref!r}"
+                else:
+                    assert catalog.covers(ref), f"{path.name} references uncatalogued {ref!r}"
 
 
-def test_dashboard_covers_every_slo() -> None:
-    api = load_slo_file(API_SLO_PATH)
-    joined = "\n".join(_dashboard_exprs())
-    for slo in api.slos:
-        assert f"slo:{api.service}_{slo.name}:" in joined, f"no panel for SLO {slo.name}"
+def test_every_dashboard_covers_every_slo_and_the_golden_signals() -> None:
+    for slo_file in _slo_files():
+        dashboard = slo_dashboard(slo_file)
+        joined = "\n".join(_exprs(dashboard))
+        slug = slo_file.service.replace("-", "_")
+        for slo in slo_file.slos:
+            assert f"slo:{slug}_{slo.name}:" in joined, (
+                f"{slo_file.service}: no panel for {slo.name}"
+            )
+        titles = " ".join(panel["title"] for panel in dashboard["panels"])
+        assert "Traffic" in titles, slo_file.service
+        assert "Errors" in titles or "error ratio" in titles, slo_file.service
+
+
+def test_http_services_get_all_four_golden_signals() -> None:
+    for service in ("api", "voice-runtime", "probes", "metrics", "learning"):
+        dashboard = slo_dashboard(load_slo_file(SLO_DIR / f"{service}.yaml"))
+        titles = [panel["title"].split(" — ")[0] for panel in dashboard["panels"]]
+        for signal in ("Latency", "Traffic", "Errors", "Saturation"):
+            assert signal in titles, f"{service}: no {signal} panel"
+        assert f'service="{service}"' in "\n".join(_exprs(dashboard))
+
+
+def test_dashboards_are_locked_and_use_the_provisioned_datasource() -> None:
+    for path in sorted(DASHBOARDS.glob("*.json")):
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        assert dashboard["editable"] is False
+        assert dashboard["uid"] == f"intake-{path.name.removesuffix('-slo-dashboard.json')}-slo"
+        for panel in dashboard["panels"]:
+            assert panel["datasource"] == {"type": "prometheus", "uid": "prometheus"}
+
+
+def test_a_dashboard_for_a_changed_objective_is_not_the_committed_one() -> None:
+    # near-miss control: tightening an objective must re-emit the dashboard
+    api = load_slo_file(SLO_DIR / "api.yaml")
+    tightened = api.model_copy(
+        update={"slos": [api.slos[0].model_copy(update={"objective": 99.95}), *api.slos[1:]]}
+    )
+    committed = (DASHBOARDS / dashboard_filename("api")).read_text(encoding="utf-8")
+    assert render_dashboard(slo_dashboard(tightened)) != committed

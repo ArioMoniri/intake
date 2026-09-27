@@ -8,13 +8,16 @@
  * so there are two, and only a `clean` document is ever read — a quarantined
  * or rejected file has no business reaching an extractor.
  *
- * **Nothing publishes a feed yet.** `noExtractionFeed` is the only production
- * source and it answers "not read", so on a device today this section is one
- * calm guidance block and nothing else. That is the fail-closed state rather
- * than a stand-in for work not done: the cards, their decisions and the
- * provenance panel are real, and they arrive the moment a feed does
- * (HUMAN_BLOCKERS.md rule 2 — build the mechanism, wire the gate, leave the
- * content empty).
+ * **The feed is the server's.** The screen passes `apiExtractionSource`, bound
+ * to `GET …/extraction` and `POST …/extraction/decisions`. The server's source
+ * answers "not read" for every document while every producer is shut, so on a
+ * device today this section is one calm guidance block; the cards, their
+ * verdicts and the provenance panel arrive the moment a producer does, with
+ * no change here.
+ *
+ * **A document still being read is asked about again, with backoff**
+ * (`pollExtraction`), and the asking stops after a bounded while and on
+ * unmount. The "reading" line and the arrival of the cards are both announced.
  *
  * **A document that could not be read says so without alarming** (invariant 2).
  * A refused extraction is a quiet line that also says the document itself is
@@ -28,12 +31,12 @@ import { AnnouncedText } from "@/components/Announced";
 import { ConfirmCard } from "@/components/ConfirmCard";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
-import { AppText } from "@/components/Themed";
 import { t } from "@/lib/i18n";
 import { docDisplayName, type RecordDoc } from "@/lib/records/api";
 import {
   applyDecision,
-  noExtractionFeed,
+  cardStateOf,
+  pollExtraction,
   type CardDecision,
   type CardState,
   type ExtractionFeed,
@@ -44,38 +47,29 @@ import { spacing } from "@/lib/theme";
 interface RecordReadingProps {
   visitId: string;
   docs: readonly RecordDoc[];
-  /** The seam. Defaulted to the refusing source; tests supply their own. */
-  source?: ExtractionSource;
+  /** The seam: the screen passes `apiExtractionSource`. */
+  source: ExtractionSource;
   onOpenDocument: (doc: RecordDoc) => void;
 }
 
-export function RecordReading({
-  visitId,
-  docs,
-  source = noExtractionFeed,
-  onOpenDocument,
-}: RecordReadingProps) {
+export function RecordReading({ visitId, docs, source, onOpenDocument }: RecordReadingProps) {
   const readable = useMemo(() => docs.filter((doc) => doc.state === "clean"), [docs]);
   const [feeds, setFeeds] = useState<Record<string, ExtractionFeed>>({});
   const [cardStates, setCardStates] = useState<Record<string, CardState>>({});
   const [openCard, setOpenCard] = useState<string | null>(null);
   const [failedCard, setFailedCard] = useState<string | null>(null);
 
-  useEffect(() => {
-    let live = true;
-    void (async () => {
-      const next: Record<string, ExtractionFeed> = {};
-      for (const doc of readable) {
-        next[doc.id] = await source.read(visitId, doc.id);
-      }
-      if (live) {
-        setFeeds(next);
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, [readable, source, visitId]);
+  // Returns its own stop, so leaving the screen stops the asking.
+  useEffect(
+    () =>
+      pollExtraction(
+        source,
+        visitId,
+        readable.map((doc) => doc.id),
+        (answered) => setFeeds((previous) => ({ ...previous, ...answered })),
+      ),
+    [readable, source, visitId],
+  );
 
   const decide = useCallback(
     async (documentId: string, cardId: string, decision: CardDecision) => {
@@ -106,9 +100,14 @@ export function RecordReading({
       {withCards.length > 0 ? (
         <>
           <Kicker label={t("records.confirm.kicker")} tone="accent" />
-          <AppText role="body" color="inkSoft">
-            {t("records.confirm.intro")}
-          </AppText>
+          {/* SC 4.1.3: cards can arrive after a wait the patient heard
+              announced, so their arrival is announced too, politely. */}
+          <AnnouncedText
+            tone="status"
+            role="body"
+            color="inkSoft"
+            message={t("records.confirm.intro")}
+          />
         </>
       ) : null}
       {withCards.map((doc) => {
@@ -122,7 +121,7 @@ export function RecordReading({
               <ConfirmCard
                 key={card.id}
                 card={card}
-                state={cardStates[card.id] ?? "pending"}
+                state={cardStateOf(cardStates, card)}
                 sourceOpen={openCard === card.id}
                 documentName={docDisplayName(doc.id)}
                 onToggleSource={() => setOpenCard(openCard === card.id ? null : card.id)}
