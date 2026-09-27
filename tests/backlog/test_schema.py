@@ -97,7 +97,10 @@ def test_ids_unique_and_well_formed() -> None:
     # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
     # + INT-373 (the Keycloak realm emits the claims the admin console
     # requires; found by INT-365).
-    assert len(ids) == 303
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    assert len(ids) == 304
     import re
 
     for i in ids:

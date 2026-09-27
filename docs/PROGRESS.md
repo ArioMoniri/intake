@@ -37,6 +37,30 @@
 - Blocked on: nothing. Landscape screenshots on hardware are the owner's DA-05 step.
 - Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx` and the dialogue's bottom stack in `DialogueIntake.tsx`. Whichever merges second rebases there: #615's "Bitirdim" button goes inside the new bar `ScrollView`.
 
+### 2026-09-27T07:30:00+03:00 · INT-392 · done (PR open)
+- Goal (GitHub #647, P0): every session-deletion path removes the session's `previsit_outputs` in the same transaction, in the documented order, audited. Found on main's check-integration: `ForeignKeyViolation` on `fk_previsit_outputs_session_id_sessions` in the teardown of `test_documents_roundtrip_against_real_minio`.
+- Plan:
+  - Explicit removal, output first, in the DSAR erasure (`intake_api.dsar.shred`) and the retention `clinical_record` executor.
+  - The DSAR erasure crypto-shreds each output and audits it as `dsar.delete.previsit_output` against `previsit_output:<id>`.
+  - The foreign key keeps NO ACTION as the fail-closed backstop. No cascade and no migration: files/06 §3 and the crypto-shred design require a shred and an audit entry, and a cascade gives neither.
+  - The retention executor also de-links telemetry, which it never did.
+  - The integration teardown deletes outputs first.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py`: the metadata contract for every key to `sessions.id`, four near-miss controls, and the retention executor run with SQLite foreign keys ON.
+  - One DSAR test in `tests/legal/test_dsar_flows.py`, also with foreign keys ON.
+  - `tests/integration/test_session_erasure.py` (CI).
+  - The `test_api_postgres.py` teardown and an output-exists assertion.
+  - RED: 2 failed, 47 passed. GREEN: 49 passed.
+- Result:
+  - api/data/legal/security/platform suites: 1680 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+- Invariants touched and still passing: **4** (every erasure of a disclosed output is audited), **14** (the envelope is crypto-shredded before its row goes), **17**, **18** (the files/06 §3 record clock now reaches the output).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-392.md` §8:
+  - `doctor_links → shares` blocks both executors' share delete on postgres.
+  - The DSAR executor's event de-link needs an `UPDATE` grant that `app_rw` does not hold.
+- Next: PR `INT-392: deleting a session removes its previsit outputs in every erasure and retention path` (Closes #647, Sec-Row data-at-rest), left unmerged for review.
+
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
 - Plan:
