@@ -6182,3 +6182,21 @@
     - "the sync closes the owned issue of a done row (state_reason completed) and reopens it for a row moved back from done; dry-run lists these actions; the live run is the operator's (make backlog-sync or the documented command)"
     - "duplicates are never touched, only the owned issue per id (owned_issue_numbers())"
   tests: [tests/backlog/test_sync_dryrun.py]
+- id: INT-415
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles per question context + on-prem TTS wiring guide"
+  # GitHub #706. Owner request, 27 Sep 2026: warm at the opening, professional
+  # afterwards. The profile values are voice tuning, not clinical values; the
+  # owner's listening review is still owed (docs/evidence/INT-415.md).
+  depends_on: [INT-326]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-415.md
+  acceptance:
+    - "a typed, versioned delivery-profile table maps each delivery context (welcome, routine question, sensitive question, instrument item, acknowledgement, RED script, closing) to ElevenLabs voice_settings (stability, similarity_boost, style, use_speaker_boost, speed) plus the pinned model id; server-side only, the key never reaches the device; the profile id is part of the clip cache key; RED and instrument profiles are the most stable and use no style exaggeration"
+    - "only scripted catalogue text is ever sent, never patient words (the INT-326 guards unchanged); the numeral-normaliser-off request and invariant 22 stay enforced"
+    - "docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr TTS controls, covering the adapter interface, the model registry fields (model_id@revision + sha256, licence_verified_at, self_hostable, probe), the clip manifest, the latency budget and a cut-over checklist; no model is named as pinned unless it is in files/03 §4.9.1"
+    - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
+  tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
+  sec_row: "cloud-clipgen"

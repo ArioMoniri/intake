@@ -1039,7 +1039,16 @@ it or whose tests exercise it.
   `clip_text_hash` is a row of a compiled clip manifest, else 422 with no dial, so arbitrary or
   patient text cannot reach the vendor through it; a per-principal Redis token bucket (429, and
   503 when the budget store is unreachable); and no mount and no wiring when `INTAKE_ENV` is
-  prod, whatever the dev flags say.
+  prod, whatever the dev flags say. **Delivery profiles** (INT-415):
+  - The request carries `voice_settings` from a server-side, versioned table
+    (`voice_clips.delivery`).
+  - The device sends only a context label, never a setting or a model; `extra="forbid"`
+    refuses both.
+  - A profile tuned for another model is refused before the wire.
+  - The dev route refuses `red`, and refuses any compiled rule script under any label, because
+    the catalogue pins it server-side (invariant 21).
+  - An instrument item is served only as `instrument`.
+  - The profile id and version are part of every clip key.
 - **Signals:** build-time tool, so its runtime evidence is a NEGATIVE — the per-session egress
   socket count for TTS stays zero (shared with `cloud-boundary`/`observer-lanes`) and the clip
   cache serves the fixed set (`voice.clip_cache_hit_ratio` high, no runtime synth for scripted
@@ -1051,7 +1060,9 @@ it or whose tests exercise it.
   key); scripts/ci/assert_no_vendor_calls.sh (no vendor FQDN in the build); tests/voice/
   test_audio_retention_guard.py (no audio content-type strings leak into the package);
   tests/api/test_dev_voice_hardening.py (the dev route's four doors, each proven with the vendor
-  fake at zero calls, near-miss catalogue controls included). The live
+  fake at zero calls, near-miss catalogue controls included); tests/voice/
+  test_delivery_profiles.py and tests/api/test_dev_voice_george.py (INT-415: the profile table,
+  `voice_settings` in the body, the RED and instrument pins, the profile in the cache key). The live
   small-run validation (7 Turkish questions, 229 characters) is recorded in
   docs/evidence/INT-319.md with its date and named corpus, described as a measurement (invariant
   20).
