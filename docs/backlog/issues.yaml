@@ -6116,3 +6116,17 @@
     - "the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"
   tests: [tests/infra/test_keycloak_realm_import.py, tests/admin/test_staff_second_factor.py]
   sec_row: "admin-console"
+- id: INT-412
+  epic: E08-mobile
+  phase: P1
+  title: "Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal"
+  depends_on: [INT-360]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-412.md
+  acceptance:
+    - "every icon resolves through one symbol registry with an SF Symbol for iOS and a Material fallback for Android and web; no blank icons on Android"
+    - "rail, CTA bar and welcome card use system Liquid Glass on iOS 26, blur or solid otherwise, following the app theme; Reduce Transparency forces solid and fails closed while unknown"
+    - "a layered icon proposal ready for Icon Composer; shipped app.json and assets unchanged (rebrand is owner-held)"
+  tests: [apps/mobile/src/lib/symbols.test.ts, apps/mobile/src/lib/glass.test.ts, apps/mobile/e2e/nativeChrome.spec.ts]
+  sec_row: "mobile"
