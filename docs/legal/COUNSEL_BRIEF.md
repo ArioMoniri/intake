@@ -773,7 +773,7 @@ project forbids, and it would be indistinguishable from counsel's own once merge
 ```
 — `services/api/src/intake_api/dsar/strings.py:1-9`
 
-Nine keys are unauthored (`dsar/strings.py:25-49`):
+Thirteen keys are unauthored (`dsar/strings.py:34-62`):
 
 | key | what it labels |
 |---|---|
@@ -786,6 +786,15 @@ Nine keys are unauthored (`dsar/strings.py:25-49`):
 | `dsar_export.section.shares` | section heading |
 | `dsar_export.section.rectifications` | section heading |
 | `dsar_export.section.requests` | section heading |
+| `dsar_export.section.learned_facts` | section heading: the learned facts files/09 §3 calls "exported/deletable" |
+| `dsar_export.section.feedback` | section heading: the patient's satisfaction comment |
+| `dsar_export.section.preferences` | section heading: the notification opt-out and quiet window |
+| `dsar_export.section.guardians` | section heading: the guardian↔minor link (gate shut today) |
+
+*(Updated 27 Sep 2026 by INT-395. The survey found nine keys; INT-395 added the last four,
+because the export now lists every table the inventory annotations put under the
+subject's access right and no existing heading fits these four. Each is one more
+heading, with no wording drafted; the export refuses without it exactly as before.)*
 
 **The one substantive question inside that list**, recorded verbatim at
 `dsar/strings.py:11-14`: `dsar_export.footer` is deliberately its own key rather than a

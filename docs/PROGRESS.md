@@ -1,5 +1,33 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T10:45:00+03:00 · INT-395 · done (PR open)
+- Goal (GitHub #654, P0): DSAR erasure and export cover every patient-deletable table. Found by INT-393 §11: no path erased `notification_preferences`, and the export did not list Doctor Links.
+- Plan:
+  - A completeness contract derived from the inventory annotations. A subject-erasable clock means the table must be erased; a subject-data category or an erasable clock means it must be exported. The erasure graph and near-miss controls are INT-393's.
+  - Run against main's declarations, the contract named eight gaps: the two above, and six more tables the export never listed (previsit outputs, learned facts and their header, CSAT comments, the preference, guardian links).
+  - The erasure and the export now read one sweep (`dsar.store.subject_record`). The erasure removes the preference and audits it by id.
+  - The export lists Doctor Links under their share: ids, instants, and the recipient as the role `clinician`, never the label. It also lists the other six tables, each by id.
+  - Four new counsel headings, with no wording drafted. The export still refuses until INT-210.
+  - The grant preflight: the run asks postgres for every privilege it exercises. A role that lacks any is refused before anything is touched, with a typed result, an audit entry, and the request left open. `app_rw` lacks exactly three privileges; granting them is INT-394's decision (#650), recorded and not taken.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py`: the contract, three pins, five near-miss controls, and the export over the full seed.
+  - `tests/legal/test_dsar_flows.py`: the Doctor Link export by role, the preference erasure, the fail-closed refusal, and the grant need parsed from the migrations.
+  - Integration (CI): the preference erased as the superuser; the refusal as `app_rw` naming exactly three privileges; the export sweep as `app_rw` under RLS.
+  - Access-log classification rows.
+  - RED: 12 failed, 119 passed. GREEN: 131 passed.
+- Result:
+  - data/legal/api/security/admin/experience/clinician/platform/backlog/smoke suites: 2907 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+  - Pins raised 305 → 306; files/11 regenerated.
+- Invariants touched and still passing: **4** (the refusal and the preference are audited by id), **6** (audit refs are id-shaped; the recipient label and the guardian's account ref stay out of the export), **14** (every envelope is still shredded before its row goes; no grant added), **17** (the missing grants fail closed, typed, and are not built around), **18** (the annotations now drive both paths), **22** (learned values render for `tr`).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-395.md` §11:
+  - INT-394's three grants;
+  - `patients` is annotated patient-deletable but kept as the anchor;
+  - an erased subject's opt-out reads as "said nothing";
+  - merge order with #670 (`record_embeddings`).
+- Next: PR `INT-395: DSAR erasure and export cover every patient-deletable table` (Closes #654, Sec-Row data-at-rest), left unmerged for review.
+
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
   - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*

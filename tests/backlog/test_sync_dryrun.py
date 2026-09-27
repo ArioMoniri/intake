@@ -67,7 +67,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-385 (record quantities in the locale's decimal separator, GitHub #635)
     # + INT-392, the session-deletion fix found on check-integration)
     # + INT-393, the Doctor Link erasure fix found by INT-392)
-    assert len(actions) == 305
+    # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
+    assert len(actions) == 306
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

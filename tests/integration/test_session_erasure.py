@@ -30,6 +30,14 @@ so erasing a patient who ever issued one raised ``ForeignKeyViolation`` on
 ``fk_doctor_links_share_id_shares``. The ``linked`` fixture adds a share and a
 Doctor Link to the visit, and the same three proofs run over it.
 
+INT-395 adds the subject-level row no path erased: the patient's
+``notification_preferences`` row, annotated patient-deletable. As the
+superuser the erasure now removes and audits it. As ``app_rw`` — the role
+0007 gives no DELETE on it — the run is refused before it touches anything,
+naming every grant it lacks: the refusal INT-394's role decision resolves.
+The export sweep runs as ``app_rw`` under RLS and lists the Doctor Link and
+the preference.
+
 Runs via ``make check-integration``. Every row is synthetic and belongs to a
 tenant created for the test, removed again afterwards. Sec row: data-at-rest.
 """
@@ -47,7 +55,11 @@ from pathlib import Path
 import psycopg
 import pytest
 from intake_api.audit import AuditWriter
+from intake_api.db import tenant_session
+from intake_api.dsar.export import ExportView, build_view
+from intake_api.dsar.grants import Privilege
 from intake_api.dsar.shred import ShredReport, execute_due_shreds
+from intake_api.dsar.store import subject_record
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.db.envelope_json import encrypted_field_to_json
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
@@ -68,6 +80,7 @@ DBNAME = os.environ.get("POSTGRES_DB", "intake")
 SUPERUSER = os.environ.get("POSTGRES_USER", "intake")
 SUPERPASS = os.environ.get("POSTGRES_PASSWORD", "intake-dev-only")
 AUDIT_WRITER = ("svc_audit_writer", "svc-audit-writer-dev-only")
+APP_RW = ("app_rw", "app-rw-dev-only")
 
 OUTPUT_FK = "fk_previsit_outputs_session_id_sessions"
 DOCTOR_LINK_FK = "fk_doctor_links_share_id_shares"
@@ -86,6 +99,7 @@ _TENANT_ROWS = (
     "dsar_rectifications",
     "sessions",
     "dsar_requests",
+    "notification_preferences",
     "patients",
 )
 
@@ -122,6 +136,8 @@ class Visit:
     session_id: uuid.UUID
     output_id: uuid.UUID
     event_id: int
+    preference_id: uuid.UUID
+    cipher: EnvelopeCipher
 
 
 @dataclass(frozen=True)
@@ -134,9 +150,10 @@ class Linked:
 @pytest.fixture
 def visit(migrated: None) -> Iterator[Visit]:
     """One completed visit as a sent note leaves it: a note and a previsit
-    output (both envelopes), a slot, and a telemetry event on the session."""
+    output (both envelopes), a slot, and a telemetry event on the session —
+    and the patient's notification preference (INT-395)."""
     cipher = EnvelopeCipher(FileKekProvider())
-    tenant, patient, session, output = (uuid.uuid4() for _ in range(4))
+    tenant, patient, session, output, preference = (uuid.uuid4() for _ in range(5))
 
     def envelope(body: bytes) -> Jsonb:
         return Jsonb(encrypted_field_to_json(cipher.encrypt_field(str(tenant), body)))
@@ -187,8 +204,13 @@ def visit(migrated: None) -> Iterator[Visit]:
         row = cur.fetchone()
         assert row is not None
         event_id = int(row[0])
+        cur.execute(
+            "INSERT INTO notification_preferences (id, tenant_id, patient_id, opted_out, "
+            "quiet_start_minute, quiet_end_minute) VALUES (%s, %s, %s, %s, %s, %s)",
+            (preference, tenant, patient, True, 22 * 60, 7 * 60),
+        )
 
-    yield Visit(tenant, patient, session, output, event_id)
+    yield Visit(tenant, patient, session, output, event_id, preference, cipher)
 
     with _connect() as conn, conn.cursor() as cur:
         for table in _TENANT_ROWS:
@@ -234,9 +256,11 @@ def test_the_key_still_refuses_a_session_delete_that_forgets_the_output(visit: V
     assert _count("sessions", "id = %s", visit.session_id) == 1
 
 
-def _erase_as_dsar(visit: Visit) -> tuple[ShredReport, list[tuple[str, str, str]]]:
-    """File a delete request whose grace has run, execute the erasure, and
-    return the report with this subject's audit entries as
+def _erase_as_dsar(
+    visit: Visit, *, role: tuple[str, str] = (SUPERUSER, SUPERPASS)
+) -> tuple[ShredReport, list[tuple[str, str, str]]]:
+    """File a delete request whose grace has run, execute the erasure as
+    ``role``, and return the report with this subject's audit entries as
     (action, actor, resource_ref)."""
     now = datetime.now(UTC)
     with _connect() as conn, conn.cursor() as cur:
@@ -256,7 +280,7 @@ def _erase_as_dsar(visit: Visit) -> tuple[ShredReport, list[tuple[str, str, str]
     audit_engine = create_engine(_url(*AUDIT_WRITER))
 
     async def _erase() -> ShredReport:
-        engine = create_async_engine(_url(SUPERUSER, SUPERPASS), poolclass=NullPool)
+        engine = create_async_engine(_url(*role), poolclass=NullPool)
         try:
             return await execute_due_shreds(
                 engine,
@@ -290,12 +314,23 @@ def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Vi
     assert _count("slots", "session_id = %s", visit.session_id) == 0
     assert _count("sessions", "id = %s", visit.session_id) == 0
     assert _event_session(visit.event_id) is None
+    assert _count("notification_preferences", "id = %s", visit.preference_id) == 0
     assert (
         entries.count(
             (
                 "dsar.delete.previsit_output",
                 f"patient:{visit.patient_id}",
                 f"previsit_output:{visit.output_id}",
+            )
+        )
+        == 1
+    )
+    assert (
+        entries.count(
+            (
+                "dsar.delete.notification_preference",
+                f"patient:{visit.patient_id}",
+                f"notification_preference:{visit.preference_id}",
             )
         )
         == 1
@@ -376,6 +411,11 @@ def test_the_dsar_erasure_erases_a_patient_who_issued_a_doctor_link(linked: Link
         ("dsar.delete.previsit_output", actor, f"previsit_output:{visit.output_id}"),
         ("dsar.delete.doctor_link", actor, f"doctor_link:{linked.link_id}"),
         ("dsar.delete.share", actor, f"share:{linked.share_id}"),
+        (
+            "dsar.delete.notification_preference",
+            actor,
+            f"notification_preference:{visit.preference_id}",
+        ),
     ]
 
 
@@ -395,3 +435,89 @@ def test_the_retention_executor_deletes_a_session_whose_note_has_a_doctor_link(
     assert _count("shares", "id = %s", linked.share_id) == 0
     assert _count("sessions", "id = %s", visit.session_id) == 0
     assert _event_session(visit.event_id) is None
+
+
+# --- INT-395: the erasure role, and the export sweep, on the real grants -------------
+
+
+def test_the_dsar_erasure_as_app_rw_is_refused_for_the_grants_int394_owns(
+    linked: Linked,
+) -> None:
+    """``app_rw`` lacks three privileges the erasure run exercises: DELETE on
+    ``notification_preferences`` (0007) and ``patient_overlays`` (0010), and
+    UPDATE on ``events.session_id`` (0001, events append-only). The run asks
+    postgres before it touches anything, and is refused with all three named
+    rather than failing half-way on the first. Nothing is removed, the
+    request stays open, and the refusal is on the chain."""
+    visit = linked.visit
+
+    report, entries = _erase_as_dsar(visit, role=APP_RW)
+
+    assert (report.shredded_requests, report.shredded_fields, report.removed_rows) == (0, 0, 0)
+    assert report.blocked is not None
+    assert set(report.blocked.missing) == {
+        Privilege("notification_preferences", "DELETE"),
+        Privilege("patient_overlays", "DELETE"),
+        Privilege("events", "UPDATE", "session_id"),
+    }
+    assert "role lacks DELETE on notification_preferences (INT-394)" in [
+        item.describe() for item in report.blocked.missing
+    ]
+    assert _count("notification_preferences", "id = %s", visit.preference_id) == 1
+    assert _count("doctor_links", "id = %s", linked.link_id) == 1
+    assert _count("notes", "session_id = %s", visit.session_id) == 1
+    assert _count("sessions", "id = %s", visit.session_id) == 1
+    assert (
+        _count("dsar_requests", "patient_id = %s AND status = 'scheduled'", visit.patient_id) == 1
+    )
+    (request_id,) = report.blocked.request_ids
+    actor = f"patient:{visit.patient_id}"
+    assert [entry for entry in entries if entry[0].startswith("dsar.delete.")] == [
+        ("dsar.delete.blocked", actor, f"dsar-request:{request_id}"),
+        *(
+            ("dsar.delete.blocked.missing_grant", actor, need.ref)
+            for need in report.blocked.missing
+        ),
+    ]
+
+
+def test_the_export_sweep_as_app_rw_lists_the_doctor_link_and_the_preference(
+    linked: Linked,
+) -> None:
+    """The export reads every table the erasure does, so it runs as the
+    application role under RLS: the grants and policies must let the sweep
+    see the Doctor Link and the preference, or the export silently shows less
+    than the erasure would destroy."""
+    visit = linked.visit
+
+    async def _view() -> ExportView:
+        engine = create_async_engine(_url(*APP_RW), poolclass=NullPool)
+        try:
+            async with tenant_session(engine, visit.tenant_id) as session:
+                record = await subject_record(
+                    session, tenant_id=visit.tenant_id, patient_id=visit.patient_id
+                )
+                return build_view(
+                    record,
+                    tenant_id=visit.tenant_id,
+                    patient_id=visit.patient_id,
+                    cipher=visit.cipher,
+                    generated_at=datetime.now(UTC),
+                )
+        finally:
+            await engine.dispose()
+
+    view = asyncio.run(_view())
+
+    shares = view.section_lines["shares"]
+    assert any(
+        line.startswith(
+            f"doctor_link:{linked.link_id} · share:{linked.share_id} · recipient:clinician"
+        )
+        for line in shares
+    )
+    assert not any("Sentetik" in line for line in shares), "the recipient is a role, never a name"
+    (preference,) = view.section_lines["preferences"]
+    assert preference.startswith(
+        f"notification_preference:{visit.preference_id} · opted_out:true · quiet:22:00-07:00"
+    )

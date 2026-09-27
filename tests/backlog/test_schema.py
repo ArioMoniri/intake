@@ -102,7 +102,10 @@ def test_ids_unique_and_well_formed() -> None:
     # on main's check-integration, fixed and closed in the same PR).
     # + INT-393 (a patient who issued a Doctor Link could not be erased; found
     # by INT-392, fixed and closed in the same PR).
-    assert len(ids) == 305
+    # + INT-395 (no path erased notification_preferences and the DSAR export
+    # did not list Doctor Links; found by INT-393, fixed and closed in the
+    # same PR).
+    assert len(ids) == 306
     import re
 
     for i in ids:
