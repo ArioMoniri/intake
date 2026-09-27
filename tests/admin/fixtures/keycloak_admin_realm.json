@@ -1,0 +1,198 @@
+{
+  "_comment": "Recorded shape of the Keycloak 26 admin REST answers INT-366 reads (GET /admin/realms/{realm}/users with briefRepresentation=false, .../users/{id}/role-mappings/realm/composite, .../events?type=LOGIN&user={id}, .../events/config) and of the OpenBao identity and token-accessor answers the lease revoker reads. Synthetic throughout: every subject, username and entity id is a test value, mail is .invalid, and the first and last names exist only so the suite can prove the review drops them. Timestamps are epoch milliseconds anchored at recorded_at_ms; tests/admin/access_fakes.py shifts them to the test's own instant so the dormancy arithmetic does not depend on the day the suite runs.",
+  "realm": "intake-dev",
+  "recorded_at_ms": 1790467200000,
+  "events_config": {
+    "eventsEnabled": true,
+    "eventsExpiration": 5184000,
+    "enabledEventTypes": ["LOGIN"],
+    "eventsListeners": ["jboss-logging"],
+    "adminEventsEnabled": false,
+    "adminEventsDetailsEnabled": false
+  },
+  "users": [
+    {
+      "id": "kc-sub-platform-owner",
+      "username": "synthetic-platform-owner",
+      "firstName": "Synthetic",
+      "lastName": "Owner",
+      "email": "platform-owner@intake-dev.invalid",
+      "enabled": true,
+      "createdTimestamp": 1767603600000,
+      "attributes": {"org": ["org:intake"]},
+      "realm_roles": ["platform_owner", "offline_access", "default-roles-intake-dev"],
+      "logins_ms": [1789891800000]
+    },
+    {
+      "id": "kc-sub-tenant-admin",
+      "username": "synthetic-tenant-admin",
+      "firstName": "Synthetic",
+      "lastName": "Hospital IT",
+      "email": "tenant-admin@intake-dev.invalid",
+      "enabled": true,
+      "createdTimestamp": 1772445600000,
+      "attributes": {"org": ["org:tenant-a"], "tenant": ["tenant-a"]},
+      "realm_roles": ["tenant_admin", "offline_access"],
+      "logins_ms": [1788247800000]
+    },
+    {
+      "id": "kc-sub-compliance-officer",
+      "username": "synthetic-compliance-officer",
+      "firstName": "Synthetic",
+      "lastName": "Compliance",
+      "email": "compliance@intake-dev.invalid",
+      "enabled": true,
+      "createdTimestamp": 1770724800000,
+      "attributes": {"org": ["org:intake"]},
+      "realm_roles": ["compliance_officer", "offline_access"],
+      "logins_ms": [1790327700000]
+    },
+    {
+      "id": "kc-sub-qms-owner",
+      "username": "synthetic-qms-owner",
+      "firstName": "Synthetic",
+      "lastName": "QMS",
+      "email": "qms@intake-dev.invalid",
+      "enabled": true,
+      "createdTimestamp": 1770724800000,
+      "attributes": {"org": ["org:intake"]},
+      "realm_roles": ["qms_owner", "offline_access"],
+      "logins_ms": [1790268000000]
+    },
+    {
+      "id": "kc-sub-qms-owner-ext",
+      "username": "synthetic-qms-owner-external",
+      "firstName": "Synthetic",
+      "lastName": "Notified Body",
+      "email": "qms-ext@notified-body.invalid",
+      "enabled": true,
+      "createdTimestamp": 1775034000000,
+      "attributes": {"org": ["org:notified-body"]},
+      "realm_roles": ["qms_owner"],
+      "logins_ms": [1790074800000]
+    },
+    {
+      "id": "kc-sub-tenant-clinical-responsible",
+      "username": "synthetic-medical-director",
+      "firstName": "Synthetic",
+      "lastName": "Medical Director",
+      "email": "medical-director@tenant-a.invalid",
+      "enabled": true,
+      "createdTimestamp": 1779285600000,
+      "attributes": {"org": ["org:tenant-a"], "tenant": ["tenant-a"]},
+      "realm_roles": ["tenant_clinical_responsible", "offline_access"],
+      "logins_ms": [1790409900000]
+    },
+    {
+      "id": "kc-sub-clinician",
+      "username": "synthetic-clinician",
+      "firstName": "Synthetic",
+      "lastName": "Clinician",
+      "email": "clinician@tenant-a.invalid",
+      "enabled": true,
+      "createdTimestamp": 1779285600000,
+      "attributes": {"org": ["org:tenant-a"], "tenant": ["tenant-a"]},
+      "realm_roles": ["clinician", "offline_access"],
+      "logins_ms": [1790409900000, 1789045200000]
+    },
+    {
+      "id": "kc-sub-clinician-dormant",
+      "username": "synthetic-clinician-dormant",
+      "firstName": "Synthetic",
+      "lastName": "Dormant",
+      "email": "dormant@tenant-a.invalid",
+      "enabled": true,
+      "createdTimestamp": 1769936400000,
+      "attributes": {"org": ["org:tenant-a"], "tenant": ["tenant-a"]},
+      "realm_roles": ["clinician"],
+      "logins_ms": [1782896400000]
+    },
+    {
+      "id": "kc-sub-clinician-sixty",
+      "username": "synthetic-clinician-sixty",
+      "firstName": "Synthetic",
+      "lastName": "Sixty Days",
+      "email": "sixty@tenant-a.invalid",
+      "enabled": true,
+      "createdTimestamp": 1769936400000,
+      "attributes": {"org": ["org:tenant-a"], "tenant": ["tenant-a"]},
+      "realm_roles": ["clinician"],
+      "logins_ms": [1785283200000]
+    },
+    {
+      "id": "kc-sub-clinician-fifty-nine",
+      "username": "synthetic-clinician-fifty-nine",
+      "firstName": "Synthetic",
+      "lastName": "Fifty Nine Days",
+      "email": "fifty-nine@tenant-a.invalid",
+      "enabled": true,
+      "createdTimestamp": 1769936400000,
+      "attributes": {"org": ["org:tenant-a"], "tenant": ["tenant-a"]},
+      "realm_roles": ["clinician"],
+      "logins_ms": [1785369600000]
+    },
+    {
+      "id": "kc-sub-sre-oncall",
+      "username": "synthetic-sre-oncall",
+      "firstName": "Synthetic",
+      "lastName": "On Call",
+      "email": "sre@intake-dev.invalid",
+      "enabled": true,
+      "createdTimestamp": 1780308000000,
+      "attributes": {"org": ["org:intake"]},
+      "realm_roles": ["sre_oncall", "offline_access"],
+      "logins_ms": []
+    },
+    {
+      "id": "kc-sub-auditor",
+      "username": "synthetic-auditor",
+      "firstName": "Synthetic",
+      "lastName": "Auditor",
+      "email": "auditor@notified-body.invalid",
+      "enabled": true,
+      "createdTimestamp": 1789045200000,
+      "attributes": {"org": ["org:notified-body"]},
+      "realm_roles": ["auditor"],
+      "logins_ms": []
+    },
+    {
+      "id": "kc-sub-clinical-lead",
+      "username": "synthetic-clinical-lead",
+      "firstName": "Synthetic",
+      "lastName": "Clinical Lead",
+      "email": "clinical-lead@intake-dev.invalid",
+      "enabled": false,
+      "createdTimestamp": 1767603600000,
+      "attributes": {"org": ["org:intake"]},
+      "realm_roles": ["clinical_lead"],
+      "logins_ms": [1781514000000]
+    },
+    {
+      "id": "kc-sub-no-staff-role",
+      "username": "synthetic-no-staff-role",
+      "firstName": "Synthetic",
+      "lastName": "No Role",
+      "email": "no-role@intake-dev.invalid",
+      "enabled": true,
+      "createdTimestamp": 1769936400000,
+      "attributes": {},
+      "realm_roles": ["offline_access", "default-roles-intake-dev"],
+      "logins_ms": []
+    }
+  ],
+  "openbao": {
+    "alias_mount_accessor": "auth_jwt_4f0c1a2b",
+    "entities": {
+      "kc-sub-platform-owner": "ent-platform-owner",
+      "kc-sub-clinician-dormant": "ent-clinician-dormant",
+      "kc-sub-sre-oncall": "ent-sre-oncall"
+    },
+    "token_accessors": {
+      "acc-po-1": "ent-platform-owner",
+      "acc-po-2": "ent-platform-owner",
+      "acc-other": "ent-someone-else",
+      "acc-dormant": "ent-clinician-dormant",
+      "acc-expired": null
+    }
+  }
+}

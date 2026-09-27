@@ -139,7 +139,17 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}
+      style={[
+        styles.wrap,
+        {
+          paddingBottom: Math.max(insets.bottom, spacing.sm),
+          // INT-360: the rail is pinned to both window edges, outside any
+          // Screen, and in landscape the notch and the rounded corners are at
+          // the sides. The pill stays centred; this keeps it clear of both.
+          paddingLeft: Math.max(insets.left, spacing.md),
+          paddingRight: Math.max(insets.right, spacing.md),
+        },
+      ]}
     >
       <View style={[styles.pill, { borderColor: fallback.borderColor }]}>
         <BlurView

@@ -1,0 +1,330 @@
+{
+  "schema": "intake.admin.access_review.v1",
+  "generated_at": "2026-09-27T00:00:00+00:00",
+  "policy": {
+    "review_max_age_days": 100,
+    "auto_disable_after_days": 60,
+    "read_only_roles": [
+      "platform_owner",
+      "tenant_admin"
+    ]
+  },
+  "status": {
+    "review_age_days": 40.0,
+    "never_reviewed": false,
+    "read_only_roles": []
+  },
+  "sections": [
+    {
+      "section": "platform_owner",
+      "signer_role": "compliance_officer",
+      "signer_tenant": null,
+      "countersigner": "different_organisation",
+      "holders": [
+        "kc-sub-platform-owner"
+      ],
+      "review_digest": "5760747e7e33422eafa37797338b988c",
+      "last_signed_at": "2026-08-18T00:00:00+00:00",
+      "age_days": 40.0,
+      "overdue": false
+    },
+    {
+      "section": "console_roles",
+      "signer_role": "compliance_officer",
+      "signer_tenant": null,
+      "countersigner": "second_person",
+      "holders": [
+        "kc-sub-auditor",
+        "kc-sub-clinical-lead",
+        "kc-sub-compliance-officer",
+        "kc-sub-qms-owner",
+        "kc-sub-qms-owner-ext",
+        "kc-sub-sre-oncall",
+        "kc-sub-tenant-admin",
+        "kc-sub-tenant-clinical-responsible"
+      ],
+      "review_digest": "6f7d3039d3847b823b97f972652e6230",
+      "last_signed_at": "2026-08-18T00:00:00+00:00",
+      "age_days": 40.0,
+      "overdue": false
+    },
+    {
+      "section": "clinicians:tenant-a",
+      "signer_role": "tenant_clinical_responsible",
+      "signer_tenant": "tenant-a",
+      "countersigner": "second_person",
+      "holders": [
+        "kc-sub-clinician",
+        "kc-sub-clinician-dormant",
+        "kc-sub-clinician-fifty-nine",
+        "kc-sub-clinician-sixty"
+      ],
+      "review_digest": "be23782826c18a6829666c3a37c1e536",
+      "last_signed_at": "2026-05-30T00:00:00+00:00",
+      "age_days": 120.0,
+      "overdue": true
+    }
+  ],
+  "holders": [
+    {
+      "subject": "kc-sub-auditor",
+      "username": "synthetic-auditor",
+      "enabled": true,
+      "roles": [
+        "auditor"
+      ],
+      "tenant": null,
+      "org": "org:notified-body",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-09-10T13:00:00+00:00",
+      "last_login_at": null,
+      "days_since_activity": 16.458,
+      "days_until_auto_disable": 43.542,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-clinical-lead",
+      "username": "synthetic-clinical-lead",
+      "enabled": false,
+      "roles": [
+        "clinical_lead"
+      ],
+      "tenant": null,
+      "org": "org:intake",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-01-05T09:00:00+00:00",
+      "last_login_at": "2026-06-15T09:00:00+00:00",
+      "days_since_activity": 103.625,
+      "days_until_auto_disable": -43.625,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-clinician",
+      "username": "synthetic-clinician",
+      "enabled": true,
+      "roles": [
+        "clinician"
+      ],
+      "tenant": "tenant-a",
+      "org": "org:tenant-a",
+      "sections": [
+        "clinicians:tenant-a"
+      ],
+      "created_at": "2026-05-20T14:00:00+00:00",
+      "last_login_at": "2026-09-26T08:05:00+00:00",
+      "days_since_activity": 0.663,
+      "days_until_auto_disable": 59.337,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-05-30T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-clinician-dormant",
+      "username": "synthetic-clinician-dormant",
+      "enabled": true,
+      "roles": [
+        "clinician"
+      ],
+      "tenant": "tenant-a",
+      "org": "org:tenant-a",
+      "sections": [
+        "clinicians:tenant-a"
+      ],
+      "created_at": "2026-02-01T09:00:00+00:00",
+      "last_login_at": "2026-07-01T09:00:00+00:00",
+      "days_since_activity": 87.625,
+      "days_until_auto_disable": -27.625,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-05-30T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-clinician-fifty-nine",
+      "username": "synthetic-clinician-fifty-nine",
+      "enabled": true,
+      "roles": [
+        "clinician"
+      ],
+      "tenant": "tenant-a",
+      "org": "org:tenant-a",
+      "sections": [
+        "clinicians:tenant-a"
+      ],
+      "created_at": "2026-02-01T09:00:00+00:00",
+      "last_login_at": "2026-07-30T00:00:00+00:00",
+      "days_since_activity": 59.0,
+      "days_until_auto_disable": 1.0,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-05-30T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-clinician-sixty",
+      "username": "synthetic-clinician-sixty",
+      "enabled": true,
+      "roles": [
+        "clinician"
+      ],
+      "tenant": "tenant-a",
+      "org": "org:tenant-a",
+      "sections": [
+        "clinicians:tenant-a"
+      ],
+      "created_at": "2026-02-01T09:00:00+00:00",
+      "last_login_at": "2026-07-29T00:00:00+00:00",
+      "days_since_activity": 60.0,
+      "days_until_auto_disable": 0.0,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-05-30T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-compliance-officer",
+      "username": "synthetic-compliance-officer",
+      "enabled": true,
+      "roles": [
+        "compliance_officer"
+      ],
+      "tenant": null,
+      "org": "org:intake",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-02-10T12:00:00+00:00",
+      "last_login_at": "2026-09-25T09:15:00+00:00",
+      "days_since_activity": 1.615,
+      "days_until_auto_disable": 58.385,
+      "last_console_action_at": "2026-09-26T12:00:00+00:00",
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-platform-owner",
+      "username": "synthetic-platform-owner",
+      "enabled": true,
+      "roles": [
+        "platform_owner"
+      ],
+      "tenant": null,
+      "org": "org:intake",
+      "sections": [
+        "platform_owner"
+      ],
+      "created_at": "2026-01-05T09:00:00+00:00",
+      "last_login_at": "2026-09-20T08:10:00+00:00",
+      "days_since_activity": 6.66,
+      "days_until_auto_disable": 53.34,
+      "last_console_action_at": "2026-09-26T00:00:00+00:00",
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-qms-owner",
+      "username": "synthetic-qms-owner",
+      "enabled": true,
+      "roles": [
+        "qms_owner"
+      ],
+      "tenant": null,
+      "org": "org:intake",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-02-10T12:00:00+00:00",
+      "last_login_at": "2026-09-24T16:40:00+00:00",
+      "days_since_activity": 2.306,
+      "days_until_auto_disable": 57.694,
+      "last_console_action_at": "2026-05-30T00:00:00+00:00",
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-qms-owner-ext",
+      "username": "synthetic-qms-owner-external",
+      "enabled": true,
+      "roles": [
+        "qms_owner"
+      ],
+      "tenant": null,
+      "org": "org:notified-body",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-04-01T09:00:00+00:00",
+      "last_login_at": "2026-09-22T11:00:00+00:00",
+      "days_since_activity": 4.542,
+      "days_until_auto_disable": 55.458,
+      "last_console_action_at": "2026-08-18T00:00:00+00:00",
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-sre-oncall",
+      "username": "synthetic-sre-oncall",
+      "enabled": true,
+      "roles": [
+        "sre_oncall"
+      ],
+      "tenant": null,
+      "org": "org:intake",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-06-01T10:00:00+00:00",
+      "last_login_at": null,
+      "days_since_activity": 117.583,
+      "days_until_auto_disable": -57.583,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-tenant-admin",
+      "username": "synthetic-tenant-admin",
+      "enabled": true,
+      "roles": [
+        "tenant_admin"
+      ],
+      "tenant": "tenant-a",
+      "org": "org:tenant-a",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-03-02T10:00:00+00:00",
+      "last_login_at": "2026-09-01T07:30:00+00:00",
+      "days_since_activity": 25.688,
+      "days_until_auto_disable": 34.312,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    },
+    {
+      "subject": "kc-sub-tenant-clinical-responsible",
+      "username": "synthetic-medical-director",
+      "enabled": true,
+      "roles": [
+        "tenant_clinical_responsible"
+      ],
+      "tenant": "tenant-a",
+      "org": "org:tenant-a",
+      "sections": [
+        "console_roles"
+      ],
+      "created_at": "2026-05-20T14:00:00+00:00",
+      "last_login_at": "2026-09-26T08:05:00+00:00",
+      "days_since_activity": 0.663,
+      "days_until_auto_disable": 59.337,
+      "last_console_action_at": null,
+      "last_reviewed_at": "2026-08-18T00:00:00+00:00"
+    }
+  ],
+  "pending_offboardings": [
+    {
+      "offboarding_id": "9f3c2a1be4d54c7a8e6b0d1f2a3b4c5d",
+      "subject": "kc-sub-clinical-lead",
+      "reason_class": "departure",
+      "pending_systems": [
+        "grafana",
+        "langfuse",
+        "unleash"
+      ],
+      "failed_systems": []
+    }
+  ]
+}

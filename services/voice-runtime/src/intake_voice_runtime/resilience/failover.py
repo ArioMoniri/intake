@@ -44,6 +44,11 @@ turns it into the typed profile inside the same turn
 with ``SPEECH_LANES_EXHAUSTED``). The exception names components and
 outcomes only — never the sentence (CLAUDE.md invariant 6).
 
+**Every dial is counted** (INT-182): ``voice_speech_calls_total`` with
+``kind="tts"`` and ``ok``/``failed``, by the lane's registry component — the
+Voice module's TTS error rate. A lane skipped behind an open breaker or out of
+budget dialled nothing and is not a call.
+
 Two things are deliberately **not** lane failures: a numeral in the text
 (invariant 22 is refused before any lane or breaker is touched — it is the
 caller's defect, not a vendor's), and an attempt the budget left no time for
@@ -59,7 +64,7 @@ from typing import Final, Protocol, runtime_checkable
 from clinical_schemas.common import FrozenModel
 from pydantic import Field
 
-from intake_voice_runtime.metrics import VENDOR_FAILOVERS_TOTAL
+from intake_voice_runtime.metrics import VENDOR_FAILOVERS_TOTAL, VOICE_SPEECH_CALLS_TOTAL
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.resilience.breaker import BreakerBoard, NowMs
 from intake_voice_runtime.resilience.order import FailoverOrder
@@ -239,6 +244,9 @@ class FailoverSynthesizer:
                 )
             except Exception:
                 breaker.record_failure()
+                VOICE_SPEECH_CALLS_TOTAL.labels(
+                    component=component, kind="tts", outcome="failed"
+                ).inc()
                 attempts.append(
                     LaneAttempt(
                         component=component,
@@ -249,6 +257,7 @@ class FailoverSynthesizer:
                 self._leave(component)
                 continue
             breaker.record_success()
+            VOICE_SPEECH_CALLS_TOTAL.labels(component=component, kind="tts", outcome="ok").inc()
             attempts.append(
                 LaneAttempt(
                     component=component,

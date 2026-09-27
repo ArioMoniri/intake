@@ -23,14 +23,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from intake_api.admin.models_source import load_models_module
+from intake_api.admin.models_source import load_models_module, load_probe_sweep
 from intake_api.admin.views import models_module_view
 
 FIXTURE = Path("apps") / "admin-web" / "e2e" / "fixtures" / "models.payload.json"
 
 
 def main() -> int:
-    payload = models_module_view(load_models_module())
+    sweep = load_probe_sweep()
+    payload = models_module_view(load_models_module(sweep), sweep)
     FIXTURE.parent.mkdir(parents=True, exist_ok=True)
     FIXTURE.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     rows = len(payload["rows"])

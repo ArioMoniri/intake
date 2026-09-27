@@ -7,6 +7,134 @@
   "loginWithEmailAllowed": false,
   "duplicateEmailsAllowed": false,
   "bruteForceProtected": true,
+  "rememberMe": false,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "clientSessionIdleTimeout": 1800,
+  "clientSessionMaxLifespan": 28800,
+  "offlineSessionIdleTimeout": 1800,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 28800,
+  "eventsEnabled": true,
+  "eventsExpiration": 5184000,
+  "enabledEventTypes": ["LOGIN"],
+  "adminEventsEnabled": false,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "otpPolicyCodeReusable": false,
+  "webAuthnPolicyRpEntityName": "intake",
+  "webAuthnPolicySignatureAlgorithms": ["ES256", "RS256"],
+  "webAuthnPolicyRpId": "",
+  "webAuthnPolicyAttestationConveyancePreference": "not specified",
+  "webAuthnPolicyAuthenticatorAttachment": "not specified",
+  "webAuthnPolicyRequireResidentKey": "not specified",
+  "webAuthnPolicyUserVerificationRequirement": "required",
+  "webAuthnPolicyCreateTimeout": 0,
+  "webAuthnPolicyAvoidSameAuthenticatorRegister": false,
+  "webAuthnPolicyAcceptableAaguids": [],
+  "webAuthnPolicyExtraOrigins": [],
+  "browserFlow": "staff browser",
+  "authenticatorConfig": [
+    {
+      "alias": "amr pwd",
+      "config": {
+        "default.reference.value": "pwd",
+        "default.reference.maxAge": "28800"
+      }
+    },
+    {
+      "alias": "amr otp",
+      "config": {
+        "default.reference.value": "otp",
+        "default.reference.maxAge": "28800"
+      }
+    },
+    {
+      "alias": "amr hwk",
+      "config": {
+        "default.reference.value": "hwk",
+        "default.reference.maxAge": "28800"
+      }
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "staff browser",
+      "description": "files/08 §2.3 (INT-365): resume an SSO session, or a password and a second factor. Each execution a user completes is tagged with its RFC 8176 amr value. The api refuses a token without pwd plus otp or hwk, and a token without hwk for a role that reaches patient content.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "staff browser forms",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "staff browser forms",
+      "description": "Password (amr pwd), then the second factor. Both are REQUIRED and nothing sits beside them.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorConfig": "amr pwd",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "staff second factor",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "staff second factor",
+      "description": "WebAuthn (amr hwk, user verification required) or TOTP (amr otp). An ALTERNATIVE needs a registered credential, so a staff account is enrolled through an admin-sent required action (webauthn-register or CONFIGURE_TOTP) before its first console login.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "webauthn-authenticator",
+          "authenticatorConfig": "amr hwk",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorConfig": "amr otp",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
   "roles": {
     "realm": [
       {
@@ -97,9 +225,112 @@
       "webOrigins": ["http://localhost:3000", "http://127.0.0.1:3000"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "audience api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "api",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "org",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "org",
+            "claim.name": "org",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "aggregate.attrs": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant",
+            "claim.name": "tenant",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "aggregate.attrs": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "aaguid",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "intake.webauthn.aaguid",
+            "claim.name": "aaguid",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "credential_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "intake.webauthn.credential_id",
+            "claim.name": "credential_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}}},{\"name\":\"email\",\"displayName\":\"${email}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"email\":{},\"length\":{\"max\":255}}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"org\",\"displayName\":\"Organisation id (admin console actor block)\",\"multivalued\":false,\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"validations\":{\"pattern\":{\"pattern\":\"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$\"}}},{\"name\":\"tenant\",\"displayName\":\"Tenant id (admin console scope)\",\"multivalued\":false,\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"validations\":{\"pattern\":{\"pattern\":\"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$\"}}}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  },
   "users": [
     {
       "username": "dev-admin",

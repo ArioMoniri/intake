@@ -11,8 +11,10 @@ order and for this reason:
    verifier ever being asked, and so the refusal reveals nothing about whether
    the token was good.
 3. **Who is the caller, and may they reach this route?** Roles are intersected
-   with the files/08 §2.1 set, tenant scope comes from the claim, and
-   ``?tenant=`` is refused below ``platform_owner``.
+   with the files/08 §2.1 set, the token must show the second factor those
+   roles need (files/08 §2.3, INT-365; a 401 step-up challenge otherwise),
+   tenant scope comes from the claim, and ``?tenant=`` is refused below
+   ``platform_owner``.
 
 The audit wrapper sits outside all three in :mod:`intake_api.admin.routes`, so
 a refusal at any gate is still an audited action — a refused admin request is
@@ -29,11 +31,13 @@ from intake_platform.admin import (
     AdminWiring,
     ClaimsRejected,
     PrincipalRefused,
+    SecondFactorRequired,
     effective_tenant,
     principal_from_claims,
 )
 
 from intake_api.errors import (
+    InsufficientUserAuthentication,
     admin_console_unconfigured,
     admin_refused,
     source_ip_refused,
@@ -88,6 +92,8 @@ def resolve_caller(request: Request, wiring: AdminWiring) -> AdminCaller:
     try:
         principal = principal_from_claims(claims, source_ip=_client_host(request))
         tenant = effective_tenant(principal, request.query_params.get("tenant"))
+    except SecondFactorRequired as refusal:
+        raise InsufficientUserAuthentication(refusal.subject) from None
     except PrincipalRefused as refusal:
         raise admin_refused(refusal.code) from None
     return AdminCaller(principal, tenant)

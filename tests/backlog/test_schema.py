@@ -85,9 +85,30 @@ def test_ids_unique_and_well_formed() -> None:
     # id is held by no other row on main or any remote branch).
     # + INT-376 (the production API's move to Frankfurt, split out of INT-352
     # because it waits on AWS approving the eu-central-1 GPU quota).
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
+    # kiosk idle warning).
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
+    # + INT-380 (INT-121 clause 3, the LOINC+unit score on a named corpus,
+    # awaiting-human) + INT-381 (INT-124's on-hardware latency and live smoke,
+    # gpu), both split out by INT-124's PR so each delivered row can close.
+    # + INT-385 (record quantities render with the locale's decimal separator;
+    # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
+    # + INT-373 (the Keycloak realm emits the claims the admin console
+    # requires; found by INT-365).
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    # + INT-393 (a patient who issued a Doctor Link could not be erased; found
+    # by INT-392, fixed and closed in the same PR).
+    # + INT-391 (the console accepts every valid WebAuthn credential id; found
+    # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
     # + INT-375 (the protocol compiler refuses a gate that reads a later slot,
     # files/13 §9.5 — found by the PR #582 near-twin sweep, GitHub #609).
-    assert len(ids) == 298
+    assert len(ids) == 308
     import re
 
     for i in ids:
