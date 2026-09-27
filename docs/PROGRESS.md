@@ -15,7 +15,7 @@
 - Invariants touched and still passing: 6 (ids only, nothing logged), 14 (sha256 pins on Maven, every artefact and the jar; licence verified from the raw LICENSE at the tag; no gate skipped), 17 (no placeholder or skip).
 - Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
 - Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
-- Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619 and #598. After merge, the owner deploys the provider (runbook §3).
+- Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
 
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
