@@ -19,6 +19,10 @@ token OpenBao would not give is ``token_unavailable``, and a call the egress
 guard refused (files/10 §4) is ``egress_denied``. The collector clears the
 CI series on any of them, so the console reads *unknown* rather than the last
 green it happened to see (invariant 17).
+
+:func:`github_get`, :func:`check_github_target` and :func:`parse_run` are the
+shared pieces the CI/CD read (:mod:`.ops_cicd`, INT-187) reuses, so both
+sources refuse with the same codes and validate with the same shapes.
 """
 
 from __future__ import annotations
@@ -38,9 +42,16 @@ __all__ = [
     "CI_CONCLUSIONS",
     "CI_STATUSES",
     "GITHUB_API",
+    "REF_RE",
+    "SHA_RE",
     "CiRun",
     "CiSourceError",
     "GithubActionsSource",
+    "check_github_target",
+    "github_client",
+    "github_get",
+    "parse_github_time",
+    "parse_run",
 ]
 
 #: GitHub's public REST API origin. A GitHub Enterprise deployment overrides
@@ -49,8 +60,10 @@ GITHUB_API: Final = "https://api.github.com"
 _API_VERSION: Final = "2022-11-28"
 _PAGE: Final = 30
 _REPO_RE: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$")
-_BRANCH_RE: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
-_SHA_RE: Final = re.compile(r"^[0-9a-f]{40}$")
+#: A git ref name — the watched branch, or a release tag (INT-187).
+REF_RE: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+#: A full commit sha as GitHub prints it.
+SHA_RE: Final = re.compile(r"^[0-9a-f]{40}$")
 _WORKFLOW_PATH_RE: Final = re.compile(r"^\.github/workflows/([^/]+)\.ya?ml$")
 
 #: GitHub's documented run ``status`` and ``conclusion`` vocabularies. A value
@@ -93,7 +106,8 @@ class CiRun:
     updated_at: datetime
 
 
-def _parse_time(raw: object) -> datetime | None:
+def parse_github_time(raw: object) -> datetime | None:
+    """A GitHub ISO-8601 timestamp in UTC, or ``None`` if it is not one."""
     if not isinstance(raw, str):
         return None
     try:
@@ -103,7 +117,46 @@ def _parse_time(raw: object) -> datetime | None:
     return parsed.astimezone(UTC) if parsed.tzinfo is not None else None
 
 
-def _run(entry: Mapping[str, Any], branch: str) -> CiRun | None:
+def check_github_target(repo: str, branch: str, api_base: str) -> None:
+    """Refuse a repository, branch or API base the collector will not dial."""
+    if not _REPO_RE.match(repo) or ".." in repo:
+        raise OpsConfigError("the GitHub repository must be owner/name")
+    if not REF_RE.match(branch) or ".." in branch:
+        raise OpsConfigError("the branch must be a plain ref name")
+    if not api_base.startswith("https://"):
+        raise OpsConfigError("the GitHub API base must be https")
+
+
+def github_client(transport: httpx.BaseTransport | None, timeout_s: float) -> httpx.Client:
+    """The client one read uses: no redirects, so a 3xx is a refusal, not a hop."""
+    return httpx.Client(transport=transport, timeout=timeout_s, follow_redirects=False)
+
+
+def github_get(client: httpx.Client, url: str, token: str, params: Mapping[str, str | int]) -> Any:
+    """One GET against the REST API: the decoded JSON body, or a coded refusal."""
+    try:
+        response = client.get(
+            url,
+            params=dict(params),
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": _API_VERSION,
+            },
+        )
+    except EgressDenied:
+        raise CiSourceError("egress_denied") from None
+    except httpx.HTTPError:
+        raise CiSourceError("github_unreachable") from None
+    if response.status_code // 100 != 2:
+        raise CiSourceError(f"github_http_{response.status_code}")
+    try:
+        return response.json()
+    except ValueError:
+        raise CiSourceError("github_bad_response") from None
+
+
+def parse_run(entry: Mapping[str, Any], branch: str) -> CiRun | None:
     """One API row as a :class:`CiRun`, or ``None`` if any field is not an id."""
     match = _WORKFLOW_PATH_RE.match(str(entry.get("path", "")))
     workflow = match.group(1) if match else ""
@@ -111,14 +164,14 @@ def _run(entry: Mapping[str, Any], branch: str) -> CiRun | None:
     conclusion = entry.get("conclusion") or "none"
     sha = entry.get("head_sha")
     number = entry.get("run_number")
-    updated = _parse_time(entry.get("updated_at"))
+    updated = parse_github_time(entry.get("updated_at"))
     if (
         not ID_SHAPED.match(workflow)
         or entry.get("head_branch") != branch
         or status not in CI_STATUSES
         or conclusion not in CI_CONCLUSIONS
         or not isinstance(sha, str)
-        or not _SHA_RE.match(sha)
+        or not SHA_RE.match(sha)
         or not isinstance(number, int)
         or updated is None
     ):
@@ -146,39 +199,13 @@ class GithubActionsSource:
     timeout_s: float = 10.0
 
     def __post_init__(self) -> None:
-        if not _REPO_RE.match(self.repo) or ".." in self.repo:
-            raise OpsConfigError("the GitHub repository must be owner/name")
-        if not _BRANCH_RE.match(self.branch) or ".." in self.branch:
-            raise OpsConfigError("the branch must be a plain ref name")
-        if not self.api_base.startswith("https://"):
-            raise OpsConfigError("the GitHub API base must be https")
+        check_github_target(self.repo, self.branch, self.api_base)
 
     def _fetch(self) -> Mapping[str, Any]:
         token = self.token()
         url = f"{self.api_base.rstrip('/')}/repos/{self.repo}/actions/runs"
-        try:
-            with httpx.Client(
-                transport=self.transport, timeout=self.timeout_s, follow_redirects=False
-            ) as client:
-                response = client.get(
-                    url,
-                    params={"branch": self.branch, "per_page": _PAGE},
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Accept": "application/vnd.github+json",
-                        "X-GitHub-Api-Version": _API_VERSION,
-                    },
-                )
-        except EgressDenied:
-            raise CiSourceError("egress_denied") from None
-        except httpx.HTTPError:
-            raise CiSourceError("github_unreachable") from None
-        if response.status_code // 100 != 2:
-            raise CiSourceError(f"github_http_{response.status_code}")
-        try:
-            body = response.json()
-        except ValueError:
-            raise CiSourceError("github_bad_response") from None
+        with github_client(self.transport, self.timeout_s) as client:
+            body = github_get(client, url, token, {"branch": self.branch, "per_page": _PAGE})
         if not isinstance(body, dict) or not isinstance(body.get("workflow_runs"), list):
             raise CiSourceError("github_bad_response")
         return body
@@ -189,7 +216,7 @@ class GithubActionsSource:
         for entry in self._fetch()["workflow_runs"]:
             if not isinstance(entry, Mapping):
                 continue
-            run = _run(entry, self.branch)
+            run = parse_run(entry, self.branch)
             if run is None:
                 continue
             held = newest.get(run.workflow)
