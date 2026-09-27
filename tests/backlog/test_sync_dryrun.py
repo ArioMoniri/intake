@@ -84,9 +84,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-392, the session-deletion fix found on check-integration)
     # + INT-393, the Doctor Link erasure fix found by INT-392)
     # + INT-391 (every valid WebAuthn credential id admitted, GitHub #646)
+    # + INT-386 (the typed rail, note, summary and FHIR narrative quantities, GitHub #638)
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655)
     # + INT-405 (sync paging past 500 issues and issue state, GitHub #675)
-    assert len(actions) == 308
+    assert len(actions) == 309
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -257,12 +257,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
     # + INT-391 (the console accepts every valid WebAuthn credential id, found
     # by INT-378's PR as GitHub #646); grows only with a stated reason.
+    # found by INT-124's PR as GitHub #635) + INT-386 (the typed rail, note,
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638);
+    # grows only with a stated reason.
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
     # grows only with a stated reason.
     # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
     # in step with rows, found by INT-396, GitHub #675); grows only with a
     # stated reason.
-    assert len(ids) == 308, f"expected 175 blueprint + 133 added issues, got {len(ids)}"
+    assert len(ids) == 309, f"expected 175 blueprint + 134 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

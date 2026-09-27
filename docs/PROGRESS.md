@@ -19,6 +19,40 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. docs/security/threat-model.md `admin-console` gains "Controls added by INT-391". Pins 302 → 303, and files/11 is regenerated.
 - Blocked on: nothing.
 - Next: PR `INT-391: the console accepts every valid WebAuthn credential id` (Closes #646, Sec-Row admin-console). #643's recorder loop and runbook §3 describe the old rule once both merge.
+
+### 2026-09-27T09:00:00Z · INT-386 · done (PR open)
+- Goal: acceptance verbatim (GitHub #638):
+  - *"every clinical quantity in the typed lane, clinician note, patient summary and FHIR narrative text renders through the INT-385 locale renderer: tr comma, `useGrouping:false`, number + unit as one non-breaking atom; FHIR structured values (`valueQuantity.value`) stay numeric and unchanged"*
+  - *"a shared fixture test across all renderers, the golden and `make safety` tests updated with a near-miss (a full stop in tr fails), and no numeral reaching TTS"*
+- Plan:
+  - Move INT-385's renderer, unchanged, to `clinical_schemas.quantity`, because the FHIR mapper's package cannot import `intake_platform`. `intake_platform.records` re-exports the same five objects.
+  - Add `float_magnitude` for the float speech measures. It uses `repr` digits, never the binary expansion, and refuses NaN and inf.
+  - The typed rail takes a required `locale`. The note, the summary and the FHIR narrative use `meta.language`. The note's SOAP/PDF speech-measure lines are fixed too, so the two faces of one note agree.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (+139):
+    - six entry points × the shared table, in tr and en, each with a round trip through the parser and the reader;
+    - a full stop put back fails on every surface;
+    - no grouping; `de` refused everywhere; the re-export identities;
+    - speech measures read back to the exact float;
+    - a runtime import boundary: six TTS-path modules, each in a fresh interpreter, load none of the seven renderer modules; plus static allow-lists and a no-arithmetic check on the moved module.
+  - `test_note_golden.py` (+1): SOAP, PDF and FHIR decimal near misses. `test_patient_summary.py` (+1). `test_typed_parity.py` (+2). `test_fhir_mappers.py` (+5): the narrative carries the comma and `valueQuantity` is unchanged.
+  - RED: 2 collection ImportErrors, and 9 failed (TypeError on `locale`, `72.5` where `72,5` was expected).
+  - Mutants: a full-stop renderer kills 83 tests; two sites reverted to their old f-strings kill 21.
+- Result:
+  - Goldens byte-identical (every golden quantity is whole).
+  - One expectation changed: `test_numeric_carrier` rail `38.50` → `38,50`, with `38.50` now asserted absent.
+  - Before/after capture through `main`'s and this branch's renderers: each line differs only in its decimal point.
+  - `make check-py` exit 0: ruff/format clean, `mypy --strict` clean (473 files), whole tree 8462 passed at 96.11 %, every scoped lane at its floor.
+  - `make safety` exit 0 (triage 100 %, voice-runtime 98.63 %).
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check`, sec-row linkage, gitleaks (staged) and bandit: OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 2 and 10 (no `text_tr`, instrument or copy string changed), 6 (refusals echo nothing), 8 (tests only added; clinical-schemas lane at 91.99 %), 22 (display half on every text surface; the TTS half is untouched and the boundary is tested).
+- Decisions / ADRs / `00_STATE.md` rows: none. The module move follows the existing one-way `intake_platform → clinical-schemas` edge.
+  - Found, not fixed: triage `evidence` strings (`packages/protocols`) still print a full stop into the note and the narrative.
+  - Found, not fixed: open-map `JsonValue` values are carried as written.
+  - Pins 302 → 303.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #638).
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
