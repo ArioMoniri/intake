@@ -245,8 +245,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) + INT-377 (probe-results file fails closed on the
     # admin console, found by INT-181); grows only with a stated reason.
     # previsit routing) + INT-392 (a session with a previsit output can be
-    # deleted again, found on check-integration); grows only with a stated reason.
-    assert len(ids) == 300, f"expected 175 blueprint + 125 added issues, got {len(ids)}"
+    # deleted again, found on check-integration) + INT-393 (a patient who issued
+    # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
+    assert len(ids) == 301, f"expected 175 blueprint + 126 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

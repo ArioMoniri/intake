@@ -64,7 +64,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # tracks test_schema.py (175 blueprint + added issues, latest INT-376)
     # + INT-318, the INT-354 slice S2 row)
     # + INT-392, the session-deletion fix found on check-integration)
-    assert len(actions) == 300
+    # + INT-393, the Doctor Link erasure fix found by INT-392)
+    assert len(actions) == 301
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

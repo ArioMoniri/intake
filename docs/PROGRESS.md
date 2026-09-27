@@ -1,5 +1,34 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T10:30:00+03:00 · INT-393 · done (PR open)
+- Goal (GitHub #649, P0): erasing a patient who issued a Doctor Link works. Found by INT-392 §8: `doctor_links.share_id → shares.id` has no ON DELETE rule, and both executors deleted the subject's shares with the links still in place (`ForeignKeyViolation` on postgres).
+- Plan:
+  - The INT-392 pattern one level down, in the DSAR erasure and the retention `clinical_record` executor: Doctor Links removed explicitly, before their shares.
+  - The DSAR erasure crypto-shreds each link's recipient envelope. It audits each removed link (`doctor_link:<id>`) and each removed share (`share:<id>`), deleting by the ids it audits.
+  - The key keeps NO ACTION as the backstop. No migration.
+  - files/06 gives no reason for a link to outlive the record: `RET_SHARE` says "grant row retained with the record". So no stop was needed.
+  - `retention_policy.yaml` `clinical_record` source text now lists the tree (INT-317 outputs, INT-150 Doctor Links). Text only; no period touched.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py` is now an erasure-graph contract:
+    - 17 tables, 21 keys, each declared, read from the metadata;
+    - seven near-miss controls, including a planted undeclared key and a planted table below `shares`;
+    - both executors checked against the declaration with SQLite foreign keys ON.
+  - One DSAR test issues a real Doctor Link and erases the patient.
+  - Integration (CI): the backstop, and both paths with a Doctor Link.
+  - Access-log classification rows.
+  - RED: 3 failed, 111 passed. GREEN: 114 passed.
+- Result:
+  - data/legal/api/security/clinician/backlog/smoke/platform suites: 1771 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+  - Pins raised 300 → 301; files/11 regenerated.
+- Invariants touched and still passing: **4** (each removed grant and share is audited by id), **14** (the recipient envelope is shredded before its row goes), **17**, **18** (the record clock reaches the Doctor Link row).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-393.md` §11:
+  - No path erases `notification_preferences`, although its RET annotation says patient-deletable.
+  - The DSAR export does not list Doctor Links.
+  - INT-392's erasure-role question stands.
+- Next: PR `INT-393: patient erasure removes Doctor Links and their shares; retention text matches the tree` (Closes #649, depends on #648, Sec-Row data-at-rest), left unmerged for review.
+
 ### 2026-09-27T07:30:00+03:00 · INT-392 · done (PR open)
 - Goal (GitHub #647, P0): every session-deletion path removes the session's `previsit_outputs` in the same transaction, in the documented order, audited. Found on main's check-integration: `ForeignKeyViolation` on `fk_previsit_outputs_session_id_sessions` in the teardown of `test_documents_roundtrip_against_real_minio`.
 - Plan:

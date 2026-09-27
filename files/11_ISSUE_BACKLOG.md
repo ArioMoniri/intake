@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**300 issues.** By phase: P0 158 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 169 · todo 89 · withdrawn 1.
+**301 issues.** By phase: P0 159 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 170 · todo 89 · withdrawn 1.
 
 ## P0
 
@@ -169,6 +169,7 @@
 | INT-358 | SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery | E14-legal | INT-329 | area:legal, risk:legal, risk:security | awaiting-human |
 | INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | INT-352 | area:infra, risk:legal | todo |
 | INT-392 | Deleting a session removes its previsit outputs in every erasure and retention path | E02-data | INT-036, INT-037, INT-317 | area:data, risk:legal | done |
+| INT-393 | Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree | E02-data | INT-036, INT-037, INT-150, INT-392 | area:data, risk:legal | done |
 
 ## P1
 
