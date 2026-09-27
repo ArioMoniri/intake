@@ -107,6 +107,7 @@ COLUMNS: dict[str, Column] = {
     "CLIENT.BASE_URL": Column(255, "jpa-changelog-1.0.0.Final.xml:59"),
     "CLIENT.MANAGEMENT_URL": Column(255, "jpa-changelog-1.0.0.Final.xml:63"),
     "CLIENT.CLIENT_AUTHENTICATOR_TYPE": Column(255, "jpa-changelog-1.5.0.xml:83"),
+    "REALM_ENABLED_EVENT_TYPES.VALUE": Column(255, "jpa-changelog-3.4.0.xml:35"),
     "REDIRECT_URIS.VALUE": Column(255, "jpa-changelog-1.0.0.Final.xml:263"),
     "WEB_ORIGINS.VALUE": Column(255, "jpa-changelog-1.0.0.Final.xml:382"),
     "CLIENT_ATTRIBUTES.NAME": Column(255, "jpa-changelog-1.1.0.Beta1.xml:31"),
@@ -141,6 +142,8 @@ FIELDS: dict[str, str] = {
     "sslRequired": "REALM.SSL_REQUIRED",
     "otpPolicyType": "REALM.OTP_POLICY_TYPE",
     "otpPolicyAlgorithm": "REALM.OTP_POLICY_ALG",
+    # INT-366 keeps LOGIN events for the 60-day access hygiene; one row per event type.
+    "enabledEventTypes[]": "REALM_ENABLED_EVENT_TYPES.VALUE",
     # RealmAdapter.setWebAuthnPolicy stores each as a realm attribute (lists comma-joined).
     "webAuthnPolicyRpEntityName": "REALM_ATTRIBUTE.VALUE",
     "webAuthnPolicyRpId": "REALM_ATTRIBUTE.VALUE",
