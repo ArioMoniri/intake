@@ -34,6 +34,26 @@ OBJECT_STORE_IMAGE="pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc
 export OBJECT_STORE_IMAGE
 OBJECT_STORE_ISSUE="INT-347 (#550)"
 
+# INT-352 (audit F18): /version's third stamp, sbom_digest. syft writes an
+# SPDX SBOM of the built api image into this commit's release directory on
+# the host. That directory is under STATE_DIR, outside the build context, so
+# the SBOM never enters the image it describes. INTAKE_SBOM_DIGEST is the
+# file's sha256, and compose requires it to start the api.
+#
+# syft v1.51.1 is the version CI's anchore/sbom-action v0.24.1 runs. It is
+# pinned by the index digest resolved from Docker Hub's v2 API on 27 Sep 2026.
+# Its licence is Apache-2.0, read from the raw LICENSE blob at the image's
+# revision (docs/evidence/INT-352.md). It is not a secret.
+SBOM_IMAGE="anchore/syft:v1.51.1@sha256:95fe0835e5bebc6f8b1f8acef68d47d63d594ef4c0f25c097ff853b23cbac74c"
+SBOM_ISSUE="INT-352 (docs/evidence/INT-352.md)"
+SBOM_FORMAT="spdx-json"
+RELEASES_DIR="$STATE_DIR/releases"
+# compose loads the whole file, so even `compose build` needs a value for the
+# api's required INTAKE_SBOM_DIGEST, which names the SBOM of the image that
+# build makes. build_api_image binds this value to that one call. It is not a
+# digest, so /version could never pass smoke.sh with it.
+SBOM_DIGEST_DURING_BUILD="none-while-the-image-builds"
+
 # Every LOGIN role that a migration creates with a committed dev password,
 # with the .env key that holds its host-generated replacement. The test
 # checks this table against migrations/versions, so a new role cannot keep
@@ -172,6 +192,84 @@ require_object_store_image() {
     die "the object-store image is not pinned by digest (name:tag@sha256:<64 hex>): see ${OBJECT_STORE_ISSUE}"
 }
 
+require_sbom_image() {
+  # the same pin as the object store's: name:tag@sha256:<64 hex>
+  local image=${1:-}
+  [[ -n $image ]] ||
+    die "no SBOM image is set: SBOM_IMAGE in lib.sh must be syft pinned by digest, as ${SBOM_ISSUE} records"
+  [[ $image =~ ^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$ ]] ||
+    die "the SBOM image is not pinned by digest (name:tag@sha256:<64 hex>): see ${SBOM_ISSUE}"
+}
+
+sha256_of() {
+  # sha256:<hex> of a file, the form /version's sbom_digest takes
+  python3 -c '
+import hashlib, sys
+digest = hashlib.sha256()
+with open(sys.argv[1], "rb") as handle:
+    for chunk in iter(lambda: handle.read(1 << 20), b""):
+        digest.update(chunk)
+print("sha256:" + digest.hexdigest())
+' "$1"
+}
+
+sbom_is_spdx() {
+  # an SPDX JSON document that lists at least one package; anything else,
+  # empty output included, is no SBOM
+  [[ -s ${1:-} ]] || return 1
+  python3 -c '
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        doc = json.load(handle)
+except (OSError, ValueError):
+    sys.exit(1)
+packages = doc.get("packages") if isinstance(doc, dict) else None
+spdx = isinstance(doc, dict) and str(doc.get("spdxVersion", "")).startswith("SPDX-")
+sys.exit(0 if spdx and isinstance(packages, list) and packages else 1)
+' "$1"
+}
+
+release_sbom_path() {
+  # <releases>/<commit>/api-<image id>.spdx.json: one SBOM per built image, in
+  # its commit's release directory. Both parts are checked, so neither can
+  # steer the path.
+  local image_id=${1:-}
+  [[ $INTAKE_GIT_SHA =~ ^[0-9a-f]{40}$ ]] || return 1
+  [[ $image_id =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  printf '%s/%s/api-%s.spdx.json\n' "$RELEASES_DIR" "$INTAKE_GIT_SHA" "${image_id#sha256:}"
+}
+
+version_verdict() {
+  # version_verdict <deployed sha> <sha256 of the SBOM on disk> < /version
+  # body. Prints one line. Exits 1 unless every stamp is real and each names
+  # what was deployed. "dev" is what VersionInfo reports for a missing stamp.
+  python3 -c '
+import json, sys
+try:
+    v = json.load(sys.stdin)
+except ValueError:
+    print("not JSON")
+    sys.exit(1)
+if not isinstance(v, dict):
+    print("not a JSON object")
+    sys.exit(1)
+expected = {"git_sha": sys.argv[1], "sbom_digest": sys.argv[2]}
+named = {"git_sha": "the deployed commit", "sbom_digest": "the sha256 of the SBOM on disk"}
+problems = []
+for field in ("git_sha", "built_at", "sbom_digest"):
+    value = v.get(field)
+    if value in (None, "", "dev"):
+        problems.append("%s is not stamped (%r)" % (field, value))
+    elif field in expected and value != expected[field]:
+        problems.append("%s %r is not %s, %s" % (field, value, named[field], expected[field]))
+if problems:
+    print("; ".join(problems))
+    sys.exit(1)
+print("git_sha %s, built_at %s, sbom_digest %s" % (v["git_sha"], v["built_at"], v["sbom_digest"]))
+' "$1" "$2"
+}
+
 require_sms_with_app_attest() {
   # With an Apple team id, a genuine iOS app passes attestation and the API
   # goes on to deliver the code. Without all three SMS keys it has no vendor
@@ -277,6 +375,93 @@ stamp_revision() {
     INTAKE_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   fi
   export INTAKE_GIT_SHA INTAKE_BUILT_AT
+}
+
+# --- the release SBOM (INT-352, audit F18) ------------------------------------------------
+
+build_api_image() {
+  # The only build in this tier. The value is bound to this one call and never
+  # exported (see SBOM_DIGEST_DURING_BUILD). A build creates no container, and
+  # every later compose call runs with stamp_sbom's digest or not at all.
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api
+}
+
+api_image_id() {
+  # the image compose built for this commit, by id
+  local id
+  id=$(docker image inspect --format '{{.Id}}' "$API_IMAGE_REPO:$INTAKE_GIT_SHA" 2>/dev/null) || return 1
+  [[ $id =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  printf '%s\n' "$id"
+}
+
+run_syft() {
+  # run_syft <image> <work dir>: syft reads a `docker image save` archive of
+  # the image, mounted read-only, with no network and no capabilities. It
+  # never gets the docker socket. The SBOM lands at <work dir>/sbom.spdx.json.
+  # Called under `||`, so errexit is off here and every step returns its own
+  # failure.
+  local image=$1 work=$2
+  docker image save --output "$work/image.tar" "$image" || return 1
+  mkdir -m 700 "$work/scratch" || return 1
+  docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges:true \
+    --env SYFT_CHECK_FOR_APP_UPDATE=false --env HOME=/tmp \
+    --volume "$work/image.tar:/in/image.tar:ro" --volume "$work/scratch:/tmp" \
+    "$SBOM_IMAGE" scan docker-archive:/in/image.tar --output "$SBOM_FORMAT" \
+    >"$work/sbom.spdx.json" || return 1
+  sbom_is_spdx "$work/sbom.spdx.json"
+}
+
+generate_sbom() {
+  # generate_sbom <image> <sbom file>: the whole SBOM lands at <sbom file>, or
+  # nothing does and the script stops. The work dir sits beside the file, so
+  # the final move is atomic, and it is removed either way.
+  local image=$1 out=$2 work rc=0
+  require_sbom_image "$SBOM_IMAGE"
+  work="${out%/*}/.sbom.$$.${RANDOM}"
+  mkdir -m 700 "$work" || die "could not create $work"
+  run_syft "$image" "$work" || rc=$?
+  if ((rc == 0)); then
+    mv -f "$work/sbom.spdx.json" "$out" || rc=$?
+  fi
+  rm -rf "$work"
+  ((rc == 0)) ||
+    die "syft (${SBOM_IMAGE%%@*}) wrote no SPDX SBOM of $image: refusing to run an image /version cannot name (audit F18, ${SBOM_ISSUE})"
+}
+
+export_sbom_digest() {
+  local digest
+  digest=$(sha256_of "$SBOM_FILE") || die "could not hash $SBOM_FILE"
+  [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]] || die "the SBOM digest is malformed: $digest"
+  INTAKE_SBOM_DIGEST=$digest
+  export INTAKE_SBOM_DIGEST
+}
+
+stamp_sbom() {
+  # init.sh and deploy.sh, after build_api_image: the SBOM of the image just
+  # built, then INTAKE_SBOM_DIGEST = its sha256. An image that already has
+  # its SBOM keeps it, so a re-run on the same commit changes nothing.
+  local dir
+  API_IMAGE_ID=$(api_image_id) || die "no api image for ${INTAKE_GIT_SHA}: build_api_image runs first"
+  SBOM_FILE=$(release_sbom_path "$API_IMAGE_ID") || die "no release path for ${INTAKE_GIT_SHA}"
+  dir=${SBOM_FILE%/*}
+  (umask 077 && mkdir -p "$dir") || die "could not create $dir"
+  if sbom_is_spdx "$SBOM_FILE"; then
+    log "SBOM of ${API_IMAGE_ID} already written: ${SBOM_FILE}"
+  else
+    generate_sbom "$API_IMAGE_REPO:$INTAKE_GIT_SHA" "$SBOM_FILE"
+    log "SBOM of ${API_IMAGE_ID} written: ${SBOM_FILE}"
+  fi
+  export_sbom_digest
+}
+
+stamp_sbom_from_disk() {
+  # smoke.sh: the SBOM deploy.sh wrote for this commit's image. It never
+  # writes one: with no SBOM on disk there is nothing to check against.
+  API_IMAGE_ID=$(api_image_id) || die "no api image for ${INTAKE_GIT_SHA}: run ./deploy.sh"
+  SBOM_FILE=$(release_sbom_path "$API_IMAGE_ID") || die "no release path for ${INTAKE_GIT_SHA}"
+  sbom_is_spdx "$SBOM_FILE" || die "no SBOM on disk for ${API_IMAGE_ID} (${SBOM_FILE}): run ./deploy.sh"
+  log "SBOM of ${API_IMAGE_ID}: ${SBOM_FILE}"
+  export_sbom_digest
 }
 
 wait_healthy() {

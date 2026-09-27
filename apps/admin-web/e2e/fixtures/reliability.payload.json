@@ -1,0 +1,824 @@
+{
+  "schema": "intake.admin.reliability.v1",
+  "generated_at": "2026-09-26T22:19:41Z",
+  "sources": {
+    "prometheus": "ok",
+    "slo_files": "ok",
+    "registry": "ok",
+    "probe_sweep": "ok"
+  },
+  "slos": {
+    "state": "ok",
+    "reason": null,
+    "tiles": [
+      {
+        "service": "api",
+        "slo": "availability",
+        "state": "ok",
+        "reason": null,
+        "objective_percent": 99.9,
+        "slo_window": "28d",
+        "sli_percent": 99.96,
+        "error_budget_remaining": 0.6,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": 0.6,
+            "short_burn": 0.0,
+            "condition_met": false
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": 0.5,
+            "short_burn": 0.4,
+            "condition_met": false
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": 0.3,
+            "short_burn": 0.5,
+            "condition_met": false
+          }
+        ]
+      },
+      {
+        "service": "api",
+        "slo": "latency",
+        "state": "ok",
+        "reason": null,
+        "objective_percent": 99.0,
+        "slo_window": "28d",
+        "sli_percent": 99.1,
+        "error_budget_remaining": 0.1,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": 0.7,
+            "short_burn": 0.4,
+            "condition_met": false
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": 0.8,
+            "short_burn": 0.6,
+            "condition_met": false
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": 1.2,
+            "short_burn": 0.8,
+            "condition_met": false
+          }
+        ]
+      },
+      {
+        "service": "langfuse",
+        "slo": "trace_emission",
+        "state": "unknown",
+        "reason": "no_series",
+        "objective_percent": 99.9,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "learning",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "no_series",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "metrics",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "no_series",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "probes",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "no_series",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "siem",
+        "slo": "alert_scrub",
+        "state": "unknown",
+        "reason": "no_series",
+        "objective_percent": 99.9,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "voice-runtime",
+        "slo": "availability",
+        "state": "ok",
+        "reason": null,
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": 99.6,
+        "error_budget_remaining": 0.2,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": 15.0,
+            "short_burn": 18.0,
+            "condition_met": true
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": 4.0,
+            "short_burn": 16.0,
+            "condition_met": false
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": 1.2,
+            "short_burn": 4.0,
+            "condition_met": true
+          }
+        ]
+      }
+    ]
+  },
+  "probe_matrix": {
+    "state": "ok",
+    "reason": null,
+    "rows": [
+      {
+        "component": "postgres",
+        "probe": "postgres_select1",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 500,
+        "status": "unhealthy",
+        "latency_ms": 100.41079111397266,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "redis",
+        "probe": "redis_ping",
+        "phi_path": false,
+        "self_hosted_now": true,
+        "budget_ms": 200,
+        "status": "unhealthy",
+        "latency_ms": 1.9367500208318233,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "minio",
+        "probe": "minio_ready",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 1000,
+        "status": "unhealthy",
+        "latency_ms": 0.44454075396060944,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "hapi",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 3000,
+        "status": "unhealthy",
+        "latency_ms": 0.32129092141985893,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "ehrbase",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 5000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "openbao",
+        "probe": "openbao_seal_status",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 500,
+        "status": "unhealthy",
+        "latency_ms": 0.1805843785405159,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "api",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 800,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "probes",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": false,
+        "budget_ms": 800,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "metrics",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": false,
+        "budget_ms": 800,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "learning",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": false,
+        "budget_ms": 800,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "voice-runtime",
+        "probe": "livekit_room_join",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 5000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "edge-tls",
+        "probe": "cert_expiry_days",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "backups",
+        "probe": "backup_freshness",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 200,
+        "status": "unhealthy",
+        "latency_ms": 0.030749943107366562,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "ci-runners",
+        "probe": "runner_heartbeat",
+        "phi_path": false,
+        "self_hosted_now": false,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "langfuse",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": false,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "langfuse-clickhouse",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": false,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "qwen3.5-9b",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "whisper-tr-medical",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 4000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "freya-tts",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 3000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "voxcpm2-tts",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 3000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "deid-tr-ner-v1",
+        "probe": "backup_freshness",
+        "phi_path": true,
+        "self_hosted_now": true,
+        "budget_ms": 200,
+        "status": "unhealthy",
+        "latency_ms": 0.008166767656803131,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "wazuh-manager",
+        "probe": "tcp_connect",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "wazuh-indexer",
+        "probe": "tcp_connect",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "falco",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "egress-proxy",
+        "probe": "tcp_connect",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "edge-ingress",
+        "probe": "http_health",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "edge-crowdsec",
+        "probe": "tcp_connect",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-09-26T22:19:41Z",
+        "age_s": 0,
+        "stale": false
+      }
+    ],
+    "sweep_interval_s": 60,
+    "stale_after_s": 180
+  },
+  "dependencies": {
+    "components": {
+      "state": "ok",
+      "reason": null,
+      "rows": [
+        {
+          "component": "postgres",
+          "probe": "postgres_select1",
+          "health": "unhealthy",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "component",
+          "fallback": "backups",
+          "fallback_health": "unhealthy"
+        },
+        {
+          "component": "redis",
+          "probe": "redis_ping",
+          "health": "unhealthy",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "minio",
+          "probe": "minio_ready",
+          "health": "unhealthy",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "component",
+          "fallback": "backups",
+          "fallback_health": "unhealthy"
+        },
+        {
+          "component": "hapi",
+          "probe": "http_health",
+          "health": "unhealthy",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "component",
+          "fallback": "backups",
+          "fallback_health": "unhealthy"
+        },
+        {
+          "component": "openbao",
+          "probe": "openbao_seal_status",
+          "health": "unhealthy",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "component",
+          "fallback": "backups",
+          "fallback_health": "unhealthy"
+        },
+        {
+          "component": "qwen3.5-9b",
+          "probe": "http_health",
+          "health": "skipped",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "whisper-tr-medical",
+          "probe": "http_health",
+          "health": "skipped",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "freya-tts",
+          "probe": "http_health",
+          "health": "skipped",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "voxcpm2-tts",
+          "probe": "http_health",
+          "health": "skipped",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "component",
+          "fallback": "freya-tts",
+          "fallback_health": "skipped"
+        },
+        {
+          "component": "deid-tr-ner-v1",
+          "probe": "backup_freshness",
+          "health": "unhealthy",
+          "health_reason": null,
+          "checked_at": "2026-09-26T22:19:41Z",
+          "fallback_kind": "in_process",
+          "fallback": null,
+          "fallback_health": "unhealthy"
+        }
+      ]
+    },
+    "prometheus": {
+      "state": "ok",
+      "reason": null,
+      "health": "healthy",
+      "health_reason": null
+    },
+    "gpu_hosts": {
+      "state": "ok",
+      "reason": null,
+      "rows": [
+        {
+          "host_id": "gpu-a",
+          "health": "healthy"
+        }
+      ]
+    },
+    "vendors": {
+      "state": "ok",
+      "reason": null,
+      "rows": [
+        {
+          "component": "freya-tts",
+          "breaker": "closed",
+          "health": "healthy"
+        },
+        {
+          "component": "voxcpm2-tts",
+          "breaker": "half_open",
+          "health": "degraded"
+        }
+      ]
+    }
+  }
+}

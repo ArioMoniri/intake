@@ -53,6 +53,9 @@ TENANT_SCOPED = (
     # (the fact value is envelope-encrypted, like notes.payload)
     "patient_overlays",
     "overlay_facts",
+    # Owner directive — the frozen hospital-facing previsit output. Tenant
+    # scoped like the note it derives from; the payload is an envelope.
+    "previsit_outputs",
 )
 
 CLINICIAN_READ = ("patients", "sessions", "slots", "notes", "documents")

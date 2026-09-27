@@ -15,7 +15,10 @@
  * the branch/profile/clinic filter mechanism, and the SDS-01 style export),
  * and the Security module (files/08 §3, §7; files/10 §7, §9 — Wazuh/Falco/
  * CrowdSec summaries, egress denials, audit-chain status, and the pen-test
- * findings tracker).
+ * findings tracker), and the Ops console (INT-351; files/08 §3 Ops — API
+ * health, model hosts and GPU, model usage, clip cache, wait time,
+ * satisfaction and CI/CD), the first module the App Router shell renders as a
+ * page (`app/ops/page.tsx`).
  */
 export {
   InconsistentReleaseState,
@@ -222,3 +225,33 @@ export {
   type SiemPresentation,
   type SlaRow,
 } from "./security/module";
+export {
+  OPS_SCHEMA,
+  OpsLabelLeaked,
+  OpsPayloadRefused,
+  OpsSchemaMismatch,
+  OpsSuppressedCohortLeaked,
+  OpsTargetRendered,
+  OpsUnknownCarriesFigure,
+  renderHealth,
+  renderOps,
+  type HealthResponses,
+  type HealthView,
+  type OpsPayload,
+  type OpsView,
+} from "./ops/module";
+export { loadOpsConsole, type OpsConsoleState } from "./ops/load";
+// INT-181 — the Overview (files/08 §3 Overview, Reliability): one tile per
+// declared SLO with multiwindow burn rates, the synthetic probe matrix and
+// dependency health, rendered at `app/overview/page.tsx`.
+export {
+  OverviewBudgetInconsistent,
+  OverviewBurnInconsistent,
+  OverviewStaleRenderedFresh,
+  RELIABILITY_SCHEMA,
+  renderOverview,
+  type OverviewView,
+  type ReliabilityPayload,
+  type SloView,
+} from "./overview/module";
+export { loadOverview, type OverviewState } from "./overview/load";

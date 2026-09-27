@@ -294,7 +294,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §5 LLM10 budgets and circuit breakers; §6 capacity — autoscaling
   on queue depth, monthly chaos experiments; typed fallback within 2 s (backlog INT-100).
 - **Signals:** budget exhaustion and vendor errors (§9 voice row) land with INT-024/INT-100.
+  **(INT-100)** `vendor_breaker_state` (one-hot per component), `vendor_breaker_transitions_total`
+  and `vendor_failovers_total` (`to_component="typed"` when no speech lane is left), all
+  catalogued live.
 - **Tests:** chaos harness and fallback timing land with INT-024, INT-100, INT-207.
+  **(INT-100)** `tests/chaos/test_vendor_failover.py` kills the primary TTS lane mid-turn (dead,
+  dying in flight, hung) under a real Talker turn and proves the next lane or the screen within
+  2 s of virtual time, with the Backend stalled underneath (invariant 9); the order is read from
+  `observability/registry.yaml` and a cloud fallback on the PHI path is refused (invariant 19).
+  Unit coverage in `tests/voice/test_vendor_resilience.py`.
 
 ## `self-hosting` — model supply chain and residency
 
@@ -508,8 +516,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §10 — evidence accumulates automatically from the console; §8 —
   DPIA delta check when vendors or consent texts change; CLAUDE.md invariant 18 — every new
   data field carries its inventory annotation.
-- **Signals:** access-review age and drill status (§7) land with INT-189.
+- **Signals:** access-review age and drill status (§7) land with INT-189. INT-215 binds each
+  KVKK 2018/10 measure to a catalogued metric or a registered probe, and a control with no
+  live signal must own that absence as a gap rather than read as done.
 - **Tests:** schema-annotation completeness lands with INT-211; module tests with INT-189.
+  `tests/legal/test_2018_10_mapping.py` (INT-215) answers [R] for the Board's adequate
+  measures: every measure quoted verbatim from a committed snapshot of RG 30353, every cited
+  path, test id and signal resolving, every gap naming an owner, and the auditor packet
+  (`make evidence-2018-10`) exported through the invariant-47 guard.
 
 ---
 
@@ -1452,6 +1466,42 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
     a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
     committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
+  - **Controls added by INT-351 (the rendered ops console, audit F26):** `apps/admin-web`
+    gains the Next.js App Router shell and its first page, `/ops`, server-rendered only. The
+    page forwards the caller's bearer to `GET /admin/ops` and renders nothing else until that
+    INT-180 gate answers 200 — no bearer means no call at all, and a refused caller does not
+    reach the API's health endpoints either — so the OIDC verifier, the HB-A16 allow-list (empty
+    admits nobody), the platform-scope role set and the audit wrapper are the one admission
+    control, not a second verifier that could disagree with it. `/admin/ops` runs only the API's
+    own fixed PromQL table (every series catalogued, test-held) plus the registry projection; no
+    request field reaches a query (F1). A tile whose label set differs from its query's, or
+    whose label value is not id-shaped, turns unknown instead of painting it (inv 6); unknown
+    tiles carry no figure and the console refuses one that does (inv 17); CSAT and wait means
+    are withheld below k = 10; no target is rendered (inv 20). GPU and CI facts come from an ops
+    collector in `services/probes` that runs server-side — `nvidia-smi` beside the host, a
+    read-only GitHub token read from OpenBao at collection time through the egress guard
+    (`issue_tracking` purpose on the existing `api.github.com` row) — and exports only ids
+    (actor and commit message are dropped). CSP: per-request nonce, `strict-dynamic`, no
+    `unsafe-*` outside `next dev`, `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
+    `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
+    admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
+    admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.
+  - **Controls added by INT-181 (the rendered overview: SLOs, probes, dependency health):**
+    `/overview` is server-rendered through the same admission step as `/ops` (one shared
+    `admit()`), forwarding the bearer to the new `GET /admin/reliability`
+    (`admin.reliability.read`, platform-scope roles, audited like every route, RBAC matrix and
+    drive derived from the served route table); a refused caller does not reach `/readyz`
+    either. Every PromQL the composite runs is derived from the committed `docs/slo` files or
+    is a fixed query, names catalogued series only (test-held) and takes no request field
+    (F1); an SLI written outside the one grammar the console reads is refused rather than
+    guessed. A label set other than the query's, or a value that is not id-shaped, turns the
+    tile unknown (inv 6); the probe runner's free-text `detail` never leaves the API. Every
+    tile fails closed on its own source (inv 17), and a probe result past three sweeps is
+    flagged stale in the matrix and is *unknown* as a dependency's health — the last value is
+    never shown as the current one. The view-model refuses a burn condition that is not exactly
+    "both windows above the factor", a budget that does not follow from its SLI and objective,
+    and a stale result rendered fresh, so neither a bent payload nor a stale tab can hide a
+    burning budget.
   - **Controls added by INT-365 (staff second factor and session bounds, files/08 §2.3):**
     against [S] a phished approver. Every staff token reaches the console through
     `principal_from_claims`, which refuses it unless `amr` shows `pwd` plus a second factor
