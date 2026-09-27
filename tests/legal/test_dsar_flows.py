@@ -753,6 +753,34 @@ def test_the_export_lists_doctor_links_by_role_and_never_names_the_recipient(
     assert RECIPIENT_PROBE.encode() not in pdf
 
 
+@pytest.mark.parametrize(
+    ("stored", "shown"),
+    [
+        ("~d38.50", "38,50"),  # a tagged Decimal: the tr comma, printed precision kept
+        ("~d12500", "12500"),  # never grouped
+        ("~~d not a number", "~d not a number"),  # an escaped string stays a string
+        ("evet", "evet"),
+        (True, "true"),
+        (3, "3"),
+        (None, "-"),
+        (["~d1.5", "evet"], "1,5, evet"),
+        ({"b": "~d2.5", "a": 3}, "a=3, b=2,5"),
+    ],
+)
+def test_a_learned_value_reaches_the_export_written_for_a_turkish_reader(
+    stored: Any, shown: str
+) -> None:
+    """Invariant 22 at the export crossing. A learned fact's value is stored
+    in the INT-309 wire form, where a Decimal is the tagged string ``~d38.5``.
+    The export decodes it and writes it for the export's reader, ``tr``, with
+    a comma, no grouping and no exponent, so neither the tag nor a full stop
+    reaches the patient's document."""
+    from clinical_schemas.common import decode_json_value
+    from intake_api.dsar.sections import learned_value_text
+
+    assert learned_value_text(decode_json_value(stored)) == shown
+
+
 def test_the_erasure_removes_the_notification_preference_and_audits_it(dsar: ApiHarness) -> None:
     """INT-393 §11: RET_NOTIFICATION_PREFERENCE puts the row on the files/06
     §3 record clock ("patient-deletable, 30-day grace, then crypto-shred"),

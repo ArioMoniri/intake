@@ -47,6 +47,7 @@ from intake_api.dsar.store import SubjectRecord
 __all__ = [
     "EXPORT_LOCALE",
     "decrypt_json",
+    "learned_value_text",
     "previsit_output_lines",
     "record_section_lines",
 ]
@@ -84,7 +85,7 @@ def _number(value: Decimal | float) -> str:
     )
 
 
-def _value(value: Any) -> str:
+def learned_value_text(value: Any) -> str:
     """A learned fact's value, decoded from its INT-309 wire form and written
     for :data:`EXPORT_LOCALE`: a Decimal never reaches the line as ``~d38.5``."""
     if isinstance(value, bool):
@@ -94,9 +95,9 @@ def _value(value: Any) -> str:
     if value is None:
         return "-"
     if isinstance(value, list):
-        return ", ".join(_value(item) for item in value)
+        return ", ".join(learned_value_text(item) for item in value)
     if isinstance(value, dict):
-        return ", ".join(f"{key}={_value(item)}" for key, item in sorted(value.items()))
+        return ", ".join(f"{key}={learned_value_text(item)}" for key, item in sorted(value.items()))
     return str(value)
 
 
@@ -164,8 +165,8 @@ def _learned_fact_lines(
                 [
                     f"learned_fact:{fact.id}",
                     fact.fact_key,
-                    _value(decode_json_value(body.get("value"))),
-                    f"confidence:{_value(body.get('confidence'))}",
+                    learned_value_text(decode_json_value(body.get("value"))),
+                    f"confidence:{learned_value_text(body.get('confidence'))}",
                     f"source:{fact.source}",
                     f"from:{fact.source_ref}",
                     f"confirmed:{_stamp(fact.confirmed_at)}",
