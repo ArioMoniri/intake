@@ -26,8 +26,10 @@
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import type { ExpoConfig } from "expo/config";
 import { describe, expect, it } from "vitest";
 
+import { resolveAppConfig } from "../app.config";
 import { MIN_TAP } from "../src/lib/a11y/target";
 import { OTP_LENGTH } from "../src/lib/auth/phone";
 import {
@@ -1528,6 +1530,644 @@ describe("BK13 / SC 2.2.1 — a time limit warns before it acts and can be exten
     expect(
       whys("src/lib/fresh/doc.ts", "// setTimeout(wipe, 60_000)\nexport const x = 1;"),
     ).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* SC 1.3.4 Orientation — INT-360                                      */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The app follows the device. app.json used to say `"orientation": "portrait"`,
+ * which writes a portrait-only UISupportedInterfaceOrientations on iOS and
+ * `android:screenOrientation="portrait"` on Android: every screen locked, for
+ * an intake whose orientation is not essential (the INT-226 finding, MC-04).
+ *
+ * A lock can come back without anyone touching app.json, so the scan reads
+ * every script under src, the config plugins, app.json and app.config.ts, and
+ * knows each way this code base could lock a screen:
+ *   - an orientation setting: the app config's `orientation`, a navigator's
+ *     `orientation` / `screenOrientation` option, or a manifest attribute,
+ *     set to a portrait or landscape value;
+ *   - the orientation API: expo-screen-orientation, lockAsync, lockPlatformAsync;
+ *   - a native orientation key a plugin writes (UISupportedInterfaceOrientations,
+ *     requestedOrientation);
+ *   - a `<Modal>` that does not rotate. On an iPhone React Native presents a
+ *     Modal portrait-only unless it names its orientations (RCTModalHostView:
+ *     an empty list is UIInterfaceOrientationMaskPortrait), so a sheet opened
+ *     in landscape turns the screen under the patient.
+ * A lock the scan finds must be registered in the SC 1.3.4 row of
+ * docs/compliance/accessibility-conformance.yaml (`essential_locks`), with the
+ * reason its orientation is essential; the rendered report names it. The
+ * register is empty: the records camera is the OS's own capture screen and a
+ * photo's upright travels in its EXIF tag (lib/records/jpeg.ts), so no screen
+ * of this app needs one orientation.
+ */
+
+const CONFORMANCE = join(
+  MOBILE,
+  "..",
+  "..",
+  "docs",
+  "compliance",
+  "accessibility-conformance.yaml",
+);
+
+type LockKind =
+  | "orientation setting"
+  | "orientation API"
+  | "native orientation key"
+  | "portrait-only modal"
+  | "restricted modal";
+
+interface OrientationLock {
+  readonly file: string;
+  readonly line: number;
+  readonly kind: LockKind;
+}
+
+const ORIENTATION_VALUE =
+  "(?:portrait|landscape|sensorPortrait|sensorLandscape|reversePortrait|reverseLandscape|userPortrait|userLandscape)";
+
+const LOCK_PATTERNS: readonly (readonly [LockKind, RegExp])[] = [
+  [
+    "orientation setting",
+    // A type alias spelling the values out (`type Orientation = "portrait" | …`)
+    // names them; it sets nothing.
+    new RegExp(
+      `(?<!\\btype\\s+)\\b(?:screen)?[oO]rientation[\\]"']*\\s*[:=]\\s*["']${ORIENTATION_VALUE}`,
+      "g",
+    ),
+  ],
+  ["orientation API", /["']expo-screen-orientation["']|\block(?:Platform)?Async\s*\(/g],
+  [
+    "native orientation key",
+    /\bUISupportedInterfaceOrientations\b|\b(?:set)?[rR]equestedOrientation\b/g,
+  ],
+];
+
+/** Every way one file locks the orientation, comments ignored. */
+function orientationLocks(file: string, source: string): OrientationLock[] {
+  const text = code(source);
+  const lineAt = (at: number) => text.slice(0, at).split("\n").length;
+  const found: OrientationLock[] = [];
+  for (const [kind, pattern] of LOCK_PATTERNS) {
+    for (const m of text.matchAll(pattern)) {
+      found.push({ file, line: lineAt(m.index), kind });
+    }
+  }
+  for (const modal of readOpenings(text, file, ["Modal"])) {
+    const named = propValue(modal.props, "supportedOrientations");
+    if (named === null) {
+      found.push({ file, line: modal.line, kind: "portrait-only modal" });
+    } else if (named !== "{ALL_ORIENTATIONS}") {
+      found.push({ file, line: modal.line, kind: "restricted modal" });
+    }
+  }
+  return found.sort((a, b) => a.line - b.line);
+}
+
+const lockId = (lock: OrientationLock): string => `${lock.file} › ${lock.kind}`;
+
+/**
+ * The SC 1.3.4 row's `essential_locks` register: lock id → the reason that
+ * orientation is essential. Read with a small line reader (the suite has no
+ * YAML parser), which refuses an entry with no reason and a row with no
+ * register at all.
+ */
+function essentialLocks(yaml: string): Map<string, string> {
+  const row = /\n {2}- sc: "1\.3\.4"\n([\s\S]*?)(?=\n {2}- |\n#)/.exec(yaml);
+  if (row === null) {
+    throw new Error('the conformance source has no `- sc: "1.3.4"` row');
+  }
+  const lines = row[1].split("\n");
+  const start = lines.findIndex((l) => /^ {4}essential_locks:/.test(l));
+  if (start < 0) {
+    throw new Error("the SC 1.3.4 row has no essential_locks register");
+  }
+  const inline = lines[start].replace(/^ {4}essential_locks:\s*/, "");
+  if (inline === "[]") {
+    return new Map();
+  }
+  if (inline !== "") {
+    throw new Error(`essential_locks is [] or a block list, not ${inline}`);
+  }
+  const block: string[] = [];
+  for (const l of lines.slice(start + 1)) {
+    if (/^ {0,4}\S/.test(l)) {
+      break;
+    }
+    block.push(l);
+  }
+  const register = new Map<string, string>();
+  for (const entry of block.join("\n").split(/\n(?= {6}- )/)) {
+    if (entry.trim() === "") {
+      continue;
+    }
+    const lock = /^ {6}- lock: "([^"]+)"/m.exec(entry)?.[1];
+    if (lock === undefined) {
+      throw new Error(`an essential_locks entry names no lock: ${entry.trim()}`);
+    }
+    const reason = (/^ {8}reason:(?:\s*>-)?\s*([\s\S]*)$/m.exec(entry)?.[1] ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (reason === "") {
+      throw new Error(`${lock}: an essential lock without a reason`);
+    }
+    register.set(lock, reason);
+  }
+  return register;
+}
+
+/** Everything that can lock: the scripts the app ships, its config plugins and its config. */
+const ORIENTATION_SOURCES: { name: string; source: string }[] = [
+  ...APP_SCRIPTS,
+  ...readdirSync(join(MOBILE, "plugins"))
+    .filter((n) => n.endsWith(".js"))
+    .map((n) => ({
+      name: `plugins/${n}`,
+      source: readFileSync(join(MOBILE, "plugins", n), "utf8"),
+    })),
+  ...["app.json", "app.config.ts"].map((n) => ({
+    name: n,
+    source: readFileSync(join(MOBILE, n), "utf8"),
+  })),
+];
+
+const ORIENTATION_LOCKS: OrientationLock[] = ORIENTATION_SOURCES.flatMap((f) =>
+  orientationLocks(f.name, f.source),
+);
+
+describe("SC 1.3.4 — the app is not locked to one orientation", () => {
+  it("SC 1.3.4 — app.json follows the device in every build profile", () => {
+    const expo = (
+      JSON.parse(readFileSync(join(MOBILE, "app.json"), "utf8")) as { expo: ExpoConfig }
+    ).expo;
+    // "default" writes all four interface orientations on iOS and
+    // `unspecified` on Android (@expo/config-plugins, Orientation).
+    expect(expo.orientation).toBe("default");
+    for (const profile of [undefined, "development", "preview", "production"]) {
+      const env = profile === undefined ? {} : { EAS_BUILD_PROFILE: profile };
+      expect(resolveAppConfig(expo, env).orientation, profile ?? "local").toBe("default");
+    }
+  });
+
+  it("the lock scan reads the config, the plugins and every script under src", () => {
+    // Non-vacuity: each place a lock could live is read, not listed by hand.
+    const names = ORIENTATION_SOURCES.map((f) => f.name);
+    expect(names).toContain("app.json");
+    expect(names).toContain("app.config.ts");
+    expect(names).toContain("plugins/withVoiceAudio.js");
+    expect(names).toContain("src/components/SectionPanel.tsx");
+    expect(names.filter((n) => n.startsWith("src/lib/")).length).toBeGreaterThan(50);
+  });
+
+  it("SC 1.3.4 — every orientation lock in the app is registered as essential, with its reason", () => {
+    const register = essentialLocks(readFileSync(CONFORMANCE, "utf8"));
+    const unregistered = ORIENTATION_LOCKS.filter((l) => !register.has(lockId(l))).map(
+      (l) => `${l.file}:${l.line} ${l.kind}`,
+    );
+    expect(unregistered).toEqual([]);
+  });
+
+  it("the register names only locks that still exist — it can only shrink", () => {
+    const register = essentialLocks(readFileSync(CONFORMANCE, "utf8"));
+    const live = new Set(ORIENTATION_LOCKS.map(lockId));
+    expect([...register.keys()].filter((id) => !live.has(id))).toEqual([]);
+  });
+
+  it("a planted lock that is not registered is caught — the near-miss control", () => {
+    const kinds = (file: string, source: string) =>
+      orientationLocks(file, source).map((l) => l.kind);
+    // The config as it stood before INT-360, and as it stands now.
+    expect(kinds("app.json", '{ "expo": { "orientation": "portrait" } }')).toEqual([
+      "orientation setting",
+    ]);
+    expect(kinds("app.json", '{ "expo": { "orientation": "default" } }')).toEqual([]);
+    // A screen that locks itself, statically or behind the lazy import a
+    // native module needs in this suite.
+    expect(
+      kinds(
+        "src/app/fresh.tsx",
+        'import * as ScreenOrientation from "expo-screen-orientation";\n' +
+          "void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);",
+      ),
+    ).toEqual(["orientation API", "orientation API"]);
+    expect(
+      kinds("src/app/fresh.tsx", 'const o = await import("expo-screen-orientation");'),
+    ).toEqual(["orientation API"]);
+    // A navigator option, and a plugin writing the manifest attribute.
+    expect(
+      kinds("src/app/_layout.tsx", '<Stack screenOptions={{ orientation: "portrait_up" }} />'),
+    ).toEqual(["orientation setting"]);
+    expect(
+      kinds("plugins/withLock.js", 'activity.$["android:screenOrientation"] = "portrait";'),
+    ).toEqual(["orientation setting"]);
+    expect(
+      kinds(
+        "plugins/withLock.js",
+        'plist.UISupportedInterfaceOrientations = ["UIInterfaceOrientationPortrait"];',
+      ),
+    ).toEqual(["native orientation key"]);
+    // A Modal: silent, restricted, and rotating.
+    expect(kinds("src/components/Sheet.tsx", "<Modal visible={open} transparent>")).toEqual([
+      "portrait-only modal",
+    ]);
+    expect(
+      kinds(
+        "src/components/Sheet.tsx",
+        '<Modal visible={open} supportedOrientations={["portrait"]}>',
+      ),
+    ).toEqual(["restricted modal"]);
+    expect(
+      kinds(
+        "src/components/Sheet.tsx",
+        "<Modal visible={open} supportedOrientations={ALL_ORIENTATIONS}>",
+      ),
+    ).toEqual([]);
+    // A comment that names a lock is not one; neither is the JPEG orientation tag.
+    expect(
+      kinds(
+        "src/app/fresh.tsx",
+        "// ScreenOrientation.lockAsync(PORTRAIT_UP) is NOT done here\nexport const x = 1;",
+      ),
+    ).toEqual([]);
+    expect(
+      kinds(
+        "src/lib/records/fresh.ts",
+        "function seg(orientation: number) { return orientation; }",
+      ),
+    ).toEqual([]);
+    // Nor is a type that spells the values out: lib/a11y/orientation.ts has one.
+    expect(
+      kinds("src/lib/a11y/fresh.ts", 'export type Orientation = "portrait" | "landscape-left";'),
+    ).toEqual([]);
+    // Registering the lock, with a reason, is the one thing that clears it.
+    const planted = orientationLocks(
+      "src/app/fresh.tsx",
+      "void ScreenOrientation.lockAsync(PORTRAIT_UP);",
+    );
+    expect(planted.filter((l) => !new Map<string, string>().has(lockId(l)))).toHaveLength(1);
+    const registered = new Map([["src/app/fresh.tsx › orientation API", "the reason"]]);
+    expect(planted.filter((l) => !registered.has(lockId(l)))).toEqual([]);
+  });
+
+  it("the register reader refuses an entry with no reason, and a row with no register", () => {
+    const yaml = (register: string) =>
+      [
+        "wcag:",
+        '  - sc: "1.3.4"',
+        "    name: Orientation",
+        "    status: Supports",
+        `${register}    remarks: The row's remarks.`,
+        "",
+        '  - sc: "1.3.5"',
+        "    name: Identify Input Purpose",
+        "",
+      ].join("\n");
+    expect(essentialLocks(yaml("    essential_locks: []\n")).size).toBe(0);
+    expect([
+      ...essentialLocks(
+        yaml(
+          '    essential_locks:\n      - lock: "src/app/scan.tsx › orientation API"\n' +
+            "        reason: >-\n          The capture guide is drawn for a\n          portrait page.\n",
+        ),
+      ),
+    ]).toEqual([
+      ["src/app/scan.tsx › orientation API", "The capture guide is drawn for a portrait page."],
+    ]);
+    expect(() =>
+      essentialLocks(
+        yaml('    essential_locks:\n      - lock: "src/app/scan.tsx › orientation API"\n'),
+      ),
+    ).toThrow(/without a reason/);
+    expect(() => essentialLocks(yaml(""))).toThrow(/no essential_locks register/);
+  });
+
+  it("every Modal rotates with the device — iOS presents one portrait-only unless told otherwise", () => {
+    expect(MODALS.length).toBeGreaterThan(0);
+    const fixed = MODALS.filter(
+      (o) => propValue(o.props, "supportedOrientations") !== "{ALL_ORIENTATIONS}",
+    ).map(where);
+    expect(fixed).toEqual([]);
+    for (const file of new Set(MODALS.map((o) => o.file))) {
+      const source = TSX.find((f) => f.name === file)!.source;
+      expect(source, file).toMatch(
+        /import \{[^}]*\bALL_ORIENTATIONS\b[^}]*\} from "@\/lib\/a11y\/orientation";/,
+      );
+      // A Modal is its own window: the Screen's safe edges do not reach it, so
+      // its content takes the side insets itself (the notch is at a side in
+      // landscape).
+      expect(code(source), file).toMatch(
+        /\binsets\.left\b[\s\S]*\binsets\.right\b|\binsets\.right\b[\s\S]*\binsets\.left\b/,
+      );
+    }
+  });
+});
+
+/*
+ * The layout half (acceptance line 2): every screen lays out in landscape at
+ * the largest text size with no clipped control and no horizontal scroll of
+ * body text. The landscape windows it is held to are a 6.1-inch phone
+ * (844 × 390 pt) and the smallest iPhone (568 × 320 pt).
+ *
+ * What the tree can prove is the absence of the shapes that break there:
+ *   - a fixed height taller than a control, or a floor taller than half the
+ *     shortest landscape window: a box decided in portrait that the landscape
+ *     window cannot hold;
+ *   - a percentage height: a full-height assumption;
+ *   - a window size read once (`Dimensions.get`, stale after a rotation) or
+ *     from one axis without `shortSide` (the portrait width is the landscape
+ *     LONG side, so a figure sized from it outgrows the height);
+ *   - chrome pinned to both side edges (`position: "absolute"`, `left: 0`,
+ *     `right: 0`) that does not read the side insets: in landscape the notch
+ *     and the rounded corners are at the sides;
+ *   - a horizontal scroller.
+ * Each finding is fixed, or listed below with the reason it is safe. The list
+ * can only shrink. What the tree cannot prove — that each screen renders
+ * clear in landscape at the largest step — is the owner's device audit, DA-05.
+ */
+
+const LANDSCAPE_WINDOWS = [
+  { name: "6.1-inch phone", width: 844, height: 390 },
+  { name: "smallest iPhone", width: 568, height: 320 },
+] as const;
+
+const SHORTEST_LANDSCAPE = Math.min(...LANDSCAPE_WINDOWS.map((w) => w.height));
+
+/** A control-sized box (the primer badge is 56); anything taller is a floor or scrolls. */
+const FIXED_HEIGHT_MAX = 64;
+
+/** A floor may take up to half of the shortest landscape window. */
+const FLOOR_MAX = SHORTEST_LANDSCAPE / 2;
+
+type LandscapeRisk =
+  | "fixed height taller than a control"
+  | "floor taller than half the shortest landscape window"
+  | "percentage height"
+  | "one-time window read"
+  | "size from the long side"
+  | "edge-pinned chrome without the side insets"
+  | "horizontal scroller";
+
+interface LandscapeFinding {
+  readonly file: string;
+  readonly line: number;
+  readonly why: LandscapeRisk;
+  readonly subject: string;
+}
+
+/** `name: { … }` StyleSheet rules at two-space indent, braces counted, with their line. */
+function namedRules(text: string): { name: string; body: string; at: number }[] {
+  const rules: { name: string; body: string; at: number }[] = [];
+  const head = /\n {2}([A-Za-z0-9_]+): \{/g;
+  for (let m = head.exec(text); m !== null; m = head.exec(text)) {
+    let depth = 1;
+    let i = head.lastIndex;
+    for (; i < text.length && depth > 0; i += 1) {
+      if (text[i] === "{") {
+        depth += 1;
+      } else if (text[i] === "}") {
+        depth -= 1;
+      }
+    }
+    rules.push({ name: m[1], body: text.slice(head.lastIndex, i - 1), at: m.index + 1 });
+    head.lastIndex = i;
+  }
+  return rules;
+}
+
+/** Every landscape-risk shape in one script, comments ignored. */
+function landscapeRisks(file: string, source: string): LandscapeFinding[] {
+  const text = code(source);
+  const lineAt = (at: number) => text.slice(0, at).split("\n").length;
+  const found: LandscapeFinding[] = [];
+  const add = (line: number, why: LandscapeRisk, subject: string) =>
+    found.push({ file, line, why, subject });
+
+  for (const m of text.matchAll(/\b(height|maxHeight|minHeight):\s*(\d+(?:\.\d+)?)\b/g)) {
+    const value = Number(m[2]);
+    if (m[1] === "minHeight" ? value > FLOOR_MAX : value > FIXED_HEIGHT_MAX) {
+      add(
+        lineAt(m.index),
+        m[1] === "minHeight"
+          ? "floor taller than half the shortest landscape window"
+          : "fixed height taller than a control",
+        m[0],
+      );
+    }
+  }
+  for (const m of text.matchAll(/\b(?:height|maxHeight|minHeight):\s*["']\d+(?:\.\d+)?%["']/g)) {
+    add(lineAt(m.index), "percentage height", m[0]);
+  }
+  for (const m of text.matchAll(/\bDimensions\s*\.\s*get\s*\(/g)) {
+    add(lineAt(m.index), "one-time window read", "Dimensions.get");
+  }
+  if (!/\bshortSide\s*\(/.test(text)) {
+    for (const m of text.matchAll(/\buseWindowDimensions\(\)(?!\s*\.\s*fontScale\b)/g)) {
+      add(lineAt(m.index), "size from the long side", "useWindowDimensions()");
+    }
+  }
+  const readsSideInsets = /\binsets\.left\b/.test(text) && /\binsets\.right\b/.test(text);
+  for (const rule of namedRules(text)) {
+    const pinned =
+      /position: "absolute"/.test(rule.body) &&
+      /\bleft: 0\b/.test(rule.body) &&
+      /\bright: 0\b/.test(rule.body);
+    if (pinned && !readsSideInsets) {
+      add(lineAt(rule.at), "edge-pinned chrome without the side insets", rule.name);
+    }
+  }
+  for (const o of readOpenings(text, file, ["ScrollView", "FlatList", "SectionList"])) {
+    if (hasProp(o.props, "horizontal")) {
+      add(o.line, "horizontal scroller", `<${o.tag}>`);
+    }
+  }
+  return found.sort((a, b) => a.line - b.line);
+}
+
+const riskId = (f: LandscapeFinding): string => `${f.file} › ${f.subject}`;
+
+/**
+ * Shapes the scan reaches that hold in landscape, each with its reason. Every
+ * entry must still match a finding (tested below), so this list can only shrink.
+ */
+const LANDSCAPE_SAFE: Record<string, string> = {
+  'src/components/SectionPanel.tsx › maxHeight: "78%"':
+    "a cap, not a height, on a sheet whose rows scroll inside it: in a 320 pt window it " +
+    "shows fewer rows and clips none",
+  "src/components/GlassBar.tsx › floating":
+    "every host renders the bar inside a Screen that keeps its left and right safe edges " +
+    "(FLOW_EDGES), so it spans the inset content box, not the window",
+  "src/components/DialogueIntake.tsx › bottomStack":
+    "pinned inside the intake Screen, which keeps its left and right safe edges; capped at " +
+    "the height of its frame, and the bar's upper part scrolls",
+};
+
+const LANDSCAPE_FINDINGS: LandscapeFinding[] = APP_SCRIPTS.flatMap((f) =>
+  landscapeRisks(f.name, f.source),
+);
+
+describe("SC 1.3.4 — every screen lays out in landscape at the largest text size", () => {
+  it("no layout decides a height the landscape window cannot hold", () => {
+    const open = LANDSCAPE_FINDINGS.filter((f) => !(riskId(f) in LANDSCAPE_SAFE)).map(
+      (f) => `${f.file}:${f.line} ${f.why} (${f.subject})`,
+    );
+    expect(open).toEqual([]);
+  });
+
+  it("the landscape exceptions are still real — the list can only shrink", () => {
+    const ids = new Set(LANDSCAPE_FINDINGS.map(riskId));
+    expect(Object.keys(LANDSCAPE_SAFE).filter((id) => !ids.has(id))).toEqual([]);
+  });
+
+  it("the landscape scan catches each shape it names — the near-miss control", () => {
+    const whys = (source: string) => landscapeRisks("src/app/fresh.tsx", source).map((f) => f.why);
+    expect(whys("const s = StyleSheet.create({\n  box: { height: 240 },\n});")).toEqual([
+      "fixed height taller than a control",
+    ]);
+    expect(whys("const s = StyleSheet.create({\n  badge: { width: 56, height: 56 },\n});")).toEqual(
+      [],
+    );
+    expect(whys("const s = StyleSheet.create({\n  field: { minHeight: 200 },\n});")).toEqual([
+      "floor taller than half the shortest landscape window",
+    ]);
+    expect(whys("const s = StyleSheet.create({\n  field: { minHeight: 120 },\n});")).toEqual([]);
+    expect(whys('const s = StyleSheet.create({\n  sheet: { maxHeight: "60%" },\n});')).toEqual([
+      "percentage height",
+    ]);
+    expect(whys('const { height } = Dimensions.get("window");')).toEqual(["one-time window read"]);
+    // PrepGauge as it stood before INT-360, and as it stands now.
+    expect(whys("const { width } = useWindowDimensions();\nconst size = width - 40;")).toEqual([
+      "size from the long side",
+    ]);
+    expect(whys("const size = shortSide(useWindowDimensions()) - 40;")).toEqual([]);
+    expect(whys("const os = useWindowDimensions().fontScale;")).toEqual([]);
+    // Chrome pinned to both sides, with and without the side insets.
+    const bar =
+      'const s = StyleSheet.create({\n  wrap: { position: "absolute", left: 0, right: 0, bottom: 0 },\n});';
+    expect(whys(bar)).toEqual(["edge-pinned chrome without the side insets"]);
+    expect(
+      whys(`const insets = useSafeAreaInsets();\nconst pad = [insets.left, insets.right];\n${bar}`),
+    ).toEqual([]);
+    expect(whys("<ScrollView horizontal>{row}</ScrollView>")).toEqual(["horizontal scroller"]);
+    // A comment that names a shape is not one.
+    expect(whys("// height: 400 would clip here\nexport const x = 1;")).toEqual([]);
+  });
+
+  it("the landscape windows are the ones the pass was held to", () => {
+    expect(SHORTEST_LANDSCAPE).toBe(320);
+    expect(FLOOR_MAX).toBe(160);
+    // The primer badge, the largest fixed box in the tree, is a control-sized 56.
+    expect(FIXED_HEIGHT_MAX).toBeGreaterThanOrEqual(56);
+  });
+});
+
+/**
+ * Element spans of `<Tag>` as JSX only. `useRef<ScrollView>(null)` is a type
+ * argument, not an element, and read as one it would open a span that runs to
+ * the end of the file.
+ */
+function jsxSpans(text: string, tag: string): [number, number][] {
+  return elementSpans(text, tag).filter(([start]) => !/[\w$.]/.test(text[start - 1] ?? ""));
+}
+
+describe("SC 1.3.4 — a text field stays above the keyboard in landscape", () => {
+  // In landscape the keyboard takes about half of the window, so a field the
+  // keyboard covers is a control the patient cannot see while using it.
+  const fieldScrollers = TSX.flatMap((f) => {
+    const text = code(f.source);
+    return jsxSpans(text, "ScrollView")
+      .filter(([start, end]) => /<TextInput\b/.test(text.slice(start, end)))
+      .map(([start]) => {
+        const from = start + "<ScrollView".length;
+        return {
+          tag: "ScrollView",
+          file: f.name,
+          line: text.slice(0, start).split("\n").length,
+          props: text.slice(from, endOfOpening(text, from)),
+        };
+      });
+  });
+
+  it("every scroller that holds a text field keeps it above the keyboard", () => {
+    // Non-vacuity: phone, OTP, new visit, Doctor Link, the typed intake, the kiosk PIN.
+    expect(fieldScrollers.length).toBeGreaterThan(5);
+    const bare = fieldScrollers
+      .filter((o) => !hasProp(o.props, "automaticallyAdjustKeyboardInsets"))
+      .map(where);
+    expect(bare).toEqual([]);
+  });
+
+  it("a text field outside any scroller sits inside a KeyboardAvoidingView", () => {
+    const loose = TSX.flatMap((f) => {
+      const text = code(f.source);
+      const scrollers = jsxSpans(text, "ScrollView");
+      const avoiding = jsxSpans(text, "KeyboardAvoidingView");
+      const inside = (spans: [number, number][], at: number) =>
+        spans.some(([start, end]) => at >= start && at < end);
+      return [...text.matchAll(/<TextInput\b/g)]
+        .filter((m) => !inside(scrollers, m.index) && !inside(avoiding, m.index))
+        .map((m) => `${f.name}:${text.slice(0, m.index).split("\n").length}`);
+    });
+    expect(loose).toEqual([]);
+  });
+
+  it("the dialogue's bottom stack pins to the keyboard's edge and never outgrows its frame", () => {
+    const dialogue = TSX.find((f) => f.name === "src/components/DialogueIntake.tsx")!;
+    const text = code(dialogue.source);
+    // The KeyboardAvoidingView measures from its own top, and a header sits
+    // above it: the offset is the header's height.
+    const [avoiding] = readOpenings(text, dialogue.name, ["KeyboardAvoidingView"]);
+    expect(propValue(avoiding.props, "keyboardVerticalOffset")).toBe("{headerHeight}");
+    expect(text).toMatch(/const headerHeight = useHeaderHeight\(\);/);
+    // It lifts its content with PADDING, and an absolutely positioned child
+    // ignores its parent's padding (Yoga places it against the border box):
+    // pinned in the KeyboardAvoidingView itself, the composer sat behind the
+    // keyboard. It is pinned inside a frame that ends where the keyboard begins.
+    const frames = jsxSpans(text, "View").filter(([start]) => {
+      const from = start + "<View".length;
+      return /setFrameHeight\(/.test(text.slice(from, endOfOpening(text, from)));
+    });
+    expect(frames).toHaveLength(1);
+    const [frameStart, frameEnd] = frames[0];
+    const stackAt = text.indexOf("styles.bottomStack");
+    expect(stackAt > frameStart && stackAt < frameEnd).toBe(true);
+    // Capped at that frame, so no control is pushed above the top of it...
+    const stack = readOpenings(text, dialogue.name, ["View"]).find((o) =>
+      /styles\.bottomStack/.test(o.props),
+    )!;
+    expect(propValue(stack.props, "style")).toMatch(/maxHeight: frameHeight/);
+    // ...and what does not fit scrolls, while the composer stays in view.
+    const barAt = text.indexOf("<GlassBar", stackAt);
+    const scrollAt = text.indexOf("<ScrollView", barAt);
+    const composerAt = text.indexOf("styles.composerRow", barAt);
+    expect(scrollAt > barAt && scrollAt < composerAt).toBe(true);
+  });
+
+  it("the glass bar yields height to a host that caps it", () => {
+    const rules = new Map(
+      namedRules(code(TSX.find((f) => f.name === "src/components/GlassBar.tsx")!.source)).map(
+        (r) => [r.name, r.body],
+      ),
+    );
+    expect(rules.get("bar")).toMatch(/flexShrink: 1/);
+    expect(rules.get("inner")).toMatch(/flexShrink: 1/);
+  });
+
+  it("the kiosk's own chrome keeps the safe edges and scrolls rather than push the exit off-screen", () => {
+    // KioskGate draws its warning and staff bar OUTSIDE any Screen, under the
+    // home indicator and, in landscape, beside the notch.
+    const gate = code(TSX.find((f) => f.name === "src/components/KioskGate.tsx")!.source);
+    const chrome = readOpenings(gate, "src/components/KioskGate.tsx", ["SafeAreaView"]);
+    expect(chrome).toHaveLength(1);
+    const edges = stringLiterals(propValue(chrome[0].props, "edges") ?? "");
+    expect(edges.sort()).toEqual(["bottom", "left", "right"]);
+    const [start, end] = jsxSpans(gate, "SafeAreaView")[0];
+    const inside = gate.slice(start, end);
+    expect(inside).toMatch(/<ScrollView\b/);
+    expect(inside).toContain("styles.idleWarning");
+    expect(inside).toContain("styles.staffBar");
   });
 });
 

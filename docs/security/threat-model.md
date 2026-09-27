@@ -1614,6 +1614,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     needs a fresh WebAuthn assertion the console does not mint yet. **Known limit, owner
     decision:** the tier-2 second key is still two accounts, not two proven humans (the
     INT-180 limit), and the step-up ceremony in the browser is unbuilt.
+  - **Controls added by INT-373 (the realm emits the console's claims):** the committed realm's
+    `admin-web` client carries an audience mapper naming `api` and attribute mappers for `org`
+    and `tenant`. The realm's user profile declares both attributes admin-only (view and edit),
+    single-valued, and pattern-bound to the console's id shape. A staff member therefore cannot
+    move their own tenant scope ([E]), and a malformed value is refused when it is saved.
+    `aaguid` and `credential_id` are mapped from user-session notes that no stock Keycloak
+    26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
+    closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
+    `tests/admin/test_realm_claim_mappers.py`.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
