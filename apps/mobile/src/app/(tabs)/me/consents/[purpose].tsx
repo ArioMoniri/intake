@@ -19,6 +19,7 @@ import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SymbolView } from "expo-symbols";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import {
@@ -36,6 +37,7 @@ import {
   grantLocal,
   seedLedgerForAccount,
   useConsentLedger,
+  useConsentOutbox,
   withdrawLocal,
 } from "@/lib/consent/store";
 import { verticalSlop } from "@/lib/a11y/target";
@@ -49,6 +51,10 @@ export default function ConsentDetail() {
   const params = useLocalSearchParams<{ purpose?: string }>();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // INT-397 (SC 4.1.3): the queue note is announced when a grant or withdrawal
+  // made here could not reach the server, and shown without a word otherwise.
+  const outbox = useConsentOutbox();
+  const queuedNews = useNews(outbox === "held");
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
 
@@ -159,9 +165,13 @@ export default function ConsentDetail() {
           </View>
         ) : null}
         {ledger.queue.length > 0 ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.queue.note")}
-          </AppText>
+          <AnnouncedText
+            tone="status"
+            news={queuedNews}
+            role="caption"
+            color="inkFaint"
+            message={t("consent.queue.note")}
+          />
         ) : null}
       </ScrollView>
     </Screen>

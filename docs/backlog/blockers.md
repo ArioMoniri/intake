@@ -471,3 +471,34 @@ state and `test_the_shipped_allocation_table_declares_no_prefixes_and_cannot_ref
 supplying the list is a visible change and not a silent one. What stands against SMS pumping
 today is what files/10 §2 now says stands against it: the rolling request budgets and the
 Turkish-mobile-only normalisation.
+
+## INT-401 (split from INT-187) — a rollback button needs something to roll back
+
+**Named human:** the owner (where continuous delivery runs), with whoever administers the target.
+
+**What shipped.** `/cicd` renders recent GitHub Actions runs per workflow with their failing
+jobs, every PR-triggered gate on `main` and on the open PRs, releases with their signing
+outcome, this deployment's stamped `/version`, the error budget and the deploy freeze. The
+freeze is enforced where deploys actually happen: `infra/staging/deploy.sh` runs a release
+gate before it restarts anything, and refuses while deploys are frozen, while an SLO's error
+budget is exhausted, or while the freeze cannot be read. Freezing is one key; lifting is four
+eyes (files/08 §8.2).
+
+**What waits is the rollback button (4-eyes).** files/08 §3 and §9 describe CD as GitOps
+through Argo CD, where a rollback moves an Application to an earlier revision and a canary is
+an Argo Rollout. Neither exists: `infra/` holds no Argo CD Application, no Rollout, and there is
+no cluster to run them on — the same siting question HB-I13 asks for the edge tier. The only
+deploy path is the operator running `deploy.sh` on the host over SSM, which the console cannot
+command. A two-key ceremony whose approval changes nothing is not a control, so the button is
+rendered **disabled, with that reason**, and the canary tile says "not deployed" rather than
+painting a state that does not exist. `tests/admin/test_cicd_console.py` fails the day an
+Argo CD manifest lands under `infra/`, so the tile gets wired instead of left claiming absence.
+
+**One sentence closes it:** where does continuous delivery run — a cluster with Argo CD (and
+Argo Rollouts for the canary), and on which host — or is `deploy.sh` the release path for the
+foreseeable future, in which case "rollback" becomes "redeploy a previous release through
+`deploy.sh`", which the console can gate (a four-eyes pin the gate enforces) but not execute?
+
+**The id is the coordinator's to allocate.** HB-I13 is the nearest existing row (a place to
+run a cluster), but it is about the edge tier; a CD-tier row, or a widening of HB-I13, is a
+coordinator decision, not one an agent mints.
