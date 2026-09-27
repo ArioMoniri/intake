@@ -284,3 +284,18 @@ export {
 } from "./cicd/module";
 export { loadCicd, type CicdState } from "./cicd/load";
 export { planCicdAction, submitCicdAction } from "./cicd/actions";
+// INT-366 — the access review (files/08 §2.7, §3 Access & identity): the
+// console review's age and what it makes read-only, each section's reviewer
+// and digest, every staff account and the offboardings still open, rendered
+// at `app/access/page.tsx`.
+export {
+  ACCESS_REVIEW_SCHEMA,
+  AccessChainMaterialLeaked,
+  AccessDirectoryLeaked,
+  AccessPayloadRefused,
+  AccessReviewInconsistent,
+  renderAccessReview,
+  type AccessReviewPayload,
+  type AccessView,
+} from "./access/module";
+export { loadAccessReview, type AccessState } from "./access/load";

@@ -20,12 +20,26 @@ Order inside a run, and the reason for it:
    envelope-bearing field belonging to the subject has its wrapped DEK
    destroyed (``intake_platform.envelope``) before the rows go, so even a
    transaction that never commits leaves nothing readable behind. Rows are
-   deleted in dependency order.
+   deleted in dependency order: previsit outputs, shares, documents,
+   rectifications, notes, learned facts and their header, slots — then the
+   telemetry de-link below, then the sessions.
 3. **Telemetry is de-linked, not deleted.** ``events.session_id`` is a FK to
    ``sessions.id`` with no ON DELETE clause, so the sessions cannot be dropped
    while events reference them. Telemetry has its own files/06 §3 clock
    (30 d hot / 1 y cold) and is PHI-free by construction, so the row survives
    under that clock with the link to the erased session cut.
+4. **The previsit output goes first, and by name (INT-392).** It is the
+   note's frozen projection on the same files/06 §3 record clock
+   (``RET_PREVISIT_OUTPUT``), so it is shredded with the note. It is removed
+   before anything else because it is the one row a hospital may already have
+   fetched: taking it first closes the read-back before the rest of the record
+   goes. ``previsit_outputs.session_id`` deliberately keeps NO ACTION rather
+   than a cascade — a cascade would drop the row without the shred and
+   without the entry below, and NO ACTION makes a path that forgets it fail
+   instead. Each removal is audited against ``previsit_output:<id>``, the
+   same ref the hospital read-back audits a disclosure under, so the chain
+   shows both what left and when it was erased (files/06 §2.3: a copy a
+   hospital already holds is the hospital's as controller).
 
 Every statement carries an explicit ``tenant_id`` predicate even though
 postgres enforces the same boundary with RLS — most of all the DELETEs, which
@@ -64,6 +78,7 @@ from intake_platform.db.models import (
     Note,
     OverlayFact,
     PatientOverlayHeader,
+    PreVisitOutputRow,
     Share,
     Slot,
     SlotSensitivity,
@@ -183,28 +198,45 @@ async def execute_due_shreds(
 
         shredded_fields = 0
         removed_rows = 0
-        answered: list[tuple[uuid.UUID, uuid.UUID]] = []
+        answered: list[tuple[uuid.UUID, uuid.UUID, tuple[uuid.UUID, ...]]] = []
         for request in due:
-            fields, rows = await _erase_subject(
+            erased = await _erase_subject(
                 session, tenant_id=tenant_id, patient_id=request.patient_id
             )
-            shredded_fields += fields
-            removed_rows += rows
+            shredded_fields += erased.shredded
+            removed_rows += erased.removed
             request.status = DsarStatus.COMPLETED
             request.completed_at = now
-            answered.append((request.id, request.patient_id))
+            answered.append((request.id, request.patient_id, erased.output_ids))
 
     DSAR_DELETE_TOTAL.labels(
-        subject_count=str(len({patient_id for _, patient_id in answered}))
+        subject_count=str(len({patient_id for _, patient_id, _ in answered}))
     ).inc()
-    for request_id, patient_id in answered:
+    for request_id, patient_id, output_ids in answered:
         await audit.record(
             actor=f"patient:{patient_id}",
             action="dsar.delete.shred",
             resource_ref=f"dsar-request:{request_id}",
             consent_scope=DSAR_BASIS_REF,
         )
+        for output_id in output_ids:
+            await audit.record(
+                actor=f"patient:{patient_id}",
+                action="dsar.delete.previsit_output",
+                resource_ref=f"previsit_output:{output_id}",
+                consent_scope=DSAR_BASIS_REF,
+            )
     return ShredReport(len(answered), shredded_fields, removed_rows)
+
+
+@dataclass(frozen=True)
+class _Erased:
+    """One subject's erasure: fields shredded, rows removed, and the previsit
+    outputs among them by id — the ids the audit names after the commit."""
+
+    shredded: int
+    removed: int
+    output_ids: tuple[uuid.UUID, ...]
 
 
 async def _erase_subject(
@@ -212,7 +244,7 @@ async def _erase_subject(
     *,
     tenant_id: uuid.UUID,
     patient_id: uuid.UUID,
-) -> tuple[int, int]:
+) -> _Erased:
     record = await subject_record(session, tenant_id=tenant_id, patient_id=patient_id)
 
     shredded = 0
@@ -249,11 +281,38 @@ async def _erase_subject(
         fact.payload = _shredded(dict(fact.payload))
         flag_modified(fact, "payload")
         shredded += 1
+    # INT-392: the frozen previsit output (INT-317) — the note's projection on
+    # the same record clock, so its DEK goes with the note's. Queried here, as
+    # the learned facts are, because the export already carries the note it
+    # was frozen from and has no resource of its own for it.
+    outputs = tuple(
+        (
+            await session.scalars(
+                select(PreVisitOutputRow).where(
+                    PreVisitOutputRow.tenant_id == tenant_id,
+                    PreVisitOutputRow.patient_id == patient_id,
+                )
+            )
+        ).all()
+    )
+    for output in outputs:
+        output.payload = _shredded(dict(output.payload))
+        flag_modified(output, "payload")
+        shredded += 1
     await session.flush()
 
     session_ids = [row.id for row in record.sessions]
     note_ids = [row.id for row in record.notes]
     removed = 0
+    # First: the one row a hospital may already have fetched (module docstring,
+    # point 4). Its key to sessions is NO ACTION, so skipping this raises.
+    removed += await _delete(
+        session,
+        delete(PreVisitOutputRow).where(
+            PreVisitOutputRow.tenant_id == tenant_id,
+            PreVisitOutputRow.patient_id == patient_id,
+        ),
+    )
     if note_ids:
         removed += await _delete(
             session,
@@ -308,4 +367,4 @@ async def _erase_subject(
                 IntakeSession.tenant_id == tenant_id, IntakeSession.id.in_(session_ids)
             ),
         )
-    return shredded, removed
+    return _Erased(shredded, removed, tuple(output.id for output in outputs))

@@ -109,6 +109,7 @@ admin-fixtures:
 	uv run python scripts/dev/record_reliability_fixture.py
 	uv run python scripts/dev/record_voice_fixture.py
 	uv run python scripts/dev/record_cicd_fixture.py
+	uv run python scripts/dev/record_access_fixture.py
 
 check-ts:
 	pnpm -r lint
@@ -465,6 +466,17 @@ audit-verify:
 
 key-rotation:
 	uv run python -m intake_platform.key_rotation
+# INT-366: one tick of the 60-day auto-disable (files/08 §2.4). Offboards every
+# staff account with no login for 60 days through the console's one-action
+# pipeline, audited as svc:access-hygiene; refuses when the realm keeps less
+# than 60 days of login history. Idempotent: the scheduler runs it daily
+# (docs/runbooks/access-review.md). Reads the Keycloak and OpenBao settings
+# the API reads, and INTAKE_API_AUDIT_DB_URL for the chain. Not part of `make
+# check`: it disables real accounts (`--dry-run` lists them instead).
+.PHONY: access-hygiene
+
+access-hygiene:
+	uv run python -m intake_platform.access_hygiene
 # INT-082: the headless patient simulator — personas × scenarios IM-01…IM-14
 # driven over the real IntakeEngine (INT-081), the real Talker (INT-091) and
 # the real triage engine (INT-080), on a synthetic pack and recorded fixtures.

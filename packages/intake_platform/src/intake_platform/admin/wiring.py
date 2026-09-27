@@ -18,7 +18,10 @@ fields ship deliberately barren:
   controller/processor question is answered per tenant (files/08 §2.6).
 
 Neither is a gap to be filled with a plausible value; both are the fail-closed
-state the design asks for.
+state the design asks for. INT-366 adds a third: ``identity`` (Keycloak and
+OpenBao admin access) ships unset, so the access review and offboarding answer
+503 until a deployment wires them — while the review ledger, which reads only
+the audit chain, is always there and downgrades until a review is countersigned.
 """
 
 from __future__ import annotations
@@ -26,11 +29,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
+from intake_platform.admin.access import IdentityWiring
+from intake_platform.admin.access.review import ReviewLedger
 from intake_platform.admin.actions import (
+    ACCESS_REVIEW_SIGN,
     BREAK_GLASS_OPEN,
     DEPLOY_FREEZE_ENGAGE,
     DEPLOY_FREEZE_LIFT,
     MODEL_BENCHMARK_RUN,
+    OFFBOARD,
     VOICE_CANARY_SET,
     VOICE_KILL_SWITCH_ENGAGE,
     VOICE_KILL_SWITCH_RELEASE,
@@ -94,6 +101,16 @@ _FREEZE_BRIEF_READERS = (
     | DEPLOY_FREEZE_LIFT.actor_roles
     | DEPLOY_FREEZE_LIFT.approver_roles
     | {AdminRole.AUDITOR}
+)
+
+#: INT-366 — the quarterly access review (files/08 §2.7). Read by those who
+#: sign or countersign it, by `auditor` (read-only evidence, §2.1) and by
+#: `platform_owner`. A `tenant_clinical_responsible` reads it too, scoped to
+#: their own tenant's clinician section and nothing else.
+_ACCESS_REVIEW_READERS = frozenset(
+    ACCESS_REVIEW_SIGN.actor_roles
+    | ACCESS_REVIEW_SIGN.approver_roles
+    | {AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
 )
 
 
@@ -287,6 +304,35 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         "admin.cicd.pending.brief.read",
         frozenset(_FREEZE_BRIEF_READERS),
     ),
+    # INT-366 — Access & identity (files/08 §2.4, §2.7, §3). `GET
+    # /admin/access/review` is §8's route; the sign/countersign pair is the
+    # tier-2 ceremony that lifts the read-only downgrade; offboarding and the
+    # confirmation of its manual steps are one tier-1 action.
+    AdminRoute("GET", "/admin/access/review", "admin.access.review.read", _ACCESS_REVIEW_READERS),
+    AdminRoute(
+        "POST",
+        "/admin/access/review/sign",
+        "admin.access.review.sign",
+        ACCESS_REVIEW_SIGN.actor_roles,
+        ACCESS_REVIEW_SIGN.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/access/review/sign/{action_id}/countersign",
+        "admin.access.review.countersign",
+        ACCESS_REVIEW_SIGN.approver_roles,
+        ACCESS_REVIEW_SIGN.id,
+    ),
+    AdminRoute(
+        "POST", "/admin/access/offboard", "admin.access.offboard", OFFBOARD.actor_roles, OFFBOARD.id
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/access/offboard/{offboarding_id}/confirm",
+        "admin.access.offboard.confirm",
+        OFFBOARD.actor_roles,
+        OFFBOARD.id,
+    ),
 )
 
 
@@ -308,3 +354,10 @@ class AdminWiring:
     #: the freeze controls answer 503, the freeze tile reads unknown, and the
     #: console's deploy gate shows what deploy.sh would do — refuse.
     release_freeze: ReleaseFreezeStore | None = None
+    #: INT-366: when the console access review was last countersigned, read
+    #: back from the audit chain. Always present — the §2.7 read-only
+    #: downgrade needs only the chain, and an unread ledger downgrades.
+    review_ledger: ReviewLedger = field(default_factory=ReviewLedger)
+    #: INT-366: Keycloak, OpenBao and the other console systems. ``None``
+    #: leaves the review and offboarding answering 503 (fail closed).
+    identity: IdentityWiring | None = None
