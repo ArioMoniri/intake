@@ -6098,3 +6098,22 @@
     - "once a CD target exists (Argo CD, or an API-driven deploy of the previous signed release), rollback is a tier-2 (4-eyes) console action: requested and approved by different eligible roles, audited, refused while the freeze state is unreadable, verified by the new /version; a test proves one person cannot complete it"
   tests: [tests/admin/test_cicd_rollback.py]
   sec_row: "admin-console"
+- id: INT-410
+  epic: E08-mobile
+  phase: P1
+  title: "Release bundles carry no synthetic seed accounts (audit F30)"
+  # GitHub #689. Found by INT-179's close-out (PR #687); production audit F30.
+  # The seed rendered only under __DEV__ but was imported statically, and Metro
+  # keeps a statically imported module, so every synthetic account shipped in
+  # the release bundle. The production export is searched in check-ts
+  # (releaseBundle.spec.ts, which has Node); the named pytest walks the release
+  # import graph in check-py, which has none (docs/evidence/INT-410.md).
+  depends_on: [INT-130]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-410.md
+  acceptance:
+    - "the seed accounts and their fixtures live behind a dev-only module that the release bundle excludes (a lazy import in a `__DEV__` branch the bundler strips, or a dev-only entry); a bundle test over the production export proves no seed identifier, name or fixture string is present, with a near-miss control where a planted seed string in a release path fails"
+    - "invariant 17: no demo data outside tests or fixtures reaches a release build"
+  tests: [tests/release/test_release_bundle_has_no_fixtures.py, apps/mobile/e2e/releaseBundle.spec.ts]
+  sec_row: "mobile"

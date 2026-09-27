@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**311 issues.** By phase: P0 159 · P1 98 · P2 47 · P3 7. By status: awaiting-human 27 · doing 7 · done 197 · todo 79 · withdrawn 1.
+**312 issues.** By phase: P0 159 · P1 99 · P2 47 · P3 7. By status: awaiting-human 27 · doing 7 · done 198 · todo 79 · withdrawn 1.
 
 ## P0
 
@@ -273,6 +273,7 @@
 | INT-397 | WCAG 4.1.3: the last three status lines are announced (notifications pending, review sent, consent queue) | E08-mobile | INT-362, INT-387 | area:mobile, risk:legal | done |
 | INT-396 | Backlog rows match what merged: status reconciliation and a guard against drift | E00-governance | INT-004 | area:platform | done |
 | INT-401 | Rollback from the console (4-eyes) once a CD target exists | E12-admin | INT-187 | area:admin, risk:security | awaiting-human |
+| INT-410 | Release bundles carry no synthetic seed accounts (audit F30) | E08-mobile | INT-130 | area:mobile, risk:security | done |
 
 ## P2
 
