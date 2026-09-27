@@ -1,13 +1,13 @@
 /** Visit summary card used on Bugün and Vizitlerim (02 §5.1). */
 import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { StatusChip } from "@/components/StatusChip";
 import { AppText, Card, useFontScale, useTheme } from "@/components/Themed";
-import type { VisitFixture } from "@/lib/dev/accounts";
 import { getLocale, t } from "@/lib/i18n";
 import { radius, spacing, tracking } from "@/lib/theme";
+import type { VisitFixture } from "@/lib/types/account";
 import { CHEVRON_GAP, CHEVRON_SIZE, chevronPlacement } from "@/lib/visitCardLayout";
 
 /**
@@ -60,7 +60,7 @@ export function VisitCard({
   // Hastalıkları ve Doğum") wraps BEFORE the arrow instead of running under
   // it (INT-372). Where it sits is lib/visitCardLayout's call.
   const placement = chevron && !hero ? chevronPlacement(fontScale) : null;
-  const glyph = <SymbolView name="chevron.right" size={CHEVRON_SIZE} tintColor={theme.inkFaint} />;
+  const glyph = <Icon name="chevron.right" size={CHEVRON_SIZE} tintColor={theme.inkFaint} />;
   return (
     <Card style={hero ? styles.hero : undefined}>
       {hero ? (

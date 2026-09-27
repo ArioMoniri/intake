@@ -1,0 +1,251 @@
+{
+  "__comment": "infra/observability/grafana/dashboards/learning-slo-dashboard.json — GENERATED from docs/slo/learning.yaml by intake_platform.slo_dashboards (INT-021; files/10 §6 golden signals). Do not edit: change the SLO file and re-emit with scripts/observability/slo_report.py --emit-dashboards; tests/observability/test_slo_generator.py fails on drift.",
+  "uid": "intake-learning-slo",
+  "title": "learning — SLOs, burn rate and golden signals",
+  "tags": [
+    "slo",
+    "learning",
+    "intake"
+  ],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Availability burn rate (1h, multiples of budget)",
+      "description": "slo:learning availability error ratio over 1h divided by the 99.5 % objective's budget (0.005); lanes: fast 14.4x (page), slow 6x (page), ticket 1x (ticket) — see docs/runbooks/slo-burn.md.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1.0
+              },
+              {
+                "color": "orange",
+                "value": 6.0
+              },
+              {
+                "color": "red",
+                "value": 14.4
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "slo:learning_availability:error_ratio_rate1h / 0.005",
+          "legendFormat": "burn 1h"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Availability — error ratio by burn window",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 18,
+        "x": 6,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "slo:learning_availability:error_ratio_rate5m",
+          "legendFormat": "5m"
+        },
+        {
+          "refId": "B",
+          "expr": "slo:learning_availability:error_ratio_rate30m",
+          "legendFormat": "30m"
+        },
+        {
+          "refId": "C",
+          "expr": "slo:learning_availability:error_ratio_rate1h",
+          "legendFormat": "1h"
+        },
+        {
+          "refId": "D",
+          "expr": "slo:learning_availability:error_ratio_rate6h",
+          "legendFormat": "6h"
+        },
+        {
+          "refId": "E",
+          "expr": "slo:learning_availability:error_ratio_rate3d",
+          "legendFormat": "3d"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Latency — p50 / p95",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"learning\"}[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"learning\"}[5m])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Traffic — requests per second",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_requests_total{service=\"learning\"}[5m]))",
+          "legendFormat": "requests/s"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Errors — 5xx per second by status",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (status) (rate(http_requests_total{service=\"learning\",status=~\"5..\"}[5m]))",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Saturation — CPU, memory, file descriptors",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(process_cpu_seconds_total{job=\"learning\"}[5m])",
+          "legendFormat": "cpu seconds/s"
+        },
+        {
+          "refId": "B",
+          "expr": "process_resident_memory_bytes{job=\"learning\"}",
+          "legendFormat": "resident bytes"
+        },
+        {
+          "refId": "C",
+          "expr": "process_open_fds{job=\"learning\"} / process_max_fds{job=\"learning\"}",
+          "legendFormat": "fd ratio"
+        }
+      ]
+    }
+  ]
+}
