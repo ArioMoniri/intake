@@ -5307,7 +5307,8 @@
   title: "Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic"
   depends_on: [INT-330, INT-332]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-333.md
   acceptance:
     - "every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"
     - "ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"

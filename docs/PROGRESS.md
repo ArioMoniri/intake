@@ -1,5 +1,19 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T14:00:00+03:00 · INT-333 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #532):
+  - *"every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"*
+  - *"ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"*
+  - *"ON_SITE never mounts a 112 control even transiently (invariant 21); no RED register permits a haptic"*
+  - *"a guard pins the list of RED surface files and forbids any animation API, haptics, Modal or router call on their first-paint path"*
+- Plan: a pure `lib/motion/red.ts` (presentation mode, literal-typed zero motion, location affordances, yields keyed on the mode) and a MOTION-4 source guard that pins the six RED-path files. ADR-033 is Proposed, so Q1, Q2 and Q4 ship in their recorded fail-closed defaults; Q4's default is also files/02 §5.3's action table.
+- Tests added (with the near-miss negative for the safety rule): `red.test.ts` (13, including an ON_SITE presentation built round `resolveRed`'s clamp) and two `e2e/motion.spec.ts` guards. RED: the module missing and 2 guards failing. GREEN: 25/25, whole mobile suite 2275. Mutants: 8 of 8 killed.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass; `no_placeholders` after staging OK. `make check` not run whole (check-integration is CI-only; no Python change).
+- Invariants touched and still passing: 21 (no 112 under ON_SITE, none mounted then removed under UNKNOWN), 9 (the RED path waits on nothing), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 stays Proposed.
+- Blocked on: nothing. INT-135 consumes the contract and carries the device measurement.
+- Next: PR `INT-333: Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic` (Closes #532, Sec-Row triage).
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
