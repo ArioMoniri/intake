@@ -1234,16 +1234,24 @@ metrics:
     labels: []
     owner: security
     unit: "min"
-    status: planned
-    description: Age of the newest backup.
+    status: live
+    description: >-
+      Minutes since the newest pgBackRest backup finished, computed at scrape
+      time from the host's PHI-free backup records (INTAKE_BACKUP_DIR); +Inf
+      when none exists. Emitted by intake_platform.backup.metrics on the
+      probes service (INT-202); BackupStale alerts on it.
   - name: sec_restore_drill_age_days
     id: sec.restore_drill_age_days
     type: gauge
     labels: []
     owner: security
     unit: "days"
-    status: planned
-    description: Days since the last restore drill.
+    status: live
+    description: >-
+      Days since the newest PASSING restore drill, computed at scrape time from
+      the drill's evidence records (INTAKE_BACKUP_DIR); +Inf when none exists.
+      Emitted by intake_platform.backup.metrics on the probes service
+      (INT-202); RestoreDrillOverdue alerts on it.
   - name: sec_break_glass_total
     id: sec.break_glass_total
     type: counter

@@ -312,11 +312,11 @@ measures:
           - tests/security/test_tokenization_roundtrip.py::test_unknown_key_id_is_refused
         signals: []
       - id: backup-key-apart
-        summary: "The backup cipher passphrase reaches the backup container from the environment, never from a committed file."
+        summary: "The backup cipher passphrase reaches the database container from the environment, never from a committed file."
         paths:
-          - infra/docker-compose.backup.yml
+          - infra/staging/compose.yaml
         tests:
-          - tests/infra/test_restore_drill.py::TestBackupComposeTier::test_the_repository_passphrase_reaches_the_container_from_the_environment
+          - tests/infra/test_backup_staging.py::TestPrimaryArchives::test_the_passphrase_is_a_required_host_secret_for_postgres_only
           - tests/infra/test_restore_drill.py::TestPgBackRestConfig::test_no_credential_literal_anywhere_in_the_backup_tier
         signals: []
     gaps:

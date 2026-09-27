@@ -5,7 +5,8 @@ it published under its own Docker Hub and quay.io namespaces no longer pull,
 so ``check-integration`` stopped at ``compose up`` (INT-346 §4, F9). The owner
 chose the maintained AGPL community fork, published as ``pgsty/minio``, pinned
 by sha256 digest (chat, 2026-09-26). That image ships the ``mc`` client as
-well, so the backup toolbox runs the same bytes and there is one pin, not two.
+well, so replication (``infra/staging/backup.sh replicate``, INT-202) runs the
+client inside the store's own container: the same bytes, one pin, not two.
 
 One source of truth: the ``minio`` row of ``observability/registry.yaml``. Its
 typed ``image`` field holds the approved reference, ``<repo>:<release
@@ -66,8 +67,6 @@ _IS_A_REFERENCE = rf"[:@]{_REF_TAIL}"
 EXPECTED_OBJECT_STORE_SERVICES = {
     ("infra/docker-compose.dev.yml", "minio"),
     ("infra/docker-compose.langfuse.yml", "langfuse-minio"),
-    ("infra/docker-compose.backup.yml", "minio-dr"),
-    ("infra/docker-compose.backup.yml", "mc"),
 }
 
 #: Records, not configuration: the dated evidence and iteration log quote the
@@ -299,11 +298,12 @@ class TestEveryReferenceIsTheApprovedOne:
         drift = {key: image for key, image in _object_store_services().items() if image != approved}
         assert not drift, f"not the approved {approved!r}: {drift}"
 
-    def test_the_client_toolbox_runs_the_same_image_through_a_shell(self) -> None:
-        compose = yaml.safe_load((INFRA / "docker-compose.backup.yml").read_text("utf-8"))
-        mc = compose["services"]["mc"]
-        assert mc["image"] == _approved_reference()
-        assert mc["entrypoint"] == ["/bin/sh"], "replication commands are piped to a shell"
+    def test_replication_runs_the_client_inside_the_store_container(self) -> None:
+        """INT-202: no separate client image to pin. The replication commands
+        are piped into a shell in the running store's own container."""
+        backup = (INFRA / "staging" / "backup.sh").read_text("utf-8")
+        assert "minio=$(compose ps -q minio)" in backup
+        assert '"$minio" sh -eu' in backup
 
     def test_every_textual_reference_to_the_fork_is_the_approved_one(self) -> None:
         approved = _approved_reference()

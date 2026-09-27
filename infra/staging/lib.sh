@@ -54,6 +54,21 @@ RELEASES_DIR="$STATE_DIR/releases"
 # digest, so /version could never pass smoke.sh with it.
 SBOM_DIGEST_DURING_BUILD="none-while-the-image-builds"
 
+# INT-202: backups. The primary is built from Dockerfile.postgres (the same
+# digest-pinned server plus a pinned pgBackRest); the tag names both versions
+# and is the one copy compose interpolates. conf.d is the pgBackRest include
+# directory, bind-mounted read-only into the postgres container: empty until
+# HB-I8 is answered (backup.sh set-retention; repository 2 for the second
+# location). The status directory holds the PHI-free backup and drill records
+# the probes service turns into sec_backup_age_min and
+# sec_restore_drill_age_days. None of these is a secret.
+POSTGRES_IMAGE="intake-staging/postgres:16.15-pgbackrest-2.59.1"
+export POSTGRES_IMAGE
+PGBACKREST_CONF_D="$STATE_DIR/pgbackrest.d"
+export PGBACKREST_CONF_D
+BACKUP_STATUS_DIR="$STATE_DIR/backup-status"
+BACKUP_STANZA="intake"
+
 # Every LOGIN role that a migration creates with a committed dev password,
 # with the .env key that holds its host-generated replacement. The test
 # checks this table against migrations/versions, so a new role cannot keep
@@ -380,10 +395,17 @@ stamp_revision() {
 # --- the release SBOM (INT-352, audit F18) ------------------------------------------------
 
 build_api_image() {
-  # The only build in this tier. The value is bound to this one call and never
-  # exported (see SBOM_DIGEST_DURING_BUILD). A build creates no container, and
-  # every later compose call runs with stamp_sbom's digest or not at all.
+  # The value is bound to this one call and never exported (see
+  # SBOM_DIGEST_DURING_BUILD). A build creates no container, and every later
+  # compose call runs with stamp_sbom's digest or not at all.
   INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api
+}
+
+build_postgres_image() {
+  # INT-202: the primary with pgBackRest (Dockerfile.postgres). Compose loads
+  # the whole file even to build one service, so the api's SBOM stamp is bound
+  # here the same way; the postgres image has no /version to stamp.
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build postgres
 }
 
 api_image_id() {
@@ -625,6 +647,34 @@ rotate_role_passwords() {
   done
   printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
   log "re-keyed ${#ROLE_PASSWORD_KEYS[@]} database roles away from their committed dev passwords"
+}
+
+# --- backups (INT-202) -------------------------------------------------------------------
+
+prepare_backup_dirs() {
+  # conf.d is read by the postgres user inside the container, so it is
+  # world-readable; it holds option lines, never a secret. The status records
+  # are PHI-free but stay root-only like the rest of the state dir.
+  install -d -o root -g root -m 0755 "$PGBACKREST_CONF_D"
+  install -d -o root -g root -m 0700 "$BACKUP_STATUS_DIR"
+}
+
+pgbackrest_exec() {
+  # pgBackRest inside the primary, as the postgres user, with the passphrase
+  # the container already holds. Nothing secret crosses argv.
+  compose exec -T -u postgres postgres pgbackrest "--stanza=${BACKUP_STANZA}" "$@"
+}
+
+ensure_backup_stanza() {
+  # stanza-create is idempotent: it creates the stanza once and afterwards only
+  # verifies it. check forces a WAL switch and waits for that segment to reach
+  # the repository, so a deploy fails here, loudly, rather than leaving WAL to
+  # pile up behind an archive_command that cannot write.
+  pgbackrest_exec stanza-create ||
+    die "pgBackRest could not create or verify the '${BACKUP_STANZA}' stanza (docs/runbooks/restore-drill.md)"
+  pgbackrest_exec check ||
+    die "WAL archiving to the pgBackRest repository is not working (docs/runbooks/restore-drill.md)"
+  log "backups: stanza '${BACKUP_STANZA}' ready and WAL archiving verified"
 }
 
 # --- public HTTPS ------------------------------------------------------------------------

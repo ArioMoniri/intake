@@ -2,41 +2,55 @@
 
 ``infra/backup/pgbackrest.conf`` and ``infra/backup/minio-replication.yaml``
 are the source of truth for the PITR repository and for what replicates to
-the second location. Everything that acts on them — the drill script, the
-Makefile targets, CI — goes through this module, so the plan is stated once
-and a shell script cannot drift away from it.
+the second location. Everything that acts on them goes through this module,
+so the plan is stated once and a shell script cannot drift away from it.
 
-Two properties are enforced at load time rather than trusted:
+Refused at load time rather than trusted:
 
-* the repository is encrypted, and its passphrase is **not** in the file
-  (invariant 14: secrets come from OpenBao, never from a committed artefact);
-* no retention window is invented. files/10 §3 and the INT-202 acceptance
-  state RPO 15 min and RTO 4 h and state no retention; the loader reports the
-  absence and :mod:`intake_platform.backup.drill` refuses to act on it.
+* an unencrypted repository, and any secret written into the file
+  (invariant 14: the passphrase is a host secret, never a committed value);
+* TLS verification switched off on any repository. The first version of the
+  config pointed an S3 repository at the in-network object store over plain
+  HTTP with ``repo1-storage-verify-tls=n``. pgBackRest's S3 driver speaks only
+  TLS (pgbackrest/pgbackrest#1590), so that repository could never have been
+  written, and ``verify-tls=n`` would have made one that could be
+  impersonated. Repository 1 is now a local POSIX repository on its own
+  volume; the second location is a second repository once HB-I8(b) names it;
+* a count-based or over-long retention. files/06 §1's obligation is a period
+  (destruction at most every six months), so the window is in days and
+  :func:`~intake_platform.backup.status.validate_retention_days` bounds it.
+  No window is set at all until HB-I8(a) is answered;
+* a replication rule that would keep erased plaintext (see
+  :func:`withheld_rules`).
 """
 
 from __future__ import annotations
 
 import configparser
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
 import yaml
 
+from .status import StatusError, validate_retention_days
+
 #: pgBackRest reads every option from the environment as ``PGBACKREST_`` plus
-#: the option name upper-cased with dashes as underscores. The passphrase is
-#: therefore not configurable to some other name — it is this one.
+#: the option name upper-cased with dashes as underscores.
 CIPHER_PASS_ENV: Final = "PGBACKREST_REPO1_CIPHER_PASS"  # noqa: S105 — a variable name
 
-#: The only repository cipher files/10 §3 accepts. AES-256 in CBC is what
-#: pgBackRest implements; the option exists to be asserted, not chosen.
+#: The only repository cipher files/10 §3 accepts.
 REQUIRED_CIPHER: Final = "aes-256-cbc"
 
-#: The env var carrying an operator-supplied retention window. Absent by
-#: design; :class:`~intake_platform.backup.drill.RetentionNotConfiguredError`
-#: names HB-I8 when it is missing.
-RETENTION_FULL_ENV: Final = "PGBACKREST_REPO1_RETENTION_FULL"
+#: files/06 §1's obligation is a period, so retention is a number of days.
+REQUIRED_RETENTION_TYPE: Final = "time"
+
+#: Options that carry a secret, for any repository index.
+_SECRET_OPTION = re.compile(
+    r"^repo\d+-(?:cipher-pass|s3-key|s3-key-secret|s3-token|azure-key|gcs-key)$"
+)
+_VERIFY_TLS = re.compile(r"^repo\d+-storage-verify-tls$")
 
 
 class BackupConfigError(ValueError):
@@ -49,11 +63,14 @@ class PgBackRestConfig:
 
     stanza: str
     pg_path: str
+    pg_user: str
     repo_type: str
-    repo_bucket: str
+    repo_path: str
     repo_cipher_type: str
     archive_async: bool
+    retention_type: str
     retention_full: int | None
+    log_level_file: str
     cipher_pass_env: str = CIPHER_PASS_ENV
 
     @property
@@ -63,8 +80,8 @@ class PgBackRestConfig:
 
     @property
     def pitr_capable(self) -> bool:
-        """Continuous WAL archiving into an encrypted repository is what
-        makes a point-in-time restore possible at all."""
+        """Continuous asynchronous WAL archiving into an encrypted repository
+        is what makes a point-in-time restore possible."""
         return self.archive_async and self.encrypted_at_rest and bool(self.pg_path)
 
 
@@ -74,6 +91,7 @@ class ReplicationRule:
 
     bucket: str
     object_lock: bool
+    holds_erasable_plaintext: bool
     replicate_existing: bool
     replicate_delete: bool
     replicate_delete_marker: bool
@@ -92,12 +110,10 @@ class ReplicationPlan:
     target_endpoint_env: str
     target_access_key_env: str
     target_secret_key_env: str
-    repository_bucket: str
     rules: tuple[ReplicationRule, ...]
 
     #: files/10 §3 asks for "a second location in Türkiye" and no file names
-    #: one (HB-I5: no in-country provider is contracted). An unset endpoint is
-    #: a refusal, so there is deliberately nothing to fall back to.
+    #: one (HB-I8(b), HB-I5). An unset endpoint is a refusal.
     target_endpoint_default: None = None
 
     @property
@@ -121,11 +137,7 @@ def _flag(section: configparser.SectionProxy, option: str) -> bool:
 
 
 def load_pgbackrest_config(path: Path) -> PgBackRestConfig:
-    """Read ``pgbackrest.conf`` and refuse the configurations that are wrong.
-
-    Raises :class:`BackupConfigError` when the repository is unencrypted or
-    when a secret has been written into the file.
-    """
+    """Read ``pgbackrest.conf`` and refuse the configurations that are wrong."""
     parser = configparser.ConfigParser()
     parser.read_string(path.read_text(encoding="utf-8"))
 
@@ -140,11 +152,26 @@ def load_pgbackrest_config(path: Path) -> PgBackRestConfig:
         )
     stanza = stanzas[0]
 
-    for forbidden in ("repo1-cipher-pass", "repo1-s3-key", "repo1-s3-key-secret"):
-        if forbidden in glob:
-            raise BackupConfigError(
-                f"{path.name} carries {forbidden} — secrets come from OpenBao (invariant 14)"
-            )
+    for section in parser.sections():
+        for option, value in parser[section].items():
+            if _SECRET_OPTION.match(option):
+                raise BackupConfigError(
+                    f"{path.name} carries {option} — the passphrase and keys are host secrets, "
+                    "injected from the root-only env file, never committed (invariant 14; OpenBao "
+                    "in the dev tier)"
+                )
+            if _VERIFY_TLS.match(option) and value.strip().lower() in {"n", "no", "false", "0"}:
+                raise BackupConfigError(
+                    f"{path.name}: {option}=n — a repository reached without TLS "
+                    "verification can be impersonated"
+                )
+
+    repo_type = _opt(glob, "repo1-type") or "posix"
+    if repo_type != "posix":
+        raise BackupConfigError(
+            f"{path.name}: repo1-type is {repo_type!r}; repository 1 is the host's own POSIX "
+            "repository, and the second location is repository 2 (HB-I8(b))"
+        )
 
     cipher = _opt(glob, "repo1-cipher-type")
     if cipher != REQUIRED_CIPHER:
@@ -153,29 +180,45 @@ def load_pgbackrest_config(path: Path) -> PgBackRestConfig:
             "— files/10 §3 requires the archive encrypted at rest"
         )
 
+    retention_type = _opt(glob, "repo1-retention-full-type")
+    if retention_type != REQUIRED_RETENTION_TYPE:
+        raise BackupConfigError(
+            f"{path.name}: repo1-retention-full-type is {retention_type!r}, expected 'time' "
+            "— files/06 §1 states a period, not a number of backups"
+        )
     raw_retention = _opt(glob, "repo1-retention-full")
-    retention = int(raw_retention) if raw_retention else None
+    try:
+        retention = validate_retention_days(raw_retention) if raw_retention else None
+    except StatusError as err:
+        raise BackupConfigError(f"{path.name}: {err}") from err
 
     return PgBackRestConfig(
         stanza=stanza,
         pg_path=_opt(parser[stanza], "pg1-path"),
-        repo_type=_opt(glob, "repo1-type"),
-        repo_bucket=_opt(glob, "repo1-s3-bucket"),
+        pg_user=_opt(parser[stanza], "pg1-user"),
+        repo_type=repo_type,
+        repo_path=_opt(glob, "repo1-path"),
         repo_cipher_type=cipher,
         archive_async=_flag(glob, "archive-async"),
+        retention_type=retention_type,
         retention_full=retention,
+        log_level_file=_opt(glob, "log-level-file"),
     )
 
 
-def _rule(raw: dict[str, Any], index: int) -> ReplicationRule:
-    try:
-        bucket = str(raw["bucket"])
-    except KeyError as err:  # pragma: no cover - defended by the schema test
-        raise BackupConfigError(f"replication rule {index} has no bucket") from err
+def _rule(raw: dict[str, Any], index: int, name: str) -> ReplicationRule:
+    if "bucket" not in raw:
+        raise BackupConfigError(f"{name}: replication rule {index} has no bucket")
+    if "holds_erasable_plaintext" not in raw:
+        raise BackupConfigError(
+            f"{name}: rule for {raw['bucket']!r} must state holds_erasable_plaintext — whether a "
+            "DSAR erasure deletes these objects in the clear decides whether a copy may exist"
+        )
     expiry = raw.get("expiry_days")
     return ReplicationRule(
-        bucket=bucket,
+        bucket=str(raw["bucket"]),
         object_lock=bool(raw.get("object_lock", False)),
+        holds_erasable_plaintext=bool(raw["holds_erasable_plaintext"]),
         replicate_existing=bool(raw.get("replicate_existing", False)),
         replicate_delete=bool(raw.get("replicate_delete", False)),
         replicate_delete_marker=bool(raw.get("replicate_delete_marker", False)),
@@ -184,30 +227,23 @@ def _rule(raw: dict[str, Any], index: int) -> ReplicationRule:
 
 
 def load_replication_plan(path: Path) -> ReplicationPlan:
-    """Read ``minio-replication.yaml`` and refuse a plan that loses a guarantee.
-
-    Two refusals matter. A rule that replicates deletes turns the copy into a
-    second victim of the same ransomware; a rule that invents an expiry window
-    answers a retention question nobody has answered (HB-I8).
-    """
+    """Read ``minio-replication.yaml`` and refuse a plan that loses a guarantee."""
     raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
-    rules = tuple(_rule(item, i) for i, item in enumerate(raw.get("rules", [])))
+    rules = tuple(_rule(item, i, path.name) for i, item in enumerate(raw.get("rules") or []))
     if not rules:
         raise BackupConfigError(f"{path.name} declares no replication rules")
-
     for rule in rules:
         if rule.replicate_delete or rule.replicate_delete_marker:
             raise BackupConfigError(
-                f"{path.name}: {rule.bucket} replicates deletions — a deletion on the "
-                "primary must not reach the copy (files/10 §9 `backups`)"
+                f"{path.name}: {rule.bucket} replicates deletions — a deletion on the primary "
+                "must not reach the copy (files/10 §9 `backups`)"
             )
         if rule.expiry_days is not None:
             raise BackupConfigError(
-                f"{path.name}: {rule.bucket} sets expiry_days={rule.expiry_days}; no file "
-                "in files/ states a backup retention window (HB-I8)"
+                f"{path.name}: {rule.bucket} sets expiry_days={rule.expiry_days}; no file in "
+                "files/ states a backup retention window (HB-I8)"
             )
-
-    plan = ReplicationPlan(
+    return ReplicationPlan(
         source_alias=str(raw["source_alias"]),
         source_endpoint_env=str(raw["source_endpoint_env"]),
         source_access_key_env=str(raw["source_access_key_env"]),
@@ -216,23 +252,38 @@ def load_replication_plan(path: Path) -> ReplicationPlan:
         target_endpoint_env=str(raw["target_endpoint_env"]),
         target_access_key_env=str(raw["target_access_key_env"]),
         target_secret_key_env=str(raw["target_secret_key_env"]),
-        repository_bucket=str(raw["repository_bucket"]),
         rules=rules,
     )
-    if plan.repository_bucket not in plan.bucket_names:
-        raise BackupConfigError(
-            f"{path.name}: the pgBackRest repository bucket {plan.repository_bucket!r} "
-            "is not replicated — the PITR archive would exist in one place only"
+
+
+def withheld_rules(plan: ReplicationPlan) -> list[tuple[ReplicationRule, str]]:
+    """Rules that are declared but never rendered, each with the reason.
+
+    Bucket replication needs versioning on the source, and the copy withholds
+    deletes (the ransomware defence). For objects stored in the clear that a
+    DSAR erasure deletes, both keep the erased bytes: the noncurrent version
+    on the primary and the copy at the second location. So such a bucket is
+    neither versioned nor copied until its objects are envelope-encrypted
+    (erasure then destroys a key, which a copy cannot undo) or the owner and
+    counsel accept a copy that outlives an erasure.
+    """
+    return [
+        (
+            rule,
+            f"{rule.bucket} holds clear-text objects that a DSAR erasure deletes (files/06 §3); "
+            "versioning or copying it would keep erased bytes. Withheld until its objects are "
+            "envelope-encrypted or HB-I8 decides otherwise.",
         )
-    return plan
+        for rule in plan.rules
+        if rule.holds_erasable_plaintext
+    ]
 
 
 def replication_commands(plan: ReplicationPlan) -> list[list[str]]:
-    """Render the ``mc`` invocations that realise *plan*.
+    """Render the ``mc`` invocations for every rule that may be replicated.
 
-    Rendered, not written down twice: the YAML is the only statement of what
-    replicates where. Credentials are referenced as shell variables so no
-    secret ever passes through this process.
+    Credentials and the endpoint are shell variable references, so no secret
+    passes through this process and nothing names the second location.
     """
     src, dst = plan.source_alias, plan.target_alias
     commands: list[list[str]] = [
@@ -256,12 +307,17 @@ def replication_commands(plan: ReplicationPlan) -> list[list[str]]:
         ],
     ]
     for rule in plan.rules:
+        if rule.holds_erasable_plaintext:
+            continue
         make_bucket = ["mc", "mb", "--ignore-existing"]
         if rule.object_lock:
             make_bucket.append("--with-lock")
         commands.append([*make_bucket, f"{dst}/{rule.bucket}"])
         commands.append(["mc", "version", "enable", f"{src}/{rule.bucket}"])
         commands.append(["mc", "version", "enable", f"{dst}/{rule.bucket}"])
+        flags = ["metadata-sync"]
+        if rule.replicate_existing:
+            flags.append("existing-objects")
         commands.append(
             [
                 "mc",
@@ -271,20 +327,7 @@ def replication_commands(plan: ReplicationPlan) -> list[list[str]]:
                 "--remote-bucket",
                 f"{dst}/{rule.bucket}",
                 "--replicate",
-                _replicate_flags(rule),
+                ",".join(flags),
             ]
         )
     return commands
-
-
-def _replicate_flags(rule: ReplicationRule) -> str:
-    """The ``--replicate`` value: what a change on the primary propagates.
-
-    ``delete`` and ``delete-marker`` are never included — that omission is
-    the ransomware defence, and :func:`load_replication_plan` refuses a plan
-    that would ask for them.
-    """
-    flags = ["metadata-sync"]
-    if rule.replicate_existing:
-        flags.append("existing-objects")
-    return ",".join(flags)

@@ -269,28 +269,41 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Trust boundaries:** production ↔ second location in Türkiye; backup keys ↔ data keys
   (separate on purpose).
 - **Threats (STRIDE/LINDDUN):** [I] backup theft; [T/D] ransomware reaching the backup tier;
-  [Nc] restores never exercised, discovered during the incident.
+  [Nc] restores never exercised, discovered during the incident; [Nc/LINDDUN-U] a restore
+  that resurrects a subject the patient had erased.
 - **Controls (files/10):** §3 backups & DR — encrypted PITR to a second in-country location,
   immutable copies, RPO 15 min / RTO 4 h, quarterly restore drills with console evidence.
-  INT-202 lands the repository configuration (`infra/backup/pgbackrest.conf`,
-  `repo1-cipher-type=aes-256-cbc`, passphrase from OpenBao and never from a file), the
-  replication plan (`infra/backup/minio-replication.yaml` — object-lock preserved on the
-  audit replica, deletions never propagated, which is the ransomware defence) and the drill
-  itself. The **second location is not named anywhere in files/**, so
-  `INTAKE_DR_S3_ENDPOINT` has no default and the DR object store has no registry row —
-  HB-I8(b), and HB-I5 for why no in-country provider is contracted.
-- **Signals:** backup freshness (`services/probes` `backup_freshness` over
-  `INTAKE_BACKUP_DIR`, bounded at `INTAKE_BACKUP_MAX_AGE_S=900` — the 15-min RPO) and
-  last-drill age. `sec.backup_age_min` and `sec.restore_drill_age_days` stay `planned` in
-  the catalogue: nothing emits them yet, and a `live` entry nothing emits is the dishonest
-  direction the INT-025 gate exists to catch.
-- **Tests:** `tests/infra/test_restore_drill.py` (INT-202) — the repository is encrypted,
-  no credential literal is committed, replication keeps object-lock and propagates no
-  deletion, the drill refuses a restore target inside the workspace, and its evidence record
-  has no field an identifier could occupy. The **execution** half (`make backup-drill`) is
-  scripted, wired and unexercised on the recorded host: HB-I1 (disk) and HB-I2 (container
-  memory) block it, and the retention window the expire step needs is HB-I8(a). The drill
-  refuses rather than shrinking to fit.
+  INT-202: the production host's primary archives every WAL segment (`archive_timeout=60`)
+  into a local POSIX pgBackRest repository, `aes-256-cbc` on every file, passphrase a
+  host-generated secret passed to the database container only (`infra/backup/pgbackrest.conf`,
+  `infra/staging/Dockerfile.postgres`, `infra/staging/compose.yaml`). The config loader
+  refuses a committed secret and `*-storage-verify-tls=n` (the first version pointed an S3
+  repository at the object store over plain HTTP, which pgBackRest cannot write). The drill
+  (`scripts/backup/drill_lib.sh`, quarterly on the host via `infra/staging/backup.sh`)
+  restores from the repository mounted read-only into a network-less scratch cluster with
+  archiving off, and verifies a synthetic canary — rows, checksum, a kept subject that
+  opens, an erased subject that stays erased, a sentinel past the target. Replication
+  (`infra/backup/minio-replication.yaml`) keeps object-lock on the audit replica and
+  propagates no deletion; it **withholds `intake-docs`**, whose clear-text bytes a DSAR
+  erasure deletes. The **second location is not named anywhere in files/** —
+  HB-I8(b), HB-I5 — so `backup.sh replicate` refuses and every record says
+  `second_location: unconfigured`. **Residual risk, measured:** a restore to a moment
+  before an erasure reopens the erased subject (wrapped DEK in the backup, tenant KEK in
+  OpenBao); the runbook re-applies erasures before a restored database serves, the
+  window is the retention HB-I8(a) is waiting for, and INT-037's per-subject key would
+  close it.
+- **Signals:** `sec_backup_age_min` and `sec_restore_drill_age_days`, live on the probes
+  service from the PHI-free records in `INTAKE_BACKUP_DIR` (+Inf when none);
+  `BackupStale` (> 1500 min) and `RestoreDrillOverdue` (> 92 days) in
+  `infra/observability/security-rules.yaml`, both ticket. The `backup_freshness` probe
+  watches the same directory.
+- **Tests:** `tests/infra/test_restore_drill.py`, `test_backup_status.py`,
+  `test_backup_canary.py`, `test_backup_staging.py`,
+  `tests/observability/test_backup_metrics.py` (the unit lane), and
+  `tests/infra/test_backup_restore_integration.py` in the compose CI job: a real
+  backup → point-in-time restore → verify through the same engine the host runs, plus a
+  second restore that measures the erasure window. The host's first run is the
+  operator's (`docs/runbooks/restore-drill.md`).
 
 ## `resilience` — degradation without harm
 

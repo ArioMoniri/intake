@@ -11,6 +11,11 @@ background loop that turns GPU-host, CI and clip-build facts into catalogued
 series on this service's ``/metrics``. Unconfigured, no loop starts and the
 families are served empty (help and type lines only), which the admin console
 reads as *unknown*.
+
+INT-202: it also serves ``sec_backup_age_min`` and
+``sec_restore_drill_age_days``, computed at scrape time from the PHI-free
+records in ``INTAKE_BACKUP_DIR`` — the directory its ``backup_freshness``
+probe already watches (:mod:`intake_platform.backup.metrics`).
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ from os import environ
 from pathlib import Path
 
 from fastapi import FastAPI
+from intake_platform.backup.metrics import bind_from_env as bind_backup_gauges
 from intake_platform.health import ReadinessCheck, mount_health
 from prometheus_client import REGISTRY
 
@@ -59,4 +65,5 @@ def create_app() -> FastAPI:
         return True
 
     mount_health(app, readiness=[ReadinessCheck("registry", registry_parses)])
+    bind_backup_gauges(environ)
     return app

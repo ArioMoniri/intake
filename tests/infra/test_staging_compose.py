@@ -86,18 +86,23 @@ LIB = STAGING / "lib.sh"
 INIT = STAGING / "init.sh"
 DEPLOY = STAGING / "deploy.sh"
 SMOKE = STAGING / "smoke.sh"
+BACKUP = STAGING / "backup.sh"
+POSTGRES_DOCKERFILE = STAGING / "Dockerfile.postgres"
+POSTGRES_DOCKERIGNORE = STAGING / "Dockerfile.postgres.dockerignore"
 PROBE = STAGING / "staging_probe.py"
 REVISION = STAGING / "REVISION"
 GITATTRIBUTES = STAGING / ".gitattributes"
 RUNBOOK = REPO / "docs" / "runbooks" / "staging.md"
 MIGRATIONS = REPO / "migrations" / "versions"
 
-SCRIPTS = (LIB, INIT, DEPLOY, SMOKE)
-EXECUTABLES = (INIT, DEPLOY, SMOKE)
+SCRIPTS = (LIB, INIT, DEPLOY, SMOKE, BACKUP)
+EXECUTABLES = (INIT, DEPLOY, SMOKE, BACKUP)
 ARTEFACT = (
     COMPOSE,
     DOCKERFILE,
     DOCKERIGNORE,
+    POSTGRES_DOCKERFILE,
+    POSTGRES_DOCKERIGNORE,
     REQUIREMENTS,
     CADDYFILE,
     OPENBAO_CONFIG,
@@ -132,7 +137,8 @@ PROCESS_LOCAL_KEK = "file-dev"
 DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT", "INTAKE_SBOM_DIGEST"}
 
 #: Committed, non-secret values that lib.sh exports for every compose call.
-LIB_EXPORTED = {"OBJECT_STORE_IMAGE"}
+#: INT-202 adds the primary's built image tag and the pgBackRest include dir.
+LIB_EXPORTED = {"OBJECT_STORE_IMAGE", "POSTGRES_IMAGE", "PGBACKREST_CONF_D"}
 
 #: name:tag@sha256:<64 hex> — a tag for humans, a digest for the registry.
 PINNED = re.compile(r"^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$")
@@ -278,8 +284,11 @@ STAMP_FALLBACK = re.compile(
     r"|(?:GIT_SHA|BUILT_AT|SBOM_DIGEST)\s*[:=]\s*[\"']?dev\b"
 )
 
-#: The one build statement: its SBOM digest cannot exist yet (see lib.sh).
+#: The build statements: the api's SBOM digest cannot exist yet (see lib.sh),
+#: and INT-202's primary (Dockerfile.postgres) builds under the same binding
+#: because compose loads the whole file to build one service.
 BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api'
+POSTGRES_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build postgres'
 
 #: The docker shim's built image and commit, and the SPDX document its syft
 #: prints (the shape syft's spdx-json output takes, trimmed).
@@ -1719,14 +1728,16 @@ class TestSbomStamp:
         assert order == sorted(order)
         assert order[-1] < code.index("compose "), "compose needs the digest to load"
 
-    def test_the_only_build_is_build_api_image(self) -> None:
+    def test_the_only_builds_are_the_api_and_the_primary(self) -> None:
         builds = [
             line.strip()
             for path in SCRIPTS
             for line in _code(path).splitlines()
             if re.search(r"\bcompose build\b", line)
         ]
-        assert builds == [BUILD_STATEMENT]
+        assert builds == [BUILD_STATEMENT, POSTGRES_BUILD_STATEMENT]
+        built = {name for name, service in _compose()["services"].items() if "build" in service}
+        assert built == {"api", "postgres"}
 
     def test_deploy_runs_exactly_the_image_the_sbom_describes(self) -> None:
         ups = re.findall(r"^compose up .*$", _code(DEPLOY), re.M)

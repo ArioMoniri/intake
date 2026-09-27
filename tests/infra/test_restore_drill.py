@@ -1,83 +1,78 @@
-"""INT-202 — backups: pgBackRest PITR encrypted, MinIO replication, restore drill.
+"""INT-202 — backups: pgBackRest PITR encrypted, object-store replication, drill.
 
-What this file can honestly pin, and what it cannot.
+What this file pins without a container runtime (none exists where the unit
+lane runs; the real backup → restore → verify cycle is
+``tests/infra/test_backup_restore_integration.py`` in the compose CI job):
 
-The drill's *execution* half needs a Postgres with WAL archiving, a pgBackRest
-repository, two MinIO endpoints and a throwaway restore target. files/10 §3
-sizes that at more disk and more Docker memory than this host has — HB-I1
-(free 80–100 GB of disk) and HB-I2 (raise Docker's RAM allocation) are both
-open. So the drill is scripted, its entry points are wired, and this file
-pins the half that is decidable without booting anything:
-
-- the pgBackRest configuration parses, encrypts the repository, and carries
-  no credential literal (invariant 14 — secrets come from OpenBao);
-- the retention policy is **absent on purpose** and the drill refuses to run
-  without it, because files/10 §3 and the backlog state RPO 15 min / RTO 4 h
-  and state no retention window. A number nobody supplied is not a default
-  (CLAUDE.md: never invent a value to unblock yourself);
-- the replication plan targets exactly the buckets the platform writes, and
-  preserves object-lock parity on the WORM audit bucket;
-- the drill plan never restores into the workspace, never asks for record
-  content, and its evidence record carries counts, not rows (invariants 3, 6);
-- the compose tier is profile-gated, tag-pinned, loopback-bound and literal-
-  free, so the shared dev tier is untouched by its presence;
-- the shell drill's ``--dry-run`` path runs here, for real, and exits 0.
-
-The restore itself is exercised by ``make backup-drill`` on a host that meets
-the preflight. Nothing in this file claims it ran.
+- the pgBackRest repository is a local POSIX repository, encrypted at rest
+  (aes-256-cbc), with its passphrase nowhere in a committed file (invariant
+  14). The first version of this file configured an S3 repository against
+  the in-network object store over plain HTTP; pgBackRest speaks only TLS to
+  S3 (pgbackrest/pgbackrest#1590), so that repository could never have been
+  written. A refusal pins it;
+- retention is time-based and has NO value: files/10 §3 states RPO 15 min
+  and RTO 4 h and no retention, and HB-I8(a) is open. When the owner answers,
+  the value is refused above the ceiling files/06 §1 implies;
+- the object-store replication plan never versions or copies a bucket whose
+  objects are erasable plaintext (``intake-docs``: DSAR erasure deletes the
+  bytes, files/06 §3), and names no second location (HB-I8(b));
+- the drill never restores into the workspace (INT-315), never projects a
+  column, restores from a read-only repository into a network-less scratch
+  cluster with archiving off, and stops at a point in time;
+- the entry points exist, are strict bash, and the dry run runs here.
 """
 
 from __future__ import annotations
 
 import os
 import re
-import shutil
 import stat
 import subprocess
 from pathlib import Path
-from typing import Any
 
 import pytest
-import yaml
 from intake_platform.backup import (
+    RESTORE_PGDATA,
     RESTORE_TARGET,
     BackupConfigError,
-    DrillBlocked,
-    DrillStep,
     PgBackRestConfig,
     ReplicationPlan,
     RestoreTargetInsideWorkspaceError,
-    RetentionNotConfiguredError,
     assert_restore_target_outside_workspace,
-    drill_evidence_skeleton,
-    host_preflight,
     load_pgbackrest_config,
     load_replication_plan,
     plan_restore_drill,
     replication_commands,
+    withheld_rules,
 )
 from intake_platform.backup.cli import main as cli_main
-from intake_platform.backup.record import build_record, parse_row_counts
-from intake_platform.backup.record import main as record_main
+from intake_platform.backup.status import RETENTION_CEILING_DAYS
 
 REPO = Path(__file__).resolve().parents[2]
 INFRA = REPO / "infra"
 BACKUP_DIR = INFRA / "backup"
 PGBACKREST_CONF = BACKUP_DIR / "pgbackrest.conf"
 REPLICATION_PLAN = BACKUP_DIR / "minio-replication.yaml"
-COMPOSE_PATH = INFRA / "docker-compose.backup.yml"
-DRILL_SCRIPT = REPO / "scripts" / "backup" / "restore_drill.sh"
+SCRIPTS = REPO / "scripts" / "backup"
+DRILL_SCRIPT = SCRIPTS / "restore_drill.sh"
+DRILL_LIB = SCRIPTS / "drill_lib.sh"
+CI_DRILL = SCRIPTS / "ci_drill.sh"
+HOST_BACKUP = INFRA / "staging" / "backup.sh"
+POSTGRES_DOCKERFILE = INFRA / "staging" / "Dockerfile.postgres"
+STAGING_COMPOSE = INFRA / "staging" / "compose.yaml"
 RUNBOOK = REPO / "docs" / "runbooks" / "restore-drill.md"
 
 #: The buckets the platform actually writes (services/api app defaults +
-#: intake_platform.documents). A replication plan that names anything else is
-#: replicating a bucket nobody fills, or missing one that holds PHI.
+#: intake_platform.documents).
 PLATFORM_BUCKETS = {"intake-docs", "intake-audit-worm"}
 
-#: The audit bucket is created with S3 object-lock in COMPLIANCE mode
-#: (intake_platform.documents.DocumentStore.ensure_buckets). A replica without
-#: the lock silently voids the WORM guarantee files/10 §3 relies on.
+#: Created with S3 object-lock in COMPLIANCE mode by DocumentStore.ensure_buckets.
 WORM_BUCKETS = {"intake-audit-worm"}
+
+#: Document bytes are stored in the clear (the SSE slot is plumbed, not wired)
+#: and a DSAR erasure deletes them (intake_api.dsar.shred). A versioned or
+#: replicated copy with deletes withheld would keep an erased document.
+ERASABLE_PLAINTEXT_BUCKETS = {"intake-docs"}
 
 #: Anything shaped like a credential in a committed file is invariant 14's
 #: failure mode, whatever it is named.
@@ -86,10 +81,16 @@ SECRET_SHAPED = re.compile(
     re.IGNORECASE,
 )
 
-
-def _compose() -> dict[str, Any]:
-    loaded: dict[str, Any] = yaml.safe_load(COMPOSE_PATH.read_text(encoding="utf-8"))
-    return loaded
+#: Every committed file the backup tier consists of.
+BACKUP_TIER = (
+    PGBACKREST_CONF,
+    REPLICATION_PLAN,
+    DRILL_SCRIPT,
+    DRILL_LIB,
+    CI_DRILL,
+    HOST_BACKUP,
+    POSTGRES_DOCKERFILE,
+)
 
 
 def _config() -> PgBackRestConfig:
@@ -100,117 +101,296 @@ def _plan() -> ReplicationPlan:
     return load_replication_plan(REPLICATION_PLAN)
 
 
+def _code(path: Path) -> str:
+    return "\n".join(
+        line
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+
+
 # --- pgBackRest: PITR and encryption at rest -------------------------------------------
 
 
 class TestPgBackRestConfig:
     def test_the_shipped_config_parses(self) -> None:
         config = _config()
-        assert config.stanza
-        assert config.pg_path
+        assert config.stanza == "intake"
+        assert config.pg_path == "/var/lib/postgresql/data"
 
     def test_the_repository_is_encrypted_at_rest(self) -> None:
-        """files/10 §3: PITR archives encrypted with keys separate from the
-        data keys. pgBackRest encrypts the repository, not the volume."""
+        """files/10 §3: encrypted with separate keys. The repository's own
+        cipher, not the volume's: a copied repository is ciphertext."""
         config = _config()
         assert config.repo_cipher_type == "aes-256-cbc"
-        assert config.encrypted_at_rest is True
+        assert config.encrypted_at_rest
 
     def test_the_cipher_passphrase_is_not_in_the_file(self) -> None:
-        """Invariant 14: secrets only from OpenBao. The config declares the
-        algorithm; the passphrase arrives as PGBACKREST_REPO1_CIPHER_PASS."""
-        config = _config()
-        assert config.cipher_pass_env == "PGBACKREST_REPO1_CIPHER_PASS"
         text = PGBACKREST_CONF.read_text(encoding="utf-8")
-        assert "repo1-cipher-pass=" not in text
-        assert "repo1-s3-key=" not in text
-        assert "repo1-s3-key-secret=" not in text
+        assert not re.search(r"^\s*repo\d-cipher-pass\s*=", text, re.M)
+        assert _config().cipher_pass_env == "PGBACKREST_REPO1_CIPHER_PASS"
 
     def test_no_credential_literal_anywhere_in_the_backup_tier(self) -> None:
-        for path in (PGBACKREST_CONF, REPLICATION_PLAN, COMPOSE_PATH, DRILL_SCRIPT):
+        for path in BACKUP_TIER:
             for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                stripped = line.strip()
-                if stripped.startswith("#") or stripped.startswith("//"):
+                if line.lstrip().startswith("#"):
                     continue
-                match = SECRET_SHAPED.search(line)
-                assert match is None, f"{path.name}:{lineno} carries a credential literal: {line!r}"
+                assert not SECRET_SHAPED.search(line), f"{path.name}:{lineno}: {line!r}"
 
-    def test_wal_archiving_is_on_which_is_what_makes_it_pitr(self) -> None:
+    def test_the_repository_is_local_posix_on_its_own_volume(self) -> None:
+        """Not the object store over plain HTTP: pgBackRest's S3 driver is TLS
+        only, so the S3-over-HTTP repository PR #321 committed could never
+        have been written. The second location is a second repository (repo2)
+        once HB-I8(b) names it, never the first one pointed elsewhere."""
         config = _config()
-        assert config.archive_async is True
-        assert config.pitr_capable is True
+        assert config.repo_type == "posix"
+        assert config.repo_path == "/var/lib/pgbackrest"
 
-    def test_retention_is_absent_and_that_is_deliberate(self) -> None:
-        """files/10 §3 and the INT-202 acceptance state RPO 15 min and RTO 4 h.
-        Neither states how many full backups to keep. The config must not
-        guess one, and the loader must report the absence."""
+    def test_wal_archiving_is_asynchronous_which_is_what_makes_it_pitr(self) -> None:
         config = _config()
+        assert config.archive_async
+        assert config.pitr_capable
+
+    def test_retention_is_time_based_and_has_no_value(self) -> None:
+        """HB-I8(a): nobody has said how long a backup copy lives. pgBackRest
+        with no repo1-retention-full expires nothing — the fail-closed
+        direction — and the value, when supplied, is a number of days that
+        files/06 §1 bounds (tests/infra/test_backup_status.py)."""
+        config = _config()
+        assert config.retention_type == "time"
         assert config.retention_full is None
-        text = PGBACKREST_CONF.read_text(encoding="utf-8")
-        assert not re.search(r"^\s*repo1-retention-full\s*=", text, re.M)
+        assert not re.search(
+            r"^\s*repo1-retention-full\s*=", PGBACKREST_CONF.read_text("utf-8"), re.M
+        )
 
-    def test_planning_a_drill_without_retention_fails_closed(self) -> None:
-        config = _config()
-        with pytest.raises(RetentionNotConfiguredError) as excinfo:
-            plan_restore_drill(config, _plan(), retention_full=None)
-        message = str(excinfo.value)
-        assert "HB-I8" in message, "the refusal must name the blocker row that unblocks it"
-
-    def test_a_supplied_retention_is_accepted_and_carried(self) -> None:
-        steps = plan_restore_drill(_config(), _plan(), retention_full=7)
-        assert all(isinstance(step, DrillStep) for step in steps)
-        assert any("retention" in step.name for step in steps)
-
-    def test_recovery_target_is_a_time_which_is_what_pitr_means(self) -> None:
-        steps = plan_restore_drill(_config(), _plan(), retention_full=7)
-        restore = next(s for s in steps if s.name == "restore")
-        assert "--type=time" in " ".join(restore.argv)
-        assert "--target=" in " ".join(restore.argv)
+    def test_file_logging_is_warnings_only(self) -> None:
+        """The async archiver logs on every segment; `detail` in a long-lived
+        container's writable layer grows without bound."""
+        assert _config().log_level_file == "warn"
 
 
-# --- MinIO replication -----------------------------------------------------------------
+def _conf(tmp_path: Path, body: str) -> Path:
+    path = tmp_path / "pgbackrest.conf"
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+GOOD_CONF = """
+[global]
+repo1-type=posix
+repo1-path=/var/lib/pgbackrest
+repo1-cipher-type=aes-256-cbc
+repo1-retention-full-type=time
+archive-async=y
+log-level-file=warn
+
+[intake]
+pg1-path=/var/lib/postgresql/data
+pg1-user=intake
+"""
+
+
+class TestConfigRefusals:
+    def test_the_near_miss_control_loads(self, tmp_path: Path) -> None:
+        assert load_pgbackrest_config(_conf(tmp_path, GOOD_CONF)).pitr_capable
+
+    def test_an_unencrypted_repository_is_refused(self, tmp_path: Path) -> None:
+        body = GOOD_CONF.replace("repo1-cipher-type=aes-256-cbc", "repo1-cipher-type=none")
+        with pytest.raises(BackupConfigError, match="aes-256-cbc"):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "repo1-cipher-pass=aVeryLongPassphrase",
+            "repo2-cipher-pass=aVeryLongPassphrase",
+            "repo1-s3-key=AKIAEXAMPLEKEY",
+            "repo2-s3-key-secret=someSecretValue",
+        ],
+    )
+    def test_a_secret_written_into_the_file_is_refused(self, tmp_path: Path, line: str) -> None:
+        body = GOOD_CONF.replace("archive-async=y", f"archive-async=y\n{line}")
+        with pytest.raises(BackupConfigError, match="OpenBao|host"):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    def test_the_s3_over_plain_http_shape_is_refused(self, tmp_path: Path) -> None:
+        """The regression: an S3 repository with TLS verification off."""
+        body = GOOD_CONF.replace(
+            "repo1-type=posix", "repo1-type=s3\nrepo1-s3-endpoint=minio\nrepo1-storage-verify-tls=n"
+        )
+        with pytest.raises(BackupConfigError):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    def test_tls_verification_off_is_refused_on_any_repository(self, tmp_path: Path) -> None:
+        body = GOOD_CONF.replace("archive-async=y", "archive-async=y\nrepo2-storage-verify-tls=n")
+        with pytest.raises(BackupConfigError, match="verify-tls"):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    def test_no_global_section_is_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(BackupConfigError, match="global"):
+            load_pgbackrest_config(_conf(tmp_path, "[intake]\npg1-path=/x\n"))
+
+    def test_two_stanzas_are_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(BackupConfigError, match="exactly one stanza"):
+            load_pgbackrest_config(_conf(tmp_path, GOOD_CONF + "\n[other]\npg1-path=/y\n"))
+
+    def test_count_based_retention_is_refused(self, tmp_path: Path) -> None:
+        """A count of backups is not a period. files/06 §1's obligation is a
+        period (≤ 6 months), so the window is stated in days."""
+        body = GOOD_CONF.replace(
+            "repo1-retention-full-type=time", "repo1-retention-full-type=count"
+        )
+        with pytest.raises(BackupConfigError, match="time"):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    def test_a_retention_within_the_ceiling_is_read_not_ignored(self, tmp_path: Path) -> None:
+        body = GOOD_CONF.replace("archive-async=y", "archive-async=y\nrepo1-retention-full=30")
+        assert load_pgbackrest_config(_conf(tmp_path, body)).retention_full == 30
+
+    def test_a_retention_past_the_ceiling_is_refused(self, tmp_path: Path) -> None:
+        body = GOOD_CONF.replace(
+            "archive-async=y", f"archive-async=y\nrepo1-retention-full={RETENTION_CEILING_DAYS + 1}"
+        )
+        with pytest.raises(BackupConfigError, match="files/06"):
+            load_pgbackrest_config(_conf(tmp_path, body))
+
+    def test_a_config_without_async_archiving_is_not_pitr_capable(self, tmp_path: Path) -> None:
+        body = GOOD_CONF.replace("archive-async=y", "archive-async=n")
+        config = load_pgbackrest_config(_conf(tmp_path, body))
+        assert not config.pitr_capable
+        with pytest.raises(BackupConfigError, match="PITR"):
+            plan_restore_drill(config)
+
+
+# --- replication to the second location --------------------------------------------------
 
 
 class TestReplicationPlan:
     def test_the_plan_parses(self) -> None:
         plan = _plan()
-        assert plan.source_alias
-        assert plan.target_alias
+        assert plan.source_alias and plan.target_alias
 
-    def test_it_replicates_exactly_the_buckets_the_platform_writes_plus_the_repo(self) -> None:
-        plan = _plan()
-        assert PLATFORM_BUCKETS <= plan.bucket_names
-        assert plan.repository_bucket in plan.bucket_names
-        unexpected = plan.bucket_names - PLATFORM_BUCKETS - {plan.repository_bucket}
-        assert unexpected == set(), f"replicating buckets nothing writes: {sorted(unexpected)}"
+    def test_it_covers_exactly_the_buckets_the_platform_writes(self) -> None:
+        assert _plan().bucket_names == PLATFORM_BUCKETS
 
     def test_the_worm_bucket_keeps_object_lock_on_the_replica(self) -> None:
-        plan = _plan()
-        for name in WORM_BUCKETS:
-            rule = plan.rule_for(name)
-            assert rule.object_lock is True, f"{name} replica would lose its WORM guarantee"
+        for bucket in WORM_BUCKETS:
+            assert _plan().rule_for(bucket).object_lock
+        rendered = [" ".join(c) for c in replication_commands(_plan())]
+        assert any("--with-lock" in c and "intake-audit-worm" in c for c in rendered)
 
     def test_delete_replication_is_off_so_a_deletion_cannot_propagate(self) -> None:
-        """Ransomware reaching the primary must not reach the copy. files/10
-        §9 `backups`: immutable copies defend against ransomware."""
         for rule in _plan().rules:
-            assert rule.replicate_delete is False
-            assert rule.replicate_delete_marker is False
+            assert not rule.replicate_delete and not rule.replicate_delete_marker
+        rendered = " ".join(" ".join(c) for c in replication_commands(_plan()))
+        assert "delete" not in rendered
 
-    def test_the_second_location_is_named_by_env_not_hardcoded(self) -> None:
-        """files/10 §3 requires a second location in Türkiye. No site is named
-        anywhere in the blueprint, so the plan takes an endpoint from the
-        environment and refuses a default."""
+    def test_an_erasable_plaintext_bucket_is_withheld_not_replicated(self) -> None:
+        """Replication needs versioning on the source, and a replica keeps what
+        a delete removes. For a bucket of clear-text documents that a DSAR
+        erasure deletes (files/06 §3), both would keep the erased bytes. So
+        the bucket is withheld — not versioned, not copied — and the refusal
+        names why and who decides (HB-I8)."""
+        plan = _plan()
+        withheld = {rule.bucket for rule, _reason in withheld_rules(plan)}
+        assert withheld == ERASABLE_PLAINTEXT_BUCKETS
+        for _rule, reason in withheld_rules(plan):
+            assert "files/06" in reason and "HB-I8" in reason
+        rendered = " ".join(" ".join(c) for c in replication_commands(plan))
+        for bucket in ERASABLE_PLAINTEXT_BUCKETS:
+            assert bucket not in rendered
+
+    def test_the_pitr_archive_is_not_an_object_store_bucket(self) -> None:
+        """The repository is POSIX now; its second copy is a pgBackRest repo2."""
+        text = REPLICATION_PLAN.read_text(encoding="utf-8")
+        assert "intake-pgbackrest" not in text
+        assert "repository_bucket" not in text
+
+    def test_the_second_location_is_named_by_env_with_no_default(self) -> None:
         plan = _plan()
         assert plan.target_endpoint_env == "INTAKE_DR_S3_ENDPOINT"
         assert plan.target_endpoint_default is None
+        rendered = " ".join(" ".join(c) for c in replication_commands(plan))
+        assert "${INTAKE_DR_S3_ENDPOINT}" in rendered
+        assert "http" not in rendered
 
-    def test_no_retention_or_expiry_rule_is_invented(self) -> None:
+    def test_no_expiry_is_invented(self) -> None:
         for rule in _plan().rules:
             assert rule.expiry_days is None
 
+    def test_the_rendered_commands_carry_variable_names_not_values(self) -> None:
+        for command in replication_commands(_plan()):
+            if command[:3] == ["mc", "alias", "set"]:
+                assert all(part.startswith("${") for part in command[4:])
 
-# --- the drill: PHI safety and the plan ------------------------------------------------
+
+def _plan_file(tmp_path: Path, body: str) -> Path:
+    path = tmp_path / "minio-replication.yaml"
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+GOOD_PLAN = """
+version: 1
+source_alias: a
+source_endpoint_env: A
+source_access_key_env: B
+source_secret_key_env: C
+target_alias: d
+target_endpoint_env: D
+target_access_key_env: E
+target_secret_key_env: F
+rules:
+  - bucket: intake-audit-worm
+    object_lock: true
+    holds_erasable_plaintext: false
+    replicate_existing: true
+    replicate_delete: false
+    replicate_delete_marker: false
+    expiry_days: null
+"""
+
+
+class TestReplicationRefusals:
+    def test_the_near_miss_control_loads(self, tmp_path: Path) -> None:
+        assert load_replication_plan(_plan_file(tmp_path, GOOD_PLAN)).bucket_names == {
+            "intake-audit-worm"
+        }
+
+    def test_a_plan_that_replicates_deletions_is_refused(self, tmp_path: Path) -> None:
+        body = GOOD_PLAN.replace("replicate_delete: false", "replicate_delete: true")
+        with pytest.raises(BackupConfigError, match="deletion"):
+            load_replication_plan(_plan_file(tmp_path, body))
+
+    def test_a_plan_that_replicates_delete_markers_is_refused(self, tmp_path: Path) -> None:
+        body = GOOD_PLAN.replace("replicate_delete_marker: false", "replicate_delete_marker: true")
+        with pytest.raises(BackupConfigError, match="deletion"):
+            load_replication_plan(_plan_file(tmp_path, body))
+
+    def test_an_invented_expiry_window_is_refused(self, tmp_path: Path) -> None:
+        body = GOOD_PLAN.replace("expiry_days: null", "expiry_days: 30")
+        with pytest.raises(BackupConfigError, match="HB-I8"):
+            load_replication_plan(_plan_file(tmp_path, body))
+
+    def test_a_rule_that_does_not_say_whether_it_holds_erasable_plaintext_is_refused(
+        self, tmp_path: Path
+    ) -> None:
+        body = GOOD_PLAN.replace("    holds_erasable_plaintext: false\n", "")
+        with pytest.raises(BackupConfigError, match="holds_erasable_plaintext"):
+            load_replication_plan(_plan_file(tmp_path, body))
+
+    def test_an_empty_plan_is_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(BackupConfigError, match="no replication rules"):
+            load_replication_plan(
+                _plan_file(tmp_path, GOOD_PLAN.split("rules:")[0] + "rules: []\n")
+            )
+
+    def test_asking_for_an_unknown_bucket_raises(self) -> None:
+        with pytest.raises(BackupConfigError):
+            _plan().rule_for("intake-nothing")
+
+
+# --- the drill: PHI safety (INT-315) and the plan ---------------------------------------
 
 
 def _symlinked_cache_worktree(tmp_path: Path) -> tuple[Path, Path]:
@@ -227,46 +407,25 @@ def _symlinked_cache_worktree(tmp_path: Path) -> tuple[Path, Path]:
 
 class TestDrillPhiSafety:
     def test_a_restore_target_inside_the_workspace_is_refused(self, tmp_path: Path) -> None:
-        """Invariant 3 + 6: a restored cluster is PHI on disk. It never lands
-        anywhere `git status` can see, and never anywhere a later `make check`
-        would scan."""
         with pytest.raises(RestoreTargetInsideWorkspaceError):
             assert_restore_target_outside_workspace(REPO / ".cache" / "restore", REPO)
-        outside = tmp_path / "restore"
-        assert assert_restore_target_outside_workspace(outside, REPO) is None
+        assert assert_restore_target_outside_workspace(tmp_path / "restore", REPO) is None
 
-    def test_a_relative_target_that_escapes_upward_is_still_checked(self, tmp_path: Path) -> None:
-        inside = REPO / "infra" / ".." / ".cache" / "restore"
+    def test_a_relative_target_that_escapes_upward_is_still_checked(self) -> None:
         with pytest.raises(RestoreTargetInsideWorkspaceError):
-            assert_restore_target_outside_workspace(inside, REPO)
-
-    # --- INT-315: a symlinked directory inside the checkout reads as outside ---
+            assert_restore_target_outside_workspace(
+                REPO / "infra" / ".." / ".cache" / "restore", REPO
+            )
 
     def test_a_symlinked_cache_inside_the_worktree_is_still_inside(self, tmp_path: Path) -> None:
-        """The case that produced INT-315, and the shape this repository's own
-        fresh-worktree workflow creates.
-
-        A fresh worktree fails `test_deid_ner` until the de-identification
-        model cache exists, so the cache is linked in from outside the
-        checkout. When the link is `.cache` itself — which is what an
-        interruption-recovery save committed during INT-180 —
-        `(workspace / ".cache" / "restore").resolve()` lands in the model
-        store and the guard answered "outside". `git status` answers "inside":
-        the path is under the worktree root, so a restored cluster there is
-        one `git add -A` from being committed. Git's answer is the one
-        invariant 3 is about."""
+        """INT-315: `git status` sees the path, not the link's destination."""
         workspace, model_store = _symlinked_cache_worktree(tmp_path)
         target = workspace / ".cache" / "restore"
-        # the reading that used to decide it, kept here so the test says what
-        # it defends against rather than only that it passes
         assert target.resolve() == model_store / "restore"
         with pytest.raises(RestoreTargetInsideWorkspaceError):
             assert_restore_target_outside_workspace(target, workspace)
 
     def test_any_symlinked_directory_inside_the_workspace_is_refused(self, tmp_path: Path) -> None:
-        """Not a rule about the name `.cache`. Any symlinked child is a
-        directory the workspace can reach, whatever it is called and however
-        deep it sits."""
         workspace = tmp_path / "worktree"
         (workspace / "infra").mkdir(parents=True)
         elsewhere = tmp_path / "scratch"
@@ -278,284 +437,182 @@ class TestDrillPhiSafety:
             )
 
     def test_the_workspace_side_is_resolved_too(self, tmp_path: Path) -> None:
-        """A checkout reached through a link — `/tmp` → `/private/tmp` on macOS
-        is the everyday case — must judge its own children the same in either
-        spelling, including the child that is itself a link out."""
         workspace, _ = _symlinked_cache_worktree(tmp_path)
         linked_workspace = tmp_path / "worktree-link"
         linked_workspace.symlink_to(workspace, target_is_directory=True)
-        # root symbolic, target real, and the target's own parent a link out:
-        # neither side alone answers this one
         with pytest.raises(RestoreTargetInsideWorkspaceError):
             assert_restore_target_outside_workspace(
                 workspace / ".cache" / "restore", linked_workspace
             )
-        # and the plain spellings in both directions stay refused
         with pytest.raises(RestoreTargetInsideWorkspaceError):
             assert_restore_target_outside_workspace(workspace / "restore", linked_workspace)
         with pytest.raises(RestoreTargetInsideWorkspaceError):
             assert_restore_target_outside_workspace(linked_workspace / "restore", workspace)
 
-    # --- the near-miss controls: a guard that refuses everything is not a fix ---
-
     def test_near_miss_a_genuinely_external_target_is_still_accepted(self, tmp_path: Path) -> None:
-        """The control that catches an over-broad fix. Refusing everything
-        would satisfy every clause above and destroy the drill, which has to
-        restore somewhere."""
         workspace, model_store = _symlinked_cache_worktree(tmp_path)
         sibling = tmp_path / "restore"
         sibling.mkdir()
         assert assert_restore_target_outside_workspace(sibling, workspace) is None
-        # the model store itself is outside the workspace; only paths *spelled*
-        # through the link are inside it, which is what git can see
         assert assert_restore_target_outside_workspace(model_store / "restore", workspace) is None
-        # a sibling whose name merely starts with the workspace's own name — a
-        # string-prefix test would refuse it, and it is genuinely outside
         prefix_sibling = tmp_path / "worktree-restores"
         prefix_sibling.mkdir()
         assert assert_restore_target_outside_workspace(prefix_sibling, workspace) is None
-        # and the volume the drill actually restores into
         assert assert_restore_target_outside_workspace(Path(RESTORE_TARGET), workspace) is None
 
     def test_near_miss_an_upward_escape_that_genuinely_leaves_is_accepted(
         self, tmp_path: Path
     ) -> None:
-        """The other half of the control. `..` is refused when it comes back
-        inside (the test above) and accepted when it does not, so the guard is
-        reading the path and not the punctuation."""
         workspace = tmp_path / "worktree"
         (workspace / "infra").mkdir(parents=True)
         escapes = workspace / "infra" / ".." / ".." / "restore"
         assert assert_restore_target_outside_workspace(escapes, workspace) is None
 
     def test_no_restore_writes_patient_data_inside_the_repository(self, tmp_path: Path) -> None:
-        """The property the guard exists for, stated once over the shape this
-        repository actually produces: under a `.cache` symlinked to the model
-        store, every location git can see inside the checkout is refused, and
-        no drill step names a path inside any checkout."""
         workspace, _ = _symlinked_cache_worktree(tmp_path)
         (workspace / "infra").mkdir()
-        reachable = (
+        for candidate in (
             workspace,
             workspace / "restore",
             workspace / ".cache" / "restore",
             workspace / "infra" / ".." / ".cache" / "restore",
-            # ambiguous: `git status` reads this as `workspace/restore` and the
-            # kernel walks it out through the link. Fail closed on the reading
-            # that keeps PHI off the workspace floor; an operator who meant the
-            # other one can spell it without the link.
             workspace / ".cache" / ".." / "restore",
-        )
-        for candidate in reachable:
+        ):
             with pytest.raises(RestoreTargetInsideWorkspaceError):
                 assert_restore_target_outside_workspace(candidate, workspace)
-        for step in plan_restore_drill(_config(), _plan(), retention_full=7):
+        for step in plan_restore_drill(_config()):
             for word in step.argv:
                 assert str(workspace) not in word
                 assert str(REPO) not in word
-        assert assert_restore_target_outside_workspace(Path(RESTORE_TARGET), workspace) is None
         assert assert_restore_target_outside_workspace(Path(RESTORE_TARGET), REPO) is None
 
+
+class TestDrillPlan:
+    def _joined(self) -> str:
+        return " ".join(" ".join(step.argv) for step in plan_restore_drill(_config()))
+
     def test_no_step_selects_record_content(self) -> None:
-        """The verification queries count rows. They never project a column,
-        so there is no path by which a patient's words reach the drill log."""
-        joined = " ".join(
-            " ".join(step.argv) for step in plan_restore_drill(_config(), _plan(), retention_full=7)
-        )
-        lowered = joined.lower()
+        lowered = self._joined().lower()
         assert "select *" not in lowered
         assert "pg_dump" not in lowered
         for forbidden in ("transcript", "note_text", "tckn", "phone", "full_name"):
             assert forbidden not in lowered
 
-    def test_the_evidence_skeleton_carries_counts_not_rows(self) -> None:
-        skeleton = drill_evidence_skeleton(_config(), retention_full=7)
-        assert set(skeleton) == {
-            "issue",
-            "stanza",
-            "started_at",
-            "finished_at",
-            "rto_budget_s",
-            "rpo_budget_s",
-            "retention_full",
-            "recovery_target_time",
-            "restore_seconds",
+    def test_the_restore_is_to_a_point_in_time_and_promotes(self) -> None:
+        restore = next(s for s in plan_restore_drill(_config()) if s.name == "restore")
+        assert "--type=time" in restore.argv
+        assert "--target-action=promote" in restore.argv
+        assert f"--pg1-path={RESTORE_PGDATA}" in restore.argv
+        assert RESTORE_PGDATA.startswith(RESTORE_TARGET + "/")
+
+    def test_the_scratch_cluster_never_archives_and_has_no_network(self) -> None:
+        """A restored cluster that archived would push a second timeline into
+        the production stanza. Archiving off, no listener, no network."""
+        scratch = next(s for s in plan_restore_drill(_config()) if s.name == "start_scratch")
+        assert "archive_mode=off" in scratch.argv
+        assert "listen_addresses=" in scratch.argv
+        assert scratch.where == "scratch container, --network none, repository read-only"
+
+    def test_the_order_is_backup_canary_archive_restore_verify_teardown(self) -> None:
+        names = [step.name for step in plan_restore_drill(_config())]
+        assert names == [
+            "newest_backup",
+            "headroom",
+            "prepare_canary",
+            "wait_archived",
+            "repository_encrypted",
+            "restore",
+            "start_scratch",
+            "wait_promoted",
             "row_counts",
-            "verdict",
-            "host_preflight",
-        }
-        assert skeleton["issue"] == "INT-202"
-        # the two figures the blueprint DOES state, and no third one
-        assert skeleton["rpo_budget_s"] == 900
-        assert skeleton["rto_budget_s"] == 14400
-        assert skeleton["retention_full"] == 7
-        assert skeleton["row_counts"] == {}
-
-    def test_the_evidence_skeleton_has_no_identifier_field(self) -> None:
-        skeleton = drill_evidence_skeleton(_config(), retention_full=7)
-        blob = repr(skeleton).lower()
-        for forbidden in ("patient", "tckn", "phone", "email", "name", "mrn"):
-            assert forbidden not in blob
+            "verify_canary",
+            "teardown",
+            "evidence",
+        ]
 
 
-class TestHostPreflight:
-    def test_this_host_is_blocked_and_says_which_row_unblocks_it(self) -> None:
-        """Not a skip and not a shrunken drill: a typed refusal naming the
-        open blockers. HB-I1 is disk, HB-I2 is Docker memory."""
-        outcome = host_preflight(free_disk_bytes=13 * 1024**3, docker_memory_bytes=15 * 1024**3)
-        assert isinstance(outcome, DrillBlocked)
-        assert "HB-I1" in outcome.reason
-        assert "HB-I2" in outcome.reason
-
-    def test_a_host_that_meets_both_bounds_is_not_blocked(self) -> None:
-        assert (
-            host_preflight(free_disk_bytes=200 * 1024**3, docker_memory_bytes=32 * 1024**3) is None
-        )
-
-    def test_disk_alone_blocks_and_names_only_disk(self) -> None:
-        outcome = host_preflight(free_disk_bytes=13 * 1024**3, docker_memory_bytes=32 * 1024**3)
-        assert isinstance(outcome, DrillBlocked)
-        assert "HB-I1" in outcome.reason
-        assert "HB-I2" not in outcome.reason
-
-    def test_memory_alone_blocks_and_names_only_memory(self) -> None:
-        outcome = host_preflight(free_disk_bytes=200 * 1024**3, docker_memory_bytes=15 * 1024**3)
-        assert isinstance(outcome, DrillBlocked)
-        assert "HB-I2" in outcome.reason
-        assert "HB-I1" not in outcome.reason
-
-
-# --- the compose tier ------------------------------------------------------------------
-
-
-class TestBackupComposeTier:
-    def test_it_is_its_own_file_and_the_shared_dev_tier_is_untouched(self) -> None:
-        assert COMPOSE_PATH.is_file()
-        dev = (INFRA / "docker-compose.dev.yml").read_text(encoding="utf-8")
-        assert "pgbackrest" not in dev
-        assert "minio-dr" not in dev
-
-    def test_every_service_is_gated_behind_the_backup_profile(self) -> None:
-        for name, service in _compose()["services"].items():
-            assert service.get("profiles") == ["backup"], (
-                f"{name} would start with the plain dev tier"
-            )
-
-    def test_every_image_is_tag_pinned(self) -> None:
-        for name, service in _compose()["services"].items():
-            refs: list[str] = []
-            if "image" in service:
-                refs.append(str(service["image"]))
-            inline = str(service.get("build", {}).get("dockerfile_inline", ""))
-            refs.extend(
-                line.split()[1]
-                for line in inline.splitlines()
-                if line.strip().upper().startswith("FROM ")
-            )
-            assert refs, f"{name} pulls no image and builds nothing"
-            for ref in refs:
-                assert ":" in ref, f"{name}: unpinned image reference {ref}"
-                assert ref.rsplit(":", 1)[1] not in {"latest", ""}, f"{name}: floating tag {ref}"
-
-    def test_every_published_port_binds_loopback(self) -> None:
-        for name, service in _compose()["services"].items():
-            for published in service.get("ports", []):
-                assert str(published).startswith("127.0.0.1:"), (
-                    f"{name} publishes {published} on every interface"
-                )
-
-    def test_long_running_services_have_a_healthcheck_and_one_shots_say_so(self) -> None:
-        for name, service in _compose()["services"].items():
-            if "healthcheck" in service:
-                continue
-            assert service.get("restart") == "no", (
-                f'{name} has neither a healthcheck nor an explicit `restart: "no"`'
-            )
-
-    def test_the_repository_passphrase_reaches_the_container_from_the_environment(self) -> None:
-        env = _compose()["services"]["pgbackrest"]["environment"]
-        raw = env if isinstance(env, list) else [f"{k}={v}" for k, v in env.items()]
-        joined = "\n".join(str(item) for item in raw)
-        assert "PGBACKREST_REPO1_CIPHER_PASS" in joined
-        assert "${PGBACKREST_REPO1_CIPHER_PASS" in joined, "must interpolate, never inline"
-
-    def test_every_bind_mount_source_exists(self) -> None:
-        for name, service in _compose()["services"].items():
-            for volume in service.get("volumes", []):
-                source = str(volume).split(":", 1)[0]
-                if not source.startswith("."):
-                    continue
-                assert (INFRA / source).exists(), f"{name} mounts a missing path: {source}"
-
-
-# --- the entry points ------------------------------------------------------------------
+# --- the entry points --------------------------------------------------------------------
 
 
 class TestEntryPoints:
-    def test_the_drill_script_exists_and_is_executable(self) -> None:
-        assert DRILL_SCRIPT.is_file()
-        assert DRILL_SCRIPT.stat().st_mode & stat.S_IXUSR
+    @pytest.mark.parametrize("script", [DRILL_SCRIPT, CI_DRILL, HOST_BACKUP], ids=lambda p: p.name)
+    def test_the_scripts_are_executable(self, script: Path) -> None:
+        assert script.stat().st_mode & stat.S_IXUSR
 
-    def test_the_script_is_strict_bash(self) -> None:
-        text = DRILL_SCRIPT.read_text(encoding="utf-8")
-        assert text.startswith("#!/usr/bin/env bash")
+    @pytest.mark.parametrize(
+        "script", [DRILL_SCRIPT, DRILL_LIB, CI_DRILL, HOST_BACKUP], ids=lambda p: p.name
+    )
+    def test_the_scripts_are_strict_bash_and_parse(self, script: Path) -> None:
+        text = script.read_text(encoding="utf-8")
+        assert text.startswith("#!/usr/bin/env bash\n")
         assert "set -euo pipefail" in text
+        result = subprocess.run(
+            ["bash", "-n", str(script)], capture_output=True, text=True, check=False
+        )
+        assert result.returncode == 0, result.stderr
 
     def test_the_dry_run_path_runs_here_and_exits_zero(self) -> None:
-        proc = subprocess.run(  # noqa: S603
-            [str(DRILL_SCRIPT), "--dry-run"],
+        result = subprocess.run(
+            ["bash", str(DRILL_SCRIPT), "--dry-run"],
             capture_output=True,
             text=True,
             cwd=REPO,
-            env={**os.environ, "PGBACKREST_REPO1_RETENTION_FULL": "7"},
+            env={**os.environ},
             check=False,
         )
-        assert proc.returncode == 0, proc.stderr
-        assert "restore" in proc.stdout
-        assert "INT-202" in proc.stdout
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "restore" in result.stdout
+        assert "second location" in result.stdout
+        assert "HB-I8" in result.stdout
 
     def test_the_dry_run_touches_no_container_runtime(self) -> None:
-        """A dry run that shells out to docker is not a dry run."""
-        proc = subprocess.run(  # noqa: S603
-            [shutil.which("bash") or "/bin/bash", "-n", str(DRILL_SCRIPT)],
+        assert "docker" not in _code(DRILL_SCRIPT)
+
+    def test_sourcing_the_engine_touches_nothing(self) -> None:
+        """drill_lib.sh defines functions and one array; every docker call
+        sits inside a function, so sourcing it is inert."""
+        result = subprocess.run(
+            ["bash", "-c", f'source "{DRILL_LIB}"; declare -F run_restore_drill >/dev/null'],
             capture_output=True,
             text=True,
+            env={"PATH": "/usr/bin:/bin"},
             check=False,
         )
-        assert proc.returncode == 0, proc.stderr
-        body = DRILL_SCRIPT.read_text(encoding="utf-8").split("run_drill()", 1)
-        assert len(body) == 2, "the script must separate planning from execution"
-        assert "docker" not in body[0], "the dry-run half reaches a container runtime"
+        assert result.returncode == 0, result.stderr
 
-    def test_the_real_run_refuses_without_a_retention_window(self) -> None:
-        env = {k: v for k, v in os.environ.items() if k != "PGBACKREST_REPO1_RETENTION_FULL"}
-        proc = subprocess.run(  # noqa: S603
-            [str(DRILL_SCRIPT), "--run"],
+    def test_the_engine_refuses_without_its_adapters(self) -> None:
+        result = subprocess.run(
+            ["bash", "-c", f'source "{DRILL_LIB}"; run_restore_drill'],
             capture_output=True,
             text=True,
-            cwd=REPO,
-            env=env,
+            env={"PATH": "/usr/bin:/bin"},
             check=False,
         )
-        assert proc.returncode != 0
-        assert "HB-I8" in (proc.stdout + proc.stderr)
+        assert result.returncode != 0
+        assert "drill_primary_exec" in result.stderr
 
-    def test_make_carries_the_manual_entry_point_and_the_ci_hook(self) -> None:
+    def test_make_carries_the_config_gate_the_dry_run_and_the_ci_drill(self) -> None:
         makefile = (REPO / "Makefile").read_text(encoding="utf-8")
-        for target in ("backup-drill:", "backup-drill-dry:", "backup-drill-ci:"):
-            assert re.search(rf"^{re.escape(target)}", makefile, re.M), f"no {target} target"
+        for target in ("backup-config-check:", "backup-drill-dry:", "backup-drill-ci:"):
+            assert target in makefile
+        assert "scripts/backup/ci_drill.sh" in makefile
 
-    def test_the_runbook_states_the_quarterly_schedule(self) -> None:
-        text = RUNBOOK.read_text(encoding="utf-8").lower()
-        assert "quarterly" in text
-        assert "make backup-drill" in text
+    def test_the_runbook_states_the_schedule_and_the_owner_steps(self) -> None:
+        text = RUNBOOK.read_text(encoding="utf-8")
+        for needle in (
+            "quarterly",
+            "backup.sh drill",
+            "backup.sh install-schedule",
+            "HB-I8",
+            "## Backup stale",
+            "## Restore drill overdue",
+            "escrow",
+            "erasure",
+        ):
+            assert needle in text, needle
 
     def test_env_example_documents_the_knobs_without_adding_a_key(self) -> None:
-        """tests/security/test_openbao_wiring.py allows exactly seven
-        uncommented keys. Backup knobs are documented, never assigned."""
         env = (REPO / "env.example").read_text(encoding="utf-8")
-        assert "PGBACKREST_REPO1_CIPHER_PASS" in env
-        assert "INTAKE_DR_S3_ENDPOINT" in env
         keys = {
             line.split("=", 1)[0]
             for line in env.splitlines()
@@ -563,295 +620,76 @@ class TestEntryPoints:
         }
         assert "PGBACKREST_REPO1_CIPHER_PASS" not in keys
         assert "INTAKE_DR_S3_ENDPOINT" not in keys
-
-
-def test_the_blocker_row_that_gates_retention_is_recorded() -> None:
-    """CLAUDE.md: never invent a value; write the ask, name the human, cross-
-    reference the HUMAN_BLOCKERS.md row, and continue."""
-    text = (REPO / "files" / "HUMAN_BLOCKERS.md").read_text(encoding="utf-8")
-    assert "HB-I8" in text
-    row = next(line for line in text.splitlines() if "HB-I8" in line)
-    assert "retention" in row.lower()
-
-
-# --- negative controls: every refusal, exercised ---------------------------------------
-
-
-def _conf(tmp_path: Path, body: str) -> Path:
-    path = tmp_path / "pgbackrest.conf"
-    path.write_text(body, encoding="utf-8")
-    return path
-
-
-GOOD_CONF = """
-[global]
-repo1-type=s3
-repo1-s3-bucket=intake-pgbackrest
-repo1-cipher-type=aes-256-cbc
-archive-async=y
-
-[intake]
-pg1-path=/var/lib/postgresql/data
-"""
-
-
-class TestConfigRefusals:
-    def test_the_near_miss_control_loads(self, tmp_path: Path) -> None:
-        """The fixture the negatives are mutations of must itself be valid,
-        or every negative below passes for the wrong reason."""
-        config = load_pgbackrest_config(_conf(tmp_path, GOOD_CONF))
-        assert config.encrypted_at_rest and config.pitr_capable
-
-    def test_an_unencrypted_repository_is_refused(self, tmp_path: Path) -> None:
-        body = GOOD_CONF.replace("repo1-cipher-type=aes-256-cbc", "repo1-cipher-type=none")
-        with pytest.raises(BackupConfigError, match="encrypted at rest"):
-            load_pgbackrest_config(_conf(tmp_path, body))
-
-    def test_a_passphrase_written_into_the_file_is_refused(self, tmp_path: Path) -> None:
-        body = GOOD_CONF.replace(
-            "archive-async=y", "archive-async=y\nrepo1-cipher-pass=whatever-it-says"
-        )
-        with pytest.raises(BackupConfigError, match="OpenBao"):
-            load_pgbackrest_config(_conf(tmp_path, body))
-
-    def test_an_access_key_written_into_the_file_is_refused(self, tmp_path: Path) -> None:
-        body = GOOD_CONF.replace("archive-async=y", "archive-async=y\nrepo1-s3-key=whatever")
-        with pytest.raises(BackupConfigError, match="OpenBao"):
-            load_pgbackrest_config(_conf(tmp_path, body))
-
-    def test_no_global_section_is_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(BackupConfigError, match="global"):
-            load_pgbackrest_config(_conf(tmp_path, "[intake]\npg1-path=/x\n"))
-
-    def test_two_stanzas_are_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(BackupConfigError, match="exactly one stanza"):
-            load_pgbackrest_config(_conf(tmp_path, GOOD_CONF + "\n[other]\npg1-path=/y\n"))
-
-    def test_a_supplied_retention_in_the_file_is_read_not_ignored(self, tmp_path: Path) -> None:
-        body = GOOD_CONF.replace("archive-async=y", "archive-async=y\nrepo1-retention-full=9")
-        assert load_pgbackrest_config(_conf(tmp_path, body)).retention_full == 9
-
-    def test_a_config_without_archiving_is_not_pitr_capable(self, tmp_path: Path) -> None:
-        body = GOOD_CONF.replace("archive-async=y", "archive-async=n")
-        config = load_pgbackrest_config(_conf(tmp_path, body))
-        assert config.pitr_capable is False
-        with pytest.raises(ValueError, match="PITR-capable"):
-            plan_restore_drill(config, _plan(), retention_full=7)
-
-    def test_a_retention_of_zero_keeps_nothing_and_is_refused(self) -> None:
-        with pytest.raises(RetentionNotConfiguredError, match="keeps no full backup"):
-            plan_restore_drill(_config(), _plan(), retention_full=0)
-
-
-def _plan_file(tmp_path: Path, mutate: dict[str, Any] | None = None) -> Path:
-    raw: dict[str, Any] = yaml.safe_load(REPLICATION_PLAN.read_text(encoding="utf-8"))
-    if mutate:
-        raw.update(mutate)
-    path = tmp_path / "minio-replication.yaml"
-    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
-    return path
-
-
-class TestReplicationRefusals:
-    def test_the_near_miss_control_loads(self, tmp_path: Path) -> None:
-        assert load_replication_plan(_plan_file(tmp_path)).rules
-
-    def test_a_plan_that_replicates_deletions_is_refused(self, tmp_path: Path) -> None:
-        raw: dict[str, Any] = yaml.safe_load(REPLICATION_PLAN.read_text(encoding="utf-8"))
-        raw["rules"][0]["replicate_delete"] = True
-        with pytest.raises(BackupConfigError, match="replicates deletions"):
-            load_replication_plan(_plan_file(tmp_path, {"rules": raw["rules"]}))
-
-    def test_a_plan_that_replicates_delete_markers_is_refused(self, tmp_path: Path) -> None:
-        raw: dict[str, Any] = yaml.safe_load(REPLICATION_PLAN.read_text(encoding="utf-8"))
-        raw["rules"][0]["replicate_delete_marker"] = True
-        with pytest.raises(BackupConfigError, match="replicates deletions"):
-            load_replication_plan(_plan_file(tmp_path, {"rules": raw["rules"]}))
-
-    def test_an_invented_expiry_window_is_refused(self, tmp_path: Path) -> None:
-        raw: dict[str, Any] = yaml.safe_load(REPLICATION_PLAN.read_text(encoding="utf-8"))
-        raw["rules"][0]["expiry_days"] = 30
-        with pytest.raises(BackupConfigError, match="HB-I8"):
-            load_replication_plan(_plan_file(tmp_path, {"rules": raw["rules"]}))
-
-    def test_an_empty_plan_is_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(BackupConfigError, match="no replication rules"):
-            load_replication_plan(_plan_file(tmp_path, {"rules": []}))
-
-    def test_an_unreplicated_repository_bucket_is_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(BackupConfigError, match="is not replicated"):
-            load_replication_plan(_plan_file(tmp_path, {"repository_bucket": "somewhere-else"}))
-
-    def test_asking_for_an_unknown_bucket_raises(self) -> None:
-        with pytest.raises(BackupConfigError, match="no replication rule"):
-            _plan().rule_for("intake-nothing")
-
-    def test_the_rendered_commands_never_ask_for_delete_replication(self) -> None:
-        rendered = [" ".join(command) for command in replication_commands(_plan())]
-        joined = " ".join(rendered)
-        assert "delete-marker" not in joined
-        assert ",delete" not in joined
-        # object-locked buckets are created locked; the lock cannot be added later
-        assert any("--with-lock intake-dr/intake-audit-worm" in line for line in rendered)
-        assert any("intake-dr/intake-docs" in line for line in rendered)
-
-    def test_the_rendered_commands_carry_variable_names_not_values(self) -> None:
-        for command in replication_commands(_plan()):
-            for token in command:
-                if token.startswith("${"):
-                    assert token.endswith("}")
-
-
-# --- the CLI and the evidence writer ---------------------------------------------------
+        assert "docker-compose.backup.yml" not in env
 
 
 class TestPlanCli:
-    def _argv(self, *extra: str) -> list[str]:
-        return ["--infra", str(BACKUP_DIR), "--repo-root", str(REPO), *extra]
+    def _run(self, *extra: str, env: dict[str, str] | None = None) -> int:
+        return cli_main(
+            ["--infra", str(BACKUP_DIR), "--repo-root", str(REPO), *extra], env=env or {}
+        )
 
-    def test_it_renders_the_plan_and_reports_a_blocked_host(
+    def test_it_renders_the_plan_and_the_blocked_second_location(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        code = cli_main(
-            self._argv("--free-disk-bytes", str(13 * 1024**3)),
-            env={"PGBACKREST_REPO1_RETENTION_FULL": "7"},
-        )
+        assert self._run() == 0
         out = capsys.readouterr().out
-        assert code == 0, "a dry render is not a failure, whatever the host looks like"
-        assert "BLOCKED" in out and "HB-I1" in out
+        assert "aes-256-cbc" in out
+        assert "posix" in out
+        assert "second location   NOT CONFIGURED" in out and "HB-I8(b)" in out
+        assert "retention         not set" in out and "HB-I8(a)" in out
+        assert "withheld" in out and "intake-docs" in out
 
-    def test_enforce_host_turns_the_verdict_into_an_exit_code(
+    def test_show_replication_renders_only_the_replicable_buckets(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        code = cli_main(
-            self._argv("--free-disk-bytes", str(13 * 1024**3), "--enforce-host"),
-            env={"PGBACKREST_REPO1_RETENTION_FULL": "7"},
-        )
-        capsys.readouterr()
-        assert code == 3
-
-    def test_a_ready_host_renders_and_exits_zero(self, capsys: pytest.CaptureFixture[str]) -> None:
-        code = cli_main(
-            self._argv(
-                "--free-disk-bytes",
-                str(500 * 1024**3),
-                "--container-memory-bytes",
-                str(64 * 1024**3),
-                "--enforce-host",
-                "--show-replication",
-            ),
-            env={"PGBACKREST_REPO1_RETENTION_FULL": "7"},
-        )
+        assert self._run("--show-replication") == 0
         out = capsys.readouterr().out
-        assert code == 0
-        assert "host              ready" in out
-        assert "mc replicate add" in out
-
-    def test_it_refuses_without_retention(self, capsys: pytest.CaptureFixture[str]) -> None:
-        code = cli_main(self._argv(), env={})
-        assert code == 2
-        assert "HB-I8" in capsys.readouterr().out
-
-    def test_a_non_numeric_retention_is_refused_not_coerced(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        code = cli_main(self._argv(), env={"PGBACKREST_REPO1_RETENTION_FULL": "forever"})
-        assert code == 2
-        capsys.readouterr()
+        assert "mc replicate add intake-primary/intake-audit-worm" in out
+        assert "replicate add intake-primary/intake-docs" not in out
 
     def test_emit_replication_prints_commands_only(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        code = cli_main(self._argv("--emit-replication"), env={})
-        out = capsys.readouterr().out
-        assert code == 0
-        assert out.splitlines()
-        for line in out.splitlines():
-            assert line.startswith("mc ")
+        assert self._run("--emit-replication") == 0
+        lines = capsys.readouterr().out.strip().splitlines()
+        assert lines and all(line.startswith("mc ") for line in lines)
 
     def test_a_missing_config_is_refused_not_crashed(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        code = cli_main(["--infra", str(tmp_path), "--repo-root", str(REPO)], env={})
-        assert code == 2
+        assert cli_main(["--infra", str(tmp_path), "--repo-root", str(REPO)], env={}) == 2
         assert "refused" in capsys.readouterr().out
 
-    def test_it_reads_the_process_environment_when_none_is_passed(
-        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        monkeypatch.setenv("PGBACKREST_REPO1_RETENTION_FULL", "3")
-        code = cli_main(self._argv())
-        assert code == 0
-        assert "retention 3 full" in capsys.readouterr().out
+    def test_it_reads_the_process_environment_when_none_is_passed(self) -> None:
+        assert cli_main(["--infra", str(BACKUP_DIR), "--repo-root", str(REPO)]) == 0
 
 
-class TestEvidenceRecord:
-    def test_counts_parse_and_anything_else_is_dropped(self) -> None:
-        raw = "\n".join(
-            [
-                " visits:12",
-                " notes:0",
-                'ERROR:  column "tckn" does not exist',
-                "psql: could not connect",
-                " weird name:3",
-                " overflowing:not-a-number",
-                "",
-            ]
-        )
-        assert parse_row_counts(raw) == {"visits": 12, "notes": 0}
-
-    def test_a_relname_longer_than_postgres_allows_is_dropped(self) -> None:
-        assert parse_row_counts(f"{'a' * 64}:1") == {}
-
-    def test_the_record_is_counts_clocks_and_a_verdict(self) -> None:
-        record = build_record(
-            PGBACKREST_CONF,
-            {
-                "PGBACKREST_REPO1_RETENTION_FULL": "7",
-                "DRILL_STARTED_AT": "2026-08-29T03:00:00Z",
-                "DRILL_RECOVERY_TARGET": "2026-08-29 02:45:00+00",
-                "DRILL_RESTORE_SECONDS": "412",
-                "DRILL_ROW_COUNTS": " visits:12\n notes:4\n",
-            },
-        )
-        assert record["verdict"] == "pass"
-        assert record["restore_seconds"] == 412
-        assert record["row_counts"] == {"visits": 12, "notes": 4}
-        assert set(record) == set(drill_evidence_skeleton(_config(), 7))
-
-    def test_a_restore_past_the_rto_is_recorded_not_hidden(self) -> None:
-        record = build_record(
-            PGBACKREST_CONF,
-            {"PGBACKREST_REPO1_RETENTION_FULL": "7", "DRILL_RESTORE_SECONDS": "14401"},
-        )
-        assert record["verdict"] == "rto_exceeded"
-
-    def test_writing_the_record_lands_a_json_file_with_no_identifier(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        code = record_main(
-            {
-                "INTAKE_REPO_ROOT": str(REPO),
-                "DRILL_EVIDENCE_DIR": str(tmp_path),
-                "PGBACKREST_REPO1_RETENTION_FULL": "7",
-                "DRILL_RESTORE_SECONDS": "10",
-                "DRILL_ROW_COUNTS": " visits:1\n",
-            }
-        )
-        assert code == 0
-        capsys.readouterr()
-        written = list(tmp_path.glob("restore-drill-*.json"))
-        assert len(written) == 1
-        blob = written[0].read_text(encoding="utf-8")
-        assert '"visits": 1' in blob
-        for forbidden in ("tckn", "phone", "patient", "transcript"):
-            assert forbidden not in blob.lower()
+def test_the_blocker_row_carries_both_asks_and_the_erasure_finding() -> None:
+    """CLAUDE.md: never invent a value; write the ask, name the human, cross-
+    reference the HUMAN_BLOCKERS.md row, and continue."""
+    text = (REPO / "files" / "HUMAN_BLOCKERS.md").read_text(encoding="utf-8")
+    row = next(line for line in text.splitlines() if line.startswith("| **HB-I8**"))
+    lowered = row.lower()
+    assert "retention" in lowered
+    assert "second location" in lowered
+    assert str(RETENTION_CEILING_DAYS) in row
+    assert "intake-docs" in row
 
 
-def test_the_module_entry_point_is_the_same_cli() -> None:
-    """`python -m intake_platform.backup` is what the drill script calls; if
-    it ever pointed at a second implementation the plan and the run would
-    diverge silently."""
-    import intake_platform.backup.__main__ as entry
+def test_the_module_entry_point_is_the_same_cli(monkeypatch: pytest.MonkeyPatch) -> None:
+    import runpy
+    import sys
 
-    assert entry.main is cli_main
+    argv = ["intake_platform.backup", "--infra", str(BACKUP_DIR), "--repo-root", str(REPO)]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit) as exc:
+        runpy.run_module("intake_platform.backup", run_name="__main__")
+    assert exc.value.code == 0
+
+
+def test_the_dev_compose_overlay_is_gone() -> None:
+    """The laptop overlay could run nowhere (Docker is banned on the laptop
+    and absent on the GPU server) and stood a local object store up as the
+    'second location' — a fake bucket. The drill runs on the host and in CI."""
+    assert not (INFRA / "docker-compose.backup.yml").exists()

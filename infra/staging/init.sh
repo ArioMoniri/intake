@@ -27,6 +27,13 @@
 #      KEK and the API's periodic token.
 #   5. Runs the alembic migrations, and re-keys the migration roles away
 #      from their committed dev passwords.
+#   6. INT-202: builds the primary with pgBackRest (Dockerfile.postgres),
+#      creates the backup state directories, and creates the pgBackRest
+#      stanza and checks WAL archiving into the encrypted repository. The
+#      repository passphrase is generated in step 1 like every other secret.
+#
+# On a host that ran init.sh before INT-202, re-run it once: it generates
+# only the missing passphrase, and deploy.sh refuses to run without it.
 #
 # Next: ./deploy.sh, then ./smoke.sh.
 set -euo pipefail
@@ -48,6 +55,8 @@ load_env
 stamp_revision
 build_api_image
 stamp_sbom
+prepare_backup_dirs
+build_postgres_image
 
 compose up -d postgres redis openbao
 wait_for_openbao
@@ -58,6 +67,7 @@ configure_openbao
 wait_healthy postgres
 run_migrations
 rotate_role_passwords
+ensure_backup_stanza
 
 log "init complete for https://${STAGING_HOSTNAME} (synthetic patients only)"
 log "state: $STATE_DIR (0700): .env and openbao-init.json, both 0600 root"
