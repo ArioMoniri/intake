@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**299 issues.** By phase: P0 157 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 167 · todo 90 · withdrawn 1.
+**300 issues.** By phase: P0 157 · P1 89 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 168 · todo 90 · withdrawn 1.
 
 ## P0
 
@@ -260,6 +260,7 @@
 | INT-369 | schemathesis API fuzzing runs in CI instead of being recorded as deferred | E13-infra | INT-215 | area:infra, risk:security | todo |
 | INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 | INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
+| INT-377 | /admin/models and /admin/ops fail closed on a malformed probe-results file | E12-admin | INT-183, INT-351 | area:admin | done |
 | INT-388 | Physician sign-off packet per department, generated from the review queue and verification trail | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 
 ## P2

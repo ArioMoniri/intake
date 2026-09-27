@@ -87,9 +87,12 @@ def test_ids_unique_and_well_formed() -> None:
     # because it waits on AWS approving the eu-central-1 GPU quota).
     # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
     # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
+    # kiosk idle warning).
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
     # + INT-388 (physician sign-off packets per department, generated from the
     # review queue and the verification trail; GitHub #641).
-    assert len(ids) == 299
+    assert len(ids) == 300
     import re
 
     for i in ids:

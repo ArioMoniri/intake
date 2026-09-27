@@ -5722,6 +5722,23 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-377
+  epic: E12-admin
+  phase: P1
+  title: "/admin/models and /admin/ops fail closed on a malformed probe-results file"
+  depends_on: [INT-183, INT-351]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-377.md
+  # Found by INT-181 (PR #612): models_source read INTAKE_PROBE_RESULTS_PATH
+  # unguarded, so a present file that is not a sweep raised JSONDecodeError
+  # through both routes. The loader now refuses it to probe_results_unreadable
+  # (INT-181's own vocabulary) and logs the reason and exception class only.
+  acceptance:
+    - "a malformed, truncated, empty or wrongly shaped probe-results file makes every tile that reads it show `unknown`, with no 500; the refusal is logged without the file's content"
+    - "one test per malformation, plus a near-miss control with a valid file"
+  tests: [tests/admin/test_probe_results_fail_closed.py, apps/admin-web/e2e/models.spec.ts, apps/admin-web/e2e/ops.spec.ts]
+  sec_row: "admin-console"
 - id: INT-388
   epic: E03-protocols
   phase: P1
@@ -5734,7 +5751,7 @@
   acceptance:
     - "scripts/dev/signoff_packet.py renders one packet per branch and per cluster from the committed review candidates, proposals and verification docs, with no hand-copied text: the questions in ask order with tr text verbatim, gates, delivery, sources (guideline id and URL), red-flag stubs and their status, and every open item that names that branch with its HB id"
     - "a signature block per packet (the signer, date and decision per open item); signing records a decision and never edits a pack"
-    - "a drift test: packets regenerate byte-identically from the committed sources, and every open item in the verification docs is filed in a packet or listed in docs/signoff/_unassigned.md, which must be empty (a planted unassigned item fails)"
+    - "a drift test: packets regenerate byte-identically from the committed sources, and every open item in the verification docs is filed in the packets it names, signed once in docs/signoff/_cross-cutting.md when its row is scoped to every pack, or listed in docs/signoff/_unassigned.md, which must be empty (a planted unassigned item fails); legend rows are no items"
     - "no accuracy or performance claim (invariant 20)"
   tests: [tests/protocols/test_signoff_packet.py]
   sec_row: "clinical-content"
