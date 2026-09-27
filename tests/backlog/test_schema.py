@@ -95,9 +95,16 @@ def test_ids_unique_and_well_formed() -> None:
     # gpu), both split out by INT-124's PR so each delivered row can close.
     # + INT-385 (record quantities render with the locale's decimal separator;
     # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
+    # + INT-373 (the Keycloak realm emits the claims the admin console
+    # requires; found by INT-365).
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    # + INT-393 (a patient who issued a Doctor Link could not be erased; found
+    # by INT-392, fixed and closed in the same PR).
     # + INT-391 (the console accepts every valid WebAuthn credential id; found
     # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
-    assert len(ids) == 303
+    assert len(ids) == 306
     import re
 
     for i in ids:
