@@ -158,6 +158,63 @@
 - Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
 - LOOP_STATUS: CONTINUE
 
+### 2026-09-27T12:00:00Z · INT-317 (INT-354 slice 1) · delivered (PR open; the read-back stays shut on HB-A18 and HB-L27)
+- Goal: INT-354 acceptance 1, one slice at a time. INT-317 is the first slice: previsit
+  output store and hospital read-back. Its acceptance is verbatim in its backlog row.
+  - Work: land int-demo's INT-317 work on main as one PR.
+  - Carry: its backlog row and HB-A18, both int-demo-only.
+  - Strip: F06/F21 demo-scoped content.
+- Plan:
+  - Classify all 26 `origin/main..origin/int-demo` commits: issue, on-main by content,
+    F06/held, slice. See `docs/evidence/INT-354.md`.
+  - Cherry-pick the nine INT-317 commits and squash them into three:
+    - red;
+    - implementation;
+    - backlog and evidence.
+  - Regenerate the exports on current main.
+  - Drop `545abfa7`, the demo recipient overlay and guide.
+- Tests added: none new. The int-demo suites are carried unchanged:
+  - `tests/api/test_previsit_output.py`;
+  - `tests/schemas/test_previsit_output_contract.py`;
+  - `tests/platform/test_previsit_output_recipients.py`;
+  - the `tests/data` table checks.
+
+  Their near-miss controls are carried too: no scope → refused and unaudited; no stored
+  previsit → 404; the note grant does not unlock the output scope. RED on main: 3
+  collection errors plus 4 `tests/data` failures. GREEN: 62 passed on the INT-317 suites
+  and 357 on the wider set.
+- Result: `make check` was not run whole, because check-integration needs a container
+  runtime. The `check-py` lanes were run instead:
+  - ruff and format clean; `mypy --strict` clean on 436 files;
+  - the whole-tree pytest: 7106 passed at 95.74 % (floor 85). There were 4 `test_deid_ner`
+    failures, caused by the model cache being absent from a fresh worktree;
+  - schemas 189 passed at 91.76 % (floor 90);
+  - `pnpm -r typecheck` 0; `no_placeholders` OK after staging; phi and claims scans OK.
+
+  `make safety`: not touched, because nothing changed under protocols or voice-runtime.
+- Invariants touched and still passing:
+  - **1**: `triage` is rules-or-`not_evaluated` only;
+  - **4**: a share means a consent check plus an audit entry before the answer;
+  - **6/14**: the patient number is body-only, tokenized and never stored, and the payload
+    is envelope-encrypted;
+  - **17**: an empty registry fails closed;
+  - **18**: every column is annotated;
+  - **22**: magnitude and unit are one object, on the ADR-030 carrier.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No new ADR.
+  - `ADR-029` → `ADR-030` references were corrected, because main de-collided the number.
+  - INT-317 and HB-A18 were carried, not minted. The check found no other use on main, on
+    any remote branch or on GitHub.
+  - Migration `0013_previsit_output` → `0012_int150`, with one alembic head.
+- Blocked on:
+  - **owner + hospital IT + counsel (HB-A18):** which credential a hospital system presents,
+    and the DPA's `dpa_ref`/`approval_ref`/`retention_ref`;
+  - **counsel (HB-L27):** the `share` consent text.
+- Next:
+  - The owner confirms INT-318 and allocates ids for the mobile slices.
+  - Then S2 INT-318, with the F06 route rebuilt registry-only.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):
   - *"the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"*
