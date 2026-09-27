@@ -501,6 +501,14 @@ const extra: IntakeQuestion = {
   hintKey: "intake.q.extra.hint",
 };
 
+/**
+ * The free note every pack ends on (04 §1 `expectations_wrapup`) — the step
+ * `packForVisit` always composes last. Exported so the delivery layer
+ * (INT-414) can announce the wrap-up from the pack's own structure rather
+ * than from a copy of this id.
+ */
+export const WRAPUP_QUESTION_ID = extra.id;
+
 // ---- shared answer-gated dimensions (INT-239) -------------------------------
 // Two packs each ask these, so they live once: the breathing pair belongs to
 // whichever pack the patient reached with "nefes darlığı", the fever timing

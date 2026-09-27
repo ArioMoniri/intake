@@ -15,7 +15,10 @@ itself, so none of it depends on a well-behaved client:
   "patient words never reach the vendor" is a server fact, not a client promise.
   Every manifest is read through ``voice_clips.load_clip_manifest``, so a pack
   edited after compile (a row whose text no longer hashes to its key) refuses
-  the whole catalogue rather than widening it.
+  the whole catalogue rather than widening it. The one widening is INT-414's:
+  the fixed conversational delivery lines (:mod:`intake_api.dev_voice_delivery`,
+  verbatim ``tr`` catalogue copy, pinned to it by test) join a catalogue that
+  loaded, hashed the same way (:func:`with_delivery_lines`).
 - **The budget.** A per-principal token bucket on the INT-012 Redis limiter
   (``intake_platform.security.rate_limit``), shared by every replica.
 - **Production.** ``INTAKE_ENV`` read the way the platform reads it
@@ -26,6 +29,7 @@ itself, so none of it depends on a well-behaved client:
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 from dataclasses import dataclass
@@ -40,6 +44,8 @@ from voice_clips.cache import clip_manifest_filename, load_clip_manifest
 from voice_clips.cli import DEFAULT_DIST_ROOT
 from voice_clips.errors import ClipCacheError
 
+from intake_api.dev_voice_delivery import delivery_text_hashes
+
 __all__ = [
     "ENV_GEORGE_CLIP_DIST",
     "ENV_INTAKE_ENV",
@@ -52,6 +58,7 @@ __all__ = [
     "intake_env_is_prod",
     "load_scripted_catalogue",
     "scripted_catalogue_from_env",
+    "with_delivery_lines",
 ]
 
 logger = logging.getLogger("intake_api")
@@ -112,10 +119,27 @@ def load_scripted_catalogue(dist_root: Path, *, locale: str = DEFAULT_LOCALE) ->
     return ScriptedCatalogue(text_hashes=frozenset(hashes))
 
 
+def with_delivery_lines(catalogue: ScriptedCatalogue) -> ScriptedCatalogue:
+    """``catalogue`` widened by the fixed conversational delivery lines (INT-414).
+
+    Widening only: every manifest row stays admitted with whatever else the
+    catalogue carries about it (``dataclasses.replace`` keeps every other
+    field), and the lines added are the verbatim ``tr`` catalogue strings of
+    :mod:`intake_api.dev_voice_delivery` — fixed copy with no slot a patient's
+    words could fill."""
+    return dataclasses.replace(
+        catalogue, text_hashes=catalogue.text_hashes | delivery_text_hashes()
+    )
+
+
 def scripted_catalogue_from_env() -> ScriptedCatalogue | None:
     """The catalogue under :func:`george_clip_dist_root`, or ``None`` when it
     is unreadable, tampered or empty — nothing the route could safely admit.
-    Ids-only logs (invariant 6): no path contents, no text."""
+    Ids-only logs (invariant 6): no path contents, no text.
+
+    The delivery lines join a catalogue that loaded, and only then (INT-414):
+    they never make an unreadable or empty manifest set look configured, so
+    the lane fails closed on exactly the conditions it did before."""
     try:
         catalogue = load_scripted_catalogue(george_clip_dist_root())
     except (ClipCacheError, OSError):
@@ -124,7 +148,7 @@ def scripted_catalogue_from_env() -> ScriptedCatalogue | None:
     if not catalogue.text_hashes:
         logger.warning("george lane unconfigured: no compiled clip manifest to admit text from")
         return None
-    return catalogue
+    return with_delivery_lines(catalogue)
 
 
 def george_budget(redis_url: str) -> TokenBucketLimiter:
