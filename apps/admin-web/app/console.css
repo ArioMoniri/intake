@@ -81,7 +81,9 @@ body {
 
 .tile[data-tile="models"],
 .tile[data-tile="probe_matrix"],
-.tile[data-tile="dep_components"] {
+.tile[data-tile="dep_components"],
+.tile[data-tile="pipelines"],
+.tile[data-tile="gates"] {
   grid-column: 1 / -1;
 }
 
@@ -224,7 +226,10 @@ code {
 [data-state="degraded"],
 [data-state="no_result"],
 [data-state="skipped"],
-[data-state="cancelled"] {
+[data-state="cancelled"],
+[data-state="pending"],
+[data-state="sign_pending"],
+[data-state="not_signed"] {
   color: var(--warn);
 }
 
@@ -235,7 +240,9 @@ code {
 [data-state="timed_out"],
 [data-state="startup_failure"],
 [data-state="blocking"],
-[data-state="blocked"] {
+[data-state="blocked"],
+[data-state="missing"],
+[data-state="sign_failed"] {
   color: var(--bad);
 }
 

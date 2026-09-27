@@ -64,7 +64,7 @@
   "authenticationFlows": [
     {
       "alias": "staff browser",
-      "description": "files/08 §2.3 (INT-365): resume an SSO session, or a password and a second factor. Each execution a user completes is tagged with its RFC 8176 amr value. The api refuses a token without pwd plus otp or hwk, and a token without hwk for a role that reaches patient content.",
+      "description": "files/08 §2.3 (INT-365): resume an SSO session, or a password and a second factor, each execution tagged with its RFC 8176 amr value. The api refuses a token without pwd plus otp or hwk, or without hwk for a role that reaches patient content.",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,

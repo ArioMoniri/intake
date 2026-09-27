@@ -39,6 +39,7 @@ from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKek
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
+from intake_platform.release_freeze import release_freeze_store_from_env
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
 from intake_platform.voice_control import voice_control_store_from_env
@@ -61,6 +62,7 @@ from intake_api import (
     otp_routes,
     previsit_output,
     profile_routes,
+    record_items,
     satisfaction,
     taxonomy_routes,
     visits,
@@ -334,10 +336,19 @@ def _admin_from_env() -> AdminWiring | None:
     except ValueError:
         logger.warning("voice controls unconfigured: the store URL is not a redis URL")
         voice_controls = None
+    try:
+        # INT-187: the deployment's deploy-freeze record, which deploy.sh's
+        # release gate reads too. Unset or malformed, the freeze controls
+        # answer 503 and the console shows the gate refusing — never "open".
+        release_freeze = release_freeze_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("deploy freeze unconfigured: the store URL is not a redis URL")
+        release_freeze = None
     return AdminWiring(
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
         voice_controls=voice_controls,
+        release_freeze=release_freeze,
         identity=_identity_from_env(),
     )
 
@@ -537,6 +548,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)
     app.include_router(documents.router)
+    app.include_router(record_items.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
     app.include_router(profile_routes.router)

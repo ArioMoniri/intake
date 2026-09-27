@@ -199,7 +199,12 @@ services:
       start_period: 30s
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1.4
+    # INT-390: 26.7.4 (released 16 Sep 2026), pinned by the multi-arch index
+    # digest; 26.1.4 carried 64 OSV advisories. Apache-2.0, read from the raw
+    # LICENSE.txt at the tag. The realm-import column limits in
+    # tests/infra/test_keycloak_realm_import.py are this version's; a bump
+    # re-derives them (docs/evidence/INT-390.md).
+    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
     profiles: ["obs"]
     command: ["start-dev", "--import-realm"]
     environment:
@@ -207,7 +212,9 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-keycloak-dev-only}
       KC_HEALTH_ENABLED: "true"
     volumes:
-      - ./keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
+      # Since 26.2.0 the directory import refuses a file whose name is not
+      # `<realm>-realm.json` for the realm inside it (DirImportProvider).
+      - ./keycloak/dev-realm.json:/opt/keycloak/data/import/intake-dev-realm.json:ro
     ports:
       - "127.0.0.1:8085:8080"
     healthcheck:
