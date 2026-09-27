@@ -27,8 +27,10 @@
 import { AppState, type AppStateStatus } from "react-native";
 
 import {
-  KIOSK_IDLE_WIPE_MS,
   decodeKioskProvisioning,
+  startKioskIdleClock,
+  type KioskIdleClock,
+  type KioskIdlePhase,
   type KioskLockdown,
   type KioskProvisioning,
 } from "./kioskState";
@@ -61,32 +63,37 @@ export async function probeLockdown(): Promise<KioskLockdown> {
   return "needs_dev_build";
 }
 
-/** A running kiosk watch: `touch()` resets the idle clock; `stop()` tears down. */
-export interface KioskWatch {
-  touch(): void;
-  stop(): void;
-}
+/**
+ * A running kiosk watch: `touch()` restarts the idle clock, `extend()` is the
+ * warning's one action, `stop()` tears everything down.
+ */
+export type KioskWatch = KioskIdleClock;
 
 /**
- * Watch for the two wipe triggers. The idle clock (a timer) lives HERE, in a
- * `.ts` module, on purpose: e2e/a11y.spec.ts BK13 pins that no `.tsx` under
- * app/ or components/ owns a timer but otp.tsx, so the 60 s idle wipe cannot
- * sit in the gate component.
+ * Watch for the two wipe triggers. The platform timer lives HERE, in a `.ts`
+ * module: e2e/a11y.spec.ts BK13 keeps timers out of screens and components,
+ * and requires a time limit's timer to be the one it hands to its warning
+ * machine (INT-363, WCAG 2.2 SC 2.2.1). The machine — `startKioskIdleClock` in
+ * kioskState.ts, tested on a fake clock — decides everything; this file only
+ * supplies `Date.now` and the one-shot timer.
  *
- * - `onIdle` fires KIOSK_IDLE_WIPE_MS after the last `touch()` — wipe the
- *   session, stay armed for the next patient.
+ * - `onIdlePhase("warning")` fires after 40 s without a touch: show and
+ *   announce the warning. `onIdlePhase("active")` follows a touch or the
+ *   extend action. `onIdlePhase("wiped")` fires when the warning has stood its
+ *   full 20 s unanswered: wipe the session, stay armed for the next patient.
  * - `onBackground` fires when the app leaves the foreground — wipe AND flag a
- *   tamper, because a locked-down kiosk should not be backgroundable.
+ *   tamper, because a locked-down kiosk should not be backgroundable. No
+ *   warning precedes it: leaving the app is not a time limit.
  */
-export function watchKiosk(handlers: { onIdle: () => void; onBackground: () => void }): KioskWatch {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-
-  const armTimer = (): void => {
-    if (timer !== null) {
-      clearTimeout(timer);
-    }
-    timer = setTimeout(handlers.onIdle, KIOSK_IDLE_WIPE_MS);
-  };
+export function watchKiosk(handlers: {
+  onIdlePhase: (phase: KioskIdlePhase) => void;
+  onBackground: () => void;
+}): KioskWatch {
+  const clock = startKioskIdleClock(handlers.onIdlePhase, {
+    now: () => Date.now(),
+    schedule: (fire: () => void, delayMs: number) => setTimeout(fire, delayMs),
+    cancel: (handle: ReturnType<typeof setTimeout>) => clearTimeout(handle),
+  });
 
   const onAppState = (status: AppStateStatus): void => {
     if (status === "background" || status === "inactive") {
@@ -95,17 +102,16 @@ export function watchKiosk(handlers: { onIdle: () => void; onBackground: () => v
   };
 
   const subscription = AppState.addEventListener("change", onAppState);
-  armTimer();
 
   return {
     touch() {
-      armTimer();
+      clock.touch();
+    },
+    extend() {
+      clock.extend();
     },
     stop() {
-      if (timer !== null) {
-        clearTimeout(timer);
-        timer = null;
-      }
+      clock.stop();
       subscription.remove();
     },
   };

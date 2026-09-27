@@ -85,10 +85,14 @@ def test_ids_unique_and_well_formed() -> None:
     # id is held by no other row on main or any remote branch).
     # + INT-376 (the production API's move to Frankfurt, split out of INT-352
     # because it waits on AWS approving the eu-central-1 GPU quota).
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
     # kiosk idle warning).
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
     # + INT-373 (the Keycloak realm emits the claims the admin console
     # requires; found by INT-365).
-    assert len(ids) == 298
+    assert len(ids) == 300
     import re
 
     for i in ids:

@@ -63,6 +63,7 @@ from intake_api.admin import compliance_source, views
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
     load_models_module,
+    load_probe_sweep,
     resolve_benchmark,
     run_benchmark,
 )
@@ -71,6 +72,7 @@ from intake_api.admin.reliability_console import load_reliability_console
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
 from intake_api.errors import (
+    InsufficientUserAuthentication,
     admin_refused,
     benchmark_refused,
     break_glass_refused,
@@ -214,7 +216,10 @@ async def _break_glass_approve(
 async def _models(
     request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
 ) -> dict[str, Any]:
-    return views.models_module_view(load_models_module())
+    # INT-377: the sweep is read once, and a file that is not one is refused
+    # to `unknown` rather than raised through the route.
+    sweep = load_probe_sweep()
+    return views.models_module_view(load_models_module(sweep), sweep)
 
 
 async def _ops(
@@ -414,9 +419,16 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
             caller = resolve_caller(request, wiring)
         except HTTPException as refusal:
             # a request refused before the caller is known is still an admin
-            # action, and is exactly the one an investigator wants to see
+            # action, and is exactly the one an investigator wants to see.
+            # A second-factor refusal (INT-365) comes from a token whose
+            # signature verified, so its id-shaped subject is known and the
+            # row names it. An OTP login to a patient-content account, which
+            # is what a phished TOTP produces, is then attributed, not anonymous.
+            actor = _UNRESOLVED_ACTOR
+            if isinstance(refusal, InsufficientUserAuthentication) and refusal.subject:
+                actor = refusal.subject
             async with AdminActionRecord(
-                sink, actor=_UNRESOLVED_ACTOR, action=route.audit_action, detail=base
+                sink, actor=actor, action=route.audit_action, detail=base
             ) as record:
                 record.mark_failed()
             raise refusal

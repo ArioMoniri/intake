@@ -1,5 +1,32 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
+- Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
+- Plan:
+  - `.github/renovate.json`, not a workflow file. It enables nine managers (pep621/uv, npm/pnpm, dockerfile, docker-compose, github-actions, pip_requirements, pre-commit, pyenv, and a regex manager for the two `pgsty/minio` digest pins outside compose).
+  - Digests pinned for containers and Actions.
+  - `vulnerabilityAlerts` unscheduled, not approval-gated, no cooldown, labelled `security`.
+  - Weekly per-ecosystem groups; majors and platform bumps on dashboard request.
+  - Monthly lock-file maintenance.
+  - `automerge` and `platformAutomerge` are false, and there is no `extends`.
+  - Commits are `chore(deps)`.
+- Tests added: `tests/ci/test_dependency_updates.py`, 24 tests.
+  - Ecosystems are discovered from `git ls-files`.
+  - Near-miss controls: a planted `go.mod`, an unwatched digest pin, `infra/**` and bare-substring ignores, an unpinned digest, a scheduled or gated security update, a cooldown under 7 days, and automerge anywhere.
+  - RED: 19 failed, 3 passed (three guards over things already compliant).
+  - Second RED: the pre-commit semgrep p/ci `renovate-missing-minimum-release-age` refused a 3-day cooldown and rules without an age. A test was added and failed on the staged config. The fix was 7 days, not a suppression.
+  - GREEN: 24 passed. Mutations: 17/17 killed. Semgrep 1.86.0 p/ci: 0 findings.
+- Result:
+  - The Renovate 44.115.10 validator (`--strict`, RE2, Node 24) passes, and a planted-defect copy is refused.
+  - Renovate extract-only found 34 package files and 293 deps across the 9 managers.
+  - The ci, legal, compliance, backlog and docs suites: 703 passed. `make check-py` is recorded in the evidence file.
+- Invariants touched and still passing: **14** (digest pins; no gate skipped; the licence gate runs on every Renovate PR because nothing auto-merges) and **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - 2018/10 measure 3ç gains control `dependency-update-config`.
+  - Gap `dependency-update-tracking` is narrowed from "which tool" (answered) to the owner's installation (organisational, owner).
+- Blocked on: the owner installs the Renovate GitHub App on ArioMoniri/intake and enables Dependabot alerts (runbook `docs/runbooks/dependency-updates.md`). This is not a new HB id; the mapping's gap carries it.
+- Next: PR `INT-368: Renovate configuration for uv, pnpm, container digests and Actions (no auto-merge)` (Closes #595, Sec-Row cicd), left unmerged for review.
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:
@@ -87,6 +114,45 @@
 - Blocked on: nothing for this PR. INT-376 waits on AWS quota request `c6c0d271…`. Acceptance 2 names p50, and the Part 1 k6 table has p95 and max only, so the next deploy's k6 run must record the median (evidence Part 3, item 4).
 - Next: PR `INT-352: stamped /version (sbom_digest) on the production API; Frankfurt move split to INT-376` (Closes #558, Sec-Row platform), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:30:00Z · INT-363 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #589):
+  - *"before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"*
+  - *"the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"*
+  - Found by the INT-226 report: the SC 2.2.1 row (MC-08).
+- Plan:
+  - **Pure machine** in `lib/kiosk/kioskState.ts`. `KIOSK_IDLE_WARNING_MS = 20_000` (W, the criterion's floor) and `kioskIdleReducer` / `kioskIdleDue` run `active → warning → wiped`. The warning comes at T − W = 40 s. The grace is counted from when the warning is shown, and extend or any touch restarts the full minute. `startKioskIdleClock` drives the machine on injected timers.
+  - **Adapter.** `nativeKiosk.ts` hands `Date.now` and its timer to the clock and no longer arms its own wipe.
+  - **`KioskGate`.**
+    - It shows an `AnnouncedText tone="warning"` and a "Devam edin" `PrimaryButton` that calls `extend()`.
+    - Focus moves onto the button with `sendAccessibilityEvent(…, "focus")`.
+    - The session behind the warning is hidden from the reader.
+    - `wiped` runs the unchanged `wipeSession()`.
+  - **Announcer.** INT-362's announcer gains a `warning` tone: assertive, and spoken as shown, without "Hata".
+  - **BK13 scan.** It walks all of `src`, `.ts` included. Each timer is either recorded as no time limit, with its reason, or handed to a warning machine.
+- Tests added:
+  - `kioskState.test.ts`: 13, on a fake clock (warn at T − W, no-extend wipe at T, late-timer grace, extend restarts, 12 repeated extends, the clock's reports, stop).
+  - `announce.test.ts`: 4.
+  - `a11y.spec.ts` BK13: 6 replacing 1. Near-miss control: a planted `src/lib` timer, the pre-INT-363 adapter and a timer beside the machine are each caught, and a comment is ignored.
+  - `kiosk.spec.ts`: 5.
+  - RED: 23 failed / 147 passed. GREEN: 170 / 170. Whole mobile suite: 2110 passed (105 files). Mutations M1–M4 were all killed and restored with `cp`, checked by `cmp`.
+- Result:
+  - `make check-ts` green and `make check-i18n` 30 passed.
+  - `tests/legal/test_a11y_report.py` 26 passed; the report is re-rendered and `--check` passes.
+  - `tests/backlog` passed; expo lint and prettier are clean.
+  - `no_placeholders` and `evidence_check` OK after staging.
+  - `check-py` was not run whole, and neither were `make safety` / `make security`: no Python, protocol, triage or security surface changed.
+- Invariants touched and still passing:
+  - **2:** B1, `siz`, calm copy with no number; PolicyGuard records unchanged.
+  - **3:** the wipe path is unchanged and still shreds the drafts.
+  - **5:** the new keys are tr-first with en mirrored.
+  - **6:** nothing is logged.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - W = 20 s leaves T = 60 s (files/10 §4) intact.
+  - The `warning` tone extends INT-362's two-tone contract rather than calling a timeout an error.
+- New patient copy for clinical-reviewer: `kiosk.idle.warning`, `kiosk.idle.extend`, `kiosk.idle.extendHint`.
+- Blocked on: nothing. The device confirmation is a DA-08 step that waits for the kiosk dev build (HB-A3).
+- Next: PR `INT-363: kiosk idle wipe warns first and can be extended (WCAG 2.2.1)` (Closes #589, Sec-Row mobile), left unmerged for review.
 
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
 - Goal: acceptance verbatim (GitHub #538):
@@ -246,6 +312,39 @@
   - The owner confirms INT-318 and allocates ids for the mobile slices.
   - Then S2 INT-318, with the F06 route rebuilt registry-only.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:00:00Z · INT-365 · delivered (live realm and staff enrolment with the owner)
+- Goal: acceptance verbatim (GitHub #592):
+  - *"the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"*
+  - *"the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"*
+- Plan:
+  - New `intake_platform.admin.second_factor`. The token must show `amr` ⊇ {`pwd`} plus `otp` or `hwk`, and `hwk` for any role whose §2.1 patient-content path is not `NONE` (six roles, derived rather than listed).
+  - The claim is a JSON array of exact, case-sensitive strings or it is no evidence. `acr` is never read.
+  - The policy is called in `principal_from_claims`, the seam every verifier feeds.
+  - The refusal is RFC 9470's 401 `insufficient_user_authentication` with one generic body. It is audited under the verified subject id.
+  - Realm: OTP and WebAuthn policies, a `staff browser` flow (password, then WebAuthn or TOTP, each execution tagged with its `amr` reference), the AMR mapper on `admin-web`, and 8 h / 30 min bounds, offline sessions included.
+  - What Keycloak actually emits is cited in `docs/evidence/INT-365.md`, from the 26.1.4 docs and source.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` (135): role mapping against the spec table; the policy, including 44 shape and case spoofing cases and acr-alone; the console's 401, body, challenge and audit row; the realm flow evaluated path by path; the policies; the session bounds.
+  - Near-miss: `pwd`+`otp` is admitted for `auditor` and refused when only the role changes to `clinical_lead`. Every realm checker is also run against a one-field mutation.
+  - RED: collection error, then 96 failed / 39 passed. GREEN: 135 passed. Mutation check: 11/11 killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `tests/admin tests/api tests/security tests/observability tests/docs`: 1601 passed. The 20 deselected are integration tests and the 4 deid-NER tests, whose model cache is absent from a fresh worktree.
+  - ruff, ruff format and `mypy --strict` (240 files) are clean. Pinned bandit found 0 issues on the touched paths. `no_placeholders` is OK after staging.
+  - `make check` was not run in full: check-integration is CI-only, since no container runtime is available. `make safety` is untouched: no protocol, triage or voice change.
+- Invariants touched and still passing:
+  - **4**: every refusal is on the one chain.
+  - **6**: the refusal body and audit row carry codes and ids only; no claim, factor or role.
+  - **14**: no secret added; the realm's dev passwords are unchanged.
+  - **16**: Sec-Row `admin-console`, threat-model section extended.
+  - **17**: nothing stubbed; an unenrolled or unmapped deployment fails closed.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. RFC 8176 and RFC 9470 are applied at the existing seam.
+  - WebAuthn is tagged `hwk`; `webauthn` is not an RFC 8176 value, and the fixture's old value matched no realm.
+  - No HB, ADR or alembic id minted.
+- Blocked on: nothing for the code. The owner applies the realm settings to the deployed Keycloak and enrols each staff account's factor (WebAuthn for the six patient-content roles) before its first console login.
+- Next: PR (Sec-Row `admin-console`, Closes #592). After #590 lands: flip the INT-365 row to done, regenerate files/11, and close and reopen the PR so the sec-row gate re-runs.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):
@@ -2245,3 +2344,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — the seventeen organisational gaps (policy, training, undertakings, grant register and reviews, offboarding, unseal-key custody, premises, transfer rules, pen test), of which three are HB-I12, HB-I9, HB-I8; counsel — mTLS vs "VPN or sFTP" (5c), plaintext LAN feeds (5c), whether patient OTP + device-bound key is two-factor (3e), the undertaking text (2b). No HB row minted; blockers.md carries both asks.
 - Next: the coordinator allocates issues for the ten `security_owner` gaps (staff second factor, session lifetime, access-review generator, offboarding, key-rotation schedule, encryption and auth signals, dependency updates, API fuzzing, the Kurum's security guide).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:30:00Z · INT-367 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #594): *"a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"*. Found by INT-215 as the 2018/10 measure 3b gap `rotation-schedule`.
+- Plan: `intake_platform.key_rotation` — `schedule` (three calendar months in UTC, `ROTATION_PERIOD_MONTHS` sourced to files/10 §3), `transit` (last rotation = creation time of the latest Transit version, read from Transit's own key metadata; no new store), `job` (one idempotent tick: rotate what is due through the existing `TransitKekProvider.rotate`, confirm the new version, set `sec_secret_rotation_due_days{key}`), `cli` (`make key-rotation`). Catalogue entry flipped to live with `[key]`; `SecretRotationOverdue` in a new `infra/observability/security-rules.yaml` wired into the obs Prometheus; runbook `docs/runbooks/key-rotation.md`.
+- Tests added: `tests/security/test_rotation_schedule.py` (31) on the INT-014 FakeTransit extended with metadata reads, a fake clock and `min_decryption_version` on decrypt. Near-miss control: one second short of the quarter is not rotated, the quarter is. Failed and partial rotations leave every ciphertext decryptable; the job's only write is `rotate`. RED 1: module missing. RED 2: 4 wiring failures plus the INT-025 gate naming the metric as planned-but-emitted. GREEN: all pass. Mutants 7/7 killed.
+- Result: see docs/evidence/INT-367.md (pytest lane with coverage, ruff, format, mypy --strict, no_placeholders after staging, evidence_check). `make check-ts`/`check-i18n`, `make safety` and `make security` not run: no TS, protocol or dependency change.
+- Invariants touched and still passing: 6 (label is the Transit key name only; CLI prints ids only), 13 (metric catalogued live and emitted; alert reads only catalogued series), 14 (secrets only via `SecretsProvider.from_env`, fails closed), 15 (runbook linked from the alert), 17 (no fake outside tests; the unwired production pieces are stated, not faked).
+- Decisions / ADRs / `00_STATE.md` rows: none. OpenBao policies untouched (LOOP guardrail).
+- Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
+- Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
+- LOOP_STATUS: CONTINUE
