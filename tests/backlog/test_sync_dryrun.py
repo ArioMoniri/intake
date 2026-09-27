@@ -91,7 +91,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655)
     # + INT-405 (sync paging past 500 issues and issue state, GitHub #675)
     # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
-    assert len(actions) == 316
+    # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
+    assert len(actions) == 317
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

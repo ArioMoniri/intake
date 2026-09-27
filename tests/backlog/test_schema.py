@@ -123,7 +123,9 @@ def test_ids_unique_and_well_formed() -> None:
     # step with rows; found by INT-396, GitHub #675).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
-    assert len(ids) == 316
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    assert len(ids) == 317
     import re
 
     for i in ids:

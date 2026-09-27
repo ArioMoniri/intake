@@ -6200,3 +6200,22 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-414
+  epic: E08-mobile
+  phase: P1
+  title: "Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim"
+  # GitHub #705. Owner request, 27 Sep 2026. Stacked on INT-415, whose delivery
+  # contexts every utterance carries. The new copy is listed for clinician
+  # review under HB-C1 in docs/evidence/INT-414.md and is not signed.
+  depends_on: [INT-415]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-414.md
+  acceptance:
+    - "a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase (opening / first question / mid / sensitive topic / closing), question context (routine, sensitive, instrument, pain, RED-adjacent) and the patient's on-device state (read-only, invariant 11), and never alters the question text"
+    - "every new string is B1 Turkish in the siz register, uses warmth through verb mood (-elim/-alım) and passes PolicyGuard (no diagnosis, treatment or prognosis language; one question per turn); en is the mirror"
+    - "an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr in the composed output (a test over every served pack and instrument), and a RED gets nothing added"
+    - "no numerals reach TTS (invariant 22); no patient words are composed into speech"
+    - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
+  tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
+  sec_row: "mobile"
