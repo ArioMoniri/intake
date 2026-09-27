@@ -2611,3 +2611,28 @@
 - Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
 - Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:35:00Z · INT-138 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #108): *"camera+file upload; AV/processing states; confirm-before-use; provenance boxes"*. The row had stayed `todo` since 3 Sep because no route carried a document extraction to the phone.
+- Plan:
+  - Audit first. Camera + file upload, the AV chips, `ConfirmCard`, the two verdicts, `SourceBoxPanel` and the client reader were already on `main`. What was missing was the transport, plus re-asking a document that is still being read.
+  - API: `record_items.py` with `GET …/documents/{doc_id}/extraction` (closed item shape, INT-385 summary byte for byte, `unit_conflict`, page + bbox, the server-held verdict) and `POST …/extraction/decisions` (`{card_id, decision}` only). A confirmed item goes through `confirm_record_item` to `ConfirmedRecordStore.admit`. Both routes use the `documents` scope and are audited with ids only.
+  - Seam: `record_feed.py` holds `ExtractionSource`, `NoExtractionSource` (unread for every document while every producer is shut) and the verdict ledger.
+  - App: `apiExtractionSource` is the one production source, and `noExtractionFeed` is deleted. `isAcknowledgement` gives no optimistic write. `pollExtraction` backs off from 2 s to 30 s over about 2.5 min, lives in lib and is registered as a BK13 wait. The confirm intro is announced.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_extraction_transport.py` (27).
+  - Near misses: the same line in the expected unit carries no flag; the fence word without the marker is served.
+  - Also covered: a box into another document refuses whole, a body with `by`/`actor`/`source`/value/unit is a 422 that echoes nothing, the same tap twice admits once, and a contrary verdict gets 409.
+  - Mobile: 31 new tests (3 older ones replaced) across `extraction.test.ts` (fake clock), `api.test.ts` and `e2e/records.spec.ts`. The spec cross-checks both paths against the Python router.
+  - RED: server ModuleNotFoundError, then 26 failed. Mobile: 29 failed. a11y BK13 refused a timer in a component, so it moved to lib.
+  - Mutations: 6/6 killed.
+- Result: `make check` MAKE_CHECK_EXIT=0. 8340 passed at 96.14 % and every coverage lane met its floor. Mobile: 2207 tests; `check-i18n`: 30. `no_placeholders` (staged), `phi_scan`, `claims_scan` and `assert_no_vendor_calls` all OK. `make safety` was not run separately because no protocol, triage or runtime file changed.
+- Invariants touched and still passing: 1, 2 (no new copy), 4, 5 (no new keys), 6, 12, 14, 17, 18 (nothing persisted), 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The fail-closed default moved from the app to the server (one gate).
+  - The `records` threat row gained the transport and one named limit.
+  - Three exact access-log actions were added.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing blocks the issue.
+  - Owner decision, not made here: should confirmed record items be persisted durably? Today INT-121's store is in-memory, so a restart returns a card to pending (the safe direction). Persisting them is a new structured copy of health data (invariant 18, stop-and-ask).
+  - Coordinator decision: INT-313's five clauses are what this PR's test file pins, and its row was left untouched (one issue per PR).
+- Next: PR `INT-138: records screens — upload, processing, confirm cards and provenance viewer` (Closes #108, Sec-Row records), left unmerged for review.
+- LOOP_STATUS: CONTINUE
