@@ -5438,7 +5438,8 @@
   title: "Motion: content reveal and a static skeleton"
   depends_on: [INT-331, INT-334, INT-335]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-342.md
   acceptance:
     - "content already available never animates; a load under the skeleton delay shows no skeleton; the skeleton is static (no shimmer, no loop) and unmounts in the commit that mounts the content"
     - "reduce motion keeps the delay and drops every fade; busy state is announced with a tr/en label"

@@ -806,6 +806,7 @@ export const en: Record<MessageKey, string> = {
   "review.healthProvenance": "Device health data — added with the patient's approval.",
   // ── INT-144 · screen-reader strings (mirror of the tr source) ────────
   "a11y.error": "Error",
+  "a11y.loading": "Loading content",
   "a11y.openHint": "Double tap to open the details.",
   "a11y.backHint": "Double tap to go back.",
   "a11y.closeHint": "Double tap to close.",

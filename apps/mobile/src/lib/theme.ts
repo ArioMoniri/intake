@@ -128,7 +128,15 @@ const loop = { pulsePeriodMs: 1400 } as const;
  */
 const press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 } as const;
 
-export const motion = { fadeMs: duration.fade, duration, easing, loop, press } as const;
+/**
+ * Content reveal (INT-342, MOTION-13): how long a skeleton stays hidden after
+ * it mounts, so a load that lands inside it never shows one. It is a wait,
+ * not a duration: nothing moves for it, it is kept under reduce-motion, and
+ * no animation takes it as its length (lib/motion/reveal.ts).
+ */
+const reveal = { skeletonDelayMs: 300 } as const;
+
+export const motion = { fadeMs: duration.fade, duration, easing, loop, press, reveal } as const;
 
 /**
  * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app

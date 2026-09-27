@@ -19,6 +19,7 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
@@ -26,11 +27,15 @@ import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { RecordReading } from "@/components/RecordReading";
+import { Skeleton } from "@/components/Skeleton";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
+import { useReducedMotion } from "@/lib/a11y/prefs";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
+import { enteringFor } from "@/lib/motion/native/reanimated";
+import { revealPlan } from "@/lib/motion/reveal";
 import {
   ALLOWED_DOCUMENT_TYPES,
   RecordsApiError,
@@ -151,6 +156,13 @@ function OtpRecords() {
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const noticeIsError = notice !== null && notice !== "records.scanningInfo";
+  // INT-342 (MOTION-13): the list's one slot. A skeleton while it loads,
+  // shown only past the delay; the list fades in once, in the commit that
+  // removes the skeleton. A list already there at mount would not animate.
+  const reduceMotion = useReducedMotion();
+  const ready = phase !== "loading";
+  const [availableAtMount] = useState(ready);
+  const reveal = revealPlan({ availableAtMount, reduce: reduceMotion });
 
   const refresh = useCallback(async (visit: VisitFixture) => {
     setPhase("loading");
@@ -371,40 +383,49 @@ function OtpRecords() {
           />
         </ListGroup>
       </View>
-      {phase === "ready" && docs.length === 0 ? (
-        <GuidanceBlock
-          accent
-          icon="folder"
-          kickerKey="records.guide.kicker"
-          titleKey="records.guide.title"
-          bodyKey="records.guide.body"
-        />
-      ) : null}
-      {docs.length > 0 ? (
-        <View style={styles.section}>
-          <Kicker label={t("records.guide.kicker")} />
-          <ListGroup>
-            {docs.map((doc) => (
-              <ListRow
-                key={doc.id}
-                icon={doc.contentType === "application/pdf" ? "doc.text" : "photo"}
-                label={
-                  docDisplayName(doc.id) ??
-                  t(doc.contentType === "application/pdf" ? "records.doc.pdf" : "records.doc.image")
-                }
-                sublabel={formatVisitDate(doc.createdAt.slice(0, 10), getLocale())}
-                // The scan state is a word in the trailing chip, but a
-                // pressed row merges its subtree — so the state is repeated
-                // into the row's own name or it is lost (SC 4.1.2).
-                labelContext={t(SCAN_STATE_KEY[doc.state])}
-                trailing={<ScanChip state={doc.state} />}
-                hint={doc.state === "rejected" ? undefined : t("a11y.openHint")}
-                onPress={doc.state === "rejected" ? undefined : () => void onOpen(doc)}
-              />
-            ))}
-          </ListGroup>
-        </View>
-      ) : null}
+      {ready ? (
+        <Animated.View entering={enteringFor(reveal.enter)}>
+          {docs.length === 0 ? (
+            <GuidanceBlock
+              accent
+              icon="folder"
+              kickerKey="records.guide.kicker"
+              titleKey="records.guide.title"
+              bodyKey="records.guide.body"
+            />
+          ) : (
+            <View style={styles.section}>
+              <Kicker label={t("records.guide.kicker")} />
+              <ListGroup>
+                {docs.map((doc) => (
+                  <ListRow
+                    key={doc.id}
+                    icon={doc.contentType === "application/pdf" ? "doc.text" : "photo"}
+                    label={
+                      docDisplayName(doc.id) ??
+                      t(
+                        doc.contentType === "application/pdf"
+                          ? "records.doc.pdf"
+                          : "records.doc.image",
+                      )
+                    }
+                    sublabel={formatVisitDate(doc.createdAt.slice(0, 10), getLocale())}
+                    // The scan state is a word in the trailing chip, but a
+                    // pressed row merges its subtree — so the state is repeated
+                    // into the row's own name or it is lost (SC 4.1.2).
+                    labelContext={t(SCAN_STATE_KEY[doc.state])}
+                    trailing={<ScanChip state={doc.state} />}
+                    hint={doc.state === "rejected" ? undefined : t("a11y.openHint")}
+                    onPress={doc.state === "rejected" ? undefined : () => void onOpen(doc)}
+                  />
+                ))}
+              </ListGroup>
+            </View>
+          )}
+        </Animated.View>
+      ) : (
+        <Skeleton plan={reveal.skeleton} />
+      )}
       {serverVisitId !== null ? (
         <RecordReading
           visitId={serverVisitId}
