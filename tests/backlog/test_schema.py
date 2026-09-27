@@ -79,6 +79,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-401 (console rollback split out of INT-187; waits on a CD target).
     # + INT-402..403 (split out of INT-123: the embedding-model choice and
     # the consent-withdrawal handling of record vectors; both the owner's).
+    # + INT-408 (workers-tier SLO targets, split out of INT-021; the owner's).
     # + INT-398..400 (split out of INT-122: the document-engine choice, the
     # real e-Nabiz/MHRS samples, the on-device MHRS date-order defect).
     # Grow this count only with a stated reason.
@@ -123,7 +124,7 @@ def test_ids_unique_and_well_formed() -> None:
     # consistency guard; GitHub #655, carried by its own PR).
     # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
     # step with rows; found by INT-396, GitHub #675).
-    assert len(ids) == 318
+    assert len(ids) == 319
     import re
 
     for i in ids:

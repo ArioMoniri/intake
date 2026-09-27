@@ -275,7 +275,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-398..400 (split out of INT-122 by its own PR, #663: the document
     # engine, the real samples, the on-device date-order defect); grows only
     # with a stated reason.
-    assert len(ids) == 318, f"expected 175 blueprint + 143 added issues, got {len(ids)}"
+    assert len(ids) == 319, f"expected 175 blueprint + 144 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
