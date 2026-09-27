@@ -284,7 +284,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
     # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
     # finding, GitHub #673); grows only with a stated reason.
-    assert len(ids) == 324, f"expected 175 blueprint + 149 added issues, got {len(ids)}"
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
+    assert len(ids) == 325, f"expected 175 blueprint + 150 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
