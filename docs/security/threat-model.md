@@ -1546,13 +1546,31 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     "both windows above the factor", a budget that does not follow from its SLI and objective,
     and a stale result rendered fresh, so neither a bent payload nor a stale tab can hide a
     burning budget.
+  - **Controls added by INT-365 (staff second factor and session bounds, files/08 §2.3):**
+    against [S] a phished approver. Every staff token reaches the console through
+    `principal_from_claims`, which refuses it unless `amr` shows `pwd` plus a second factor
+    (`otp` or `hwk`). A role whose §2.1 patient-content cell is not "no" needs `hwk`: TOTP is
+    phishable. `platform_owner`, `tenant_clinical_responsible`, `clinical_lead`,
+    `investigator`, `compliance_officer` and `support` therefore need it. The set is derived
+    from `PatientContentPath` and never listed in code. `amr` must be a JSON array of exact,
+    case-sensitive strings. An absent claim, a bare string, a mapping or a non-string member is
+    no evidence, and `acr` alone never admits. The refusal is RFC 9470's 401
+    `insufficient_user_authentication`, with one body for "no second factor" and "not
+    WebAuthn", so the response does not reveal whether an account reaches patient content. It
+    is audited under the verified subject id and nothing else. The committed realm configures
+    the OTP policy (TOTP, 6 digits, 30 s, code not reusable) and the WebAuthn policy (user
+    verification required). Its browser flow is a password and then WebAuthn or TOTP, each
+    execution tagged with the `amr` reference the verifier accepts. The realm bounds every
+    session to 8 h and 30 minutes idle, offline sessions included. The `amr` references expire
+    at the same 8 h, so after that bound the API refuses a refreshed token too.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
   audit `seq` gaps, external-anchor age, access-review age; `sec.admin_actions_total` and
   `sec.break_glass_total` with alerts actually attached — land with INT-180…INT-192.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
-  the role × tenant matrix with INT-180.
+  the role × tenant matrix with INT-180; the second factor, the realm flow and the session
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365).
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 
