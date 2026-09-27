@@ -19,6 +19,159 @@
 - Next: PR `INT-400: the on-device MHRS SMS parser refuses an ambiguous date, as the server does` (Closes #666, Sec-Row mobile, depends on #663), unmerged for review.
 - LOOP_STATUS: CONTINUE
 
+### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
+- Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
+  - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
+  - The close-out audits every clause against the services, apps, jobs and tiers that exist now, and builds what is missing.
+- Plan:
+  - Generate the rules from every SLO file, not from `api.yaml` alone.
+  - Generate one golden-signal dashboard per SLO file (`intake_platform.slo_dashboards`) and mount the directory into Grafana.
+  - Hold every alert in every rule file Prometheus loads to a runbook heading that resolves, and every series a rule reads to a `live` catalogue entry (`intake_platform.alert_rules`).
+  - Discover every service, app and job, and record each one's SLO file and probe rows or the reason it has none (`observability/slo_coverage.yaml`, `intake_platform.slo_coverage`).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/observability/test_alert_rules.py` (new). Near misses: an anchor one character off, a missing runbook file, a heading inside fenced code, a traversal link, an external URL, a series one letter off, a bare-name series, an undefined recording rule, a `planned` series, and an unloaded rule file.
+  - `tests/observability/test_slo_coverage.py` (new). Near misses: each entry dropped, a probe row one character off, an alert name one character off, a service exempted from its SLO, missing rule groups, a missing dashboard, a new service, app or job without an entry, and an emitter mounted under the wrong name.
+  - `tests/observability/test_slo_generator.py`, generalised to every SLO file. Near misses: the api-only rules file, and a changed objective without a re-emitted dashboard.
+  - `tests/observability/test_obs_compose.py`: the directory mount.
+  - RED 1: 3 collection errors, modules absent. RED 2: 24 failed, 67 passed.
+- Result:
+  - The four files are green, and the audit reports nothing.
+  - 1570 passed across observability, infra, ci, platform and the security-rule consumers.
+  - `make slo-report` exits 0 offline.
+  - `make check-py` (with the deid artefact dir): ruff and format are clean, and `mypy --strict` is clean over 489 files.
+  - Whole tree: 8779 passed at 95.85 %.
+  - Every scoped lane is at its floor. The host stopped the make process after the whole-tree lane, so the scoped lanes were re-run individually with the Makefile commands.
+  - `no_placeholders` (staged): OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 6, 8, 13, 15, 17, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: six SLO files had no alerts; `services/probes` never emitted the series its SLO reads; the 8 cost alerts had no runbook; nothing read `sec_audit_chain_ok` although files/08 §5 pages on it (`AuditChainVerificationFailed`, `docs/runbooks/audit-chain.md`).
+  - Found, not fixed: admin-web has no registry row (needs a re-recorded sweep); one-shot job gauges reach no Prometheus; a readiness 503 burns the HTTP SLIs (learning is not-ready by design until a human value exists); backup age has no emitter.
+  - Pins unchanged (307); files/11 regenerated for the status.
+- Blocked on: owner (backlog) — "Does the worker tier become `services/workers`, under which issue, and what objective does each worker SLI files/08 §4 A leaves open carry?" (`docs/backlog/blockers.md` INT-021; no HB id is minted here).
+- Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #646):
+  - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
+  - *"property tests over generated ids, with near-misses (padding, a non-base64url character, 0 bytes, 1024 bytes)"*
+  - Found by INT-378 (PR #643): the generic 128-character id shape refused ids starting with `-` or `_` and ids over 96 bytes.
+- Plan:
+  - `principal_from_claims` decodes `credential_id`. It must be 16–1023 bytes (WebAuthn L3 §4), unpadded base64url (§3), and re-encode to the same string (RFC 4648 §3.5), so each credential has one spelling for four-eyes' string comparison.
+  - The refusal names the claim, never the value.
+  - `aaguid` is unchanged: the provider writes UUID text, which the old shape always admits.
+  - The fixture's credential ids become valid ids.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` §5/§5b: hypothesis property tests, the boundaries × `A`/`-`/`_`, and the API harness. Near misses: padding, 16 characters outside the alphabet, the standard alphabet, 0–15 and 1024+ bytes, a second spelling, a dangling character, non-strings, an absent claim.
+  - `tests/admin/test_oidc_verifier.py`: a signed 1023-byte id end to end.
+  - RED: 34 failed against `main`'s principal. GREEN: 60 passed. Mutants: 7 of 8 killed; the survivor is equivalent.
+- Result: `make check-py` exit 0. That covers ruff and format clean, `mypy --strict` over 472 files, and the whole tree at 8374 passed and 96.04 %, with every package lane at its floor. `tests/security`: 412 passed, with the 11 integration tests deselected. `no_placeholders` (after staging), `phi_scan`, `claims_scan`, `evidence_check` and sec-row linkage: OK. gitleaks 8.24.3: no leaks. `make check` was not run whole (check-integration is CI-only), and there was no TS change.
+- Invariants touched and still passing: 6 (the refusal carries no value; the logs, audit rows and responses are checked), 8 (tests only added), 14 (the security baseline: a valid staff key is no longer refused at random, and non-ids are no longer admitted), 17 (fixture values are valid ids, not placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none. docs/security/threat-model.md `admin-console` gains "Controls added by INT-391". Pins 302 → 303, and files/11 is regenerated.
+- Blocked on: nothing.
+- Next: PR `INT-391: the console accepts every valid WebAuthn credential id` (Closes #646, Sec-Row admin-console). #643's recorder loop and runbook §3 describe the old rule once both merge.
+
+### 2026-09-27T09:00:00Z · INT-386 · done (PR open)
+- Goal: acceptance verbatim (GitHub #638):
+  - *"every clinical quantity in the typed lane, clinician note, patient summary and FHIR narrative text renders through the INT-385 locale renderer: tr comma, `useGrouping:false`, number + unit as one non-breaking atom; FHIR structured values (`valueQuantity.value`) stay numeric and unchanged"*
+  - *"a shared fixture test across all renderers, the golden and `make safety` tests updated with a near-miss (a full stop in tr fails), and no numeral reaching TTS"*
+- Plan:
+  - Move INT-385's renderer, unchanged, to `clinical_schemas.quantity`, because the FHIR mapper's package cannot import `intake_platform`. `intake_platform.records` re-exports the same five objects.
+  - Add `float_magnitude` for the float speech measures. It uses `repr` digits, never the binary expansion, and refuses NaN and inf.
+  - The typed rail takes a required `locale`. The note, the summary and the FHIR narrative use `meta.language`. The note's SOAP/PDF speech-measure lines are fixed too, so the two faces of one note agree.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (+139):
+    - six entry points × the shared table, in tr and en, each with a round trip through the parser and the reader;
+    - a full stop put back fails on every surface;
+    - no grouping; `de` refused everywhere; the re-export identities;
+    - speech measures read back to the exact float;
+    - a runtime import boundary: six TTS-path modules, each in a fresh interpreter, load none of the seven renderer modules; plus static allow-lists and a no-arithmetic check on the moved module.
+  - `test_note_golden.py` (+1): SOAP, PDF and FHIR decimal near misses. `test_patient_summary.py` (+1). `test_typed_parity.py` (+2). `test_fhir_mappers.py` (+5): the narrative carries the comma and `valueQuantity` is unchanged.
+  - RED: 2 collection ImportErrors, and 9 failed (TypeError on `locale`, `72.5` where `72,5` was expected).
+  - Mutants: a full-stop renderer kills 83 tests; two sites reverted to their old f-strings kill 21.
+- Result:
+  - Goldens byte-identical (every golden quantity is whole).
+  - One expectation changed: `test_numeric_carrier` rail `38.50` → `38,50`, with `38.50` now asserted absent.
+  - Before/after capture through `main`'s and this branch's renderers: each line differs only in its decimal point.
+  - `make check-py` exit 0: ruff/format clean, `mypy --strict` clean (473 files), whole tree 8462 passed at 96.11 %, every scoped lane at its floor.
+  - `make safety` exit 0 (triage 100 %, voice-runtime 98.63 %).
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check`, sec-row linkage, gitleaks (staged) and bandit: OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 2 and 10 (no `text_tr`, instrument or copy string changed), 6 (refusals echo nothing), 8 (tests only added; clinical-schemas lane at 91.99 %), 22 (display half on every text surface; the TTS half is untouched and the boundary is tested).
+- Decisions / ADRs / `00_STATE.md` rows: none. The module move follows the existing one-way `intake_platform → clinical-schemas` edge.
+  - Found, not fixed: triage `evidence` strings (`packages/protocols`) still print a full stop into the note and the narrative.
+  - Found, not fixed: open-map `JsonValue` values are carried as written.
+  - Pins 302 → 303.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #638).
+
+### 2026-09-27T16:30:00+03:00 · INT-397 · done (PR open; depends on #658)
+- Goal: acceptance verbatim (GitHub #659):
+  - *"the notifications store distinguishes saving from failed, and only a real failure is announced (assertive), once per change"*
+  - *"`review.sentInfo` and `consent.queue.note` are announced (polite) only when the state changes in this session (just sent, just queued), never on a revisit"*
+  - *"INT-362's source-tree discovery test drops these three from its exception list (the list only shrinks); the 4.1.3 row moves to Supports with the tests cited, and MC-26 is retired"*
+- Plan:
+  - Give each store a typed state: notifications `save` is idle, saving or failed; consent `ConsentOutbox` is clear, sending or held.
+  - A pure `newsStep` makes an outcome news only when the store moves into it while the screen is in front. `useNews` stores it during render.
+  - `AnnouncedText` takes `news`, defaulting to true. While it is false the line keeps its label and has neither half.
+  - The discovery reaches the three keys by name. They were outside the discovered set, not in `ANNOUNCED_ELSEWHERE`.
+- Tests added (32 mobile, 0 net legal):
+  - `announce.test.ts` +6.
+  - `notifications/store.test.ts` 9 (new) and `consent/store.test.ts` 7 (new).
+  - `a11y.spec.ts` +5, plus 5 per-file cases. Its near-miss control catches a plain caption, an arrival announcement, `news={false}`, a non-hook value and a region.
+  - The legal "still open because" test now renders a copy that records a reason.
+  - RED: 31 failed | 131 passed. GREEN: 162 passed. Mutations: 8 of 8 caught.
+- Result:
+  - `make check-ts` exits 0 (mobile 2230 passed, typecheck and lint clean) and `make check-i18n` gives 30 passed.
+  - The report re-renders and `--check` is clean. `tests/legal` 504 and `tests/backlog tests/smoke` 28 pass.
+  - 4.1.3 moves to Supports. WCAG counts: Supports 28 · Partially 4 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing:
+  - 2: only shown words are spoken, with the error word on a real failure only.
+  - 5: no copy changed.
+  - 6: nothing is logged.
+  - 17: `ANNOUNCED_ELSEWHERE` stays at 7 and is pinned as a ceiling.
+  - 8: tests were only added.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - None.
+  - The note's transition is read from its status rather than stored in `NoteState`, which is persisted in the encrypted draft.
+- Blocked on: nothing. DA-08 (the owner, INT-359) hears the lines on devices.
+- Next: once #658 merges, merge main and recompute the three pinned counts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T14:00:00+03:00 · INT-387 · done (PR open)
+- Goal: acceptance verbatim (GitHub #640):
+  - *"each of those rows is re-rated from the tests CI now runs, and cites them; device-only aspects stay with their DA item; the report is re-rendered and `render_a11y_report.py --check` is clean"*
+  - *"`tests/legal/test_a11y_report.py` fails if a row rated below Supports cites an issue whose row is `done` without a recorded reason (so the report cannot fall stale again)"*
+  - *"the legal statement (`docs/legal/accessibility-statement.md`) is not edited here; its refresh is INT-359 with counsel"*
+- Plan:
+  - A row below Supports is linked to the INT ids its prose names, and to every backlog issue titled `WCAG <sc>:` for its criterion. The stale rows named only INT-144, so the title link is the one that finds them.
+  - If a linked issue is done, the row is refused unless it records `still_open_because:`. The report prints that reason in the row.
+  - Re-rate the stale rows from the tests CI runs.
+- Tests added: `tests/legal/test_a11y_report.py` +9 (30 → 39).
+  - An oracle for the link convention.
+  - The 3.3.8 regression.
+  - A near-miss control: 1.4.3 passes while INT-144 is open, is refused once it is done, and is accepted with a reason.
+  - A reason is refused where nothing is open.
+  - An unknown id is refused.
+  - The reason is rendered.
+  - RED: 8 errors and 1 failure. The guard on `main`'s YAML refuses 3.3.1, 3.3.8 and 4.1.3. GREEN: 39 passed. Mutations: 6 of 6 caught.
+- Result:
+  - 3.3.1 moves to Supports (INT-362) and 3.3.8 to Supports (INT-361).
+  - 4.1.3 stays Partially Supports with a new finding: three status lines that INT-362 left out on purpose (MC-26), with `still_open_because` recorded.
+  - The 3.2.2 remark is corrected, and DA-08's steps are refreshed.
+  - WCAG counts: Supports 27 · Partially 5 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `--check` clean. `tests/legal` 504, `tests/backlog` 10, `tests/legal+backlog+smoke` 532 passed. ruff and mypy clean.
+  - `make check` was not run whole: no TypeScript changed, and check-integration is CI-only.
+- Invariants touched and still passing: 20 (no figure; ratings are test-backed statements), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next:
+  - File an issue for the three silent status lines under 4.1.3 (`notifications.pending`, `review.sentInfo`, `consent.queue.note`).
+  - INT-359 refreshes the statement's items 6 and 7.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T12:00:00Z · INT-122 · todo (second pass; PR open, row unchanged)
 - Goal: acceptance verbatim (GitHub #97): *"patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"*.
 - Plan:
@@ -49,6 +202,45 @@
   - Ask 2 in docs/backlog/blockers.md (MHRS SMS date order; no HB id yet).
 - Found, not fixed: INT-134's on-device `parseMhrsSms` reads dates day-first, while the server guard refuses the same two-way date. See evidence §10.4.
 - Next: PR `INT-122: e-Nabız export parser and MHRS SMS to visit fields (no scraping)`, `Refs #97`, Sec-Row records. It is left unmerged for the coordinator's split.
+
+### 2026-09-27T12:00:00Z · INT-123 · todo (PR open; mechanism shipped, no embedding model pinned)
+- Goal: acceptance verbatim (GitHub #98): *"embeddings scoped by patient+consent; retrieval cited into notes with provenance"*.
+- Plan:
+  - Migration `0014_int123`: `record_embeddings`, with a PERMISSIVE tenant and a RESTRICTIVE patient RLS policy, FORCE, and no clinician grant.
+  - Confirmed-only indexing through a queue hooked on `ConfirmedRecordStore.admit`.
+  - The `documents` consent gate on indexing and on retrieval.
+  - Erasure of vectors in the DSAR shred and in the retention executor.
+  - The `retrieve_records` background Work, and `cite_records` into `imported_objective`, with the document, page, bbox and item id on the span.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_vector_rls.py` (the row's file), `tests/records/test_record_index.py` and `tests/voice/test_retrieve_records_work.py`: 55 unit + 8 integration.
+  - Near-miss controls:
+    - a PERMISSIVE patient policy, a missing WITH CHECK, an unforced table and a widened namespace are each named;
+    - the live probe is shown red on a copy of the table without RLS;
+    - a planted §4.9.1 record-embedding row is detected.
+  - RED: collection errors; then both erasure tests failing on surviving vectors; then the INT-385 guard catching a voice-side import of `intake_platform.records`. The guard was kept, and the voice side types by structure instead.
+  - Mutations: 10/10 killed (one survivor on the first pass got its test).
+- Result:
+  - ruff and format are clean; `mypy --strict` has no issues in 479 files.
+  - Full unit suite: 8417 passed, coverage 95.96 %. The 4 `test_deid_ner` failures are the missing model cache in a fresh worktree, and pass 4/4 against a sibling's cache.
+  - `alembic heads` is one head, `0014_int123`.
+  - `make check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 4 (the consent scope on every index read and write);
+  - 6 (receipts are ids, closed states and class names);
+  - 12 (confirmed only);
+  - 14 and 19 (no model, no fallback; a pin must be `org/model@<commit>`);
+  - 17 (the fail-closed default, no fake);
+  - 18 (every column annotated);
+  - 22 (the INT-385 guard is untouched).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The patient namespace is a RESTRICTIVE policy on a new `app.patient_id` GUC.
+  - Index rows hold no item text.
+  - The embedder dimension is a per-row CHECK because no model declares one.
+- Blocked on: the owner (model-stack author) must choose a files/03 §4.9.1 record-embedding row: open weights, licence from the raw blob, `model_id@revision + sha256`, in-country. No HB row exists yet; the coordinator allocates one (docs/backlog/blockers.md).
+- Next:
+  - INT-392 (#648) and INT-393 (#653) merged mid-iteration. This branch now declares `record_embeddings` (ERASED) and `record_embeddings.patient_id` (PARENT_KEPT) in their contract, and seeds and erases a vector there.
+  - Purging the index on a `documents` withdrawal is a retention decision for a consent issue.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
@@ -86,6 +278,35 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. SC 1.3.4 moves from Does Not Support to Supports. DA-05 now covers landscape and confirms 1.3.4.
 - Blocked on: nothing. Landscape screenshots on hardware are the owner's DA-05 step.
 - Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx` and the dialogue's bottom stack in `DialogueIntake.tsx`. Whichever merges second rebases there: #615's "Bitirdim" button goes inside the new bar `ScrollView`.
+
+### 2026-09-27T10:30:00+03:00 · INT-393 · done (PR open)
+- Goal (GitHub #649, P0): erasing a patient who issued a Doctor Link works. Found by INT-392 §8: `doctor_links.share_id → shares.id` has no ON DELETE rule, and both executors deleted the subject's shares with the links still in place (`ForeignKeyViolation` on postgres).
+- Plan:
+  - The INT-392 pattern one level down, in the DSAR erasure and the retention `clinical_record` executor: Doctor Links removed explicitly, before their shares.
+  - The DSAR erasure crypto-shreds each link's recipient envelope. It audits each removed link (`doctor_link:<id>`) and each removed share (`share:<id>`), deleting by the ids it audits.
+  - The key keeps NO ACTION as the backstop. No migration.
+  - files/06 gives no reason for a link to outlive the record: `RET_SHARE` says "grant row retained with the record". So no stop was needed.
+  - `retention_policy.yaml` `clinical_record` source text now lists the tree (INT-317 outputs, INT-150 Doctor Links). Text only; no period touched.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py` is now an erasure-graph contract:
+    - 17 tables, 21 keys, each declared, read from the metadata;
+    - seven near-miss controls, including a planted undeclared key and a planted table below `shares`;
+    - both executors checked against the declaration with SQLite foreign keys ON.
+  - One DSAR test issues a real Doctor Link and erases the patient.
+  - Integration (CI): the backstop, and both paths with a Doctor Link.
+  - Access-log classification rows.
+  - RED: 3 failed, 111 passed. GREEN: 114 passed.
+- Result:
+  - data/legal/api/security/clinician/backlog/smoke/platform suites: 1771 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+  - Pins raised 300 → 301; files/11 regenerated.
+- Invariants touched and still passing: **4** (each removed grant and share is audited by id), **14** (the recipient envelope is shredded before its row goes), **17**, **18** (the record clock reaches the Doctor Link row).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-393.md` §11:
+  - No path erases `notification_preferences`, although its RET annotation says patient-deletable.
+  - The DSAR export does not list Doctor Links.
+  - INT-392's erasure-role question stands.
+- Next: PR `INT-393: patient erasure removes Doctor Links and their shares; retention text matches the tree` (Closes #649, depends on #648, Sec-Row data-at-rest), left unmerged for review.
 
 ### 2026-09-27T07:30:00+03:00 · INT-392 · done (PR open)
 - Goal (GitHub #647, P0): every session-deletion path removes the session's `previsit_outputs` in the same transaction, in the documented order, audited. Found on main's check-integration: `ForeignKeyViolation` on `fk_previsit_outputs_session_id_sessions` in the teardown of `test_documents_roundtrip_against_real_minio`.
@@ -130,6 +351,30 @@
 - Decisions / ADRs / `00_STATE.md` rows: none new. Tiering per files/08 §8.2 and §3 (offboarding T1; sign-off T2 because it lifts the downgrade). Reported, not fixed: `apps/admin-web/src/ops/load.ts` `errorCode` still reads `detail.error` against a flat API body.
 - Blocked on: nothing new in HUMAN_BLOCKERS. Owner steps (runbook): Keycloak admin client + OpenBao KV entry, 60 days of LOGIN events, the three env vars, the OpenBao offboarding policy (`sudo` on token accessors), a daily scheduler for `make access-hygiene`, the first countersigned review — until then `platform_owner`/`tenant_admin` are read-only.
 - Next: PR `INT-366: quarterly access review from the console and one-action offboarding with a 60-day auto-disable` (Closes #593, Sec-Row admin-console), left unmerged for review.
+
+### 2026-09-27T07:30:00+03:00 · INT-390 · done (PR open)
+- Goal: acceptance verbatim (GitHub #645):
+  - *"every Keycloak pin (compose images by digest, docs, runbook, the INT-378 provider's `provided` dependency) moves to the newest patched 26.x release; licence re-verified from the raw LICENSE; OSV clean for Keycloak"*;
+  - *"the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"*.
+- Plan:
+  - Compose runs `quay.io/keycloak/keycloak:26.7.4@sha256:82a77884…29b2c` (released 16 Sep 2026). Apache-2.0 was read from the raw `LICENSE.txt` at the tag, which is byte-identical to apache.org's text.
+  - The `staff browser` description goes from 271 characters to 242, with the same wording as #643.
+  - Compose mounts the realm as `intake-dev-realm.json`, because 26.2.0+ refuses a file not named after its realm.
+  - Column limits were derived by replaying 26.7.4's 78 JPA changelogs, which are byte-identical to the shipped `keycloak-model-jpa` jar.
+- Tests added: `tests/infra/test_keycloak_realm_import.py`, 33 tests.
+  - Every realm string is classified and fits its column, measured in UTF-16 units.
+  - Near-misses: 256-character descriptions and names, 128 astral characters, 37-character authenticator and provider ids, unclassified fields, the 26.1.4 mount name, and a stale image tag.
+  - RED: 6 failed, 23 passed.
+  - GREEN: 33 passed. `tests/admin tests/infra tests/observability`: 1611 passed.
+- Result:
+  - Live on the JVM, red: 26.7.4 refused `main`'s mount name, then `Value too long for column "DESCRIPTION CHARACTER VARYING(255)" … (271)`.
+  - Live, green: `Realm 'intake-dev' imported`, `/health/ready` 200, and the export read-back matched 146 values (two set orderings and one mapper default aside).
+  - OSV: 26.1.4 has 72 advisories and 26.7.4 has 3. All three are open-ended OSV ranges whose GitHub source bounds them below 26.7.4. On #643's five artefacts osv-scanner gives 64 at 26.1.4 and 1 at 26.7.4 (GHSA-794g-x443-36f7).
+- Invariants touched and still passing: **14** (the image is pinned by digest and the licence was read from the blob), **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `admin-console` gains "Controls added by INT-390".
+- Blocked on: nothing here. #643 must rebuild its provider against 26.7.4, adapt its tag-equality tests to the digest pin, and take the owner's call on the one residual OSV record in its gate.
+- Next: PR `INT-390: Keycloak upgraded to 26.7.4; the committed realm imports on it` (Closes #645, Sec-Row admin-console), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
@@ -2546,3 +2791,39 @@
 - Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
 - Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:35:00Z · INT-138 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #108): *"camera+file upload; AV/processing states; confirm-before-use; provenance boxes"*. The row had stayed `todo` since 3 Sep because no route carried a document extraction to the phone.
+- Plan:
+  - Audit first. Camera + file upload, the AV chips, `ConfirmCard`, the two verdicts, `SourceBoxPanel` and the client reader were already on `main`. What was missing was the transport, plus re-asking a document that is still being read.
+  - API: `record_items.py` with `GET …/documents/{doc_id}/extraction` (closed item shape, INT-385 summary byte for byte, `unit_conflict`, page + bbox, the server-held verdict) and `POST …/extraction/decisions` (`{card_id, decision}` only). A confirmed item goes through `confirm_record_item` to `ConfirmedRecordStore.admit`. Both routes use the `documents` scope and are audited with ids only.
+  - Seam: `record_feed.py` holds `ExtractionSource`, `NoExtractionSource` (unread for every document while every producer is shut) and the verdict ledger.
+  - App: `apiExtractionSource` is the one production source, and `noExtractionFeed` is deleted. `isAcknowledgement` gives no optimistic write. `pollExtraction` backs off from 2 s to 30 s over about 2.5 min, lives in lib and is registered as a BK13 wait. The confirm intro is announced.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_extraction_transport.py` (27).
+  - Near misses: the same line in the expected unit carries no flag; the fence word without the marker is served.
+  - Also covered: a box into another document refuses whole, a body with `by`/`actor`/`source`/value/unit is a 422 that echoes nothing, the same tap twice admits once, and a contrary verdict gets 409.
+  - Mobile: 31 new tests (3 older ones replaced) across `extraction.test.ts` (fake clock), `api.test.ts` and `e2e/records.spec.ts`. The spec cross-checks both paths against the Python router.
+  - RED: server ModuleNotFoundError, then 26 failed. Mobile: 29 failed. a11y BK13 refused a timer in a component, so it moved to lib.
+  - Mutations: 6/6 killed.
+- Result: `make check` MAKE_CHECK_EXIT=0. 8340 passed at 96.14 % and every coverage lane met its floor. Mobile: 2207 tests; `check-i18n`: 30. `no_placeholders` (staged), `phi_scan`, `claims_scan` and `assert_no_vendor_calls` all OK. `make safety` was not run separately because no protocol, triage or runtime file changed.
+- Invariants touched and still passing: 1, 2 (no new copy), 4, 5 (no new keys), 6, 12, 14, 17, 18 (nothing persisted), 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The fail-closed default moved from the app to the server (one gate).
+  - The `records` threat row gained the transport and one named limit.
+  - Three exact access-log actions were added.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing blocks the issue.
+  - Owner decision, not made here: should confirmed record items be persisted durably? Today INT-121's store is in-memory, so a restart returns a card to pending (the safe direction). Persisting them is a new structured copy of health data (invariant 18, stop-and-ask).
+  - Coordinator decision: INT-313's five clauses are what this PR's test file pins, and its row was left untouched (one issue per PR).
+- Next: PR `INT-138: records screens — upload, processing, confirm cards and provenance viewer` (Closes #108, Sec-Row records), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:30:00Z · INT-187 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim: *"pipelines, eval gates, deploy health, canary state, rollback button (4-eyes), deploy-freeze on budget exhaustion"*. Everything but the rollback button ships; the row stays `awaiting-human` on it.
+- Plan: extend the INT-351 ops collector with a CI/CD source on the same read-only OpenBao token and egress-guarded transport (`intake_probes.ops_cicd`: recent runs per workflow with failing jobs, every PR-triggered gate on `main` and the open PRs, whether GitHub enforces them, releases with the `sign-and-attest` outcome; eleven catalogued `ops_cicd_*` families); `intake_platform.release_freeze` (record, CAS Redis store, the verdict rule); `admin.cicd.freeze.engage` (T1) / `admin.cicd.freeze.lift` (T2) with `DeployFreezeGovernor`; `GET /admin/cicd` (`intake.admin.cicd.v1`) and the freeze routes; `python -m intake_api.admin.release_gate`, run by `infra/staging/deploy.sh` before the first `compose up`; `/cicd` in admin-web.
+- Tests added (with near-miss negatives): `tests/admin/test_deploy_freeze.py`, `test_cicd_console.py`, `test_cicd_routes.py`, `tests/observability/test_ops_cicd.py`, `tests/infra/test_staging_release_freeze.py`, `apps/admin-web/e2e/cicd.spec.ts`; RBAC matrix and audit drives extended to the five new routes. Near misses: an engage that names an approver, a lift with none, "deploys allowed" beside a freeze / an exhausted budget / an unreadable freeze, Argo CD painted deployed, a gate that could not run. RED: collection errors (modules absent), 13 infra failures, 26 spec failures on the missing recording. GREEN: see docs/evidence/INT-187.md.
+- Result (`make check` / `make safety` / `make security` summary): `make check-ts` rc=0; `make check-i18n` 30 passed; ruff, format and `mypy --strict` clean repo-wide; admin/observability/infra/backlog/ci suites green (docker-only edge suite excluded, HB-I13); `next build` ok; `make safety`/`make security`/`check-integration` not run (no protocol change; CI-only).
+- Invariants touched and still passing: 4 (every route write-ahead audited), 6 (ids only; actors, commit messages, PR titles never labels; free text stays in the brief), 13 (every family catalogued; alert `admin.deploy_freeze_changes_total`), 14 (token from OpenBao, egress guard, no secret printed by the gate), 15 (no new service), 16 (`cicd` row), 17 (every tile unknown on its own source; no ceremony over nothing; Argo CD shown not deployed and held by a test against `infra/`).
+- Decisions / ADRs / `00_STATE.md` rows: none new. The freeze is not an Unleash key (invariant 34 reasoning); deploy state is this API's own `/version`, read in process (no new egress); `docs/slo` now ships in the api image so the gate can evaluate budgets where a Prometheus is declared.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — where does continuous delivery run (a cluster with Argo CD and Rollouts), or is `deploy.sh` the release path, in which case rollback becomes a gated redeploy? Nearest row HB-I13; a CD-tier row is the coordinator's to allocate (blockers.md "INT-187").
+- Next: PR `INT-187: admin CI/CD & releases module — runs, gates, releases, deploy state and change freeze` (Closes #138, Sec-Row cicd), unmerged for review.
+- LOOP_STATUS: WAITING_HUMAN

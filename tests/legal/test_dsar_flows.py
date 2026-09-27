@@ -622,6 +622,92 @@ def test_the_erasure_shreds_the_previsit_output_and_removes_it_before_its_sessio
     ]
 
 
+@pytest.fixture()
+def dsar_with_links(tmp_path: Path, strings_path: Path) -> Iterator[ApiHarness]:
+    """The ``dsar`` world plus the OTP/Doctor Link tier over fakeredis, so a
+    patient can issue a Doctor Link through the real route. Nothing dials a
+    network."""
+    import fakeredis
+    from intake_api.attestation import FailClosedAttestationVerifier
+    from intake_api.otp import AuthWiring, DevLogDeliveryAdapter
+    from intake_platform.tokenization import Tokenizer
+
+    for built in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        legal_root=write_all_consent_texts(tmp_path / "legal" / "consents"),
+        legal_strings=strings_path,
+        auth=AuthWiring(
+            redis_client=fakeredis.FakeRedis(),
+            tokenizer=Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1"),
+            delivery=DevLogDeliveryAdapter(),
+            attestation=FailClosedAttestationVerifier(),
+        ),
+    ):
+        grant_bound(built, *BOUND_SCOPES)
+        yield built
+
+
+def test_the_erasure_removes_the_doctor_links_before_their_shares_and_audits_each(
+    dsar_with_links: ApiHarness,
+) -> None:
+    """INT-393. A Doctor Link (INT-150) hangs off a share, and
+    ``doctor_links.share_id`` has no ON DELETE rule — so an erasure that
+    deleted the subject's shares without removing their links first failed on
+    postgres for every patient who ever issued one, and passed here only
+    because SQLite was not checking.
+
+    The link's recipient label is an envelope, so its wrapped DEK is
+    destroyed with the note's. The link goes before its share (children
+    first), and each removed row is audited by id under the ref its issue
+    and its opens were audited under, so the patient's chain shows what was
+    reachable and when it stopped being so."""
+    from intake_platform.db.models import DoctorLink, PreVisitOutputRow, SlotSensitivity
+
+    harness = dsar_with_links
+    _enforce_foreign_keys(harness)
+    visit_id, _ = seed_visit_with_sent_note(harness)
+    issued = harness.client.post(
+        f"/v1/visits/{visit_id}/note/doctor-links",
+        headers=harness.patient(),
+        json={"recipient": "Dr. Ayşe Yılmaz · Kardiyoloji"},
+    )
+    assert issued.status_code == 201, issued.text
+    (link,) = rows(harness, DoctorLink)
+    (share,) = rows(harness, Share)
+    assert link.share_id == share.id
+    envelopes = (
+        len(rows(harness, Note))
+        + len(rows(harness, PreVisitOutputRow))
+        + len(rows(harness, DoctorLink))
+        + sum(1 for slot in rows(harness, Slot) if slot.sensitivity is SlotSensitivity.SENSITIVE)
+    )
+
+    harness.client.post("/v1/me/dsar/delete", headers=harness.patient())
+    report = run(_execute(harness, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert report.shredded_requests == 1
+    assert report.shredded_fields == envelopes, "the recipient's DEK goes with the note's"
+    assert rows(harness, DoctorLink) == []
+    assert rows(harness, Share) == []
+    assert rows(harness, IntakeSession) == []
+    erased = [
+        (entry.action, entry.actor, entry.resource_ref, entry.consent_scope_ref)
+        for entry in harness.audit_store.entries()
+        if entry.action in ("dsar.delete.doctor_link", "dsar.delete.share")
+    ]
+    assert erased == [
+        (
+            "dsar.delete.doctor_link",
+            f"patient:{DEV_PATIENT_ID}",
+            f"doctor_link:{link.id}",
+            "basis:KVKK-11/13",
+        ),
+        ("dsar.delete.share", f"patient:{DEV_PATIENT_ID}", f"share:{share.id}", "basis:KVKK-11/13"),
+    ]
+
+
 def test_the_erasure_keeps_the_records_statute_says_to_keep(dsar: ApiHarness) -> None:
     """files/06 §3 keeps consent and audit records for 10 years and
     DEST-2017 keeps destruction records for ≥ 3 years — and the DSAR request
