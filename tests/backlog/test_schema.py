@@ -111,7 +111,9 @@ def test_ids_unique_and_well_formed() -> None:
     # found by INT-360's PR, filed as GitHub #640).
     # + INT-397 (the three status lines INT-362 left silent are announced, and
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
-    assert len(ids) == 309
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
+    # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
+    assert len(ids) == 310
     import re
 
     for i in ids:

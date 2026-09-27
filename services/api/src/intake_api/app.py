@@ -12,12 +12,15 @@ contracts: the four health endpoints and readiness checks come from
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 import logging
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -39,6 +42,12 @@ from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKek
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
+from intake_platform.safety_inbox import (
+    SafetyInbox,
+    mark_inbox_unreadable,
+    safety_inbox_store_from_env,
+    sweep_forever,
+)
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
 from intake_platform.voice_control import voice_control_store_from_env
@@ -340,7 +349,21 @@ def _admin_from_env() -> AdminWiring | None:
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
         voice_controls=voice_controls,
         identity=_identity_from_env(),
+        safety_inbox=_safety_inbox_from_env(),
     )
+
+
+def _safety_inbox_from_env() -> SafetyInbox | None:
+    """INT-406: the clinic Safety inbox, from the store the voice runtime
+    writes. Unset or malformed, the Safety queue answers 503 and the inbox is
+    reported unreadable at boot, which pages (fail closed, never a default
+    address). The SLA is files/02 §8.2's default; no tenant SLA is set here."""
+    try:
+        store = safety_inbox_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
+        return None
+    return SafetyInbox(store=store) if store is not None else None
 
 
 def _identity_from_env() -> IdentityWiring | None:
@@ -452,7 +475,23 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 await w.admin.review_ledger.refresh(audit)
             except Exception:  # noqa: BLE001 — the gauge stays +Inf and pages; ids-only log
                 logger.warning("access review ledger deferred: audit chain not readable")
-        yield
+        # INT-406, invariant 49: the scheduled checker. Wired, it recomputes
+        # the unacknowledged-RED gauge every sweep interval for as long as the
+        # API serves; unwired, nothing can say whether a RED is waiting, so the
+        # inbox is reported unreadable — which pages — until it is wired.
+        inbox = w.admin.safety_inbox if w.admin is not None else None
+        sweeper: asyncio.Task[None] | None = None
+        if inbox is None:
+            mark_inbox_unreadable()
+        else:
+            sweeper = asyncio.create_task(sweep_forever(inbox, clock=lambda: datetime.now(UTC)))
+        try:
+            yield
+        finally:
+            if sweeper is not None:
+                sweeper.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await sweeper
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state

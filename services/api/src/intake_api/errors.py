@@ -399,6 +399,16 @@ def voice_control_refused(status: int, code: str) -> HTTPException:
     return HTTPException(status_code=status, detail={"error": code})
 
 
+def safety_inbox_refused(status: int, code: str) -> HTTPException:
+    """INT-406: the Safety queue refused, or could not reach its store. 503 —
+    no inbox wired, or the store unreachable: never an empty queue, which would
+    read as "nobody is waiting"; 404 — no such entry in the caller's tenant
+    (another tenant's entry is not found too); 409 — already acknowledged;
+    422 — a body field the acknowledgement does not take. ``code`` is
+    machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
 def break_glass_refused(code: str) -> HTTPException:
     """A §2.5 content-rule refusal — the reason class, the free-text floor,
     the controller-instruction reference, or the absent lawful basis."""

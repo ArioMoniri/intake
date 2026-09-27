@@ -265,7 +265,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-397 (the three status lines INT-362 left silent are announced, found
     # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
-    assert len(ids) == 309, f"expected 175 blueprint + 134 added issues, got {len(ids)}"
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
+    assert len(ids) == 310, f"expected 175 blueprint + 135 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
