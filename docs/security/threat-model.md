@@ -1027,6 +1027,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
      and XMP, so it is a third metadata container beside the two the JPEG strip names.
      Reachable through the file picker only — the camera path produces JPEG — so the
      probability is lower, but the exposure is the same one.
+- **INT-138 addition — the extraction reaches the patient, and the verdict comes back.**
+  `GET /v1/visits/{visit_id}/documents/{doc_id}/extraction` publishes a scanned-clean
+  document's items; `POST …/extraction/decisions` takes `{card_id, decision}`
+  (`services/api/src/intake_api/record_items.py`). New boundary: extracted text ↔ the
+  patient's screen. Threats and their controls: [I] another patient's items — the
+  caller's own visit and document under the RLS tenant session, the `documents` consent
+  scope enforced on both routes, clinic principals refused; [T] a caller asserting who
+  confirmed, or restating the value — the body is closed to those two fields and
+  `confirm_record_item` takes no `by=`, so the actor is read off INT-170's vocabulary;
+  [T/S] document text shaped as a control — an item carrying the data-boundary control
+  token, or a box pointing into another document, refuses the extraction whole (the one
+  fence's own check, not a second one), and nothing on this path reaches a model; [T] a
+  flagged magnitude tidied in transit — `summary` and `unit_conflict` are carried byte
+  for byte, no parse, no conversion; [R] every read and verdict appends `doc:<id>` to the
+  hash chain, ids only, before the verdict takes effect. Only a clean document is ever
+  passed to a source. The production source (`NoExtractionSource`) answers *unread* for
+  every document while every producer is shut.
+- ⚠️ **One limit of that transport, named for a human.** A confirmed item is admitted to
+  INT-121's `ConfirmedRecordStore`, which lives in process memory: a restart loses the
+  verdict and the card returns to *pending*, which reaches no note — the safe direction.
+  A durable store would persist a structured copy of patient health values, which needs
+  its invariant-18 annotation and an owner's decision (CLAUDE.md, *when to stop and
+  ask*); none was made here. Tests: `tests/records/test_extraction_transport.py`.
 
 ## `documents` — the object store
 

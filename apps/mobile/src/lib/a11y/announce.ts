@@ -1,6 +1,6 @@
 /**
- * When a status change is worth speaking (INT-144), and how each platform
- * hears it (INT-362).
+ * When a status change is worth speaking (INT-144), how each platform hears
+ * it (INT-362), and when a line that states an outcome is news (INT-397).
  *
  * Split out of ./prefs as pure functions because the first version of this
  * rule had a bug that only a test would have caught: it returned early on
@@ -117,4 +117,53 @@ export function lineStep(
 ): { readonly post: IosAnnouncement | null; readonly remember: string | null } {
   const { speak, remember } = nextAnnouncement(previous, message);
   return { post: iosAnnouncement(os, speak, politeness), remember };
+}
+
+/**
+ * What one screen remembers about one outcome line between renders (INT-397).
+ *
+ * Some lines state how the patient's own action stands: the note was sent, a
+ * consent change waits for a connection, a setting did not save. Unlike an
+ * INT-362 line, which appears only when something happens, such a line stays
+ * on screen for as long as it is so, and is there again on every visit. WCAG
+ * 2.2 SC 4.1.3 asks for the CHANGE to be announced. Finding the line already
+ * standing on arrival is not a change.
+ */
+export interface NewsMemory {
+  /** Whether the outcome stood at the previous render. */
+  readonly stood: boolean;
+  /** Whether this screen has heard the outcome arrive, and holds it as news until it ends. */
+  readonly news: boolean;
+}
+
+const QUIET: NewsMemory = { stood: false, news: false };
+
+/** A screen's first render: whatever already stands is old news. */
+export function arrivedAt(standing: boolean): NewsMemory {
+  return standing ? { stood: true, news: false } : QUIET;
+}
+
+/**
+ * One render of one outcome line.
+ *
+ * The outcome is news when the store moves into it while this screen is in
+ * front: just sent, just queued, just failed. It stays news for as long as it
+ * stands, so the line is not re-made after it has been announced. It ends with
+ * the outcome, so the next move into it is news again (once per change).
+ *
+ * A move made while another screen covers this one is not news here, and it
+ * does not become news when this screen returns to the front. The screen in
+ * front is where it was heard.
+ *
+ * An unchanged memory is returned as the same object, so the hook can store
+ * the result during render and settles after one step.
+ */
+export function newsStep(memory: NewsMemory, standing: boolean, inFront: boolean): NewsMemory {
+  if (!standing) {
+    return memory.stood || memory.news ? QUIET : memory;
+  }
+  if (!memory.stood) {
+    return { stood: true, news: inFront };
+  }
+  return memory;
 }
