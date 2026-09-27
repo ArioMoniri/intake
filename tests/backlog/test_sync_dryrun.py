@@ -94,8 +94,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-401 (console rollback split out of INT-187)
     # + INT-409 (Vizitlerim reads today from the device clock, not a pinned date, GitHub #688)
     # + INT-410 (release bundles carry no synthetic seed accounts, audit F30, GitHub #689)
+    # + INT-404 (triage rule evidence lines in the reader's locale, GitHub #673)
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
-    assert len(actions) == 324
+    assert len(actions) == 325
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
