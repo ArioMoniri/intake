@@ -154,11 +154,13 @@ describe("admission (admin OIDC role behind the allow-list; HB-A16 fails closed)
     expect(calls[1]!.authorization).toBeNull();
   });
 
+  // INT-384: the flat `{"error": <code>}` bodies the API serves for every
+  // refusal (`intake_api.app`, `_machine_readable_errors`) — see ops.spec.ts.
   it.each([
-    [401, { detail: { error: "unauthorized" } }, "token_refused"],
-    [403, { detail: { error: "role_not_permitted" } }, "role_not_permitted"],
-    [403, { detail: { error: "source_ip_refused" } }, "source_ip_refused"],
-    [503, { detail: { error: "admin_console_unconfigured" } }, "console_unconfigured"],
+    [401, { error: "unauthorized" }, "token_refused"],
+    [403, { error: "forbidden" }, "role_not_permitted"],
+    [403, { error: "source_ip_refused" }, "source_ip_refused"],
+    [503, { error: "admin_console_unconfigured" }, "console_unconfigured"],
   ])("a %i from the admin gate is a refusal, not a page (%j)", async (status, body, reason) => {
     const { state, calls } = await load({
       "/admin/reliability": { status, body },
@@ -167,7 +169,9 @@ describe("admission (admin OIDC role behind the allow-list; HB-A16 fails closed)
     expect(state).toEqual({ kind: "not_admitted", reason });
     // near-miss: a refused caller must not learn the API's readiness either
     expect(calls.map((c) => new URL(c.url).pathname)).toEqual(["/admin/reliability"]);
-    expect(html(state)).not.toContain("data-tile");
+    const page = html(state);
+    expect(page).not.toContain("data-tile");
+    expect(page).toContain(`data-refusal="${reason}"`);
   });
 
   it("an unconfigured API base admits nobody and dials nothing", async () => {

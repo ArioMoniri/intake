@@ -237,7 +237,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) + INT-317 (previsit output store + hospital read-back,
     # filed on int-demo and carried to main by INT-354); grows only with a
     # stated reason.
-    assert len(ids) == 296, f"expected 175 blueprint + 121 added issues, got {len(ids)}"
+    # + INT-384 (the admin console reads the API's flat refusal code).
+    assert len(ids) == 297, f"expected 175 blueprint + 122 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

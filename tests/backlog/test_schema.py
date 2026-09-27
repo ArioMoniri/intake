@@ -83,7 +83,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-317 (previsit output store + hospital read-back: filed on int-demo
     # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
     # id is held by no other row on main or any remote branch).
-    assert len(ids) == 296
+    # + INT-384 (the admin console reads the API's flat refusal code; found
+    # after INT-351/INT-181 shipped the nested read).
+    assert len(ids) == 297
     import re
 
     for i in ids:

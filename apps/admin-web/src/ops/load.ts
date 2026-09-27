@@ -45,15 +45,18 @@ export type OpsConsoleState = RefusedState | { kind: "console"; view: OpsView };
 
 const TIMEOUT_MS = 5000;
 
+/**
+ * The refusal code, read where the API puts it: its exception handler
+ * (`intake_api.app`, `_machine_readable_errors`) serves every refusal as a
+ * flat `{"error": <code>}` and never FastAPI's `{"detail": ...}` wrapper, so a
+ * code anywhere else is not the API's and is not read (INT-384).
+ */
 async function errorCode(response: Response): Promise<string | null> {
   try {
     const body: unknown = await response.json();
-    if (body !== null && typeof body === "object" && "detail" in body) {
-      const detail = (body as { detail: unknown }).detail;
-      if (detail !== null && typeof detail === "object" && "error" in detail) {
-        const code = (detail as { error: unknown }).error;
-        return typeof code === "string" ? code : null;
-      }
+    if (body !== null && typeof body === "object" && "error" in body) {
+      const code = (body as { error: unknown }).error;
+      return typeof code === "string" ? code : null;
     }
   } catch {
     return null;
