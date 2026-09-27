@@ -42,6 +42,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
 import { CsatPrompt } from "@/components/CsatPrompt";
@@ -107,6 +108,9 @@ function ReviewAndSend() {
   // attribution, the same value the note's own provenance uses.
   const companion = useCompanionOutcome();
   const note = notes[visitId ?? ""];
+  // INT-397 (SC 4.1.3): "your note was sent" is announced when the patient
+  // sends it here, and shown without a word when they come back to it.
+  const sentNews = useNews(note?.status === "sent");
 
   const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
   // A checkpointed session (02 §34) or a recorded deferral (02 §33) is a
@@ -387,9 +391,13 @@ function ReviewAndSend() {
           )}
           {sent ? (
             <>
-              <AppText role="body" color="inkSoft">
-                {t("review.sentInfo")}
-              </AppText>
+              <AnnouncedText
+                tone="status"
+                news={sentNews}
+                role="body"
+                color="inkSoft"
+                message={t("review.sentInfo")}
+              />
               {/* 02 §5.4 "after send: status timeline". Before INT-137 the
                   send handler replaced the route with the visit detail, so
                   this surface — and the CSAT question below it — was never

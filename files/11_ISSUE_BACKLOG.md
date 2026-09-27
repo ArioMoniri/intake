@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**309 issues.** By phase: P0 159 · P1 96 · P2 47 · P3 7. By status: awaiting-human 26 · doing 7 · done 195 · todo 80 · withdrawn 1.
+**310 issues.** By phase: P0 159 · P1 97 · P2 47 · P3 7. By status: awaiting-human 26 · doing 7 · done 196 · todo 80 · withdrawn 1.
 
 ## P0
 
@@ -270,6 +270,7 @@
 | INT-391 | The console accepts every valid WebAuthn credential id (leading - or _, and longer than 96 bytes) | E12-admin | INT-180, INT-365 | area:admin, risk:security | done |
 | INT-386 | Clinical quantities in the typed lane, note, patient summary and FHIR document text use the locale decimal separator | E07-records | INT-385 | area:records, risk:clinical | done |
 | INT-387 | The accessibility conformance report reflects the INT-361, INT-362 and INT-363 fixes | E14-legal | INT-226, INT-361, INT-362, INT-363 | area:legal | done |
+| INT-397 | WCAG 4.1.3: the last three status lines are announced (notifications pending, review sent, consent queue) | E08-mobile | INT-362, INT-387 | area:mobile, risk:legal | done |
 | INT-396 | Backlog rows match what merged: status reconciliation and a guard against drift | E00-governance | INT-004 | area:platform | done |
 
 ## P2
