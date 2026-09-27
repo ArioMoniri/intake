@@ -69,7 +69,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
-  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided.
+  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
+  is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
+  update** past review and the licence gate.
 - **Controls (files/10):** §8 in full — OSV/Trivy/Checkov fail-on high, licence check, Syft
   SBOM, cosign keyless signing with SLSA provenance, schemathesis, MobSF; CI carries no
   secrets and never calls a vendor (ci.yml header; CLAUDE.md). **INT-206 adds the
@@ -80,7 +83,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   corpus may not be printed into the job log, uploaded as an artefact or cached; every
   `runs-on` must resolve to a known hosted label or a declared pool, failing closed
   otherwise. The gate's own report carries digests, never values — it runs in a job whose
-  stdout is retained 30 d hot / 1 y cold (files/10 §6).
+  stdout is retained 30 d hot / 1 y cold (files/10 §6). **INT-368 adds Renovate**
+  (`.github/renovate.json`, runbook `docs/runbooks/dependency-updates.md`): every uv, pnpm,
+  container-digest and Actions pin is watched, security updates open immediately outside
+  the weekly schedule, and nothing auto-merges — each update is a PR through the same gates,
+  carried under an `INT-` issue because the evidence and sec_row gates refuse a bot title.
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
   with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
   `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
@@ -88,7 +95,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
   tests/security/test_threat_model.py (the sec_row linkage gate);
   tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
-  heartbeat probe); full gate job lands with INT-019.
+  heartbeat probe); tests/ci/test_dependency_updates.py (INT-368: ecosystem coverage from
+  the tree, unscheduled security updates, no auto-merge anywhere); full gate job lands
+  with INT-019.
 
 ## `secrets` — OpenBao and service credentials
 

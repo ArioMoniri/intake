@@ -1,5 +1,32 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
+- Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
+- Plan:
+  - `.github/renovate.json`, not a workflow file. It enables nine managers (pep621/uv, npm/pnpm, dockerfile, docker-compose, github-actions, pip_requirements, pre-commit, pyenv, and a regex manager for the two `pgsty/minio` digest pins outside compose).
+  - Digests pinned for containers and Actions.
+  - `vulnerabilityAlerts` unscheduled, not approval-gated, no cooldown, labelled `security`.
+  - Weekly per-ecosystem groups; majors and platform bumps on dashboard request.
+  - Monthly lock-file maintenance.
+  - `automerge` and `platformAutomerge` are false, and there is no `extends`.
+  - Commits are `chore(deps)`.
+- Tests added: `tests/ci/test_dependency_updates.py`, 24 tests.
+  - Ecosystems are discovered from `git ls-files`.
+  - Near-miss controls: a planted `go.mod`, an unwatched digest pin, `infra/**` and bare-substring ignores, an unpinned digest, a scheduled or gated security update, a cooldown under 7 days, and automerge anywhere.
+  - RED: 19 failed, 3 passed (three guards over things already compliant).
+  - Second RED: the pre-commit semgrep p/ci `renovate-missing-minimum-release-age` refused a 3-day cooldown and rules without an age. A test was added and failed on the staged config. The fix was 7 days, not a suppression.
+  - GREEN: 24 passed. Mutations: 17/17 killed. Semgrep 1.86.0 p/ci: 0 findings.
+- Result:
+  - The Renovate 44.115.10 validator (`--strict`, RE2, Node 24) passes, and a planted-defect copy is refused.
+  - Renovate extract-only found 34 package files and 293 deps across the 9 managers.
+  - The ci, legal, compliance, backlog and docs suites: 703 passed. `make check-py` is recorded in the evidence file.
+- Invariants touched and still passing: **14** (digest pins; no gate skipped; the licence gate runs on every Renovate PR because nothing auto-merges) and **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - 2018/10 measure 3ç gains control `dependency-update-config`.
+  - Gap `dependency-update-tracking` is narrowed from "which tool" (answered) to the owner's installation (organisational, owner).
+- Blocked on: the owner installs the Renovate GitHub App on ArioMoniri/intake and enables Dependabot alerts (runbook `docs/runbooks/dependency-updates.md`). This is not a new HB id; the mapping's gap carries it.
+- Next: PR `INT-368: Renovate configuration for uv, pnpm, container digests and Actions (no auto-merge)` (Closes #595, Sec-Row cicd), left unmerged for review.
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:
