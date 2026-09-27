@@ -384,11 +384,12 @@
   title: "openEHR OPT: the committed template has no occurrences and a live CDR rejects it"
   depends_on: [INT-032]
   labels: [area:data]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-257.md
   acceptance:
     - "every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"
     - "OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"
-  tests: [tests/integration/test_ehrbase_roundtrip.py]
+  tests: [tests/integration/test_ehrbase_roundtrip.py, tests/protocols/test_opt_schema.py]
   sec_row: "clinical-core"
 - id: INT-033
   epic: E02-data

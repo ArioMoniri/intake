@@ -2850,4 +2850,34 @@
   - audit F30: the seed module is still bundled;
   - `TODAY_FIXTURE` pins Vizitlerim's "today" to 2026-08-27 in release builds, and no row owns it.
 - Next: PR `INT-179: mobile flow shells — close-out` (Closes #201, Sec-Row intake-typed), left unmerged.
+
+### 2026-09-27T12:00:00Z · INT-257 · done (branch pushed; no GitHub issue exists, so no PR yet)
+- Goal: acceptance verbatim — *"every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"* and *"OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"*.
+- Plan: read the OPT 1.4 schema rather than recall it.
+  - openEHR ITS-XML tag `Release-1.0.2` (commit f7a93777), `components/ALL/*.xsd`, is vendored byte-for-byte with its Apache-2.0 LICENSE under `tests/fixtures/openehr/its-xml-Release-1.0.2/` and digest-pinned. `C_OBJECT` makes `rm_type_name, occurrences, node_id` all mandatory, which corrects INT-032's "optional" claim. `C_ATTRIBUTE` needs `existence`, and `C_MULTIPLE_ATTRIBUTE` needs `cardinality`.
+  - The OPT is re-authored to the schema's element order. Every value is read off a source: root 1..1; `content` existence 0..1 and cardinality {0..*; ordered; non-unique} from RM 1.0.2 `List<CONTENT_ITEM>`; content roots 0..*, because the parent composition archetype that would state it is local and unauthored (HB-C12), the four CKM entry archetypes that exist carry no root occurrences, and the RM leaves content unbounded.
+  - `node_id` is present and empty. EHRbase's `OPTParser` (SDK v2.35.0, `buildNode` line 1266) dereferences the terminology for any non-blank id, and the template carries none.
+  - `OPT_SHA256` goes c72247ab… → 5ad266b4…. The patched fixture is deleted, and the integration test uploads the committed bytes through the production client with a status-recording transport.
+- Tests added (with the near-miss negative for any safety rule): `tests/protocols/test_opt_schema.py` (12).
+  - Near-miss controls on the committed bytes: without one `occurrences` the schema rejects it; without `cardinality` it rejects it; with the root code as a node id the schema accepts it but the catalogue guard flags it, and with a `term_definitions` entry the guard accepts it.
+  - The integration test's "rejected today" case flips to `test_the_committed_template_uploads_with_201`. The fixture-identity test goes with the fixture (INT-032 prescribed both).
+  - RED: 8 failed / 4 passed on the INT-041 bytes (XSD line 83 `archetype_id` where `node_id` was expected), then the pin bit (OptError on 5ad266b4 vs c72247ab). GREEN: 26 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `ruff` and `ruff format` are clean, and `mypy --strict` is clean (485 files).
+  - check-py main line: 8514 passed, 96.28 % (≥ 85). The 4 `test_deid_ner` failures are "NER model missing" in a fresh worktree and pass against the pinned artefact.
+  - Protocols lane: 97.14 % (≥ 95), 1184 passed. Schemas lane: 91.76 % (≥ 90).
+  - `make safety`: exit 0 (18/18 mutations).
+  - Licence gate OK. `osv-scanner` on uv.lock clean. PHI scan OK. `no_placeholders` OK after staging.
+  - The live 201 is CI-only: `check-integration` needs EHRbase and there is no container runtime here. It is argued element-by-element from the EHRbase 2.35.1 / SDK 2.35.0 source in the evidence, and first observed on the PR's CI run.
+- Invariants touched and still passing:
+  - **6**: synthetic payloads only.
+  - **14**: vendored schema digest-pinned; new dev dependency licence-checked and OSV-clean.
+  - **17**: no skip or placeholder; the one removed test is accounted for.
+  - **19**: lxml BSD-3-Clause and ITS-XML Apache-2.0, both read from the raw blob.
+  - **20**: no claims.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `lxml>=6.1` is added to the dev group, test-only.
+  - Found, not fixed (HB-C12(a)): of the nine archetype ids, only four exist at the transcribed id and version in the CKM mirror (5cb099fa). symptom_sign is a CLUSTER.v2, adverse_reaction_risk is v2, PHQ-9 is `phq_9.v0`, GAD-7 is `gad_7_score.v0`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the coordinator must file the GitHub issue for INT-257 (none exists) before the PR can say `Closes #n`. No HB row.
+- Next: file the issue, then open the PR `INT-257: the openEHR OPT carries occurrences and validates against the OPT 1.4 schema` (Sec-Row clinical-core) and watch `check-integration` for the 201.
 - LOOP_STATUS: CONTINUE
