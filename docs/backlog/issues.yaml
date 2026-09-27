@@ -262,9 +262,23 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: doing
+  # RESCOPED 27 Sep 2026 (PR #685): the workers tier and its SLI targets move to
+  # INT-408 (owner); every other service, app and job is covered.
+  status: done
+  evidence: docs/evidence/INT-021.md
+  # NOTE 27 Sep 2026 (close-out): every SLO file now generates its burn-rate
+  # rules (7 files, 8 SLOs, 24 alerts; api.yaml alone until now) and its own
+  # golden-signal dashboard, and every alert Prometheus loads links a runbook
+  # heading that resolves (the 8 cost alerts had none). observability/
+  # slo_coverage.yaml covers every discovered service, app and job; the gates
+  # are tests/observability/test_{slo_generator,alert_rules,slo_coverage}.py.
+  # Found and fixed: services/probes never emitted the series its SLO reads;
+  # nothing read sec_audit_chain_ok (files/08 §5 pages on it). What remains is
+  # docs/slo/workers.yaml: services/workers does not exist and no row creates
+  # it, and its one spec objective (note ready <= 60 s, 99 %) has no emitter —
+  # the owner's decision, docs/backlog/blockers.md INT-021.
   acceptance:
-    - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
+    - "docs/slo/{api,voice-runtime}.yaml (and every other service's SLO file; workers is INT-408) with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
   sec_row: "monitoring-contract"
 - id: INT-022
@@ -1468,10 +1482,16 @@
   # not be committed (files/06 §5), so no figure is reported anywhere.
   #
   # Reopen against HB-A1; see docs/evidence/INT-122.md "Acceptance, line by line".
-  status: todo
+  # RESCOPED 27 Sep 2026 (PR #663): the parsers, the fail-closed document-engine
+  # gate (rows 20-21) and the no-scraping enforcement are delivered. The engine
+  # choice is INT-398 (owner, model table), the real e-Nabiz export and MHRS SMS
+  # samples are INT-399 (HB-A1, Ask 2), and the on-device date-order defect is
+  # INT-400.
+  status: done
+  evidence: docs/evidence/INT-122.md
   acceptance:
-    - "patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
-  tests: [tests/records/test_enabiz_pdf.py]
+    - "patient-exported e-Nabiz documents and MHRS SMS text are parsed into unconfirmed record items / visit candidates behind a fail-closed document-engine gate (files/03 rows 20-21) that refuses with a typed status while no engine is registered; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
+  tests: [tests/records/test_enabiz_pdf.py, tests/records/test_enabiz_mhrs_read_paths.py]
   # Corrected from "KSVY-9,KSVY-10". Both citations were wrong and one is
   # repealed: m.10 was `Saglik verilerine avukatlarin erisimi` (LAWYERS'
   # access) and RG 33096 (03.12.2025) MADDE 9 repealed it outright, and m.9 is
@@ -4844,7 +4864,8 @@
   labels:
   - area:records
   - area:api
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-313.md
   acceptance:
   - 'a route publishes extracted items for a document the patient owns, scoped
     by consent and audited on every read like every other clinical read
@@ -5335,7 +5356,8 @@
   title: "Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic"
   depends_on: [INT-330, INT-332]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-333.md
   acceptance:
     - "every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"
     - "ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"
@@ -5349,7 +5371,8 @@
   title: "Motion: arbiter and commit windows (pure)"
   depends_on: [INT-333]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-334.md
   acceptance:
     - "one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"
     - "rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"
@@ -6182,3 +6205,111 @@
     - "the sync closes the owned issue of a done row (state_reason completed) and reopens it for a row moved back from done; dry-run lists these actions; the live run is the operator's (make backlog-sync or the documented command)"
     - "duplicates are never touched, only the owned issue per id (owned_issue_numbers())"
   tests: [tests/backlog/test_sync_dryrun.py]
+- id: INT-408
+  epic: E01-platform
+  phase: P1
+  title: "Workers tier SLOs: the owner decides the tier and its targets"
+  depends_on: [INT-021]
+  labels: [area:observability]
+  status: awaiting-human
+  acceptance:
+    - "the owner records whether the workers tier becomes services/workers and the targets for its SLIs (upload promotion, retention runs, event-bus dead letters, notification dispatch); docs/slo/workers.yaml declares them, the generator emits rules and a dashboard, every SLI series is emitted and catalogued live, and the coverage manifest drops the workers exception"
+  tests: [tests/observability/test_slo_coverage.py]
+  sec_row: "monitoring-contract"
+- id: INT-398
+  epic: E07-records
+  phase: P1
+  title: "Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox"
+  depends_on: [INT-122]
+  labels: [area:records, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner records the engine choice; licence verified from the raw LICENSE blob (licence_verified_at), pinned model_id@revision + sha256, declared self-hostable with a probe"
+    - "an ADR records the engine sandbox (no network, read-only input, resource limits); an adapter binds to the verified registry entry with a recorded-fixture contract test, and the gate admits it"
+  tests: [tests/records/test_enabiz_mhrs_read_paths.py]
+  sec_row: "records"
+- id: INT-399
+  epic: E07-records
+  phase: P1
+  title: "Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2)"
+  depends_on: [INT-122]
+  labels: [area:records]
+  status: awaiting-human
+  acceptance:
+    - "de-identified, owner-supplied samples committed as fixtures with provenance; the parsers pass on them; the MHRS date-order rule is fixed from the sample and the device and server parsers agree (INT-400)"
+  tests: [tests/records/test_enabiz_pdf.py, tests/records/test_mhrs.py]
+  sec_row: "records"
+- id: INT-400
+  epic: E08-mobile
+  phase: P1
+  title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
+  depends_on: [INT-122]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
+  tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+- id: INT-409
+  epic: E08-mobile
+  phase: P1
+  title: "The visits list uses the real date, not a pinned TODAY_FIXTURE, in every build"
+  # GitHub #688. Found by INT-179's close-out (PR #687): Vizitlerim pinned
+  # "today" to one date in every build, release included, so the upcoming/past
+  # split and the INT-370 calendar were wrong for every real patient. The
+  # issue names src/app/(tabs)/visits/visits.test.ts; a .test.ts under src/app
+  # is an expo-router route and breaks the release export, so the tests sit in
+  # src/lib and e2e (docs/evidence/INT-409.md).
+  depends_on: [INT-370]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-409.md
+  acceptance:
+    - "\"today\" comes from an injectable clock (the device date in the app's time zone, Europe/Istanbul for date boundaries); tests inject a fixed clock; no build contains a pinned date"
+    - "a test fails if any source under `apps/mobile/src` (outside tests and fixtures) pins a calendar date constant used as \"now\", with a near-miss control"
+  tests: [apps/mobile/src/lib/clock.test.ts, apps/mobile/e2e/pinnedToday.spec.ts]
+- id: INT-410
+  epic: E08-mobile
+  phase: P1
+  title: "Release bundles carry no synthetic seed accounts (audit F30)"
+  # GitHub #689. Found by INT-179's close-out (PR #687); production audit F30.
+  # The seed rendered only under __DEV__ but was imported statically, and Metro
+  # keeps a statically imported module, so every synthetic account shipped in
+  # the release bundle. The production export is searched in check-ts
+  # (releaseBundle.spec.ts, which has Node); the named pytest walks the release
+  # import graph in check-py, which has none (docs/evidence/INT-410.md).
+  depends_on: [INT-130]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-410.md
+  acceptance:
+    - "the seed accounts and their fixtures live behind a dev-only module that the release bundle excludes (a lazy import in a `__DEV__` branch the bundler strips, or a dev-only entry); a bundle test over the production export proves no seed identifier, name or fixture string is present, with a near-miss control where a planted seed string in a release path fails"
+    - "invariant 17: no demo data outside tests or fixtures reaches a release build"
+  tests: [tests/release/test_release_bundle_has_no_fixtures.py, apps/mobile/e2e/releaseBundle.spec.ts]
+- id: INT-412
+  epic: E08-mobile
+  phase: P1
+  title: "Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal"
+  depends_on: [INT-360]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-412.md
+  acceptance:
+    - "every icon resolves through one symbol registry with an SF Symbol for iOS and a Material fallback for Android and web; no blank icons on Android"
+    - "rail, CTA bar and welcome card use system Liquid Glass on iOS 26, blur or solid otherwise, following the app theme; Reduce Transparency forces solid and fails closed while unknown"
+    - "a layered icon proposal ready for Icon Composer; shipped app.json and assets unchanged (rebrand is owner-held)"
+  tests: [apps/mobile/src/lib/symbols.test.ts, apps/mobile/src/lib/glass.test.ts, apps/mobile/e2e/nativeChrome.spec.ts]
+  sec_row: "mobile"
+- id: INT-413
+  epic: E14-legal
+  phase: P1
+  title: "Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices)"
+  depends_on: [INT-215]
+  labels: [area:legal, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-413.md
+  acceptance:
+    - "docs/legal/drafts/ carries every draft with the TASLAK/DRAFT banner, primary sources cited with retrieval dates, and a README listing the numbered decisions counsel must make and the sign-off procedure"
+    - "a test fails if any loader under packages/ or services/ reads a draft, or if a draft lacks the banner"
+  tests: [tests/legal/test_legal_drafts.py]
+  legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
+  sec_row: "compliance-evidence"
