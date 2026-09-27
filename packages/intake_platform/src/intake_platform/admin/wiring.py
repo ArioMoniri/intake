@@ -26,12 +26,20 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from intake_platform.admin.actions import BREAK_GLASS_OPEN, MODEL_BENCHMARK_RUN
+from intake_platform.admin.actions import (
+    BREAK_GLASS_OPEN,
+    MODEL_BENCHMARK_RUN,
+    VOICE_CANARY_SET,
+    VOICE_KILL_SWITCH_ENGAGE,
+    VOICE_KILL_SWITCH_RELEASE,
+    VOICE_PROFILE_SWITCH,
+)
 from intake_platform.admin.break_glass import Deployment
 from intake_platform.admin.four_eyes import FourEyesService
 from intake_platform.admin.ip_allowlist import IpAllowList
 from intake_platform.admin.principal import AdminClaimsVerifier
 from intake_platform.admin.roles import ADMIN_ROLES, ROLE_SPECS, AdminRole, RoleScope
+from intake_platform.voice_control import VoiceControlStore
 
 __all__ = ["ADMIN_ROUTES", "AdminRoute", "AdminWiring"]
 
@@ -64,6 +72,16 @@ _BRIEF_READERS = (
 #: DSAR queue is refused, and the refusal is audited like any other action.
 _COMPLIANCE_READERS = frozenset(
     {AdminRole.COMPLIANCE_OFFICER, AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
+)
+
+#: INT-182. A voice ceremony's brief is read by whoever may take a voice
+#: action or stand as its second key, and by `auditor` — the same shape as the
+#: break-glass brief readers above.
+_VOICE_BRIEF_READERS = (
+    VOICE_KILL_SWITCH_ENGAGE.actor_roles
+    | VOICE_PROFILE_SWITCH.actor_roles
+    | VOICE_PROFILE_SWITCH.approver_roles
+    | {AdminRole.AUDITOR}
 )
 
 
@@ -162,6 +180,68 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         "admin.compliance.evidence.export",
         _COMPLIANCE_READERS,
     ),
+    # INT-182 — the Voice module (files/08 §3 "Voice runtime", §8). The read is
+    # platform facts plus every tenant's voice control, ids only — the same
+    # platform-scope set as /admin/ops. The kill switch is tier 1 (one key,
+    # toward typed); release, default-profile switch and canary weight are
+    # tier-2 ceremonies (two keys, toward voice), each approved on its own
+    # route so the audit row names exactly the action it approved.
+    AdminRoute("GET", "/admin/voice", "admin.voice.read", _PLATFORM_SCOPE_ROLES),
+    AdminRoute(
+        "POST",
+        "/admin/voice/kill-switch",
+        "admin.voice.kill_switch.engage",
+        VOICE_KILL_SWITCH_ENGAGE.actor_roles,
+        VOICE_KILL_SWITCH_ENGAGE.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/voice/kill-switch/release",
+        "admin.voice.kill_switch.release",
+        VOICE_KILL_SWITCH_RELEASE.actor_roles,
+        VOICE_KILL_SWITCH_RELEASE.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/voice/kill-switch/release/{action_id}/approve",
+        "admin.voice.kill_switch.release.approve",
+        VOICE_KILL_SWITCH_RELEASE.approver_roles,
+        VOICE_KILL_SWITCH_RELEASE.id,
+    ),
+    AdminRoute(
+        "PUT",
+        "/admin/voice/profile/{tenant}",
+        "admin.voice.profile.switch",
+        VOICE_PROFILE_SWITCH.actor_roles,
+        VOICE_PROFILE_SWITCH.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/voice/profile/pending/{action_id}/approve",
+        "admin.voice.profile.switch.approve",
+        VOICE_PROFILE_SWITCH.approver_roles,
+        VOICE_PROFILE_SWITCH.id,
+    ),
+    AdminRoute(
+        "PUT",
+        "/admin/voice/canary/{tenant}",
+        "admin.voice.canary.set",
+        VOICE_CANARY_SET.actor_roles,
+        VOICE_CANARY_SET.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/voice/canary/pending/{action_id}/approve",
+        "admin.voice.canary.set.approve",
+        VOICE_CANARY_SET.approver_roles,
+        VOICE_CANARY_SET.id,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/voice/pending/{action_id}",
+        "admin.voice.pending.brief.read",
+        frozenset(_VOICE_BRIEF_READERS),
+    ),
 )
 
 
@@ -174,3 +254,7 @@ class AdminWiring:
     #: Empty by default: no file in this repository records it, and a guessed
     #: entry would decide a lawful-basis question (files/08 §2.6, HB-L6).
     deployments: Mapping[str, Deployment] = field(default_factory=dict)
+    #: INT-182: the per-tenant voice control store the runtime reads at every
+    #: session start. ``None`` = unconfigured: the voice mutations answer 503
+    #: and the Voice module's controls tile reads unknown (fail closed).
+    voice_controls: VoiceControlStore | None = None

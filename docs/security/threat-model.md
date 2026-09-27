@@ -1563,6 +1563,27 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     execution tagged with the `amr` reference the verifier accepts. The realm bounds every
     session to 8 h and 30 minutes idle, offline sessions included. The `amr` references expire
     at the same 8 h, so after that bound the API refuses a refreshed token too.
+  - **Controls added by INT-182 (the Voice module: kill switch, profile switch, canary):**
+    the per-tenant voice control lives in its own Redis record written **only** by
+    `services/api/admin` — not in Unleash, whose tokens flip flags with no audit row (F1,
+    inv 34) — and the runtime reads it at every session start and on a 1 s poll, so the kill
+    switch takes effect without a deploy. **Asymmetric authority, from the `DangerousAction`
+    registry:** pulling the kill switch (toward `typed`) is tier 1 — one `sre_oncall`,
+    `clinical_lead` or `platform_owner`, audited, no approver (F17); releasing it, switching a
+    tenant's default profile and setting a canary weight (toward voice) are tier-2 four-eyes
+    ceremonies through the INT-180 pending-action protocol, `sre_oncall` on neither side. An
+    approval binds to the record revision its brief showed and is refused if the control moved
+    since — a kill switch pulled mid-ceremony cannot be undone by approving the stale request.
+    Fail-closed in three places: a tenant with no record is `typed` (voice is opt-in by a
+    tier-2 switch, and a store that loses its keys falls every tenant to the keyboard); a
+    control the runtime cannot read starts the session `typed` and is counted; a speech worker
+    without the store is not ready. Only `residency_tr` and `typed` parse (inv 19); weights are
+    integers 0..100; bodies are closed and refused by field name; the change reason's free text
+    never enters the record, the ceremony evidence, a label or a response (inv 6). The admin-web
+    forms are script-free, same-origin only (`Sec-Fetch-Site`), and cannot approve — approval
+    needs a fresh WebAuthn assertion the console does not mint yet. **Known limit, owner
+    decision:** the tier-2 second key is still two accounts, not two proven humans (the
+    INT-180 limit), and the step-up ceremony in the browser is unbuilt.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),

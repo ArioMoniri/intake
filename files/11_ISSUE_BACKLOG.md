@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**299 issues.** By phase: P0 157 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 167 · todo 90 · withdrawn 1.
+**299 issues.** By phase: P0 157 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 168 · todo 89 · withdrawn 1.
 
 ## P0
 
@@ -196,7 +196,7 @@
 | INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | INT-160, INT-033 | area:connectors, approval:human-vendor, live-smoke | awaiting-human |
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | done |
 | INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |
-| INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | todo |
+| INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | done |
 | INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | done |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin, approval:human-legal | awaiting-human |
 | INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |

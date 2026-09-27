@@ -2457,11 +2457,19 @@
   title: "Voice module + kill switch + profile switch + canary weights (4-eyes)"
   depends_on: [INT-181, INT-094]
   labels: [area:admin, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "per-profile metrics; kill switch flips tenant to typed without deploy (test)"
   tests: [tests/admin/test_kill_switch.py]
+  evidence: docs/evidence/INT-182.md
   sec_row: "admin-console"
+  # NOTE 27 Sep 2026: "(4-eyes)" is read as files/08 §8.2 and §0c F17 decided
+  # it, not as four-eyes on every lever: pulling the kill switch moves a tenant
+  # to the SAFER transport and is tier 1 (one sre_oncall / clinical_lead /
+  # platform_owner, audited); releasing it, the default-profile switch and the
+  # canary weight move toward voice and are tier-2 ceremonies that one person
+  # cannot complete (tests/admin/test_kill_switch.py). A second key on the safe
+  # direction is an availability control on a safety control.
 - id: INT-183
   epic: E12-admin
   phase: P0
