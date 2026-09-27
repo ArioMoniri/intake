@@ -5565,3 +5565,15 @@
   tests: [tests/ci/test_security_workflow.py]
   legal: "2018-10"
   sec_row: "cicd"
+- id: INT-372
+  epic: E08-mobile
+  phase: P1
+  title: "Visit-card chevron clears long department names"
+  depends_on: []
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-372.md
+  acceptance:
+    - "the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"
+  tests: [apps/mobile/e2e/visitCard.spec.ts, apps/mobile/src/lib/visitCardLayout.test.ts]
+  sec_row: "mobile"
