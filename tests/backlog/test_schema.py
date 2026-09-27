@@ -113,7 +113,9 @@ def test_ids_unique_and_well_formed() -> None:
     # found by INT-360's PR, filed as GitHub #640).
     # + INT-397 (the three status lines INT-362 left silent are announced, and
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
-    assert len(ids) == 311
+    # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
+    # main never imported; found by INT-378, fixed and closed in the same PR).
+    assert len(ids) == 312
     import re
 
     for i in ids:
