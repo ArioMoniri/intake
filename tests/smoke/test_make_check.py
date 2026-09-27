@@ -230,9 +230,19 @@ def test_backlog_parses_and_is_complete() -> None:
     # latency harness) + INT-320 (embeddable white-label integration, ADR-029)
     # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
+    # previsit routing); grows only with a stated reason.
+    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
+    # grows only with a stated reason.
+    # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
+    # previsit routing) + INT-317 (previsit output store + hospital read-back,
+    # filed on int-demo and carried to main by INT-354); grows only with a
+    # stated reason.
+    # previsit routing) ... + INT-376 (Frankfurt host move, split out of
+    # INT-352; the full list is in tests/backlog/test_schema.py); grows only
+    # with a stated reason.
     # previsit routing) + INT-373 (the Keycloak realm emits the admin
     # console's claims, found by INT-365); grows only with a stated reason.
-    assert len(ids) == 288, f"expected 175 blueprint + 113 added issues, got {len(ids)}"
+    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
