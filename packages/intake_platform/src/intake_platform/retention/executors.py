@@ -8,12 +8,22 @@ takes for the classes this package holds stores for today:
   clocks — not a storage fact);
 - ``consent_records_hospital_tenant`` → Consent rows at the 10-year mark;
 - ``clinical_record`` → the whole session tree on the DSAR path: document
-  objects first (via the injected remover), then document/share/note/slot
-  rows, then the session row itself. Object removal precedes the row
-  transaction on purpose: if the run dies in between, rows point at nothing
-  — the failure direction that favours erasure, which is the right bias for
-  a KVKK m.7/m.11 destruction (the reverse would strand PHI bytes behind a
-  deleted index).
+  objects first (via the injected remover), then, in one transaction, the
+  previsit output rows, document/share/note/slot rows, the telemetry de-link,
+  and the session row itself. Object removal precedes the row transaction on
+  purpose: if the run dies in between, rows point at nothing — the failure
+  direction that favours erasure, which is the right bias for a KVKK
+  m.7/m.11 destruction (the reverse would strand PHI bytes behind a deleted
+  index).
+
+  Every foreign key to ``sessions.id`` is handled by name (INT-392;
+  tests/data/test_session_delete_contract.py holds the declaration). The
+  previsit output (INT-317) is the note's frozen projection on the same
+  record clock and goes first, like the DSAR executor's; its key keeps NO
+  ACTION so a path that forgets it fails rather than dropping it unseen.
+  Telemetry is de-linked rather than destroyed — it has its own 06 §3 clock
+  and is PHI-free by construction, the ``intake_api.dsar.shred`` reasoning —
+  and ``csat_texts`` goes with the session through its ON DELETE CASCADE.
 
 Classes whose stores live outside this package today — ``traffic_logs_5651``
 (ingress infra) and ``doctor_link_tokens`` (the share-token service,
@@ -33,7 +43,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol, cast
 
-from sqlalchemy import Engine, delete, select
+from sqlalchemy import Engine, delete, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
@@ -45,6 +55,7 @@ from intake_platform.db.models import (
     Event,
     IntakeSession,
     Note,
+    PreVisitOutputRow,
     RecordEmbedding,
     Share,
     Slot,
@@ -166,6 +177,9 @@ def sqlalchemy_destroyers(
             note_ids = session.scalars(
                 select(Note.id).where(Note.session_id.in_(session_ids))
             ).all()
+            session.execute(
+                delete(PreVisitOutputRow).where(PreVisitOutputRow.session_id.in_(session_ids))
+            )
             # INT-123: the vectors indexed from a destroyed document go with it.
             # The index writer refuses any source box that is not
             # doc:<documents.id>, so this finds every row a document produced.
@@ -184,6 +198,9 @@ def sqlalchemy_destroyers(
                 session.execute(delete(Share).where(Share.note_id.in_(note_ids)))
             session.execute(delete(Note).where(Note.session_id.in_(session_ids)))
             session.execute(delete(Slot).where(Slot.session_id.in_(session_ids)))
+            session.execute(
+                update(Event).where(Event.session_id.in_(session_ids)).values(session_id=None)
+            )
             result = cast(
                 "CursorResult[Any]",
                 session.execute(delete(IntakeSession).where(IntakeSession.id.in_(session_ids))),

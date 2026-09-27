@@ -35,7 +35,8 @@
   - The embedder dimension is a per-row CHECK because no model declares one.
 - Blocked on: the owner (model-stack author) must choose a files/03 §4.9.1 record-embedding row: open weights, licence from the raw blob, `model_id@revision + sha256`, in-country. No HB row exists yet; the coordinator allocates one (docs/backlog/blockers.md).
 - Next:
-  - Whichever of #648/#653 and this PR merges second adds `record_embeddings` (ERASED) and `record_embeddings.patient_id` (PARENT_KEPT) to `test_session_delete_contract.py`, plus a seed row.
+  - INT-392 (#648) merged mid-iteration. Its contract's behaviour test now also seeds and erases a vector.
+  - Whichever of #653 (INT-393) and this PR merges second adds `record_embeddings` (ERASED) and `record_embeddings.patient_id` (PARENT_KEPT) to the widened contract, plus a seed row.
   - Purging the index on a `documents` withdrawal is a retention decision for a consent issue.
 - LOOP_STATUS: WAITING_HUMAN
 
@@ -75,6 +76,51 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. SC 1.3.4 moves from Does Not Support to Supports. DA-05 now covers landscape and confirms 1.3.4.
 - Blocked on: nothing. Landscape screenshots on hardware are the owner's DA-05 step.
 - Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx` and the dialogue's bottom stack in `DialogueIntake.tsx`. Whichever merges second rebases there: #615's "Bitirdim" button goes inside the new bar `ScrollView`.
+
+### 2026-09-27T07:30:00+03:00 · INT-392 · done (PR open)
+- Goal (GitHub #647, P0): every session-deletion path removes the session's `previsit_outputs` in the same transaction, in the documented order, audited. Found on main's check-integration: `ForeignKeyViolation` on `fk_previsit_outputs_session_id_sessions` in the teardown of `test_documents_roundtrip_against_real_minio`.
+- Plan:
+  - Explicit removal, output first, in the DSAR erasure (`intake_api.dsar.shred`) and the retention `clinical_record` executor.
+  - The DSAR erasure crypto-shreds each output and audits it as `dsar.delete.previsit_output` against `previsit_output:<id>`.
+  - The foreign key keeps NO ACTION as the fail-closed backstop. No cascade and no migration: files/06 §3 and the crypto-shred design require a shred and an audit entry, and a cascade gives neither.
+  - The retention executor also de-links telemetry, which it never did.
+  - The integration teardown deletes outputs first.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py`: the metadata contract for every key to `sessions.id`, four near-miss controls, and the retention executor run with SQLite foreign keys ON.
+  - One DSAR test in `tests/legal/test_dsar_flows.py`, also with foreign keys ON.
+  - `tests/integration/test_session_erasure.py` (CI).
+  - The `test_api_postgres.py` teardown and an output-exists assertion.
+  - RED: 2 failed, 47 passed. GREEN: 49 passed.
+- Result:
+  - api/data/legal/security/platform suites: 1680 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+- Invariants touched and still passing: **4** (every erasure of a disclosed output is audited), **14** (the envelope is crypto-shredded before its row goes), **17**, **18** (the files/06 §3 record clock now reaches the output).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-392.md` §8:
+  - `doctor_links → shares` blocks both executors' share delete on postgres.
+  - The DSAR executor's event de-link needs an `UPDATE` grant that `app_rw` does not hold.
+- Next: PR `INT-392: deleting a session removes its previsit outputs in every erasure and retention path` (Closes #647, Sec-Row data-at-rest), left unmerged for review.
+
+### 2026-09-27T07:30:00+03:00 · INT-366 · done (PR open)
+- Goal: acceptance verbatim (GitHub #593) — *"the console generates the quarterly access review of files/08 §2.7 from Keycloak, the role grants and the audit log, and downgrades platform_owner and tenant_admin sessions to read-only past 100 days without a review; admin_access_review_age_days is emitted"* · *"one disable revokes the person's Keycloak sessions, OpenBao leases and every other console account together (files/08 §2.4), and an account with no login for 60 days is disabled automatically; both are audited"*.
+- Plan:
+  - `intake_platform.admin.access`: Keycloak admin adapter (effective roles, LOGIN events, disable, logout), OpenBao lease revoker (entity by alias → disable → revoke its tokens), console-systems config (Grafana/Langfuse/Unleash, manual, refused whole if one could be skipped).
+  - Review generated from Keycloak + the chain; review state = `admin.access_review.signed` rows read back by `ReviewLedger`; `admin_access_review_age_days` computed at scrape.
+  - Sign (§2.7 reviewer) + countersign (second person; another org for `platform_owner`) as a T2 ceremony; offboarding T1 (§8.2 "token revoke"), write-ahead per step, manual steps confirmed and audited.
+  - Router downgrade: writes reached only via `platform_owner`/`tenant_admin` refused past 100 days or with no review.
+  - `intake_platform.access_hygiene` + `make access-hygiene`: 60-day auto-disable through the same pipeline; refuses without 60 days of login history.
+  - admin-web `/access`, read-only, recorded fixtures drift-gated.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_access_review.py` and `tests/admin/test_offboarding.py` (102): 100 d ± 1 s on the ledger and at the route; 59 d vs 60 d dormancy; 5 183 999 s event retention refused; same-org vs external countersigner; grant between the keys voids the signature; self-countersign; assertion reuse; failed step reported while the rest run; unknown subject and path-shaped subject refused before any call.
+  - RBAC matrix and audit drive rows for the five routes; 2018/10 tally pinned at 11 partial / 8 not implemented.
+  - `apps/admin-web/e2e/access.spec.ts` (18).
+  - RED: pytest collection rc=2 (2 import errors, `intake_platform.admin.access` missing) at origin/main 868f6e19; vitest cannot resolve `src/access`. GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1244 files), `mypy --strict` clean (482 files), whole-tree pytest at the 85 % floor **8189 passed**, 0 failed, 95.65 %; `tests/admin tests/observability` 1264 passed; admin-web vitest 291, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged + branch), bandit and semgrep p/ci on the new code, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 13, 14, 15, 16 (Sec-Row admin-console; threat-model row), 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Tiering per files/08 §8.2 and §3 (offboarding T1; sign-off T2 because it lifts the downgrade). Reported, not fixed: `apps/admin-web/src/ops/load.ts` `errorCode` still reads `detail.error` against a flat API body.
+- Blocked on: nothing new in HUMAN_BLOCKERS. Owner steps (runbook): Keycloak admin client + OpenBao KV entry, 60 days of LOGIN events, the three env vars, the OpenBao offboarding policy (`sudo` on token accessors), a daily scheduler for `make access-hygiene`, the first countersigned review — until then `platform_owner`/`tenant_admin` are read-only.
+- Next: PR `INT-366: quarterly access review from the console and one-action offboarding with a 60-day auto-disable` (Closes #593, Sec-Row admin-console), left unmerged for review.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.

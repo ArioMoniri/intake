@@ -14,12 +14,14 @@ never a patient and never free text. files/08 §4 states both labels by name.
 
 from __future__ import annotations
 
-from prometheus_client import Counter
+from prometheus_client import Counter, Gauge
 
 __all__ = [
+    "ADMIN_ACCESS_REVIEW_AGE_DAYS",
     "ADMIN_BREAK_GLASS_OPENED_TOTAL",
     "ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL",
     "ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL",
+    "ADMIN_OFFBOARDING_TOTAL",
     "ADMIN_PENDING_ACTION_EXPIRED_TOTAL",
     "ADMIN_VOICE_CONTROL_CHANGES_TOTAL",
     "SEC_ADMIN_ACTIONS_TOTAL",
@@ -76,4 +78,29 @@ ADMIN_VOICE_CONTROL_CHANGES_TOTAL = Counter(
     "admin_voice_control_changes_total",
     "Voice control changes (kill switch, default profile, canary), by control and outcome.",
     ["control", "outcome"],
+)
+
+#: INT-366, files/08 §2.7 and §4 group O: the age of the console access review
+#: (the staler of its `platform_owner` and `console_roles` sections), in days.
+#: No labels. Computed at scrape time from the sign-off instants the review
+#: ledger read off the audit chain, so it keeps counting while nobody opens the
+#: console; +Inf when no review was ever countersigned, or the chain has not
+#: been read yet. AccessReviewOverdue pages above 100.
+ADMIN_ACCESS_REVIEW_AGE_DAYS = Gauge(
+    "admin_access_review_age_days",
+    "Age of the console access review in days (files/08 §2.7; read-only past 100).",
+)
+# Until a review ledger binds the gauge (the console wired), no review is
+# known to exist: a process that never read the chain reports "never
+# reviewed", not the zero a fresh gauge would otherwise report.
+ADMIN_ACCESS_REVIEW_AGE_DAYS.set(float("inf"))
+
+#: INT-366, files/08 §2.4: offboardings run, by what triggered them
+#: (`console` — a person, `dormant` — the 60-day job) and whether every system
+#: was revoked or confirmed when the run ended. Both labels are closed sets;
+#: the offboarded subject is never a label (invariant 6).
+ADMIN_OFFBOARDING_TOTAL = Counter(
+    "admin_offboarding_total",
+    "Offboardings run, by trigger and by whether every system was closed.",
+    ["trigger", "complete"],
 )

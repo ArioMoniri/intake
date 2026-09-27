@@ -61,7 +61,7 @@ from intake_platform.db.models import (  # noqa: E402
 from intake_platform.envelope import CryptoShredError  # noqa: E402
 from intake_platform.legal import LegalStringsCatalog  # noqa: E402
 from legal_harness import BOUND_SCOPES, grant_bound, write_all_consent_texts  # noqa: E402
-from sqlalchemy import select  # noqa: E402
+from sqlalchemy import event, select  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
 # --- synthetic fixtures -------------------------------------------------------------
@@ -566,6 +566,60 @@ def test_the_erasure_delinks_telemetry_instead_of_orphaning_the_foreign_key(
     surviving = rows(dsar, Event)
     assert len(surviving) == 1, "telemetry has its own clock; erasure does not sweep it"
     assert surviving[0].session_id is None, "the link to the erased session must be cut"
+
+
+def _enforce_foreign_keys(harness: ApiHarness) -> None:
+    """SQLite checks foreign keys only when asked; postgres always does. The
+    harness engine is NullPool, so every connection opened after this call —
+    which is every statement the run below issues — enforces them."""
+
+    def _on_connect(dbapi_connection: Any, _record: Any) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    event.listen(harness.engine.sync_engine, "connect", _on_connect)
+
+
+def test_the_erasure_shreds_the_previsit_output_and_removes_it_before_its_session(
+    dsar: ApiHarness,
+) -> None:
+    """INT-392. Sending the note writes the frozen previsit output (INT-317),
+    and ``previsit_outputs.session_id`` has no ON DELETE rule — so an erasure
+    that deleted the session without removing the output first failed on
+    postgres, and passed here only because SQLite was not checking.
+
+    The output is the note's frozen projection on the same files/06 §3 record
+    clock, so it gets what the note gets: its wrapped DEK destroyed, then the
+    row removed, in the same transaction. And because a hospital may already
+    have fetched it under ``previsit_output:<id>``, the erasure is audited
+    against that same ref."""
+    from intake_platform.db.models import PreVisitOutputRow, SlotSensitivity
+
+    _enforce_foreign_keys(dsar)
+    seed_visit_with_sent_note(dsar)
+    (output,) = rows(dsar, PreVisitOutputRow)
+    envelopes = (
+        len(rows(dsar, Note))
+        + len(rows(dsar, PreVisitOutputRow))
+        + sum(1 for slot in rows(dsar, Slot) if slot.sensitivity is SlotSensitivity.SENSITIVE)
+    )
+
+    dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient())
+    report = run(_execute(dsar, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert report.shredded_requests == 1
+    assert report.shredded_fields == envelopes, "the output's DEK goes with the note's"
+    assert rows(dsar, PreVisitOutputRow) == []
+    assert rows(dsar, IntakeSession) == []
+    erased = [
+        (entry.actor, entry.resource_ref, entry.consent_scope_ref)
+        for entry in dsar.audit_store.entries()
+        if entry.action == "dsar.delete.previsit_output"
+    ]
+    assert erased == [
+        (f"patient:{DEV_PATIENT_ID}", f"previsit_output:{output.id}", "basis:KVKK-11/13")
+    ]
 
 
 def test_the_erasure_keeps_the_records_statute_says_to_keep(dsar: ApiHarness) -> None:
