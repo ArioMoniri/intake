@@ -470,8 +470,10 @@ class TestHonesty:
         tally = {status: 0 for status in MeasureStatus}
         for measure in mapping.measures:
             tally[measure.status] += 1
+        # INT-366: 2ç gained the generated access review — not_implemented to
+        # partial; its wiring and the review itself stay open with the owner.
         assert tally == {
             MeasureStatus.IMPLEMENTED: 0,
-            MeasureStatus.PARTIAL: 10,
-            MeasureStatus.NOT_IMPLEMENTED: 9,
+            MeasureStatus.PARTIAL: 11,
+            MeasureStatus.NOT_IMPLEMENTED: 8,
         }

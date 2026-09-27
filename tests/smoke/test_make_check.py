@@ -244,10 +244,18 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-354 slice S2); grows only with a stated reason.
     # previsit routing) + INT-377 (probe-results file fails closed on the
     # admin console, found by INT-181); grows only with a stated reason.
+    # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
+    # (INT-124's on-hardware latency and live smoke, gpu), both split out by
+    # INT-124's PR; grows only with a stated reason.
+    # + INT-385 (record quantities render with the locale's decimal separator,
+    # found by INT-124's PR as GitHub #635); grows only with a stated reason.
+    # previsit routing) + INT-373 (the Keycloak realm emits the admin
+    # console's claims, found by INT-365); grows only with a stated reason.
     # previsit routing) + INT-392 (a session with a previsit output can be
+    # deleted again, found on check-integration); grows only with a stated reason.
     # deleted again, found on check-integration) + INT-393 (a patient who issued
     # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
-    assert len(ids) == 301, f"expected 175 blueprint + 126 added issues, got {len(ids)}"
+    assert len(ids) == 305, f"expected 175 blueprint + 130 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -84,6 +84,25 @@ BENCHMARK_ACTORS = frozenset(
 COMPLIANCE_READERS = frozenset(
     {AdminRole.COMPLIANCE_OFFICER, AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
 )
+#: INT-366 — files/08 §2.7. The review's signers (`compliance_officer`, and a
+#: tenant's `tenant_clinical_responsible` for its clinician accounts), its
+#: countersigners (`compliance_officer`, `qms_owner`), `auditor` and
+#: `platform_owner` read it; written out as the second opinion against the
+#: wiring's derivation from the registry.
+ACCESS_REVIEW_SIGNERS = frozenset(
+    {AdminRole.COMPLIANCE_OFFICER, AdminRole.TENANT_CLINICAL_RESPONSIBLE}
+)
+ACCESS_REVIEW_COUNTERSIGNERS = frozenset({AdminRole.COMPLIANCE_OFFICER, AdminRole.QMS_OWNER})
+ACCESS_REVIEW_READERS = (
+    ACCESS_REVIEW_SIGNERS
+    | ACCESS_REVIEW_COUNTERSIGNERS
+    | {AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
+)
+#: files/08 §8.2 T1 ("token revoke") and §2.1: `sre_oncall` revokes alone, the
+#: `compliance_officer` acts on the review's findings, `platform_owner` is all.
+OFFBOARDERS = frozenset(
+    {AdminRole.SRE_ONCALL, AdminRole.COMPLIANCE_OFFICER, AdminRole.PLATFORM_OWNER}
+)
 
 #: INT-182 — the Voice module (files/08 §8.2). Tier 1, the safe direction:
 #: one `sre_oncall` or `clinical_lead` (and `platform_owner`, the platform
@@ -126,6 +145,11 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("PUT", "/admin/voice/canary/{tenant}"): VOICE_REQUESTERS,
     ("POST", "/admin/voice/canary/pending/{action_id}/approve"): VOICE_APPROVERS,
     ("GET", "/admin/voice/pending/{action_id}"): frozenset(VOICE_BRIEF_READERS),
+    ("GET", "/admin/access/review"): frozenset(ACCESS_REVIEW_READERS),
+    ("POST", "/admin/access/review/sign"): ACCESS_REVIEW_SIGNERS,
+    ("POST", "/admin/access/review/sign/{action_id}/countersign"): ACCESS_REVIEW_COUNTERSIGNERS,
+    ("POST", "/admin/access/offboard"): OFFBOARDERS,
+    ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
 }
 
 

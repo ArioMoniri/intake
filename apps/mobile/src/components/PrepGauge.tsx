@@ -15,6 +15,7 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
+import { shortSide } from "@/lib/a11y/orientation";
 import { getLocale } from "@/lib/i18n";
 import { scaledControl, spacing, tracking } from "@/lib/theme";
 
@@ -42,9 +43,19 @@ export function PrepGauge({ fraction, label }: { fraction: number; label: string
   // broken. The arc scales with the numeral it frames — and is capped to the
   // screen so growing it can never clip it against the edge, which is the
   // other half of the same defect.
+  //
+  // INT-360: capped by the window's SHORT side. The width bounded it while the
+  // app was portrait-only, but in landscape the width is the long side: at the
+  // largest step the arc stayed 464 × 232 pt in an 844 × 390 window, and with
+  // its numeral and caption the gauge alone filled the room above the tab
+  // rail. The short side makes it 350 × 175 there. In portrait the short side
+  // is the width, so nothing a portrait patient sees moves.
   const fontScale = useFontScale();
-  const { width } = useWindowDimensions();
-  const size = Math.min(scaledControl(BASE_SIZE, fontScale), Math.max(120, width - GUTTER));
+  const window = useWindowDimensions();
+  const size = Math.min(
+    scaledControl(BASE_SIZE, fontScale),
+    Math.max(120, shortSide(window) - GUTTER),
+  );
   const ring = {
     width: size,
     height: size / 2,

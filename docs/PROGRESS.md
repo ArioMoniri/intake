@@ -1,5 +1,42 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
+- Goal: acceptance verbatim (GitHub #586):
+  - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*
+  - *"every screen lays out in landscape at the largest text size with no clipped control and no horizontal scroll of body text"*
+- Plan:
+  - Set `"orientation": "default"` in app.json.
+  - Find every other way to lock a screen, and register any kept lock in the SC 1.3.4 row with its reason. The register is empty, and no dependency was added.
+  - Audit every screen against an 844 × 390 and a 568 × 320 window at the largest step, and fix the findings with the existing primitives.
+  - Findings:
+    - the section sheet's `<Modal>` presented portrait-only on iPhone (React Native's empty-list default) and now names `ALL_ORIENTATIONS`;
+    - the dialogue composer was pinned behind the iOS keyboard (an absolute child ignores the avoiding view's padding) and is now pinned in a frame that ends at the keyboard, offset by the header height, with the stack capped at the frame and its upper part scrolling;
+    - the gauge was sized from the long side and now uses `shortSide`;
+    - the tab rail, the sheet and the kiosk chrome lacked side safe areas;
+    - the kiosk chrome could push the exit off-screen and now scrolls;
+    - six field scrollers now set `automaticallyAdjustKeyboardInsets`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `e2e/a11y.spec.ts` gains 16 tests:
+    - the lock scan over src, plugins, app.json and app.config.ts, with the register reader and a near-miss control (planted lockAsync, a navigator option, a manifest key, a silent Modal and a restricted Modal are caught; the fixed forms, comments and a type alias are not);
+    - the landscape layout scan (fixed and percentage heights, `Dimensions.get`, long-side reads, edge-pinned chrome without side insets, horizontal scrollers), with a shrink-only allow-list of three and a near-miss control;
+    - wiring tests for the keyboard, the dialogue stack, GlassBar and the kiosk chrome.
+  - `src/lib/a11y/orientation.test.ts` (5).
+  - `tests/legal/test_a11y_report.py` (+4, the register in the report).
+  - RED: 9 vitest failures, the module missing, and 4 pytest failures.
+  - GREEN: all pass. Seven mutations are each caught.
+- Result:
+  - `make check-ts` exits 0 (mobile 109 files / 2164 tests);
+  - `make check-i18n` 30 passed;
+  - `tests/legal/test_a11y_report.py` 30 passed, and the Python suites that read apps/mobile 652 passed;
+  - `render_a11y_report.py --check` clean;
+  - `pnpm -r typecheck`, expo lint and prettier clean;
+  - `no_placeholders` OK after staging.
+  - `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 2 and 5 (no copy changed), 6, 8 (tests only added), 17 (both allow-lists carry reasons and fail on stale entries).
+- Decisions / ADRs / `00_STATE.md` rows: none. SC 1.3.4 moves from Does Not Support to Supports. DA-05 now covers landscape and confirms 1.3.4.
+- Blocked on: nothing. Landscape screenshots on hardware are the owner's DA-05 step.
+- Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx` and the dialogue's bottom stack in `DialogueIntake.tsx`. Whichever merges second rebases there: #615's "Bitirdim" button goes inside the new bar `ScrollView`.
+
 ### 2026-09-27T10:30:00+03:00 · INT-393 · done (PR open)
 - Goal (GitHub #649, P0): erasing a patient who issued a Doctor Link works. Found by INT-392 §8: `doctor_links.share_id → shares.id` has no ON DELETE rule, and both executors deleted the subject's shares with the links still in place (`ForeignKeyViolation` on postgres).
 - Plan:
@@ -53,6 +90,27 @@
   - The DSAR executor's event de-link needs an `UPDATE` grant that `app_rw` does not hold.
 - Next: PR `INT-392: deleting a session removes its previsit outputs in every erasure and retention path` (Closes #647, Sec-Row data-at-rest), left unmerged for review.
 
+### 2026-09-27T07:30:00+03:00 · INT-366 · done (PR open)
+- Goal: acceptance verbatim (GitHub #593) — *"the console generates the quarterly access review of files/08 §2.7 from Keycloak, the role grants and the audit log, and downgrades platform_owner and tenant_admin sessions to read-only past 100 days without a review; admin_access_review_age_days is emitted"* · *"one disable revokes the person's Keycloak sessions, OpenBao leases and every other console account together (files/08 §2.4), and an account with no login for 60 days is disabled automatically; both are audited"*.
+- Plan:
+  - `intake_platform.admin.access`: Keycloak admin adapter (effective roles, LOGIN events, disable, logout), OpenBao lease revoker (entity by alias → disable → revoke its tokens), console-systems config (Grafana/Langfuse/Unleash, manual, refused whole if one could be skipped).
+  - Review generated from Keycloak + the chain; review state = `admin.access_review.signed` rows read back by `ReviewLedger`; `admin_access_review_age_days` computed at scrape.
+  - Sign (§2.7 reviewer) + countersign (second person; another org for `platform_owner`) as a T2 ceremony; offboarding T1 (§8.2 "token revoke"), write-ahead per step, manual steps confirmed and audited.
+  - Router downgrade: writes reached only via `platform_owner`/`tenant_admin` refused past 100 days or with no review.
+  - `intake_platform.access_hygiene` + `make access-hygiene`: 60-day auto-disable through the same pipeline; refuses without 60 days of login history.
+  - admin-web `/access`, read-only, recorded fixtures drift-gated.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_access_review.py` and `tests/admin/test_offboarding.py` (102): 100 d ± 1 s on the ledger and at the route; 59 d vs 60 d dormancy; 5 183 999 s event retention refused; same-org vs external countersigner; grant between the keys voids the signature; self-countersign; assertion reuse; failed step reported while the rest run; unknown subject and path-shaped subject refused before any call.
+  - RBAC matrix and audit drive rows for the five routes; 2018/10 tally pinned at 11 partial / 8 not implemented.
+  - `apps/admin-web/e2e/access.spec.ts` (18).
+  - RED: pytest collection rc=2 (2 import errors, `intake_platform.admin.access` missing) at origin/main 868f6e19; vitest cannot resolve `src/access`. GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1244 files), `mypy --strict` clean (482 files), whole-tree pytest at the 85 % floor **8189 passed**, 0 failed, 95.65 %; `tests/admin tests/observability` 1264 passed; admin-web vitest 291, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged + branch), bandit and semgrep p/ci on the new code, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 13, 14, 15, 16 (Sec-Row admin-console; threat-model row), 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Tiering per files/08 §8.2 and §3 (offboarding T1; sign-off T2 because it lifts the downgrade). Reported, not fixed: `apps/admin-web/src/ops/load.ts` `errorCode` still reads `detail.error` against a flat API body.
+- Blocked on: nothing new in HUMAN_BLOCKERS. Owner steps (runbook): Keycloak admin client + OpenBao KV entry, 60 days of LOGIN events, the three env vars, the OpenBao offboarding policy (`sudo` on token accessors), a daily scheduler for `make access-hygiene`, the first countersigned review — until then `platform_owner`/`tenant_admin` are read-only.
+- Next: PR `INT-366: quarterly access review from the console and one-action offboarding with a 60-day auto-disable` (Closes #593, Sec-Row admin-console), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
 - Plan:
@@ -98,7 +156,46 @@
 - Decisions / ADRs / `00_STATE.md` rows: none new. Disagreement recorded in the evidence: the brief asked for four-eyes on the kill switch itself; files/08 §0c F17 / §8.2 make it single-key (safe direction) and the spec wins — two keys on every move back toward voice. Reported, not fixed: `apps/admin-web/src/ops/load.ts` reads refusal codes from `detail.error` but the API answers a flat `{"error": …}`.
 - Blocked on: nothing new. Live use needs `INTAKE_VOICE_CONTROL_REDIS_URL` (same Redis in API and runtime), console admission (HB-A16, OIDC), and a WebAuthn step-up in the console for page-side approval.
 - Next: PR `INT-182: admin Voice module — …` (Closes #133, Sec-Row admin-console), left unmerged for review.
+
+### 2026-09-27T03:30:00Z · INT-124 · done (PR open); INT-121 rescoped to done; INT-380, INT-381 added
+- Goal: acceptance verbatim (GitHub #99), rescoped: *"adapter behind LLMGateway with JSON-schema-constrained decoding; pin from 03 §4.9.1 row 9; off the spoken-loop critical path"* · *"unit resolution is a GUARD, not an assumption: magnitude outranks the printed unit token, and disagreement raises a flag rather than converting silently"* · *"`ure` is never substring-matched …"* · *"decimal separator resolved PER VALUE, not per document, cross-checked against the analyte's expected magnitude …"* · *"eval corpus includes a document with a WRONG printed unit string and a five-digit result carrying a thousands separator; a two-number reference cell stops the parse rather than averaging"*. The "target < 3 s" half moved to INT-381 (#627, `gpu`); INT-121's clause 3 moved to INT-380 (#626, awaiting-human).
+- Plan:
+  - `records/unit_guard.py`: `guard_lab_value` → `LabValueVerdict` (printed magnitude, printed unit, typed `GuardFlag`s, `STOP_FLAGS`); `ExpectationTable` keyed through `analyte_key`; `AnalyteExpectation` cannot exist without a `SourceCitation`; `SHIPPED_EXPECTATIONS` empty (HB-C24), so every value is flagged.
+  - `numbers.magnitude_readings` (the two-way form as both readings; `parse_printed_magnitude` delegates); `analytes.analyte_key`; `extract_record_items(..., guard=)` gives per-value verdicts, INT-121's path unchanged.
+  - `records/lab_extraction.py`: schema derived from `ITEM_KEYS`, schema-only instructions, numbered fence, recorded + self-hosted gateways, env wiring; `records/lab_model.py`: the row-9 pin and a PHI gate that refuses while no host serves it.
+  - Registry row `qwen3.6-35b-a3b` (revision + 26 LFS sha256s + raw-blob licence record, `self_hosted_now: false`); the probe reports it unavailable.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_unit_resolution_guard.py` (106), `tests/records/test_labjson_eval.py` (79), `tests/observability/test_probe_registry.py` (+5). Every guard rule carries its near miss (same line in the expected unit; `Üre Nitrojeni` against Üre's row; the same `1.500` read two ways by two bands; `-5` is one number; a served registry row passes the PHI gate). RED: 2 collection errors + 5 `KeyError`s. Mutations M1–M8 (two-number cell, comparator, band-less first reading, case-folded unit, empty table passes, `Üre Nitrojeni`→urea, PHI gate ignores serving, strict decoding off) each killed, restored from an in-memory copy and byte-compared.
+- Result (on the tree merged with main): `make check` check-py lanes all green — ruff/format clean, `mypy --strict` 454 files, whole tree 7636 passed at 96.06 %; check-ts failed once on a latency this PR's re-taken sweep changed (`overview.spec.ts` pinned 100 ms, the re-take measured 74 ms), fixed, then `make check-ts` and `make check-i18n` exit 0. `make safety` exit 0 (triage 100 % branch, 18/18 mutations). `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, `evidence_check`, sec-row linkage: OK. 100 % branch on the six changed records modules.
+- Invariants touched and still passing: 1 (no level-shaped key in the schema; triage key refused whole), 6 (verdict and refusals echo nothing), 13 (registry row + probe), 14 (fence, schema-only instructions, pinned weights), 17 (no fakes outside tests; the empty table is the fail-closed content), 19 (raw-blob licence, self-hostable, vendor host refused, no fallback), 20 (synthetic fixture, no figure), 22 (the guard).
+- Decisions / ADRs / `00_STATE.md` rows: `00_STATE §1` extraction row now records the row-9 pin and the served-by-no-host state (it said "needs replacing"). No ADR: the adapter follows ADR-006 and INT-083's seam.
+- Blocked on: HB-C24 (physician of record + clinical biochemist: which analytes, unit, magnitude band, committed source) — the guard fails closed until then; INT-381 on GPU capacity (HB-I4, HB-I5, HB-L11); INT-380 on HB-A13 (+ HB-A10, HB-A2).
+- Next: merge promptly (this PR moves the three pins, now 299 after merging main twice: INT-370/317, then INT-352's INT-376); INT-381 once a GPU host exists.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:00:00Z · INT-385 · delivered (PR open)
+- Goal: acceptance verbatim (GitHub #635):
+  - *"every clinical quantity shown to a patient or clinician renders with the locale's decimal separator (tr: comma), `useGrouping:false`, and number + unit as one non-breaking atom; the mobile confirm cards (INT-138) and the server renderer agree"*
+  - *"a round-trip test: extract -> render -> re-parse returns the same value for 12.5, 12500, 0.05 and 1,5 in tr and en; a near-miss that renders `12.500` for 12.5 fails"*
+  - *"no numeral reaches TTS (the compiler expansion path is untouched)"*
+- Plan:
+  - `render_quantity`/`quantity_atom` take a keyword-only `locale` with no default. They write through the closed `DECIMAL_SEPARATORS` table (tr `,`, en `.`), and an unknown locale is refused, not guessed.
+  - The stored summary is written for `SUMMARY_LOCALE` (`tr`), because its two readers are the confirm card and the note's `imported_objective`.
+  - The app's `formatQuantity` writes the value's own digits instead of capping at one, which had written 0.05 as `0,1`.
+  - One fixture table, `tests/fixtures/records/quantity_render.json`, is read by both sides.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (52): round trips for 7 printed forms × tr/en through both the resolver and a locale reader; near misses `12.500` and INT-121's `12.5` in tr, each with a passing control; no grouping; U+00A0; refusal without echo; the shared table; two import-boundary tests off the speech path.
+  - Mobile `extraction.test.ts` (+29) and `format.test.ts` (+1).
+  - RED: Python ImportError at collection plus 1 TypeError in `test_extraction_eval.py`; vitest 4 failed (`0,1` for 0.05). An INT-121-behaviour mutant is killed by 25 tests.
+- Result:
+  - `make check-py`: ruff and format clean, `mypy --strict` clean (451 files), 7555 passed and 0 failed at 95.84 %. The 4 `test_deid_ner` tests passed once the de-id model cache was linked into the fresh worktree.
+  - `pnpm -r lint/typecheck/test` green (mobile 2173).
+  - `make check-i18n`: 30 passed.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check` and the sec-row gate: OK.
+  - `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 6 (the refusal does not echo), 8 (tests only added), 22 (the display half, for record quantities and the app helper; the TTS half is untouched).
+- Decisions: none new. Recorded, not fixed: four private measure renderers still write a full stop (the typed rail, note measures, patient-summary measures and the document mapper). This is INT-096's finding, and it needs its own issue id. Pins 297 → 298.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #635). Merge after #634.
 
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.

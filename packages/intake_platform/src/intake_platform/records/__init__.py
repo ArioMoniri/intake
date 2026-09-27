@@ -26,6 +26,17 @@ modules above rather than re-implementing one:
 * :mod:`~intake_platform.records.turkish_dates` — invariant 22 for the other
   numeral on this path, the printed date.
 
+INT-124 adds the model and the guard in front of the parser:
+
+* :mod:`~intake_platform.records.lab_extraction` — lab report → JSON through
+  files/03 §4.9.1 row 9 behind one gateway seam (recorded or self-hosted,
+  JSON-schema-constrained), off the spoken-loop critical path;
+* :mod:`~intake_platform.records.lab_model` — row 9's pin, and the PHI gate that
+  refuses while no host serves it;
+* :mod:`~intake_platform.records.unit_guard` — invariant 22 as one deterministic
+  verdict per lab value, with an empty expectation table that fails closed
+  (HB-C24).
+
 The confirm gate itself is :mod:`clinical_schemas.record_extraction`: an
 extracted value is a candidate until a human says otherwise, and that is a
 type rather than a rule (invariant 12).
@@ -75,9 +86,11 @@ from intake_platform.records.mhrs import (
     resolve_printed_branch,
 )
 from intake_platform.records.numbers import (
+    DECIMAL_SEPARATORS,
     NBSP,
     PrintedMagnitudeAmbiguous,
     PrintedMagnitudeUnreadable,
+    QuantityLocaleUnknown,
     UnitResolution,
     parse_printed_magnitude,
     quantity_atom,
@@ -118,6 +131,7 @@ __all__ = [
     "CandidateVisitFields",
     "ConfirmedRecordStore",
     "ConfirmedVisitFields",
+    "DECIMAL_SEPARATORS",
     "DROPPED_COLUMNS",
     "DateOrder",
     "DocumentBoundaryEscape",
@@ -143,6 +157,7 @@ __all__ = [
     "PrintedTimeAmbiguous",
     "PrintedTimeNotFound",
     "PrintedTimeUnreadable",
+    "QuantityLocaleUnknown",
     "RecordSchemaViolation",
     "RegionUnknown",
     "TOP_LEVEL_KEYS",
