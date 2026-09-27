@@ -47,6 +47,18 @@
 - Blocked on: nothing. INT-135 consumes the contract and carries the device measurement.
 - Next: PR `INT-333: Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic` (Closes #532, Sec-Row triage).
 
+### 2026-09-27T14:30:00+03:00 · INT-334 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #533):
+  - *"one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"*
+  - *"rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"*
+- Plan: a pure reducer `lib/motion/arbiter.ts` (`arbitrate`, `release`, `windowOpen`, `invalidate`, `flush`) over the named order `red > yellowPill > workChip > railCommit > content > ambient`: snap, never queue; hold, never rest; the window shut while listening or while the composer has focus. No consumer is wired (INT-337 wires the dialogue).
+- Tests added: `arbiter.test.ts` (15, including a 5,000-step seeded property test and near-miss controls for equal priority and an unfocused draft). RED: the module missing. GREEN: 15/15. Mutants: 11 of 11 killed.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass; `no_placeholders` after staging OK. `make check` not run whole (check-integration is CI-only; no Python change).
+- Invariants touched and still passing: 9 ("preempt" is RED's alone), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 stays Proposed; none of its open questions touches the arbiter.
+- Blocked on: nothing.
+- Next: PR `INT-334: Motion: arbiter and commit windows (pure)` (Closes #533, Sec-Row mobile).
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
