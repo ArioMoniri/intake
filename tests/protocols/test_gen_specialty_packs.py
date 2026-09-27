@@ -231,11 +231,8 @@ def test_a_gate_on_an_undeclared_slot_is_refused_but_base_slots_are_readable() -
 
 
 def test_a_pack_line_overrides_the_duration_ask_with_one_question_only() -> None:
+    # One `pack:` line: a second one is refused (verification 628 L-4).
     text = PROPOSAL.replace(
-        "## 5. Gaps",
-        "pack: duration_ask=Sigarayı ne zamandır içiyorsunuz?\n\n## 5. Gaps",
-    )
-    text = text.replace(
         "## 4. Candidate B1 Turkish pre-visit questions (5)\n",
         "## 4. Candidate B1 Turkish pre-visit questions (5)\n\n"
         "pack: duration_ask=Sigarayı ne zamandır içiyorsunuz?\n",
@@ -408,7 +405,7 @@ def test_a_rebound_branch_slot_takes_its_cluster_id(
     if new in cluster_slots:
         assert slots[new]["type"] == cluster_slots[new]["type"]
     for sid, slot in slots.items():
-        assert old not in GEN.GATE_NAME.findall(slot.get("ask_if", "")), f"{slug}.{sid}"
+        assert old not in GEN.gate_reads(slot), f"{slug}.{sid}"
 
 
 def test_no_chain_asks_one_text_under_two_ids() -> None:
@@ -549,9 +546,39 @@ def _base_choices(ref: str) -> list[str]:
 
 
 # duration=omit ------------------------------------------------------------------
+#
+# Verification 628 H-1: the compiler refuses a suppress_slot that removes a slot a
+# red flag reads for an overlay only (OVERLAY_REMOVES_RULE_SLOT); the same op in a
+# chain pack compiles and the rule is served but never fires (INT-382 fixes the
+# compiler). So the generator refuses `duration=omit` while any base, parent-chain or
+# own rule, draft or signed, reads sikayet_suresi. Every generated stub anchors on it,
+# so today omit is refused everywhere. That is the true state. The stubs are not
+# re-anchored here: that is red-flag semantics, the clinician's (INT-383).
+
+DURATION_REFUSAL = "DURATION_OMIT_RULE_READS_SLOT"
+CLUSTERS = sorted(path.stem for path in (REVIEW_ROOT / "cluster").glob("*.yaml"))
 
 
-def test_duration_omit_emits_no_duration_slot() -> None:
+@pytest.fixture
+def stub_anchor_elsewhere(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Simulate a clinician-chosen stub anchor on base's dated `onset_date` (INT-383).
+
+    The generator anchors every stub on sikayet_suresi and this change does not move
+    it. Only under this simulation does `duration=omit` pass H-1's refusal, so these
+    tests can pin what omit emits once no rule reads the slot.
+    """
+    monkeypatch.setattr(GEN, "STUB_TENSE_ANCHOR", "onset_date")
+
+
+def _anchored_elsewhere(doc: dict[str, Any]) -> dict[str, Any]:
+    """A copy of a pack document whose red flags anchor on `onset_date` (simulation)."""
+    copy: dict[str, Any] = yaml.safe_load(yaml.safe_dump(doc, allow_unicode=True))
+    for rule in copy.get("red_flags") or []:
+        rule["tense_anchor"] = "onset_date"
+    return copy
+
+
+def test_duration_omit_emits_no_duration_slot(stub_anchor_elsewhere: None) -> None:
     options = GEN.extract_pack_options(_pack_line("duration=omit"))
     qs, _ = GEN.extract_questions(_pack_line("duration=omit"))
     pack = GEN.build_pack(DRAFT, "ornek", qs, options=options)
@@ -586,7 +613,29 @@ def test_duration_omit_with_a_duration_text_is_refused_as_contradictory(key: str
         GEN.extract_pack_options(_pack_line(f"duration=omit; {key}={text}"))
 
 
-def test_a_gate_on_the_omitted_duration_slot_is_refused() -> None:
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        (f"duration_ask={GEN.DURATION_ASK}", "duration=omit"),
+        ("duration=omit", f"duration_ask={GEN.DURATION_ASK}"),
+        (f"duration_ask={GEN.DURATION_ASK}", f"duration_ask={GEN.DURATION_ASK}"),
+    ],
+    ids=["ask-then-omit", "omit-then-ask", "one-key-on-two-lines"],
+)
+def test_a_second_pack_line_is_refused(first: str, second: str) -> None:
+    """L-4: the omit/text contradiction is caught across lines, not only within one."""
+    text = _pack_line(first).replace("## 5. Gaps", f"pack: {second}\n\n## 5. Gaps")
+    with pytest.raises(ValueError, match="pack: line"):
+        GEN.extract_pack_options(text)
+
+
+def test_a_pack_key_given_twice_on_one_line_is_refused() -> None:
+    line = f"duration_ask={GEN.DURATION_ASK}; duration_ask={GEN.DURATION_ASK}"
+    with pytest.raises(ValueError, match="twice"):
+        GEN.extract_pack_options(_pack_line(line))
+
+
+def test_a_gate_on_the_omitted_duration_slot_is_refused(stub_anchor_elsewhere: None) -> None:
     gated = GEN.Question(text=ITEM_TEXTS[0], slot="bayginlik", ask_if="sikayet_suresi != ''")
     other = GEN.Question(text=ITEM_TEXTS[2], slot="sislik")
     with pytest.raises(ValueError, match="undeclared"):
@@ -596,22 +645,135 @@ def test_a_gate_on_the_omitted_duration_slot_is_refused() -> None:
     assert _sorular(kept)["bayginlik"]["ask_if"] == "sikayet_suresi != ''"
 
 
-def test_duration_omit_suppresses_the_duration_slot_a_parent_declares() -> None:
-    """A child cannot drop a parent slot by leaving it out: the merge keeps it."""
+def _omit_branch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, extends: str
+) -> tuple[str, bool, Path]:
+    """Run gen() on a specialty that extends `extends` and asks for `duration=omit`."""
+    spec, review, prop = tmp_path / "specialty", tmp_path / "review", tmp_path / "proposals"
+    spec.mkdir()
+    prop.mkdir()
+    (spec / "ornek.yaml").write_text(
+        "kind: pack\nid: specialty.ornek\nmaturity: L0\ntitle_tr: Örnek (L0 taslak)\n"
+        f"extends: {extends}\n",
+        encoding="utf-8",
+    )
+    (prop / "ornek.md").write_text(_pack_line("duration=omit"), encoding="utf-8")
+    monkeypatch.setattr(GEN, "SPEC", spec)
+    monkeypatch.setattr(GEN, "REVIEW", review)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("ornek")
+    return line, ok, review / "ornek.yaml"
+
+
+@pytest.mark.parametrize("cluster", CLUSTERS)
+def test_duration_omit_is_refused_under_every_cluster_while_a_rule_reads_the_slot(
+    cluster: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """H-1, measured under all eight committed clusters: each cluster stub anchors on
+    sikayet_suresi, so a suppress_slot of it would serve a rule that never fires."""
+    line, ok, out = _omit_branch(tmp_path, monkeypatch, f"cluster.{cluster}")
+    assert not ok
+    assert DURATION_REFUSAL in line, line
+    assert f"rf.cluster_{cluster}_l0_taslak" in line and "rf.ornek_l0_taslak" in line, line
+    assert not out.exists()
+
+
+def test_omit_is_refused_while_the_candidates_own_stub_anchors_on_the_slot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """M-4, subsumed by H-1: nothing above a cluster candidate reads sikayet_suresi,
+    but its own stub does. A signed stub that kept that anchor would never fire, so
+    omit is refused; the anchor itself stays the clinician's to move (INT-383)."""
+    assert len(CLUSTERS) == len(GEN.CLUSTER_TITLES)
+    review, served, prop = tmp_path / "review", tmp_path / "served", tmp_path / "proposals"
+    prop.mkdir()
+    (prop / "cluster_medical.md").write_text(_pack_line("duration=omit"), encoding="utf-8")
+    monkeypatch.setattr(GEN, "REVIEW_CLUSTER", review)
+    monkeypatch.setattr(GEN, "SERVED_CLUSTER", served)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("cluster_medical")
+    assert not ok
+    assert DURATION_REFUSAL in line and "rf.cluster_medical_l0_taslak" in line, line
+    above = [rule["id"] for rule in GEN.parent_chain_rules("base.intake")]
+    assert above and not any(rule_id in line for rule_id in above), line
+    assert not (review / "medical.yaml").exists()
+    # No stub is re-anchored: every generated stub still anchors on sikayet_suresi.
+    qs, _ = GEN.extract_questions(PROPOSAL)
+    (stub,) = GEN.build_pack(DRAFT, "ornek", qs)["red_flags"]
+    assert stub["tense_anchor"] == GEN.DURATION_SLOT
+
+
+@pytest.mark.parametrize(
+    ("rule", "reads"),
+    [
+        ({"when": "son_gunlerde_ates == true && sikayet_suresi != ''"}, True),
+        ({"when": "ziyaret_baglami.sikayet_suresi != ''"}, True),
+        ({"when": "!(sikayet_suresi in {'x'})"}, True),
+        ({"when": "son_gunlerde_ates == true", "tense_anchor": "sikayet_suresi"}, True),
+        ({"gate": "sikayet_suresi != ''"}, True),  # base.life_threat's spelling (ADR-024)
+        ({"when": f"{GEN.PENDING_MARKER} a trigger over sikayet_suresi needs sign-off"}, True),
+        ({"when": "son_gunlerde_ates == true"}, False),
+        ({"when": "sikayet_suresi_notu != ''"}, False),
+        ({"when": f"{GEN.PENDING_MARKER} a trigger requires clinical sign-off"}, False),
+    ],
+    ids=[
+        "when",
+        "when-qualified",
+        "when-negated-set",
+        "tense_anchor",
+        "life-threat-gate",
+        "draft-text-names-it",
+        "near-miss-other-slot",
+        "near-miss-prefix",
+        "near-miss-draft",
+    ],
+)
+def test_a_rule_reads_the_duration_slot_in_when_or_as_its_anchor(
+    rule: dict[str, Any], reads: bool
+) -> None:
+    rule = {"id": "rf.ornek", "tense_anchor": "onset_date", **rule}
+    assert (GEN.DURATION_SLOT in GEN.rule_reads(rule)) is reads
+
+
+def test_duration_omit_suppresses_a_parent_slot_only_when_no_rule_reads_it(
+    stub_anchor_elsewhere: None,
+) -> None:
+    """A child cannot drop a parent slot by leaving it out (the merge keeps it), and it
+    may not suppress one a signed rule reads in `when` (H-1's second measured case)."""
     parent_visit = GEN.parent_section("cluster.medical", "ziyaret_baglami")
     assert "sikayet_suresi" in parent_visit
+    signed = {
+        "id": "rf.ornek_imzali",
+        "status": "active",
+        "when": "son_gunlerde_ates == true && sikayet_suresi != ''",
+        "tense_anchor": "onset_date",
+    }
     qs, _ = GEN.extract_questions(_items("slot=bayginlik; type=boolean", None))
+    omit = {"duration": "omit"}
+    with pytest.raises(ValueError, match=rf"{DURATION_REFUSAL}.*rf\.ornek_imzali"):
+        GEN.build_pack(
+            DRAFT, "ornek", qs, options=omit, parent_visit_slots=parent_visit, chain_rules=[signed]
+        )
+    # Near-miss: a parent rule reading another slot lets omit through, with the op.
+    elsewhere = {**signed, "when": "son_gunlerde_ates == true"}
     pack = GEN.build_pack(
-        DRAFT, "ornek", qs, options={"duration": "omit"}, parent_visit_slots=parent_visit
+        DRAFT, "ornek", qs, options=omit, parent_visit_slots=parent_visit, chain_rules=[elsewhere]
     )
     assert pack["ops"] == [{"op": "suppress_slot", "pointer": GEN.DURATION_POINTER}]
-    # Near-miss control: without omit, nothing is suppressed.
-    kept = GEN.build_pack(DRAFT, "ornek", qs, parent_visit_slots=parent_visit)
+    # Near-miss: without omit, nothing is suppressed and nothing is refused.
+    kept = GEN.build_pack(DRAFT, "ornek", qs, parent_visit_slots=parent_visit, chain_rules=[signed])
     assert "ops" not in kept
 
 
 @pytest.mark.parametrize("omit", [True, False], ids=["omit", "near-miss-kept"])
-def test_the_resolved_chain_asks_no_duration_question_only_when_omitted(omit: bool) -> None:
+def test_the_resolved_chain_drops_sikayet_suresi_only_when_omitted(
+    omit: bool, stub_anchor_elsewhere: None
+) -> None:
+    """M-1: omit removes the cluster/specialty `ziyaret_baglami.sikayet_suresi` only.
+    base.intake's must_ask `hpi.onset_date` and `hpi.duration` are still asked, and no
+    pack can suppress them (SUPPRESS_MUST_ASK). The committed cluster.medical is refused
+    (above), so its stub is anchored elsewhere here, as a simulation."""
+    cluster = _anchored_elsewhere(_pack(REVIEW_CLUSTER_MEDICAL))
     qs, _ = GEN.extract_questions(_items("slot=bayginlik; type=boolean", None))
     branch = ProtocolPack.model_validate(
         GEN.build_pack(
@@ -619,10 +781,11 @@ def test_the_resolved_chain_asks_no_duration_question_only_when_omitted(omit: bo
             "ornek",
             qs,
             options={"duration": "omit"} if omit else {},
-            parent_visit_slots=GEN.parent_section("cluster.medical", "ziyaret_baglami"),
+            parent_visit_slots=cluster["sections"]["ziyaret_baglami"]["slots"],
+            chain_rules=[*_pack(BASE_PACK)["red_flags"], *cluster["red_flags"]],
         )
     )
-    chain = [load_pack(BASE_PACK), load_pack(REVIEW_CLUSTER_MEDICAL), branch]
+    chain = [load_pack(BASE_PACK), ProtocolPack.model_validate(cluster), branch]
     registry = PackRegistry()
     for pack in chain:
         registry.add(pack)
@@ -630,6 +793,8 @@ def test_the_resolved_chain_asks_no_duration_question_only_when_omitted(omit: bo
     merged = _merge_chain(chain)
     assert _apply_ops(merged, _ordered_ops(chain), "tr") == []
     assert ("sikayet_suresi" in merged["ziyaret_baglami"].slots) is not omit
+    hpi = merged["hpi"].slots
+    assert hpi["onset_date"].must_ask and hpi["duration"].must_ask
 
 
 # gen: type=code; options=… ------------------------------------------------------
@@ -710,6 +875,70 @@ def test_a_code_question_without_options_is_refused_by_build_pack_too() -> None:
         GEN.build_pack(DRAFT, "ornek", [REASON_Q, bare, bare])
 
 
+CODE_ITEM = GEN.Question(
+    text=ITEM_TEXTS[2], slot="sislik", type="code", options=("evet", "hayir", "bilmiyorum")
+)
+
+
+@pytest.mark.parametrize("field", ["ask_if", "skip_if"])
+@pytest.mark.parametrize(
+    "gate",
+    [
+        "sislik == 'hayır'",
+        "sislik == 'var'",
+        "sislik != 'hayır'",
+        "sislik in {'evet', 'hayır'}",
+        "sislik == true",
+        "sislik",
+    ],
+    ids=["label-not-id", "unknown-word", "not-equal-label", "set-with-label", "boolean", "bare"],
+)
+def test_a_gate_on_a_code_slot_reads_only_its_option_ids(field: str, gate: str) -> None:
+    """M-2: `'hayır'` is the label, `hayir` the id. A gate comparing a generated code
+    slot with anything but its ids would never follow the answer."""
+    gated = GEN.Question(text=ITEM_TEXTS[1], slot="efor", type="boolean", **{field: gate})
+    with pytest.raises(ValueError, match="option ids"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, CODE_ITEM, gated])
+
+
+@pytest.mark.parametrize("field", ["ask_if", "skip_if"])
+@pytest.mark.parametrize(
+    "gate", ["sislik == 'hayir'", "sislik != 'bilmiyorum'", "sislik in {'evet', 'hayir'}"]
+)
+def test_a_gate_comparing_a_code_slot_with_its_option_ids_is_emitted(field: str, gate: str) -> None:
+    """Near-miss control for the refusal above."""
+    gated = GEN.Question(text=ITEM_TEXTS[1], slot="efor", type="boolean", **{field: gate})
+    pack = GEN.build_pack(DRAFT, "ornek", [REASON_Q, CODE_ITEM, gated])
+    assert _sorular(pack)["efor"][field] == gate
+    ProtocolPack.model_validate(pack)
+
+
+@pytest.mark.parametrize("sid", ["anticoagulant_use", "pregnancy_status", "onset_date"])
+def test_a_code_slot_may_not_reuse_a_base_slot_id(sid: str) -> None:
+    """M-3: a second slot of a base name makes bare reads ambiguous and rebinds vs.<id>."""
+    item = GEN.Question(text=ITEM_TEXTS[2], slot=sid, type="code", options=("evet", "hayir"))
+    other = GEN.Question(text=ITEM_TEXTS[0], slot="bayginlik", type="boolean")
+    with pytest.raises(ValueError, match="reuse"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, other, item], base_slots=GEN.base_slot_names())
+
+
+def test_a_code_slot_may_not_reuse_a_parent_chain_slot_id() -> None:
+    parent = {"asi": {"type": "boolean", "ask_tr": {"tr": ITEM_TEXTS[0]}}}
+    code = GEN.Question(text=ITEM_TEXTS[2], slot="asi", type="code", options=("evet", "hayir"))
+    other = GEN.Question(text=ITEM_TEXTS[0], slot="bayginlik", type="boolean")
+    with pytest.raises(ValueError, match="reuse"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, other, code], parent_slots=parent)
+    # Near-miss controls: a boolean re-declaring the parent id is the INT-353 rebind,
+    # and a code slot under a fresh id reuses nothing.
+    rebind = GEN.Question(text=ITEM_TEXTS[2], slot="asi", type="boolean")
+    assert "asi" in _sorular(
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, other, rebind], parent_slots=parent)
+    )
+    assert "sislik" in _sorular(
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, other, CODE_ITEM], parent_slots=parent)
+    )
+
+
 # gen: skip_if=… -----------------------------------------------------------------
 
 
@@ -751,6 +980,57 @@ def test_a_gate_reads_only_slots_declared_before_it(field: str, reads: str, reas
         GEN.build_pack(DRAFT, "ornek", [REASON_Q, gated, later], base_slots=GEN.base_slot_names())
 
 
+@pytest.mark.parametrize("field", ["ask_if", "skip_if"])
+@pytest.mark.parametrize(
+    ("gate", "reason"),
+    [
+        ("sislik", "later"),
+        ("!sislik", "later"),
+        ("sislik in {'evet'}", "later"),
+        ("yok_boyle", "undeclared"),
+        ("!devam", "itself"),
+    ],
+    ids=["bare-forward", "negated-forward", "set-forward", "bare-undeclared", "negated-self"],
+)
+def test_a_gate_is_read_with_the_dsl_parser_not_only_at_a_comparison(
+    field: str, gate: str, reason: str
+) -> None:
+    """L-1: a bare, negated or `in` read is a read (protocols.triage.expr.parse_when)."""
+    gated = GEN.Question(text=ITEM_TEXTS[0], slot="devam", type="boolean", **{field: gate})
+    later = GEN.Question(text=ITEM_TEXTS[2], slot="sislik", type="boolean")
+    with pytest.raises(ValueError, match=reason):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, gated, later], base_slots=GEN.base_slot_names())
+
+
+@pytest.mark.parametrize("field", ["ask_if", "skip_if"])
+def test_a_gate_outside_the_dsl_grammar_is_refused(field: str) -> None:
+    """L-1: the compiler parses gates with the `when` grammar; so does the generator."""
+    outside = "bayginlik in ['evet']"
+    qs, warnings = GEN.extract_questions(
+        _items("slot=bayginlik; type=boolean", f"slot=efor; type=boolean; {field}={outside}")
+    )
+    assert ITEM_TEXTS[1] not in [q.text for q in qs]
+    assert any("gate grammar" in w for w in warnings), warnings
+    first = GEN.Question(text=ITEM_TEXTS[0], slot="bayginlik", type="boolean")
+    gated = GEN.Question(text=ITEM_TEXTS[1], slot="efor", type="boolean", **{field: outside})
+    with pytest.raises(ValueError, match="gate grammar"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, first, gated])
+
+
+def test_build_pack_refuses_two_gates_on_one_item_too() -> None:
+    """L-2: a caller that skips the parser cannot emit ask_if and skip_if together."""
+    first = GEN.Question(text=ITEM_TEXTS[0], slot="bayginlik", type="boolean")
+    both = GEN.Question(
+        text=ITEM_TEXTS[1],
+        slot="efor",
+        type="boolean",
+        ask_if="bayginlik == true",
+        skip_if="bayginlik == false",
+    )
+    with pytest.raises(ValueError, match="one gate per item"):
+        GEN.build_pack(DRAFT, "ornek", [REASON_Q, first, both])
+
+
 def test_one_question_carries_one_gate() -> None:
     qs, warnings = GEN.extract_questions(
         _items(
@@ -765,8 +1045,16 @@ def test_one_question_carries_one_gate() -> None:
 
 @pytest.mark.parametrize(
     "extra",
-    [{"skip_if": "subject_role != 'kendim'"}, {"type": "code", "options": ("evet", "hayir")}],
-    ids=["skip_if", "code"],
+    [
+        {"skip_if": "subject_role != 'kendim'"},
+        {"type": "code", "options": ("evet", "hayir")},
+        {"ask_if": "subject_role != 'kendim'"},
+        {"slot": "neden"},
+        {"type": "boolean"},
+        {"follow_up": GEN.REASON_FOLLOW_UP_WHEN_NEDIR},
+        {"delivery": "text_first"},
+    ],
+    ids=["skip_if", "code", "ask_if", "slot", "type", "follow_up", "delivery"],
 )
 def test_the_reason_question_takes_no_gate_and_no_code(extra: dict[str, Any]) -> None:
     """Q1 fills the fixed, required basvuru_nedeni slot: a new key on it would be dropped."""
@@ -774,6 +1062,39 @@ def test_the_reason_question_takes_no_gate_and_no_code(extra: dict[str, Any]) ->
     items = [GEN.Question(text=t, slot=f"soru_{i}") for i, t in enumerate(ITEM_TEXTS[:2], 1)]
     with pytest.raises(ValueError, match="Q1"):
         GEN.build_pack(DRAFT, "ornek", [reason, *items], base_slots=GEN.base_slot_names())
+
+
+@pytest.mark.parametrize(
+    "gen",
+    [
+        "ask_if=subject_role != 'kendim'",
+        "skip_if=subject_role != 'kendim'",
+        "slot=neden",
+        "type=string",
+        f"follow_up={GEN.REASON_FOLLOW_UP_WHEN_NEDIR}",
+        "delivery=text_first",
+    ],
+    ids=["ask_if", "skip_if", "slot", "type", "follow_up", "delivery"],
+)
+def test_a_gen_line_on_the_reason_question_is_refused_not_dropped(
+    gen: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L-3: no gen key applies to Q1, so a key there refuses Q1 (and so the pack)."""
+    text = _items("slot=bayginlik; type=boolean", None).replace(
+        f'> "{REASON_TEXT}"\n', f'> "{REASON_TEXT}"\ngen: {gen}\n'
+    )
+    qs, warnings = GEN.extract_questions(text)
+    assert REASON_TEXT not in [q.text for q in qs]
+    assert any("Q1 fills basvuru_nedeni" in w for w in warnings), warnings
+    review, served, prop = tmp_path / "review", tmp_path / "served", tmp_path / "proposals"
+    prop.mkdir()
+    (prop / "cluster_medical.md").write_text(text, encoding="utf-8")
+    monkeypatch.setattr(GEN, "REVIEW_CLUSTER", review)
+    monkeypatch.setattr(GEN, "SERVED_CLUSTER", served)
+    monkeypatch.setattr(GEN, "PROP", prop)
+    line, ok = GEN.gen("cluster_medical")
+    assert not ok and "Q1" in line, line
+    assert not (review / "medical.yaml").exists()
 
 
 def test_a_skip_if_gate_is_ordered_like_an_ask_if_gate() -> None:
@@ -805,8 +1126,9 @@ def test_near_miss_spellings_of_the_new_keys_stay_refused(gen: str) -> None:
 
 
 def test_a_cluster_candidate_using_all_three_loads_and_validates(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stub_anchor_elsewhere: None
 ) -> None:
+    """Under the anchor simulation only: with the committed anchor, omit is refused."""
     review, served, prop = tmp_path / "review", tmp_path / "served", tmp_path / "proposals"
     prop.mkdir()
     text = _items(

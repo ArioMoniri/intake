@@ -21,20 +21,30 @@ Proposal format (section titled "Candidate …", or `## 3.` when it holds Q item
     gen: slot=<id>; type=<boolean|code|date|duration|string>; options=<id>|<id>…;
          ask_if=<expr> | skip_if=<expr>; follow_up=<t>; delivery=<d>; hold=<r>
     pack: duration_ask=<q>; duration_follow_up=<q>   or   pack: duration=omit
-The `gen:` line is optional. Q1 fills basvuru_nedeni. `hold=` keeps an item out
-of the pack (unsourced or unverified). An ask with more than one question mark,
-or with a digit, is refused (invariants 2 and 22). A `code` item names its
-answers by id from CODE_OPTIONS, whose labels base.intake already carries, and
-never by free text. A gate (`ask_if` or `skip_if`, one per item) reads only the
-fixed slots, base.intake or an item before it. `duration=omit` leaves the
-duration slot out (a recall, report or preventive visit has no complaint to time).
+The `gen:` line is optional, and Q1, which fills basvuru_nedeni, takes none but
+`hold=`. `hold=` keeps an item out of the pack (unsourced or unverified). One
+`pack:` line at most. An ask with more than one question mark, or with a digit,
+is refused (invariants 2 and 22). A `code` item names its answers by id from
+CODE_OPTIONS, whose labels base.intake already carries, and never by free text;
+its slot id is new to the chain. A gate (`ask_if` or `skip_if`, one per item) is
+parsed with the DSL's own `when` grammar, reads only the fixed slots, base.intake
+or an item before it, and compares a code item only with that item's option ids.
+
+`duration=omit` removes the cluster/specialty `ziyaret_baglami.sikayet_suresi`
+only; base.intake's must_ask `hpi.onset_date` and `hpi.duration` are still asked
+and no pack can suppress them. It is refused (DURATION_OMIT_RULE_READS_SLOT)
+while any red-flag rule of base.life_threat, the parent chain or the candidate
+itself, draft or signed, reads that slot in `when` or as its `tense_anchor`: the
+compiler refuses such a suppression for an overlay only (INT-382). Every stub
+anchors on it today, so omit is refused everywhere until that changes.
 
 A specialty pack merges into its cluster's `sorular` section, where a re-declared
 cluster id keeps the cluster's position (the resolver's `_merge_chain`). When that
 would put a gated question before its gate slot, the candidate carries a `reorder`
 op (files/12 §3.1) that asks every gate slot first (files/13 §9.5). For the same
-reason, leaving a slot out cannot remove one the parent declares: `duration=omit`
-under a cluster that asks the duration carries a `suppress_slot` op for it.
+reason, leaving a slot out cannot remove one the parent declares: an admitted
+`duration=omit` under a cluster that asks the duration carries a `suppress_slot`
+op for it.
 """
 
 from __future__ import annotations
@@ -44,13 +54,32 @@ import glob
 import json
 import re
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
+from protocols.triage.expr import (
+    And,
+    BoolRef,
+    InSet,
+    Lit,
+    Not,
+    Or,
+    Ref,
+    WhenGrammarError,
+    WhenNode,
+    parse_when,
+    referenced_slots,
+)
+from protocols.types import SLOT_REF_PATTERN
 
 ROOT = Path(__file__).resolve().parents[2]
+BASE_INTAKE = ROOT / "packages/protocols/base/intake.yaml"
+# The sibling set evaluated on every session (files/12 §1): not in the chain, but a
+# slot it read would be removed by a suppression just the same.
+LIFE_THREAT = ROOT / "files/protocols/base.life_threat.yaml"
 SPEC = ROOT / "packages/protocols/specialty"
 REVIEW = ROOT / "packages/protocols/review/specialty"
 REVIEW_CLUSTER = ROOT / "packages/protocols/review/cluster"
@@ -89,9 +118,13 @@ GEN_KEYS = {"slot", "type", "options", "ask_if", "skip_if", "follow_up", "hold",
 GATE_KEYS = ("ask_if", "skip_if")
 PACK_KEYS = {"duration", "duration_ask", "duration_follow_up"}
 DURATION_OMIT = "omit"
-GATE_NAME = re.compile(r"\b([a-z][a-z0-9_]*)\s*(?:==|!=|>=|<=|>|<)")
 DURATION_SLOT = "sikayet_suresi"
+DURATION_OMIT_REFUSAL = "DURATION_OMIT_RULE_READS_SLOT"
+# The draft stub's tense_anchor. Not moved here: which slot times each rule is
+# red-flag semantics, the clinician's (INT-383, awaiting-human; HB-C1, HB-C2).
+STUB_TENSE_ANCHOR = DURATION_SLOT
 FIXED_SLOTS = frozenset({"basvuru_nedeni", DURATION_SLOT})
+PACK_LINE = re.compile(r"^pack:\s*(.+)$", re.M)
 # The answers a `type=code` item may offer (INT-379): option id → (label, the
 # base.intake code slot whose choices_tr carries that label verbatim). Nothing here
 # is new Turkish, and a label no base code slot carries is refused as
@@ -200,8 +233,14 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
         label = seg.split("\n", 1)[0][:40]
         gm = re.search(r"^gen:\s*(.+)$", seg, re.M)
         gen = _parse_gen(gm.group(1)) if gm else {}
+        nm = re.match(r"(\d+)", seg)
+        number = int(nm.group(1)) if nm else None
         if "hold" in gen:
             warnings.append(f"hold Q{label}: {gen['hold']}")
+            continue
+        if number == 1 and gen:
+            # Refused, never dropped: every key on the reason question would vanish.
+            warnings.append(f"refused Q{label}: Q1 fills basvuru_nedeni; gen keys do not apply")
             continue
         unknown = sorted(set(gen) - GEN_KEYS)
         if unknown:
@@ -233,12 +272,19 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
         if all(key in gen for key in GATE_KEYS):
             warnings.append(f"refused Q{label}: ask_if and skip_if contradict: one gate per item")
             continue
+        grammar = [
+            problem
+            for key in GATE_KEYS
+            if key in gen and (problem := _grammar_problem(key, gen[key])) is not None
+        ]
+        if grammar:
+            warnings.append(f"refused Q{label}: {grammar[0]}")
+            continue
         follow_up = gen.get("follow_up")
         if follow_up is not None and not _one_question(follow_up):
             warnings.append(f"refused Q{label}: follow-up must be one question, no digit")
             continue
         am = re.search(r"archetype:\s*`([^`]+)`", seg.split("\n", 1)[0])
-        nm = re.match(r"(\d+)", seg)
         questions.append(
             Question(
                 text=q,
@@ -247,7 +293,7 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
                 ask_if=gen.get("ask_if"),
                 follow_up=follow_up,
                 archetype=am.group(1) if am else None,
-                number=int(nm.group(1)) if nm else None,
+                number=number,
                 delivery=delivery,
                 skip_if=gen.get("skip_if"),
                 options=options,
@@ -259,11 +305,18 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
 def extract_pack_options(md_text: str) -> dict[str, str]:
     """Read an optional `pack:` line (e.g. a branch-appropriate duration ask).
 
-    Raises ValueError on an unknown key, an ask that is not one question, a
+    Raises ValueError on a second `pack:` line or a key given twice (either would
+    silently drop a value), an unknown key, an ask that is not one question, a
     `duration` other than `omit`, or `duration=omit` beside a duration text.
     """
-    pm = re.search(r"^pack:\s*(.+)$", _question_region(md_text), re.M)
-    options = _parse_gen(pm.group(1)) if pm else {}
+    lines = PACK_LINE.findall(_question_region(md_text))
+    if len(lines) > 1:
+        raise ValueError(f"{len(lines)} pack: lines; one pack: line per proposal")
+    keys = [part.split("=", 1)[0].strip() for part in (lines or [""])[0].split(";") if "=" in part]
+    twice = sorted({key for key in keys if keys.count(key) > 1})
+    if twice:
+        raise ValueError(f"pack key(s) {twice} given twice")
+    options = _parse_gen(lines[0]) if lines else {}
     unknown = sorted(set(options) - PACK_KEYS)
     if unknown:
         raise ValueError(f"unknown pack key(s) {unknown}")
@@ -281,7 +334,7 @@ def extract_pack_options(md_text: str) -> dict[str, str]:
 
 def base_slot_names() -> frozenset[str]:
     """Slot names declared by base.intake, which a specialty gate may read."""
-    base = yaml.safe_load((ROOT / "packages/protocols/base/intake.yaml").read_text("utf-8"))
+    base = yaml.safe_load(BASE_INTAKE.read_text("utf-8"))
     names: set[str] = set()
     for section in (base.get("sections") or {}).values():
         names.update((section or {}).get("slots") or {})
@@ -315,19 +368,105 @@ def _slot(q: Question, sid: str, slug: str) -> dict[str, Any]:
     return slot
 
 
-def gate_reads(slot: dict[str, Any]) -> frozenset[str]:
-    """The slot names a slot's gates (`ask_if` and `skip_if`) read."""
-    return frozenset(name for key in GATE_KEYS for name in GATE_NAME.findall(slot.get(key) or ""))
+def _slot_key(name: str) -> str:
+    """The slot key of a bare or section-qualified reference (files/03 §6 atoms)."""
+    return name.rsplit(".", 1)[-1]
 
 
-def _gate_problem(sid: str, key: str, expr: str, readable: set[str], later: set[str]) -> str | None:
+def _grammar_problem(key: str, expr: str) -> str | None:
+    """Why a gate is outside the DSL's `when` grammar, which the compiler parses it
+    with (protocols.triage.expr), or None when it parses."""
+    try:
+        parse_when(expr)
+    except WhenGrammarError as exc:
+        return f"{key} {expr!r} is outside the gate grammar: {exc}"
+    return None
+
+
+def gate_reads(slot: Mapping[str, Any]) -> frozenset[str]:
+    """The slot keys a slot's gates (`ask_if` and `skip_if`) read, as the DSL parses them.
+
+    Raises WhenGrammarError (a ValueError) on a gate outside the grammar.
+    """
+    return frozenset(
+        _slot_key(name)
+        for key in GATE_KEYS
+        if slot.get(key)
+        for name in referenced_slots(parse_when(slot[key]))
+    )
+
+
+def rule_reads(rule: Mapping[str, Any]) -> frozenset[str]:
+    """The slot keys a red-flag rule reads: its `when` references and its `tense_anchor`.
+
+    base.life_threat spells the predicate `gate` (ADR-024). A predicate the grammar
+    refuses (a draft's pending-value text) is read by its identifier tokens, so a
+    slot it names still counts: the check fails closed, as the compiler's overlay
+    check does for a `when` it cannot parse.
+    """
+    when = str(rule.get("when") or rule.get("gate") or "")
+    try:
+        names = set(referenced_slots(parse_when(when)))
+    except WhenGrammarError:
+        names = set(re.findall(SLOT_REF_PATTERN, when))
+    anchor = rule.get("tense_anchor")
+    if anchor:
+        names.add(str(anchor))
+    return frozenset(_slot_key(name) for name in names)
+
+
+def _code_misreads(
+    node: WhenNode, code_ids: Mapping[str, tuple[str, ...]]
+) -> list[tuple[str, str]]:
+    """(code slot, what it is compared with) for every read of a generated code slot
+    that is not a comparison with one of its option ids."""
+    if isinstance(node, Not):
+        return _code_misreads(node.item, code_ids)
+    if isinstance(node, And | Or):
+        return [miss for item in node.items for miss in _code_misreads(item, code_ids)]
+    if isinstance(node, BoolRef):
+        name = _slot_key(node.ref.name)
+        return [(name, "nothing (a bare read)")] if name in code_ids else []
+    pairs: list[tuple[Ref | Lit, Ref | Lit]]
+    if isinstance(node, InSet):
+        pairs = [(node.operand, element) for element in node.elements]
+    else:  # a Compare: either side may be the code slot
+        pairs = [(node.left, node.right), (node.right, node.left)]
+    misses: list[tuple[str, str]] = []
+    for operand, other in pairs:
+        if not isinstance(operand, Ref) or _slot_key(operand.name) not in code_ids:
+            continue
+        name = _slot_key(operand.name)
+        if isinstance(other, Lit) and isinstance(other.value, str):
+            if other.value not in code_ids[name]:
+                misses.append((name, repr(other.value)))
+        else:
+            misses.append((name, other.name if isinstance(other, Ref) else repr(other.value)))
+    return misses
+
+
+def _gate_problem(
+    sid: str,
+    key: str,
+    expr: str,
+    readable: set[str],
+    later: set[str],
+    code_ids: Mapping[str, tuple[str, ...]],
+) -> str | None:
     """Why the gate `key` of slot `sid` cannot be emitted, or None when it can.
 
-    A gate reads the fixed slots, base.intake or a slot declared before it — never
-    itself or a later slot (files/13 §9.5, as INT-375 enforces on the merged
-    chain), and never a slot nothing declares: such a gate never opens (INT-355).
+    The gate is parsed with the DSL's `when` grammar, as the compiler parses it. It
+    reads the fixed slots, base.intake or a slot declared before it — never itself
+    or a later slot (files/13 §9.5, as INT-375 enforces on the merged chain), and
+    never a slot nothing declares: such a gate never opens (INT-355). It compares a
+    code slot of this pack only with that slot's option ids: a label (`'hayır'` for
+    `hayir`) or any other value would never follow the answer.
     """
-    names = set(GATE_NAME.findall(expr))
+    grammar = _grammar_problem(key, expr)
+    if grammar is not None:
+        return f"{sid} {grammar}"
+    node = parse_when(expr)
+    names = {_slot_key(name) for name in referenced_slots(node)}
     if sid in names:
         return f"{sid} {key} reads itself"
     forward = sorted(names & later)
@@ -336,6 +475,13 @@ def _gate_problem(sid: str, key: str, expr: str, readable: set[str], later: set[
     missing = sorted(names - readable)
     if missing:
         return f"{sid} {key} reads undeclared slot(s) {missing}"
+    misreads = _code_misreads(node, code_ids)
+    if misreads:
+        name, other = misreads[0]
+        return (
+            f"{sid} {key} compares code slot {name} with {other}, not one of its option "
+            f"ids {list(code_ids[name])}: the gate would never follow the answer"
+        )
     return None
 
 
@@ -375,20 +521,56 @@ def _reorder_ops(
     return [{"op": "reorder", "pointer": REORDER_POINTER, "order": order}]
 
 
-def parent_section(extends: str, section: str) -> dict[str, dict[str, Any]]:
-    """The `section` slots, in order, of the cluster pack `extends` names ({} if none)."""
+def cluster_doc(extends: str) -> dict[str, Any] | None:
+    """The committed cluster pack `extends` names, served first (None if none)."""
     name = extends.removeprefix("cluster.")
     if name == extends:
-        return {}
+        return None
     for root in CLUSTER_PARENT_ROOTS:
         path = root / f"{name}.yaml"
         if path.exists():
-            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-            slots: dict[str, dict[str, Any]] = ((doc.get("sections") or {}).get(section) or {}).get(
-                "slots"
-            ) or {}
-            return slots
-    return {}
+            doc: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
+            return doc
+    return None
+
+
+def parent_section(extends: str, section: str) -> dict[str, dict[str, Any]]:
+    """The `section` slots, in order, of the cluster pack `extends` names ({} if none)."""
+    doc = cluster_doc(extends) or {}
+    slots: dict[str, dict[str, Any]] = ((doc.get("sections") or {}).get(section) or {}).get(
+        "slots"
+    ) or {}
+    return slots
+
+
+def parent_chain_rules(extends: str) -> list[dict[str, Any]]:
+    """Every red-flag rule above a candidate that `extends` names, any status.
+
+    base.life_threat (the sibling set every session evaluates), base.intake (the root
+    of every chain) and each committed cluster pack between them. A draft counts: a
+    physician signing it may keep its anchor.
+    """
+    life_threat = yaml.safe_load(LIFE_THREAT.read_text(encoding="utf-8"))
+    base = yaml.safe_load(BASE_INTAKE.read_text(encoding="utf-8"))
+    rules: list[dict[str, Any]] = [
+        *(life_threat.get("rules") or []),
+        *(base.get("red_flags") or []),
+    ]
+    seen = {"base.intake"}
+    current = extends
+    while current not in seen:
+        seen.add(current)
+        doc = cluster_doc(current)
+        if doc is None:
+            break
+        rules.extend(doc.get("red_flags") or [])
+        current = str(doc.get("extends") or "base.intake")
+    return rules
+
+
+def _omit_readers(rules: Sequence[Mapping[str, Any]]) -> list[str]:
+    """The ids of the rules that read the duration slot, in `when` or as their anchor."""
+    return sorted(str(rule["id"]) for rule in rules if DURATION_SLOT in rule_reads(rule))
 
 
 def parent_sorular(extends: str) -> dict[str, dict[str, Any]]:
@@ -406,47 +588,75 @@ def build_pack(
     layer: str = "specialty",
     parent_slots: dict[str, dict[str, Any]] | None = None,
     parent_visit_slots: dict[str, dict[str, Any]] | None = None,
+    chain_rules: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Pure: the pack document for `slug` (maturity L0 until signed).
 
-    Raises ValueError on a duplicate slot id, a code item without its options, a
-    new key on Q1, or a gate (ask_if or skip_if) that reads itself, a later slot,
-    or a slot neither declared earlier in this pack nor by base.intake — such a
-    gate never opens, so the question would silently never be asked.
+    Raises ValueError on a duplicate slot id, a code item without its options or
+    reusing a base or parent-chain slot id, any key on Q1, two gates on one item,
+    or a gate (ask_if or skip_if) outside the `when` grammar, that reads itself, a
+    later slot, or a slot neither declared earlier in this pack nor by base.intake —
+    such a gate never opens, so the question would silently never be asked — or
+    that compares a code item with anything but its option ids.
 
     `parent_slots` is the parent cluster's `sorular` section. When merging over it
     would ask a gated slot before its gate slot, the pack carries a `reorder` op.
     `parent_visit_slots` is its `ziyaret_baglami` section: under `duration=omit`
     a duration slot declared there is suppressed, since the merge would keep it.
+    `chain_rules` are the red-flag rules above this pack (`parent_chain_rules`):
+    `duration=omit` is refused as DURATION_OMIT_RULE_READS_SLOT while any of them,
+    or this pack's own stub, reads the duration slot.
     """
     options = options or {}
     omit = options.get("duration") == DURATION_OMIT
     reason = questions[0]
-    if reason.skip_if is not None or reason.options or reason.type == "code":
-        raise ValueError(f"{slug}: Q1 fills basvuru_nedeni; skip_if and code do not apply")
+    # Every field but the text, archetype and number is left at its default on Q1.
+    if reason != Question(text=reason.text, archetype=reason.archetype, number=reason.number):
+        raise ValueError(f"{slug}: Q1 fills basvuru_nedeni; gen keys do not apply")
     reason_follow_up = (
         REASON_FOLLOW_UP_WHEN_NEDIR
         if reason.text.endswith("nedir?")
         else REASON_FOLLOW_UP_OTHERWISE
     )
     title = (draft.get("title_tr") or slug).replace(" (L0 taslak)", "")
+    stub = _stub_rule(slug, title, layer)
+    readers = _omit_readers([*chain_rules, stub]) if omit else []
+    if readers:
+        raise ValueError(
+            f"{slug}: {DURATION_OMIT_REFUSAL}: duration=omit would remove {DURATION_SLOT}, "
+            f"which red-flag rule(s) {readers} read in `when` or as `tense_anchor`. A rule "
+            "whose slot is gone never fires (invariant 7), and the compiler refuses that "
+            "only for an overlay today (INT-382)"
+        )
     fixed = FIXED_SLOTS - {DURATION_SLOT} if omit else FIXED_SLOTS
+    # Every slot id the chain above already declares: a code slot may take none of them.
+    chain_ids = base_slots | set(parent_slots or {}) | set(parent_visit_slots or {})
     sids = [q.slot or f"soru_{i}" for i, q in enumerate(questions[1:], 1)]
     sorular: dict[str, Any] = {}
+    code_ids: dict[str, tuple[str, ...]] = {}
     for i, (sid, q) in enumerate(zip(sids, questions[1:], strict=True)):
         if sid in sorular or sid in FIXED_SLOTS:
             raise ValueError(f"{slug}: duplicate slot id {sid}")
+        if q.ask_if is not None and q.skip_if is not None:
+            raise ValueError(f"{slug}: {sid}: ask_if and skip_if contradict: one gate per item")
         problem = code_problem(q.slot, q.type, q.options)
         if problem is not None:
             raise ValueError(f"{slug}: {sid}: {problem}")
+        if q.type == "code" and sid in chain_ids:
+            raise ValueError(
+                f"{slug}: {sid}: a type=code slot may not reuse a base.intake or parent-chain "
+                f"slot id: two slots of that name make bare reads ambiguous and rebind vs.{sid}"
+            )
         readable = set(fixed | base_slots | set(sorular))
         for key, expr in (("ask_if", q.ask_if), ("skip_if", q.skip_if)):
             if expr is None:
                 continue
-            gate = _gate_problem(sid, key, expr, readable, set(sids[i + 1 :]))
+            gate = _gate_problem(sid, key, expr, readable, set(sids[i + 1 :]), code_ids)
             if gate is not None:
                 raise ValueError(f"{slug}: {gate}")
         sorular[sid] = _slot(q, sid, slug)
+        if q.type == "code":
+            code_ids[sid] = q.options
     ops = _reorder_ops(parent_slots or {}, sorular)
     if omit and DURATION_SLOT in (parent_visit_slots or {}):
         ops.append({"op": "suppress_slot", "pointer": DURATION_POINTER})
@@ -484,35 +694,37 @@ def build_pack(
             "sorular": {"slots": sorular},
         },
         **({"ops": ops} if ops else {}),
-        "red_flags": [
-            {
-                "id": f"rf.{slug}_l0_taslak",
-                "label_tr": (
-                    f"{title} — {'kümeye' if layer == 'cluster' else 'branşa'} özgü kırmızı "
-                    "bayrak taslağı (klinik onay bekliyor)"
-                ),
-                "when": (
-                    f"{PENDING_MARKER} {slug} branch-specific red-flag trigger "
-                    "requires clinical sign-off"
-                ),
-                "tense": "ever",
-                "tense_anchor": "sikayet_suresi",
-                "level": "YESIL",
-                "route": "EXPEDITE",
-                "notify_clinic": "never",
-                "status": "draft_needs_source",
-                "source_gap": (
-                    "Trigger, EK-4 level and route await clinical sign-off (invariant 17 "
-                    "pending-value literal). Guideline-sourced candidates recorded in "
-                    f"docs/evidence/proposals/{slug}.md; acuity bound by EK-4 law "
-                    "(RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in "
-                    "base.life_threat (invariant 7). Owner: physician of record "
-                    "(HB-C1, HB-C2, HB-C7)."
-                ),
-            }
-        ],
+        "red_flags": [stub],
     }
     return pack
+
+
+def _stub_rule(slug: str, title: str, layer: str) -> dict[str, Any]:
+    """The branch red flag, left as the draft_needs_source stub (never fabricated)."""
+    return {
+        "id": f"rf.{slug}_l0_taslak",
+        "label_tr": (
+            f"{title} — {'kümeye' if layer == 'cluster' else 'branşa'} özgü kırmızı "
+            "bayrak taslağı (klinik onay bekliyor)"
+        ),
+        "when": (
+            f"{PENDING_MARKER} {slug} branch-specific red-flag trigger requires clinical sign-off"
+        ),
+        "tense": "ever",
+        "tense_anchor": STUB_TENSE_ANCHOR,
+        "level": "YESIL",
+        "route": "EXPEDITE",
+        "notify_clinic": "never",
+        "status": "draft_needs_source",
+        "source_gap": (
+            "Trigger, EK-4 level and route await clinical sign-off (invariant 17 "
+            "pending-value literal). Guideline-sourced candidates recorded in "
+            f"docs/evidence/proposals/{slug}.md; acuity bound by EK-4 law "
+            "(RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in "
+            "base.life_threat (invariant 7). Owner: physician of record "
+            "(HB-C1, HB-C2, HB-C7)."
+        ),
+    }
 
 
 def header(slug: str) -> str:
@@ -605,6 +817,7 @@ def gen(slug: str) -> tuple[str, bool]:
             layer=layer,
             parent_slots=parent_sorular(extends),
             parent_visit_slots=parent_section(extends, "ziyaret_baglami"),
+            chain_rules=parent_chain_rules(extends),
         )
     except ValueError as exc:
         return f"SKIP {slug}: {exc}{notes}", False
