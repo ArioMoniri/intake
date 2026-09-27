@@ -16,6 +16,11 @@ Three parts of the report are generated rather than written:
 - Every contrast figure is computed from ``apps/mobile/src/lib/theme.ts`` at
   render time, so a palette change reaches the report or fails the gate.
 - The EN 301 549 clause 11.1-11.4 table is derived from the WCAG rows.
+- SC 1.3.4's ``essential_locks`` register (INT-360) is named in that row's
+  remarks, so a screen that keeps an orientation lock is named, with the
+  reason its orientation is essential, where the report claims the criterion.
+  ``apps/mobile/e2e/a11y.spec.ts`` fails on a lock in the app that the
+  register does not list.
 
 ``--check`` exits 1 when the source is invalid or the committed report is
 stale; ``tests/legal/test_a11y_report.py`` runs the same checks under pytest.
@@ -38,6 +43,9 @@ SOURCE = REPO / "docs" / "compliance" / "accessibility-conformance.yaml"
 TARGET = REPO / "docs" / "compliance" / "accessibility-conformance-report.md"
 THEME = REPO / "apps" / "mobile" / "src" / "lib" / "theme.ts"
 MOBILE = "apps/mobile/"
+
+# The one criterion whose row carries an exception register (INT-360).
+ORIENTATION_SC = "1.3.4"
 
 STATUSES = (
     "Supports",
@@ -223,8 +231,28 @@ def validate(
             problems.append(
                 f"{rid}: decided by the device audit ({decided[rid]}) but says {status}"
             )
+        problems.extend(_lock_problems(row))
 
     problems.extend(_contrast_problems(source, palette or theme_palette()))
+    return problems
+
+
+def _lock_problems(row: dict[str, Any]) -> list[str]:
+    """SC 1.3.4 names every essential orientation lock with its reason, and only it does."""
+    rid = row_id(row)
+    if "essential_locks" not in row:
+        return [f"{rid}: no essential_locks register"] if rid == ORIENTATION_SC else []
+    if rid != ORIENTATION_SC:
+        return [f"{rid}: essential_locks belongs to SC {ORIENTATION_SC} alone"]
+    locks = row["essential_locks"]
+    if not isinstance(locks, list):
+        return [f"{rid}: essential_locks is not a list"]
+    problems: list[str] = []
+    for lock in locks:
+        if not isinstance(lock, dict) or not str(lock.get("lock", "")).strip():
+            problems.append(f"{rid}: an essential_locks entry names no lock")
+        elif not str(lock.get("reason", "")).strip():
+            problems.append(f"{rid}: essential lock {lock['lock']} states no reason")
     return problems
 
 
@@ -274,9 +302,23 @@ def _evidence(row: dict[str, Any], decided: dict[str, str], measured: set[str]) 
     return "<br>".join(parts) if parts else "—"
 
 
+def _essential_locks(row: dict[str, Any]) -> str:
+    """The SC 1.3.4 exception, named where the criterion is claimed (INT-360)."""
+    if "essential_locks" not in row:
+        return ""
+    locks = row["essential_locks"]
+    if not locks:
+        return " " + _cell("**Essential exception:** none. No screen keeps an orientation lock.")
+    named = " ".join(f"`{lock['lock']}`: {str(lock['reason']).strip()}" for lock in locks)
+    return " " + _cell(
+        "**Essential exception:** these screens keep an orientation lock, each because that "
+        f"orientation is essential: {named}"
+    )
+
+
 def _remarks(row: dict[str, Any]) -> str:
     finding = str(row.get("finding", "")).strip()
-    remarks = _cell(row.get("remarks", ""))
+    remarks = _cell(row.get("remarks", "")) + _essential_locks(row)
     return f"**Finding:** {_cell(finding)} {remarks}" if finding else remarks
 
 

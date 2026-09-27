@@ -177,13 +177,14 @@ def build_residency_tr_session(
 
     ``extraction_row`` defaults to files/03 §4.9.1 **row 7** rather than row 9.
     That is a recorded fact about the bridge, not a preference: §4.9.1 row 9
-    pins ``Qwen/Qwen3.6-35B-A3B`` for extraction, no registry row carries it,
-    and the served OpenAI-compatible endpoint on the dev bridge is the row-7
-    Talker model. §4.9.2(a) already notes that consolidating extraction onto
-    the Talker family is *"also an operational win: one model family to
-    version, pin and hash"* — but which row serves extraction in production is
-    a decision for the issue that sizes the GPU tier, and the parameter exists
-    so it is made explicitly rather than inherited from this default.
+    pins ``Qwen/Qwen3.6-35B-A3B`` for extraction, its registry row (INT-124)
+    records it as served by no host, and the served OpenAI-compatible endpoint
+    on the dev bridge is the row-7 Talker model. §4.9.2(a) already notes that
+    consolidating extraction onto the Talker family is *"also an operational
+    win: one model family to version, pin and hash"* — but which row serves
+    extraction in production is a decision for the issue that sizes the GPU
+    tier, and the parameter exists so it is made explicitly rather than
+    inherited from this default.
     """
     return _compose(
         protocol=protocol,

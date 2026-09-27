@@ -26,7 +26,18 @@ lands; the table only turns some refusals into readings.
 Rendering is the same rule in the other direction: ``useGrouping:false``, plain
 positional notation (never an exponent, which is a second representation of the
 same magnitude), and number + unit joined by a NO-BREAK SPACE so they are one
-atom that cannot wrap apart in a narrow column.
+atom that cannot wrap apart in a narrow column. A rendering is written for a
+reader, so its decimal separator is the reader's locale's (INT-385): a Turkish
+reader takes a full stop as grouping, and ``12.500`` on a Turkish screen is
+twelve thousand five hundred. Parsing picks no locale; rendering always names
+one.
+
+The renderer (:func:`render_quantity`, :func:`quantity_atom`, :data:`NBSP`,
+:data:`DECIMAL_SEPARATORS`, :class:`QuantityLocaleUnknown`) lives in
+:mod:`clinical_schemas.quantity` since INT-386 and is re-exported here as the
+same objects. The typed rail, the clinician note, the patient summary and the
+FHIR narrative write through it too, and the FHIR mapper's package cannot
+import this one.
 
 **No message here echoes a printed form** (invariant 6).
 """
@@ -38,23 +49,28 @@ from collections.abc import Sequence
 from decimal import Decimal
 from typing import Final
 
+from clinical_schemas.quantity import (
+    DECIMAL_SEPARATORS,
+    NBSP,
+    QuantityLocaleUnknown,
+    quantity_atom,
+    render_quantity,
+)
+
 __all__ = [
     "COMPARATORS",
+    "DECIMAL_SEPARATORS",
+    "QuantityLocaleUnknown",
     "NBSP",
     "PrintedMagnitudeAmbiguous",
     "PrintedMagnitudeUnreadable",
     "UnitResolution",
+    "magnitude_readings",
     "parse_printed_magnitude",
     "quantity_atom",
     "render_quantity",
     "resolve_unit",
 ]
-
-#: NO-BREAK SPACE. CLAUDE.md invariant 22: *"number + unit is one non-breaking
-#: atom"*. A dose or a lab value wrapped across a line break at the space is a
-#: reading error waiting to happen, and it is invisible until the column is
-#: narrow enough.
-NBSP: Final = " "
 
 #: Both ASCII and the typeset forms a Turkish lab report actually prints.
 COMPARATORS: Final = "<>≤≥"
@@ -112,6 +128,26 @@ def parse_printed_magnitude(printed: str) -> Decimal:
       more than three digits) → it is a decimal point;
     * a repeated separator → grouping, and malformed grouping is refused.
     """
+    readings = magnitude_readings(printed)
+    if len(readings) > 1:
+        raise PrintedMagnitudeAmbiguous(
+            "the printed value reads as a grouped integer and as a decimal, and the "
+            "two differ by a factor of 1000; neither reading is taken (CLAUDE.md "
+            "invariant 22 — the printed form is not echoed here)"
+        )
+    return readings[0]
+
+
+def magnitude_readings(printed: str) -> tuple[Decimal, ...]:
+    """Every magnitude the printed characters support: one, or exactly two.
+
+    The same rules as :func:`parse_printed_magnitude`, except that the one
+    two-way form — a single separator followed by exactly three digits — is
+    returned as both of its readings, decimal first, instead of being refused.
+    That is what files/03 §4.9.6's *"cross-checked against the analyte's
+    expected magnitude"* needs to choose between them; choosing is
+    :mod:`intake_platform.records.unit_guard`'s job, never this function's.
+    """
     text = printed.strip()
     if any(char in text for char in COMPARATORS):
         raise PrintedMagnitudeUnreadable(
@@ -139,11 +175,11 @@ def parse_printed_magnitude(printed: str) -> Decimal:
                 "the printed value mixes both separators in a shape that is neither "
                 "grouping nor a decimal point"
             )
-        return Decimal(f"{sign}{grouped}.{fraction}")
+        return (Decimal(f"{sign}{grouped}.{fraction}"),)
 
     separator = "." if dots else ("," if commas else "")
     if not separator:
-        return Decimal(sign + body)
+        return (Decimal(sign + body),)
 
     head, *rest = body.split(separator)
     if len(rest) > 1:
@@ -153,41 +189,18 @@ def parse_printed_magnitude(printed: str) -> Decimal:
             raise PrintedMagnitudeUnreadable(
                 "the printed value repeats a separator in a shape that is not three-digit grouping"
             )
-        return Decimal(sign + str(grouped))
+        return (Decimal(sign + str(grouped)),)
 
     as_decimal = _decimal_reading(head, rest[0])
     as_group = _group_reading(head, rest)
-    if as_decimal is None and as_group is None:
+    readings = tuple(
+        Decimal(sign + str(reading)) for reading in (as_decimal, as_group) if reading is not None
+    )
+    if not readings:
         raise PrintedMagnitudeUnreadable(
             "the printed value is not a magnitude this guard can resolve"
         )
-    if as_decimal is not None and as_group is not None:
-        raise PrintedMagnitudeAmbiguous(
-            "the printed value reads as a grouped integer and as a decimal, and the "
-            "two differ by a factor of 1000; neither reading is taken (CLAUDE.md "
-            "invariant 22 — the printed form is not echoed here)"
-        )
-    reading = as_decimal if as_decimal is not None else as_group
-    return Decimal(sign + str(reading))
-
-
-def render_quantity(magnitude: Decimal) -> str:
-    """One rendering of a clinical quantity: no grouping, no exponent.
-
-    ``Decimal.__str__`` switches to scientific notation for some exponents, and
-    an exponent beside a unit is a second representation of the magnitude in
-    the same string. ``f"{...:f}"`` is plain positional notation always, and
-    it preserves the printed precision (``2.50`` stays ``2.50``).
-    """
-    return f"{magnitude:f}"
-
-
-def quantity_atom(magnitude: Decimal, unit: str | None) -> str:
-    """Number and unit as one non-breaking atom (invariant 22)."""
-    rendered = render_quantity(magnitude)
-    if unit is None or not unit.strip():
-        return rendered
-    return f"{rendered}{NBSP}{unit.strip()}"
+    return readings
 
 
 class UnitResolution:
