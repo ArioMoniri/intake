@@ -5590,7 +5590,8 @@
   title: "Staff second factor and session bounds: the console refuses a token issued without a second factor"
   depends_on: [INT-215]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-365.md
   acceptance:
     - "the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"
     - "the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"
