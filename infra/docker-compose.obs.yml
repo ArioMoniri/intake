@@ -79,6 +79,7 @@ services:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./observability/prometheus-rules.yaml:/etc/prometheus/rules/prometheus-rules.yaml:ro
       - ./observability/cost-rules.yaml:/etc/prometheus/rules/cost-rules.yaml:ro
+      - ./observability/security-rules.yaml:/etc/prometheus/rules/security-rules.yaml:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"

@@ -464,6 +464,17 @@ egress-down:
 audit-verify:
 	uv run python -m intake_platform.audit_verifier \
 	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)
+# INT-367: one tick of the scheduled tenant-KEK rotation (files/10 §3 "key
+# rotation quarterly"). Rotates each Transit KEK whose latest version is a
+# quarter old, never anything destructive, and sets
+# sec_secret_rotation_due_days{key}. Idempotent: the scheduler runs it daily
+# (docs/runbooks/key-rotation.md) and each key still rotates once a quarter.
+# Reads OPENBAO_ADDR/OPENBAO_TOKEN like every service. Not part of `make
+# check`: it rotates real keys.
+.PHONY: key-rotation
+
+key-rotation:
+	uv run python -m intake_platform.key_rotation
 # INT-082: the headless patient simulator — personas × scenarios IM-01…IM-14
 # driven over the real IntakeEngine (INT-081), the real Talker (INT-091) and
 # the real triage engine (INT-080), on a synthetic pack and recorded fixtures.

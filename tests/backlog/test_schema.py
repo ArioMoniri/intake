@@ -88,7 +88,9 @@ def test_ids_unique_and_well_formed() -> None:
     # kiosk idle warning).
     # + INT-373 (the Keycloak realm emits the claims the admin console
     # requires; found by INT-365).
-    assert len(ids) == 298
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
+    assert len(ids) == 299
     import re
 
     for i in ids:

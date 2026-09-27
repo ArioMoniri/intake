@@ -242,7 +242,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # previsit routing) + INT-373 (the Keycloak realm emits the admin
     # console's claims, found by INT-365); grows only with a stated reason.
-    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
+    # previsit routing) + INT-318 (Acıbadem read source and /v1/visits/sync,
+    # INT-354 slice S2); grows only with a stated reason.
+    assert len(ids) == 299, f"expected 175 blueprint + 124 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

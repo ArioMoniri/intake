@@ -1344,6 +1344,12 @@ export const tr = {
   "kiosk.tamper.body":
     "Bu cihazın kiosk kilidi artık etkin değil. Devam etmeden önce personel cihazı yeniden kilitlemeli, sonra klinik PIN'ini girmeli.",
   "kiosk.privacy.note": "Bu paylaşılan bir cihazdır. Bilgileriniz burada saklanmaz.",
+  // INT-363 — the idle warning (WCAG 2.2 SC 2.2.1): patient-facing, siz, ≤ B1,
+  // calm. No number: the grace is a constant in lib/kiosk, never copy.
+  "kiosk.idle.warning":
+    "Hâlâ burada mısınız? Bilgilerinizi korumak için oturum birazdan kapanacak.",
+  "kiosk.idle.extend": "Devam edin",
+  "kiosk.idle.extendHint": "Oturumu açık tutar.",
 } as const;
 
 export type MessageKey = keyof typeof tr;
