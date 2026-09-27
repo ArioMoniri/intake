@@ -69,7 +69,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
-  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided.
+  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
+  is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
+  update** past review and the licence gate.
 - **Controls (files/10):** §8 in full — OSV/Trivy/Checkov fail-on high, licence check, Syft
   SBOM, cosign keyless signing with SLSA provenance, schemathesis, MobSF; CI carries no
   secrets and never calls a vendor (ci.yml header; CLAUDE.md). **INT-206 adds the
@@ -80,7 +83,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   corpus may not be printed into the job log, uploaded as an artefact or cached; every
   `runs-on` must resolve to a known hosted label or a declared pool, failing closed
   otherwise. The gate's own report carries digests, never values — it runs in a job whose
-  stdout is retained 30 d hot / 1 y cold (files/10 §6).
+  stdout is retained 30 d hot / 1 y cold (files/10 §6). **INT-368 adds Renovate**
+  (`.github/renovate.json`, runbook `docs/runbooks/dependency-updates.md`): every uv, pnpm,
+  container-digest and Actions pin is watched, security updates open immediately outside
+  the weekly schedule, and nothing auto-merges — each update is a PR through the same gates,
+  carried under an `INT-` issue because the evidence and sec_row gates refuse a bot title.
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
   with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
   `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
@@ -88,7 +95,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
   tests/security/test_threat_model.py (the sec_row linkage gate);
   tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
-  heartbeat probe); full gate job lands with INT-019.
+  heartbeat probe); tests/ci/test_dependency_updates.py (INT-368: ecosystem coverage from
+  the tree, unscheduled security updates, no auto-merge anywhere); full gate job lands
+  with INT-019.
 
 ## `secrets` — OpenBao and service credentials
 
@@ -294,7 +303,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §5 LLM10 budgets and circuit breakers; §6 capacity — autoscaling
   on queue depth, monthly chaos experiments; typed fallback within 2 s (backlog INT-100).
 - **Signals:** budget exhaustion and vendor errors (§9 voice row) land with INT-024/INT-100.
+  **(INT-100)** `vendor_breaker_state` (one-hot per component), `vendor_breaker_transitions_total`
+  and `vendor_failovers_total` (`to_component="typed"` when no speech lane is left), all
+  catalogued live.
 - **Tests:** chaos harness and fallback timing land with INT-024, INT-100, INT-207.
+  **(INT-100)** `tests/chaos/test_vendor_failover.py` kills the primary TTS lane mid-turn (dead,
+  dying in flight, hung) under a real Talker turn and proves the next lane or the screen within
+  2 s of virtual time, with the Backend stalled underneath (invariant 9); the order is read from
+  `observability/registry.yaml` and a cloud fallback on the PHI path is refused (invariant 19).
+  Unit coverage in `tests/voice/test_vendor_resilience.py`.
 
 ## `self-hosting` — model supply chain and residency
 
@@ -398,6 +415,20 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   no decoder can exist until the Play Console organisation account does (HB-A3). The
   stored record is a public key, a counter and an environment — the same class of datum as
   the DPoP thumbprint — kept 30 days rolling.
+- **The SMS delivery bound, stated (INT-329):** outside dev the OTP tier is wired only when
+  the egress policy admits `EgressPurpose.SMS_OTP_DELIVERY` to `api.twilio.com` **and** OpenBao
+  holds `secret/api/twilio` (`account_sid`, `auth_token`, `from`). The `TWILIO_*` environment
+  variables are never read. Anything missing leaves every `/v1/auth` route at 503, and the dev
+  event logger is never the fallback (INT-325). The send is async, over the INT-018 guard's
+  async twin, which runs the same admission step and pins and records exactly as the sync one
+  does. The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that
+  carries a recorded approval. **No such row ships.** Personal data to a processor abroad is
+  the owner's DPA and cross-border decision (docs/evidence/INT-329.md), so today the tier
+  stays at 503 outside dev, and the guard would refuse the call before a byte left anyway. A
+  failed delivery is one generic `503 otp_delivery_unavailable`, never a claimed "sent". The
+  log line carries the vendor message id, the HTTP status, a closed-vocabulary reason and
+  Twilio's numeric error code, never the phone, the code, the token or a vendor body (its
+  errors echo the number). No retry: a retried SMS would put a second code in flight.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
@@ -411,7 +442,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   published example verifying against the pinned root, the pin itself, the replayed and
   misbound challenge end to end, and the Play Integrity verdict policy
   (`tests/api/test_attestation_verifier.py`, `tests/api/test_attestation_otp_flow.py`,
-  `apps/mobile/src/lib/auth/attestation.test.ts`).
+  `apps/mobile/src/lib/auth/attestation.test.ts`). SMS delivery with INT-329: each vendor
+  outcome mapped to one typed reason over MockTransport; no phone, code or token in any log
+  record, error chain or transfer record; the event loop keeps running during a send; the
+  wiring matrix for `prod` and `staging`; the route's generic 503
+  (`tests/api/test_otp_twilio.py`, `tests/api/test_otp_twilio_wiring.py`). The async guard
+  matches the sync one on a parity table (`tests/security/test_egress_async.py`), and the
+  shipped allow-list refuses the SMS purpose on every tier
+  (`tests/security/test_egress_allowlist.py`).
 
 ## `consent` — layered consent and scope enforcement
 
@@ -487,8 +525,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §10 — evidence accumulates automatically from the console; §8 —
   DPIA delta check when vendors or consent texts change; CLAUDE.md invariant 18 — every new
   data field carries its inventory annotation.
-- **Signals:** access-review age and drill status (§7) land with INT-189.
+- **Signals:** access-review age and drill status (§7) land with INT-189. INT-215 binds each
+  KVKK 2018/10 measure to a catalogued metric or a registered probe, and a control with no
+  live signal must own that absence as a gap rather than read as done.
 - **Tests:** schema-annotation completeness lands with INT-211; module tests with INT-189.
+  `tests/legal/test_2018_10_mapping.py` (INT-215) answers [R] for the Board's adequate
+  measures: every measure quoted verbatim from a committed snapshot of RG 30353, every cited
+  path, test id and signal resolving, every gap naming an owner, and the auditor packet
+  (`make evidence-2018-10`) exported through the invariant-47 guard.
 
 ---
 
@@ -1406,6 +1450,21 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
   k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
+  - **Controls added by INT-190 (Cost module):** money has one source, the owner-filled
+    `infra/costs/unit-prices.yaml`, and the schema refuses any price or budget limit without a
+    `source` and an `as_of` date, so an invented rate cannot land without a visible diff (HB-O8).
+    Every quantity is a catalogued series bound at load time (inv 13), read through a fixed
+    PromQL table no request field reaches; a response carrying any label the query did not
+    group by, a profile outside the closed pair or a non-quantity is refused as a source error
+    (inv 6, 19). Per-session cost is a mean over `voice_sessions_metered_total`, so no session
+    identifier exists on the surface. The console projection refuses a figure without a
+    configured price or observed usage (`CostFigureWithoutPrice`, `CostFigureWithoutUsage` — the
+    invented zero), a partial total (`PartialTotalRendered`), a budget declared kept on a lower
+    bound (`UnsoundBudgetVerdict`), an unsourced value (`UnsourcedPrice`), a non-id identifier
+    (`CostContentLeaked`) and a foreign currency. Budget alerts are generated rules
+    (`infra/observability/cost-rules.yaml`, drift-gated); an unset budget fires
+    `CostBudgetNotConfigured` rather than staying silent, and an overrun threshold is a sound
+    lower bound (`or vector(0)` per term) with `CostBudgetIncomplete` naming what it cannot see.
   - **Controls added by INT-186 (Experience & Satisfaction module):** the console
     projection refuses a satisfaction figure shown for a cohort below the k ≥ 10 floor
     (`SuppressedCohortLeaked`), a distribution key that is not id-shaped (`SatisfactionFigureLeaked`,
@@ -1416,6 +1475,42 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
     a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
     committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
+  - **Controls added by INT-351 (the rendered ops console, audit F26):** `apps/admin-web`
+    gains the Next.js App Router shell and its first page, `/ops`, server-rendered only. The
+    page forwards the caller's bearer to `GET /admin/ops` and renders nothing else until that
+    INT-180 gate answers 200 — no bearer means no call at all, and a refused caller does not
+    reach the API's health endpoints either — so the OIDC verifier, the HB-A16 allow-list (empty
+    admits nobody), the platform-scope role set and the audit wrapper are the one admission
+    control, not a second verifier that could disagree with it. `/admin/ops` runs only the API's
+    own fixed PromQL table (every series catalogued, test-held) plus the registry projection; no
+    request field reaches a query (F1). A tile whose label set differs from its query's, or
+    whose label value is not id-shaped, turns unknown instead of painting it (inv 6); unknown
+    tiles carry no figure and the console refuses one that does (inv 17); CSAT and wait means
+    are withheld below k = 10; no target is rendered (inv 20). GPU and CI facts come from an ops
+    collector in `services/probes` that runs server-side — `nvidia-smi` beside the host, a
+    read-only GitHub token read from OpenBao at collection time through the egress guard
+    (`issue_tracking` purpose on the existing `api.github.com` row) — and exports only ids
+    (actor and commit message are dropped). CSP: per-request nonce, `strict-dynamic`, no
+    `unsafe-*` outside `next dev`, `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
+    `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
+    admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
+    admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.
+  - **Controls added by INT-181 (the rendered overview: SLOs, probes, dependency health):**
+    `/overview` is server-rendered through the same admission step as `/ops` (one shared
+    `admit()`), forwarding the bearer to the new `GET /admin/reliability`
+    (`admin.reliability.read`, platform-scope roles, audited like every route, RBAC matrix and
+    drive derived from the served route table); a refused caller does not reach `/readyz`
+    either. Every PromQL the composite runs is derived from the committed `docs/slo` files or
+    is a fixed query, names catalogued series only (test-held) and takes no request field
+    (F1); an SLI written outside the one grammar the console reads is refused rather than
+    guessed. A label set other than the query's, or a value that is not id-shaped, turns the
+    tile unknown (inv 6); the probe runner's free-text `detail` never leaves the API. Every
+    tile fails closed on its own source (inv 17), and a probe result past three sweeps is
+    flagged stale in the matrix and is *unknown* as a dependency's health — the last value is
+    never shown as the current one. The view-model refuses a burn condition that is not exactly
+    "both windows above the factor", a budget that does not follow from its SLI and objective,
+    and a stale result rendered fresh, so neither a bent payload nor a stale tab can hide a
+    burning budget.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),

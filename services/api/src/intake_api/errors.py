@@ -39,9 +39,12 @@ __all__ = [
     "invalid_window",
     "not_found",
     "otp_auth_unconfigured",
+    "otp_delivery_unavailable",
     "otp_invalid",
     "otp_limited",
     "phone_invalid",
+    "previsit_output_recipient_unregistered",
+    "previsit_output_unconfigured",
     "purpose_unknown",
     "refresh_reused",
     "taxonomy_unconfigured",
@@ -114,6 +117,29 @@ def consent_text_missing(scope: str) -> HTTPException:
     return HTTPException(status_code=409, detail={"error": "text_missing", "scope": scope})
 
 
+# --- the previsit-output read-back (owner directive) ------------------------------------
+
+
+def previsit_output_recipient_unregistered() -> HTTPException:
+    """No approved reader answers for this tenant.
+
+    503 rather than 403 because this is a statement about the SERVICE, not
+    about the caller: no DPA is executed and no tier-3 approval exists, so the
+    interface is not configured to serve anybody. The body says nothing about
+    which tenants do have a row (infra/previsit_output/recipients.yaml).
+    """
+    return HTTPException(
+        status_code=503, detail={"error": "previsit_output_recipient_unregistered"}
+    )
+
+
+def previsit_output_unconfigured() -> HTTPException:
+    """No tokenization key, so a hospital patient number cannot be resolved to
+    the pseudonym that addresses a patient (invariant 14). Fail closed — a
+    scan of every patient row is not the fallback."""
+    return HTTPException(status_code=503, detail={"error": "previsit_output_unconfigured"})
+
+
 def not_found() -> HTTPException:
     return HTTPException(status_code=404, detail={"error": "not_found"})
 
@@ -150,6 +176,14 @@ def otp_auth_unconfigured() -> HTTPException:
     """OTP auth needs Redis + a tokenization key; without them it fails
     closed while the dev-bearer tier keeps carrying the demo (INT-197)."""
     return HTTPException(status_code=503, detail={"error": "otp_auth_unconfigured"})
+
+
+def otp_delivery_unavailable() -> HTTPException:
+    """INT-329: the SMS vendor could not deliver the code (unreachable, refused,
+    timed out, or the egress policy refused the call). One generic code for
+    every cause: the reason is logged as an id-shaped enum, and a vendor body —
+    which can echo the phone number — never reaches the caller."""
+    return HTTPException(status_code=503, detail={"error": "otp_delivery_unavailable"})
 
 
 def attestation_required() -> HTTPException:

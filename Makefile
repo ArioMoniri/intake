@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -99,11 +99,14 @@ nightly-red-team:
 # when the committed file and the served payload disagree — so the fixture is
 # a recording of the registry, never a second copy of it (invariant 13).
 admin-fixtures:
+	uv run python scripts/dev/record_cost_fixture.py
 	uv run python scripts/dev/record_models_fixture.py
 	uv run python scripts/dev/record_protocols_fixture.py
 	uv run python scripts/dev/record_safety_fixture.py
 	uv run python scripts/dev/record_experience_fixture.py
 	uv run python scripts/dev/record_security_fixture.py
+	uv run python scripts/dev/record_ops_fixture.py
+	uv run python scripts/dev/record_reliability_fixture.py
 
 check-ts:
 	pnpm -r lint
@@ -218,6 +221,12 @@ deid-model:
 # Dry mode only — live attainment arrives with the observability deploy (INT-023).
 slo-report:
 	uv run python scripts/observability/slo_report.py
+
+# INT-215: the KVKK 2018/10 adequate-measures auditor packet (JSON on stdout),
+# built from docs/legal/special-category-measures.yaml. Exits 2 and lists every
+# problem when the mapping has drifted from the snapshot, tests or signals it cites.
+evidence-2018-10:
+	uv run python -m intake_platform.compliance.adequate_measures
 
 backlog-status:
 	uv run python scripts/backlog/backlog_status.py
@@ -443,6 +452,17 @@ egress-down:
 audit-verify:
 	uv run python -m intake_platform.audit_verifier \
 	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)
+# INT-367: one tick of the scheduled tenant-KEK rotation (files/10 §3 "key
+# rotation quarterly"). Rotates each Transit KEK whose latest version is a
+# quarter old, never anything destructive, and sets
+# sec_secret_rotation_due_days{key}. Idempotent: the scheduler runs it daily
+# (docs/runbooks/key-rotation.md) and each key still rotates once a quarter.
+# Reads OPENBAO_ADDR/OPENBAO_TOKEN like every service. Not part of `make
+# check`: it rotates real keys.
+.PHONY: key-rotation
+
+key-rotation:
+	uv run python -m intake_platform.key_rotation
 # INT-082: the headless patient simulator — personas × scenarios IM-01…IM-14
 # driven over the real IntakeEngine (INT-081), the real Talker (INT-091) and
 # the real triage engine (INT-080), on a synthetic pack and recorded fixtures.

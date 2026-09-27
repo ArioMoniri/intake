@@ -258,6 +258,41 @@ metrics:
       files/10 §7: chaos results are tracked as metrics. Emitted by
       intake_platform.chaos.run_vendor_kill via `make chaos
       EXPERIMENT=<id>` (INT-024).
+  # --- live series (INT-100): per-vendor circuit breakers + speech-lane failover
+  # files/10 §5 LLM10 "circuit breakers per vendor"; §9 voice row "vendor
+  # errors". Not files/08 §4 ids, so no `id` (the INT-024 precedent). Label
+  # values are registry component names, the closed BreakerState set, or
+  # `typed` — never a session id or text (inv. 6).
+  - name: vendor_breaker_state
+    type: gauge
+    labels: [component, state]
+    owner: voice-runtime
+    unit: "bool"
+    description: >-
+      Circuit breaker state per vendor component, one-hot: 1 on the current
+      state (closed / open / half_open), 0 on the other two. Emitted by
+      intake_voice_runtime.resilience.breaker.CircuitBreaker from the moment a
+      lane is bound, so every speech lane's state is visible before it fails.
+  - name: vendor_breaker_transitions_total
+    type: counter
+    labels: [component, from_state, to_state]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Circuit breaker state transitions by vendor component: closed -> open
+      after consecutive failures, open -> half_open after the cooldown,
+      half_open -> closed or open on the trial's outcome. Emitted by
+      intake_voice_runtime.resilience.breaker.CircuitBreaker (INT-100).
+  - name: vendor_failovers_total
+    type: counter
+    labels: [from_component, to_component]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Speech-lane failovers: a session left from_component for the next lane
+      in the registry's fallback order, or for `typed` (the text lane) when no
+      lane was left. Emitted by
+      intake_voice_runtime.resilience.failover.FailoverSynthesizer (INT-100).
   # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
   # Wazuh's and Falco's own liveness are probes, not error budgets (the
   # `wazuh-manager`, `wazuh-indexer` and `falco` rows of
@@ -964,7 +999,26 @@ metrics:
       GPU-hour rate from. A rate invented to make this series emit would be
       the artefact rule 1 forbids, and a zero would be a claim that a session
       was free — so nothing declares a Gauge for this name and the row stays
-      planned until a human supplies a rate.
+      planned until a human supplies a rate. INT-190 puts the rates in one
+      owner-filled file, infra/costs/unit-prices.yaml (every price empty until
+      a human supplies it with a source and a date — HB-O8), and the admin
+      console's cost module computes the per-session figure from the usage
+      series below and that file at read time. This series itself is still
+      not emitted: a per-session gauge would need the runtime to hold a price.
+  - name: voice_sessions_metered_total
+    type: counter
+    labels: [tenant, profile, branch]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Sessions composed around an INT-101 SessionMeter, counted once per session
+      by the meter whose labels the usage series carry (INT-190). It is the
+      divisor of the cost module's per-session figure — usage in a window over
+      the sessions metered in that window — so numerator and denominator
+      describe the same sessions. Emitted by
+      intake_voice_runtime.metering.SessionMeter.count_session from the
+      composition root. No session id, ever: a per-session identifier on a
+      series would make its cardinality the number of patients seen (inv. 6).
   # --- files/08 §4 M. Security (files/10 §7)
   - name: sec_auth_failures_total
     id: sec.auth_failures_total
@@ -1110,11 +1164,14 @@ metrics:
   - name: sec_secret_rotation_due_days
     id: sec.secret_rotation_due_days
     type: gauge
-    labels: []
+    labels: [key]
     owner: security
     unit: "days"
-    status: planned
-    description: Days until the next secret rotation is due.
+    description: >-
+      Days until each tenant KEK's next quarterly rotation is due (files/10
+      §3); negative means overdue, which SecretRotationOverdue alerts on.
+      `key` is the Transit key name (tenant-<tenant_id>), an id. Emitted by
+      intake_platform.key_rotation.job.run_rotation (INT-367).
   - name: sec_cert_expiry_days
     id: sec.cert_expiry_days
     type: gauge
@@ -1846,6 +1903,112 @@ metrics:
       moves once a feed is contracted, exactly as the push series does. Both
       labels are closed sets — a registry source id and OUR outcome code — so
       nothing a sender or a patient supplies can widen the cardinality (invariant 6).
+  # --- INT-351: the admin ops console's collector-fed series -------------------
+  # files/08 §4 group I names "GPU utilisation and memory" as a prose KPI with
+  # no id, so the GPU rows are catalogued under names of ours (the same move
+  # INT-171/INT-172 made for group L). All seven are emitted by
+  # intake_probes.ops_collector, a background loop in the probes service that
+  # runs only when its environment configures a source; unconfigured, the
+  # families are served empty and the console reads "unknown" (invariant 17).
+  # A failed read CLEARS a family's children rather than writing a zero.
+  - name: ops_gpu_host_up
+    type: gauge
+    labels: [host_id]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 when the ops collector's nvidia-smi query on the GPU host it runs beside
+      succeeded, 0 when it failed. host_id is the operator's id for the host,
+      refused unless id-shaped — never an address (invariant 6).
+  - name: ops_gpu_utilization_ratio
+    type: gauge
+    labels: [host_id, gpu_index]
+    owner: platform
+    unit: "ratio"
+    description: >-
+      GPU utilisation (0-1) per host and GPU index, from nvidia-smi. Cleared,
+      not zeroed, when the host query fails.
+  - name: ops_gpu_memory_used_bytes
+    type: gauge
+    labels: [host_id, gpu_index]
+    owner: platform
+    unit: "bytes"
+    description: >-
+      GPU memory in use per host and GPU index, from nvidia-smi. Cleared, not
+      zeroed, when the host query fails.
+  - name: ops_gpu_memory_total_bytes
+    type: gauge
+    labels: [host_id, gpu_index]
+    owner: platform
+    unit: "bytes"
+    description: >-
+      GPU memory visible to the host per GPU index — on a MIG slice or a shared
+      pod, the memory quota the models on it share. From nvidia-smi.
+  - name: ops_ci_last_run
+    type: gauge
+    labels: [workflow, branch, status, conclusion, head_sha]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 for the newest GitHub Actions run of each workflow on the watched
+      branch, its state carried in the labels: the workflow file stem, the
+      branch, GitHub's closed status and conclusion vocabularies and the head
+      commit sha. Read server-side with a read-only token from OpenBao through
+      the egress guard; the actor and the commit message never become labels.
+  - name: ops_ci_last_run_updated_seconds
+    type: gauge
+    labels: [workflow, branch]
+    owner: platform
+    unit: "s (unix time)"
+    description: Unix time the newest CI run of each workflow was last updated.
+  - name: ops_collector_source_up
+    type: gauge
+    labels: [source]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 when the ops collector's last read of a source (gpu_host, ci) succeeded,
+      0 when it failed — what lets the console tell "failing" from "not
+      configured".
+  # The offline scripted-clip build (ADR-028; make clips) counts its cache
+  # hits and its syntheses on its own registry (voice_clips.metrics) and
+  # writes them as a Prometheus textfile; the ops collector re-exports exactly
+  # these four families from it. Every label is a closed set or a compiler id —
+  # the script text never becomes one (invariant 6).
+  - name: voice_clip_cache_lookups_total
+    type: counter
+    labels: [outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Scripted-clip cache lookups during a clip build: hit (the stored clip is
+      reused, no gateway called) or miss (synthesised). A forced rebuild asks
+      the cache nothing and counts no lookup.
+  - name: voice_clip_syntheses_total
+    type: counter
+    labels: [gateway, outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Scripted-clip syntheses during a clip build, by gateway kind
+      (self_hosted / recorded / elevenlabs / other) and outcome (ok / failed).
+  - name: voice_clip_manifest_rows
+    type: gauge
+    labels: [pack, locale, voice]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Scripted-clip rows a compiled pack's clip manifest declares, per pack,
+      locale and voice (all compiler ids), set by the clip build's coverage walk.
+  - name: voice_clip_manifest_present
+    type: gauge
+    labels: [pack, locale, voice]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Manifest rows whose clip is in the cache, per pack, locale and voice. Below
+      voice_clip_manifest_rows, a scripted turn would fall to dynamic TTS — the
+      same hole that fails the build.
 # files/08 §4 rows that carry no metric id yet (prose KPIs; recorded here so
 # they are not silently dropped — each enters the catalogue as an entry the
 # moment the spec names its id):
@@ -1854,9 +2017,10 @@ metrics:
 #   companion-profile share, consent opt-in by layer, revocations honoured
 #   under one minute.
 # - group I, operations: RED/USE per service beyond the svc_* golden signals,
-#   GPU utilisation and memory, Celery/Redis queue depth, DB replication lag,
-#   storage growth, certificate expiry (sec_cert_expiry_days covers the
-#   security view).
+#   Celery/Redis queue depth, DB replication lag, storage growth, certificate
+#   expiry (sec_cert_expiry_days covers the security view). ("GPU utilisation
+#   and memory" left this list with INT-351: ops_gpu_utilization_ratio and
+#   ops_gpu_memory_used_bytes / ops_gpu_memory_total_bytes above.)
 # - group J, cost: tokens/chars/audio-seconds by vendor, GPU hours, forecast
 #   vs budget. (INT-101 metered all three quantities per session and closed
 #   none of this row. "by vendor" has no subject — CLAUDE.md invariant 19

@@ -51,6 +51,7 @@ from intake_api import (
     notes,
     notification_prefs,
     otp_routes,
+    previsit_output,
     profile_routes,
     satisfaction,
     taxonomy_routes,
@@ -79,6 +80,7 @@ if TYPE_CHECKING:
 
     from intake_api.app_attest import AppAttestVerifier
     from intake_api.attestation import FailClosedAttestationVerifier
+    from intake_api.otp_twilio import KvSecrets
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
@@ -204,23 +206,22 @@ def _app_attest_from_settings(
         return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_CONFIG_INVALID)
 
 
-def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
+def _auth_from_settings(
+    settings: ApiSettings, secrets: KvSecrets | None = None
+) -> AuthWiring | None:
     """INT-131 wiring. No tokenization key → None → the OTP tier answers
     503 (fail closed) and the dev-bearer tier stays load-bearing. Attestation
     routes by mode (INT-344): App Attest when the Apple team id is configured,
     Play Integrity never until HB-A3 supplies a decoder, the dev tier only
     under the dev phrase — every unconfigured piece fails closed with a typed
-    reason. The delivery adapter is the dev event logger — the SMS vendor
-    contract is awaiting-human (docs/evidence/INT-131.md).
-
-    INT-325 (audit F13): outside dev the dev logger is never wired. It
-    records an event and sends nothing, so the tier would answer "sent" for a
-    code that never arrives. With no contracted SMS adapter the tier stays
-    unconfigured (every /v1/auth route answers 503)."""
+    reason. Delivery (INT-329): the dev logger in dev; outside dev Twilio or
+    nothing, never the dev logger (INT-325) — see otp_twilio. ``secrets`` is
+    the OpenBao reader, injectable for tests."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
         return None
-    if not settings.dev_tier_expected:
-        logger.warning("otp tier unconfigured outside dev: no SMS delivery adapter is wired")
+    from intake_api.otp_twilio import otp_delivery_from_settings
+
+    if (delivery := otp_delivery_from_settings(settings, secrets)) is None:
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
@@ -232,7 +233,6 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
         PlatformAttestationVerifier,
     )
     from intake_api.carrier_geo import carrier_geo_from_path
-    from intake_api.otp import DevLogDeliveryAdapter
 
     redis_client = Redis.from_url(settings.redis_url)
     app_attest = _app_attest_from_settings(settings, redis_client)
@@ -242,7 +242,7 @@ def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
             keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
             active_key_id=settings.tokenization_key_id,
         ),
-        delivery=DevLogDeliveryAdapter(),
+        delivery=delivery,
         attestation=PlatformAttestationVerifier(
             app_attest=app_attest,
             # HB-A3: no decoder exists until the Play Console organisation account
@@ -482,6 +482,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
 
     app.include_router(visits.router)
     app.include_router(notes.router)
+    app.include_router(previsit_output.router)
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)
     app.include_router(documents.router)

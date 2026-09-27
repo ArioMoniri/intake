@@ -42,6 +42,11 @@ ENV_DEV_OTP_PEEK = "INTAKE_DEV_OTP_PEEK"
 ENV_DEV_ALLOW_UNATTESTED = "INTAKE_DEV_ALLOW_UNATTESTED"
 # INT-308: where the carrier/geo allocation table lives.
 ENV_MSISDN_ALLOCATION = "INTAKE_MSISDN_ALLOCATION"
+# INT-329: the egress allow-list the OTP tier's SMS vendor call is decided
+# against. The same variable the compliance register reads (admin/
+# compliance_source.py), so one override points both readers at one file.
+ENV_EGRESS_ALLOWLIST = "INTAKE_EGRESS_ALLOWLIST_PATH"
+EGRESS_ALLOWLIST_DEFAULT = "infra/security/egress-allowlist.yaml"
 # INT-344 Apple App Attest. The team id is the App ID prefix from the Apple
 # Developer account (HB-A3): not secret — every signed build carries it — but it
 # has no default, so without it iOS attestation fails closed. The bundle id is
@@ -182,6 +187,15 @@ class ApiSettings:
     app_attest_team_id: str | None = None
     app_attest_bundle_id: str = IOS_BUNDLE_ID
     app_attest_environment: str | None = None
+    # INT-329: the egress allow-list (INT-018) the SMS vendor call must clear.
+    # Absent or unreadable → the OTP tier stays unconfigured outside dev.
+    egress_allowlist_path: Path = field(default_factory=lambda: Path(EGRESS_ALLOWLIST_DEFAULT))
+    # INT-317: which hospital systems may FETCH a finished previsit. The
+    # committed file has zero rows (no DPA is executed and no reader is
+    # approved), so the read-back refuses every caller until a human adds one.
+    previsit_output_recipients_path: Path = field(
+        default_factory=lambda: Path("infra/previsit_output/recipients.yaml")
+    )
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
@@ -239,5 +253,12 @@ class ApiSettings:
             app_attest_team_id=os.environ.get(ENV_APP_ATTEST_TEAM_ID) or None,
             app_attest_bundle_id=os.environ.get(ENV_APP_ATTEST_BUNDLE_ID) or IOS_BUNDLE_ID,
             app_attest_environment=os.environ.get(ENV_APP_ATTEST_ENVIRONMENT) or None,
+            egress_allowlist_path=Path(
+                os.environ.get(ENV_EGRESS_ALLOWLIST) or EGRESS_ALLOWLIST_DEFAULT
+            ),
+            previsit_output_recipients_path=Path(
+                os.environ.get("INTAKE_PREVISIT_OUTPUT_RECIPIENTS")
+                or "infra/previsit_output/recipients.yaml"
+            ),
             environment=environment_name(os.environ),
         )

@@ -1091,7 +1091,7 @@
   title: "Vendor failover + circuit breakers + typed fallback <=2s + chaos test"
   depends_on: [INT-095, INT-024]
   labels: [area:voice]
-  status: todo
+  status: done
   acceptance:
     - "breaker per vendor; failover order from probes registry; chaos kill proves <=2s"
   tests: [tests/chaos/test_vendor_failover.py]
@@ -2433,7 +2433,20 @@
   title: "Modules: Overview + Ops + Reliability (real dev telemetry)"
   depends_on: [INT-180, INT-021, INT-022]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-181.md
+  # NOTE 27 Sep 2026: `/overview` renders one tile per SLO declared in
+  # docs/slo (objective, SLI and budget remaining over 28 d, burn on both
+  # windows of every declared lane and the alert condition), the probe
+  # matrix (every registry probe x the runner's last result, latency, age;
+  # stale past three sweeps), and dependency health (self-hosted components
+  # with fallback edges, the live API's /readyz, Prometheus, GPU hosts,
+  # INT-100 vendor breakers) from GET /admin/reliability. Ops is INT-351's
+  # /ops, whose session, guards, tiles and admission step it now shares.
+  # Every tile fails closed on its own source. Runtime reads live sources
+  # only; tests read recordings (a real runner sweep, the live API's /readyz)
+  # held to the composite by a drift test. Found and fixed: langfuse.yaml and
+  # siem.yaml declared GOOD ratios under the error-ratio convention.
   acceptance:
     - "SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"
   tests: [apps/admin-web/e2e/overview.spec.ts]
@@ -2628,7 +2641,21 @@
   title: "Cost module"
   depends_on: [INT-101, INT-180]
   labels: [area:admin]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-190.md
+  # MECHANISM SHIPPED, THE MONEY AWAITING THE OWNER (26 Sep 2026). A cost is a
+  # catalogued usage series times a price from ONE owner-filled file,
+  # infra/costs/unit-prices.yaml, where every price and every budget limit ships
+  # empty and a value is refused without a source and an as_of date (HB-O8 (b)).
+  # intake_platform.cost computes per-session cost by component/vendor/profile
+  # (usage in a 1d/30d window over voice_sessions_metered_total, the new live
+  # divisor the INT-101 meter emits), per-vendor and all-vendor day/month
+  # budgets, and generates infra/observability/cost-rules.yaml (drift-gated,
+  # catalogued series only). Nothing unknown is a zero: an unpriced component
+  # renders "price not configured", a partial total is withheld, and a budget is
+  # "within" only over a complete spend. What waits on the owner is content, not
+  # mechanism: the rates and the limits (HB-O8), plus usage series that do not
+  # exist on main for extraction tokens, clip synthesis and host hours.
   acceptance:
     - "per-session cost by component/vendor/profile; budgets + alerts"
   tests: [apps/admin-web/e2e/cost.spec.ts]
@@ -2869,10 +2896,16 @@
   title: "Special-category adequate measures (Board 2018/10) mapping + evidence export"
   depends_on: [INT-019, INT-023]
   labels: [area:legal, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-215.md
+  # RESCOPED 26 Sep 2026: the mapping and the export are engineering; the gaps
+  # it found are not. The owner's organisational evidence and counsel's
+  # readings move to INT-364, and the engineering gaps to INT-365..369, so a
+  # measure's "live signal" is delivered by the issue that builds its control.
   acceptance:
-    - "each 2018/10 measure mapped to a control and a live signal; export produces the auditor packet"
-  tests: [tests/legal/test_2018_10_mapping.py]
+    - "each 2018/10 measure is quoted verbatim from a committed, sha256-pinned source and mapped to the controls that implement it (files, tests, signal) or to a gap that names its owner and issue; a signal is never claimed live when it is not"
+    - "export produces the auditor packet"
+  tests: [tests/legal/test_2018_10_mapping.py, tests/compliance/test_measures_loader.py]
   legal: "2018-10"
   sec_row: "compliance-evidence"
 - id: INT-216
@@ -3018,12 +3051,19 @@
 - id: INT-226
   epic: E14-legal
   phase: P1
-  title: "Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page"
+  title: "Accessibility conformance report (WCAG 2.2 AA / EN 301 549) generated from the a11y CI results"
   depends_on: [INT-144]
   labels: [area:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-226.md
+  # RESCOPED 26 Sep 2026: the publication half ("statement published in-app and
+  # web") and the device audit moved to INT-359, because the Turkish statement
+  # text, the feedback channel and the device walkthroughs are owner and counsel
+  # work (HB-L9, signing under HB-L27). The four defects the report found are
+  # INT-360..INT-363.
   acceptance:
-    - "report generated from a11y CI results; statement published in-app and web"
+    - "report generated from a11y CI results: every WCAG 2.2 A/AA criterion and EN 301 549 clause has a status, every Supports row cites a test CI runs or a dated manual check, and a criterion that needs a device walkthrough stays Not Evaluated"
+    - "the statement source restates the report's status and stays marked not for publication until INT-359"
   tests: [tests/legal/test_a11y_report.py]
   legal: "5378,EN301549"
 - id: INT-227
@@ -4795,6 +4835,79 @@
   tests:
   - tests/infra/test_restore_drill.py
   sec_row: "backups"
+- id: INT-317
+  epic: E10-connectors
+  phase: P1
+  # The owner directive, in the owner's words: "after the previsit is done write
+  # output version of json which is worked on in a sql in the data folder under
+  # intake and the acibadem side will then send a request there to get the
+  # previsit details of json for that patient with the same structure". INT-160
+  # built the framework for PUSHING clinical records to a hospital; this is the
+  # same disclosure with the arrow reversed, and reversing it changes which
+  # controls are load-bearing: there is no send-time consent gate to reuse
+  # because the trigger is the hospital's, not ours. Filed on int-demo on
+  # 2026-09-04 (56e8c19b) and carried to main by INT-354 slice 1; the id is
+  # held by no other row on main or on any remote branch.
+  title: 'previsit output store + hospital read-back: one frozen versioned
+    document per completed previsit, fetched by patient number under a consent
+    scope and an audit entry'
+  depends_on: []
+  labels:
+  - area:connectors
+  - area:api
+  - area:data
+  - area:security
+  status: doing
+  evidence: docs/evidence/INT-317.md
+  acceptance:
+  - 'a completed previsit writes exactly one `previsit_outputs` row - a frozen,
+    versioned `PreVisitOutput` document inside an EncryptedField envelope
+    (invariant 14), keyed on the pseudonymised patient so it can be found by
+    patient. A DRAFT save writes nothing and a resend replaces the row rather
+    than appending: the note is the working artefact and this is the finished
+    one, so "the finished previsit" stays singular'
+  - 'the read-back is a SHARE, not a read: `share:previsit_output` is checked per
+    patient per fetch through the one `ensure_consent` evaluator, and the
+    disclosure is written to the hash-chained audit chain against
+    `previsit_output:<id>` BEFORE it is answered (invariant 4). It is a distinct
+    parameter of the files/06 §2 share family and the dev-seeded
+    `share:previsit_note` grant must not answer for it - handing a note to one
+    clinician and handing the whole previsit to a hospital system that keeps it
+    under its own retention are different disclosures, and answering the second
+    with the first is the bundled consent §2 forbids'
+  - 'three near-miss controls, each a separate test: a fetch with no consent
+    scope is refused AND leaves no audit entry (a refused read is not a read); a
+    patient with no stored previsit gets 404 rather than an empty document (a
+    shell with no sections reads as "the patient told us nothing"); and a
+    successful share leaves EXACTLY ONE audit entry carrying the resource ref
+    the receiver was given'
+  - 'the hospital patient number is a direct identifier and has no carrier: it
+    travels in the POST body and never a path or query (asserted over the live
+    route table, the same rule the Doctor Link token obeys), it is resolved
+    through `Tokenizer.pseudonym` against `patients.pseudonym` rather than
+    stored, no column of the new table holds it, and a malformed one is refused
+    without being echoed (invariants 6, 14)'
+  - 'both gates ship SHUT and a test proves each: the committed recipient
+    registry has zero rows so every tenant is refused, and `share:previsit_output`
+    has no docs/legal text (HB-L27) and no seeded grant. A recipient row is
+    refused unless it names `dpa_ref`, `approval_ref` and `retention_ref` - the
+    third because files/06 §3 states how long INTAKE keeps a record and says
+    nothing about a copy that has left, and a period invented here would be an
+    invented retention'
+  - 'invariant 1 survives the new wire: `triage` is a union of the rules-engine
+    result and an explicit `not_evaluated`, `LlmCandidateTriage` is not a member
+    and `None` is not a member either - an omitted determination reads as GREEN
+    to a receiver, which is the same laundering by a quieter route. Candidate
+    flags travel in a sibling field with no path into a level'
+  - 'scope stays on `shares.scope_sections` and is read from there, so the
+    read-back can never widen what the patient sent and taking the note back to
+    draft closes it - one home for scope, the rule the Doctor Link view already
+    obeys'
+  tests:
+  - tests/api/test_previsit_output.py
+  - tests/schemas/test_previsit_output_contract.py
+  - tests/platform/test_previsit_output_recipients.py
+  sec_row: "connectors"
 - id: INT-319
   epic: E05-voice
   phase: P1
@@ -5115,7 +5228,8 @@
   title: "Motion: typed lane, fallback and completion"
   depends_on: [INT-330, INT-335]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-339.md
   acceptance:
     - "the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"
     - "no navigation waits on an animation; the review screen renders every section in one commit with no stagger"
@@ -5271,13 +5385,21 @@
   title: "Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD"
   depends_on: [INT-181, INT-186, INT-187]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-351.md
+  # Delivered by PR #562 (GitHub #557). Audit F26: apps/admin-web was headless
+  # view-models + fixture specs. The page forwards the caller's bearer to an
+  # audited GET /admin/ops (the INT-180 gate decides admission); tiles read the
+  # registry and Prometheus only; GPU and CI facts come from an ops collector in
+  # services/probes. It delivers the ops/CI tiles INT-181 and INT-187 name
+  # without closing them: their SLO/burn-rate, Argo CD, canary and rollback
+  # scope stays theirs.
   acceptance:
     - "a rendered admin-web page (not headless modules only) shows one tile each for server health (/healthz, /readyz, /version), GPU quota and model hosts, model usage, the ElevenLabs clip cache manifest and usage, wait time (wait.checkin_to_seen_min), CSAT/NPS and GitHub Actions status, each read from its real source; every Prometheus metric a tile reads exists in observability/metrics_catalog.yaml"
     - "each tile fails closed to 'unknown' when its source is unreachable, never to a stale or zero value (one test per tile)"
     - "the page requires the admin OIDC role behind the INT-180 IP allow-list; while HB-A16's ranges are unset it admits nobody"
     - "no tile renders PHI or a patient identifier (invariant 6)"
-  tests: [apps/admin-web/e2e/ops.spec.ts]
+  tests: [apps/admin-web/e2e/ops.spec.ts, tests/admin/test_ops_console.py, tests/observability/test_ops_collector.py, tests/voice/test_clip_cache_metrics.py]
   sec_row: "admin-console"
 - id: INT-352
   epic: E13-infra
@@ -5285,11 +5407,19 @@
   title: "Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host)"
   depends_on: [INT-345, INT-347, INT-325]
   labels: [area:infra, risk:security, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-352.md
+  # Part 1 of the evidence is the live deploy on i-0e489e48739f5de98 (smoke
+  # and k6, 2026-09-26); Part 3 is the sbom_digest stamp (audit F18): the
+  # host scripts have syft, pinned by digest, write the api image's SBOM and
+  # pass its sha256 to /version, and smoke.sh fails a "dev" stamp. The live
+  # stamp is shown by the next run of deploy.sh and smoke.sh. The Frankfurt
+  # move waits on AWS's eu-central-1 quota, so it is split out as INT-376
+  # (GitHub #613).
   acceptance:
     - "main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"
     - "a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"
-    - "the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file, and the host moves to Frankfurt when the eu-central-1 request is approved"
+    - "the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"
     - "real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
@@ -5374,3 +5504,195 @@
   tests: [tests/security/test_egress_allowlist.py]
   legal: "KVKK-9,DPA"
   sec_row: "onboarding"
+- id: INT-359
+  epic: E14-legal
+  phase: P1
+  title: "Accessibility device audit (DA-01..DA-08) and the statement published in-app and web"
+  depends_on: [INT-226]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "the owner runs the eight scripted walkthroughs DA-01..DA-08 of the conformance report on a release build and records device, OS, build, date and observation for each; the Not Evaluated rows they decide are updated from those records"
+    - "the owner names the accessibility feedback address and response commitment; counsel supplies the Turkish statement text and the 5378 / Genelge 2025/10 escalation route"
+    - "the statement is served in the app and on the web only once signed under the HB-L27 regime, with its review date"
+  tests: [tests/legal/test_a11y_report.py]
+  legal: "5378,EN301549"
+- id: INT-360
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: todo
+  acceptance:
+    - "apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"
+    - "every screen lays out in landscape at the largest text size with no clipped control and no horizontal scroll of body text"
+  tests: [apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"
+- id: INT-361
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 3.3.8: the OTP field accepts a pasted or autofilled code"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-361.md
+  acceptance:
+    - "pasting a six-digit code into any OTP box fills all six boxes, and the platform one-time-code autofill (iOS oneTimeCode, Android sms-otp) fills them"
+    - "the code never reaches a log line, analytics event or error report (invariant 6)"
+  tests: [apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "onboarding"
+- id: INT-362
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-362.md
+  acceptance:
+    - "every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"
+    - "the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"
+  tests: [apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"
+- id: INT-363
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend"
+  depends_on: [INT-226]
+  labels: [area:mobile, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-363.md
+  acceptance:
+    - "before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"
+    - "the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"
+  tests: [apps/mobile/src/lib/kiosk/kioskState.test.ts, apps/mobile/e2e/a11y.spec.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"
+- id: INT-364
+  epic: E14-legal
+  phase: P1
+  title: "Board 2018/10 organisational measures: the owner's evidence and counsel's four readings"
+  depends_on: [INT-215]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "the owner supplies the adopted special-category security policy, staff training and signed confidentiality records, the console role-holder register with signed access reviews, the offboarding and inventory-return checklist, where the production OpenBao unseal keys are held, the external penetration test, data-centre physical-security evidence and the written e-mail, removable-media and paper rules; each lands as a dated evidence reference in docs/legal/special-category-measures.yaml"
+    - "counsel answers whether mutual TLS satisfies the decision's VPN or sFTP requirement, whether an unencrypted hospital-LAN inbound feed may ever carry health data, whether phone code plus attested device key is two-factor for patients, and what the confidentiality undertaking must say"
+  tests: [tests/legal/test_2018_10_mapping.py]
+  legal: "2018-10"
+  sec_row: "compliance-evidence"
+- id: INT-365
+  epic: E12-admin
+  phase: P1
+  title: "Staff second factor and session bounds: the console refuses a token issued without a second factor"
+  depends_on: [INT-215]
+  labels: [area:admin, risk:security]
+  status: todo
+  acceptance:
+    - "the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"
+    - "the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"
+  tests: [tests/admin/test_staff_second_factor.py]
+  legal: "2018-10"
+  sec_row: "admin-console"
+- id: INT-366
+  epic: E12-admin
+  phase: P1
+  title: "Quarterly access review generated by the console, and one-action offboarding with a 60-day auto-disable"
+  depends_on: [INT-365]
+  labels: [area:admin, risk:security]
+  status: todo
+  acceptance:
+    - "the console generates the quarterly access review of files/08 §2.7 from Keycloak, the role grants and the audit log, and downgrades platform_owner and tenant_admin sessions to read-only past 100 days without a review; admin_access_review_age_days is emitted"
+    - "one disable revokes the person's Keycloak sessions, OpenBao leases and every other console account together (files/08 §2.4), and an account with no login for 60 days is disabled automatically; both are audited"
+  tests: [tests/admin/test_access_review.py, tests/admin/test_offboarding.py]
+  legal: "2018-10"
+  sec_row: "admin-console"
+- id: INT-367
+  epic: E02-data
+  phase: P1
+  title: "Scheduled quarterly key rotation that emits sec_secret_rotation_due_days"
+  depends_on: [INT-215]
+  labels: [area:security, risk:security]
+  status: done
+  evidence: docs/evidence/INT-367.md
+  # NOTE 27 Sep 2026: the job (intake_platform.key_rotation, make
+  # key-rotation), the live gauge and SecretRotationOverdue ship here. Which
+  # host runs the daily tick in production, the scrape of its gauge and its
+  # rotation-scoped OpenBao token are the owner's deployment decision; the
+  # runbook (docs/runbooks/key-rotation.md) states all three.
+  acceptance:
+    - "a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"
+  tests: [tests/security/test_rotation_schedule.py]
+  legal: "2018-10"
+  sec_row: "data-at-rest"
+- id: INT-368
+  epic: E13-infra
+  phase: P1
+  title: "Continuous dependency security updates (Renovate) for every lockfile"
+  depends_on: [INT-215]
+  labels: [area:infra, risk:security]
+  status: done
+  evidence: docs/evidence/INT-368.md
+  acceptance:
+    - "a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"
+  tests: [tests/ci/test_dependency_updates.py]
+  legal: "2018-10"
+  sec_row: "cicd"
+- id: INT-369
+  epic: E13-infra
+  phase: P1
+  title: "schemathesis API fuzzing runs in CI instead of being recorded as deferred"
+  depends_on: [INT-215]
+  labels: [area:infra, risk:security]
+  status: todo
+  acceptance:
+    - "the security workflow runs schemathesis against the API's OpenAPI schema on every PR (files/10 §4) and fails on a server error or schema violation; the deferred note is removed"
+  tests: [tests/ci/test_security_workflow.py]
+  legal: "2018-10"
+  sec_row: "cicd"
+- id: INT-372
+  epic: E08-mobile
+  phase: P1
+  title: "Visit-card chevron clears long department names"
+  depends_on: []
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-372.md
+  acceptance:
+    - "the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"
+  tests: [apps/mobile/e2e/visitCard.spec.ts, apps/mobile/src/lib/visitCardLayout.test.ts]
+- id: INT-370
+  epic: E08-mobile
+  phase: P1
+  title: "Visits calendar view and Geçmiş (past) list on Vizitlerim"
+  depends_on: [INT-341]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-370.md
+  acceptance:
+    - "Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"
+    - "the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"
+    - "INT-341's calendar press tokens apply"
+  tests: [apps/mobile/src/lib/calendar.test.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/e2e/motion.spec.ts, tests/release/test_i18n_complete.py]
+  sec_row: "mobile"
+- id: INT-376
+  epic: E13-infra
+  phase: P0
+  title: "Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved"
+  depends_on: [INT-352]
+  labels: [area:infra, risk:legal]
+  status: todo
+  # GitHub #613. Split out of INT-352, which closes on the us-east-1 host.
+  # This one waits on AWS: service-quota request c6c0d271… (eu-central-1 G/VT
+  # on-demand vCPU to 8) is CASE_OPENED.
+  acceptance:
+    - "once the eu-central-1 request is approved, a g6.2xlarge (or the owner-approved size) runs the same infra/staging stack in eu-central-1, with public HTTPS, a stamped /version, a passing smoke test and a restart-decrypt proof recorded in docs/evidence/INT-376.md"
+    - "EXPO_PUBLIC_API_BASE_URL in the EAS production environment points at the new host, and the us-east-1 host is stopped only after the new one passes"
+    - "real patient PHI is still not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11); Frankfurt is not Turkey"
+  tests: [tests/infra/test_staging_compose.py]
+  legal: "KVKK-9"
+  sec_row: "platform"
