@@ -281,7 +281,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-401 (console rollback, split out of INT-187) + INT-410 (release
     # bundles carry no synthetic seed accounts, audit F30, found by INT-179's
     # close-out as GitHub #689); grows only with a stated reason.
-    assert len(ids) == 323, f"expected 175 blueprint + 148 added issues, got {len(ids)}"
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
+    # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
+    # finding, GitHub #673); grows only with a stated reason.
+    assert len(ids) == 324, f"expected 175 blueprint + 149 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

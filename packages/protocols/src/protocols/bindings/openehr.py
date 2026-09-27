@@ -48,9 +48,10 @@ OPT_PATH: Final = Path("packages/protocols/openehr/previsit_intake.v1.opt")
 """The committed template (files/12 §1 directory layout), repo-root relative."""
 
 OPT_TEMPLATE_ID: Final = "previsit_intake.v1"
-OPT_SHA256: Final = "c72247abe50eb675629af368653ee1f174ef4d0efeb0df8726ceba6b8b33dcfa"
+OPT_SHA256: Final = "5ad266b4f1f1ffd28d28d25f301f9beab8f8a1f5c52e1e32ad2d886169d9b95f"
 """sha256 of :data:`OPT_PATH`. Bumping this is the review surface for a
-re-authored template (files/12 §8.1)."""
+re-authored template (files/12 §8.1). Last bumped by INT-257, which made the
+file valid against the OPT 1.4 schema (same nine roots, same RM types)."""
 
 
 class OptError(ValueError):

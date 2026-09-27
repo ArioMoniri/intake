@@ -132,7 +132,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-410 (the synthetic seed accounts leave the release bundle, proven
     # over the production export; audit F30, found by INT-179's close-out,
     # GitHub #689).
-    assert len(ids) == 323
+    # + INT-404 (triage rule evidence lines write quantities for the reader's
+    # locale; INT-386's finding, GitHub #673).
+    assert len(ids) == 324
     import re
 
     for i in ids:
