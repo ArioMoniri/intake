@@ -76,7 +76,9 @@ def test_ids_unique_and_well_formed() -> None:
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
     # Grow this count only with a stated reason.
-    assert len(ids) == 293
+    # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
+    # ported to main as its own one-issue PR).
+    assert len(ids) == 294
     import re
 
     for i in ids:

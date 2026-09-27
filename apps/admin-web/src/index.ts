@@ -241,3 +241,17 @@ export {
   type OpsView,
 } from "./ops/module";
 export { loadOpsConsole, type OpsConsoleState } from "./ops/load";
+// INT-181 — the Overview (files/08 §3 Overview, Reliability): one tile per
+// declared SLO with multiwindow burn rates, the synthetic probe matrix and
+// dependency health, rendered at `app/overview/page.tsx`.
+export {
+  OverviewBudgetInconsistent,
+  OverviewBurnInconsistent,
+  OverviewStaleRenderedFresh,
+  RELIABILITY_SCHEMA,
+  renderOverview,
+  type OverviewView,
+  type ReliabilityPayload,
+  type SloView,
+} from "./overview/module";
+export { loadOverview, type OverviewState } from "./overview/load";
