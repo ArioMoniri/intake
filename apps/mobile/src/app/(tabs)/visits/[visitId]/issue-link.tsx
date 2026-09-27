@@ -111,6 +111,9 @@ export default function IssueDoctorLink() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
         keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): the recipient field scrolls clear of the
+        // keyboard, which takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
       >
         <AppText role="hero" heading style={styles.heroLine}>
           {t("shares.issue.title")}
