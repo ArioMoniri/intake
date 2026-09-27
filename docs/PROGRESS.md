@@ -1,5 +1,36 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T12:00:00Z · INT-122 · todo (second pass; PR open, row unchanged)
+- Goal: acceptance verbatim (GitHub #97): *"patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"*.
+- Plan:
+  - Audit main clause by clause (docs/evidence/INT-122.md §10.1).
+  - Build the missing byte-level half without choosing an engine:
+    - `records/document_engine.py` holds the files/03 §4.9.1 rows 20-21 gate (§4.9.2(f)), plus `read_mhrs_screenshot` and `read_enabiz_export`. Both refuse with a closed `DocumentReadStatus` before any byte meets an engine.
+    - `enabiz.import_lab_table` runs the six-column parse through INT-124's unit guard into unconfirmed, boxed items.
+- Tests added: `tests/records/test_enabiz_mhrs_read_paths.py` (39).
+  - RED: collection error, module missing.
+  - GREEN: 39 passed; `tests/records` 612 passed at 100 % branch on `intake_platform.records`.
+  - Eight mutants were run, and each one was caught.
+- Result:
+  - ruff, format and mypy --strict (473 files) clean.
+  - tests/api + tests/security: 925 passed.
+  - Main pytest lane: 8416 passed at 96.16 % branch (floor 85).
+  - `no_placeholders`, `assert_no_vendor_calls` and `phi_scan` pass after staging (evidence §10.5).
+- Invariants touched and still passing:
+  - 6: refusals name a row and a status, never the upload.
+  - 12: every reading is a candidate or unconfirmed.
+  - 14: data, never instructions; one fence.
+  - 17: the gate is wired and fails closed with its content empty.
+  - 19: no OCR component reaches the PHI path without a blob-verified licence.
+  - 22: every lab value is guarded.
+- Decisions / ADRs / `00_STATE.md` rows: none. No engine was chosen, because that is the open engine-and-sandbox ADR plus a model-table licence audit.
+- Blocked on:
+  - an engine for rows 20-21: a licence read from the raw blob, a registry row and the files/10 §4 sandbox ADR;
+  - HB-A1 (does the e-Nabız PDF have a text layer?);
+  - Ask 2 in docs/backlog/blockers.md (MHRS SMS date order; no HB id yet).
+- Found, not fixed: INT-134's on-device `parseMhrsSms` reads dates day-first, while the server guard refuses the same two-way date. See evidence §10.4.
+- Next: PR `INT-122: e-Nabız export parser and MHRS SMS to visit fields (no scraping)`, `Refs #97`, Sec-Row records. It is left unmerged for the coordinator's split.
+
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
   - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*
