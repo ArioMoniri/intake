@@ -52,6 +52,9 @@ _TIMEOUT_S: Final = 5.0
 ID_LABEL: Final = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
 #: A git ref name (the CI tile's ``branch`` label is the one exception to ids).
 BRANCH_LABEL: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+#: The labels held to a git ref name rather than an id: a branch, and a
+#: release tag (INT-187), both named by the repository, never by a person.
+_REF_LABELS: Final = frozenset({"branch", "tag"})
 
 
 class PromUnavailable(Exception):
@@ -172,7 +175,7 @@ class PromSession:
             if frozenset(sample.labels) != expected:
                 raise TileUnknown("unexpected_label")
             for name, value in sample.labels.items():
-                pattern = BRANCH_LABEL if name == "branch" else ID_LABEL
+                pattern = BRANCH_LABEL if name in _REF_LABELS else ID_LABEL
                 if not pattern.match(value):
                     raise TileUnknown("label_not_id_shaped")
         return samples

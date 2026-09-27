@@ -627,6 +627,32 @@ rotate_role_passwords() {
   log "re-keyed ${#ROLE_PASSWORD_KEYS[@]} database roles away from their committed dev passwords"
 }
 
+# --- the release gate (INT-187) ---------------------------------------------------------
+
+# The console's deploy freeze and the SLO error budget, decided by one rule
+# (intake_platform.release_freeze.release_verdict). The shell does not
+# re-implement it: the gate runs in a one-off container of the image just
+# built, on the project network, with the api's own environment, and reads the
+# freeze from the deployment's Redis. Exit 0: allowed. Exit 3: refused, and its
+# lines say why. Anything else: the gate did not run, which refuses too.
+RELEASE_GATE_EXIT_REFUSED=3
+FREEZE_RUNBOOK='docs/runbooks/staging.md, section "Deploy freeze", and docs/runbooks/deploy-freeze.md'
+
+require_release_not_frozen() {
+  local output rc=0 line
+  output=$(compose run --rm --no-deps -T api python -m intake_api.admin.release_gate 2>&1) || rc=$?
+  while IFS= read -r line; do
+    if [[ -n $line ]]; then log "$line"; fi
+  done <<<"$output"
+  if ((rc == 0)); then
+    return 0
+  fi
+  if ((rc == RELEASE_GATE_EXIT_REFUSED)); then
+    die "deploys are frozen or the freeze cannot be read: nothing was restarted (${FREEZE_RUNBOOK})"
+  fi
+  die "the release gate did not run (exit ${rc}): refusing to deploy without it (${FREEZE_RUNBOOK})"
+}
+
 # --- public HTTPS ------------------------------------------------------------------------
 
 https_get() {
