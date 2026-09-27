@@ -18,11 +18,13 @@
  */
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SymbolView } from "expo-symbols";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ListGroup } from "@/components/ListRow";
 import { AppText, useScheme, useTheme } from "@/components/Themed";
 import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
 import { modalAnimation } from "@/lib/a11y/motion";
+import { ALL_ORIENTATIONS } from "@/lib/a11y/orientation";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import type { SectionPanelModel, SectionRow } from "@/lib/dialogue/sectionPanel";
@@ -184,11 +186,20 @@ interface SectionSheetProps {
 export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionSheetProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
+  // INT-360: a Modal is its own window, so the Screen's safe edges do not
+  // reach the sheet. In landscape the notch and the rounded corners are at
+  // the SIDES, so the sheet takes the side insets itself, and the bottom one
+  // for the home indicator.
+  const insets = useSafeAreaInsets();
   return (
     <Modal
       visible={visible}
       transparent
       animationType={modalAnimation(reduceMotion)}
+      // SC 1.3.4 (INT-360): without this list React Native presents the Modal
+      // portrait-only on an iPhone, and opening the sheet in landscape would
+      // turn the screen under the patient.
+      supportedOrientations={ALL_ORIENTATIONS}
       onRequestClose={onClose}
     >
       <View style={styles.backdropWrap}>
@@ -209,7 +220,15 @@ export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionS
             stays reachable through the labelled close control below. */}
         <View
           accessibilityViewIsModal
-          style={[styles.sheet, { backgroundColor: theme.background }]}
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: theme.background,
+              paddingLeft: insets.left,
+              paddingRight: insets.right,
+              paddingBottom: insets.bottom,
+            },
+          ]}
         >
           <View style={styles.sheetHeader}>
             <AppText role="title" heading>
