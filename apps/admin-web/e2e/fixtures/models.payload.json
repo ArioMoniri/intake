@@ -684,6 +684,38 @@
       }
     },
     {
+      "component": "qwen3.6-35b-a3b",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "Qwen/Qwen3.6-35B-A3B@995ad96 — files/03 §4.9.1 row 9, the extraction LLM (vLLM, JSON-schema-constrained decoding, off the spoken-loop critical path). Served by no host: the target GPU is quota-blocked (INT-381; INT-352/INT-376), and the PHI path also needs an in-country host (HB-I5, HB-L11)",
+      "license": "Apache-2.0 (stock, unmodified — raw LICENSE blob read and hashed at the pinned revision; see licence_blob_url and licence_note)",
+      "probe": "http_health",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0",
+      "licence_verified_at": "2026-09-27",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "qwen3.6-35b-a3b: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (Qwen/Qwen3.6-35B-A3B@995ad96 — files/03 §4.9.1 row 9, the extraction LLM (vLLM, JSON-schema-constrained decoding, off the spoken-loop critical path). Served by no host: the target GPU is quota-blocked (INT-381; INT-352/INT-376), and the PHI path also needs an in-country host (HB-I5, HB-L11))."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
       "component": "deid-tr-ner-v1",
       "self_hostable": true,
       "self_hosted_now": true,

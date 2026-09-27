@@ -1,5 +1,20 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T03:30:00Z · INT-124 · done (PR open); INT-121 rescoped to done; INT-380, INT-381 added
+- Goal: acceptance verbatim (GitHub #99), rescoped: *"adapter behind LLMGateway with JSON-schema-constrained decoding; pin from 03 §4.9.1 row 9; off the spoken-loop critical path"* · *"unit resolution is a GUARD, not an assumption: magnitude outranks the printed unit token, and disagreement raises a flag rather than converting silently"* · *"`ure` is never substring-matched …"* · *"decimal separator resolved PER VALUE, not per document, cross-checked against the analyte's expected magnitude …"* · *"eval corpus includes a document with a WRONG printed unit string and a five-digit result carrying a thousands separator; a two-number reference cell stops the parse rather than averaging"*. The "target < 3 s" half moved to INT-381 (#627, `gpu`); INT-121's clause 3 moved to INT-380 (#626, awaiting-human).
+- Plan:
+  - `records/unit_guard.py`: `guard_lab_value` → `LabValueVerdict` (printed magnitude, printed unit, typed `GuardFlag`s, `STOP_FLAGS`); `ExpectationTable` keyed through `analyte_key`; `AnalyteExpectation` cannot exist without a `SourceCitation`; `SHIPPED_EXPECTATIONS` empty (HB-C24), so every value is flagged.
+  - `numbers.magnitude_readings` (the two-way form as both readings; `parse_printed_magnitude` delegates); `analytes.analyte_key`; `extract_record_items(..., guard=)` gives per-value verdicts, INT-121's path unchanged.
+  - `records/lab_extraction.py`: schema derived from `ITEM_KEYS`, schema-only instructions, numbered fence, recorded + self-hosted gateways, env wiring; `records/lab_model.py`: the row-9 pin and a PHI gate that refuses while no host serves it.
+  - Registry row `qwen3.6-35b-a3b` (revision + 26 LFS sha256s + raw-blob licence record, `self_hosted_now: false`); the probe reports it unavailable.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_unit_resolution_guard.py` (106), `tests/records/test_labjson_eval.py` (79), `tests/observability/test_probe_registry.py` (+5). Every guard rule carries its near miss (same line in the expected unit; `Üre Nitrojeni` against Üre's row; the same `1.500` read two ways by two bands; `-5` is one number; a served registry row passes the PHI gate). RED: 2 collection errors + 5 `KeyError`s. Mutations M1–M8 (two-number cell, comparator, band-less first reading, case-folded unit, empty table passes, `Üre Nitrojeni`→urea, PHI gate ignores serving, strict decoding off) each killed, restored from an in-memory copy and byte-compared.
+- Result: see docs/evidence/INT-124.md §4 for `make check` / `make safety`; 100 % branch on the six changed records modules.
+- Invariants touched and still passing: 1 (no level-shaped key in the schema; triage key refused whole), 6 (verdict and refusals echo nothing), 13 (registry row + probe), 14 (fence, schema-only instructions, pinned weights), 17 (no fakes outside tests; the empty table is the fail-closed content), 19 (raw-blob licence, self-hostable, vendor host refused, no fallback), 20 (synthetic fixture, no figure), 22 (the guard).
+- Decisions / ADRs / `00_STATE.md` rows: `00_STATE §1` extraction row now records the row-9 pin and the served-by-no-host state (it said "needs replacing"). No ADR: the adapter follows ADR-006 and INT-083's seam.
+- Blocked on: HB-C24 (physician of record + clinical biochemist: which analytes, unit, magnitude band, committed source) — the guard fails closed until then; INT-381 on GPU capacity (HB-I4, HB-I5, HB-L11); INT-380 on HB-A13 (+ HB-A10, HB-A2).
+- Next: merge in order (this PR moves the three pins); INT-381 once a GPU host exists.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:
