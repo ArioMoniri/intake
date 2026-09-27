@@ -63,6 +63,7 @@ from clinical_schemas.note import (
 )
 from clinical_schemas.triage import (
     CandidateFlag,
+    EvidenceSlot,
     LlmCandidateTriage,
     RuleFire,
     RulesTriageResult,
@@ -783,6 +784,39 @@ class TestNumbersNeverCrossUnguarded:
         for face in (soap, pdf, payload):
             for near_miss in ("72.5", "142.5", "610.25", "4.1", "0.22"):
                 assert near_miss not in face, near_miss
+
+    def test_a_rule_evidence_decimal_is_written_with_the_notes_decimal_comma(
+        self, copy: NoteCopy
+    ) -> None:
+        """INT-404. A fired rule's evidence line is written from the fire's
+        parts for the note's reader on every face. The engine's own text,
+        with its full stop, is the near miss: no face prints it."""
+        fire = RuleFire(
+            id="rule.synthetic.olcum",
+            evidence="synthetic.olcum=38.50",
+            evidence_slots=(
+                EvidenceSlot(slot="synthetic.olcum", values=(Decimal("38.50"),), unit="°C"),
+            ),
+        )
+        composed = compose(
+            meta=_meta(),
+            triage=RulesTriageResult(level=TriageLevel.YELLOW, rules=(fire,)),
+            screening=_screening(),
+        )
+        soap = render_soap(composed, copy)
+        assert "  [rule.synthetic.olcum] synthetic.olcum=38,50 °C\n" in soap
+        pdf = "\n".join(
+            line
+            for page in _pdf_pages(render_note_pdf(composed, copy, watermark="visit-0001"))
+            for line in page
+        )
+        assert _pdf_literal("[rule.synthetic.olcum] synthetic.olcum=38,50 °C") in pdf
+        payload = json.dumps(
+            _wire(render_fhir_document(composed, patient_id="pt-0001")), ensure_ascii=False
+        )
+        assert "<p>rule rule.synthetic.olcum: synthetic.olcum=38,50 °C</p>" in payload
+        for face in (soap, pdf, payload):
+            assert "38.50" not in face
 
     def test_a_measure_keeps_its_exact_decimal(self) -> None:
         measure = SelfReportedMeasure(code=MeasureCode.WEIGHT, magnitude=Decimal("72.5"), unit="kg")

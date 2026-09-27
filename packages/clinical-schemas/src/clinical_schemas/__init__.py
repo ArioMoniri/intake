@@ -106,6 +106,7 @@ from clinical_schemas.session import (
 )
 from clinical_schemas.triage import (
     CandidateFlag,
+    EvidenceSlot,
     LlmCandidateTriage,
     RedLocation,
     RedRegister,
@@ -139,6 +140,7 @@ __all__ = [
     "CsatV1",
     "DocumentKind",
     "EvidenceBundle",
+    "EvidenceSlot",
     "EvidenceStats",
     "ExtractedRecordItem",
     "FactCandidate",

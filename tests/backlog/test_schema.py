@@ -132,11 +132,13 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-410 (the synthetic seed accounts leave the release bundle, proven
     # over the production export; audit F30, found by INT-179's close-out,
     # GitHub #689).
+    # + INT-404 (triage rule evidence lines write quantities for the reader's
+    # locale; INT-386's finding, GitHub #673).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415; owner request, GitHub #705).
-    assert len(ids) == 325
+    assert len(ids) == 326
     import re
 
     for i in ids:
