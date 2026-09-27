@@ -32,6 +32,7 @@ from __future__ import annotations
 from clinical_schemas.mappers.document import previsit_note_to_document_bundle
 from clinical_schemas.mappers.r4 import Bundle
 from clinical_schemas.quantity import float_magnitude, render_quantity
+from clinical_schemas.rule_evidence import render_rule_evidence
 from intake_platform.pdf import render_document_pdf
 
 from intake_voice_runtime.note.composer import ComposedNote, facts_by_section
@@ -201,7 +202,12 @@ def document_lines(composed: ComposedNote, copy: NoteCopy) -> list[str]:
         copy.value("previsit_note.heading.triage"),
         f"{_INDENT}level: {note.triage.level.value}",
     ]
-    lines.extend(f"{_INDENT}[{rule.id}] {rule.evidence}" for rule in note.triage.rules)
+    # A fired rule's evidence is written from its parts for the note's reader
+    # (invariant 22, INT-404); the engine's own text keeps JSON's full stop.
+    lines.extend(
+        f"{_INDENT}[{rule.id}] {render_rule_evidence(rule, locale=note.meta.language)}"
+        for rule in note.triage.rules
+    )
     lines.append("")
 
     lines.append(copy.value("previsit_note.soap.subjective"))
