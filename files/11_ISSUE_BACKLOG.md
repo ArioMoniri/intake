@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**302 issues.** By phase: P0 157 · P1 91 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 171 · todo 88 · withdrawn 1.
+**302 issues.** By phase: P0 157 · P1 91 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 172 · todo 87 · withdrawn 1.
 
 ## P0
 
@@ -86,7 +86,7 @@
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
 | INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | done |
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | done |
-| INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
+| INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | done |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | done |
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | done |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | done |
