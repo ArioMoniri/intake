@@ -5722,3 +5722,19 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-388
+  epic: E03-protocols
+  phase: P1
+  title: "Physician sign-off packet per department, generated from the review queue and verification trail"
+  depends_on: [INT-353]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-388.md
+  # GitHub #641. Builds on PR #582 (sibling rebinds, near-twin sweep, reorder op).
+  acceptance:
+    - "scripts/dev/signoff_packet.py renders one packet per branch and per cluster from the committed review candidates, proposals and verification docs, with no hand-copied text: the questions in ask order with tr text verbatim, gates, delivery, sources (guideline id and URL), red-flag stubs and their status, and every open item that names that branch with its HB id"
+    - "a signature block per packet (the signer, date and decision per open item); signing records a decision and never edits a pack"
+    - "a drift test: packets regenerate byte-identically from the committed sources, and every open item in the verification docs is filed in a packet or listed in docs/signoff/_unassigned.md, which must be empty (a planted unassigned item fails)"
+    - "no accuracy or performance claim (invariant 20)"
+  tests: [tests/protocols/test_signoff_packet.py]
+  sec_row: "clinical-content"
