@@ -90,7 +90,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-390, the Keycloak upgrade INT-378 found
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655)
     # + INT-405 (sync paging past 500 issues and issue state, GitHub #675)
-    assert len(actions) == 315
+    assert len(actions) == 316
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

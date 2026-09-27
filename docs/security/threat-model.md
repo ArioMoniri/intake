@@ -309,10 +309,21 @@ it or whose tests exercise it.
 - **Controls (files/10):** §6 in full — the shared health package, OTel propagation with
   hashed session ids, golden-signal dashboards, synthetic probes every 60 s; CLAUDE.md
   invariant 15 (a new service without the contract fails `make check`).
-- **Signals:** burn-rate alerts land with INT-021; probe registry with INT-022; the metrics
-  catalogue itself with INT-025.
-- **Tests:** tests/platform/test_health_contract.py; catalogue completeness test lands with
-  INT-025.
+- **Signals:** multiwindow burn-rate alerts for every SLO file (INT-021); probe registry with
+  INT-022; the metrics catalogue itself with INT-025.
+- **Controls added by INT-021 (close-out, 27 Sep 2026):** a blind spot is now a failing test
+  rather than an absence. Every `docs/slo/*.yaml` generates its recording rules, its three
+  burn lanes and its golden-signal dashboard, and a hand edit to either output fails. Every
+  alert in every rule file Prometheus loads links a `docs/runbooks/` heading that resolves,
+  and every series a rule reads is catalogued and `live`, so a rule over a series nothing
+  emits cannot pass as coverage. `observability/slo_coverage.yaml` states, for every
+  discovered service, app and job, its SLO file and probe rows or the recorded reason it has
+  none. An HTTP SLI must have a `mount_http_metrics` emitter in its own service (services/probes
+  had none). The daily audit-chain verification now pages when it fails
+  (`AuditChainVerificationFailed`, files/08 §5).
+- **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
+  (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
+  test_slo_coverage.py (INT-021).
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 

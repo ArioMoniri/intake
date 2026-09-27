@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**315 issues.** By phase: P0 160 · P1 101 · P2 47 · P3 7. By status: awaiting-human 29 · doing 6 · done 201 · todo 78 · withdrawn 1.
+**316 issues.** By phase: P0 160 · P1 102 · P2 47 · P3 7. By status: awaiting-human 30 · doing 5 · done 202 · todo 78 · withdrawn 1.
 
 ## P0
 
@@ -26,7 +26,7 @@
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | done |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | awaiting-human |
 | INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | done |
-| INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | doing |
+| INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | done |
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | done |
 | INT-023 | Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip | E01-platform | INT-011 | area:observability | done |
 | INT-024 | k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s) | E01-platform | INT-022 | area:observability | done |
@@ -277,6 +277,7 @@
 | INT-402 | Record-embedding model for the patient record index (files/03 §4.9.1) | E07-records | INT-123 | area:records, risk:security | awaiting-human |
 | INT-403 | What withdrawing documents consent does to the patient's record vectors | E02-data | INT-123 | area:data, risk:legal | awaiting-human |
 | INT-405 | The backlog sync pages past 500 issues and keeps issue state in step with rows | E00-governance | INT-004, INT-396 | area:platform | done |
+| INT-408 | Workers tier SLOs: the owner decides the tier and its targets | E01-platform | INT-021 | area:observability | awaiting-human |
 
 ## P2
 
