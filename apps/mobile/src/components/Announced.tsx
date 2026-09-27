@@ -16,6 +16,9 @@
  *
  * - `error` is assertive and is spoken with the catalogue's error word first
  *   ("Hata: …"), so a screen-reader user can tell it from a hint;
+ * - `warning` is assertive and is spoken as shown: something happens soon
+ *   unless the patient acts, and nothing went wrong (INT-363, the kiosk idle
+ *   warning);
  * - `status` is polite and is spoken as shown.
  *
  * e2e/a11y.spec.ts finds every error and status line in the source tree and
@@ -36,7 +39,7 @@ import { t } from "@/lib/i18n";
 import type { ThemeColors, TypeRole } from "@/lib/theme";
 
 interface AnnouncedTextProps {
-  /** `error` interrupts and is heard as an error; `status` waits its turn. */
+  /** `error` interrupts and is heard as an error; `warning` interrupts; `status` waits its turn. */
   tone: LineTone;
   /** The line's visible words — exactly what is rendered. */
   message: string;

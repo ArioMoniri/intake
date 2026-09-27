@@ -39,15 +39,18 @@ export function nextAnnouncement(previous: string | null, message: string | null
 /**
  * What a line on screen is (INT-362): an `error` the patient must know about
  * before going on, or a `status` — a wait, an outcome — that can wait its turn.
+ * INT-363 adds the `warning`: something is about to happen unless the patient
+ * acts (the kiosk's idle wipe, WCAG 2.2 SC 2.2.1). It is as urgent as an error
+ * but is not one — the patient did nothing wrong.
  */
-export type LineTone = "error" | "status";
+export type LineTone = "error" | "warning" | "status";
 
 /** The two politeness levels both platforms share. */
 export type Politeness = "polite" | "assertive";
 
-/** An error interrupts what is being read; a status waits for a gap. */
+/** An error or a warning interrupts what is being read; a status waits for a gap. */
 export function politenessOf(tone: LineTone): Politeness {
-  return tone === "error" ? "assertive" : "polite";
+  return tone === "status" ? "polite" : "assertive";
 }
 
 /**
@@ -58,11 +61,12 @@ export function politenessOf(tone: LineTone): Politeness {
  * first ("Hata: …"). The VISIBLE copy is never changed — this is only what is
  * spoken — and a line whose visible copy already opens with the word is not
  * given it twice. The error word is passed in (the catalogue's `a11y.error`),
- * so this stays free of the i18n runtime.
+ * so this stays free of the i18n runtime. A warning and a status are spoken
+ * as shown: calling a warning an error would misname it.
  */
 export function spokenLine(tone: LineTone, message: string, errorWord: string): string {
   const shown = message.trim();
-  if (shown === "" || tone === "status" || shown.startsWith(errorWord)) {
+  if (shown === "" || tone !== "error" || shown.startsWith(errorWord)) {
     return shown;
   }
   return labelled(errorWord, shown);
