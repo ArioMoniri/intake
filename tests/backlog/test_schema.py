@@ -75,6 +75,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -100,7 +101,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-392 (a session with a previsit output could not be deleted by the
     # DSAR erasure, the retention executor or the integration teardown; found
     # on main's check-integration, fixed and closed in the same PR).
-    assert len(ids) == 304
+    assert len(ids) == 305
     import re
 
     for i in ids:

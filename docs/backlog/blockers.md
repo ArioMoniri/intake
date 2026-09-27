@@ -471,7 +471,7 @@ supplying the list is a visible change and not a silent one. What stands against
 today is what files/10 §2 now says stands against it: the rolling request budgets and the
 Turkish-mobile-only normalisation.
 
-## INT-187 — a rollback button needs something to roll back
+## INT-401 (split from INT-187) — a rollback button needs something to roll back
 
 **Named human:** the owner (where continuous delivery runs), with whoever administers the target.
 

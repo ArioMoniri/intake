@@ -2635,7 +2635,7 @@
   title: "CI/CD & releases module (GH API + Argo CD + gates + freeze)"
   depends_on: [INT-181]
   labels: [area:admin]
-  status: awaiting-human
+  status: done
   evidence: docs/evidence/INT-187.md
   # EVERYTHING BUT THE ROLLBACK BUTTON SHIPPED (27 Sep 2026). /cicd renders
   # recent runs per workflow with failing jobs, every PR-triggered gate on main
@@ -2651,8 +2651,10 @@
   # (no cluster; the siting question HB-I13 asks for the edge tier). A
   # ceremony over nothing to roll back is not a control, so the button renders
   # disabled with that reason. docs/backlog/blockers.md carries the ask.
+  # RESCOPED 27 Sep 2026 (PR #667): the rollback button moves to INT-401
+  # (awaiting a CD target; HB-I13); everything else is delivered.
   acceptance:
-    - "pipelines, eval gates, deploy health, canary state, rollback button (4-eyes), deploy-freeze on budget exhaustion"
+    - "pipelines, eval gates, deploy health, canary state (shown not deployed until a CD tier exists), deploy-freeze on budget exhaustion; the rollback button (4-eyes) is INT-401, which needs a CD target"
   tests: [apps/admin-web/e2e/cicd.spec.ts, tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py, tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py, tests/infra/test_staging_release_freeze.py]
   sec_row: "cicd"
 - id: INT-188
@@ -5880,3 +5882,14 @@
   tests: [tests/data/test_session_delete_contract.py, tests/legal/test_dsar_flows.py, tests/api/test_api_postgres.py, tests/integration/test_session_erasure.py]
   legal: "KVKK-7,KVKK-11,DEST-2017"
   sec_row: "data-at-rest"
+- id: INT-401
+  epic: E12-admin
+  phase: P1
+  title: "Rollback from the console (4-eyes) once a CD target exists"
+  depends_on: [INT-187]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "once a CD target exists (Argo CD, or an API-driven deploy of the previous signed release), rollback is a tier-2 (4-eyes) console action: requested and approved by different eligible roles, audited, refused while the freeze state is unreadable, verified by the new /version; a test proves one person cannot complete it"
+  tests: [tests/admin/test_cicd_rollback.py]
+  sec_row: "admin-console"

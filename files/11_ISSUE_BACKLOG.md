@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**304 issues.** By phase: P0 158 · P1 92 · P2 47 · P3 7. By status: awaiting-human 27 · doing 16 · done 175 · todo 85 · withdrawn 1.
+**305 issues.** By phase: P0 158 · P1 93 · P2 47 · P3 7. By status: awaiting-human 27 · doing 16 · done 176 · todo 85 · withdrawn 1.
 
 ## P0
 
@@ -200,7 +200,7 @@
 | INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | done |
 | INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | done |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin, approval:human-legal | awaiting-human |
-| INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | awaiting-human |
+| INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | done |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
 | INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | awaiting-human |
@@ -266,6 +266,7 @@
 | INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
 | INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
+| INT-401 | Rollback from the console (4-eyes) once a CD target exists | E12-admin | INT-187 | area:admin, risk:security | awaiting-human |
 
 ## P2
 
