@@ -79,6 +79,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-401 (console rollback split out of INT-187; waits on a CD target).
     # + INT-402..403 (split out of INT-123: the embedding-model choice and
     # the consent-withdrawal handling of record vectors; both the owner's).
+    # + INT-413 (counsel drafts for the open legal texts; never served).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -117,7 +118,7 @@ def test_ids_unique_and_well_formed() -> None:
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
     # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
     # main never imported; found by INT-378, fixed and closed in the same PR).
-    assert len(ids) == 314
+    assert len(ids) == 315
     import re
 
     for i in ids:

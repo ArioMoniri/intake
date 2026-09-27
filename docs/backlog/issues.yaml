@@ -6154,3 +6154,17 @@
     - "the owner (with counsel if needed) records whether withdrawal deletes the vectors or keeps them under the record's retention class (files/06); deletion is then done in the withdrawal transaction, audited by id and tested, or the inventory annotation and consent text state the retention"
   tests: [tests/records/test_record_index.py]
   sec_row: "consent"
+- id: INT-413
+  epic: E14-legal
+  phase: P1
+  title: "Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices)"
+  depends_on: [INT-215]
+  labels: [area:legal, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-413.md
+  acceptance:
+    - "docs/legal/drafts/ carries every draft with the TASLAK/DRAFT banner, primary sources cited with retrieval dates, and a README listing the numbered decisions counsel must make and the sign-off procedure"
+    - "a test fails if any loader under packages/ or services/ reads a draft, or if a draft lacks the banner"
+  tests: [tests/legal/test_legal_drafts.py]
+  legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
+  sec_row: "compliance-evidence"
