@@ -1,0 +1,117 @@
+{
+  "_comment": "INT-182 — Prometheus HTTP API instant-query responses (GET /api/v1/query), one per VOICE_QUERIES id, in the documented {status, data: {resultType: vector, result: [{metric, value: [ts, string]}]}} shape. CONSTRUCTED for tests only: no Prometheus runs on the unit lane (container runtimes are CI-only). Values are illustrative operator figures, not measurements of the product (invariant 20), and no label carries patient data (invariant 6). The two latency answers are deliberately EMPTY: voice.round_trip_ms is catalogued `planned` and nothing emits it yet, so the recorded console shows that tile as unknown rather than a number nobody measured.",
+  "sessions": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": { "profile": "residency_tr", "reason": "default" },
+          "value": [1790438400.0, "412"]
+        },
+        {
+          "metric": { "profile": "residency_tr", "reason": "canary" },
+          "value": [1790438400.0, "37"]
+        },
+        { "metric": { "profile": "typed", "reason": "default" }, "value": [1790438400.0, "96"] },
+        {
+          "metric": { "profile": "typed", "reason": "kill_switch" },
+          "value": [1790438400.0, "58"]
+        },
+        {
+          "metric": { "profile": "typed", "reason": "control_unreadable" },
+          "value": [1790438400.0, "2"]
+        }
+      ]
+    }
+  },
+  "inflight_switches": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        { "metric": { "outcome": "switched" }, "value": [1790438400.0, "14"] },
+        { "metric": { "outcome": "not_armed" }, "value": [1790438400.0, "0"] }
+      ]
+    }
+  },
+  "control_read_failures": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        { "metric": { "phase": "start" }, "value": [1790438400.0, "2"] },
+        { "metric": { "phase": "poll" }, "value": [1790438400.0, "5"] }
+      ]
+    }
+  },
+  "latency_p50": { "status": "success", "data": { "resultType": "vector", "result": [] } },
+  "latency_p95": { "status": "success", "data": { "resultType": "vector", "result": [] } },
+  "speech_calls": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": { "component": "voxcpm2-tts", "kind": "tts", "outcome": "ok" },
+          "value": [1790438400.0, "5120"]
+        },
+        {
+          "metric": { "component": "voxcpm2-tts", "kind": "tts", "outcome": "failed" },
+          "value": [1790438400.0, "41"]
+        },
+        {
+          "metric": { "component": "freya-tts", "kind": "tts", "outcome": "ok" },
+          "value": [1790438400.0, "38"]
+        },
+        {
+          "metric": { "component": "whisper-tr-medical", "kind": "asr", "outcome": "ok" },
+          "value": [1790438400.0, "4870"]
+        },
+        {
+          "metric": { "component": "whisper-tr-medical", "kind": "asr", "outcome": "failed" },
+          "value": [1790438400.0, "12"]
+        }
+      ]
+    }
+  },
+  "failovers": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": { "from_component": "voxcpm2-tts", "to_component": "freya-tts" },
+          "value": [1790438400.0, "9"]
+        },
+        {
+          "metric": { "from_component": "freya-tts", "to_component": "typed" },
+          "value": [1790438400.0, "2"]
+        }
+      ]
+    }
+  },
+  "breakers": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": { "component": "voxcpm2-tts", "state": "closed" },
+          "value": [1790438400.0, "1"]
+        },
+        {
+          "metric": { "component": "voxcpm2-tts", "state": "half_open" },
+          "value": [1790438400.0, "0"]
+        },
+        { "metric": { "component": "voxcpm2-tts", "state": "open" }, "value": [1790438400.0, "0"] },
+        { "metric": { "component": "freya-tts", "state": "closed" }, "value": [1790438400.0, "0"] },
+        {
+          "metric": { "component": "freya-tts", "state": "half_open" },
+          "value": [1790438400.0, "1"]
+        },
+        { "metric": { "component": "freya-tts", "state": "open" }, "value": [1790438400.0, "0"] }
+      ]
+    }
+  }
+}

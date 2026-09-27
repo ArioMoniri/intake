@@ -107,9 +107,14 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
 }
 
 const styles = StyleSheet.create({
+  // flexShrink (INT-360): a host that caps its bottom stack — the dialogue,
+  // whose stack must fit above a landscape keyboard — can take height back
+  // from the bar, and the bar hands it on to a scroller inside it. With no cap
+  // there is nothing to give, and the bar keeps its natural height.
   bar: {
     borderTopWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
+    flexShrink: 1,
   },
   floating: {
     position: "absolute",
@@ -120,5 +125,6 @@ const styles = StyleSheet.create({
   inner: {
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md,
+    flexShrink: 1,
   },
 });

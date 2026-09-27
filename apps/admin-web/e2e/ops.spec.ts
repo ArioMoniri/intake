@@ -270,6 +270,21 @@ describe("the rendered tiles (recorded composite)", () => {
     expect(page).toContain('data-reason="registry_unreadable"');
   });
 
+  it("renders a refused probe-results file as an unknown models tile (INT-377)", async () => {
+    const bent = withTile("models", {
+      state: "unknown",
+      reason: "probe_results_unreadable",
+      release_blocked: null,
+      rows: [],
+    });
+    const { state } = await load({ "/admin/ops": { status: 200, body: bent }, ...healthRoutes() });
+    const page = html(state);
+    expect(page).toMatch(/data-tile="models"[^>]*data-tile-state="unknown"/);
+    expect(page).toContain('data-reason="probe_results_unreadable"');
+    // the copy, not the raw code twice (the fallback when a reason has no copy)
+    expect(page).toContain("Probe results file unreadable");
+  });
+
   it("shows the API's health, readiness and build from the configured base", () => {
     const view = renderOps(payload(), responses());
     expect(view.health.alive).toEqual("alive");

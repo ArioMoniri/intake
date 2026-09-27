@@ -15,3 +15,8 @@ from pathlib import Path
 _TESTS_DIR = Path(__file__).resolve().parents[1]
 if str(_TESTS_DIR / "api") not in sys.path:
     sys.path.insert(0, str(_TESTS_DIR / "api"))
+# INT-182: the kill-switch suite drives the runtime's own session-start path,
+# so it builds real session stacks with the voice suite's doubles rather than
+# a second, drifting copy of them.
+if str(_TESTS_DIR / "voice") not in sys.path:
+    sys.path.append(str(_TESTS_DIR / "voice"))

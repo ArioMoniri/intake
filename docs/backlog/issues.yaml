@@ -1356,7 +1356,14 @@
   title: "Document extraction -> FHIR with provenance + confirm cards + eval corpus"
   depends_on: [INT-120, INT-083]
   labels: [area:records]
-  # STAYS OPEN on purpose, 3 Sep 2026. `status: todo` rather than
+  # RESCOPED 27 Sep 2026 (INT-124's PR): clauses 1 and 2 are on main via PR
+  # #450 and evidenced in docs/evidence/INT-121.md, so this row closes on them.
+  # Clause 3, the ">=90 percent LOINC+unit" score, is split out as INT-380
+  # (awaiting-human: HB-A13, with HB-A10 and HB-A2), which also needs a
+  # running row-9 model (INT-381). Nothing was dropped: the harness that
+  # refuses without a named corpus stays exactly as it is.
+  #
+  # History, kept: STAYED OPEN on purpose, 3 Sep 2026. `status: todo` rather than
   # `awaiting-human`, on the INT-136 / INT-140 precedent: two of the three
   # clauses are delivered, so the issue is not waiting as a whole, and
   # `awaiting-human` would make INT-122/123/124 Ready against a clause that is
@@ -1387,10 +1394,10 @@
   # did not run for — and it is INT-124's clause, not this one's.
   #
   # Reopen against HB-A13; see docs/evidence/INT-121.md "Acceptance, line by line".
-  status: todo
+  status: done
   evidence: docs/evidence/INT-121.md
   acceptance:
-    - "labs/meds/diagnoses extracted with source boxes; patient confirms before use; accuracy metric on corpus >=90 percent LOINC+unit"
+    - "labs/meds/diagnoses extracted with source boxes; patient confirms before use"
   tests: [tests/records/test_extraction_eval.py]
   sec_row: "records"
 - id: INT-122
@@ -1456,8 +1463,21 @@
   phase: P2
   title: "Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval"
   depends_on: [INT-121]
-  labels: [area:records, gpu]
-  status: todo
+  labels: [area:records]
+  status: done
+  evidence: docs/evidence/INT-124.md
+  # RESCOPED 27 Sep 2026. The on-hardware half of clause 1 ("target < 3 s")
+  # and a live smoke can only be measured on the target GPU, which is
+  # quota-blocked; they are split out as INT-381 (label gpu), and the `gpu`
+  # label moved with them. What is delivered here: the adapter behind the
+  # gateway seam with JSON-schema-constrained decoding, the row-9 pin
+  # (model_id@revision + 26 weight sha256s + licence_verified_at from the raw
+  # LICENSE blob), the PHI gate that refuses while no host serves the model,
+  # and the deterministic unit-resolution guard. The guard's expectation
+  # table ships EMPTY and fails closed (every value flagged) because no
+  # committed source supplies one — HB-C24, awaiting the physician of record.
+  # The fixture document is synthetic and no figure is reported (invariant 20).
+  #
   # CORRECTED 27 Aug 2026, not deleted. MedGemma FAILS the licence constraint outright - EVERY
   # MedGemma model, 1.5-4B included, is Health AI Developer Foundations licensed, and the 27B is
   # additionally GATED, `license: other` and tagged `en`. None is Apache-2.0, and the CI allow-list
@@ -1465,7 +1485,7 @@
   # Extraction consolidates onto the Talker family, which is also an operational win - one model
   # family to version, pin and hash.
   acceptance:
-    - "adapter behind LLMGateway with JSON-schema-constrained decoding; pin from 03 §4.9.1 row 9; off the spoken-loop critical path, target < 3 s"
+    - "adapter behind LLMGateway with JSON-schema-constrained decoding; pin from 03 §4.9.1 row 9; off the spoken-loop critical path"
     - "unit resolution is a GUARD, not an assumption: magnitude outranks the printed unit token, and disagreement raises a flag rather than converting silently"
     - "`ure` is never substring-matched - Ure and BUN differ by a factor of 2.14, and `Ure Nitrojeni` contains the token but means BUN"
     - "decimal separator resolved PER VALUE, not per document, cross-checked against the analyte's expected magnitude - Turkish handbooks mix comma and period within one page"
@@ -2457,11 +2477,19 @@
   title: "Voice module + kill switch + profile switch + canary weights (4-eyes)"
   depends_on: [INT-181, INT-094]
   labels: [area:admin, risk:clinical]
-  status: todo
+  status: done
   acceptance:
     - "per-profile metrics; kill switch flips tenant to typed without deploy (test)"
   tests: [tests/admin/test_kill_switch.py]
+  evidence: docs/evidence/INT-182.md
   sec_row: "admin-console"
+  # NOTE 27 Sep 2026: "(4-eyes)" is read as files/08 §8.2 and §0c F17 decided
+  # it, not as four-eyes on every lever: pulling the kill switch moves a tenant
+  # to the SAFER transport and is tier 1 (one sre_oncall / clinical_lead /
+  # platform_owner, audited); releasing it, the default-profile switch and the
+  # canary weight move toward voice and are tier-2 ceremonies that one person
+  # cannot complete (tests/admin/test_kill_switch.py). A second key on the safe
+  # direction is an availability control on a safety control.
 - id: INT-183
   epic: E12-admin
   phase: P0
@@ -4907,6 +4935,31 @@
   - tests/api/test_previsit_output.py
   - tests/schemas/test_previsit_output_contract.py
   - tests/platform/test_previsit_output_recipients.py
+- id: INT-318
+  epic: E10-connectors
+  phase: P1
+  # Slice S2 of INT-354 (int-demo -> main). Cited by int-demo code with no
+  # backlog row anywhere; the id was reserved by the coordinator and filed as
+  # GitHub #603 before this row was written, not minted by an agent. The
+  # connector mechanism carried as written; the server route is REBUILT, because
+  # on int-demo it built its source row in code (audit 2026-09-26 F06, section 6
+  # item 8).
+  # The registry row itself is the humans' (HB-A15, HB-A5, HB-L27, the
+  # plaintext decision): until it exists the route answers "unavailable".
+  title: "Acıbadem appointments read source, /v1/visits/sync and the phone-first login it feeds"
+  depends_on: [INT-160, INT-131]
+  labels: [area:connectors, area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-318.md
+  acceptance:
+    - "the visits route reads its source row only from infra/connectors/sources.yaml, which ships sources: [], and fails closed when no row exists; no DPA or approval ref appears in code (audit F06, section 6 item 8)"
+    - "the hardening carries over: require_scopes, a hash-chained audit, resolve_identity for shared handsets, an ownership re-check, and upstream error -> upstream_unavailable (200, no visits)"
+    - "the mobile sync client runs only in a dev build (build-source 79a6fc58)"
+  tests:
+    - tests/connectors/test_acibadem.py
+    - tests/api/test_visits_acibadem_sync.py
+    - tests/api/test_visits_acibadem_registry.py
+    - apps/mobile/e2e/releaseDemoSurfaces.spec.ts
   sec_row: "connectors"
 - id: INT-319
   epic: E05-voice
@@ -5523,11 +5576,12 @@
   title: "WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential"
   depends_on: [INT-226]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-360.md
   acceptance:
     - "apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"
     - "every screen lays out in landscape at the largest text size with no clipped control and no horizontal scroll of body text"
-  tests: [apps/mobile/e2e/a11y.spec.ts]
+  tests: [apps/mobile/e2e/a11y.spec.ts, apps/mobile/src/lib/a11y/orientation.test.ts, tests/legal/test_a11y_report.py]
   legal: "5378,EN301549"
   sec_row: "mobile"
 - id: INT-361
@@ -5591,7 +5645,8 @@
   title: "Staff second factor and session bounds: the console refuses a token issued without a second factor"
   depends_on: [INT-215]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-365.md
   acceptance:
     - "the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"
     - "the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"
@@ -5604,7 +5659,14 @@
   title: "Quarterly access review generated by the console, and one-action offboarding with a 60-day auto-disable"
   depends_on: [INT-365]
   labels: [area:admin, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-366.md
+  # NOTE 27 Sep 2026: the review, the read-only downgrade, the offboarding
+  # pipeline and the auto-disable job ship here. Wiring them to the
+  # production realm and OpenBao (the Keycloak admin client, the offboarding
+  # policy, 60 days of login events), scheduling the daily job, the first
+  # countersigned review and the KEP/e-imza record of each review are the
+  # owner's steps; docs/runbooks/access-review.md states each one.
   acceptance:
     - "the console generates the quarterly access review of files/08 §2.7 from Keycloak, the role grants and the audit log, and downgrades platform_owner and tenant_admin sessions to read-only past 100 days without a review; admin_access_review_age_days is emitted"
     - "one disable revokes the person's Keycloak sessions, OpenBao leases and every other console account together (files/08 §2.4), and an account with no login for 60 days is disabled automatically; both are audited"
@@ -5617,7 +5679,13 @@
   title: "Scheduled quarterly key rotation that emits sec_secret_rotation_due_days"
   depends_on: [INT-215]
   labels: [area:security, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-367.md
+  # NOTE 27 Sep 2026: the job (intake_platform.key_rotation, make
+  # key-rotation), the live gauge and SecretRotationOverdue ship here. Which
+  # host runs the daily tick in production, the scrape of its gauge and its
+  # rotation-scoped OpenBao token are the owner's deployment decision; the
+  # runbook (docs/runbooks/key-rotation.md) states all three.
   acceptance:
     - "a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"
   tests: [tests/security/test_rotation_schedule.py]
@@ -5629,7 +5697,8 @@
   title: "Continuous dependency security updates (Renovate) for every lockfile"
   depends_on: [INT-215]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-368.md
   acceptance:
     - "a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"
   tests: [tests/ci/test_dependency_updates.py]
@@ -5689,6 +5758,174 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-377
+  epic: E12-admin
+  phase: P1
+  title: "/admin/models and /admin/ops fail closed on a malformed probe-results file"
+  depends_on: [INT-183, INT-351]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-377.md
+  # Found by INT-181 (PR #612): models_source read INTAKE_PROBE_RESULTS_PATH
+  # unguarded, so a present file that is not a sweep raised JSONDecodeError
+  # through both routes. The loader now refuses it to probe_results_unreadable
+  # (INT-181's own vocabulary) and logs the reason and exception class only.
+  acceptance:
+    - "a malformed, truncated, empty or wrongly shaped probe-results file makes every tile that reads it show `unknown`, with no 500; the refusal is logged without the file's content"
+    - "one test per malformation, plus a near-miss control with a valid file"
+  tests: [tests/admin/test_probe_results_fail_closed.py, apps/admin-web/e2e/models.spec.ts, apps/admin-web/e2e/ops.spec.ts]
+- id: INT-373
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id)"
+  depends_on: [INT-180]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-373.md
+  # Found by INT-365 (PR #598). aud, org and tenant are stock mappers. No stock
+  # Keycloak 26.1.4 authenticator writes the AAGUID or credential id anywhere a
+  # mapper can read, so those two mappers read user-session notes that a
+  # WebAuthn provider must write (docs/runbooks/keycloak-realm.md §3). Until it
+  # exists, every real token lacks them and the console refuses it.
+  acceptance:
+    - "the committed realm adds these mappers to the `admin-web` client; a test decodes a token minted from the realm config and asserts each claim, with a near-miss control"
+    - "the deployed-realm runbook lists the same mappers for the owner to apply"
+  tests: [tests/admin/test_realm_claim_mappers.py]
+  sec_row: "admin-console"
+- id: INT-380
+  epic: E07-records
+  phase: P1
+  title: "Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3)"
+  # Split out of INT-121 (GitHub #626) by INT-124's PR. Clauses 1 and 2 are on
+  # main via PR #450. Waiting on HB-A13 (which named, dated, licensed corpus,
+  # and where it may live — a lab report is a patient record, so not in this
+  # repository or CI), with HB-A10 (the LOINC distribution) and HB-A2 (the SKRS
+  # Turkish lab names); and on a running row-9 model, which is INT-381.
+  depends_on: [INT-121, INT-381]
+  labels: [area:records, risk:clinical]
+  status: awaiting-human
+  acceptance:
+    - "`intake_platform/records/corpus.py` runs on the owner-named corpus, and the result is recorded in docs/evidence as a dated measurement on that named corpus, never as a product property (invariant 20)"
+  tests: [tests/records/test_extraction_eval.py]
+  sec_row: "records"
+- id: INT-381
+  epic: E07-records
+  phase: P1
+  title: "On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s)"
+  # Split out of INT-124 (GitHub #627) by INT-124's PR, which delivered the
+  # adapter, the pin and the deterministic unit guard. Blocked on GPU
+  # capacity: the AWS G-quota requests are open (INT-352 / INT-376), and the
+  # PHI path also needs an in-country host (HB-I5, HB-L11). Serving the model
+  # flips the registry row's self_hosted_now, which is what opens the PHI gate.
+  depends_on: [INT-124]
+  labels: [area:records, gpu]
+  status: todo
+  acceptance:
+    - "the row-9 model is served self-hosted on the target GPU with the pinned `model_id@revision + sha256`; a live smoke extracts a synthetic lab report end to end, with per-stage latency recorded in docs/evidence/INT-381.md, on the extraction path and off the spoken-loop critical path"
+  tests: [tests/records/test_lab_extraction_live.py]
+- id: INT-385
+  epic: E07-records
+  phase: P1
+  title: "Record quantities render with the Turkish decimal comma as one number+unit atom"
+  # GitHub #635. Found by INT-124 (PR #634): INT-121's render_quantity wrote a
+  # full stop for every reader, and a Turkish reader takes 12.500 as 12500.
+  # Delivered on the records render path and the app's quantity helper. The
+  # voice-runtime note, patient summary and typed rail, and the clinical-schemas
+  # document mapper, keep their own private measure renderers (INT-096's recorded
+  # defect); they are not record quantities and are left for the issue that
+  # unifies them (docs/evidence/INT-385.md, "Not in scope").
+  depends_on: [INT-121]
+  labels: [area:records, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-385.md
+  acceptance:
+    - "every clinical quantity shown to a patient or clinician renders with the locale's decimal separator (tr: comma), `useGrouping:false`, and number + unit as one non-breaking atom; the mobile confirm cards (INT-138) and the server renderer agree"
+    - "a round-trip test: extract -> render -> re-parse returns the same value for 12.5, 12500, 0.05 and 1,5 in tr and en; a near-miss that renders `12.500` for 12.5 fails"
+    - "no numeral reaches TTS (the compiler expansion path is untouched)"
+  tests: [tests/records/test_quantity_render.py, apps/mobile/src/lib/records/extraction.test.ts]
+  sec_row: "records"
+- id: INT-392
+  epic: E02-data
+  phase: P0
+  title: "Deleting a session removes its previsit outputs in every erasure and retention path"
+  depends_on: [INT-036, INT-037, INT-317]
+  labels: [area:data, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-392.md
+  # Found on main's check-integration (GitHub #647): INT-317's migration 0013
+  # added previsit_outputs.session_id -> sessions.id with no ON DELETE rule,
+  # and no path removed the output first, so the DSAR erasure, the retention
+  # executor and the test_api_postgres teardown all hit ForeignKeyViolation.
+  # Mechanism: explicit removal, output first, in each path (shredded and
+  # audited on the DSAR path); the key keeps NO ACTION as the fail-closed
+  # backstop. No migration.
+  acceptance:
+    - "every session-deletion path (DSAR erasure, retention clinical_record, test cleanup) removes the session's previsit_outputs in the same transaction, first, before the session row; the DSAR erasure crypto-shreds each output and audits it as previsit_output:<id>; the mechanism (explicit removal, the foreign key kept NO ACTION, no cascade) follows files/06 §3 and the crypto-shred design and is recorded in the evidence"
+    - "every foreign key to sessions.id declares what a session deletion does to it, read from the model metadata, with near-miss controls for an undeclared table and for a cascade on previsit_outputs; both executors run with foreign keys enforced; an integration test deletes a session that has an output (red on main); the check-integration teardown is fixed; one alembic head"
+  tests: [tests/data/test_session_delete_contract.py, tests/legal/test_dsar_flows.py, tests/api/test_api_postgres.py, tests/integration/test_session_erasure.py]
+  legal: "KVKK-7,KVKK-11,DEST-2017"
+  sec_row: "data-at-rest"
+- id: INT-393
+  epic: E02-data
+  phase: P0
+  title: "Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree"
+  depends_on: [INT-036, INT-037, INT-150, INT-392]
+  labels: [area:data, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-393.md
+  # Found by INT-392 (GitHub #649; INT-392 evidence §8): INT-150's migration
+  # 0012 added doctor_links.share_id -> shares.id with no ON DELETE rule, and
+  # neither the DSAR erasure nor the retention clinical_record executor removed
+  # Doctor Links before deleting the subject's shares, so erasing a patient who
+  # ever issued a Doctor Link raised ForeignKeyViolation on postgres. Mechanism:
+  # the INT-392 pattern one level down (explicit removal, children first,
+  # recipient envelope shredded, each removed link and share audited by id, the
+  # key kept NO ACTION). No migration; no retention period changed.
+  acceptance:
+    - "DSAR erasure and the relevant retention class remove or shred the patient's Doctor Links and their shares in the documented order, audited by id, with the FK kept strict as a backstop (the INT-392 pattern)"
+    - "tests/data/test_session_delete_contract.py is extended into a contract that every FK in the erasure graph declares what erasure does to it, with a near-miss control; a CI integration test erases a patient with a Doctor Link (red on main)"
+    - "retention_policy.yaml's clinical_record source text lists the tree as it now is (INT-317 outputs, INT-320/150 Doctor Links)"
+  tests: [tests/legal/test_dsar_flows.py, tests/integration/test_session_erasure.py, tests/data/test_session_delete_contract.py]
+  legal: "KVKK-7,KVKK-11,DEST-2017"
+  sec_row: "data-at-rest"
+- id: INT-391
+  epic: E12-admin
+  phase: P1
+  title: "The console accepts every valid WebAuthn credential id (leading - or _, and longer than 96 bytes)"
+  # GitHub #646. Found by INT-378 (PR #643): principal_from_claims checked
+  # credential_id with the generic 128-character id shape, which refused
+  # base64url ids starting with - or _ and ids over 96 bytes. The claim is now
+  # decoded: unpadded base64url, 16-1023 bytes, one spelling per credential.
+  depends_on: [INT-180, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-391.md
+  acceptance:
+    - "the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"
+    - "property tests over generated ids, with near-misses (padding, a non-base64url character, 0 bytes, 1024 bytes)"
+  tests: [tests/admin/test_staff_second_factor.py, tests/admin/test_oidc_verifier.py]
+  sec_row: "admin-console"
+
+- id: INT-386
+  epic: E07-records
+  phase: P1
+  title: "Clinical quantities in the typed lane, note, patient summary and FHIR document text use the locale decimal separator"
+  # GitHub #638. Follow-up to INT-385 (PR #637): the four private measure
+  # renderers INT-096 recorded (the typed rail, note.composer, summary.builder,
+  # the clinical-schemas document mapper) still wrote a full stop for a Turkish
+  # reader. Delivered by moving INT-385's renderer to clinical_schemas.quantity
+  # (the FHIR mapper's package cannot import intake_platform; the records
+  # package re-exports the same objects) and writing every text quantity
+  # through it, the note's speech-measure lines included.
+  depends_on: [INT-385]
+  labels: [area:records, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-386.md
+  acceptance:
+    - "every clinical quantity in the typed lane, clinician note, patient summary and FHIR narrative text renders through the INT-385 locale renderer: tr comma, `useGrouping:false`, number + unit as one non-breaking atom; FHIR structured values (`valueQuantity.value`) stay numeric and unchanged"
+    - "a shared fixture test across all renderers, the golden and `make safety` tests updated with a near-miss (a full stop in tr fails), and no numeral reaching TTS"
+  tests: [tests/records/test_quantity_render.py, tests/engine/test_note_golden.py, tests/engine/test_patient_summary.py, tests/voice/test_typed_parity.py, tests/safety/test_numeric_carrier.py, tests/schemas/test_fhir_mappers.py]
+  sec_row: "records"
 - id: INT-379
   epic: E03-protocols
   phase: P1

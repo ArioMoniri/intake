@@ -227,6 +227,19 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
     if llm_health_url:
         wiring["qwen3.5-9b"] = partial(probes.http_health, http_client, llm_health_url)
 
+    # INT-124: files/03 §4.9.1 row 9 is pinned and served by no host. Always
+    # wired, so the sweep says "unavailable" in words rather than "no client";
+    # it becomes a real health check the moment a host is named (INT-381).
+    lab_health_url = env.get("INTAKE_LAB_EXTRACTION_HEALTH_URL", "")
+    wiring["qwen3.6-35b-a3b"] = (
+        partial(probes.http_health, http_client, lab_health_url)
+        if lab_health_url
+        else partial(
+            probes.model_not_served,
+            "no host serves files/03 §4.9.1 row 9 (the extraction LLM); INT-381 serves it",
+        )
+    )
+
     # INT-175: the Langfuse tier lives in its own compose file and is not part
     # of `make dev`, so it is wired only where its target exists — otherwise
     # both rows surface as SKIPPED in every sweep, which is the honest state.

@@ -291,3 +291,68 @@ export async function devPeekOtp(phoneE164: string): Promise<string | null> {
   const body = await parseBody(response);
   return typeof body.code === "string" ? body.code : null;
 }
+
+/**
+ * One visit as the hospital feed returns it, already in the shell's visit
+ * shape (structurally a `VisitFixture`). Declared here rather than imported
+ * from lib/dev, so the auth client's source names no dev module (INT-328):
+ * the feed carries no taxonomy branch, visit type or note state, so those are
+ * null by type.
+ */
+export interface SyncedVisit {
+  id: string;
+  hospital: string;
+  department: string;
+  branchId: null;
+  visitType: null;
+  date: string | null;
+  noteStatus: null;
+}
+
+/**
+ * INT-318: pull the signed-in patient's upcoming visits from the hospital feed
+ * after OTP verification. The phone is sent once, over the DPoP-bound session,
+ * and the server refuses it unless it tokenizes to this same caller — so it is
+ * never a way to read another patient's visits. Maps the API rows to the
+ * shell's visit shape. A failure returns [] rather than throwing: a patient
+ * with no matched appointment still gets a working home screen.
+ */
+export async function syncVisits(
+  phoneE164: string,
+): Promise<{ patientName: string | null; visits: SyncedVisit[] }> {
+  try {
+    const response = await authedFetch("/v1/visits/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phoneE164 }),
+    });
+    if (!response.ok) {
+      return { patientName: null, visits: [] };
+    }
+    const data = (await response.json()) as {
+      outcome: string;
+      patient_name: string | null;
+      visits: Array<{
+        id: string;
+        hospital: string;
+        department: string;
+        date: string | null;
+        time: string | null;
+      }>;
+    };
+    return {
+      patientName: data.patient_name ?? null,
+      visits: data.visits.map((v) => ({
+        id: v.id,
+        hospital: v.hospital,
+        department: v.time ? `${v.department} · ${v.time}` : v.department,
+        branchId: null,
+        visitType: null,
+        date: v.date,
+        noteStatus: null,
+      })),
+    };
+  } catch {
+    return { patientName: null, visits: [] };
+  }
+}

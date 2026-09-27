@@ -27,6 +27,7 @@ const tr = {
     unexpected_label: "Beklenmeyen etiket; gösterilmedi",
     collector_source_failing: "Toplayıcının bu kaynağı okuması başarısız",
     registry_unreadable: "Kayıt dosyası okunamadı",
+    probe_results_unreadable: "Yoklama sonuç dosyası okunamadı",
     api_unreachable: "API sağlık uçlarına ulaşılamıyor",
   } as Record<string, string>,
   refusals: {
@@ -144,6 +145,7 @@ const en: Copy = {
     unexpected_label: "Unexpected label; not shown",
     collector_source_failing: "The collector's read of this source is failing",
     registry_unreadable: "Registry file unreadable",
+    probe_results_unreadable: "Probe results file unreadable",
     api_unreachable: "API health endpoints unreachable",
   },
   refusals: {

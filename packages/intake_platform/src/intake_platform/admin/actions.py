@@ -30,10 +30,17 @@ from dataclasses import dataclass
 from intake_platform.admin.roles import TIER3_APPROVER_ROLES, AdminRole
 
 __all__ = [
+    "ACCESS_REVIEW_SIGN",
     "BREAK_GLASS_OPEN",
     "DANGEROUS_ACTIONS",
     "MODEL_BENCHMARK_RUN",
+    "OFFBOARD",
     "SAFETY_FLAG_ENABLE",
+    "VOICE_CANARY_SET",
+    "VOICE_CEREMONIES",
+    "VOICE_KILL_SWITCH_ENGAGE",
+    "VOICE_KILL_SWITCH_RELEASE",
+    "VOICE_PROFILE_SWITCH",
     "ActionDirection",
     "ActionTier",
     "DangerousAction",
@@ -192,10 +199,137 @@ SAFETY_FLAG_ENABLE = DangerousAction(
     alert_metric="admin.four_eyes_self_approval_attempt_total",
 )
 
+# --- INT-182: the Voice module (files/08 §3 "Voice runtime", §8.2) ----------------
+#
+# Asymmetric exactly as §8.2 and §0c F17 decided it. The kill switch moves a
+# tenant to `typed` — the SAFER transport — and is tier 1: one `sre_oncall` or
+# `clinical_lead`, audited, no approver. `platform_owner` is the platform
+# authority above both and may take the safe direction alone too (INT-188's
+# `SAFETY_FLAG_DISABLE_ROLES` precedent). Everything that moves a tenant TOWARD
+# voice — releasing the switch, changing the default profile ("tenant
+# voice-profile change" is on §8.2's tier-2 row), setting a canary weight — is
+# tier 2: two humans on distinct authenticators.
+#
+# Who may request and approve is read off files/08 §2.1, not invented: the
+# voice channel is a clinical surface, so the requesters are the all-tenant
+# roles accountable for it (`platform_owner`, `clinical_lead`), and the second
+# key may also be `qms_owner` (IEC 62304 change control on what the device
+# does). `sre_oncall`'s §2.1 scope is "T1 safe-direction actions" and it is on
+# neither side of a tier-2 voice ceremony; `platform_admin` has "no clinical
+# surfaces"; `tenant_admin` is hospital IT, the adversary §0c F8 names.
+
+_VOICE_REQUESTERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD}
+)
+_VOICE_APPROVERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER}
+)
+_VOICE_RUNBOOK = "docs/runbooks/voice-kill-switch.md"
+_VOICE_ALERT = "admin.voice_control_changes_total"
+
+VOICE_KILL_SWITCH_ENGAGE = DangerousAction(
+    id="admin.voice.kill_switch.engage",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        {AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER}
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+VOICE_KILL_SWITCH_RELEASE = DangerousAction(
+    id="admin.voice.kill_switch.release",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_VOICE_REQUESTERS,
+    approver_roles=_VOICE_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+VOICE_PROFILE_SWITCH = DangerousAction(
+    id="admin.voice.profile.switch",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_VOICE_REQUESTERS,
+    approver_roles=_VOICE_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+VOICE_CANARY_SET = DangerousAction(
+    id="admin.voice.canary.set",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_VOICE_REQUESTERS,
+    approver_roles=_VOICE_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+#: The three voice actions that open a four-eyes ceremony.
+VOICE_CEREMONIES: tuple[DangerousAction, ...] = (
+    VOICE_KILL_SWITCH_RELEASE,
+    VOICE_PROFILE_SWITCH,
+    VOICE_CANARY_SET,
+)
+
+#: files/08 §2.7 and §3 Access & identity ("generate and countersign the
+#: quarterly review"), INT-366. A countersigned review is what lifts the §2.7
+#: read-only downgrade from `platform_owner` and `tenant_admin`, so signing it
+#: moves the system toward the MORE capable state: tier 2, two humans on two
+#: authenticators. The signer is the section's §2.7 reviewer
+#: (`compliance_officer`, or the tenant's `tenant_clinical_responsible` for its
+#: clinician accounts); the countersigner is a second key, and for the
+#: `platform_owner` section one from another organisation — §2.7's "external
+#: signature", which the route enforces per section on top of this entry.
+ACCESS_REVIEW_SIGN = DangerousAction(
+    id="admin.access.review.sign",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=frozenset({AdminRole.COMPLIANCE_OFFICER, AdminRole.TENANT_CLINICAL_RESPONSIBLE}),
+    approver_roles=frozenset({AdminRole.COMPLIANCE_OFFICER, AdminRole.QMS_OWNER}),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/access-review.md",
+    alert_metric="admin.access_review_age_days",
+)
+
+#: files/08 §2.4 and §8.2, INT-366. Offboarding disables an account and
+#: revokes what it holds — the safe direction, and §8.2 lists "token revoke"
+#: among the tier-1 actions: one key, no approver, audited. A second key here
+#: would be an availability control on the removal of access, which is the
+#: asymmetry §8.2 exists to prevent. `sre_oncall` holds "revoke a token" alone
+#: (§2.1); `compliance_officer` runs the review whose findings end access; and
+#: `platform_owner` is everything. It pages through its own counter.
+OFFBOARD = DangerousAction(
+    id="admin.access.offboard",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        {AdminRole.SRE_ONCALL, AdminRole.COMPLIANCE_OFFICER, AdminRole.PLATFORM_OWNER}
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/access-review.md",
+    alert_metric="admin.offboarding_total",
+)
+
 DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
     MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
     SAFETY_FLAG_ENABLE.id: SAFETY_FLAG_ENABLE,
+    VOICE_KILL_SWITCH_ENGAGE.id: VOICE_KILL_SWITCH_ENGAGE,
+    VOICE_KILL_SWITCH_RELEASE.id: VOICE_KILL_SWITCH_RELEASE,
+    VOICE_PROFILE_SWITCH.id: VOICE_PROFILE_SWITCH,
+    VOICE_CANARY_SET.id: VOICE_CANARY_SET,
+    ACCESS_REVIEW_SIGN.id: ACCESS_REVIEW_SIGN,
+    OFFBOARD.id: OFFBOARD,
 }
 
 

@@ -59,6 +59,7 @@ from clinical_schemas import (
     SessionStatus,
     TriageLevel,
     VerificationStatus,
+    quantity,
 )
 from clinical_schemas.mappers import (
     NOTE_SECTION_IDS,
@@ -96,6 +97,7 @@ from clinical_schemas.mappers.r4 import (
     RiskAssessment,
 )
 from clinical_schemas.mappers.to_r4 import _scalar_answer
+from clinical_schemas.note import KonusmaOzellikleri, MeasureCode, SelfReportedMeasure
 from clinical_schemas.triage import RedLocation, RedRegister
 
 SUBJECT = "urn:uuid:00000000-0000-4000-8000-000000000001"
@@ -1113,3 +1115,84 @@ class TestDecimalScalarAnswer:
             _scalar_answer(planted, "vitals.temp_c")  # type: ignore[arg-type]
         assert "date" in str(caught.value)
         assert "2026-08-30" not in str(caught.value)
+
+
+# --- INT-386: the narrative's quantities are written for the document's reader ---------
+
+
+def _section_div(wire: dict[str, Any], section_id: str) -> str:
+    composition = wire["entry"][0]["resource"]
+    section = next(
+        s for s in composition["section"] if s["code"]["coding"][0]["code"] == section_id
+    )
+    div: str = section["text"]["div"]
+    return div
+
+
+def _quantity_note() -> PreVisitNote:
+    return _note(
+        measurements=(
+            SelfReportedMeasure(code=MeasureCode.WEIGHT, magnitude=Decimal("72.5"), unit="kg"),
+            SelfReportedMeasure(code=MeasureCode.HEIGHT, magnitude=Decimal("172"), unit="cm"),
+        ),
+        konusma_ozellikleri=KonusmaOzellikleri(
+            speech_rate_syll_s=4.1,
+            pause_ratio=0.22,
+            f0_mean_hz=142.5,
+            f0_sd_hz=21.0,
+            response_latency_ms_mean=610.25,
+            reference_ranges={"speech_rate_syll_s": "sentetik"},
+            recording_conditions_caveat_tr="sentetik kayıt koşulu",
+        ),
+    )
+
+
+class TestNarrativeQuantitiesUseTheDocumentsDecimalPoint:
+    """The narrative is text for a person who reads the document's language
+    (``meta.language``, Turkish). A Turkish reader takes a full stop as
+    grouping, so every narrative quantity is written with a comma, no grouping,
+    and one NO-BREAK SPACE to its unit. The structured values are numbers and
+    are not text, so nothing about them changes."""
+
+    def test_the_measurement_lines_carry_the_turkish_comma(self) -> None:
+        wire = to_wire(previsit_note_to_document_bundle(_quantity_note(), patient_id="pt-0001"))
+        div = _section_div(wire, "measurements")
+        assert "<p>weight: 72,5 kg</p>" in div
+        assert "<p>height: 172 cm</p>" in div
+        assert "72.5" not in div
+
+    def test_the_speech_measure_lines_carry_the_turkish_comma(self) -> None:
+        wire = to_wire(previsit_note_to_document_bundle(_quantity_note(), patient_id="pt-0001"))
+        div = _section_div(wire, "konusma_ozellikleri")
+        for line in (
+            "speech_rate_syll_s: 4,1 syll/s",
+            "pause_ratio: 0,22",
+            "f0_mean_hz: 142,5 Hz",
+            "f0_sd_hz: 21,0 Hz",
+            "response_latency_ms_mean: 610,25 ms",
+        ):
+            assert f"<p>{line}</p>" in div, line
+        for near_miss in ("4.1", "0.22", "142.5", "21.0", "610.25"):
+            assert near_miss not in div, near_miss
+
+    def test_a_structured_quantity_stays_a_number_and_is_unchanged(self) -> None:
+        """``valueQuantity.value`` is a FHIR decimal, a JSON number. It is
+        never the narrative's text, so the locale never reaches it."""
+        observation = record_item_to_r4(_lab_item(), subject_ref=SUBJECT)
+        assert isinstance(observation, Observation)
+        value_quantity = to_wire(observation)["valueQuantity"]
+        assert value_quantity == {"value": 10.2, "unit": "g/dL"}
+        assert isinstance(value_quantity["value"], float)
+        assert '"value": 10.2' in json.dumps(to_wire(observation))
+
+    def test_a_float_measure_is_read_by_its_printed_digits(self) -> None:
+        assert quantity.float_magnitude(4.1) == Decimal("4.1")
+        assert quantity.render_quantity(quantity.float_magnitude(1e-05), locale="tr") == "0,00001"
+        with pytest.raises(ValueError, match="finite"):
+            quantity.float_magnitude(float("inf"))
+
+    def test_an_unrecorded_locale_is_refused_and_not_echoed(self) -> None:
+        with pytest.raises(quantity.QuantityLocaleUnknown) as caught:
+            quantity.quantity_atom(Decimal("72.5"), "kg", locale="sentetik-dil")
+        assert "sentetik-dil" not in str(caught.value)
+        assert quantity.quantity_atom(Decimal("72.5"), None, locale="en") == "72.5"
