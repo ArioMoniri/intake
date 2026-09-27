@@ -77,6 +77,11 @@ def test_ids_unique_and_well_formed() -> None:
     # rotation schedule, dependency updates, API fuzzing in CI).
     # + INT-396 (backlog status reconciliation and its drift guard).
     # + INT-401 (console rollback split out of INT-187; waits on a CD target).
+    # + INT-402..403 (split out of INT-123: the embedding-model choice and
+    # the consent-withdrawal handling of record vectors; both the owner's).
+    # + INT-408 (workers-tier SLO targets, split out of INT-021; the owner's).
+    # + INT-398..400 (split out of INT-122: the document-engine choice, the
+    # real e-Nabiz/MHRS samples, the on-device MHRS date-order defect).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -113,10 +118,16 @@ def test_ids_unique_and_well_formed() -> None:
     # found by INT-360's PR, filed as GitHub #640).
     # + INT-397 (the three status lines INT-362 left silent are announced, and
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
+    # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
+    # main never imported; found by INT-378, fixed and closed in the same PR).
+    # + INT-396 (backlog rows reconciled with what merged, and the status
+    # consistency guard; GitHub #655, carried by its own PR).
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
+    # step with rows; found by INT-396, GitHub #675).
     # + INT-409 (Vizitlerim reads "today" from an injected clock in the
     # Europe/Istanbul day instead of a date pinned in every build; found by
     # INT-179's close-out, GitHub #688).
-    assert len(ids) == 312
+    assert len(ids) == 320
     import re
 
     for i in ids:

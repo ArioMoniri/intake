@@ -1,5 +1,38 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
+- Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
+  - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
+  - The close-out audits every clause against the services, apps, jobs and tiers that exist now, and builds what is missing.
+- Plan:
+  - Generate the rules from every SLO file, not from `api.yaml` alone.
+  - Generate one golden-signal dashboard per SLO file (`intake_platform.slo_dashboards`) and mount the directory into Grafana.
+  - Hold every alert in every rule file Prometheus loads to a runbook heading that resolves, and every series a rule reads to a `live` catalogue entry (`intake_platform.alert_rules`).
+  - Discover every service, app and job, and record each one's SLO file and probe rows or the reason it has none (`observability/slo_coverage.yaml`, `intake_platform.slo_coverage`).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/observability/test_alert_rules.py` (new). Near misses: an anchor one character off, a missing runbook file, a heading inside fenced code, a traversal link, an external URL, a series one letter off, a bare-name series, an undefined recording rule, a `planned` series, and an unloaded rule file.
+  - `tests/observability/test_slo_coverage.py` (new). Near misses: each entry dropped, a probe row one character off, an alert name one character off, a service exempted from its SLO, missing rule groups, a missing dashboard, a new service, app or job without an entry, and an emitter mounted under the wrong name.
+  - `tests/observability/test_slo_generator.py`, generalised to every SLO file. Near misses: the api-only rules file, and a changed objective without a re-emitted dashboard.
+  - `tests/observability/test_obs_compose.py`: the directory mount.
+  - RED 1: 3 collection errors, modules absent. RED 2: 24 failed, 67 passed.
+- Result:
+  - The four files are green, and the audit reports nothing.
+  - 1570 passed across observability, infra, ci, platform and the security-rule consumers.
+  - `make slo-report` exits 0 offline.
+  - `make check-py` (with the deid artefact dir): ruff and format are clean, and `mypy --strict` is clean over 489 files.
+  - Whole tree: 8779 passed at 95.85 %.
+  - Every scoped lane is at its floor. The host stopped the make process after the whole-tree lane, so the scoped lanes were re-run individually with the Makefile commands.
+  - `no_placeholders` (staged): OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 6, 8, 13, 15, 17, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: six SLO files had no alerts; `services/probes` never emitted the series its SLO reads; the 8 cost alerts had no runbook; nothing read `sec_audit_chain_ok` although files/08 §5 pages on it (`AuditChainVerificationFailed`, `docs/runbooks/audit-chain.md`).
+  - Found, not fixed: admin-web has no registry row (needs a re-recorded sweep); one-shot job gauges reach no Prometheus; a readiness 503 burns the HTTP SLIs (learning is not-ready by design until a human value exists); backup age has no emitter.
+  - Pins unchanged (307); files/11 regenerated for the status.
+- Blocked on: owner (backlog) — "Does the worker tier become `services/workers`, under which issue, and what objective does each worker SLI files/08 §4 A leaves open carry?" (`docs/backlog/blockers.md` INT-021; no HB id is minted here).
+- Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
@@ -120,6 +153,76 @@
   - INT-359 refreshes the statement's items 6 and 7.
 - LOOP_STATUS: CONTINUE
 
+### 2026-09-27T12:00:00Z · INT-122 · todo (second pass; PR open, row unchanged)
+- Goal: acceptance verbatim (GitHub #97): *"patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"*.
+- Plan:
+  - Audit main clause by clause (docs/evidence/INT-122.md §10.1).
+  - Build the missing byte-level half without choosing an engine:
+    - `records/document_engine.py` holds the files/03 §4.9.1 rows 20-21 gate (§4.9.2(f)), plus `read_mhrs_screenshot` and `read_enabiz_export`. Both refuse with a closed `DocumentReadStatus` before any byte meets an engine.
+    - `enabiz.import_lab_table` runs the six-column parse through INT-124's unit guard into unconfirmed, boxed items.
+- Tests added: `tests/records/test_enabiz_mhrs_read_paths.py` (39).
+  - RED: collection error, module missing.
+  - GREEN: 39 passed; `tests/records` 612 passed at 100 % branch on `intake_platform.records`.
+  - Eight mutants were run, and each one was caught.
+- Result:
+  - ruff, format and mypy --strict (473 files) clean.
+  - tests/api + tests/security: 925 passed.
+  - Main pytest lane: 8416 passed at 96.16 % branch (floor 85).
+  - `no_placeholders`, `assert_no_vendor_calls` and `phi_scan` pass after staging (evidence §10.5).
+- Invariants touched and still passing:
+  - 6: refusals name a row and a status, never the upload.
+  - 12: every reading is a candidate or unconfirmed.
+  - 14: data, never instructions; one fence.
+  - 17: the gate is wired and fails closed with its content empty.
+  - 19: no OCR component reaches the PHI path without a blob-verified licence.
+  - 22: every lab value is guarded.
+- Decisions / ADRs / `00_STATE.md` rows: none. No engine was chosen, because that is the open engine-and-sandbox ADR plus a model-table licence audit.
+- Blocked on:
+  - an engine for rows 20-21: a licence read from the raw blob, a registry row and the files/10 §4 sandbox ADR;
+  - HB-A1 (does the e-Nabız PDF have a text layer?);
+  - Ask 2 in docs/backlog/blockers.md (MHRS SMS date order; no HB id yet).
+- Found, not fixed: INT-134's on-device `parseMhrsSms` reads dates day-first, while the server guard refuses the same two-way date. See evidence §10.4.
+- Next: PR `INT-122: e-Nabız export parser and MHRS SMS to visit fields (no scraping)`, `Refs #97`, Sec-Row records. It is left unmerged for the coordinator's split.
+
+### 2026-09-27T12:00:00Z · INT-123 · todo (PR open; mechanism shipped, no embedding model pinned)
+- Goal: acceptance verbatim (GitHub #98): *"embeddings scoped by patient+consent; retrieval cited into notes with provenance"*.
+- Plan:
+  - Migration `0014_int123`: `record_embeddings`, with a PERMISSIVE tenant and a RESTRICTIVE patient RLS policy, FORCE, and no clinician grant.
+  - Confirmed-only indexing through a queue hooked on `ConfirmedRecordStore.admit`.
+  - The `documents` consent gate on indexing and on retrieval.
+  - Erasure of vectors in the DSAR shred and in the retention executor.
+  - The `retrieve_records` background Work, and `cite_records` into `imported_objective`, with the document, page, bbox and item id on the span.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_vector_rls.py` (the row's file), `tests/records/test_record_index.py` and `tests/voice/test_retrieve_records_work.py`: 55 unit + 8 integration.
+  - Near-miss controls:
+    - a PERMISSIVE patient policy, a missing WITH CHECK, an unforced table and a widened namespace are each named;
+    - the live probe is shown red on a copy of the table without RLS;
+    - a planted §4.9.1 record-embedding row is detected.
+  - RED: collection errors; then both erasure tests failing on surviving vectors; then the INT-385 guard catching a voice-side import of `intake_platform.records`. The guard was kept, and the voice side types by structure instead.
+  - Mutations: 10/10 killed (one survivor on the first pass got its test).
+- Result:
+  - ruff and format are clean; `mypy --strict` has no issues in 479 files.
+  - Full unit suite: 8417 passed, coverage 95.96 %. The 4 `test_deid_ner` failures are the missing model cache in a fresh worktree, and pass 4/4 against a sibling's cache.
+  - `alembic heads` is one head, `0014_int123`.
+  - `make check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 4 (the consent scope on every index read and write);
+  - 6 (receipts are ids, closed states and class names);
+  - 12 (confirmed only);
+  - 14 and 19 (no model, no fallback; a pin must be `org/model@<commit>`);
+  - 17 (the fail-closed default, no fake);
+  - 18 (every column annotated);
+  - 22 (the INT-385 guard is untouched).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The patient namespace is a RESTRICTIVE policy on a new `app.patient_id` GUC.
+  - Index rows hold no item text.
+  - The embedder dimension is a per-row CHECK because no model declares one.
+- Blocked on: the owner (model-stack author) must choose a files/03 §4.9.1 record-embedding row: open weights, licence from the raw blob, `model_id@revision + sha256`, in-country. No HB row exists yet; the coordinator allocates one (docs/backlog/blockers.md).
+- Next:
+  - INT-392 (#648) and INT-393 (#653) merged mid-iteration. This branch now declares `record_embeddings` (ERASED) and `record_embeddings.patient_id` (PARENT_KEPT) in their contract, and seeds and erases a vector there.
+  - Purging the index on a `documents` withdrawal is a retention decision for a consent issue.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
 - Goal: acceptance verbatim (GitHub #586):
   - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*
@@ -229,6 +332,30 @@
 - Decisions / ADRs / `00_STATE.md` rows: none new. Tiering per files/08 §8.2 and §3 (offboarding T1; sign-off T2 because it lifts the downgrade). Reported, not fixed: `apps/admin-web/src/ops/load.ts` `errorCode` still reads `detail.error` against a flat API body.
 - Blocked on: nothing new in HUMAN_BLOCKERS. Owner steps (runbook): Keycloak admin client + OpenBao KV entry, 60 days of LOGIN events, the three env vars, the OpenBao offboarding policy (`sudo` on token accessors), a daily scheduler for `make access-hygiene`, the first countersigned review — until then `platform_owner`/`tenant_admin` are read-only.
 - Next: PR `INT-366: quarterly access review from the console and one-action offboarding with a 60-day auto-disable` (Closes #593, Sec-Row admin-console), left unmerged for review.
+
+### 2026-09-27T07:30:00+03:00 · INT-390 · done (PR open)
+- Goal: acceptance verbatim (GitHub #645):
+  - *"every Keycloak pin (compose images by digest, docs, runbook, the INT-378 provider's `provided` dependency) moves to the newest patched 26.x release; licence re-verified from the raw LICENSE; OSV clean for Keycloak"*;
+  - *"the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"*.
+- Plan:
+  - Compose runs `quay.io/keycloak/keycloak:26.7.4@sha256:82a77884…29b2c` (released 16 Sep 2026). Apache-2.0 was read from the raw `LICENSE.txt` at the tag, which is byte-identical to apache.org's text.
+  - The `staff browser` description goes from 271 characters to 242, with the same wording as #643.
+  - Compose mounts the realm as `intake-dev-realm.json`, because 26.2.0+ refuses a file not named after its realm.
+  - Column limits were derived by replaying 26.7.4's 78 JPA changelogs, which are byte-identical to the shipped `keycloak-model-jpa` jar.
+- Tests added: `tests/infra/test_keycloak_realm_import.py`, 33 tests.
+  - Every realm string is classified and fits its column, measured in UTF-16 units.
+  - Near-misses: 256-character descriptions and names, 128 astral characters, 37-character authenticator and provider ids, unclassified fields, the 26.1.4 mount name, and a stale image tag.
+  - RED: 6 failed, 23 passed.
+  - GREEN: 33 passed. `tests/admin tests/infra tests/observability`: 1611 passed.
+- Result:
+  - Live on the JVM, red: 26.7.4 refused `main`'s mount name, then `Value too long for column "DESCRIPTION CHARACTER VARYING(255)" … (271)`.
+  - Live, green: `Realm 'intake-dev' imported`, `/health/ready` 200, and the export read-back matched 146 values (two set orderings and one mapper default aside).
+  - OSV: 26.1.4 has 72 advisories and 26.7.4 has 3. All three are open-ended OSV ranges whose GitHub source bounds them below 26.7.4. On #643's five artefacts osv-scanner gives 64 at 26.1.4 and 1 at 26.7.4 (GHSA-794g-x443-36f7).
+- Invariants touched and still passing: **14** (the image is pinned by digest and the licence was read from the blob), **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `admin-console` gains "Controls added by INT-390".
+- Blocked on: nothing here. #643 must rebuild its provider against 26.7.4, adapt its tag-equality tests to the digest pin, and take the owner's call on the one residual OSV record in its gate.
+- Next: PR `INT-390: Keycloak upgraded to 26.7.4; the committed realm imports on it` (Closes #645, Sec-Row admin-console), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
@@ -2681,3 +2808,20 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — where does continuous delivery run (a cluster with Argo CD and Rollouts), or is `deploy.sh` the release path, in which case rollback becomes a gated redeploy? Nearest row HB-I13; a CD-tier row is the coordinator's to allocate (blockers.md "INT-187").
 - Next: PR `INT-187: admin CI/CD & releases module — runs, gates, releases, deploy state and change freeze` (Closes #138, Sec-Row cicd), unmerged for review.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T12:40:00+03:00 · INT-179 · done (PR open, not merged)
+- Goal: close out the row. Acceptance verbatim: *"one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"*. PR #200 merged on 27 Aug and closed #201, the only copy of the issue, but the row stayed `doing`. INT-396 (PR #661, merged at `2f75900f` while this ran) flipped it to `done` on closure alone. This close-out supplies the behavioural audit.
+- Plan: audit each clause against main `0880cc88`, with a file and a test for each. Read "fixture data" per invariant 17: the shipped app must not run on fixtures.
+- Tests added: none, since the close-out adds no code. Five mutants (send, scope filter, resume, progress, a seed import into review) were each killed by the clause's own tests.
+- Result: 11 of 11 clauses met; nothing built, nothing held.
+  - `make check-ts` green (mobile 2260/2260). tests/backlog, tests/mobile and tests/release: 105 passed.
+  - no_placeholders passed after staging; evidence_check passed.
+  - `make check` was not run whole (no Python change; check-integration runs in CI only).
+- Invariants touched and still passing: 2, 5 and 17 were read only; nothing changed.
+- Decisions / ADRs / `00_STATE.md` rows: none. The row's `done` + `evidence:` came from INT-396. After rebasing onto `2f75900f`, this PR's copy of that flip was identical, so issues.yaml and files/11 carry no diff.
+- Blocked on: nothing blocks the issue. Recorded outside the acceptance in docs/evidence/INT-179.md:
+  - audit F11: the typed intake asks unsigned neutral packs until HB-C1;
+  - audit F30: the seed module is still bundled;
+  - `TODAY_FIXTURE` pins Vizitlerim's "today" to 2026-08-27 in release builds, and no row owns it.
+- Next: PR `INT-179: mobile flow shells — close-out` (Closes #201, Sec-Row intake-typed), left unmerged.
+- LOOP_STATUS: CONTINUE
