@@ -30,18 +30,26 @@ container. What IS decidable without booting anything:
 - INT-352: the API gets the App Attest and SMS keys the operator sets, each
   with no default, and a host-generated tokenization key; deploy.sh refuses
   an Apple team id without all three SMS keys, so a verified device is never
-  told a code was sent that nobody sent.
+  told a code was sent that nobody sent;
+- INT-352 (audit F18): ``/version``'s third stamp, ``sbom_digest``, is the
+  sha256 of an SPDX SBOM that syft, pinned by digest, writes of the built api
+  image into the host's release directory, never into the image. compose
+  requires it to start the api; no SBOM refuses the deploy; smoke.sh fails a
+  ``dev`` in any of the three stamps and a digest that is not the sha256 of
+  the SBOM on disk. A docker shim stands in for the host to run that logic.
 
 The host-side run (init.sh, deploy.sh, smoke.sh) belongs to the owner and is
-recorded in docs/evidence/INT-345.md when it happens. Nothing here claims it
-ran.
+recorded in docs/evidence/INT-345.md and INT-352.md when it happens. Nothing
+here claims it ran.
 """
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import inspect
 import io
+import json
 import os
 import re
 import shutil
@@ -119,8 +127,9 @@ DEV_PREFIX = os.path.commonprefix(
 #: The KEK mode that keeps keys in process memory; everything else is Transit.
 PROCESS_LOCAL_KEK = "file-dev"
 
-#: Build-time stamps set by deploy.sh, not by the root-only .env.
-DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT"}
+#: /version's stamps, set by the host scripts, not by the root-only .env: the
+#: commit and build time (build args) and the SBOM digest (a runtime variable).
+DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT", "INTAKE_SBOM_DIGEST"}
 
 #: Committed, non-secret values that lib.sh exports for every compose call.
 LIB_EXPORTED = {"OBJECT_STORE_IMAGE"}
@@ -238,6 +247,51 @@ SWAP_SECTION = "Host memory: swap off or encrypted"
 
 #: The first statement that starts OpenBao, in init.sh and in deploy.sh.
 OPENBAO_START = "compose up -d postgres redis openbao"
+
+#: INT-352 (audit F18): the SBOM generator. syft at v1.51.1, the version CI's
+#: anchore/sbom-action v0.24.1 runs, pinned by the index digest resolved from
+#: Docker Hub's v2 API on 2026-09-27. Apache-2.0, read from the raw LICENSE
+#: blob at the image's revision (docs/evidence/INT-352.md). Assembled from its
+#: parts, like the object store's reference.
+_SBOM_REPOSITORY = "anchore/syft"
+_SBOM_TAG = "v1.51.1"
+_SBOM_DIGEST = "sha256:95fe0835e5bebc6f8b1f8acef68d47d63d594ef4c0f25c097ff853b23cbac74c"
+APPROVED_SBOM_IMAGE = f"{_SBOM_REPOSITORY}:{_SBOM_TAG}@{_SBOM_DIGEST}"
+
+#: The issue a refusal about the SBOM names.
+SBOM_ISSUE = "INT-352"
+
+#: The runtime variable ``VersionInfo`` reads for ``/version``'s sbom_digest.
+SBOM_STAMP = "INTAKE_SBOM_DIGEST"
+
+#: The form /version's sbom_digest takes: an OCI-style sha256 digest.
+SBOM_DIGEST_FORM = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+#: Where a release's SBOM goes when the state dir is the default one: beside
+#: the host's state, outside the build context the image is made from.
+DEFAULT_RELEASES_DIR = "/etc/intake-staging/releases"
+
+#: A stamp given a default, or "dev" assigned to it: how F18's live
+#: ``"dev"`` would come back.
+STAMP_FALLBACK = re.compile(
+    r"\$\{INTAKE_(?:GIT_SHA|BUILT_AT|SBOM_DIGEST):?-"
+    r"|(?:GIT_SHA|BUILT_AT|SBOM_DIGEST)\s*[:=]\s*[\"']?dev\b"
+)
+
+#: The one build statement: its SBOM digest cannot exist yet (see lib.sh).
+BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api'
+
+#: The docker shim's built image and commit, and the SPDX document its syft
+#: prints (the shape syft's spdx-json output takes, trimmed).
+SHIM_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+SHIM_IMAGE_ID = "sha256:" + "ab" * 32
+SHIM_SPDX = json.dumps(
+    {
+        "spdxVersion": "SPDX-2.3",
+        "name": f"intake-staging/api:{SHIM_COMMIT}",
+        "packages": [{"SPDXID": "SPDXRef-Package-python-uvicorn", "name": "uvicorn"}],
+    }
+)
 
 
 def _withdrawn_upstream_image() -> re.Pattern[str]:
@@ -889,7 +943,8 @@ class TestHostScripts:
 
     def test_deploy_is_the_idempotent_compose_up_then_probes(self) -> None:
         text = _text(DEPLOY)
-        assert "compose up -d --build" in text
+        # INT-352: the up runs the image the SBOM describes, never a rebuild
+        assert "compose up -d --no-build" in text
         assert "unseal_openbao" in text
         assert "https://" in text
 
@@ -1451,6 +1506,392 @@ class TestAttestAndSms:
         needles = (*sorted(OPERATOR_SUPPLIED), TOKENIZATION_KEY, "/etc/intake-staging/.env")
         for needle in (*needles, "./deploy.sh", "./init.sh", "synthetic"):
             assert needle in section, needle
+
+
+# --- INT-352 (audit F18): /version's sbom_digest ----------------------------------------
+
+
+def _sbom_host(tmp_path: Path, mode: str = "ok") -> Path:
+    """A bin dir whose ``docker`` stands in for the host's.
+
+    - ``image inspect`` names SHIM_IMAGE_ID, or fails once <tmp>/no-image exists;
+    - ``image save --output F`` writes an archive to F;
+    - ``run`` plays syft by <tmp>/syft-mode: ok (the SPDX document), fail
+      (exit 3), empty (exit 0, no output) or not-spdx (exit 0, another format);
+    - ``compose`` records the INTAKE_SBOM_DIGEST it was given.
+
+    Every call is appended to <tmp>/docker.log."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (tmp_path / "syft-mode").write_text(mode, encoding="utf-8")
+    (tmp_path / "spdx.json").write_text(SHIM_SPDX, encoding="utf-8")
+    body = (
+        'printf "%s\\n" "$*" >>"@TMP@/docker.log"\n'
+        'case "$1" in\n'
+        "  compose)\n"
+        '    printf "compose-digest=%s\\n" "${INTAKE_SBOM_DIGEST-unset}" >>"@TMP@/docker.log"\n'
+        "    exit 0 ;;\n"
+        "  image)\n"
+        '    case "$2" in\n'
+        '      inspect) [ -e "@TMP@/no-image" ] && exit 1; echo "@IMAGE@"; exit 0 ;;\n'
+        "      save)\n"
+        "        while [ $# -gt 0 ]; do\n"
+        '          if [ "$1" = --output ]; then printf archive >"$2"; exit 0; fi\n'
+        "          shift\n"
+        "        done\n"
+        "        exit 2 ;;\n"
+        "    esac ;;\n"
+        "  run)\n"
+        '    case "$(cat "@TMP@/syft-mode")" in\n'
+        '      ok) cat "@TMP@/spdx.json"; exit 0 ;;\n'
+        '      fail) echo "syft: cannot read the archive" >&2; exit 3 ;;\n'
+        "      empty) exit 0 ;;\n"
+        '      not-spdx) echo \'{"bomFormat": "CycloneDX"}\'; exit 0 ;;\n'
+        "    esac ;;\n"
+        "esac\n"
+        "exit 97\n"
+    )
+    _shim(
+        bin_dir / "docker", body.replace("@TMP@", str(tmp_path)).replace("@IMAGE@", SHIM_IMAGE_ID)
+    )
+    return bin_dir
+
+
+def _run_release(tmp_path: Path, bin_dir: Path, script: str) -> subprocess.CompletedProcess[str]:
+    """lib.sh against the shimmed host, with a scratch state dir and a commit."""
+    return subprocess.run(
+        ["bash", "-c", f'source "{LIB}"; {script}', "lib-test"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            "PATH": f"{bin_dir}:{os.environ.get('PATH', '/usr/bin:/bin')}",
+            "HOME": str(tmp_path),
+            "INTAKE_STAGING_STATE_DIR": str(tmp_path / "state"),
+            "INTAKE_GIT_SHA": SHIM_COMMIT,
+        },
+        check=False,
+    )
+
+
+def _docker_calls(tmp_path: Path, verb: str) -> list[str]:
+    log = tmp_path / "docker.log"
+    lines = _text(log).splitlines() if log.exists() else []
+    return [line for line in lines if line.startswith(f"{verb} ")]
+
+
+def _release_dir(tmp_path: Path) -> Path:
+    return tmp_path / "state" / "releases" / SHIM_COMMIT
+
+
+def _sha256(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+#: A /version body with all three stamps real.
+STAMPED_VERSION = {
+    "git_sha": SHIM_COMMIT,
+    "built_at": "2026-09-27T10:00:00Z",
+    "sbom_digest": "sha256:" + "cd" * 32,
+}
+
+
+def _verdict(
+    body: str, sha: str = SHIM_COMMIT, sbom: str = STAMPED_VERSION["sbom_digest"]
+) -> subprocess.CompletedProcess[str]:
+    """smoke.sh's /version check, as lib.sh defines it."""
+    return _bash('version_verdict "$1" "$2" <<<"$3"', sha, sbom, body)
+
+
+class TestSbomStamp:
+    """INT-352, audit F18: the live API reported ``sbom_digest: "dev"``.
+
+    deploy.sh (and init.sh, which builds too) builds the api image, has syft
+    write an SPDX SBOM of it into the host's release directory, outside the
+    build context, and passes the file's sha256 to the api container as
+    ``INTAKE_SBOM_DIGEST``, beside the git_sha and built_at build stamps.
+    compose requires it, so no api container starts without one. syft runs
+    from a digest-pinned image, offline, on a saved archive of the image,
+    never on the docker socket. If it fails, or writes anything but an SPDX
+    document, the deploy stops. smoke.sh reads the SBOM on disk and fails a
+    ``dev`` in any stamp, a digest that is not that file's sha256, and an api
+    container that runs another image."""
+
+    # --- the pinned generator ---
+
+    def test_lib_pins_syft_by_digest(self) -> None:
+        result = _bash('printf "%s" "$SBOM_IMAGE"')
+        assert result.stdout == APPROVED_SBOM_IMAGE
+        assert PINNED.match(result.stdout)
+
+    @pytest.mark.parametrize(
+        "image",
+        [
+            "",
+            f"{_SBOM_REPOSITORY}:{_SBOM_TAG}",
+            f"{_SBOM_REPOSITORY}@{_SBOM_DIGEST}",
+            f"{_SBOM_REPOSITORY}:{_SBOM_TAG}@{_SBOM_DIGEST[:-1]}",
+        ],
+        ids=["unset", "tag-only", "no-tag", "short-digest"],
+    )
+    def test_the_syft_gate_refuses_an_unset_or_unpinned_image(self, image: str) -> None:
+        result = _bash('require_sbom_image "$1"', image)
+        assert result.returncode != 0
+        assert SBOM_ISSUE in result.stderr
+
+    def test_the_syft_gate_admits_a_digest_pinned_image(self) -> None:
+        """Positive control: the gate is a pin check, not a constant refusal."""
+        result = _bash('require_sbom_image "$1"', APPROVED_SBOM_IMAGE)
+        assert result.returncode == 0, result.stderr
+
+    def test_deploy_checks_the_syft_pin_before_it_touches_the_host(self) -> None:
+        code = _code(DEPLOY)
+        gate = code.index('require_sbom_image "$SBOM_IMAGE"')
+        assert code.index("require_object_store_image") < gate < code.index("require_root")
+
+    def test_an_unpinned_syft_never_runs(self, tmp_path: Path) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        result = _run_release(
+            tmp_path, bin_dir, f'SBOM_IMAGE="{_SBOM_REPOSITORY}:latest"; stamp_sbom'
+        )
+        assert result.returncode != 0
+        assert SBOM_ISSUE in result.stderr
+        assert not _docker_calls(tmp_path, "run")
+
+    # --- compose and the image ---
+
+    def test_compose_passes_the_digest_to_the_api_as_a_required_stamp(self) -> None:
+        match = REQUIRED_INTERPOLATION.match(_environment(_service("api")).get(SBOM_STAMP, ""))
+        assert match and match.group(1) == SBOM_STAMP
+        for name in SERVICES - {"api"}:
+            assert SBOM_STAMP not in _environment(_service(name)), name
+        assert SBOM_STAMP not in _env_template(), "a release stamp, not a host secret"
+
+    def test_the_stamp_is_the_name_versioninfo_reads(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        digest = STAMPED_VERSION["sbom_digest"]
+        monkeypatch.setenv(SBOM_STAMP, digest)
+        assert VersionInfo.from_env().sbom_digest == digest
+        monkeypatch.delenv(SBOM_STAMP)
+        # what F18 saw live: nothing passed it, so compose must require it
+        assert VersionInfo.from_env().sbom_digest == "dev"
+
+    def test_the_sbom_never_enters_the_image(self) -> None:
+        """The SBOM describes the image, so the image cannot carry it: no
+        build arg, no ENV or LABEL, and the file lands outside the context."""
+        assert "SBOM" not in str(_service("api")["build"]).upper()
+        for instruction, args in _dockerfile_instructions():
+            assert "SBOM" not in args.upper(), (instruction, args)
+        releases = _bash('printf "%s" "$RELEASES_DIR"').stdout
+        assert releases == DEFAULT_RELEASES_DIR
+        assert not Path(releases).is_relative_to(REPO)
+
+    @pytest.mark.parametrize("path", (*SCRIPTS, COMPOSE, DOCKERFILE), ids=lambda p: p.name)
+    def test_no_stamp_falls_back_to_dev(self, path: Path) -> None:
+        hits = [line.strip() for line in _text(path).splitlines() if STAMP_FALLBACK.search(line)]
+        assert not hits, f"{path.name}: {hits}"
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "INTAKE_SBOM_DIGEST: ${INTAKE_SBOM_DIGEST:-dev}",
+            "INTAKE_SBOM_DIGEST: ${INTAKE_SBOM_DIGEST-}",
+            'export INTAKE_SBOM_DIGEST="dev"',
+            "INTAKE_SBOM_DIGEST: dev",
+            "ENV INTAKE_GIT_SHA=dev",
+        ],
+    )
+    def test_the_fallback_scan_recognises_what_it_forbids(self, line: str) -> None:
+        assert STAMP_FALLBACK.search(line)
+
+    def test_the_fallback_scan_passes_the_required_form(self) -> None:
+        """Near-miss control: the required interpolation is not a fallback."""
+        assert not STAMP_FALLBACK.search(f"{SBOM_STAMP}: ${{{SBOM_STAMP}:?set by deploy.sh}}")
+        assert not STAMP_FALLBACK.search(f"{SBOM_STAMP}=development-tier")
+
+    # --- the scripts' order ---
+
+    @pytest.mark.parametrize("script", (INIT, DEPLOY), ids=lambda p: p.name)
+    def test_the_image_is_built_and_stamped_before_any_compose_call(self, script: Path) -> None:
+        code = _code(script)
+        assert re.search(r"^build_api_image$", code, re.M), script.name
+        assert re.search(r"^stamp_sbom$", code, re.M), script.name
+        order = [code.index(step) for step in ("stamp_revision", "build_api_image", "stamp_sbom")]
+        assert order == sorted(order)
+        assert order[-1] < code.index("compose "), "compose needs the digest to load"
+
+    def test_the_only_build_is_build_api_image(self) -> None:
+        builds = [
+            line.strip()
+            for path in SCRIPTS
+            for line in _code(path).splitlines()
+            if re.search(r"\bcompose build\b", line)
+        ]
+        assert builds == [BUILD_STATEMENT]
+
+    def test_deploy_runs_exactly_the_image_the_sbom_describes(self) -> None:
+        ups = re.findall(r"^compose up .*$", _code(DEPLOY), re.M)
+        assert "--no-build" in ups[-1].split()
+        assert not [up for up in ups if "--build" in up.split()], (
+            "a rebuild is not the SBOM's image"
+        )
+
+    def test_smoke_reads_the_stamp_from_disk_and_checks_it(self) -> None:
+        code = _code(SMOKE)
+        assert re.search(r"^stamp_sbom_from_disk$", code, re.M)
+        assert code.index("stamp_sbom_from_disk") < code.index("compose ")
+        for writer in ("build_api_image", "generate_sbom"):
+            assert writer not in code, f"smoke.sh never writes: {writer}"
+        assert not re.search(r"^stamp_sbom$", code, re.M)
+        assert re.search(r'version_verdict "\$INTAKE_GIT_SHA" "\$\w+"', code)
+        assert 'sha256_of "$SBOM_FILE"' in code, "the file on disk, hashed at check time"
+        assert "{{.Image}}" in code and '"$API_IMAGE_ID"' in code
+
+    # --- the stamp, run against the shimmed host ---
+
+    def test_the_build_value_reaches_only_the_build_call(self, tmp_path: Path) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        result = _run_release(
+            tmp_path, bin_dir, 'build_api_image; printf "[%s]" "${INTAKE_SBOM_DIGEST-unset}"'
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == "[unset]", "bound to the build, never exported"
+        builds = _docker_calls(tmp_path, "compose")
+        assert len(builds) == 1 and builds[0].endswith(" build api")
+        seen = [line for line in _text(tmp_path / "docker.log").splitlines() if "digest=" in line]
+        value = seen[0].split("=", 1)[1]
+        assert value not in ("", "dev", "unset")
+        assert not SBOM_DIGEST_FORM.match(value), "no container could mistake it for a digest"
+        assert _verdict(json.dumps({**STAMPED_VERSION, "sbom_digest": value})).returncode != 0
+
+    def test_stamp_writes_the_sbom_beside_the_release_and_exports_its_sha256(
+        self, tmp_path: Path
+    ) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        result = _run_release(
+            tmp_path, bin_dir, 'stamp_sbom; printf "%s\\n%s\\n" "$INTAKE_SBOM_DIGEST" "$SBOM_FILE"'
+        )
+        assert result.returncode == 0, result.stderr
+        digest, sbom_file = result.stdout.split()
+        sbom = Path(sbom_file)
+        hex_id = SHIM_IMAGE_ID.removeprefix("sha256:")
+        assert sbom == _release_dir(tmp_path) / f"api-{hex_id}.spdx.json"
+        assert sbom.read_text(encoding="utf-8") == SHIM_SPDX
+        assert digest == _sha256(sbom)
+        assert SBOM_DIGEST_FORM.match(digest)
+        assert [p.name for p in _release_dir(tmp_path).iterdir()] == [sbom.name], "work removed"
+        assert stat.S_IMODE(_release_dir(tmp_path).stat().st_mode) == 0o700
+
+    def test_syft_runs_offline_on_a_read_only_archive_never_the_socket(
+        self, tmp_path: Path
+    ) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        assert _run_release(tmp_path, bin_dir, "stamp_sbom").returncode == 0
+        saves = _docker_calls(tmp_path, "image")
+        assert [s for s in saves if s.startswith("image save ")], saves
+        assert saves[-1].endswith(f"intake-staging/api:{SHIM_COMMIT}")
+        (run,) = _docker_calls(tmp_path, "run")
+        args = run.split()
+        assert APPROVED_SBOM_IMAGE in args
+        assert "--network none" in run and "--cap-drop ALL" in run
+        assert re.search(r"image\.tar:/in/image\.tar:ro(\s|$)", run)
+        assert "docker-archive:/in/image.tar" in args
+        assert "spdx-json" in args
+        assert "docker.sock" not in _text(tmp_path / "docker.log")
+
+    @pytest.mark.parametrize("mode", ["fail", "empty", "not-spdx"])
+    def test_no_sbom_refuses_the_release_and_leaves_nothing(
+        self, tmp_path: Path, mode: str
+    ) -> None:
+        """syft failing refuses the deploy; the near-misses, a syft that
+        exits 0 with nothing or with another format, refuse it too."""
+        bin_dir = _sbom_host(tmp_path, mode)
+        result = _run_release(
+            tmp_path, bin_dir, 'stamp_sbom; printf "stamped %s\\n" "$INTAKE_SBOM_DIGEST"'
+        )
+        assert result.returncode != 0
+        assert "stamped" not in result.stdout
+        assert "refusing" in result.stderr and SBOM_ISSUE in result.stderr
+        assert list(_release_dir(tmp_path).iterdir()) == [], "no SBOM and no work dir left"
+
+    def test_a_rerun_on_the_same_image_keeps_its_sbom(self, tmp_path: Path) -> None:
+        """deploy.sh is idempotent: the same image keeps its SBOM, so the
+        digest, and with it the api container, stay as they are. syft would
+        fail on the second run here; it is never called."""
+        bin_dir = _sbom_host(tmp_path)
+        first = _run_release(tmp_path, bin_dir, 'stamp_sbom; printf "%s" "$INTAKE_SBOM_DIGEST"')
+        assert first.returncode == 0, first.stderr
+        (tmp_path / "syft-mode").write_text("fail", encoding="utf-8")
+        second = _run_release(tmp_path, bin_dir, 'stamp_sbom; printf "%s" "$INTAKE_SBOM_DIGEST"')
+        assert second.returncode == 0, second.stderr
+        assert second.stdout == first.stdout
+        assert len(_docker_calls(tmp_path, "run")) == 1
+
+    @pytest.mark.parametrize("function", ["stamp_sbom", "stamp_sbom_from_disk"])
+    def test_no_built_image_is_refused(self, tmp_path: Path, function: str) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        (tmp_path / "no-image").touch()
+        result = _run_release(tmp_path, bin_dir, function)
+        assert result.returncode != 0
+        assert "no api image" in result.stderr
+        assert not _docker_calls(tmp_path, "run")
+
+    def test_smoke_reads_the_sbom_deploy_wrote_and_never_writes_one(self, tmp_path: Path) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        missing = _run_release(tmp_path, bin_dir, "stamp_sbom_from_disk")
+        assert missing.returncode != 0
+        assert "./deploy.sh" in missing.stderr
+        assert not _docker_calls(tmp_path, "run"), "smoke never generates an SBOM"
+        stamped = _run_release(tmp_path, bin_dir, 'stamp_sbom; printf "%s" "$INTAKE_SBOM_DIGEST"')
+        read = _run_release(
+            tmp_path, bin_dir, 'stamp_sbom_from_disk; printf "%s" "$INTAKE_SBOM_DIGEST"'
+        )
+        assert read.returncode == 0, read.stderr
+        assert read.stdout == stamped.stdout
+
+    # --- smoke's /version verdict ---
+
+    def test_a_fully_stamped_version_passes(self) -> None:
+        result = _verdict(json.dumps(STAMPED_VERSION))
+        assert result.returncode == 0, result.stdout
+        for value in STAMPED_VERSION.values():
+            assert value in result.stdout
+
+    @pytest.mark.parametrize("field", sorted(STAMPED_VERSION))
+    @pytest.mark.parametrize("value", ["dev", "", None], ids=["dev", "empty", "null"])
+    def test_an_unstamped_field_fails(self, field: str, value: str | None) -> None:
+        result = _verdict(json.dumps({**STAMPED_VERSION, field: value}))
+        assert result.returncode != 0
+        assert field in result.stdout
+
+    @pytest.mark.parametrize("field", sorted(STAMPED_VERSION))
+    def test_a_missing_field_fails(self, field: str) -> None:
+        body = {key: value for key, value in STAMPED_VERSION.items() if key != field}
+        result = _verdict(json.dumps(body))
+        assert result.returncode != 0
+        assert field in result.stdout
+
+    def test_a_digest_one_character_off_the_sbom_on_disk_fails(self) -> None:
+        """Near-miss: a well-formed digest that is not the file's sha256."""
+        near = STAMPED_VERSION["sbom_digest"][:-1] + "e"
+        assert SBOM_DIGEST_FORM.match(near)
+        result = _verdict(json.dumps({**STAMPED_VERSION, "sbom_digest": near}))
+        assert result.returncode != 0
+        assert "SBOM on disk" in result.stdout
+
+    def test_another_commit_fails(self) -> None:
+        result = _verdict(json.dumps({**STAMPED_VERSION, "git_sha": "f" * 40}))
+        assert result.returncode != 0
+        assert "git_sha" in result.stdout
+
+    @pytest.mark.parametrize("body", ["", "<html>502</html>", "[]"], ids=["empty", "html", "list"])
+    def test_a_body_that_is_not_a_version_object_fails(self, body: str) -> None:
+        assert _verdict(body).returncode != 0
+
+    def test_the_runbook_says_where_the_sbom_is_and_what_smoke_checks(self) -> None:
+        text = _text(RUNBOOK)
+        assert "`sbom_digest` stays `dev`" not in text
+        for needle in ("sbom_digest", DEFAULT_RELEASES_DIR, _SBOM_REPOSITORY, "--no-build"):
+            assert needle in text, needle
 
 
 # --- the runbook -----------------------------------------------------------------------

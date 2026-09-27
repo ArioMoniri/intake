@@ -54,7 +54,105 @@
 - Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
 - Blocked on: nothing. Device screenshots are an owner step.
 - Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-27T02:10:00Z · INT-370 · delivered (PR open; clinical-reviewer and device screenshots pending)
+- Goal: acceptance verbatim (GitHub #604):
+  - *"Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"*
+  - *"the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"*
+  - *"INT-341's calendar press tokens apply"*
+
+  This is slice S3 of INT-354, int-demo `148a7dbd`.
+- Plan:
+  - Cherry-pick `148a7dbd`. It auto-merged, and git's conflict list was empty.
+  - Point the calendar's three Pressables at `motion.press`: the days and arrows 0.6 → `rowOpacity` 0.7, and the agenda row `opacity`.
+  - Record the day hint as a register finding instead of rewriting it.
+- Tests added:
+  - `src/lib/calendar.test.ts` (16, ported) and `e2e/visits.spec.ts` (+6: toggle, one visits list, the Geçmiş group always shown with an empty state, a pure date-only model, MIN_TAP targets, tr keys).
+  - `tests/release` records `a11y.visits.dayHint`.
+  - RED: 6 failed plus a missing module; the i18n gate is red on the unrecorded key; `motion.spec` is red on the 3 literals after the cherry-pick. GREEN: 42/42 targeted.
+- Result:
+  - mobile vitest 105 files / 2034 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - `make check-i18n` 30 passed;
+  - the Python suites that read `apps/mobile` 526 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (tr source of truth, en mirror), 18 (no new field, nothing persisted), 17, 8.
+- Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
+- Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-26T23:20:00Z · INT-352 · done (PR open)
+- Goal: close INT-352 (GitHub #558) by stamping `/version`'s `sbom_digest` on the production API (audit F18), and split the Frankfurt move into INT-376 (#613). Acceptance verbatim:
+  - *"main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"*
+  - *"a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"*
+  - *"the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"* (rescoped from "and the host moves to Frankfurt when the eu-central-1 request is approved")
+  - *"real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"*
+- Plan:
+  - init.sh and deploy.sh build the api image, then have syft, pinned by digest, write its SPDX SBOM into `/etc/intake-staging/releases/<commit>/`, outside the build context.
+  - The file's sha256 becomes `INTAKE_SBOM_DIGEST`, a required compose interpolation.
+  - The final up is `--no-build`.
+  - smoke.sh reads the SBOM from disk and fails `dev` in any stamp, a digest mismatch, or a different running image.
+- Tests added: `TestSbomStamp` in `tests/infra/test_staging_compose.py` (57 tests), with near-miss negatives:
+  - a syft that exits 0 with empty or non-SPDX output;
+  - a well-formed digest one character off the file's;
+  - the required interpolation, which the no-`dev`-fallback scan must pass.
+  - A docker shim runs the stamp logic without a container runtime.
+  - RED: 43 failed, 201 passed. GREEN: 244 passed. Mutations M1 and M2 killed.
+- Result:
+  - tests/backlog, tests/smoke/test_make_check.py and tests/infra: 648 passed.
+  - tests/docs and the security-gate tests: green.
+  - bash -n and shellcheck: clean. `no_placeholders` OK after staging. `evidence_check` OK.
+  - `make check` was not run whole (check-integration is CI-only). `make safety` and `make security` were not run: no protocol, PolicyGuard or Python security surface changed.
+  - Nothing was deployed. The live stamp is shown by the coordinator's next `deploy.sh` and `smoke.sh` run.
+- Invariants touched and still passing:
+  - **14**: syft is pinned by digest, its licence was verified from the raw LICENSE blob, and it runs offline on a read-only archive without the docker socket.
+  - **15**: `/version` gets all three stamps.
+  - **17**: no placeholder. The build-time value is documented, bound to one call, never exported, and rejected by smoke.
+  - **19**: syft is Apache-2.0.
+- Decisions / ADRs / `00_STATE.md` rows: none. The acceptance's Frankfurt clause is rescoped to INT-376 as the coordinator directed.
+- Blocked on: nothing for this PR. INT-376 waits on AWS quota request `c6c0d271…`. Acceptance 2 names p50, and the Part 1 k6 table has p95 and max only, so the next deploy's k6 run must record the median (evidence Part 3, item 4).
+- Next: PR `INT-352: stamped /version (sbom_digest) on the production API; Frankfurt move split to INT-376` (Closes #558, Sec-Row platform), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:30:00Z · INT-363 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #589):
+  - *"before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"*
+  - *"the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"*
+  - Found by the INT-226 report: the SC 2.2.1 row (MC-08).
+- Plan:
+  - **Pure machine** in `lib/kiosk/kioskState.ts`. `KIOSK_IDLE_WARNING_MS = 20_000` (W, the criterion's floor) and `kioskIdleReducer` / `kioskIdleDue` run `active → warning → wiped`. The warning comes at T − W = 40 s. The grace is counted from when the warning is shown, and extend or any touch restarts the full minute. `startKioskIdleClock` drives the machine on injected timers.
+  - **Adapter.** `nativeKiosk.ts` hands `Date.now` and its timer to the clock and no longer arms its own wipe.
+  - **`KioskGate`.**
+    - It shows an `AnnouncedText tone="warning"` and a "Devam edin" `PrimaryButton` that calls `extend()`.
+    - Focus moves onto the button with `sendAccessibilityEvent(…, "focus")`.
+    - The session behind the warning is hidden from the reader.
+    - `wiped` runs the unchanged `wipeSession()`.
+  - **Announcer.** INT-362's announcer gains a `warning` tone: assertive, and spoken as shown, without "Hata".
+  - **BK13 scan.** It walks all of `src`, `.ts` included. Each timer is either recorded as no time limit, with its reason, or handed to a warning machine.
+- Tests added:
+  - `kioskState.test.ts`: 13, on a fake clock (warn at T − W, no-extend wipe at T, late-timer grace, extend restarts, 12 repeated extends, the clock's reports, stop).
+  - `announce.test.ts`: 4.
+  - `a11y.spec.ts` BK13: 6 replacing 1. Near-miss control: a planted `src/lib` timer, the pre-INT-363 adapter and a timer beside the machine are each caught, and a comment is ignored.
+  - `kiosk.spec.ts`: 5.
+  - RED: 23 failed / 147 passed. GREEN: 170 / 170. Whole mobile suite: 2110 passed (105 files). Mutations M1–M4 were all killed and restored with `cp`, checked by `cmp`.
+- Result:
+  - `make check-ts` green and `make check-i18n` 30 passed.
+  - `tests/legal/test_a11y_report.py` 26 passed; the report is re-rendered and `--check` passes.
+  - `tests/backlog` passed; expo lint and prettier are clean.
+  - `no_placeholders` and `evidence_check` OK after staging.
+  - `check-py` was not run whole, and neither were `make safety` / `make security`: no Python, protocol, triage or security surface changed.
+- Invariants touched and still passing:
+  - **2:** B1, `siz`, calm copy with no number; PolicyGuard records unchanged.
+  - **3:** the wipe path is unchanged and still shreds the drafts.
+  - **5:** the new keys are tr-first with en mirrored.
+  - **6:** nothing is logged.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - W = 20 s leaves T = 60 s (files/10 §4) intact.
+  - The `warning` tone extends INT-362's two-tone contract rather than calling a timeout an error.
+- New patient copy for clinical-reviewer: `kiosk.idle.warning`, `kiosk.idle.extend`, `kiosk.idle.extendHint`.
+- Blocked on: nothing. The device confirmation is a DA-08 step that waits for the kiosk dev build (HB-A3).
+- Next: PR `INT-363: kiosk idle wipe warns first and can be extended (WCAG 2.2.1)` (Closes #589, Sec-Row mobile), left unmerged for review.
 
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
 - Goal: acceptance verbatim (GitHub #538):
@@ -157,6 +255,63 @@
 - Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
 - Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T12:00:00Z · INT-317 (INT-354 slice 1) · delivered (PR open; the read-back stays shut on HB-A18 and HB-L27)
+- Goal: INT-354 acceptance 1, one slice at a time. INT-317 is the first slice: previsit
+  output store and hospital read-back. Its acceptance is verbatim in its backlog row.
+  - Work: land int-demo's INT-317 work on main as one PR.
+  - Carry: its backlog row and HB-A18, both int-demo-only.
+  - Strip: F06/F21 demo-scoped content.
+- Plan:
+  - Classify all 26 `origin/main..origin/int-demo` commits: issue, on-main by content,
+    F06/held, slice. See `docs/evidence/INT-354.md`.
+  - Cherry-pick the nine INT-317 commits and squash them into three:
+    - red;
+    - implementation;
+    - backlog and evidence.
+  - Regenerate the exports on current main.
+  - Drop `545abfa7`, the demo recipient overlay and guide.
+- Tests added: none new. The int-demo suites are carried unchanged:
+  - `tests/api/test_previsit_output.py`;
+  - `tests/schemas/test_previsit_output_contract.py`;
+  - `tests/platform/test_previsit_output_recipients.py`;
+  - the `tests/data` table checks.
+
+  Their near-miss controls are carried too: no scope → refused and unaudited; no stored
+  previsit → 404; the note grant does not unlock the output scope. RED on main: 3
+  collection errors plus 4 `tests/data` failures. GREEN: 62 passed on the INT-317 suites
+  and 357 on the wider set.
+- Result: `make check` was not run whole, because check-integration needs a container
+  runtime. The `check-py` lanes were run instead:
+  - ruff and format clean; `mypy --strict` clean on 436 files;
+  - the whole-tree pytest: 7106 passed at 95.74 % (floor 85). There were 4 `test_deid_ner`
+    failures, caused by the model cache being absent from a fresh worktree;
+  - schemas 189 passed at 91.76 % (floor 90);
+  - `pnpm -r typecheck` 0; `no_placeholders` OK after staging; phi and claims scans OK.
+
+  `make safety`: not touched, because nothing changed under protocols or voice-runtime.
+- Invariants touched and still passing:
+  - **1**: `triage` is rules-or-`not_evaluated` only;
+  - **4**: a share means a consent check plus an audit entry before the answer;
+  - **6/14**: the patient number is body-only, tokenized and never stored, and the payload
+    is envelope-encrypted;
+  - **17**: an empty registry fails closed;
+  - **18**: every column is annotated;
+  - **22**: magnitude and unit are one object, on the ADR-030 carrier.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No new ADR.
+  - `ADR-029` → `ADR-030` references were corrected, because main de-collided the number.
+  - INT-317 and HB-A18 were carried, not minted. The check found no other use on main, on
+    any remote branch or on GitHub.
+  - Migration `0013_previsit_output` → `0012_int150`, with one alembic head.
+- Blocked on:
+  - **owner + hospital IT + counsel (HB-A18):** which credential a hospital system presents,
+    and the DPA's `dpa_ref`/`approval_ref`/`retention_ref`;
+  - **counsel (HB-L27):** the `share` consent text.
+- Next:
+  - The owner confirms INT-318 and allocates ids for the mobile slices.
+  - Then S2 INT-318, with the F06 route rebuilt registry-only.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):
@@ -2156,3 +2311,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — the seventeen organisational gaps (policy, training, undertakings, grant register and reviews, offboarding, unseal-key custody, premises, transfer rules, pen test), of which three are HB-I12, HB-I9, HB-I8; counsel — mTLS vs "VPN or sFTP" (5c), plaintext LAN feeds (5c), whether patient OTP + device-bound key is two-factor (3e), the undertaking text (2b). No HB row minted; blockers.md carries both asks.
 - Next: the coordinator allocates issues for the ten `security_owner` gaps (staff second factor, session lifetime, access-review generator, offboarding, key-rotation schedule, encryption and auth signals, dependency updates, API fuzzing, the Kurum's security guide).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:30:00Z · INT-367 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #594): *"a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"*. Found by INT-215 as the 2018/10 measure 3b gap `rotation-schedule`.
+- Plan: `intake_platform.key_rotation` — `schedule` (three calendar months in UTC, `ROTATION_PERIOD_MONTHS` sourced to files/10 §3), `transit` (last rotation = creation time of the latest Transit version, read from Transit's own key metadata; no new store), `job` (one idempotent tick: rotate what is due through the existing `TransitKekProvider.rotate`, confirm the new version, set `sec_secret_rotation_due_days{key}`), `cli` (`make key-rotation`). Catalogue entry flipped to live with `[key]`; `SecretRotationOverdue` in a new `infra/observability/security-rules.yaml` wired into the obs Prometheus; runbook `docs/runbooks/key-rotation.md`.
+- Tests added: `tests/security/test_rotation_schedule.py` (31) on the INT-014 FakeTransit extended with metadata reads, a fake clock and `min_decryption_version` on decrypt. Near-miss control: one second short of the quarter is not rotated, the quarter is. Failed and partial rotations leave every ciphertext decryptable; the job's only write is `rotate`. RED 1: module missing. RED 2: 4 wiring failures plus the INT-025 gate naming the metric as planned-but-emitted. GREEN: all pass. Mutants 7/7 killed.
+- Result: see docs/evidence/INT-367.md (pytest lane with coverage, ruff, format, mypy --strict, no_placeholders after staging, evidence_check). `make check-ts`/`check-i18n`, `make safety` and `make security` not run: no TS, protocol or dependency change.
+- Invariants touched and still passing: 6 (label is the Transit key name only; CLI prints ids only), 13 (metric catalogued live and emitted; alert reads only catalogued series), 14 (secrets only via `SecretsProvider.from_env`, fails closed), 15 (runbook linked from the alert), 17 (no fake outside tests; the unwired production pieces are stated, not faked).
+- Decisions / ADRs / `00_STATE.md` rows: none. OpenBao policies untouched (LOOP guardrail).
+- Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
+- Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
+- LOOP_STATUS: CONTINUE

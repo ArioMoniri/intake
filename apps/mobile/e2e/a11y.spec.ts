@@ -30,6 +30,13 @@ import { describe, expect, it } from "vitest";
 
 import { MIN_TAP } from "../src/lib/a11y/target";
 import { OTP_LENGTH } from "../src/lib/auth/phone";
+import {
+  KIOSK_IDLE_WARNING_MS,
+  KIOSK_IDLE_WIPE_MS,
+  kioskIdleDue,
+  kioskIdleReducer,
+  kioskIdleStart,
+} from "../src/lib/kiosk";
 import { CTA_MIN_HEIGHT } from "../src/lib/prefs/appearance";
 import { buildEnvelopeBody } from "../src/lib/telemetry/envelope";
 import { buildCrashReport, type TelemetryIdentity } from "../src/lib/telemetry/scrub";
@@ -921,10 +928,13 @@ describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces 
         ? stringLiterals(expr)
         : [...expr.matchAll(/[?:]\s*"([^"]*)"/g)].map((m) => m[1]);
     expect(tonesOf('{cond === "filled" ? "status" : "error"}')).toEqual(["status", "error"]);
+    // INT-363 adds the third: a warning is assertive like an error and is
+    // spoken as shown like a status (lib/a11y/announce.ts).
+    const TONES = new Set(["error", "warning", "status"]);
     const toneless = openings
       .filter((o) => {
         const tones = tonesOf(propValue(o.props, "tone") ?? "");
-        return tones.length === 0 || tones.some((tone) => tone !== "error" && tone !== "status");
+        return tones.length === 0 || tones.some((tone) => !TONES.has(tone));
       })
       .map(where);
     expect(toneless).toEqual([]);
@@ -936,7 +946,8 @@ describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces 
 
   it("the announcer puts both halves on every line: Android's live region and iOS's announcement", () => {
     const announcer = readFileSync(join(MOBILE, ANNOUNCER), "utf8");
-    // Politeness comes from the tone, in one place: error → assertive, status → polite.
+    // Politeness comes from the tone, in one place: error and warning →
+    // assertive, status → polite.
     expect(announcer.match(/politenessOf\(tone\)/g)?.length).toBe(2);
     // Android: the live region, on the line and on the region.
     expect(announcer).toContain("live={politeness}");
@@ -1334,10 +1345,187 @@ describe("criteria the app satisfies by not having the feature", () => {
   it("BK23 / SC 2.5.4 — nothing is actuated by moving the device", () => {
     expect(ALL).not.toMatch(/Accelerometer|DeviceMotion|Gyroscope|Magnetometer/);
   });
+});
 
-  it("BK13 / SC 2.2.1 — the only timer is the resend cooldown, and it takes nothing away", () => {
+/* ------------------------------------------------------------------ */
+/* BK13 · SC 2.2.1 Timing Adjustable — INT-363                         */
+/* ------------------------------------------------------------------ */
+
+/*
+ * A time limit the patient meets must warn before it acts and let the patient
+ * extend it with one action, with at least 20 seconds to do so, as many times
+ * as needed (WCAG 2.2 SC 2.2.1, "Extend"). The INT-226 report found that this
+ * check read screens and components only, while kiosk mode's 60 s idle wipe
+ * sat in src/lib with no warning at all. So the scan walks every script under
+ * src — `.ts` included, tests excluded — and every timer it finds must be one
+ * of two things:
+ *   - in NOT_A_TIME_LIMIT: it limits nothing the patient does (a request
+ *     deadline, a retry delay, a meter), with the reason; or
+ *   - in WARNED_TIME_LIMITS: a time limit whose every timer is the scheduler
+ *     it hands to its warning machine. It arms no timer of its own.
+ * A timer anywhere else is a finding, and so is a time limit's timer armed
+ * outside its machine.
+ */
+
+/**
+ * WCAG 2.2 SC 2.2.1 "Extend": at least 20 seconds. Written out here rather
+ * than imported, so the constant under test cannot vouch for itself.
+ */
+const WCAG_EXTEND_FLOOR_MS = 20_000;
+
+/** Timers that take nothing from the patient when they run out, each with its reason. */
+const NOT_A_TIME_LIMIT: Record<string, string> = {
+  "src/app/(auth)/otp.tsx":
+    "the resend cooldown: a server rate limit that OFFERS a resend when it runs out and takes nothing away",
+  "src/lib/auth/expoApiBase.ts": "a deadline on the dev API health probe",
+  "src/lib/dev/hosts.ts": "a deadline on the dev host probe",
+  "src/lib/dialogue/georgeClip.ts": "a request deadline on a scripted clip fetch",
+  "src/lib/dialogue/tts.ts":
+    "request deadlines on synthesis; a late lane is skipped, nothing is taken from the patient",
+  "src/lib/dialogue/ttsLane.ts": "deadlines on the TTS lane's health probe and synthesis request",
+  "src/lib/dialogue/useDialogueSession.ts":
+    "the barge-in level meter's sampling interval: it listens, it limits nothing",
+  "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
+  "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
+};
+
+/** Time limits the patient meets → the warning machine each one's timer is handed to. */
+const WARNED_TIME_LIMITS: Record<string, string> = {
+  "src/lib/kiosk/nativeKiosk.ts": "startKioskIdleClock",
+};
+
+type TimingWhy = "unclassified timer" | "time limit without a warning";
+
+interface TimingFinding {
+  readonly file: string;
+  readonly line: number;
+  readonly why: TimingWhy;
+}
+
+/** A call that arms a timer. A type such as `ReturnType<typeof setInterval>` is not one. */
+const TIMER_CALL = /\bset(?:Timeout|Interval)\s*\(/g;
+
+function hasTimer(source: string): boolean {
+  return [...code(source).matchAll(TIMER_CALL)].length > 0;
+}
+
+/** [start, end) of every call `name(…)` in a comment-free source, strings skipped. */
+function callSpans(text: string, name: string): [number, number][] {
+  const spans: [number, number][] = [];
+  for (const m of text.matchAll(new RegExp(`\\b${name}\\s*\\(`, "g"))) {
+    let depth = 0;
+    let i = m.index + m[0].length - 1;
+    for (; i < text.length; i += 1) {
+      const c = text[i];
+      if (c === '"' || c === "'" || c === "`") {
+        i = endOfString(text, i);
+      } else if (c === "(") {
+        depth += 1;
+      } else if (c === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          break;
+        }
+      }
+    }
+    spans.push([m.index, i + 1]);
+  }
+  return spans;
+}
+
+/** Every timer in one script that is neither harmless nor handed to a warning. */
+function timingFindings(file: string, source: string): TimingFinding[] {
+  const text = code(source);
+  const lineAt = (at: number) => text.slice(0, at).split("\n").length;
+  const timers = [...text.matchAll(TIMER_CALL)].map((m) => m.index);
+  if (timers.length === 0 || file in NOT_A_TIME_LIMIT) {
+    return [];
+  }
+  const machine = WARNED_TIME_LIMITS[file];
+  if (machine === undefined) {
+    return timers.map((at) => ({ file, line: lineAt(at), why: "unclassified timer" }));
+  }
+  const handed = callSpans(text, machine);
+  return timers
+    .filter((at) => !handed.some(([start, end]) => at >= start && at < end))
+    .map((at) => ({ file, line: lineAt(at), why: "time limit without a warning" }));
+}
+
+const TIMED_SCRIPTS: string[] = APP_SCRIPTS.filter((f) => hasTimer(f.source)).map((f) => f.name);
+
+describe("BK13 / SC 2.2.1 — a time limit warns before it acts and can be extended", () => {
+  it("BK13 / SC 2.2.1 — every timer under src, lib included, limits nothing or warns before it acts", () => {
+    const findings = APP_SCRIPTS.flatMap((f) => timingFindings(f.name, f.source)).map(
+      (f) => `${f.file}:${f.line} ${f.why}`,
+    );
+    expect(findings).toEqual([]);
+  });
+
+  it("the scan reaches src/lib, where the kiosk idle wipe lives", () => {
+    // Non-vacuity: the timers outside a screen are FOUND by the walk.
+    expect(TIMED_SCRIPTS).toContain("src/lib/kiosk/nativeKiosk.ts");
+    expect(TIMED_SCRIPTS).toContain("src/app/(auth)/otp.tsx");
+    expect(TIMED_SCRIPTS.filter((name) => name.startsWith("src/lib/")).length).toBeGreaterThan(5);
+  });
+
+  it("every classified timer still exists — the register holds no stale entry", () => {
+    const named = [...Object.keys(NOT_A_TIME_LIMIT), ...Object.keys(WARNED_TIME_LIMITS)];
+    expect(named.filter((name) => !TIMED_SCRIPTS.includes(name))).toEqual([]);
+  });
+
+  it("no screen or component owns a timer but the resend cooldown", () => {
+    // A timer belongs in a .ts module, where the scan above classifies it and
+    // a unit test can drive it on a fake clock; a screen only renders.
     const timed = TSX.filter((f) => /setTimeout|setInterval/.test(f.source)).map((f) => f.name);
     expect(timed).toEqual(["src/app/(auth)/otp.tsx"]);
+  });
+
+  it("the kiosk warning gives at least 20 seconds to extend, and the wipe still falls at 60 s", () => {
+    expect(KIOSK_IDLE_WARNING_MS).toBeGreaterThanOrEqual(WCAG_EXTEND_FLOOR_MS);
+    expect(KIOSK_IDLE_WIPE_MS).toBe(60_000);
+    // The machine the adapter's timer is handed to warns before it wipes, and
+    // the grace it then gives is the whole warning interval.
+    const start = kioskIdleStart(0);
+    const warned = kioskIdleReducer(start, { type: "tick", at: kioskIdleDue(start)! });
+    expect(warned.phase).toBe("warning");
+    expect(kioskIdleDue(warned)! - warned.since).toBeGreaterThanOrEqual(WCAG_EXTEND_FLOOR_MS);
+  });
+
+  it("a timer planted outside a screen, or a time limit that skips the warning, is caught — the near-miss control", () => {
+    const whys = (file: string, source: string) => timingFindings(file, source).map((f) => f.why);
+    // A bare idle wipe dropped into src/lib: not a screen, and still found.
+    expect(
+      whys(
+        "src/lib/fresh/idle.ts",
+        "export const arm = (wipe: () => void) => setTimeout(wipe, 60_000);",
+      ),
+    ).toEqual(["unclassified timer"]);
+    // The kiosk adapter as it stood before INT-363: its own wipe timer, no warning.
+    const before = [
+      'import { KIOSK_IDLE_WIPE_MS } from "./kioskState";',
+      "export function watchKiosk(handlers: { onIdle: () => void }) {",
+      "  const timer = setTimeout(handlers.onIdle, KIOSK_IDLE_WIPE_MS);",
+      "  return { stop: () => clearTimeout(timer) };",
+      "}",
+    ].join("\n");
+    expect(whys("src/lib/kiosk/nativeKiosk.ts", before)).toEqual(["time limit without a warning"]);
+    // Handing the timer to the warning machine is what clears it...
+    const handed = [
+      "const clock = startKioskIdleClock(onPhase, {",
+      "  now: () => Date.now(),",
+      "  schedule: (fire: () => void, ms: number) => setTimeout(fire, ms),",
+      "  cancel: (h: ReturnType<typeof setTimeout>) => clearTimeout(h),",
+      "});",
+    ].join("\n");
+    expect(whys("src/lib/kiosk/nativeKiosk.ts", handed)).toEqual([]);
+    // ...and a second timer armed beside the machine is caught all the same.
+    expect(
+      whys("src/lib/kiosk/nativeKiosk.ts", `${handed}\nconst wipe = setTimeout(onIdle, 60_000);`),
+    ).toEqual(["time limit without a warning"]);
+    // A comment that names a timer is not one.
+    expect(
+      whys("src/lib/fresh/doc.ts", "// setTimeout(wipe, 60_000)\nexport const x = 1;"),
+    ).toEqual([]);
   });
 });
 

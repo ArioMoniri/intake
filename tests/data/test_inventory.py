@@ -45,6 +45,11 @@ EXPECTED_TABLES = {
     # unconfirmed candidate has nowhere to be written (invariant 12).
     "patient_overlays",
     "overlay_facts",
+    # Owner directive — the finished previsit as a hospital receives it: one
+    # frozen, versioned, envelope-encrypted document per completed previsit.
+    # Its recipients annotation is the awaiting-human one: no DPA names a
+    # hospital reader yet, so no recipient beyond the PHI boundary is defined.
+    "previsit_outputs",
 }
 
 

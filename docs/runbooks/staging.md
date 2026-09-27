@@ -159,20 +159,25 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
     re-run keeps every existing value and fills only a missing one.
   - It initialises OpenBao with 3 key shares (threshold 2). The shares and
     the root token go to `/etc/intake-staging/openbao-init.json` (0600).
+  - It builds the API image and writes its SBOM (see "Release SBOM" below)
+    before it starts anything, because compose needs the SBOM's digest.
   - It unseals OpenBao, enables Transit, and writes the `intake-api` policy,
     the restart-probe KEK and the API's periodic token.
   - It runs the alembic migrations and re-keys every migration role away
     from its committed dev password.
 - `./deploy.sh` runs on every deploy **and after every host reboot**. It
-  first checks the object-store image pin and then the host's swap (see
-  above). OpenBao restarts
-  sealed, and this script unseals it. It then renews the API token,
-  builds, migrates, runs `docker compose -p intake-staging up -d --build`,
-  and probes `/healthz` and `/readyz` over HTTPS.
+  first checks the object-store and SBOM image pins and then the host's swap
+  (see above). It builds the API image and writes its SBOM, and stops if
+  syft fails. OpenBao restarts sealed, and this script unseals it. It then
+  renews the API token, migrates, runs
+  `docker compose -p intake-staging up -d --no-build`, so the api runs exactly
+  the image the SBOM describes, and probes `/healthz` and `/readyz` over HTTPS.
 - `./smoke.sh` runs these checks:
   - `/healthz`, `/readyz`, `/metrics` and `/version` answer 200 over public
     HTTPS.
-  - `/version` names the deployed sha and a build time, never `dev`.
+  - `/version` names the deployed sha, a build time and the sha256 of the
+    SBOM on disk. `dev` in any of the three fails. The api container must
+    run the image that SBOM describes.
   - The staging header is present, and HTTP redirects to HTTPS.
   - The running API reports `INTAKE_ENV=staging`, no dev gate and a Transit
     KEK.
@@ -181,7 +186,29 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
     unsealed.
 
 Upgrade: repeat steps 2 and 3, skipping `./init.sh`. State lives in
-`/etc/intake-staging` and in the project's named volumes, not in `/opt/intake`.
+`/etc/intake-staging` (each release's SBOM included) and in the project's
+named volumes, not in `/opt/intake`.
+
+## Release SBOM
+
+`/version` reports `git_sha`, `built_at` and `sbom_digest` (INT-352, audit
+F18). The first two are build args baked into the image. The third describes
+the image, so the image cannot carry it:
+
+- `./init.sh` and `./deploy.sh` build the api image, then run syft
+  (`anchore/syft`, pinned by digest in `lib.sh`, Apache-2.0) on a
+  `docker image save` archive of it. The archive is mounted read-only, with
+  no network and no capabilities, and syft never gets the docker socket.
+- The SPDX JSON SBOM lands in
+  `/etc/intake-staging/releases/<commit>/api-<image id>.spdx.json`. That is
+  root-only and outside the build context, so it never enters the image.
+- Its sha256 reaches the api container as `INTAKE_SBOM_DIGEST`, which compose
+  requires. If syft fails or writes anything but an SPDX document, the script
+  stops before any container starts.
+- An image that already has its SBOM keeps it. A re-deploy of the same commit
+  therefore keeps the same digest and does not recreate the api.
+- `./smoke.sh` reads the SBOM from disk and never writes one. It compares its
+  sha256 with `/version`'s `sbom_digest`.
 
 ## App Attest and SMS
 
@@ -234,7 +261,8 @@ cd /opt/intake/infra/staging
   operator's App Attest and SMS keys (see "App Attest and SMS").
   `infra/staging/staging_probe.py`
   drives the same `wiring_from_env()` cipher inside the api container.
-- `/version`'s `sbom_digest` stays `dev`: this artefact produces no SBOM.
+- The release SBOM is not signed. CI's tag job signs the source-tree SBOM
+  with cosign keyless, which needs CI's OIDC identity, and this host has none.
 - Document upload has no ClamAV here, so it fails closed
   (`scan_not_configured`) although the object store runs.
 - The synthetic probe registration and the staging banner/tenant belong to

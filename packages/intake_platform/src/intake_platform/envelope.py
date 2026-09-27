@@ -28,7 +28,7 @@ from __future__ import annotations
 import base64
 import os
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Final, Protocol
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from intake_platform.secrets import SecretsProvider
 
 __all__ = [
+    "KEK_KEY_PREFIX",
     "CryptoShredError",
     "EncryptedField",
     "EnvelopeCipher",
@@ -46,6 +47,10 @@ __all__ = [
     "is_shredded",
     "shred_field",
 ]
+
+#: Transit key names are ``<prefix>-<tenant_id>``. Shared with the scheduled
+#: rotation (INT-367), which finds the KEKs it owns by this prefix.
+KEK_KEY_PREFIX: Final = "tenant"
 
 
 class TamperError(Exception):
@@ -186,7 +191,7 @@ class TransitKekProvider:
     Transit operations; destroy deletes the key (deletion_allowed is set just
     before — an explicit, audited two-step)."""
 
-    def __init__(self, secrets: SecretsProvider, key_prefix: str = "tenant") -> None:
+    def __init__(self, secrets: SecretsProvider, key_prefix: str = KEK_KEY_PREFIX) -> None:
         self._secrets = secrets
         self._prefix = key_prefix
 
