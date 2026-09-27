@@ -1,5 +1,6 @@
 # Grafana datasources — obs profile (INT-023). The uid values are load-
-# bearing: api-slo-dashboard.json references uid "prometheus" and
+# bearing: every generated dashboard under grafana/dashboards/ references uid
+# "prometheus" (intake_platform.slo_dashboards.DATASOURCE) and
 # tests/observability/test_obs_compose.py cross-checks every dashboard
 # datasource uid against this file.
 apiVersion: 1

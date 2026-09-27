@@ -80,8 +80,18 @@ describe("controls: the dev sign-in surfaces stay behind __DEV__", () => {
 
   it("the synthetic test accounts render only in a dev build", () => {
     const welcome = source("app/(auth)/welcome.tsx");
-    const accounts = welcome.indexOf("testAccounts.map(");
-    expect(accounts).toBeGreaterThan(0);
-    expect(welcome.lastIndexOf("{__DEV__ ?", accounts)).toBeGreaterThan(0);
+    const card = welcome.indexOf("<DevSignIn />");
+    expect(card).toBeGreaterThan(0);
+    expect(welcome.lastIndexOf("{__DEV__ ?", card)).toBeGreaterThan(0);
+  });
+
+  it("the seed is loaded only inside if (__DEV__), so a release build never bundles it (INT-410)", () => {
+    const welcome = source("app/(auth)/welcome.tsx");
+    const loads = welcome.split('import("@/lib/dev/accounts")').length - 1;
+    expect(loads).toBe(1);
+    const guarded = devBlocks(welcome)
+      .map((block) => block.split('import("@/lib/dev/accounts")').length - 1)
+      .reduce((sum, n) => sum + n, 0);
+    expect(guarded).toBe(loads);
   });
 });
