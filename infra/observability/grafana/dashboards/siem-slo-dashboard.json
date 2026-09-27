@@ -1,0 +1,158 @@
+{
+  "__comment": "infra/observability/grafana/dashboards/siem-slo-dashboard.json — GENERATED from docs/slo/siem.yaml by intake_platform.slo_dashboards (INT-021; files/10 §6 golden signals). Do not edit: change the SLO file and re-emit with scripts/observability/slo_report.py --emit-dashboards; tests/observability/test_slo_generator.py fails on drift.",
+  "uid": "intake-siem-slo",
+  "title": "siem — SLOs, burn rate and golden signals",
+  "tags": [
+    "slo",
+    "siem",
+    "intake"
+  ],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Alert scrub burn rate (1h, multiples of budget)",
+      "description": "slo:siem alert_scrub error ratio over 1h divided by the 99.9 % objective's budget (0.001); lanes: fast 14.4x (page), slow 6x (page), ticket 1x (ticket) — see docs/runbooks/slo-burn.md.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1.0
+              },
+              {
+                "color": "orange",
+                "value": 6.0
+              },
+              {
+                "color": "red",
+                "value": 14.4
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "slo:siem_alert_scrub:error_ratio_rate1h / 0.001",
+          "legendFormat": "burn 1h"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Alert scrub — error ratio by burn window",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 18,
+        "x": 6,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "slo:siem_alert_scrub:error_ratio_rate5m",
+          "legendFormat": "5m"
+        },
+        {
+          "refId": "B",
+          "expr": "slo:siem_alert_scrub:error_ratio_rate30m",
+          "legendFormat": "30m"
+        },
+        {
+          "refId": "C",
+          "expr": "slo:siem_alert_scrub:error_ratio_rate1h",
+          "legendFormat": "1h"
+        },
+        {
+          "refId": "D",
+          "expr": "slo:siem_alert_scrub:error_ratio_rate6h",
+          "legendFormat": "6h"
+        },
+        {
+          "refId": "E",
+          "expr": "slo:siem_alert_scrub:error_ratio_rate3d",
+          "legendFormat": "3d"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Traffic — boundary counters per second",
+      "description": "siem is a boundary inside another process, not a process of its own: latency and saturation are on the host service's dashboard. The error signal is the SLO error ratio above.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(siem_alerts_ingested_total[5m]))",
+          "legendFormat": "siem_alerts_ingested_total"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(siem_alerts_refused_total[5m]))",
+          "legendFormat": "siem_alerts_refused_total"
+        }
+      ]
+    }
+  ]
+}

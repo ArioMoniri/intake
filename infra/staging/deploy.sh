@@ -25,11 +25,14 @@
 #   2. Has syft write an SBOM of that image into the release directory and
 #      stamps its sha256. /version reports all three stamps (INT-352, audit
 #      F18). No SBOM, no deploy: a failing syft stops the script here.
-#   3. Unseals OpenBao and renews the API's periodic token.
-#   4. Migrates, and re-keys any new migration role.
-#   5. Brings the project up on exactly the image the SBOM describes, and
+#   3. Runs the release gate in that image (INT-187). It stops here, before
+#      anything restarts, if deploys are frozen from the console, an SLO's
+#      error budget is exhausted, or the freeze cannot be read.
+#   4. Unseals OpenBao and renews the API's periodic token.
+#   5. Migrates, and re-keys any new migration role.
+#   6. Brings the project up on exactly the image the SBOM describes, and
 #      waits for health.
-#   6. Probes /healthz and /readyz over public HTTPS.
+#   7. Probes /healthz and /readyz over public HTTPS.
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -44,6 +47,7 @@ require_sms_with_app_attest
 stamp_revision
 build_api_image
 stamp_sbom
+require_release_not_frozen
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}, SBOM ${INTAKE_SBOM_DIGEST}) to https://${STAGING_HOSTNAME}"
 
 compose up -d postgres redis openbao

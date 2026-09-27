@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Any
 
 from clinical_schemas.overlay import LearnedFactSource
+from clinical_schemas.records import RecordItemKind
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -75,6 +76,7 @@ from intake_platform.db.inventory import (
     RET_TENANT,
     inv,
 )
+from intake_platform.db.vector import Vector
 from intake_platform.locale import DEFAULT_LOCALE
 
 __all__ = [
@@ -96,6 +98,7 @@ __all__ = [
     "Patient",
     "PatientOverlayHeader",
     "PreVisitOutputRow",
+    "RecordEmbedding",
     "SessionAttribution",
     "SessionStatus",
     "Share",
@@ -1726,3 +1729,198 @@ class PreVisitOutputRow(Base):
         ),
     )
     created_at: Mapped[datetime] = _created_at(RET_PREVISIT_OUTPUT)
+
+
+class RecordEmbedding(Base):
+    """INT-123 — one CONFIRMED record item's vector, in one patient's namespace.
+
+    files/03 §10: *"pgvector embeddings for retrieval during intake"*; files/10
+    §5 LLM08: *"pgvector rows scoped by patient + consent; RLS; no shared
+    namespaces"*. The namespace is declared here, in ``Table.info``, and
+    tests/records/test_vector_rls.py checks the migration's policies against
+    it: a PERMISSIVE tenant policy like every tenant-scoped table's, and a
+    RESTRICTIVE patient policy on the ``app.patient_id`` GUC, so a session
+    reads one patient's vectors and no GUC reads none.
+
+    **What is stored, and what is not.** A vector, the box it came from and
+    the id of the confirmed item — never the item's text. The confirmed item
+    is the source of truth and the note cites it from there; a second copy of
+    the line here would be a second place to erase and a plaintext column that
+    RLS alone would have to protect.
+
+    **Only a confirmed item is ever written** (invariant 12): the one writer is
+    :class:`~intake_platform.records.index.RecordIndexQueue`, which takes
+    :class:`~clinical_schemas.record_extraction.ConfirmedRecordItem` alone.
+
+    **Erasure reaches every row.** ``document_ref`` is ``doc:<documents.id>`` —
+    the writer refuses any other shape — so the per-session retention executor
+    finds the rows of each document it destroys, and the DSAR erasure removes
+    the subject's rows by namespace. ``patient_id`` keeps NO ACTION so a path
+    that forgot them fails rather than orphaning them.
+    """
+
+    __tablename__ = "record_embeddings"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "patient_id", "item_ref", "model_ref"),
+        CheckConstraint("page >= 1", name="page_positive"),
+        CheckConstraint("char_end > char_start AND char_start >= 0", name="char_span"),
+        CheckConstraint("dimensions > 0", name="dimensions_positive"),
+        {
+            "info": {
+                "rls_namespace": (("tenant_id", "app.tenant_id"), ("patient_id", "app.patient_id"))
+            }
+        },
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk("record index row key", RET_RECORD)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_RECORD)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "RLS namespace: the pseudonymised patient whose confirmed record this "
+            "vector indexes (policies compare it to the app.patient_id GUC)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    item_ref: Mapped[str] = mapped_column(
+        String(35),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "derived id of the confirmed record item (sha256 of its source box), "
+            "cited into the note beside the document span",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    document_ref: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "provenance: doc:<documents.id> of the page the item was read from — "
+            "also the key the retention executor erases by",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    page: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "provenance: 1-based page of the source box",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    bbox: Mapped[list[float]] = mapped_column(
+        JSONB,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "provenance: the source box on the page, normalised [x0, y0, x1, y1]",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    char_start: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "provenance: start of the item's characters in the extracted text",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    char_end: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "provenance: end (exclusive) of the item's characters in the extracted text",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    kind: Mapped[RecordItemKind] = mapped_column(
+        Enum(
+            RecordItemKind,
+            name="record_item_kind",
+            native_enum=False,
+            create_constraint=True,
+            length=16,
+            values_callable=lambda cls: [member.value for member in cls],
+        ),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the confirmed item's kind (lab, imaging, medication …) — which note "
+            "section a citation of it may be filed under",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    model_ref: Mapped[str] = mapped_column(
+        String(160),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the embedding model's pin, model_id@revision (invariant 14): a vector "
+            "is only ever compared with vectors from the same model",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    dimensions: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the vector's dimension as the model declares it; the migration checks "
+            "vector_dims(embedding) against it",
+            BASIS_CONTRACT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    embedding: Mapped[tuple[float, ...]] = mapped_column(
+        Vector(),
+        nullable=False,
+        info=inv(
+            CAT_HEALTH,
+            "the confirmed item's embedding, for retrieval during intake (files/03 "
+            "§10) — derived from health data, readable only inside the patient's "
+            "RLS namespace and never by the clinician role",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    consent_scope_ref: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the consent purpose the row was written under (scope:documents; invariant 4)",
+            BASIS_HEALTH_CONSENT,
+            RET_RECORD,
+            REC_INTERNAL,
+        ),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_RECORD)
