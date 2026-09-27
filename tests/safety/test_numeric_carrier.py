@@ -285,12 +285,16 @@ class TestTheWireTagNeverReachesAHuman:
                 unit="°C",
             )
         }
-        rail = numeric_rail({FEVER: Decimal("38.50")}, facts)
+        rail = numeric_rail({FEVER: Decimal("38.50")}, facts, locale="tr")
         assert TAGGED_DECIMAL_PREFIX not in rail[FEVER]
-        assert "38.50" in rail[FEVER]
+        # INT-386: the rail is written for a Turkish reader, who takes a full
+        # stop as grouping. The digits and the printed precision are the same;
+        # only the decimal point is the reader's.
+        assert "38,50" in rail[FEVER]
+        assert "38.50" not in rail[FEVER]
 
         crossed = _through_the_wire(Decimal("38.50"))
-        assert numeric_rail({FEVER: crossed}, facts) == rail
+        assert numeric_rail({FEVER: crossed}, facts, locale="tr") == rail
 
     def test_the_clinician_evidence_line_shows_the_digits_and_not_the_tag(self) -> None:
         """``triage.rules[].evidence`` is read by a clinician (files/04 §5)."""
