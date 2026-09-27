@@ -1,5 +1,22 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T06:20:00+03:00 · INT-378 · awaiting-human (PR open; clauses 1–2 delivered, clause 3 is the owner's)
+- Goal: acceptance verbatim (GitHub #621). Clause 1: *"a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes … built reproducibly and pinned by sha256"*. Clause 2: *"a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"*. Clause 3 is the owner's TOTP decision.
+- Plan:
+  - `infra/keycloak/providers/webauthn-session-notes`: a subclass of Keycloak 26.1.4's `WebAuthnAuthenticator`. After `super.action` returns SUCCESS (`DefaultAuthenticationFlow.processAction` reads the status only after `action` returns), it writes the asserted credential's stored AAGUID and its base64url id as the two notes the INT-373 mappers read.
+  - The Maven wrapper's distribution is sha256-pinned. Maven Resolver trusted checksums cover all 263 resolved artefacts. Keycloak is `provided`, never bundled. The jar is reproducible in UTC and pinned.
+  - Wiring: the realm's staff flow; `make keycloak-provider` (build, test, check the pin, then stage); `obs` mounts `providers/deploy`; CI job `keycloak-provider`; Renovate's maven managers.
+- Tests added:
+  - Java, 29: the note logic, the stock `action` run for real with only `isValid` stubbed, and the factory. RED: 30 `cannot find symbol` errors. GREEN: 29 passed. Mutations: 8/8 killed.
+  - Python, 25 (`tests/admin/test_webauthn_session_notes_provider.py`): wiring, pins, the recorded login and the runbook. RED: 14 failed and 11 passed against the pre-change tree. GREEN: 25 passed.
+- Result:
+  - A real Keycloak 26.1.4 (the distribution on the JVM, no container) ran the pinned jar. A software-authenticator login through the committed realm was **admitted** by the console, carrying the key's AAGUID and credential id. The same login through a stock-authenticator twin was **refused** (`MalformedClaims: aaguid`). The recording is replayed by the tests.
+  - The first start found that INT-365's realm cannot be imported: a flow description exceeded NVARCHAR(255). It is fixed here and test-held.
+- Invariants touched and still passing: 6 (ids only, nothing logged), 14 (sha256 pins on Maven, every artefact and the jar; licence verified from the raw LICENSE at the tag; no gate skipped), 17 (no placeholder or skip).
+- Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
+- Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
+- Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619 and #598. After merge, the owner deploys the provider (runbook §3).
+
 ### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
 - Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
 - Plan:

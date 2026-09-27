@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**299 issues.** By phase: P0 157 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 167 · todo 90 · withdrawn 1.
+**300 issues.** By phase: P0 157 · P1 89 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 167 · todo 90 · withdrawn 1.
 
 ## P0
 
@@ -261,6 +261,7 @@
 | INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 | INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
 | INT-373 | Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id) | E12-admin | INT-180 | area:admin, risk:security | done |
+| INT-378 | Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims | E12-admin | INT-373, INT-365 | area:admin, risk:security | awaiting-human |
 
 ## P2
 

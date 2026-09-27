@@ -5740,3 +5740,23 @@
     - "the deployed-realm runbook lists the same mappers for the owner to apply"
   tests: [tests/admin/test_realm_claim_mappers.py]
   sec_row: "admin-console"
+- id: INT-378
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims"
+  depends_on: [INT-373, INT-365]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  evidence: docs/evidence/INT-378.md
+  # GitHub #621. Found by INT-373 (PR #619). Clauses 1 and 2 are delivered: the
+  # provider (infra/keycloak/providers/webauthn-session-notes, pinned jar) and a
+  # recorded real Keycloak 26.1.4 login admitted by the console, with the stock
+  # authenticator's login refused as the control. Clause 3 is the owner's
+  # TOTP decision, (a) or (b), which no agent may take; the console's aaguid
+  # rule is unchanged until it is recorded.
+  acceptance:
+    - "a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes, which the #619 mappers put into the token; its licence is verified, and it is built reproducibly and pinned by sha256 (invariant 14)"
+    - "a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"
+    - "owner decision (awaiting-human): INT-365 admits TOTP for roles outside the patient-content set, but a TOTP login has no AAGUID and the console requires one. Either (a) require WebAuthn for every console role, or (b) require `aaguid` only when `amr` contains `hwk`. The implementation follows the recorded choice."
+  tests: [tests/admin/test_webauthn_session_notes_provider.py]
+  sec_row: "admin-console"

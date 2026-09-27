@@ -90,7 +90,9 @@ def test_ids_unique_and_well_formed() -> None:
     # requires; found by INT-365).
     # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
     # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
-    assert len(ids) == 299
+    # + INT-378 (the Keycloak WebAuthn provider that writes the aaguid and
+    # credential_id session notes; found by INT-373).
+    assert len(ids) == 300
     import re
 
     for i in ids:
