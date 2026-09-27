@@ -64,6 +64,65 @@
 - Blocked on: the owner installs the Renovate GitHub App on ArioMoniri/intake and enables Dependabot alerts (runbook `docs/runbooks/dependency-updates.md`). This is not a new HB id; the mapping's gap carries it.
 - Next: PR `INT-368: Renovate configuration for uv, pnpm, container digests and Actions (no auto-merge)` (Closes #595, Sec-Row cicd), left unmerged for review.
 
+### 2026-09-27T04:40:00Z · INT-182 · done (PR open)
+- Goal: acceptance verbatim (GitHub #133) — *"per-profile metrics; kill switch flips tenant to typed without deploy (test)"*; title adds profile switch and canary weights (4-eyes).
+- Plan:
+  - `intake_platform.voice_control`: per-tenant record (kill switch, default profile, canary profile + weight 0..100, revision, changed/approved by) in Redis, written only by `services/api/admin` — not Unleash (inv 34). Unconfigured tenant = typed.
+  - Four `DangerousAction`s: kill switch engage T1 (sre_oncall / clinical_lead / platform_owner); release, default-profile switch, canary T2 (platform_owner/clinical_lead request; a different platform_owner/clinical_lead/qms_owner approves). `VoiceControlGovernor` binds an approval to the revision its brief showed.
+  - API: `GET /admin/voice` composite (sessions by profile × reason, turn latency per profile, ASR/TTS error ratio, INT-100 failovers/breakers, kill-switch activity, controls, pending) + the write routes; one approve route per ceremony.
+  - Runtime: `VoiceSessionRouter` reads the control at every session start and calls the shipped composition roots; a 1 s poll moves live voice sessions to typed via `fall_back_to_typed(OPERATOR_KILL_SWITCH)`; readiness check `voice_controls`. Speech calls counted at the failover ladder (TTS) and `HttpTranscriber` (ASR).
+  - admin-web `/voice`: tiles + four script-free, same-origin-only forms; approval stays API-side (no WebAuthn step-up in the console yet).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_kill_switch.py` (54): next session typed on the same router; live session typed ≤ 2 000 ms on a fake clock; other tenant untouched; self-approval / second tab / sre_oncall request refused for release, profile and canary (near miss: a distinct second human applies it); stale approval refused without spending the ceremony; profiles other than the two refused; weights -1/101/50.5/"50"/true refused, 0/1/100 accepted.
+  - `tests/admin/test_voice_console.py` (catalogued queries, per-tile unknown, fixture drift gate, route), `tests/voice/test_session_router.py`, `tests/voice/test_speech_call_metrics.py`, RBAC matrix and audit drive rows; `tests/admin/test_voice_governance.py` (45 edge tests, written after green for coverage).
+  - `apps/admin-web/e2e/voice.spec.ts` (36).
+  - RED: pytest collection rc=2 (4 import errors) + 10 failures (speech metrics, readiness); vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1185 files), `mypy --strict` clean (455 files), whole-tree pytest at the 85 % floor **7604 passed**, 0 failed, 96.05 %; `make safety` rc=0 (voice-runtime 98.60 %); runtime-sim RT-03 ok; admin-web vitest 269, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 9, 13, 15, 16 (Sec-Row admin-console; threat-model row), 17, 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Disagreement recorded in the evidence: the brief asked for four-eyes on the kill switch itself; files/08 §0c F17 / §8.2 make it single-key (safe direction) and the spec wins — two keys on every move back toward voice. Reported, not fixed: `apps/admin-web/src/ops/load.ts` reads refusal codes from `detail.error` but the API answers a flat `{"error": …}`.
+- Blocked on: nothing new. Live use needs `INTAKE_VOICE_CONTROL_REDIS_URL` (same Redis in API and runtime), console admission (HB-A16, OIDC), and a WebAuthn step-up in the console for page-side approval.
+- Next: PR `INT-182: admin Voice module — …` (Closes #133, Sec-Row admin-console), left unmerged for review.
+
+### 2026-09-27T03:30:00Z · INT-124 · done (PR open); INT-121 rescoped to done; INT-380, INT-381 added
+- Goal: acceptance verbatim (GitHub #99), rescoped: *"adapter behind LLMGateway with JSON-schema-constrained decoding; pin from 03 §4.9.1 row 9; off the spoken-loop critical path"* · *"unit resolution is a GUARD, not an assumption: magnitude outranks the printed unit token, and disagreement raises a flag rather than converting silently"* · *"`ure` is never substring-matched …"* · *"decimal separator resolved PER VALUE, not per document, cross-checked against the analyte's expected magnitude …"* · *"eval corpus includes a document with a WRONG printed unit string and a five-digit result carrying a thousands separator; a two-number reference cell stops the parse rather than averaging"*. The "target < 3 s" half moved to INT-381 (#627, `gpu`); INT-121's clause 3 moved to INT-380 (#626, awaiting-human).
+- Plan:
+  - `records/unit_guard.py`: `guard_lab_value` → `LabValueVerdict` (printed magnitude, printed unit, typed `GuardFlag`s, `STOP_FLAGS`); `ExpectationTable` keyed through `analyte_key`; `AnalyteExpectation` cannot exist without a `SourceCitation`; `SHIPPED_EXPECTATIONS` empty (HB-C24), so every value is flagged.
+  - `numbers.magnitude_readings` (the two-way form as both readings; `parse_printed_magnitude` delegates); `analytes.analyte_key`; `extract_record_items(..., guard=)` gives per-value verdicts, INT-121's path unchanged.
+  - `records/lab_extraction.py`: schema derived from `ITEM_KEYS`, schema-only instructions, numbered fence, recorded + self-hosted gateways, env wiring; `records/lab_model.py`: the row-9 pin and a PHI gate that refuses while no host serves it.
+  - Registry row `qwen3.6-35b-a3b` (revision + 26 LFS sha256s + raw-blob licence record, `self_hosted_now: false`); the probe reports it unavailable.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_unit_resolution_guard.py` (106), `tests/records/test_labjson_eval.py` (79), `tests/observability/test_probe_registry.py` (+5). Every guard rule carries its near miss (same line in the expected unit; `Üre Nitrojeni` against Üre's row; the same `1.500` read two ways by two bands; `-5` is one number; a served registry row passes the PHI gate). RED: 2 collection errors + 5 `KeyError`s. Mutations M1–M8 (two-number cell, comparator, band-less first reading, case-folded unit, empty table passes, `Üre Nitrojeni`→urea, PHI gate ignores serving, strict decoding off) each killed, restored from an in-memory copy and byte-compared.
+- Result (on the tree merged with main): `make check` check-py lanes all green — ruff/format clean, `mypy --strict` 454 files, whole tree 7636 passed at 96.06 %; check-ts failed once on a latency this PR's re-taken sweep changed (`overview.spec.ts` pinned 100 ms, the re-take measured 74 ms), fixed, then `make check-ts` and `make check-i18n` exit 0. `make safety` exit 0 (triage 100 % branch, 18/18 mutations). `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, `evidence_check`, sec-row linkage: OK. 100 % branch on the six changed records modules.
+- Invariants touched and still passing: 1 (no level-shaped key in the schema; triage key refused whole), 6 (verdict and refusals echo nothing), 13 (registry row + probe), 14 (fence, schema-only instructions, pinned weights), 17 (no fakes outside tests; the empty table is the fail-closed content), 19 (raw-blob licence, self-hostable, vendor host refused, no fallback), 20 (synthetic fixture, no figure), 22 (the guard).
+- Decisions / ADRs / `00_STATE.md` rows: `00_STATE §1` extraction row now records the row-9 pin and the served-by-no-host state (it said "needs replacing"). No ADR: the adapter follows ADR-006 and INT-083's seam.
+- Blocked on: HB-C24 (physician of record + clinical biochemist: which analytes, unit, magnitude band, committed source) — the guard fails closed until then; INT-381 on GPU capacity (HB-I4, HB-I5, HB-L11); INT-380 on HB-A13 (+ HB-A10, HB-A2).
+- Next: merge promptly (this PR moves the three pins, now 299 after merging main twice: INT-370/317, then INT-352's INT-376); INT-381 once a GPU host exists.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:00:00Z · INT-385 · delivered (PR open)
+- Goal: acceptance verbatim (GitHub #635):
+  - *"every clinical quantity shown to a patient or clinician renders with the locale's decimal separator (tr: comma), `useGrouping:false`, and number + unit as one non-breaking atom; the mobile confirm cards (INT-138) and the server renderer agree"*
+  - *"a round-trip test: extract -> render -> re-parse returns the same value for 12.5, 12500, 0.05 and 1,5 in tr and en; a near-miss that renders `12.500` for 12.5 fails"*
+  - *"no numeral reaches TTS (the compiler expansion path is untouched)"*
+- Plan:
+  - `render_quantity`/`quantity_atom` take a keyword-only `locale` with no default. They write through the closed `DECIMAL_SEPARATORS` table (tr `,`, en `.`), and an unknown locale is refused, not guessed.
+  - The stored summary is written for `SUMMARY_LOCALE` (`tr`), because its two readers are the confirm card and the note's `imported_objective`.
+  - The app's `formatQuantity` writes the value's own digits instead of capping at one, which had written 0.05 as `0,1`.
+  - One fixture table, `tests/fixtures/records/quantity_render.json`, is read by both sides.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (52): round trips for 7 printed forms × tr/en through both the resolver and a locale reader; near misses `12.500` and INT-121's `12.5` in tr, each with a passing control; no grouping; U+00A0; refusal without echo; the shared table; two import-boundary tests off the speech path.
+  - Mobile `extraction.test.ts` (+29) and `format.test.ts` (+1).
+  - RED: Python ImportError at collection plus 1 TypeError in `test_extraction_eval.py`; vitest 4 failed (`0,1` for 0.05). An INT-121-behaviour mutant is killed by 25 tests.
+- Result:
+  - `make check-py`: ruff and format clean, `mypy --strict` clean (451 files), 7555 passed and 0 failed at 95.84 %. The 4 `test_deid_ner` tests passed once the de-id model cache was linked into the fresh worktree.
+  - `pnpm -r lint/typecheck/test` green (mobile 2173).
+  - `make check-i18n`: 30 passed.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check` and the sec-row gate: OK.
+  - `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 6 (the refusal does not echo), 8 (tests only added), 22 (the display half, for record quantities and the app helper; the TTS half is untouched).
+- Decisions: none new. Recorded, not fixed: four private measure renderers still write a full stop (the typed rail, note measures, patient-summary measures and the document mapper). This is INT-096's finding, and it needs its own issue id. Pins 297 → 298.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #635). Merge after #634.
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:
@@ -349,6 +408,39 @@
   - The owner confirms INT-318 and allocates ids for the mobile slices.
   - Then S2 INT-318, with the F06 route rebuilt registry-only.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:00:00Z · INT-365 · delivered (live realm and staff enrolment with the owner)
+- Goal: acceptance verbatim (GitHub #592):
+  - *"the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"*
+  - *"the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"*
+- Plan:
+  - New `intake_platform.admin.second_factor`. The token must show `amr` ⊇ {`pwd`} plus `otp` or `hwk`, and `hwk` for any role whose §2.1 patient-content path is not `NONE` (six roles, derived rather than listed).
+  - The claim is a JSON array of exact, case-sensitive strings or it is no evidence. `acr` is never read.
+  - The policy is called in `principal_from_claims`, the seam every verifier feeds.
+  - The refusal is RFC 9470's 401 `insufficient_user_authentication` with one generic body. It is audited under the verified subject id.
+  - Realm: OTP and WebAuthn policies, a `staff browser` flow (password, then WebAuthn or TOTP, each execution tagged with its `amr` reference), the AMR mapper on `admin-web`, and 8 h / 30 min bounds, offline sessions included.
+  - What Keycloak actually emits is cited in `docs/evidence/INT-365.md`, from the 26.1.4 docs and source.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` (135): role mapping against the spec table; the policy, including 44 shape and case spoofing cases and acr-alone; the console's 401, body, challenge and audit row; the realm flow evaluated path by path; the policies; the session bounds.
+  - Near-miss: `pwd`+`otp` is admitted for `auditor` and refused when only the role changes to `clinical_lead`. Every realm checker is also run against a one-field mutation.
+  - RED: collection error, then 96 failed / 39 passed. GREEN: 135 passed. Mutation check: 11/11 killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `tests/admin tests/api tests/security tests/observability tests/docs`: 1601 passed. The 20 deselected are integration tests and the 4 deid-NER tests, whose model cache is absent from a fresh worktree.
+  - ruff, ruff format and `mypy --strict` (240 files) are clean. Pinned bandit found 0 issues on the touched paths. `no_placeholders` is OK after staging.
+  - `make check` was not run in full: check-integration is CI-only, since no container runtime is available. `make safety` is untouched: no protocol, triage or voice change.
+- Invariants touched and still passing:
+  - **4**: every refusal is on the one chain.
+  - **6**: the refusal body and audit row carry codes and ids only; no claim, factor or role.
+  - **14**: no secret added; the realm's dev passwords are unchanged.
+  - **16**: Sec-Row `admin-console`, threat-model section extended.
+  - **17**: nothing stubbed; an unenrolled or unmapped deployment fails closed.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. RFC 8176 and RFC 9470 are applied at the existing seam.
+  - WebAuthn is tagged `hwk`; `webauthn` is not an RFC 8176 value, and the fixture's old value matched no realm.
+  - No HB, ADR or alembic id minted.
+- Blocked on: nothing for the code. The owner applies the realm settings to the deployed Keycloak and enrols each staff account's factor (WebAuthn for the six patient-content roles) before its first console login.
+- Next: PR (Sec-Row `admin-console`, Closes #592). After #590 lands: flip the INT-365 row to done, regenerate files/11, and close and reopen the PR so the sec-row gate re-runs.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):

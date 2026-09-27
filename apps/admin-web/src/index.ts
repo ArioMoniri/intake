@@ -255,3 +255,18 @@ export {
   type SloView,
 } from "./overview/module";
 export { loadOverview, type OverviewState } from "./overview/load";
+// INT-182 — the Voice module (files/08 §3 "Voice runtime"): per-profile
+// metrics, each tenant's kill switch / default profile / canary, the requests
+// awaiting a second key and the four controls, rendered at `app/voice/page.tsx`.
+export {
+  VOICE_PROFILES,
+  VOICE_SCHEMA,
+  VoiceControlIncoherent,
+  VoiceProfileOutsideSet,
+  VoiceWeightOutOfBounds,
+  renderVoice,
+  type VoicePayload,
+  type VoiceView,
+} from "./voice/module";
+export { loadVoice, resultFrom, type VoiceState } from "./voice/load";
+export { planVoiceAction, submitVoiceAction, type ResultCode } from "./voice/actions";
