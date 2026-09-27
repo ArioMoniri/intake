@@ -6297,3 +6297,17 @@
     - "a layered icon proposal ready for Icon Composer; shipped app.json and assets unchanged (rebrand is owner-held)"
   tests: [apps/mobile/src/lib/symbols.test.ts, apps/mobile/src/lib/glass.test.ts, apps/mobile/e2e/nativeChrome.spec.ts]
   sec_row: "mobile"
+- id: INT-413
+  epic: E14-legal
+  phase: P1
+  title: "Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices)"
+  depends_on: [INT-215]
+  labels: [area:legal, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-413.md
+  acceptance:
+    - "docs/legal/drafts/ carries every draft with the TASLAK/DRAFT banner, primary sources cited with retrieval dates, and a README listing the numbered decisions counsel must make and the sign-off procedure"
+    - "a test fails if any loader under packages/ or services/ reads a draft, or if a draft lacks the banner"
+  tests: [tests/legal/test_legal_drafts.py]
+  legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
+  sec_row: "compliance-evidence"
