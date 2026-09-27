@@ -715,7 +715,36 @@ function waitCopy(key: string): boolean {
   return value !== undefined && value.trimEnd().endsWith("…");
 }
 
-type Why = "live region by hand" | "error colour" | "failure copy" | "wait copy";
+/*
+ * INT-397. Three lines report how the patient's own action stands — the note
+ * was sent, a consent change waits for a connection, a setting did not save —
+ * and stay on screen for as long as it is so, visit after visit. Their words
+ * carry no mark the scan could read (no failure suffix, no ellipsis), so they
+ * are named here, by key: every file that renders one is still found by
+ * walking. Such a line is news when the outcome happens in front of the
+ * patient and never on arrival, so it must sit in an AnnouncedText whose
+ * `news` is a transition the file takes from `useNews(…)`.
+ */
+const OUTCOME_COPY: ReadonlySet<string> = new Set([
+  "notifications.pending",
+  "review.sentInfo",
+  "consent.queue.note",
+]);
+
+/** `news={x}` where the same file sets `const x = useNews(…)` — a transition, never a literal. */
+function newsFromHook(props: string, text: string): boolean {
+  const value = propValue(props, "news");
+  const name = value === null ? undefined : /^\{\s*([A-Za-z_$][\w$]*)\s*\}$/.exec(value)?.[1];
+  return name !== undefined && new RegExp(`\\bconst\\s+${name}\\s*=\\s*useNews\\(`).test(text);
+}
+
+type Why =
+  | "live region by hand"
+  | "error colour"
+  | "failure copy"
+  | "wait copy"
+  | "outcome copy"
+  | "outcome announced on arrival";
 
 interface LineFinding {
   readonly file: string;
@@ -761,8 +790,19 @@ function elementSpans(text: string, tag: string): [number, number][] {
 function unannouncedLines(source: string, file: string): LineFinding[] {
   const text = code(source);
   const lineAt = (at: number) => text.slice(0, at).split("\n").length;
-  const announced = ANNOUNCED_TAGS.flatMap((tag) => elementSpans(text, tag));
-  const inside = (at: number) => announced.some(([start, end]) => at >= start && at < end);
+  const announced = ANNOUNCED_TAGS.flatMap((tag) =>
+    elementSpans(text, tag).map(([start, end]) => ({
+      start,
+      end,
+      props: text.slice(start + tag.length + 1, endOfOpening(text, start + tag.length + 1)),
+    })),
+  );
+  const inside = (at: number) => announced.some(({ start, end }) => at >= start && at < end);
+  /** The innermost announcer element around `at`, or undefined. */
+  const holderOf = (at: number) =>
+    announced
+      .filter(({ start, end }) => at >= start && at < end)
+      .sort((a, b) => a.end - a.start - (b.end - b.start))[0];
   const found: LineFinding[] = [];
 
   // One platform's half, declared by hand: the defect INT-226 found.
@@ -789,6 +829,21 @@ function unannouncedLines(source: string, file: string): LineFinding[] {
   // Failure and wait copy, wherever it is rendered from — a prop, a helper, a line.
   for (const m of text.matchAll(/\bt\(\s*"([A-Za-z0-9_.]+)"/g)) {
     const key = m[1];
+    if (OUTCOME_COPY.has(key)) {
+      // INT-397: announced, and announced only as news.
+      const holder = holderOf(m.index);
+      if (holder === undefined) {
+        found.push({ file, line: lineAt(m.index), why: "outcome copy", subject: key });
+      } else if (!newsFromHook(holder.props, text)) {
+        found.push({
+          file,
+          line: lineAt(m.index),
+          why: "outcome announced on arrival",
+          subject: key,
+        });
+      }
+      continue;
+    }
     const why: Why | null = FAILURE_KEY.test(key)
       ? "failure copy"
       : waitCopy(key)
@@ -911,6 +966,104 @@ describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces 
     expect(stale).toEqual([]);
   });
 
+  it("an outcome line announced on arrival, or not at all, is caught — the near-miss control (INT-397)", () => {
+    const screen = (line: string) =>
+      [
+        'import { AnnouncedText, useNews } from "@/components/Announced";',
+        'import { AppText, Screen } from "@/components/Themed";',
+        "export default function Sent() {",
+        "  const sentNews = useNews(sent);",
+        "  const other = sent;",
+        "  return (",
+        "    <Screen>",
+        '      <AppText role="body" color="inkSoft">{t("review.intro")}</AppText>',
+        `      {sent ? ${line} : null}`,
+        "    </Screen>",
+        "  );",
+        "}",
+      ].join("\n");
+    const whys = (line: string) =>
+      unannouncedLines(screen(line), "src/app/sent.tsx").map((f) => `${f.why} (${f.subject})`);
+    // The fixed line: announced, and news only when the note has just gone.
+    expect(
+      whys(
+        '<AnnouncedText tone="status" news={sentNews} role="body" message={t("review.sentInfo")} />',
+      ),
+    ).toEqual([]);
+    // The line as INT-362 left it: a plain caption, silent on both platforms.
+    expect(whys('<AppText role="body" color="inkSoft">{t("review.sentInfo")}</AppText>')).toEqual([
+      "outcome copy (review.sentInfo)",
+    ]);
+    // Announced, but on every arrival at the screen — old news.
+    expect(whys('<AnnouncedText tone="status" message={t("review.sentInfo")} />')).toEqual([
+      "outcome announced on arrival (review.sentInfo)",
+    ]);
+    // Muted with a literal, or with a value that is not a transition.
+    expect(
+      whys('<AnnouncedText tone="status" news={false} message={t("review.sentInfo")} />'),
+    ).toEqual(["outcome announced on arrival (review.sentInfo)"]);
+    expect(
+      whys('<AnnouncedText tone="status" news={other} message={t("review.sentInfo")} />'),
+    ).toEqual(["outcome announced on arrival (review.sentInfo)"]);
+    // A region has no notion of news, so it is arrival too.
+    expect(
+      whys(
+        '<AnnouncedRegion tone="status" message={t("consent.queue.note")}><AppText>{t("consent.queue.note")}</AppText></AnnouncedRegion>',
+      ),
+    ).toEqual([
+      "outcome announced on arrival (consent.queue.note)",
+      "outcome announced on arrival (consent.queue.note)",
+    ]);
+  });
+
+  it("the three outcome lines MC-26 named are found by the walk, and each is announced only as news", () => {
+    for (const key of OUTCOME_COPY) {
+      expect((tr as Record<string, string>)[key], key).toBeTruthy();
+    }
+    const sites = LINE_SOURCES.flatMap((f) =>
+      [...code(f.source).matchAll(/\bt\(\s*"([A-Za-z0-9_.]+)"/g)]
+        .filter((m) => OUTCOME_COPY.has(m[1]))
+        .map((m) => `${f.name} › ${m[1]}`),
+    );
+    // MC-26 (2026-09-27) is the oracle: five renderings of the three keys.
+    expect(sites).toEqual(
+      expect.arrayContaining([
+        "src/app/(tabs)/me/notifications.tsx › notifications.pending",
+        "src/app/(tabs)/visits/[visitId]/review.tsx › review.sentInfo",
+        "src/app/(tabs)/visits/[visitId]/index.tsx › review.sentInfo",
+        "src/app/(tabs)/me/consents/index.tsx › consent.queue.note",
+        "src/app/(tabs)/me/consents/[purpose].tsx › consent.queue.note",
+      ]),
+    );
+    const open = LINE_FINDINGS.filter((f) => OUTCOME_COPY.has(f.subject)).map(
+      (f) => `${f.file}:${f.line} ${f.why} (${f.subject})`,
+    );
+    expect(open).toEqual([]);
+  });
+
+  it("a line's news is always a transition from useNews — no line is muted with a literal", () => {
+    const withNews = LINE_SOURCES.flatMap((f) =>
+      readOpenings(code(f.source), f.name, ["AnnouncedText"])
+        .filter((o) => propValue(o.props, "news") !== null)
+        .map((o) => ({ opening: o, text: code(f.source) })),
+    );
+    // The five outcome lines at least; a line with no `news` is news whenever shown.
+    expect(withNews.length).toBeGreaterThanOrEqual(5);
+    const muted = withNews
+      .filter(({ opening, text }) => !newsFromHook(opening.props, text))
+      .map(({ opening }) => where(opening));
+    expect(muted).toEqual([]);
+  });
+
+  it("no outcome line is excused, and the exceptions have not grown (INT-397)", () => {
+    const excused = Object.keys(ANNOUNCED_ELSEWHERE).filter((id) =>
+      OUTCOME_COPY.has(id.slice(id.indexOf(" › ") + 3)),
+    );
+    expect(excused).toEqual([]);
+    // INT-362 left seven; the list only shrinks.
+    expect(Object.keys(ANNOUNCED_ELSEWHERE).length).toBeLessThanOrEqual(7);
+  });
+
   it("no live region is declared anywhere but the announcer", () => {
     const byHand = LINE_FINDINGS.filter((f) => f.why === "live region by hand").map(
       (f) => `${f.file}:${f.line} ${f.subject}`,
@@ -951,11 +1104,18 @@ describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces 
     // Politeness comes from the tone, in one place: error and warning →
     // assertive, status → polite.
     expect(announcer.match(/politenessOf\(tone\)/g)?.length).toBe(2);
-    // Android: the live region, on the line and on the region.
-    expect(announcer).toContain("live={politeness}");
+    // Android: the live region, on the line and on the region. A line is news
+    // unless its screen says otherwise (INT-397), so every line INT-362
+    // routed keeps both halves exactly as before.
+    expect(announcer).toMatch(/\bnews = true\b/);
+    expect(announcer).toContain("live={news ? politeness : undefined}");
     expect(announcer).toContain("accessibilityLiveRegion={politeness}");
-    // iOS: the announcement, posted by both components on every change.
-    expect(announcer.match(/useLineAnnouncement\(spoken, politeness\)/g)?.length).toBe(2);
+    // iOS: the announcement, posted by both components on every change —
+    // by the line while it is news.
+    expect(
+      announcer.match(/useLineAnnouncement\(news \? spoken : null, politeness\)/g)?.length,
+    ).toBe(1);
+    expect(announcer.match(/useLineAnnouncement\(spoken, politeness\)/g)?.length).toBe(1);
     // SC 3.3.1: an error is heard as one — the error word, from the catalogue.
     expect(announcer.match(/spokenLine\(tone, message, t\("a11y\.error"\)\)/g)?.length).toBe(2);
     const prefs = readFileSync(join(SRC, "lib", "a11y", "prefs.ts"), "utf8");
@@ -966,6 +1126,22 @@ describe("BK28 / SC 3.3.1 · SC 4.1.3 — every error and status line announces 
       (f) => f.name,
     );
     expect(halfOnly).toEqual([]);
+  });
+
+  it("a line that is not news is shown without either half, and turning into news makes it anew (INT-397)", () => {
+    const announcer = code(readFileSync(join(MOBILE, ANNOUNCER), "utf8"));
+    // TalkBack speaks a live region when it appears or changes; a line whose
+    // words stay put while it turns into news is made again, with its region.
+    expect(announcer).toContain('key={news ? "news" : "shown"}');
+    // What is news is the tested rule (lib/a11y/announce.ts newsStep):
+    // whatever stands on arrival is old news, and "in front" is the
+    // navigator's own focus, so a screen under another one stays quiet.
+    expect(announcer).toContain("useState(() => arrivedAt(standing))");
+    expect(announcer).toContain("newsStep(memory, standing, inFront)");
+    expect(announcer).toContain("const inFront = useIsFocused()");
+    // SC 3.3.1 still holds on arrival: an error found standing is named as
+    // one when the reader reaches it, news or not.
+    expect(announcer).toContain("spokenAs={spoken === message ? undefined : spoken}");
   });
 
   it("the announcement path writes nothing to a log (invariant 6)", () => {

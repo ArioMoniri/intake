@@ -109,7 +109,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-387 (the accessibility conformance report re-rated after the
     # INT-361..363 fixes, with a guard against rows that outlive their fix;
     # found by INT-360's PR, filed as GitHub #640).
-    assert len(ids) == 308
+    # + INT-397 (the three status lines INT-362 left silent are announced, and
+    # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
+    assert len(ids) == 309
     import re
 
     for i in ids:
