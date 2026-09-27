@@ -272,7 +272,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
     # in step with rows, found by INT-396, GitHub #675); grows only with a
     # stated reason.
-    assert len(ids) == 315, f"expected 175 blueprint + 140 added issues, got {len(ids)}"
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
+    # stated reason.
+    assert len(ids) == 316, f"expected 175 blueprint + 141 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
