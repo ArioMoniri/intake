@@ -251,6 +251,80 @@ def test_voxcpm2_licence_is_verified_from_a_named_blob_not_a_card_tag() -> None:
     assert "openbmb/voxcpm" in note, "the note must say where the blob came from"
 
 
+# --- INT-124: files/03 §4.9.1 row 9, the extraction LLM ----------------------------
+
+_ROW9 = "qwen3.6-35b-a3b"
+_ROW9_REVISION = "995ad96eacd98c81ed38be0c5b274b04031597b0"
+
+
+def test_row9_is_pinned_by_revision_and_all_26_weight_shards() -> None:
+    entry = load_registry(REGISTRY_PATH).get(_ROW9)
+    assert entry.model_id == "Qwen/Qwen3.6-35B-A3B"
+    assert entry.revision == _ROW9_REVISION
+    assert entry.weights_sha256 is not None
+    assert sorted(entry.weights_sha256) == [
+        f"model-{n:05d}-of-00026.safetensors" for n in range(1, 27)
+    ]
+    assert entry.weights_sha256["model-00001-of-00026.safetensors"] == (
+        "adee7bcb930aed22e0677e58d4873b48dadb1ed8001cb5c6a0487286eadb3478"
+    )
+    assert entry.weights_sha256["model-00026-of-00026.safetensors"] == (
+        "1a97404220077ed3d4182e10385b152004cab608377f50cec9f54a6b8d28b613"
+    )
+
+
+def test_row9_licence_is_the_raw_blob_at_the_pinned_revision() -> None:
+    entry = load_registry(REGISTRY_PATH).get(_ROW9)
+    assert entry.licence_verified_at == date(2026, 9, 27)
+    assert entry.licence_blob_url == (
+        f"https://huggingface.co/Qwen/Qwen3.6-35B-A3B/raw/{_ROW9_REVISION}/LICENSE"
+    )
+    assert entry.licence_blob_sha256 == (
+        "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32"
+    )
+    assert entry.licence_note is not None
+    note = entry.licence_note.lower()
+    assert "apache" in note and "lfs" in note, "the note must say what was read and where"
+
+
+def test_row9_is_on_the_phi_path_and_served_by_no_host() -> None:
+    """Invariant 19: self-hostable, on the PHI path, and not running anywhere
+    — so the release gate does not treat it as enabled, and the probe says so."""
+    entry = load_registry(REGISTRY_PATH).get(_ROW9)
+    assert (entry.self_hostable, entry.phi_path, entry.self_hosted_now) == (True, True, False)
+    assert entry.probe is ProbeId.HTTP_HEALTH
+    # no served fallback exists, and a cloud one may not (invariant 19)
+    assert entry.fallback == "none"
+    assert "INT-381" in entry.host
+
+
+def _row9_config(tmp_path: Path, env: dict[str, str], status: int = 200) -> DevProbeConfig:
+    return DevProbeConfig(
+        env={"INTAKE_BACKUP_DIR": str(tmp_path), **env},
+        http_transport=httpx.MockTransport(lambda request: httpx.Response(status)),
+        redis_client=fakeredis.FakeRedis(),
+        postgres_select1=lambda: 1,
+    )
+
+
+def test_row9_probe_reports_unavailable_while_no_host_serves_it(tmp_path: Path) -> None:
+    registry = load_registry(REGISTRY_PATH)
+    clients = build_dev_clients(registry, _row9_config(tmp_path, {}))
+    outcome = clients[_ROW9]()
+    assert isinstance(outcome, Skipped)
+    assert "unavailable" in outcome.reason and "INT-381" in outcome.reason
+    results = {result.component: result for result in run_probes_once(registry, clients)}
+    assert results[_ROW9].status is ProbeStatus.SKIPPED
+
+
+def test_row9_probe_checks_health_once_a_host_is_named(tmp_path: Path) -> None:
+    registry = load_registry(REGISTRY_PATH)
+    env = {"INTAKE_LAB_EXTRACTION_HEALTH_URL": "http://127.0.0.1:8811/health"}
+    assert isinstance(build_dev_clients(registry, _row9_config(tmp_path, env))[_ROW9](), Ok)
+    failing = build_dev_clients(registry, _row9_config(tmp_path, env, status=503))
+    assert isinstance(failing[_ROW9](), Failed)
+
+
 def test_declaring_a_model_id_requires_the_full_pin() -> None:
     # a half-pinned model row is worse than none: it looks verified
     for missing in ("revision", "weights_sha256", "licence_verified_at"):

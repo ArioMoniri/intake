@@ -21,6 +21,7 @@ __all__ = [
     "ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL",
     "ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL",
     "ADMIN_PENDING_ACTION_EXPIRED_TOTAL",
+    "ADMIN_VOICE_CONTROL_CHANGES_TOTAL",
     "SEC_ADMIN_ACTIONS_TOTAL",
     "SEC_BREAK_GLASS_TOTAL",
 ]
@@ -63,4 +64,16 @@ ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL = Counter(
     "admin_model_benchmark_requested_total",
     "Model benchmark triggers, by actor, lane and outcome.",
     ["actor", "kind", "outcome"],
+)
+
+#: INT-182. The alert attached to the four voice actions of the
+#: ``DangerousAction`` registry. ``control`` is a closed
+#: :class:`~intake_platform.voice_control.VoiceControlChange` member and
+#: ``outcome`` one of requested / applied / unchanged / refused — no tenant, no
+#: actor, no text: who did it is on the audit chain and in the store, and a
+#: label is not the place for either (invariant 6).
+ADMIN_VOICE_CONTROL_CHANGES_TOTAL = Counter(
+    "admin_voice_control_changes_total",
+    "Voice control changes (kill switch, default profile, canary), by control and outcome.",
+    ["control", "outcome"],
 )

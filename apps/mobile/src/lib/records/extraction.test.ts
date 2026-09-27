@@ -37,10 +37,40 @@ import {
   type CardState,
   type ExtractionSource,
 } from "./extraction";
-import { NBSP } from "@/lib/health/format";
-import { t } from "@/lib/i18n";
+import { NBSP, formatQuantity } from "@/lib/health/format";
+import { t, type Locale } from "@/lib/i18n";
 
 const BOX = { document_ref: "doc-1", page: 2, bbox: [0.1, 0.2, 0.5, 0.3] };
+
+/**
+ * INT-385's shared table: one row per (magnitude, locale), and the exact atom
+ * the server's `quantity_atom` writes for it. `tests/records/test_quantity_render.py`
+ * holds the server to the same file.
+ */
+interface RenderRow {
+  value: string;
+  unit: string;
+  locale: Locale;
+  atom: string;
+}
+
+const RENDER_TABLE = JSON.parse(
+  readFileSync(
+    join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "tests",
+      "fixtures",
+      "records",
+      "quantity_render.json",
+    ),
+    "utf8",
+  ),
+) as { rows: RenderRow[] };
 
 function item(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -192,6 +222,77 @@ describe("invariant 22 — the number is carried, never re-rendered", () => {
 
   it("refuses a summary that is empty — there is nothing to agree with", () => {
     expect(parseExtraction(payload([item({ summary: "   " })])).kind).toBe("refused");
+  });
+});
+
+describe("INT-385 — the server and the app write a quantity the same way", () => {
+  // A Turkish reader takes a full stop as grouping, so `12.500` on a Turkish
+  // screen is twelve thousand five hundred. The server writes the locale's
+  // decimal separator, no grouping, and one NO-BREAK SPACE before the unit.
+  // The card carries that atom as it arrives. When the app writes a clinical
+  // quantity itself, it writes the same bytes.
+
+  it("reads a table that covers INT-385's four magnitudes in both locales", () => {
+    const covered = new Set(RENDER_TABLE.rows.map((row) => `${row.value}|${row.locale}`));
+    for (const value of ["12.5", "12500", "0.05", "1.5"]) {
+      for (const locale of ["tr", "en"]) {
+        expect(covered.has(`${value}|${locale}`), `${value} in ${locale}`).toBe(true);
+      }
+    }
+  });
+
+  it.each(RENDER_TABLE.rows)(
+    "$value in $locale: the app's renderer writes the server's atom",
+    (row) => {
+      expect(formatQuantity(Number(row.value), row.unit, row.locale)).toBe(row.atom);
+    },
+  );
+
+  it.each(RENDER_TABLE.rows)(
+    "$value in $locale: the card carries the atom byte for byte",
+    (row) => {
+      const summary = `Kreatinin ${row.atom}`;
+      const feed = parseExtraction(payload([item({ summary })]));
+      expect(feed.kind).toBe("cards");
+      if (feed.kind !== "cards") return;
+      expect(feed.cards[0].summary).toBe(summary);
+    },
+  );
+
+  it.each(RENDER_TABLE.rows)(
+    "$value in $locale: the locale's decimal point, no grouping, one NO-BREAK SPACE",
+    (row) => {
+      const [number, unit, ...rest] = row.atom.split(NBSP);
+      expect(rest).toEqual([]);
+      expect(unit).toBe(row.unit);
+      expect(row.atom).not.toContain(" ");
+      // The other locale's point would be grouping to this reader.
+      expect(number).not.toContain(row.locale === "tr" ? "." : ",");
+    },
+  );
+
+  it("never groups 12500 (useGrouping:false)", () => {
+    for (const locale of ["tr", "en"] as const) {
+      const written = formatQuantity(12500, "U/L", locale);
+      expect(written).toBe(`12500${NBSP}U/L`);
+      expect(written).not.toContain(`12.500${NBSP}`);
+      expect(written).not.toContain(`12,500${NBSP}`);
+    }
+  });
+
+  it("NEAR MISS: 12.5 in Turkish is 12,5 and never 12.500", () => {
+    expect(formatQuantity(12.5, "mg/dL", "tr")).toBe(`12,5${NBSP}mg/dL`);
+    expect(formatQuantity(12.5, "mg/dL", "tr")).not.toBe(`12.500${NBSP}mg/dL`);
+    expect(formatQuantity(12.5, "mg/dL", "en")).toBe(`12.5${NBSP}mg/dL`);
+  });
+
+  it("keeps a clinical quantity's precision: 0.05 is 0,05, never 0,1", () => {
+    expect(formatQuantity(0.05, "mg/L", "tr")).toBe(`0,05${NBSP}mg/L`);
+    expect(formatQuantity(0.05, "mg/L", "en")).toBe(`0.05${NBSP}mg/L`);
+  });
+
+  it("the joiner is U+00A0 NO-BREAK SPACE", () => {
+    expect(NBSP).toBe(" ");
   });
 });
 

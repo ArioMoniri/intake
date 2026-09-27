@@ -130,6 +130,9 @@ export default function NewVisit() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
         keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): each field scrolls clear of the keyboard, which
+        // takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
       >
         <AppText role="caption" color="inkFaint">
           {t("visits.new.hint")}

@@ -23,6 +23,12 @@ have no implementation on this branch, and each is a named check that reports
 - ``room_token`` — ``intake_platform.room_tokens`` mints the LiveKit JWT
   (INT-090), but no HTTP route serves one to a worker (INT-103's finding).
 
+A fourth check arrived with INT-182: ``voice_controls`` — the per-tenant kill
+switch, default profile and canary the session router reads at every session
+start. It has no default either: the store is named by
+``INTAKE_VOICE_CONTROL_REDIS_URL`` in the deployment, and a speech worker that
+cannot read it could not honour the kill switch.
+
 So an unwired process answers ``/healthz`` 200 and ``/readyz`` 503 naming each
 missing binding. That is the shape CLAUDE.md asks for when a dependency is
 absent: build the mechanism, wire the gate, make it fail closed, leave the
@@ -39,6 +45,7 @@ from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.security import SecurityHeadersMiddleware
+from intake_platform.voice_control import VoiceControlReader
 
 from intake_voice_runtime.ports import ClipStore, RoomTokenSource, SpeechSynthesizer
 from intake_voice_runtime.profiles import VoiceProfile
@@ -85,6 +92,11 @@ class VoiceRuntimeWiring:
     synthesizer: SpeechSynthesizer | None = None
     room_token_source: RoomTokenSource | None = None
     profile: VoiceProfile = VoiceProfile.RESIDENCY_TR
+    #: INT-182: where the per-tenant kill switch, default profile and canary
+    #: are read at every session start (``INTAKE_VOICE_CONTROL_REDIS_URL``,
+    #: the same store the admin console writes). A speech worker without it
+    #: could not honour the kill switch, so it is not ready.
+    voice_controls: VoiceControlReader | None = None
 
     @property
     def needs_speech(self) -> bool:
@@ -114,12 +126,19 @@ def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
         # turn-taking and TTS columns — so it needs no room and no token.
         return not bound.needs_speech or bound.room_token_source is not None
 
+    async def voice_controls_ready() -> bool:
+        # INT-182. A typed worker is already the kill switch's target; a
+        # speech worker must be able to read the switch before it may take a
+        # session, or "without a deploy" would silently stop being true.
+        return not bound.needs_speech or bound.voice_controls is not None
+
     mount_health(
         app,
         readiness=[
             ReadinessCheck("clip_store", clip_store_ready),
             ReadinessCheck("speech_synthesizer", synthesizer_ready),
             ReadinessCheck("room_token", room_token_ready),
+            ReadinessCheck("voice_controls", voice_controls_ready),
         ],
     )
     return app
