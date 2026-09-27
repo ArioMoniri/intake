@@ -10,6 +10,7 @@ import type { ParsedMhrsSms } from "./taxonomy/mhrsSms";
 import {
   buildLocalVisit,
   emptyNewVisitForm,
+  formToInput,
   newVisitFormReducer,
   ocrImportAvailable,
   splitVisits,
@@ -112,6 +113,7 @@ describe("the new-visit form reducer", () => {
   it("applies a fully parsed SMS and drops the raw text", () => {
     const parsed: ParsedMhrsSms = {
       dateIso: "2026-09-03",
+      dateRefusal: null,
       time: "14:30",
       hospital: "ANKARA BILKENT SEHIR HASTANESI",
       branchId: "kardiyoloji",
@@ -133,6 +135,7 @@ describe("the new-visit form reducer", () => {
   it("an unknown branch surfaces the friendly picker notice, never a crash", () => {
     const parsed: ParsedMhrsSms = {
       dateIso: "2026-09-07",
+      dateRefusal: null,
       time: "11:20",
       hospital: "BURSA DEVLET HASTANESI",
       branchId: null,
@@ -152,6 +155,7 @@ describe("the new-visit form reducer", () => {
   it("a matched branch without a date asks for the date", () => {
     const parsed: ParsedMhrsSms = {
       dateIso: null,
+      dateRefusal: "not_found",
       time: null,
       hospital: null,
       branchId: "noroloji",
@@ -169,6 +173,7 @@ describe("the new-visit form reducer", () => {
   it("an unreadable message says so and changes nothing else", () => {
     const parsed: ParsedMhrsSms = {
       dateIso: null,
+      dateRefusal: "not_found",
       time: null,
       hospital: null,
       branchId: null,
@@ -185,6 +190,75 @@ describe("the new-visit form reducer", () => {
     });
     expect(state.hospital).toBe("Elle girilen hastane");
     expect(state.smsNotice).toBe("unreadable");
+  });
+});
+
+describe("a date that reads two ways is the patient's to confirm (INT-400)", () => {
+  const ambiguous: ParsedMhrsSms = {
+    dateIso: null,
+    dateRefusal: "ambiguous",
+    time: "14:30",
+    hospital: "ANKARA BILKENT SEHIR HASTANESI",
+    branchId: "kardiyoloji",
+    branchText: "KARDIYOLOJI",
+  };
+
+  it("asks for the date and leaves the field empty — neither reading is filled in", () => {
+    const state = newVisitFormReducer(emptyNewVisitForm(), {
+      type: "apply_sms",
+      parsed: ambiguous,
+      branches: SEED_BRANCHES,
+    });
+    expect(state.smsNotice).toBe("ambiguous_date");
+    expect(state.date).toBeNull();
+    // everything the message did state plainly is still used
+    expect(state.branchId).toBe("kardiyoloji");
+    expect(state.hospital).toBe("ANKARA BILKENT SEHIR HASTANESI");
+  });
+
+  it("clears a date already in the field, which is not known to be this message's", () => {
+    const before = newVisitFormReducer(emptyNewVisitForm(), {
+      type: "set_date",
+      value: "2026-09-03",
+    });
+    const state = newVisitFormReducer(before, {
+      type: "apply_sms",
+      parsed: ambiguous,
+      branches: SEED_BRANCHES,
+    });
+    expect(state.date).toBeNull();
+    expect(state.smsNotice).toBe("ambiguous_date");
+  });
+
+  it("outranks the unknown-clinic notice: the branch is required at save, the date is not", () => {
+    const state = newVisitFormReducer(emptyNewVisitForm(), {
+      type: "apply_sms",
+      parsed: { ...ambiguous, branchId: null, branchText: "CILDIYE" },
+      branches: SEED_BRANCHES,
+    });
+    expect(state.branchId).toBeNull();
+    expect(state.smsNotice).toBe("ambiguous_date");
+  });
+
+  it("a message whose only date reads two ways is not called unreadable", () => {
+    const state = newVisitFormReducer(emptyNewVisitForm(), {
+      type: "apply_sms",
+      parsed: { ...ambiguous, hospital: null, branchId: null, branchText: null },
+      branches: SEED_BRANCHES,
+    });
+    expect(state.smsNotice).toBe("ambiguous_date");
+  });
+
+  it("the patient's own date, typed after the notice, is the one that saves", () => {
+    let state = newVisitFormReducer(emptyNewVisitForm(), {
+      type: "apply_sms",
+      parsed: ambiguous,
+      branches: SEED_BRANCHES,
+    });
+    state = newVisitFormReducer(state, { type: "pick_visit_type", visitType: "first" });
+    state = newVisitFormReducer(state, { type: "set_date", value: "2026-03-09" });
+    expect(validateNewVisit(formToInput(state))).toEqual({ ok: true });
+    expect(formToInput(state).date).toBe("2026-03-09");
   });
 });
 

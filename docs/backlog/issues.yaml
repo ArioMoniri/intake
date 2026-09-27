@@ -5899,7 +5899,8 @@
   title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
   depends_on: [INT-122]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-400.md
   acceptance:
     - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
   tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]

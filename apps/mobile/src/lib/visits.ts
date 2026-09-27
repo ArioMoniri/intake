@@ -91,7 +91,8 @@ export function splitVisits<V extends { date: string | null }>(
 // --- the new-visit form -----------------------------------------------------------------
 
 /** What the paste-parse told the patient, in tr copy the screen renders. */
-export type SmsNotice = "filled" | "unknown_branch" | "no_date" | "unreadable" | null;
+export type SmsNotice =
+  "filled" | "unknown_branch" | "no_date" | "ambiguous_date" | "unreadable" | null;
 
 export interface NewVisitForm {
   hospital: string;
@@ -157,7 +158,14 @@ export function newVisitFormReducer(state: NewVisitForm, action: NewVisitAction)
       const { parsed } = action;
       const branch =
         parsed.branchId === null ? undefined : branchById(action.branches, parsed.branchId);
-      const readable = branch !== undefined || parsed.dateIso !== null || parsed.hospital !== null;
+      // INT-400: a date that reads two ways was still a date the message
+      // printed, so a message carrying only that is not "unreadable"
+      const ambiguousDate = parsed.dateRefusal === "ambiguous";
+      const readable =
+        branch !== undefined ||
+        parsed.dateIso !== null ||
+        parsed.hospital !== null ||
+        ambiguousDate;
       // the raw message is cleared the moment it has been read: it is parsed
       // on the device and kept only as structure (no raw SMS is persisted)
       const base: NewVisitForm = { ...state, sms: "", problem: null };
@@ -170,9 +178,18 @@ export function newVisitFormReducer(state: NewVisitForm, action: NewVisitAction)
         branchId: branch?.id ?? state.branchId,
         branchNameTr: branch?.nameTr ?? state.branchNameTr,
         visitType: branch !== undefined ? null : state.visitType,
-        date: parsed.dateIso ?? state.date,
+        // an ambiguous date fills in neither reading, and clears a date the
+        // field already held: it is not known to be this message's date, and
+        // an empty field is the one state that cannot pass for an answer
+        date: ambiguousDate ? null : (parsed.dateIso ?? state.date),
         smsNotice: null,
       };
+      if (ambiguousDate) {
+        // outranks the clinic notice: saving refuses a visit with no branch
+        // (missing_fields), but a visit with no date saves, so this notice is
+        // the only thing that asks the patient for the date
+        return { ...next, smsNotice: "ambiguous_date" };
+      }
       if (branch === undefined) {
         // never a crash and never a guess: name what we could not place and
         // let the patient choose it from the picker

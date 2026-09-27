@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**307 issues.** By phase: P0 158 · P1 95 · P2 47 · P3 7. By status: awaiting-human 28 · doing 16 · done 176 · todo 86 · withdrawn 1.
+**307 issues.** By phase: P0 158 · P1 95 · P2 47 · P3 7. By status: awaiting-human 28 · doing 16 · done 177 · todo 85 · withdrawn 1.
 
 ## P0
 
@@ -268,7 +268,7 @@
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
 | INT-398 | Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox | E07-records | INT-122 | area:records, risk:security | awaiting-human |
 | INT-399 | Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2) | E07-records | INT-122 | area:records | awaiting-human |
-| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | todo |
+| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | done |
 
 ## P2
 
