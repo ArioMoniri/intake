@@ -120,6 +120,19 @@ export const tr = {
   "visits.detail.noteStatus": "Not durumu",
   "visits.detail.notStarted": "Görüşme henüz başlamadı.",
 
+  // Takvim (calendar) görünümü + Geçmiş (past) listesi (02 §4). Ay/gün adları
+  // Intl'den gelir (components/VisitCard.tsx ile aynı kaynak); burada yalnızca
+  // ekranın kendi metinleri var.
+  "visits.view.label": "Görünüm",
+  "visits.view.list": "Liste",
+  "visits.view.calendar": "Takvim",
+  "visits.pastEmpty": "Geçmiş vizitiniz yok.",
+  "visits.calendar.prevMonth": "Önceki ay",
+  "visits.calendar.nextMonth": "Sonraki ay",
+  "visits.calendar.hasVisits": "vizitiniz var",
+  "visits.calendar.noVisitsOnDay": "Bu gün için vizitiniz yok.",
+  "visits.calendar.monthEmpty": "Bu ayda vizitiniz yok.",
+
   "records.title": "Kayıtlarım",
   "records.synthetic": "Örnek veri — sentetik",
   "records.guide.kicker": "Belgeleriniz",
@@ -825,6 +838,7 @@ export const tr = {
   "a11y.backHint": "Önceki ekrana dönmek için iki kez dokunun.",
   "a11y.closeHint": "Kapatmak için iki kez dokunun.",
   "a11y.selectHint": "Seçmek için iki kez dokunun.",
+  "a11y.visits.dayHint": "O günün vizitlerini görmek için iki kez dokunun.",
   "a11y.confirmHint": "Onaylamak için iki kez dokunun.",
   "a11y.shareHint": "Bu bölümün paylaşımını açıp kapatmak için iki kez dokunun.",
   "a11y.typedHint": "Konuşmak yerine yazarak devam etmek için iki kez dokunun.",
@@ -1330,6 +1344,12 @@ export const tr = {
   "kiosk.tamper.body":
     "Bu cihazın kiosk kilidi artık etkin değil. Devam etmeden önce personel cihazı yeniden kilitlemeli, sonra klinik PIN'ini girmeli.",
   "kiosk.privacy.note": "Bu paylaşılan bir cihazdır. Bilgileriniz burada saklanmaz.",
+  // INT-363 — the idle warning (WCAG 2.2 SC 2.2.1): patient-facing, siz, ≤ B1,
+  // calm. No number: the grace is a constant in lib/kiosk, never copy.
+  "kiosk.idle.warning":
+    "Hâlâ burada mısınız? Bilgilerinizi korumak için oturum birazdan kapanacak.",
+  "kiosk.idle.extend": "Devam edin",
+  "kiosk.idle.extendHint": "Oturumu açık tutar.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

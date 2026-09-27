@@ -234,7 +234,14 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron)
     # + INT-379 (the generator's duration=omit, code answers and skip_if);
     # grows only with a stated reason.
-    assert len(ids) == 295, f"expected 175 blueprint + 120 added issues, got {len(ids)}"
+    # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
+    # previsit routing) + INT-317 (previsit output store + hospital read-back,
+    # filed on int-demo and carried to main by INT-354); grows only with a
+    # stated reason.
+    # previsit routing) ... + INT-376 (Frankfurt host move, split out of
+    # INT-352; the full list is in tests/backlog/test_schema.py); grows only
+    # with a stated reason.
+    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

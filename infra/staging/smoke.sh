@@ -8,7 +8,9 @@
 #
 # Checks:
 #   1. /healthz, /readyz, /metrics and /version answer 200 over public HTTPS.
-#   2. /version names the deployed commit and a build time, never "dev".
+#   2. /version names the deployed commit, a build time and the sha256 of the
+#      SBOM on disk, and "dev" in any of the three fails (INT-352, audit
+#      F18). The api container must run the image that SBOM describes.
 #   3. The staging header is on every response, and plain HTTP redirects to
 #      HTTPS.
 #   4. Inside the api container: INTAKE_ENV is staging, no dev gate is set,
@@ -26,6 +28,7 @@ require_root
 require_tools
 load_env
 stamp_revision
+stamp_sbom_from_disk
 
 failures=0
 pass() { log "PASS $*"; }
@@ -50,25 +53,20 @@ for path in /healthz /readyz /metrics /version; do
   fi
 done
 
-# 2. /version is the deployed commit, never "dev"
+# 2. /version is the deployed commit, its build time and the SBOM on disk,
+#    never "dev"; and the api runs the image that SBOM describes
 version_body=$(https_get /version || true)
-if verdict=$(python3 -c '
-import json, sys
-try:
-    v = json.load(sys.stdin)
-except ValueError:
-    print("not JSON"); sys.exit(1)
-problems = []
-if v.get("git_sha") != sys.argv[1]:
-    problems.append("git_sha %r is not the deployed %s" % (v.get("git_sha"), sys.argv[1]))
-if v.get("built_at") in (None, "", "dev"):
-    problems.append("built_at is not stamped")
-print("; ".join(problems) or "git_sha %s, built_at %s" % (v["git_sha"], v["built_at"]))
-sys.exit(1 if problems else 0)
-' "$INTAKE_GIT_SHA" <<<"$version_body"); then
+sbom_on_disk=$(sha256_of "$SBOM_FILE" || true)
+if verdict=$(version_verdict "$INTAKE_GIT_SHA" "$sbom_on_disk" <<<"$version_body"); then
   pass "/version: $verdict"
 else
   fail "/version: $verdict"
+fi
+running_image=$(docker inspect --format '{{.Image}}' "$(compose ps -q api)" 2>/dev/null || true)
+if [[ $running_image == "$API_IMAGE_ID" ]]; then
+  pass "the api runs the image the SBOM describes (${API_IMAGE_ID})"
+else
+  fail "the api runs ${running_image:-no container}, not the image the SBOM describes (${API_IMAGE_ID})"
 fi
 
 # 3. the staging header, and HTTP -> HTTPS

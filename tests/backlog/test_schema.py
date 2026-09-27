@@ -77,10 +77,18 @@ def test_ids_unique_and_well_formed() -> None:
     # rotation schedule, dependency updates, API fuzzing in CI).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
+    # ported to main as its own one-issue PR).
+    # + INT-370 (slice S3 of INT-354: the int-demo visits calendar and Geçmiş
+    # list, ported to main as its own one-issue PR).
+    # + INT-317 (previsit output store + hospital read-back: filed on int-demo
+    # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
+    # id is held by no other row on main or any remote branch).
+    # + INT-376 (the production API's move to Frankfurt, split out of INT-352
+    # because it waits on AWS approving the eu-central-1 GPU quota).
     # ported to main as its own one-issue PR)
     # + INT-379 (the question-set generator's duration=omit, code answers and
     # skip_if, asked for by the department verifications, GitHub #623).
-    assert len(ids) == 295
+    assert len(ids) == 298
     import re
 
     for i in ids:
