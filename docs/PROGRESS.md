@@ -14,7 +14,12 @@
   - `tests/records/test_quantity_render.py` (52): round trips for 7 printed forms × tr/en through both the resolver and a locale reader; near misses `12.500` and INT-121's `12.5` in tr, each with a passing control; no grouping; U+00A0; refusal without echo; the shared table; two import-boundary tests off the speech path.
   - Mobile `extraction.test.ts` (+29) and `format.test.ts` (+1).
   - RED: Python ImportError at collection plus 1 TypeError in `test_extraction_eval.py`; vitest 4 failed (`0,1` for 0.05). An INT-121-behaviour mutant is killed by 25 tests.
-- Result: tests/records 388 passed; tests/api 487 passed; mobile vitest 2146 passed; `pnpm -r typecheck`, expo lint and prettier clean; `make check-i18n` 30 passed. Whole-tree lanes are in docs/evidence/INT-385.md. `make check` was not run whole (check-integration is CI-only).
+- Result:
+  - `make check-py`: ruff and format clean, `mypy --strict` clean (451 files), 7555 passed and 0 failed at 95.84 %. The 4 `test_deid_ner` tests passed once the de-id model cache was linked into the fresh worktree.
+  - `pnpm -r lint/typecheck/test` green (mobile 2173).
+  - `make check-i18n`: 30 passed.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check` and the sec-row gate: OK.
+  - `make check` was not run whole (check-integration is CI-only).
 - Invariants touched and still passing: 6 (the refusal does not echo), 8 (tests only added), 22 (the display half, for record quantities and the app helper; the TTS half is untouched).
 - Decisions: none new. Recorded, not fixed: four private measure renderers still write a full stop (the typed rail, note measures, patient-summary measures and the document mapper). This is INT-096's finding, and it needs its own issue id. Pins 297 → 298.
 - Blocked on: nothing.
