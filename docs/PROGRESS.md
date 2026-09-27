@@ -86,6 +86,71 @@
   - Pins 302 → 303.
 - Blocked on: nothing.
 - Next: PR (Sec-Row `records`, Closes #638).
+
+### 2026-09-27T16:30:00+03:00 · INT-397 · done (PR open; depends on #658)
+- Goal: acceptance verbatim (GitHub #659):
+  - *"the notifications store distinguishes saving from failed, and only a real failure is announced (assertive), once per change"*
+  - *"`review.sentInfo` and `consent.queue.note` are announced (polite) only when the state changes in this session (just sent, just queued), never on a revisit"*
+  - *"INT-362's source-tree discovery test drops these three from its exception list (the list only shrinks); the 4.1.3 row moves to Supports with the tests cited, and MC-26 is retired"*
+- Plan:
+  - Give each store a typed state: notifications `save` is idle, saving or failed; consent `ConsentOutbox` is clear, sending or held.
+  - A pure `newsStep` makes an outcome news only when the store moves into it while the screen is in front. `useNews` stores it during render.
+  - `AnnouncedText` takes `news`, defaulting to true. While it is false the line keeps its label and has neither half.
+  - The discovery reaches the three keys by name. They were outside the discovered set, not in `ANNOUNCED_ELSEWHERE`.
+- Tests added (32 mobile, 0 net legal):
+  - `announce.test.ts` +6.
+  - `notifications/store.test.ts` 9 (new) and `consent/store.test.ts` 7 (new).
+  - `a11y.spec.ts` +5, plus 5 per-file cases. Its near-miss control catches a plain caption, an arrival announcement, `news={false}`, a non-hook value and a region.
+  - The legal "still open because" test now renders a copy that records a reason.
+  - RED: 31 failed | 131 passed. GREEN: 162 passed. Mutations: 8 of 8 caught.
+- Result:
+  - `make check-ts` exits 0 (mobile 2230 passed, typecheck and lint clean) and `make check-i18n` gives 30 passed.
+  - The report re-renders and `--check` is clean. `tests/legal` 504 and `tests/backlog tests/smoke` 28 pass.
+  - 4.1.3 moves to Supports. WCAG counts: Supports 28 · Partially 4 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing:
+  - 2: only shown words are spoken, with the error word on a real failure only.
+  - 5: no copy changed.
+  - 6: nothing is logged.
+  - 17: `ANNOUNCED_ELSEWHERE` stays at 7 and is pinned as a ceiling.
+  - 8: tests were only added.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - None.
+  - The note's transition is read from its status rather than stored in `NoteState`, which is persisted in the encrypted draft.
+- Blocked on: nothing. DA-08 (the owner, INT-359) hears the lines on devices.
+- Next: once #658 merges, merge main and recompute the three pinned counts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T14:00:00+03:00 · INT-387 · done (PR open)
+- Goal: acceptance verbatim (GitHub #640):
+  - *"each of those rows is re-rated from the tests CI now runs, and cites them; device-only aspects stay with their DA item; the report is re-rendered and `render_a11y_report.py --check` is clean"*
+  - *"`tests/legal/test_a11y_report.py` fails if a row rated below Supports cites an issue whose row is `done` without a recorded reason (so the report cannot fall stale again)"*
+  - *"the legal statement (`docs/legal/accessibility-statement.md`) is not edited here; its refresh is INT-359 with counsel"*
+- Plan:
+  - A row below Supports is linked to the INT ids its prose names, and to every backlog issue titled `WCAG <sc>:` for its criterion. The stale rows named only INT-144, so the title link is the one that finds them.
+  - If a linked issue is done, the row is refused unless it records `still_open_because:`. The report prints that reason in the row.
+  - Re-rate the stale rows from the tests CI runs.
+- Tests added: `tests/legal/test_a11y_report.py` +9 (30 → 39).
+  - An oracle for the link convention.
+  - The 3.3.8 regression.
+  - A near-miss control: 1.4.3 passes while INT-144 is open, is refused once it is done, and is accepted with a reason.
+  - A reason is refused where nothing is open.
+  - An unknown id is refused.
+  - The reason is rendered.
+  - RED: 8 errors and 1 failure. The guard on `main`'s YAML refuses 3.3.1, 3.3.8 and 4.1.3. GREEN: 39 passed. Mutations: 6 of 6 caught.
+- Result:
+  - 3.3.1 moves to Supports (INT-362) and 3.3.8 to Supports (INT-361).
+  - 4.1.3 stays Partially Supports with a new finding: three status lines that INT-362 left out on purpose (MC-26), with `still_open_because` recorded.
+  - The 3.2.2 remark is corrected, and DA-08's steps are refreshed.
+  - WCAG counts: Supports 27 · Partially 5 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `--check` clean. `tests/legal` 504, `tests/backlog` 10, `tests/legal+backlog+smoke` 532 passed. ruff and mypy clean.
+  - `make check` was not run whole: no TypeScript changed, and check-integration is CI-only.
+- Invariants touched and still passing: 20 (no figure; ratings are test-backed statements), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next:
+  - File an issue for the three silent status lines under 4.1.3 (`notifications.pending`, `review.sentInfo`, `consent.queue.note`).
+  - INT-359 refreshes the statement's items 6 and 7.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
@@ -2612,4 +2677,29 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. OpenBao policies untouched (LOOP guardrail).
 - Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
 - Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:35:00Z · INT-138 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #108): *"camera+file upload; AV/processing states; confirm-before-use; provenance boxes"*. The row had stayed `todo` since 3 Sep because no route carried a document extraction to the phone.
+- Plan:
+  - Audit first. Camera + file upload, the AV chips, `ConfirmCard`, the two verdicts, `SourceBoxPanel` and the client reader were already on `main`. What was missing was the transport, plus re-asking a document that is still being read.
+  - API: `record_items.py` with `GET …/documents/{doc_id}/extraction` (closed item shape, INT-385 summary byte for byte, `unit_conflict`, page + bbox, the server-held verdict) and `POST …/extraction/decisions` (`{card_id, decision}` only). A confirmed item goes through `confirm_record_item` to `ConfirmedRecordStore.admit`. Both routes use the `documents` scope and are audited with ids only.
+  - Seam: `record_feed.py` holds `ExtractionSource`, `NoExtractionSource` (unread for every document while every producer is shut) and the verdict ledger.
+  - App: `apiExtractionSource` is the one production source, and `noExtractionFeed` is deleted. `isAcknowledgement` gives no optimistic write. `pollExtraction` backs off from 2 s to 30 s over about 2.5 min, lives in lib and is registered as a BK13 wait. The confirm intro is announced.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_extraction_transport.py` (27).
+  - Near misses: the same line in the expected unit carries no flag; the fence word without the marker is served.
+  - Also covered: a box into another document refuses whole, a body with `by`/`actor`/`source`/value/unit is a 422 that echoes nothing, the same tap twice admits once, and a contrary verdict gets 409.
+  - Mobile: 31 new tests (3 older ones replaced) across `extraction.test.ts` (fake clock), `api.test.ts` and `e2e/records.spec.ts`. The spec cross-checks both paths against the Python router.
+  - RED: server ModuleNotFoundError, then 26 failed. Mobile: 29 failed. a11y BK13 refused a timer in a component, so it moved to lib.
+  - Mutations: 6/6 killed.
+- Result: `make check` MAKE_CHECK_EXIT=0. 8340 passed at 96.14 % and every coverage lane met its floor. Mobile: 2207 tests; `check-i18n`: 30. `no_placeholders` (staged), `phi_scan`, `claims_scan` and `assert_no_vendor_calls` all OK. `make safety` was not run separately because no protocol, triage or runtime file changed.
+- Invariants touched and still passing: 1, 2 (no new copy), 4, 5 (no new keys), 6, 12, 14, 17, 18 (nothing persisted), 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The fail-closed default moved from the app to the server (one gate).
+  - The `records` threat row gained the transport and one named limit.
+  - Three exact access-log actions were added.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing blocks the issue.
+  - Owner decision, not made here: should confirmed record items be persisted durably? Today INT-121's store is in-memory, so a restart returns a card to pending (the safe direction). Persisting them is a new structured copy of health data (invariant 18, stop-and-ask).
+  - Coordinator decision: INT-313's five clauses are what this PR's test file pins, and its row was left untouched (one issue per PR).
+- Next: PR `INT-138: records screens — upload, processing, confirm cards and provenance viewer` (Closes #108, Sec-Row records), left unmerged for review.
 - LOOP_STATUS: CONTINUE

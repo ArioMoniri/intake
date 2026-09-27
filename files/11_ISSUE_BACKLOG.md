@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**307 issues.** By phase: P0 159 · P1 94 · P2 47 · P3 7. By status: awaiting-human 27 · doing 15 · done 178 · todo 86 · withdrawn 1.
+**309 issues.** By phase: P0 159 · P1 96 · P2 47 · P3 7. By status: awaiting-human 27 · doing 15 · done 181 · todo 85 · withdrawn 1.
 
 ## P0
 
@@ -86,7 +86,7 @@
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
 | INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | done |
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | done |
-| INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
+| INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | done |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | done |
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | done |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | done |
@@ -269,6 +269,8 @@
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
 | INT-391 | The console accepts every valid WebAuthn credential id (leading - or _, and longer than 96 bytes) | E12-admin | INT-180, INT-365 | area:admin, risk:security | done |
 | INT-386 | Clinical quantities in the typed lane, note, patient summary and FHIR document text use the locale decimal separator | E07-records | INT-385 | area:records, risk:clinical | done |
+| INT-387 | The accessibility conformance report reflects the INT-361, INT-362 and INT-363 fixes | E14-legal | INT-226, INT-361, INT-362, INT-363 | area:legal | done |
+| INT-397 | WCAG 4.1.3: the last three status lines are announced (notifications pending, review sent, consent queue) | E08-mobile | INT-362, INT-387 | area:mobile, risk:legal | done |
 
 ## P2
 
