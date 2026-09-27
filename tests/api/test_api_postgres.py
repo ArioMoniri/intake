@@ -135,13 +135,16 @@ def client(migrated: None, minio_client: Minio) -> Iterator[TestClient]:
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
 
-    # teardown: the run's record rows go; the dev fixture rows stay
+    # teardown: the run's record rows go; the dev fixture rows stay. Children
+    # before the session, previsit outputs first (INT-392): a sent note writes
+    # one (INT-317), and its key to sessions has no ON DELETE rule on purpose,
+    # so a teardown that forgot it failed here with ForeignKeyViolation.
     with psycopg.connect(
         host=HOST, port=PORT, dbname=DBNAME, user=SUPERUSER, password=SUPERPASS
     ) as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
-            for table in ("shares", "notes", "documents", "slots", "events"):
+            for table in ("previsit_outputs", "shares", "notes", "documents", "slots", "events"):
                 cur.execute(
                     f"DELETE FROM {table} WHERE tenant_id = %s",  # noqa: S608 — fixed names
                     (DEV_TENANT_ID,),
@@ -196,6 +199,12 @@ def test_full_visit_and_note_flow_under_rls(client: TestClient) -> None:
         row = cur.fetchone()
         assert row is not None
         assert set(row[0]) == {"key_version", "wrapped_dek", "nonce", "ciphertext"}
+        # the send also froze the previsit output (INT-317), an envelope too,
+        # and the row the module teardown has to remove before the session
+        cur.execute("SELECT payload FROM previsit_outputs WHERE session_id = %s", (visit_id,))
+        output = cur.fetchone()
+        assert output is not None
+        assert set(output[0]) == {"key_version", "wrapped_dek", "nonce", "ciphertext"}
 
 
 def test_foreign_tenant_rows_stay_invisible_under_force_rls(client: TestClient) -> None:

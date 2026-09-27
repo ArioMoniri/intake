@@ -90,7 +90,10 @@ def test_ids_unique_and_well_formed() -> None:
     # kiosk idle warning).
     # + INT-377 (a malformed probe-results file 500'd /admin/models and
     # /admin/ops; found by INT-181, fixed and closed in the same PR).
-    assert len(ids) == 299
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    assert len(ids) == 300
     import re
 
     for i in ids:

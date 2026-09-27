@@ -5747,3 +5747,24 @@
     - "one test per malformation, plus a near-miss control with a valid file"
   tests: [tests/admin/test_probe_results_fail_closed.py, apps/admin-web/e2e/models.spec.ts, apps/admin-web/e2e/ops.spec.ts]
   sec_row: "admin-console"
+- id: INT-392
+  epic: E02-data
+  phase: P0
+  title: "Deleting a session removes its previsit outputs in every erasure and retention path"
+  depends_on: [INT-036, INT-037, INT-317]
+  labels: [area:data, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-392.md
+  # Found on main's check-integration (GitHub #647): INT-317's migration 0013
+  # added previsit_outputs.session_id -> sessions.id with no ON DELETE rule,
+  # and no path removed the output first, so the DSAR erasure, the retention
+  # executor and the test_api_postgres teardown all hit ForeignKeyViolation.
+  # Mechanism: explicit removal, output first, in each path (shredded and
+  # audited on the DSAR path); the key keeps NO ACTION as the fail-closed
+  # backstop. No migration.
+  acceptance:
+    - "every session-deletion path (DSAR erasure, retention clinical_record, test cleanup) removes the session's previsit_outputs in the same transaction, first, before the session row; the DSAR erasure crypto-shreds each output and audits it as previsit_output:<id>; the mechanism (explicit removal, the foreign key kept NO ACTION, no cascade) follows files/06 §3 and the crypto-shred design and is recorded in the evidence"
+    - "every foreign key to sessions.id declares what a session deletion does to it, read from the model metadata, with near-miss controls for an undeclared table and for a cascade on previsit_outputs; both executors run with foreign keys enforced; an integration test deletes a session that has an output (red on main); the check-integration teardown is fixed; one alembic head"
+  tests: [tests/data/test_session_delete_contract.py, tests/legal/test_dsar_flows.py, tests/api/test_api_postgres.py, tests/integration/test_session_erasure.py]
+  legal: "KVKK-7,KVKK-11,DEST-2017"
+  sec_row: "data-at-rest"
