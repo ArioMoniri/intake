@@ -44,9 +44,6 @@ import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -60,6 +57,7 @@ import {
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
+import { PresenceOrb } from "@/components/PresenceOrb";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
   AppText,
@@ -69,7 +67,7 @@ import {
   useTheme,
 } from "@/components/Themed";
 import { joinParts, spoken } from "@/lib/a11y/labels";
-import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
+import { scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
@@ -79,6 +77,7 @@ import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
+import { orbStateFor } from "@/lib/motion/orb";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -117,53 +116,19 @@ function valueLabels(questionId: string, values: readonly string[]): string {
     .join(", ");
 }
 
-/** The pulse's curve: ease-in-out sine, so the turn has no visible corner. */
-const BREATH = Easing.bezier(...motion.easing.breath);
-
-/** Quiet pulse for the open-mic turn — a single fading element, within
- * the 02 §5.2a budget (fades only, one animated element at a time). Its
- * period is `motion.loop.pulsePeriodMs`, a FULL cycle: each half is one
- * fade, far slower than SC 2.3.1's 3 Hz (INT-335). */
-function PulseDot() {
+/** The live turn's marker in its bubble: a still dot (INT-336). The state
+ * moves on the presence orb in the glass bar, one element for the whole
+ * dialogue, so the bubbles no longer pulse or spin; their words say the
+ * rest. */
+function StateDot() {
   const theme = useTheme();
-  const reduceMotion = useReducedMotion();
-  const animate = loopingDecorationEnabled(reduceMotion);
-  const opacity = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (!animate) {
-      // SC 2.2.2: this loop runs for the whole open-mic turn — far past the
-      // five seconds the criterion allows — and carries nothing the adjacent
-      // "Sizi dinliyorum" line does not already say. Under reduce-motion it
-      // rests at full opacity: the dot stays, the movement goes.
-      opacity.setValue(1);
-      return undefined;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: motion.loop.pulsePeriodMs / 2,
-          easing: BREATH,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: motion.loop.pulsePeriodMs / 2,
-          easing: BREATH,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [animate, opacity]);
   return (
-    <Animated.View
-      // Pure decoration: the state it signals is spoken by the text beside
-      // it, so announcing the dot as well would say everything twice.
+    <View
+      // Pure decoration: the state it marks is spoken by the text beside it,
+      // so announcing the dot as well would say everything twice.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[styles.pulseDot, { backgroundColor: theme.primary, opacity }]}
+      style={[styles.stateDot, { backgroundColor: theme.primary }]}
     />
   );
 }
@@ -344,6 +309,17 @@ export function DialogueIntake({
   }
 
   const model = sectionPanelModel(questions, state, account?.carriedFacts ?? []);
+  // INT-336: the orb's one input. This lane is the dev dialogue over HTTP:
+  // it has no media transport to lose and no RED channel (the LiveKit lane
+  // feeds both), so those two inputs are honestly "connected" and none.
+  const orbState = orbStateFor({
+    lane: "voice",
+    turnPhase: turn.phase,
+    playing: session.playing,
+    voiceMuted: state.voiceMuted,
+    transport: "connected",
+    red: null,
+  });
   const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
   // While the agent speaks, the LAST logged agent turn is the live bubble.
   const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;
@@ -448,11 +424,7 @@ export function DialogueIntake({
       >
         {body}
         <View style={styles.stateRow}>
-          {session.playing ? (
-            <PulseDot />
-          ) : (
-            <ActivityIndicator size="small" color={theme.inkFaint} />
-          )}
+          <StateDot />
           <AppText role="caption" color="inkFaint">
             {session.playing ? t("dialogue.speakingHint") : t("dialogue.preparing")}
           </AppText>
@@ -501,12 +473,9 @@ export function DialogueIntake({
           accessibilityLabel={spoken(t("a11y.speaker.patient"), t("dialogue.transcribing"))}
           style={[styles.bubble, styles.patientBubble, { backgroundColor: theme.surfaceRaised }]}
         >
-          <View style={styles.stateRow}>
-            <ActivityIndicator size="small" color={theme.inkFaint} />
-            <AppText role="caption" color="inkSoft">
-              {t("dialogue.transcribing")}
-            </AppText>
-          </View>
+          <AppText role="caption" color="inkSoft">
+            {t("dialogue.transcribing")}
+          </AppText>
         </View>
       );
     }
@@ -593,7 +562,7 @@ export function DialogueIntake({
               ]}
             >
               <View style={styles.stateRow}>
-                <PulseDot />
+                <StateDot />
                 <AppText role="body" color="primary">
                   {t("voiceFirst.listening")}
                 </AppText>
@@ -608,7 +577,6 @@ export function DialogueIntake({
             // The one honest wait: everything is asked, the last answers are
             // still being worked into the note — quiet, in-stream.
             <View accessible style={styles.stateRow}>
-              <ActivityIndicator size="small" color={theme.inkFaint} />
               <AppText role="caption" color="inkSoft">
                 {t("voiceFirst.preparing")}
               </AppText>
@@ -680,11 +648,20 @@ export function DialogueIntake({
               up); the composer below keeps its whole height, so the field
               the patient is typing into stays in view. */}
             <ScrollView style={styles.barScroll} keyboardShouldPersistTaps="handled">
-              <SectionStrip
-                filled={model.filled}
-                total={model.total}
-                onPress={() => setSheetOpen(true)}
-              />
+              <View style={styles.stripRow}>
+                <PresenceOrb
+                  state={orbState}
+                  working={pendingTranscription || state.inflight.length > 0}
+                  readLevel={session.readLevel}
+                />
+                <View style={styles.stripFill}>
+                  <SectionStrip
+                    filled={model.filled}
+                    total={model.total}
+                    onPress={() => setSheetOpen(true)}
+                  />
+                </View>
+              </View>
               {turn.phase === "listening" ? (
                 <View style={styles.barItem}>
                   <PrimaryButton
@@ -817,7 +794,10 @@ const styles = StyleSheet.create({
   },
   listeningBubble: { borderWidth: 1 },
   stateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  pulseDot: { width: 8, height: 8, borderRadius: radius.chip },
+  stateDot: { width: 8, height: 8, borderRadius: radius.chip },
+  // The orb leads the bar's first row; the strip takes the rest of it.
+  stripRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  stripFill: { flex: 1 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,
