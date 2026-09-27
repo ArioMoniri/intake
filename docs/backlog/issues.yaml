@@ -5663,3 +5663,18 @@
     - "INT-341's calendar press tokens apply"
   tests: [apps/mobile/src/lib/calendar.test.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/e2e/motion.spec.ts, tests/release/test_i18n_complete.py]
   sec_row: "mobile"
+- id: INT-382
+  epic: E03-protocols
+  phase: P0
+  title: "The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads"
+  depends_on: [INT-258]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-382.md
+  acceptance:
+    - "resolve_protocol / protocols compile refuses any op in any layer (overlay or chain pack) that leaves a red-flag rule, draft or signed, reading a slot that is not declared in the merged pack, with a typed refusal naming the rule id and slot id (ids only)"
+    - "base.life_threat is covered in the same way"
+    - "golden tests: chain-pack suppress refused; overlay refusal unchanged; a near-miss where suppressing a slot no rule reads is admitted; the same check over every served and review pack on main passes, or lists what fails"
+    - "make safety green; CODEOWNER review"
+  tests: [tests/protocols/test_rule_slot_removal.py]
+  sec_row: "protocol-registry"

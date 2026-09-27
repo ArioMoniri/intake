@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**296 issues.** By phase: P0 156 · P1 86 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 160 · todo 94 · withdrawn 1.
+**297 issues.** By phase: P0 157 · P1 86 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 161 · todo 94 · withdrawn 1.
 
 ## P0
 
@@ -167,6 +167,7 @@
 | INT-356 | Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice) | E14-legal | INT-349 | area:legal, risk:legal | awaiting-human |
 | INT-357 | Staging passes App Attest and SMS configuration to the API; fail closed when unset | E13-infra | INT-345 | area:infra, risk:security | doing |
 | INT-358 | SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery | E14-legal | INT-329 | area:legal, risk:legal, risk:security | awaiting-human |
+| INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done |
 
 ## P1
 

@@ -83,7 +83,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-317 (previsit output store + hospital read-back: filed on int-demo
     # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
     # id is held by no other row on main or any remote branch).
-    assert len(ids) == 296
+    # + INT-382 (the compiler refuses a suppress_slot in any layer that removes
+    # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
+    assert len(ids) == 297
     import re
 
     for i in ids:
