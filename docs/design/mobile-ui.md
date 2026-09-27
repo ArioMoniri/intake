@@ -70,9 +70,11 @@ transitions are set to `animation: "fade"`.
 
 The full motion system (arbiter order, no-motion surfaces, haptics policy,
 RED first paint as a root layer, Android's fixed 150 ms stack fade) is
-[ADR-033](../adr/ADR-033-motion-system-v1.md). It is **proposed and awaiting
-owner ratification** (INT-332): until the owner ratifies it, its five open
-questions stay at their fail-closed defaults.
+[ADR-033](../adr/ADR-033-motion-system-v1.md). The owner **ratified it in
+chat, 2026-09-27** (INT-332, `files/00_STATE.md` §3 D18): all five open
+questions are answered (Q1 yes, Q2 no, Q3 no, Q4 yes, Q5 no), each matching
+the fail-closed default already shipped, so nothing here changed as a result
+of ratification.
 
 ## Navigation shell
 
